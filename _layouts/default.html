@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+  {% include head.html %}
+
+  <body>
+
+    {% include header.html %}
+    <div id="page-main">
+      <div class="sidebar">
+        <div class="wrapper">
+          {% capture sidebar %}{% include nav.md %}{% endcapture %}
+          {{ sidebar | markdownify }}
+        </div>
+      </div>
+
+      <div class="page-content">
+        <div class="wrapper">
+          {{ content }}
+        </div>
+      </div>
+    </div>
+    {% include footer.html %}
+
+  </body>
+
+</html>
