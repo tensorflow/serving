@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+
+// Config proto for StaticStoragePathSource.
+message StaticStoragePathSourceConfig {
+  // The single servable name, version number and path to supply statically.
+  string servable_name = 1;
+  int64 version_num = 2;
+  string version_path = 3;
+}

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+import "tensorflow/core/framework/config.proto";
+
+package tensorflow.serving;
+
+// Configuration parameters for a SessionBundle.
+message SessionBundleConfig {
+  // The TensorFlow runtime to connect to.
+  // See full documentation in tensorflow/core/public/session_options.h.
+  //
+  // For single machine serving, we recommend using the empty string "", which
+  // will configure the local TensorFlow runtime implementation. This provides
+  // the best isolation currently available across multiple Session servables.
+  string session_target = 1;
+
+  // TensorFlow Session configuration options.
+  // See more details in tensorflow/core/framework/config.proto.
+  ConfigProto session_config = 2;
+}

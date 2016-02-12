@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+
+// Config proto for FileSystemStoragePathSource.
+message FileSystemStoragePathSourceConfig {
+  // The servable name to supply in aspired-versions callback calls.
+  // Child paths of 'base_path' are considered to be versions of this servable.
+  string servable_name = 1;
+
+  // The path to monitor, i.e. look for child paths of the form base_path/123.
+  string base_path = 2;
+
+  // How long to wait between file-system polling to look for children of
+  // 'base_path', in seconds.
+  //
+  // For testing use only: a negative value disables the polling thread.
+  int64 file_system_poll_wait_seconds = 3;
+
+  // If true, then FileSystemStoragePathSource::Create() fails if the file
+  // system doesn't currently contain at least one version under the base path.
+  // (Otherwise, it will emit a warning and keep pinging the file system to
+  // check for a version to appear later.)
+  bool fail_if_zero_versions_at_startup = 4;
+}

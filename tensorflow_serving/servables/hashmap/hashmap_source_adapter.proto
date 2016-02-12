@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+
+// Config proto for HashmapSourceAdapter.
+message HashmapSourceAdapterConfig {
+  // The format used by the file containing a serialized hashmap.
+  enum Format {
+    // A simple kind of CSV text file of the form:
+    //  key0,value0\n
+    //  key1,value1\n
+    //  ...
+    SIMPLE_CSV = 0;
+  }
+  Format format = 1;
+}

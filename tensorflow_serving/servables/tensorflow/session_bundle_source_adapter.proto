@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+import "tensorflow_serving/servables/tensorflow/session_bundle_config.proto";
+
+package tensorflow.serving;
+
+// Config proto for SessionBundleSourceAdapter.
+message SessionBundleSourceAdapterConfig {
+  SessionBundleConfig config = 1;
+}

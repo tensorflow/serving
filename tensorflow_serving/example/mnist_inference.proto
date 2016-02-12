@@ -1,0 +1,24 @@
+// Protobuf definition of MNIST model inference server.
+// The server classifies 28x28 greyscale image into digit 0-9.
+// See mnist_model.py for model details.
+// See minist_inference.cc for server implementation.
+
+syntax = "proto3";
+
+package tensorflow.serving;
+
+message MnistRequest {
+  // Row-major encoding of a 28x28 image, each byte being the grayscale value
+  // of a pixel rescaled from [0, 255] down to [-0.5, 0.5].
+  repeated float image_data = 1 [packed = true];
+};
+
+message MnistResponse {
+  // Matching probability of digit 0-9 in range [0.0, 1.0].
+  repeated float value = 1 [packed = true];
+};
+
+service MnistService {
+  // Classifies image into digits.
+  rpc Classify(MnistRequest) returns (MnistResponse);
+}

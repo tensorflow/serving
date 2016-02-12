@@ -1,0 +1,6 @@
+[submodule "tensorflow"]
+	path = tensorflow
+	url = https://github.com/tensorflow/tensorflow.git
+[submodule "grpc"]
+	path = grpc
+	url = https://github.com/grpc/grpc.git
