@@ -1,7 +1,7 @@
 #TensorFlow Serving
 
 TensorFlow Serving is an open-source software library for serving
-machine-learned models. It deals with the *inference* aspect of machine
+machine learning models. It deals with the *inference* aspect of machine
 learning, taking models after *training* and managing their lifetimes, providing
 clients with versioned access via a high-performance, reference-counted lookup
 table.
@@ -23,7 +23,7 @@ but at its core it manages arbitrary versioned items (*servables*) with
 pass-through to their native APIs. In addition to trained TensorFlow models,
 servables can include other assets needed for inference such as embeddings,
 vocabularies and feature transformation configs, or even non-TensorFlow-based
-machine-learned models.
+machine learning models.
 
 The architecture is highly modular. You can use some parts individually (e.g.
 batch scheduling) or use all the parts together. There are numerous plug-in
@@ -40,6 +40,11 @@ tracking requests and bugs.
 # Download and Setup
 
 See [install instructions](tensorflow_serving/g3doc/setup.md).
+
+##Tutorials
+
+* [Basic tutorial](tensorflow_serving/g3doc/serving_basic.md)
+* [Advanced tutorial](tensorflow_serving/g3doc/serving_advanced.md)
 
 ##For more information
 

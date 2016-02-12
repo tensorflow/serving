@@ -1,7 +1,3 @@
----
----
-<style>hr{display:none;}</style>
-
 # Creating a new kind of servable
 
 This document explains how to extend TensorFlow Serving with a new kind of
@@ -26,7 +22,7 @@ define methods for loading, accessing and unloading your type of servable. The
 data from which the servable is loaded can come from anywhere, but it is common
 for it to come from a storage-system path; let's assume that's the case for
 `YourServable`. Let's further assume you already have a `Source<StoragePath>`
-that you are happy with (if not, see the [Custom Source](custom_source)
+that you are happy with (if not, see the [Custom Source](custom_source.md)
 document). In addition to your Loader, you will need to define a `SourceAdapter`
 that instantiates a `Loader` from a given storage path. Most simple use-cases
 can specify the two objects concisely via the `SimpleLoaderSourceAdapter` class
