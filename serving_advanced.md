@@ -53,7 +53,7 @@ $>bazel-bin/tensorflow_serving/example/mnist_export --training_iteration=100 --e
 Train (with 2000 iterations) and export the second version of model:
 
 ~~~
-$>bazel-bin/tensorflow_serving/example:mnist_export --training_iteration=2000 --export_version=2 /tmp/mnist_model
+$>bazel-bin/tensorflow_serving/example/mnist_export --training_iteration=2000 --export_version=2 /tmp/mnist_model
 ~~~
 
 As you can see in `mnist_export.py`, the training and exporting is done the

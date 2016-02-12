@@ -1,7 +1,3 @@
----
----
-<style>hr{display:none;}</style>
-
 # Installation
 
 ## Prerequisites
@@ -36,7 +32,7 @@ following steps:
 
 Our tutorials use [gRPC](http://www.grpc.io) (0.13 or higher) as our RPC
 framework. You can find the installation instructions
-[here](https://github.com/grpc/grpc/issues/5111).
+[here](https://github.com/grpc/grpc/tree/master/src/python/grpcio).
 
 ### Packages
 
@@ -114,5 +110,5 @@ To test your installation, execute:
 bazel test tensorflow_serving/...
 ~~~
 
-See the [basic tutorial](serving_basic) and [advanced tutorial](serving_advanced)
+See the [basic tutorial](serving_basic.md) and [advanced tutorial](serving_advanced.md)
 for more in-depth examples of running TensorFlow Serving.
