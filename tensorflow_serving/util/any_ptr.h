@@ -51,8 +51,8 @@ namespace serving {
 // anti-pattern.
 //
 // Note that this will appear null even if T is somewhere on the underlying
-// type's inheritance hirarchy, if you must use the object at some other type
-// you must do so explictly when constructing an AnyPtr, like so:
+// type's inheritance hierarchy, if you must use the object at some other type
+// you must do so explicitly when constructing an AnyPtr, like so:
 //
 //   SomeObject object;
 //   AnyPtr any_ptr(static_cast<SomeInterface*>(&object));

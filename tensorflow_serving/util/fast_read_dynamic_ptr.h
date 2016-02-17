@@ -72,7 +72,7 @@ class FastReadDynamicPtr {
  public:
   // Short, documentative names for the types of smart pointers we use. Callers
   // are not required to use these names; shared_ptr and unique_ptr are part of
-  // the interface. This is paricularly useful for calling the aliased pointer
+  // the interface. This is particularly useful for calling the aliased pointer
   // constructor of shared_ptr.
 
   // Used when providing a read-only pointer. Never actually used to own an

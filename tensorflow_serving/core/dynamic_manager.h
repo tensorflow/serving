@@ -59,7 +59,7 @@ class DynamicManagerTestAccess;
 // The manager makes transitions between versions of a servable stream using a
 // configured VersionPolicy. The manager prefers unloading before loading to
 // free up resources in the server when deciding amongst transitions suggested
-// by the polcy.
+// by the policy.
 //
 // TODO(b/25631500): Make the DynamicManager configurable using a proto.
 class DynamicManager final : public Manager,

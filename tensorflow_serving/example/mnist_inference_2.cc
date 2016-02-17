@@ -90,7 +90,7 @@ const int kNumLabels = 10;
 
 class MnistServiceImpl;
 
-// Class encompasing the state and logic needed to serve a request.
+// Class encompassing the state and logic needed to serve a request.
 class CallData {
  public:
   CallData(MnistServiceImpl* service_impl,

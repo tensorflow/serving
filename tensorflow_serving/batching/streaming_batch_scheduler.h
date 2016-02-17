@@ -92,7 +92,7 @@ namespace batching {
 //
 //     These variations are permitted:
 //      - The model may reside in a single servable, or it may be spread across
-//        multiple servables that are used in unision (e.g. a vocabulary lookup
+//        multiple servables that are used in unison (e.g. a vocabulary lookup
 //        table servable and a tensorflow session servable).
 //      - The model's servable(s) may be static, or they may evolve over time
 //        (successive servable versions).

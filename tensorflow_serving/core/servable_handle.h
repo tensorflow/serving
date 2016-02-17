@@ -92,7 +92,7 @@ class ServableHandle {
 
   operator bool() const { return get() != nullptr; }
 
-  // See the end of this file for comparions operators, which must be declared
+  // See the end of this file for comparison operators, which must be declared
   // at namespace scope to support left-hand-side arguments of different types.
 
  private:

@@ -34,8 +34,8 @@ namespace serving {
 // an "empty" value.  When it holds a value of T, it stores it as a direct
 // subobject, so sizeof(optional<T>) is approximately sizeof(T)+1. The interface
 // is based on the upcoming std::experimental::optional<T>, and
-// tensorflow::serving::optional<T> is designed to be cheaply drop-in replacable
-// by std::experimental::optional<T>, once it is rolled out.
+// tensorflow::serving::optional<T> is designed to be cheaply drop-in
+// replaceable by std::experimental::optional<T>, once it is rolled out.
 //
 // This implementation is based on the specification in N4335 Section 5:
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4335.html
@@ -167,7 +167,7 @@ class optional {
     return *this;
   }
 
-  // Copy assigment, standard semantics.
+  // Copy assignment, standard semantics.
   optional& operator=(const optional& src) {
     if (src) {
       operator=(src.reference());
@@ -187,7 +187,7 @@ class optional {
     return *this;
   }
 
-  // Copy assigment from T.  If empty becomes copy construction.
+  // Copy assignment from T.  If empty becomes copy construction.
   optional& operator=(const T& src) {  // NOLINT(build/c++11)
     if (*this) {
       reference() = src;
@@ -366,7 +366,7 @@ class optional {
   // Whether or not this optional is non-empty.
   bool engaged_ = false;
 
-  // T constaint checks.  You can't have an optional of nullopt_t, in_place_t or
+  // T constraint checks. You can't have an optional of nullopt_t, in_place_t or
   // a reference.
   static_assert(
       !std::is_same<nullopt_t, typename std::remove_cv<T>::type>::value,
