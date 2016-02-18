@@ -7,9 +7,9 @@ title: TensorFlow Serving
 email: discuss@tensorflow.org
 description: > # this means to ignore newlines until "baseurl:"
   TensorFlow Serving is a flexible, high-performance serving system for
-  machine learning models, designed for production environments. 
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "https://tensorflow.github.io/serving" # the base hostname & protocol for your site
+  machine learning models, designed for production environments.
+baseurl: "/serving" # the subpath of your site, e.g. /blog
+url: "https://tensorflow.github.io" # the base hostname & protocol for your site
 twitter_username: googleresearch
 github_username:  tensorflow
 

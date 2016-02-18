@@ -21,14 +21,15 @@ limitations under the License.
 
 #include <algorithm>
 
-#include <google/protobuf/stubs/common.h>
-#include <google/protobuf/stubs/once.h>
-#include <google/protobuf/io/coded_stream.h>
-#include <google/protobuf/wire_format_lite_inl.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/generated_message_reflection.h>
+#include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/reflection_ops.h>
+#include <google/protobuf/stubs/common.h>
+#include <google/protobuf/stubs/once.h>
+#include <google/protobuf/stubs/port.h>
 #include <google/protobuf/wire_format.h>
+#include <google/protobuf/wire_format_lite_inl.h>
 // @@protoc_insertion_point(includes)
 
 namespace tensorflow {
@@ -150,9 +151,9 @@ static void MergeFromFail(int line) {
 
 // ===================================================================
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int MnistRequest::kImageDataFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 MnistRequest::MnistRequest()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
@@ -413,9 +414,9 @@ MnistRequest::mutable_image_data() {
 
 // ===================================================================
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int MnistResponse::kValueFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 MnistResponse::MnistResponse()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {

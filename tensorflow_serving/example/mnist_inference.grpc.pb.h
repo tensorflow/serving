@@ -24,18 +24,17 @@ limitations under the License.
 
 #include "mnist_inference.pb.h"
 
-#include <grpc++/support/async_stream.h>
-#include <grpc++/impl/rpc_method.h>
-#include <grpc++/impl/proto_utils.h>
-#include <grpc++/impl/service_type.h>
-#include <grpc++/support/async_unary_call.h>
-#include <grpc++/support/status.h>
-#include <grpc++/support/stub_options.h>
-#include <grpc++/support/sync_stream.h>
+#include <grpc++/impl/codegen/async_stream.h>
+#include <grpc++/impl/codegen/async_unary_call.h>
+#include <grpc++/impl/codegen/proto_utils.h>
+#include <grpc++/impl/codegen/rpc_method.h>
+#include <grpc++/impl/codegen/service_type.h>
+#include <grpc++/impl/codegen/status.h>
+#include <grpc++/impl/codegen/stub_options.h>
+#include <grpc++/impl/codegen/sync_stream.h>
 
 namespace grpc {
 class CompletionQueue;
-class Channel;
 class RpcService;
 class ServerCompletionQueue;
 class ServerContext;
@@ -58,33 +57,75 @@ class MnistService GRPC_FINAL {
   };
   class Stub GRPC_FINAL : public StubInterface {
    public:
-    Stub(const std::shared_ptr< ::grpc::Channel>& channel);
+    Stub(const std::shared_ptr<::grpc::ChannelInterface>& channel);
     ::grpc::Status Classify(::grpc::ClientContext* context, const ::tensorflow::serving::MnistRequest& request, ::tensorflow::serving::MnistResponse* response) GRPC_OVERRIDE;
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::tensorflow::serving::MnistResponse>> AsyncClassify(::grpc::ClientContext* context, const ::tensorflow::serving::MnistRequest& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::tensorflow::serving::MnistResponse>>(AsyncClassifyRaw(context, request, cq));
     }
 
    private:
-    std::shared_ptr< ::grpc::Channel> channel_;
+    std::shared_ptr<::grpc::ChannelInterface> channel_;
     ::grpc::ClientAsyncResponseReader< ::tensorflow::serving::MnistResponse>* AsyncClassifyRaw(::grpc::ClientContext* context, const ::tensorflow::serving::MnistRequest& request, ::grpc::CompletionQueue* cq) GRPC_OVERRIDE;
     const ::grpc::RpcMethod rpcmethod_Classify_;
   };
-  static std::unique_ptr<Stub> NewStub(const std::shared_ptr< ::grpc::Channel>& channel, const ::grpc::StubOptions& options = ::grpc::StubOptions());
+  static std::unique_ptr<Stub> NewStub(
+      const std::shared_ptr<::grpc::ChannelInterface>& channel,
+      const ::grpc::StubOptions& options = ::grpc::StubOptions());
 
-  class Service : public ::grpc::SynchronousService {
+  class Service : public ::grpc::Service {
    public:
     Service();
     virtual ~Service();
     virtual ::grpc::Status Classify(::grpc::ServerContext* context, const ::tensorflow::serving::MnistRequest* request, ::tensorflow::serving::MnistResponse* response);
-    ::grpc::RpcService* service() GRPC_OVERRIDE GRPC_FINAL;
-   private:
-    std::unique_ptr< ::grpc::RpcService> service_;
   };
-  class AsyncService GRPC_FINAL : public ::grpc::AsynchronousService {
+  template <class BaseClass>
+  class WithAsyncMethod_Classify : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(Service* service) {}
+
    public:
-    explicit AsyncService();
-    ~AsyncService() {};
-    void RequestClassify(::grpc::ServerContext* context, ::tensorflow::serving::MnistRequest* request, ::grpc::ServerAsyncResponseWriter< ::tensorflow::serving::MnistResponse>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag);
+    WithAsyncMethod_Classify() { ::grpc::Service::MarkMethodAsync(0); }
+    ~WithAsyncMethod_Classify() GRPC_OVERRIDE {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status Classify(::grpc::ServerContext* context,
+                            const ::tensorflow::serving::MnistRequest* request,
+                            ::tensorflow::serving::MnistResponse* response)
+        GRPC_FINAL GRPC_OVERRIDE {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestClassify(
+        ::grpc::ServerContext* context,
+        ::tensorflow::serving::MnistRequest* request,
+        ::grpc::ServerAsyncResponseWriter<::tensorflow::serving::MnistResponse>*
+            response,
+        ::grpc::CompletionQueue* new_call_cq,
+        ::grpc::ServerCompletionQueue* notification_cq, void* tag) {
+      ::grpc::Service::RequestAsyncUnary(0, context, request, response,
+                                         new_call_cq, notification_cq, tag);
+    }
+  };
+  typedef WithAsyncMethod_Classify<Service> AsyncService;
+  template <class BaseClass>
+  class WithGenericMethod_Classify : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(Service* service) {}
+
+   public:
+    WithGenericMethod_Classify() { ::grpc::Service::MarkMethodGeneric(0); }
+    ~WithGenericMethod_Classify() GRPC_OVERRIDE {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status Classify(::grpc::ServerContext* context,
+                            const ::tensorflow::serving::MnistRequest* request,
+                            ::tensorflow::serving::MnistResponse* response)
+        GRPC_FINAL GRPC_OVERRIDE {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
   };
 };
 

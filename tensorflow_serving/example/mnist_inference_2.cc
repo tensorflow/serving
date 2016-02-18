@@ -388,7 +388,7 @@ void RunServer(const int port, const string& servable_name,
   ServerBuilder builder;
   std::shared_ptr<grpc::ServerCredentials> creds = InsecureServerCredentials();
   builder.AddListeningPort(server_address, creds);
-  builder.RegisterAsyncService(&service);
+  builder.RegisterService(&service);
   std::unique_ptr<ServerCompletionQueue> cq = builder.AddCompletionQueue();
   std::unique_ptr<Server> server(builder.BuildAndStart());
   LOG(INFO) << "Running...";

@@ -20,13 +20,14 @@ limitations under the License.
 #include "mnist_inference.pb.h"
 #include "mnist_inference.grpc.pb.h"
 
-#include <grpc++/channel.h>
-#include <grpc++/impl/client_unary_call.h>
-#include <grpc++/impl/rpc_service_method.h>
-#include <grpc++/impl/service_type.h>
-#include <grpc++/support/async_unary_call.h>
-#include <grpc++/support/async_stream.h>
-#include <grpc++/support/sync_stream.h>
+#include <grpc++/impl/codegen/async_stream.h>
+#include <grpc++/impl/codegen/async_unary_call.h>
+#include <grpc++/impl/codegen/channel_interface.h>
+#include <grpc++/impl/codegen/client_unary_call.h>
+#include <grpc++/impl/codegen/method_handler_impl.h>
+#include <grpc++/impl/codegen/rpc_service_method.h>
+#include <grpc++/impl/codegen/service_type.h>
+#include <grpc++/impl/codegen/sync_stream.h>
 namespace tensorflow {
 namespace serving {
 
@@ -34,14 +35,18 @@ static const char* MnistService_method_names[] = {
   "/tensorflow.serving.MnistService/Classify",
 };
 
-std::unique_ptr< MnistService::Stub> MnistService::NewStub(const std::shared_ptr< ::grpc::Channel>& channel, const ::grpc::StubOptions& options) {
+std::unique_ptr<MnistService::Stub> MnistService::NewStub(
+    const std::shared_ptr< ::grpc::ChannelInterface>& channel,
+    const ::grpc::StubOptions& options) {
   std::unique_ptr< MnistService::Stub> stub(new MnistService::Stub(channel));
   return stub;
 }
 
-MnistService::Stub::Stub(const std::shared_ptr< ::grpc::Channel>& channel)
-  : channel_(channel), rpcmethod_Classify_(MnistService_method_names[0], ::grpc::RpcMethod::NORMAL_RPC, channel)
-  {}
+MnistService::Stub::Stub(
+    const std::shared_ptr< ::grpc::ChannelInterface>& channel)
+    : channel_(channel),
+      rpcmethod_Classify_(MnistService_method_names[0],
+                          ::grpc::RpcMethod::NORMAL_RPC, channel) {}
 
 ::grpc::Status MnistService::Stub::Classify(::grpc::ClientContext* context, const ::tensorflow::serving::MnistRequest& request, ::tensorflow::serving::MnistResponse* response) {
   return ::grpc::BlockingUnaryCall(channel_.get(), rpcmethod_Classify_, context, request, response);
@@ -51,9 +56,13 @@ MnistService::Stub::Stub(const std::shared_ptr< ::grpc::Channel>& channel)
   return new ::grpc::ClientAsyncResponseReader< ::tensorflow::serving::MnistResponse>(channel_.get(), cq, rpcmethod_Classify_, context, request);
 }
 
-MnistService::AsyncService::AsyncService() : ::grpc::AsynchronousService(MnistService_method_names, 1) {}
-
 MnistService::Service::Service() {
+  AddMethod(new ::grpc::RpcServiceMethod(
+      MnistService_method_names[0], ::grpc::RpcMethod::NORMAL_RPC,
+      new ::grpc::RpcMethodHandler<MnistService::Service,
+                                   ::tensorflow::serving::MnistRequest,
+                                   ::tensorflow::serving::MnistResponse>(
+          std::mem_fn(&MnistService::Service::Classify), this)));
 }
 
 MnistService::Service::~Service() {
@@ -64,23 +73,6 @@ MnistService::Service::~Service() {
   (void) request;
   (void) response;
   return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-}
-
-void MnistService::AsyncService::RequestClassify(::grpc::ServerContext* context, ::tensorflow::serving::MnistRequest* request, ::grpc::ServerAsyncResponseWriter< ::tensorflow::serving::MnistResponse>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-  AsynchronousService::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
-}
-
-::grpc::RpcService* MnistService::Service::service() {
-  if (service_) {
-    return service_.get();
-  }
-  service_ = std::unique_ptr< ::grpc::RpcService>(new ::grpc::RpcService());
-  service_->AddMethod(new ::grpc::RpcServiceMethod(
-      MnistService_method_names[0],
-      ::grpc::RpcMethod::NORMAL_RPC,
-      new ::grpc::RpcMethodHandler< MnistService::Service, ::tensorflow::serving::MnistRequest, ::tensorflow::serving::MnistResponse>(
-          std::mem_fn(&MnistService::Service::Classify), this)));
-  return service_.get();
 }
 
 

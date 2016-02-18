@@ -7,8 +7,8 @@ new_http_archive(
 
 new_http_archive(
   name = "eigen_archive",
-  url = "https://bitbucket.org/eigen/eigen/get/726c779.tar.gz",
-  sha256 = "30e0c5d84cfefc6a0bf7ae1e682b22788b5b2e408e7db7d9ea2d2aa9f70a72a9",
+  url = "https://bitbucket.org/eigen/eigen/get/70505a059011.tar.gz",
+  sha256 = "9751bd3485a9b373bc1b40626feac37484099e54b2b47a93d3da8bf1312a7beb",
   build_file = "tensorflow/eigen.BUILD",
 )
 
