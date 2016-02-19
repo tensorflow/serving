@@ -18,6 +18,9 @@ cc_library(
     name = "test_util",
     testonly = 1,
     hdrs = ["test_util.h"],
+    visibility = [
+        "//tensorflow_serving:internal",
+    ],
     deps = [
         "@tf//google/protobuf:protobuf",
         "@tf//tensorflow/core",
@@ -30,6 +33,9 @@ cc_library(
     testonly = 1,
     srcs = ["fake_clock_env.cc"],
     hdrs = ["fake_clock_env.h"],
+    visibility = [
+        "//tensorflow_serving:internal",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",

@@ -1,0 +1,5 @@
+name: "TensorFlow Serving"
+g3doc: {
+  sitemap_file: "_includes/nav.md"
+}
+

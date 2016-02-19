@@ -20,7 +20,9 @@ serving_proto_library(
     name = "session_bundle_config_proto",
     srcs = ["session_bundle_config.proto"],
     cc_api_version = 2,
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//google/protobuf:cc_wkt_protos",
         "@tf//tensorflow/core:protos_all_cc",
@@ -31,7 +33,9 @@ cc_library(
     name = "session_bundle_source_adapter",
     srcs = ["session_bundle_source_adapter.cc"],
     hdrs = ["session_bundle_source_adapter.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:core_cpu",
         "@tf//tensorflow/core:lib",
@@ -78,7 +82,9 @@ serving_proto_library(
     name = "session_bundle_source_adapter_proto",
     srcs = ["session_bundle_source_adapter.proto"],
     cc_api_version = 2,
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":session_bundle_config_proto",
     ],
@@ -88,7 +94,9 @@ cc_library(
     name = "simple_servers",
     srcs = ["simple_servers.cc"],
     hdrs = ["simple_servers.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",
@@ -135,6 +143,9 @@ cc_library(
     name = "serving_session",
     srcs = ["serving_session.cc"],
     hdrs = ["serving_session.h"],
+    visibility = [
+        "//tensorflow_serving:internal",
+    ],
     deps = [
         "@tf//tensorflow/core:core_cpu",
         "@tf//tensorflow/core:lib",

@@ -17,7 +17,9 @@ exports_files(["LICENSE"])
 cc_library(
     name = "servable_id",
     hdrs = ["servable_id.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",
@@ -36,7 +38,9 @@ cc_test(
 cc_library(
     name = "servable_data",
     hdrs = ["servable_data.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",
@@ -58,7 +62,9 @@ cc_test(
 cc_library(
     name = "loader",
     hdrs = ["loader.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",
@@ -70,7 +76,9 @@ cc_library(
 cc_library(
     name = "simple_loader",
     hdrs = ["simple_loader.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",
@@ -98,7 +106,9 @@ cc_test(
 cc_library(
     name = "source",
     hdrs = ["source.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":servable_data",
@@ -108,7 +118,9 @@ cc_library(
 cc_library(
     name = "target",
     hdrs = ["target.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":servable_data",
@@ -120,7 +132,9 @@ cc_library(
 cc_library(
     name = "source_adapter",
     hdrs = ["source_adapter.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":servable_data",
@@ -145,7 +159,9 @@ cc_test(
 cc_library(
     name = "router",
     hdrs = ["router.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":source",
@@ -171,7 +187,9 @@ cc_test(
 cc_library(
     name = "static_router",
     hdrs = ["static_router.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",
@@ -198,7 +216,9 @@ cc_test(
 cc_library(
     name = "storage_path",
     hdrs = ["storage_path.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":servable_data",
@@ -219,7 +239,9 @@ cc_test(
 cc_library(
     name = "servable_state",
     hdrs = ["servable_state.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":servable_id",
@@ -229,7 +251,9 @@ cc_library(
 cc_library(
     name = "servable_handle",
     hdrs = ["servable_handle.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:tensorflow",
         ":loader",
@@ -241,7 +265,9 @@ cc_library(
     name = "dynamic_manager",
     srcs = ["dynamic_manager.cc"],
     hdrs = ["dynamic_manager.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":loader",
@@ -301,7 +327,9 @@ cc_test(
 cc_library(
     name = "manager",
     hdrs = ["manager.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":servable_handle",
@@ -324,7 +352,9 @@ cc_test(
 cc_library(
     name = "version_policy",
     hdrs = ["version_policy.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":loader_harness",
@@ -337,7 +367,9 @@ cc_library(
     name = "eager_load_policy",
     srcs = ["eager_load_policy.cc"],
     hdrs = ["eager_load_policy.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":loader_harness",
         ":version_policy",
@@ -359,7 +391,9 @@ cc_library(
     name = "eager_unload_policy",
     srcs = ["eager_unload_policy.cc"],
     hdrs = ["eager_unload_policy.h"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":loader_harness",
         ":version_policy",
