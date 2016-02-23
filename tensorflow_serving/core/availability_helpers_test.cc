@@ -25,7 +25,16 @@ class FakeManager : public Manager {
 
   std::vector<ServableId> ListAvailableServableIds() override {
     mutex_lock l(mtx_);
+    ++num_list_available_servable_ids_calls_;
+    list_available_servable_ids_condition_.notify_all();
     return available_servable_ids_;
+  }
+
+  void WaitForListAvailableServableIdsCalls(const int n) {
+    mutex_lock l(mtx_);
+    while (n < num_list_available_servable_ids_calls_) {
+      list_available_servable_ids_condition_.wait(l);
+    }
   }
 
  private:
@@ -37,6 +46,8 @@ class FakeManager : public Manager {
 
   mutex mtx_;
   std::vector<ServableId> available_servable_ids_ GUARDED_BY(mtx_);
+  int num_list_available_servable_ids_calls_ GUARDED_BY(mtx_) = 0;
+  condition_variable list_available_servable_ids_condition_;
 };
 
 TEST(AvailabilityHelpersTest, Available) {
@@ -46,26 +57,19 @@ TEST(AvailabilityHelpersTest, Available) {
   WaitUntilServablesAvailable(&fake_manager, available_servables);
 }
 
-TEST(AvailabilityHelpersTest, NotAvailableNonWaiting) {
+TEST(AvailabilityHelpersTest, NotAvailable) {
   FakeManager fake_manager;
   fake_manager.set_available_servable_ids({{"servable0", 0}});
-  ASSERT_FALSE(internal::ServablesAvailable(
-      &fake_manager, {{"servable0", 0}, {"servable1", 0}}));
-}
-
-TEST(AvailabilityHelpersTest, NotAvailableWaiting) {
-  FakeManager fake_manager;
-  fake_manager.set_available_servable_ids({{"servable0", 0}});
-  Notification started;
   Notification finished;
   std::unique_ptr<Thread> wait(
       Env::Default()->StartThread({}, "WaitUntilServablesAvailable", [&]() {
-        started.Notify();
         WaitUntilServablesAvailable(&fake_manager,
                                     {{"servable0", 0}, {"servable1", 0}});
         finished.Notify();
       }));
-  started.WaitForNotification();
+  // Waiting for 2 calls ensures that we waited at least once for the servables
+  // to be available.
+  fake_manager.WaitForListAvailableServableIdsCalls(2);
   // Once this is done WaitUntilServables should stop waiting.
   fake_manager.set_available_servable_ids({{"servable0", 0}, {"servable1", 0}});
   finished.WaitForNotification();

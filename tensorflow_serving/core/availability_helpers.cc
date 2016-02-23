@@ -8,8 +8,7 @@
 
 namespace tensorflow {
 namespace serving {
-
-namespace internal {
+namespace {
 
 bool ServablesAvailable(Manager* const manager,
                         const std::vector<ServableId>& servables) {
@@ -23,7 +22,7 @@ bool ServablesAvailable(Manager* const manager,
                        query_servables.begin(), query_servables.end());
 }
 
-}  // namespace internal
+}  // namespace
 
 void WaitUntilServablesAvailable(Manager* const manager,
                                  const std::vector<ServableId>& servables) {
@@ -31,7 +30,7 @@ void WaitUntilServablesAvailable(Manager* const manager,
   PeriodicFunction periodic(
       [&]() {
         if (!servables_available.HasBeenNotified() &&
-            internal::ServablesAvailable(manager, servables)) {
+            ServablesAvailable(manager, servables)) {
           servables_available.Notify();
         }
       },

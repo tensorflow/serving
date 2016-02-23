@@ -23,19 +23,6 @@ namespace serving {
 void WaitUntilServablesAvailable(Manager* manager,
                                  const std::vector<ServableId>& servables);
 
-// Implementation details follow. Please do not depend on these!
-// We expose these for test accessibility.
-namespace internal {
-// Returns true if all of these servable ids are available through the provided
-// manager.
-//
-// Implementation notes:
-// We call ListAvailableServableIds on the manager, which may have side-effects
-// for certain manager implementations, e.g. causing servables to be loaded.
-bool ServablesAvailable(Manager* manager,
-                        const std::vector<ServableId>& servables);
-}  // namespace internal.
-
 }  // namespace serving
 }  // namespace tensorflow
 
