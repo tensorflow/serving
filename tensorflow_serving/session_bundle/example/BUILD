@@ -32,4 +32,7 @@ genrule(
     tools = [
         ":export_half_plus_two",
     ],
+    visibility = [
+        "//tensorflow_serving:internal",
+    ],
 )
