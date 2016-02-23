@@ -7,6 +7,7 @@
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/logging.h"
+#include "tensorflow_serving/core/manager.h"
 #include "tensorflow_serving/core/servable_handle.h"
 
 namespace tensorflow {
@@ -51,20 +52,24 @@ class FakeManager : public Manager {
 };
 
 TEST(AvailabilityHelpersTest, Available) {
-  const std::vector<ServableId> available_servables = {{"servable0", 0}};
-  FakeManager fake_manager;
-  fake_manager.set_available_servable_ids(available_servables);
-  WaitUntilServablesAvailable(&fake_manager, available_servables);
-}
-
-TEST(AvailabilityHelpersTest, NotAvailable) {
+  std::vector<ServableRequest> available_servables_query;
+  available_servables_query.emplace_back(
+      ServableRequest::Specific("servable0", 0));
   FakeManager fake_manager;
   fake_manager.set_available_servable_ids({{"servable0", 0}});
+  WaitUntilServablesAvailable(&fake_manager, available_servables_query);
+}
+
+TEST(AvailabilityHelpersTest, SpecificNotAvailable) {
+  FakeManager fake_manager;
+  fake_manager.set_available_servable_ids({{"servable0", 0}});
+  const std::vector<ServableRequest> available_servables_query = {
+      ServableRequest::Specific("servable0", 0),
+      ServableRequest::Specific("servable1", 0)};
   Notification finished;
   std::unique_ptr<Thread> wait(
       Env::Default()->StartThread({}, "WaitUntilServablesAvailable", [&]() {
-        WaitUntilServablesAvailable(&fake_manager,
-                                    {{"servable0", 0}, {"servable1", 0}});
+        WaitUntilServablesAvailable(&fake_manager, available_servables_query);
         finished.Notify();
       }));
   // Waiting for 2 calls ensures that we waited at least once for the servables
@@ -73,6 +78,44 @@ TEST(AvailabilityHelpersTest, NotAvailable) {
   // Once this is done WaitUntilServables should stop waiting.
   fake_manager.set_available_servable_ids({{"servable0", 0}, {"servable1", 0}});
   finished.WaitForNotification();
+}
+
+TEST(AvailabilityHelpersTest, LatestNotAvailable) {
+  FakeManager fake_manager;
+  fake_manager.set_available_servable_ids({{"servable0", 0}});
+  const std::vector<ServableRequest> available_servables_query = {
+      ServableRequest::Specific("servable0", 0),
+      ServableRequest::Latest("servable1")};
+  Notification finished;
+  std::unique_ptr<Thread> wait(
+      Env::Default()->StartThread({}, "WaitUntilServablesAvailable", [&]() {
+        WaitUntilServablesAvailable(&fake_manager, available_servables_query);
+        finished.Notify();
+      }));
+  // Waiting for 2 calls ensures that we waited at least once for the servables
+  // to be available.
+  fake_manager.WaitForListAvailableServableIdsCalls(2);
+  // Once this is done WaitUntilServables should stop waiting.
+  fake_manager.set_available_servable_ids({{"servable0", 0}, {"servable1", 2}});
+  finished.WaitForNotification();
+}
+
+TEST(AvailabilityHelpersTest, LatestVersion) {
+  std::vector<ServableRequest> available_servables_query;
+  available_servables_query.emplace_back(ServableRequest::Latest("servable0"));
+  FakeManager fake_manager;
+  fake_manager.set_available_servable_ids({{"servable0", 123}});
+  WaitUntilServablesAvailable(&fake_manager, available_servables_query);
+}
+
+TEST(AvailabilityHelpersTest, LatestAndExactVersion) {
+  std::vector<ServableRequest> available_servables_query;
+  available_servables_query.emplace_back(ServableRequest::Latest("servable0"));
+  available_servables_query.emplace_back(
+      ServableRequest::Specific("servable1", 1));
+  FakeManager fake_manager;
+  fake_manager.set_available_servable_ids({{"servable0", 0}, {"servable1", 1}});
+  WaitUntilServablesAvailable(&fake_manager, available_servables_query);
 }
 
 }  // namespace
