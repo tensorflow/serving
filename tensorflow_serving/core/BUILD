@@ -361,7 +361,6 @@ cc_library(
         "@tf//tensorflow/core:lib",
         ":manager",
         ":servable_id",
-        "//tensorflow_serving/util:periodic_function",
     ],
 )
 

@@ -4,7 +4,7 @@
 #include <iterator>
 #include <set>
 
-#include "tensorflow_serving/util/periodic_function.h"
+#include "tensorflow/core/platform/env.h"
 
 namespace tensorflow {
 namespace serving {
@@ -26,16 +26,9 @@ bool ServablesAvailable(Manager* const manager,
 
 void WaitUntilServablesAvailable(Manager* const manager,
                                  const std::vector<ServableId>& servables) {
-  Notification servables_available;
-  PeriodicFunction periodic(
-      [&]() {
-        if (!servables_available.HasBeenNotified() &&
-            ServablesAvailable(manager, servables)) {
-          servables_available.Notify();
-        }
-      },
-      50 * 1000 /* 50ms */);
-  servables_available.WaitForNotification();
+  while (!ServablesAvailable(manager, servables)) {
+    Env::Default()->SleepForMicroseconds(50 * 1000 /* 50 ms */);
+  }
 }
 
 }  // namespace serving
