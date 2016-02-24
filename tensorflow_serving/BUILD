@@ -14,3 +14,15 @@ package_group(
         "//tensorflow_serving/...",
     ],
 )
+
+filegroup(
+    name = "all_files",
+    srcs = glob(
+        ["**/*"],
+        exclude = [
+            "**/METADATA",
+            "**/OWNERS",
+            "g3doc/sitemap.md",
+        ],
+    ),
+)

@@ -14,6 +14,17 @@ licenses(["notice"])  # Apache 2.0
 
 exports_files(["LICENSE"])
 
+filegroup(
+    name = "all_files",
+    srcs = glob(
+        ["**/*"],
+        exclude = [
+            "**/METADATA",
+            "**/OWNERS",
+        ],
+    ),
+)
+
 cc_library(
     name = "static_storage_path_source",
     srcs = ["static_storage_path_source.cc"],

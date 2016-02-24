@@ -12,6 +12,18 @@ licenses(["notice"])  # Apache 2.0
 
 exports_files(["LICENSE"])
 
+filegroup(
+    name = "all_files",
+    srcs = glob(
+        ["**/*"],
+        exclude = [
+            "**/METADATA",
+            "**/OWNERS",
+            "g3doc/sitemap.md",
+        ],
+    ),
+)
+
 cc_library(
     name = "hashmap_source_adapter",
     srcs = ["hashmap_source_adapter.cc"],
