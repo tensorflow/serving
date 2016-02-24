@@ -350,6 +350,31 @@ cc_test(
 )
 
 cc_library(
+    name = "availability_helpers",
+    srcs = ["availability_helpers.cc"],
+    hdrs = ["availability_helpers.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":manager",
+        ":servable_id",
+    ],
+)
+
+cc_test(
+    name = "availability_helpers_test",
+    srcs = ["availability_helpers_test.cc"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":availability_helpers",
+        ":servable_handle",
+        "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
+
+cc_library(
     name = "version_policy",
     hdrs = ["version_policy.h"],
     visibility = [
