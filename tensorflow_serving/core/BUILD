@@ -354,7 +354,6 @@ cc_library(
     srcs = ["availability_helpers.cc"],
     hdrs = ["availability_helpers.h"],
     visibility = [
-        "//tensorflow_serving:internal",
         "//visibility:public",
     ],
     deps = [
