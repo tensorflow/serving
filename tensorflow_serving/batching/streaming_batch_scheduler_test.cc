@@ -263,7 +263,7 @@ TEST(StreamingBatchSchedulerTest, BatchHandedToCallbackWhenFirstCreated) {
   stop_scheduler.WaitForNotification();
 }
 
-TEST(StreamingBatchSchedulerTest, SchedulingCapacity) {
+TEST(StreamingBatchSchedulerTest, ConstMethods) {
   for (const int num_threads : {1, 2, 3}) {
     Notification proceed;
     auto callback = [&proceed](std::unique_ptr<Batch<FakeTask>> batch) {
@@ -279,20 +279,26 @@ TEST(StreamingBatchSchedulerTest, SchedulingCapacity) {
     TF_ASSERT_OK(StreamingBatchScheduler<FakeTask>::Create(options, callback,
                                                            &scheduler));
 
-    // Submit 'num_threads' full batches, to make the scheduling queue "full".
+    // Submit 'num_threads' full batches, to make the scheduling threads "full".
+    // (At all times, the queue length should show as 0, since
+    // StreamingBatchScheduler never enqueues tasks.)
     for (int i = 0; i < num_threads; ++i) {
+      EXPECT_EQ(0, scheduler->NumEnqueuedTasks());
       EXPECT_EQ((num_threads - i) * 2, scheduler->SchedulingCapacity());
       TF_ASSERT_OK(ScheduleTask(1, scheduler.get()));
+      EXPECT_EQ(0, scheduler->NumEnqueuedTasks());
       EXPECT_EQ((num_threads - i) * 2 - 1, scheduler->SchedulingCapacity());
       TF_ASSERT_OK(ScheduleTask(1, scheduler.get()));
     }
+    EXPECT_EQ(0, scheduler->NumEnqueuedTasks());
     EXPECT_EQ(0, scheduler->SchedulingCapacity());
 
-    // Make another Schedule() call while the queue is full, which should yield
-    // an UNAVAILABLE error.
+    // Make another Schedule() call while the threads are full, which should
+    // yield an UNAVAILABLE error.
     Status status = ScheduleTask(1, scheduler.get());
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(error::UNAVAILABLE, status.code());
+    EXPECT_EQ(0, scheduler->NumEnqueuedTasks());
     EXPECT_EQ(0, scheduler->SchedulingCapacity());
 
     // Allow the processing to proceed, and wait plenty of time for it to finish

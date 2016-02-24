@@ -153,6 +153,13 @@ class BatchScheduler {
   // of the batch that includes the task can be reported to 'task'.
   virtual Status Schedule(std::unique_ptr<TaskType>* task) = 0;
 
+  // Returns the number of tasks that have been scheduled (i.e. accepted by
+  // Schedule()), but have yet to be handed to a thread for execution as part of
+  // a batch. Note that this returns the number of tasks, not the aggregate task
+  // size (so if there is one task of size 3 and one task of size 5, this method
+  // returns 2 rather than 8).
+  virtual size_t NumEnqueuedTasks() const = 0;
+
   // Returns a guaranteed number of size 1 tasks that can be Schedule()d without
   // getting an UNAVAILABLE error. In a typical implementation, returns the
   // available space on a queue.

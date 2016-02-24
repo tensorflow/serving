@@ -54,6 +54,8 @@ class BrokenScheduler : public BatchScheduler<FakeTask> {
     return errors::Unknown("BrokenScheduler faithfully failing");
   }
 
+  size_t NumEnqueuedTasks() const override { return 7; }
+
   size_t SchedulingCapacity() const override { return 42; }
 
   int num_submit_calls() const { return num_submit_calls_; }
@@ -84,6 +86,8 @@ class StubbornScheduler : public BatchScheduler<FakeTask> {
     }
   }
 
+  size_t NumEnqueuedTasks() const override { return 0; }
+
   size_t SchedulingCapacity() const override {
     return std::numeric_limits<size_t>::max();
   }
@@ -97,12 +101,13 @@ class StubbornScheduler : public BatchScheduler<FakeTask> {
   TF_DISALLOW_COPY_AND_ASSIGN(StubbornScheduler);
 };
 
-TEST(RetrierTest, SchedulingCapacityForwardsToWrappedScheduler) {
+TEST(RetrierTest, ConstMethodsForwardToWrappedScheduler) {
   auto broken_scheduler = std::unique_ptr<BrokenScheduler>(new BrokenScheduler);
   Retrier<FakeTask>::Options options;
   std::unique_ptr<Retrier<FakeTask>> retrier;
   TF_CHECK_OK(Retrier<FakeTask>::Create(options, std::move(broken_scheduler),
                                         &retrier));
+  EXPECT_EQ(7, retrier->NumEnqueuedTasks());
   EXPECT_EQ(42, retrier->SchedulingCapacity());
 }
 
