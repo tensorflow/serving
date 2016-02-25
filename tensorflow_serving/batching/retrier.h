@@ -54,6 +54,7 @@ class Retrier : public BatchScheduler<TaskType> {
   ~Retrier() override = default;
 
   Status Schedule(std::unique_ptr<TaskType>* task) override;
+  size_t NumEnqueuedTasks() const override;
   size_t SchedulingCapacity() const override;
 
  private:
@@ -108,6 +109,11 @@ Status Retrier<TaskType>::Schedule(std::unique_ptr<TaskType>* task) {
   }
 
   return status;
+}
+
+template <typename TaskType>
+size_t Retrier<TaskType>::NumEnqueuedTasks() const {
+  return wrapped_->NumEnqueuedTasks();
 }
 
 template <typename TaskType>

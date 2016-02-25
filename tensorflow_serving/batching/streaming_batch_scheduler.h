@@ -202,6 +202,12 @@ class StreamingBatchScheduler : public BatchScheduler<TaskType> {
   ~StreamingBatchScheduler() override;
 
   Status Schedule(std::unique_ptr<TaskType>* task) override;
+
+  // StreamingBatchScheduler never enqueues tasks, as discussed above.
+  size_t NumEnqueuedTasks() const override { return 0; }
+
+  // Scheduling capacity is based purely on threads that can accept tasks
+  // immediately (there is no queueing).
   size_t SchedulingCapacity() const override;
 
  private:

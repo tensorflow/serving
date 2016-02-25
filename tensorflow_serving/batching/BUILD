@@ -12,6 +12,17 @@ licenses(["notice"])  # Apache 2.0
 
 exports_files(["LICENSE"])
 
+filegroup(
+    name = "all_files",
+    srcs = glob(
+        ["**/*"],
+        exclude = [
+            "**/METADATA",
+            "**/OWNERS",
+        ],
+    ),
+)
+
 cc_library(
     name = "batch_scheduler",
     hdrs = ["batch_scheduler.h"],
