@@ -43,7 +43,7 @@ These exports have the following properties,
 
 ## Python exporting code
 
-The [`Exporter`](http://cs/tensorflow_serving/session_bundle/exporter.py)
+The [`Exporter`](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/session_bundle/exporter.py)
 class can be used to export a model in the above format from a Tensorflow python
 binary.
 
