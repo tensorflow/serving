@@ -35,9 +35,9 @@ class ServingSession : public Session {
   ~ServingSession() override = default;
 
   // Methods that return errors.
-  Status Create(const GraphDef& graph) override;
-  Status Extend(const GraphDef& graph) override;
-  Status Close() override;
+  Status Create(const GraphDef& graph) final;
+  Status Extend(const GraphDef& graph) final;
+  Status Close() final;
 
   // (Subclasses just implement Run().)
 };
