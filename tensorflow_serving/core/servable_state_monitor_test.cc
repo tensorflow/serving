@@ -32,7 +32,7 @@ TEST(ServableStateMonitorTest, AddingStates) {
   auto bus = EventBus<ServableState>::CreateEventBus();
   ServableStateMonitor monitor(bus.get());
   EXPECT_FALSE(monitor.GetState(ServableId{"foo", 42}));
-  EXPECT_TRUE(monitor.GetAllVersionStates("foo").empty());
+  EXPECT_TRUE(monitor.GetVersionStates("foo").empty());
   EXPECT_TRUE(monitor.GetAllServableStates().empty());
 
   // Initial servable.
@@ -44,9 +44,8 @@ TEST(ServableStateMonitorTest, AddingStates) {
   EXPECT_EQ(state_0, *monitor.GetState(ServableId{"foo", 42}));
   EXPECT_FALSE(monitor.GetState(ServableId{"foo", 99}));
   EXPECT_FALSE(monitor.GetState(ServableId{"bar", 42}));
-  EXPECT_THAT(monitor.GetAllVersionStates("foo"),
-              ElementsAre(Pair(42, state_0)));
-  EXPECT_TRUE(monitor.GetAllVersionStates("bar").empty());
+  EXPECT_THAT(monitor.GetVersionStates("foo"), ElementsAre(Pair(42, state_0)));
+  EXPECT_TRUE(monitor.GetVersionStates("bar").empty());
   EXPECT_THAT(
       monitor.GetAllServableStates(),
       UnorderedElementsAre(Pair("foo", ElementsAre(Pair(42, state_0)))));
@@ -62,9 +61,9 @@ TEST(ServableStateMonitorTest, AddingStates) {
   EXPECT_EQ(state_1, *monitor.GetState(ServableId{"foo", 43}));
   EXPECT_FALSE(monitor.GetState(ServableId{"foo", 99}));
   EXPECT_FALSE(monitor.GetState(ServableId{"bar", 42}));
-  EXPECT_THAT(monitor.GetAllVersionStates("foo"),
+  EXPECT_THAT(monitor.GetVersionStates("foo"),
               ElementsAre(Pair(42, state_0), Pair(43, state_1)));
-  EXPECT_TRUE(monitor.GetAllVersionStates("bar").empty());
+  EXPECT_TRUE(monitor.GetVersionStates("bar").empty());
   EXPECT_THAT(monitor.GetAllServableStates(),
               UnorderedElementsAre(Pair(
                   "foo", ElementsAre(Pair(42, state_0), Pair(43, state_1)))));
@@ -81,11 +80,10 @@ TEST(ServableStateMonitorTest, AddingStates) {
   ASSERT_TRUE(monitor.GetState(ServableId{"bar", 7}));
   EXPECT_EQ(state_2, *monitor.GetState(ServableId{"bar", 7}));
   EXPECT_FALSE(monitor.GetState(ServableId{"bar", 42}));
-  EXPECT_THAT(monitor.GetAllVersionStates("foo"),
+  EXPECT_THAT(monitor.GetVersionStates("foo"),
               ElementsAre(Pair(42, state_0), Pair(43, state_1)));
-  EXPECT_THAT(monitor.GetAllVersionStates("bar"),
-              ElementsAre(Pair(7, state_2)));
-  EXPECT_TRUE(monitor.GetAllVersionStates("baz").empty());
+  EXPECT_THAT(monitor.GetVersionStates("bar"), ElementsAre(Pair(7, state_2)));
+  EXPECT_TRUE(monitor.GetVersionStates("baz").empty());
   EXPECT_THAT(monitor.GetAllServableStates(),
               UnorderedElementsAre(Pair("foo", ElementsAre(Pair(42, state_0),
                                                            Pair(43, state_1))),
@@ -125,10 +123,9 @@ TEST(ServableStateMonitorTest, UpdatingStates) {
   EXPECT_EQ(state_1_updated, *monitor.GetState(ServableId{"foo", 43}));
   ASSERT_TRUE(monitor.GetState(ServableId{"bar", 7}));
   EXPECT_EQ(state_2, *monitor.GetState(ServableId{"bar", 7}));
-  EXPECT_THAT(monitor.GetAllVersionStates("foo"),
+  EXPECT_THAT(monitor.GetVersionStates("foo"),
               ElementsAre(Pair(42, state_0), Pair(43, state_1_updated)));
-  EXPECT_THAT(monitor.GetAllVersionStates("bar"),
-              ElementsAre(Pair(7, state_2)));
+  EXPECT_THAT(monitor.GetVersionStates("bar"), ElementsAre(Pair(7, state_2)));
   EXPECT_THAT(
       monitor.GetAllServableStates(),
       UnorderedElementsAre(Pair("foo", ElementsAre(Pair(42, state_0),

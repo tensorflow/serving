@@ -37,7 +37,7 @@ optional<ServableState> ServableStateMonitor::GetState(
   return it2->second;
 }
 
-ServableStateMonitor::VersionMap ServableStateMonitor::GetAllVersionStates(
+ServableStateMonitor::VersionMap ServableStateMonitor::GetVersionStates(
     const string& servable_name) const {
   mutex_lock l(mu_);
   auto it = states_.find(servable_name);

@@ -51,7 +51,7 @@ class ServableStateMonitor {
 
   // Returns the current states of all tracked versions of the given servable,
   // if any.
-  VersionMap GetAllVersionStates(const string& servable_name) const;
+  VersionMap GetVersionStates(const string& servable_name) const;
 
   // Returns the current states of all tracked versions of all servables.
   ServableMap GetAllServableStates() const;
