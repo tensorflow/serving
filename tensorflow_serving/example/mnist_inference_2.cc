@@ -51,7 +51,7 @@ limitations under the License.
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/batching/batch_scheduler.h"
-#include "tensorflow_serving/batching/retrier.h"
+#include "tensorflow_serving/batching/batch_scheduler_retrier.h"
 #include "tensorflow_serving/batching/streaming_batch_scheduler.h"
 #include "tensorflow_serving/core/manager.h"
 #include "tensorflow_serving/core/servable_handle.h"
@@ -133,7 +133,7 @@ class CallData {
 };
 
 // A Task holds all of the information for a single inference request.
-struct Task : public tensorflow::serving::batching::Task {
+struct Task : public tensorflow::serving::BatchTask {
   ~Task() override = default;
   size_t size() const override { return 1; }
 
@@ -152,7 +152,7 @@ class MnistServiceImpl final {
 
   // Produces classifications for a batch of requests and associated responses.
   void DoClassifyInBatch(
-      std::unique_ptr<tensorflow::serving::batching::Batch<Task>> batch);
+      std::unique_ptr<tensorflow::serving::Batch<Task>> batch);
 
   // Name of the servable to use for inference.
   const string servable_name_;
@@ -160,8 +160,7 @@ class MnistServiceImpl final {
   UniquePtrWithDeps<tensorflow::serving::Manager> manager_;
   // A scheduler for batching multiple request calls into single calls to
   // Session->Run().
-  std::unique_ptr<tensorflow::serving::batching::BatchScheduler<Task>>
-      batch_scheduler_;
+  std::unique_ptr<tensorflow::serving::BatchScheduler<Task>> batch_scheduler_;
 };
 
 // Take in the "service" instance (in this case representing an asynchronous
@@ -219,18 +218,16 @@ MnistServiceImpl::MnistServiceImpl(
   // Use the default batch-size, timeout and thread options.  In general
   // the numbers are extremely performance critical and should be tuned based
   // specific graph structure and usage.
-  tensorflow::serving::batching::StreamingBatchScheduler<Task>::Options
-      scheduler_options;
+  tensorflow::serving::StreamingBatchScheduler<Task>::Options scheduler_options;
   scheduler_options.thread_pool_name = "mnist_service_batch_threads";
-  tensorflow::serving::batching::Retrier<Task>::Options retry_options;
+  tensorflow::serving::BatchSchedulerRetrier<Task>::Options retry_options;
   // Retain the default retry options.
-  TF_CHECK_OK(
-      tensorflow::serving::batching::CreateRetryingStreamingBatchScheduler<
-          Task>(
-          scheduler_options, retry_options,
-          [this](std::unique_ptr<tensorflow::serving::batching::Batch<Task>>
-                     batch) { this->DoClassifyInBatch(std::move(batch)); },
-          &batch_scheduler_));
+  TF_CHECK_OK(tensorflow::serving::CreateRetryingStreamingBatchScheduler<Task>(
+      scheduler_options, retry_options,
+      [this](std::unique_ptr<tensorflow::serving::Batch<Task>> batch) {
+        this->DoClassifyInBatch(std::move(batch));
+      },
+      &batch_scheduler_));
 }
 
 // Creates a gRPC Status from a TensorFlow Status.
@@ -265,7 +262,7 @@ void MnistServiceImpl::Classify(CallData* calldata) {
 
 // Produces classifications for a batch of requests and associated responses.
 void MnistServiceImpl::DoClassifyInBatch(
-    std::unique_ptr<tensorflow::serving::batching::Batch<Task>> batch) {
+    std::unique_ptr<tensorflow::serving::Batch<Task>> batch) {
   batch->WaitUntilClosed();
   if (batch->empty()) {
     return;

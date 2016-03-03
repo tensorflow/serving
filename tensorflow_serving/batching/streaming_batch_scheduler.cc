@@ -17,7 +17,6 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
-namespace batching {
 
 namespace internal {
 
@@ -86,6 +85,5 @@ void SingleTaskScheduler::ThreadLogic() {
 
 }  // namespace internal
 
-}  // namespace batching
 }  // namespace serving
 }  // namespace tensorflow
