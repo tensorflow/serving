@@ -27,7 +27,6 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
-namespace batching {
 namespace test_util {
 
 // A BatchScheduler implementation that enqueues tasks, and when requested via
@@ -114,7 +113,6 @@ void PuppetBatchScheduler<TaskType>::ProcessAllTasks() {
 }
 
 }  // namespace test_util
-}  // namespace batching
 }  // namespace serving
 }  // namespace tensorflow
 

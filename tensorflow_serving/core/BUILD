@@ -386,6 +386,30 @@ cc_test(
 )
 
 cc_library(
+    name = "servable_state_monitor",
+    srcs = ["servable_state_monitor.cc"],
+    hdrs = ["servable_state_monitor.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":servable_id",
+        ":servable_state",
+        "//tensorflow_serving/util:event_bus",
+        "//tensorflow_serving/util:optional",
+    ],
+)
+
+cc_test(
+    name = "servable_state_monitor_test",
+    srcs = ["servable_state_monitor_test.cc"],
+    deps = [
+        ":servable_state_monitor",
+        "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
+
+cc_library(
     name = "version_policy",
     hdrs = ["version_policy.h"],
     visibility = [

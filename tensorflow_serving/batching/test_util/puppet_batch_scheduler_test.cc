@@ -22,11 +22,10 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
-namespace batching {
 namespace test_util {
 namespace {
 
-class FakeTask : public Task {
+class FakeTask : public BatchTask {
  public:
   FakeTask() = default;
   ~FakeTask() override = default;
@@ -75,6 +74,5 @@ TEST(PuppetBatchSchedulerTest, Basic) {
 
 }  // namespace
 }  // namespace test_util
-}  // namespace batching
 }  // namespace serving
 }  // namespace tensorflow

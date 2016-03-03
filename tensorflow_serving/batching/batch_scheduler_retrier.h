@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_BATCHING_RETRIER_H_
-#define TENSORFLOW_SERVING_BATCHING_RETRIER_H_
+#ifndef TENSORFLOW_SERVING_BATCHING_BATCH_SCHEDULER_RETRIER_H_
+#define TENSORFLOW_SERVING_BATCHING_BATCH_SCHEDULER_RETRIER_H_
 
 #include <stddef.h>
 #include <cstddef>
@@ -27,14 +27,13 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
-namespace batching {
 
 // A wrapper around another BatchScheduler that automatically retries
 // Schedule() requests. Returns an UNAVAILABLE error only after retry attempts
 // have failed (based on parameters that govern the maximum number of retries
 // and the retry time interval).
 template <typename TaskType>
-class Retrier : public BatchScheduler<TaskType> {
+class BatchSchedulerRetrier : public BatchScheduler<TaskType> {
  public:
   struct Options {
     // The maximum amount of time to spend retrying 'wrapped_->Schedule()'
@@ -47,33 +46,33 @@ class Retrier : public BatchScheduler<TaskType> {
     // The environment to use for time and sleeping.
     Env* env = Env::Default();
   };
-  static Status Create(const Options& options,
-                       std::unique_ptr<BatchScheduler<TaskType>> wrapped,
-                       std::unique_ptr<Retrier<TaskType>>* result);
+  static Status Create(
+      const Options& options, std::unique_ptr<BatchScheduler<TaskType>> wrapped,
+      std::unique_ptr<BatchSchedulerRetrier<TaskType>>* result);
 
-  ~Retrier() override = default;
+  ~BatchSchedulerRetrier() override = default;
 
   Status Schedule(std::unique_ptr<TaskType>* task) override;
   size_t NumEnqueuedTasks() const override;
   size_t SchedulingCapacity() const override;
 
  private:
-  Retrier(const Options& options,
-          std::unique_ptr<BatchScheduler<TaskType>> wrapped);
+  BatchSchedulerRetrier(const Options& options,
+                        std::unique_ptr<BatchScheduler<TaskType>> wrapped);
 
   const Options options_;
   std::unique_ptr<BatchScheduler<TaskType>> wrapped_;
 
-  TF_DISALLOW_COPY_AND_ASSIGN(Retrier);
+  TF_DISALLOW_COPY_AND_ASSIGN(BatchSchedulerRetrier);
 };
 
 //////////
 // Implementation details follow. API users need not read.
 
 template <typename TaskType>
-Status Retrier<TaskType>::Create(
+Status BatchSchedulerRetrier<TaskType>::Create(
     const Options& options, std::unique_ptr<BatchScheduler<TaskType>> wrapped,
-    std::unique_ptr<Retrier<TaskType>>* result) {
+    std::unique_ptr<BatchSchedulerRetrier<TaskType>>* result) {
   if (options.max_time_micros < 0) {
     return errors::InvalidArgument("max_time_micros must be non-negative; was ",
                                    options.max_time_micros);
@@ -83,12 +82,13 @@ Status Retrier<TaskType>::Create(
         "retry_delay_micros must be non-negative; was ",
         options.retry_delay_micros);
   }
-  result->reset(new Retrier(options, std::move(wrapped)));
+  result->reset(new BatchSchedulerRetrier(options, std::move(wrapped)));
   return Status::OK();
 }
 
 template <typename TaskType>
-Status Retrier<TaskType>::Schedule(std::unique_ptr<TaskType>* task) {
+Status BatchSchedulerRetrier<TaskType>::Schedule(
+    std::unique_ptr<TaskType>* task) {
   Status status;
 
   const uint64 start_time_micros = options_.env->NowMicros();
@@ -112,22 +112,21 @@ Status Retrier<TaskType>::Schedule(std::unique_ptr<TaskType>* task) {
 }
 
 template <typename TaskType>
-size_t Retrier<TaskType>::NumEnqueuedTasks() const {
+size_t BatchSchedulerRetrier<TaskType>::NumEnqueuedTasks() const {
   return wrapped_->NumEnqueuedTasks();
 }
 
 template <typename TaskType>
-size_t Retrier<TaskType>::SchedulingCapacity() const {
+size_t BatchSchedulerRetrier<TaskType>::SchedulingCapacity() const {
   return wrapped_->SchedulingCapacity();
 }
 
 template <typename TaskType>
-Retrier<TaskType>::Retrier(const Options& options,
-                           std::unique_ptr<BatchScheduler<TaskType>> wrapped)
+BatchSchedulerRetrier<TaskType>::BatchSchedulerRetrier(
+    const Options& options, std::unique_ptr<BatchScheduler<TaskType>> wrapped)
     : options_(options), wrapped_(std::move(wrapped)) {}
 
-}  // namespace batching
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_BATCHING_RETRIER_H_
+#endif  // TENSORFLOW_SERVING_BATCHING_BATCH_SCHEDULER_RETRIER_H_

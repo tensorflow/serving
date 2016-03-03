@@ -89,7 +89,7 @@ cc_binary(
         ":mnist_grpc_cc",
         "//grpc",
         "//tensorflow_serving/batching:batch_scheduler",
-        "//tensorflow_serving/batching:retrier",
+        "//tensorflow_serving/batching:batch_scheduler_retrier",
         "//tensorflow_serving/batching:streaming_batch_scheduler",
         "//tensorflow_serving/core:manager",
         "//tensorflow_serving/core:servable_handle",

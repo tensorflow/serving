@@ -17,3 +17,4 @@
 
 * [Source code](https://github.com/tensorflow/serving)
 * [TensorFlow site](http://tensorflow.org)
+* [Docker images](docker)

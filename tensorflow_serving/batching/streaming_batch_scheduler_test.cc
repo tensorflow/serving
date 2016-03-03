@@ -30,11 +30,10 @@ using ::testing::UnorderedElementsAre;
 
 namespace tensorflow {
 namespace serving {
-namespace batching {
 
 namespace {
 
-class FakeTask : public Task {
+class FakeTask : public BatchTask {
  public:
   explicit FakeTask(size_t size) : size_(size) {}
 
@@ -314,6 +313,5 @@ TEST(StreamingBatchSchedulerTest, ConstMethods) {
 }
 
 }  // namespace
-}  // namespace batching
 }  // namespace serving
 }  // namespace tensorflow

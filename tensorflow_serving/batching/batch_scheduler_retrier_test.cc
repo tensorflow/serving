@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/batching/retrier.h"
+#include "tensorflow_serving/batching/batch_scheduler_retrier.h"
 
 #include <algorithm>
 #include <limits>
@@ -29,10 +29,9 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
-namespace batching {
 namespace {
 
-class FakeTask : public Task {
+class FakeTask : public BatchTask {
  public:
   FakeTask() = default;
   ~FakeTask() override = default;
@@ -101,23 +100,23 @@ class StubbornScheduler : public BatchScheduler<FakeTask> {
   TF_DISALLOW_COPY_AND_ASSIGN(StubbornScheduler);
 };
 
-TEST(RetrierTest, ConstMethodsForwardToWrappedScheduler) {
+TEST(BatchSchedulerRetrierTest, ConstMethodsForwardToWrappedScheduler) {
   auto broken_scheduler = std::unique_ptr<BrokenScheduler>(new BrokenScheduler);
-  Retrier<FakeTask>::Options options;
-  std::unique_ptr<Retrier<FakeTask>> retrier;
-  TF_CHECK_OK(Retrier<FakeTask>::Create(options, std::move(broken_scheduler),
-                                        &retrier));
+  BatchSchedulerRetrier<FakeTask>::Options options;
+  std::unique_ptr<BatchSchedulerRetrier<FakeTask>> retrier;
+  TF_CHECK_OK(BatchSchedulerRetrier<FakeTask>::Create(
+      options, std::move(broken_scheduler), &retrier));
   EXPECT_EQ(7, retrier->NumEnqueuedTasks());
   EXPECT_EQ(42, retrier->SchedulingCapacity());
 }
 
-TEST(RetrierTest, PermanentFailure) {
+TEST(BatchSchedulerRetrierTest, PermanentFailure) {
   auto broken_scheduler = std::unique_ptr<BrokenScheduler>(new BrokenScheduler);
   auto broken_scheduler_ptr = broken_scheduler.get();
-  Retrier<FakeTask>::Options options;
-  std::unique_ptr<Retrier<FakeTask>> retrier;
-  TF_CHECK_OK(Retrier<FakeTask>::Create(options, std::move(broken_scheduler),
-                                        &retrier));
+  BatchSchedulerRetrier<FakeTask>::Options options;
+  std::unique_ptr<BatchSchedulerRetrier<FakeTask>> retrier;
+  TF_CHECK_OK(BatchSchedulerRetrier<FakeTask>::Create(
+      options, std::move(broken_scheduler), &retrier));
   auto task = std::unique_ptr<FakeTask>(new FakeTask);
   Status status = retrier->Schedule(&task);
   ASSERT_FALSE(status.ok());
@@ -126,7 +125,7 @@ TEST(RetrierTest, PermanentFailure) {
   EXPECT_EQ(1, broken_scheduler_ptr->num_submit_calls());
 }
 
-TEST(RetrierTest, MaxTime) {
+TEST(BatchSchedulerRetrierTest, MaxTime) {
   for (int num_attempts_to_succeed = 1; num_attempts_to_succeed < 3;
        ++num_attempts_to_succeed) {
     for (int max_attempts = 1; max_attempts < 5; ++max_attempts) {
@@ -135,12 +134,12 @@ TEST(RetrierTest, MaxTime) {
       auto stubborn_scheduler = std::unique_ptr<StubbornScheduler>(
           new StubbornScheduler(num_attempts_to_succeed));
       auto stubborn_scheduler_ptr = stubborn_scheduler.get();
-      Retrier<FakeTask>::Options options;
+      BatchSchedulerRetrier<FakeTask>::Options options;
       options.retry_delay_micros = 1;
       options.max_time_micros = max_attempts;
       options.env = &env;
-      std::unique_ptr<Retrier<FakeTask>> retrier;
-      TF_CHECK_OK(Retrier<FakeTask>::Create(
+      std::unique_ptr<BatchSchedulerRetrier<FakeTask>> retrier;
+      TF_CHECK_OK(BatchSchedulerRetrier<FakeTask>::Create(
           options, std::move(stubborn_scheduler), &retrier));
 
       const bool expect_success = max_attempts >= num_attempts_to_succeed;
@@ -171,20 +170,20 @@ TEST(RetrierTest, MaxTime) {
   }
 }
 
-TEST(RetrierTest, RetryDelay) {
+TEST(BatchSchedulerRetrierTest, RetryDelay) {
   test_util::FakeClockEnv env(Env::Default());
 
   const int num_attempts_to_succeed = 3;
   auto stubborn_scheduler = std::unique_ptr<StubbornScheduler>(
       new StubbornScheduler(num_attempts_to_succeed));
   auto stubborn_scheduler_ptr = stubborn_scheduler.get();
-  Retrier<FakeTask>::Options options;
+  BatchSchedulerRetrier<FakeTask>::Options options;
   options.retry_delay_micros = 7;
   options.max_time_micros = 100;
   options.env = &env;
-  std::unique_ptr<Retrier<FakeTask>> retrier;
-  TF_CHECK_OK(Retrier<FakeTask>::Create(options, std::move(stubborn_scheduler),
-                                        &retrier));
+  std::unique_ptr<BatchSchedulerRetrier<FakeTask>> retrier;
+  TF_CHECK_OK(BatchSchedulerRetrier<FakeTask>::Create(
+      options, std::move(stubborn_scheduler), &retrier));
 
   Notification done;
   std::unique_ptr<Thread> run_retrier(Env::Default()->StartThread(
@@ -205,6 +204,5 @@ TEST(RetrierTest, RetryDelay) {
 }
 
 }  // namespace
-}  // namespace batching
 }  // namespace serving
 }  // namespace tensorflow

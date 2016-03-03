@@ -53,7 +53,7 @@ cc_library(
     deps = [
         "@tf//tensorflow/core:lib",
         ":batch_scheduler",
-        ":retrier",
+        ":batch_scheduler_retrier",
         "//tensorflow_serving/util:optional",
     ],
 )
@@ -74,8 +74,8 @@ cc_test(
 )
 
 cc_library(
-    name = "retrier",
-    hdrs = ["retrier.h"],
+    name = "batch_scheduler_retrier",
+    hdrs = ["batch_scheduler_retrier.h"],
     visibility = ["//visibility:public"],
     deps = [
         "@tf//tensorflow/core:lib",
@@ -84,15 +84,15 @@ cc_library(
 )
 
 cc_test(
-    name = "retrier_test",
+    name = "batch_scheduler_retrier_test",
     srcs = [
-        "retrier_test.cc",
+        "batch_scheduler_retrier_test.cc",
     ],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:protos_all_cc",
         "@tf//tensorflow/core:test",
-        ":retrier",
+        ":batch_scheduler_retrier",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util:fake_clock_env",
     ],

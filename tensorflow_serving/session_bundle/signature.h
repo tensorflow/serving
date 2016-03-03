@@ -43,9 +43,9 @@ Status GetSignatures(const tensorflow::MetaGraphDef& meta_graph_def,
 Status SetSignatures(tensorflow::MetaGraphDef* meta_graph_def,
                      const Signatures& signatures);
 
-// Gets a named ClassificationSignature from a MetaGraphDef.
-// Returns an error if a ClassificationSignature with the given name does
-// not exist.
+// Gets a ClassificationSignature from a MetaGraphDef's default signature.
+// Returns an error if the default signature is not a ClassificationSignature,
+// or does not exist.
 Status GetClassificationSignature(
     const tensorflow::MetaGraphDef& meta_graph_def,
     ClassificationSignature* signature);

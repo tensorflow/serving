@@ -21,11 +21,10 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
-namespace batching {
 
 namespace {
 
-class FakeTask : public Task {
+class FakeTask : public BatchTask {
  public:
   explicit FakeTask(size_t size) : size_(size) {}
 
@@ -111,6 +110,5 @@ TEST(BatchTest, DeletionBlocksUntilClosed) {
   deleted.WaitForNotification();
 }
 
-}  // namespace batching
 }  // namespace serving
 }  // namespace tensorflow
