@@ -19,10 +19,10 @@ limitations under the License.
 #include <memory>
 #include <string>
 
-#include "tensorflow/core/framework/config.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/core/simple_loader.h"
