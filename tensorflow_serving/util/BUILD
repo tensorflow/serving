@@ -194,6 +194,7 @@ cc_test(
 cc_library(
     name = "unique_ptr_with_deps",
     hdrs = ["unique_ptr_with_deps.h"],
+    visibility = ["//visibility:public"],
     deps = ["@tf//tensorflow/core:lib"],
 )
 
