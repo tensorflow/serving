@@ -85,3 +85,16 @@ cc_library(
         "//tensorflow_serving/core:dynamic_manager",
     ],
 )
+
+cc_library(
+    name = "availability_test_util",
+    testonly = 1,
+    srcs = ["availability_test_util.cc"],
+    hdrs = ["availability_test_util.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        "//external:gtest",
+        "//tensorflow_serving/core:servable_state_monitor",
+    ],
+)
