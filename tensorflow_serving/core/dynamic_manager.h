@@ -79,6 +79,13 @@ class DynamicManager final : public Manager,
     // EventBus to publish servable state changes. This is optional, if unset,
     // we don't publish.
     EventBus<ServableState>* servable_event_bus = nullptr;
+
+    // Maximum number of times we try to load a servable before we give up.
+    int max_num_load_tries = 5;
+
+    // The interval, in microseconds, between each servable load retry.
+    // Default: 1min.
+    int64 load_retry_interval_micros = 1 * 60 * 1000 * 1000;
   };
 
   explicit DynamicManager(Options options);

@@ -17,12 +17,19 @@ limitations under the License.
 
 #include <algorithm>
 
+#include "tensorflow/core/platform/env.h"
+
 namespace tensorflow {
 namespace serving {
 
 LoaderHarness::LoaderHarness(const ServableId& id,
                              std::unique_ptr<Loader> loader)
-    : id_(id), loader_(std::move(loader)) {
+    : LoaderHarness(id, std::move(loader), Options()) {}
+
+LoaderHarness::LoaderHarness(const ServableId& id,
+                             std::unique_ptr<Loader> loader,
+                             const Options& options)
+    : id_(id), loader_(std::move(loader)), options_(options) {
   VLOG(1) << "New aspired servable version " << id_;
 }
 
@@ -48,7 +55,26 @@ Status LoaderHarness::Load() {
     state_ = kLoading;
     VLOG(1) << "Loading servable version " << id_;
   }
-  const Status status = loader_->Load();
+
+  const Status status = [&]() {
+    Status load_status;
+    int num_tries = 0;
+    do {
+      if (num_tries > 0) {
+        if (options_.load_retry_interval_micros > 0) {
+          Env::Default()->SleepForMicroseconds(
+              options_.load_retry_interval_micros);
+        }
+        LOG(INFO) << "Retrying load on servable version: " << id_
+                  << " retry: " << num_tries;
+      }
+      load_status = loader_->Load();
+      ++num_tries;
+    } while (is_aspired() && !load_status.ok() &&
+             num_tries < options_.max_num_load_tries);
+    return load_status;
+  }();
+
   {
     mutex_lock l(mu_);
     DCHECK_EQ(kLoading, state_);

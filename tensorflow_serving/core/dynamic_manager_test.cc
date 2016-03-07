@@ -28,6 +28,7 @@ limitations under the License.
 #include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/test_util/dynamic_manager_test_util.h"
+#include "tensorflow_serving/core/test_util/mock_loader.h"
 #include "tensorflow_serving/util/any_ptr.h"
 #include "tensorflow_serving/util/event_bus.h"
 
@@ -35,18 +36,17 @@ namespace tensorflow {
 namespace serving {
 
 using ::testing::Eq;
+using ::testing::Invoke;
+using ::testing::NiceMock;
+using ::testing::Return;
 using ::testing::UnorderedElementsAreArray;
 
 namespace {
 
 class FakeLoader : public Loader {
  public:
-  explicit FakeLoader(int64 servable) : FakeLoader(servable, false) {}
-
-  FakeLoader(int64 servable, const bool errors_on_load)
-      : servable_(servable), errors_on_load_(errors_on_load) {
-    ++num_fake_loaders_;
-  }
+  explicit FakeLoader(int64 servable, const bool errors_on_load = false)
+      : servable_(servable), errors_on_load_(errors_on_load) {}
   ~FakeLoader() override { --num_fake_loaders_; }
 
   Status Load() override {
@@ -83,13 +83,15 @@ class DynamicManagerTest : public ::testing::Test {
           LOG(INFO) << "Published state: " << state.DebugString();
           last_published_servable_state_ = state;
         });
-    DynamicManager::Options options;
     // The state manager thread won't be run automatically.
-    options.manage_state_interval_micros = -1;
-    options.env = Env::Default();
-    options.version_policy.reset(new EagerLoadPolicy());
-    options.servable_event_bus = servable_event_bus_.get();
-    manager_.reset(new DynamicManager(std::move(options)));
+    dynamic_manager_options_.manage_state_interval_micros = -1;
+    dynamic_manager_options_.env = Env::Default();
+    dynamic_manager_options_.version_policy.reset(new EagerLoadPolicy());
+    dynamic_manager_options_.servable_event_bus = servable_event_bus_.get();
+    dynamic_manager_options_.max_num_load_tries = 2;
+    dynamic_manager_options_.load_retry_interval_micros = 0;
+    // dynamic_manager_options_.load_retry_interval_micros = 0;
+    manager_.reset(new DynamicManager(std::move(dynamic_manager_options_)));
   }
 
   // Creates an aspired-versions entry with 'id' and a FakeLoader whose servable
@@ -138,6 +140,7 @@ class DynamicManagerTest : public ::testing::Test {
   std::unique_ptr<EventBus<ServableState>::Subscription>
       servable_state_subscription_;
   ServableState last_published_servable_state_;
+  DynamicManager::Options dynamic_manager_options_;
   std::unique_ptr<DynamicManager> manager_;
 };
 
@@ -576,6 +579,51 @@ TEST_F(DynamicManagerTest, NoEventBus) {
   aspired_versions.push_back({id, std::move(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
+}
+
+TEST_F(DynamicManagerTest, RetryOnLoadErrorFinallySucceeds) {
+  std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
+
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  // Prevents it being changed without our knowledge.
+  CHECK_EQ(dynamic_manager_options_.max_num_load_tries, 2);
+  // We succeed on the last load, before the manager gives up.
+  EXPECT_CALL(*loader, Load())
+      .WillOnce(Return(errors::Internal("Error on load.")))
+      .WillOnce(Return(Status::OK()));
+
+  const ServableId id = {kServableName, 7};
+  aspired_versions.push_back({id, std::unique_ptr<Loader>(loader)});
+  manager_->GetAspiredVersionsCallback()(kServableName,
+                                         std::move(aspired_versions));
+
+  RunManageState();
+
+  const ServableState available_state = {
+      {kServableName, 7},
+      true,
+      ServableState::ManagerState::kAvailable,
+      Status::OK()};
+  EXPECT_THAT(last_published_servable_state_,
+              EqualsServableState(available_state));
+}
+
+TEST_F(DynamicManagerTest, RetryOnLoadErrorFinallyFails) {
+  std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
+  const ServableId id = {kServableName, 7};
+  // We always fail.
+  std::unique_ptr<Loader> loader(new FakeLoader(7, true /* errors_on_load */));
+  aspired_versions.push_back({id, std::move(loader)});
+  manager_->GetAspiredVersionsCallback()(kServableName,
+                                         std::move(aspired_versions));
+
+  RunManageState();
+
+  const ServableState error_state = {{kServableName, 7},
+                                     true,
+                                     ServableState::ManagerState::kEnd,
+                                     errors::Internal("Error on load.")};
+  EXPECT_THAT(last_published_servable_state_, EqualsServableState(error_state));
 }
 
 }  // namespace

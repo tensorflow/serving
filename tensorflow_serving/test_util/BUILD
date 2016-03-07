@@ -1,14 +1,8 @@
 # Description: Tensorflow Serving test utils.
 
-package(
-    default_visibility = [
-        "//tensorflow_serving:internal",
-    ],
-    features = [
-        "-layering_check",
-        "-parse_headers",
-    ],
-)
+package(default_visibility = [
+    "//tensorflow_serving:internal",
+])
 
 licenses(["notice"])  # Apache 2.0
 
