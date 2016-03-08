@@ -16,8 +16,9 @@ quick links here:
 
 We currently maintain the following Dockerfiles:
 
-* `Dockerfile.devel`, which is a minimal VM with all of the dependencies need
-  to build TensorFlow Serving.
+* [`Dockerfile.devel`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel),
+which is a minimal VM with all of the dependencies needed to build TensorFlow
+Serving.
 
 ## Building a container
 run;
