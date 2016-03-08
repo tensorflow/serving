@@ -116,7 +116,7 @@ cc_library(
     srcs = ["optional.cc"],
     hdrs = ["optional.h"],
     visibility = [
-        "//tensorflow_serving:internal",
+        "//tensorflow_serving:staging",
     ],
     deps = [
         "@tf//tensorflow/core:lib",
@@ -142,7 +142,7 @@ cc_library(
     srcs = ["periodic_function.cc"],
     hdrs = ["periodic_function.h"],
     visibility = [
-        "//tensorflow_serving:internal",
+        "//tensorflow_serving:staging",
     ],
     deps = [
         "@tf//tensorflow/core:lib",

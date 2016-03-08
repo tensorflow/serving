@@ -45,6 +45,6 @@ genrule(
         ":export_half_plus_two",
     ],
     visibility = [
-        "//tensorflow_serving:internal",
+        "//tensorflow_serving:staging",
     ],
 )

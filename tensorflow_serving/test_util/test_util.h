@@ -31,6 +31,11 @@ namespace test_util {
 template <typename T>
 T CreateProto(const string& textual_proto);
 
+// Creates an absolute test srcdir path to the linked in runfiles given a path
+// relative to the current workspace.
+// e.g. relative path = "tensorflow_serving/session_bundle".
+string TestSrcDirPath(const string& relative_path);
+
 //////////
 // Implementation details. API readers need not read.
 
