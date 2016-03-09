@@ -25,14 +25,14 @@ namespace serving {
 
 // Standard device types.
 namespace device_types {
-extern const char *const kCPU;
-extern const char *const kGPU;
+extern const char* const kCPU;
+extern const char* const kGPU;
 }  // namespace device_types
 
 // Standard resource kinds.
 namespace resource_kinds {
-extern const char *const kRAMBytes;
-extern const char *const kProcessingMillis;
+extern const char* const kRAMBytes;
+extern const char* const kProcessingMillis;
 }  // namespace resource_kinds
 
 }  // namespace serving

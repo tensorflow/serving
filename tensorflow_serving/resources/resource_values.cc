@@ -19,13 +19,13 @@ namespace tensorflow {
 namespace serving {
 
 namespace device_types {
-constexpr const char* kCPU = "cpu";
-constexpr const char* kGPU = "gpu";
+const char* const kCPU = "cpu";
+const char* const kGPU = "gpu";
 }  // namespace device_types
 
 namespace resource_kinds {
-constexpr const char* kRAMBytes = "ram_in_bytes";
-constexpr const char* kProcessingMillis = "processing_in_millicores";
+const char* const kRAMBytes = "ram_in_bytes";
+const char* const kProcessingMillis = "processing_in_millicores";
 }  // namespace resource_kinds
 
 }  // namespace serving
