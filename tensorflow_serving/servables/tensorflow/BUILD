@@ -156,9 +156,6 @@ cc_library(
     name = "serving_session",
     srcs = ["serving_session.cc"],
     hdrs = ["serving_session.h"],
-    visibility = [
-        "//tensorflow_serving:staging",
-    ],
     deps = [
         "@tf//tensorflow/core:core_cpu",
         "@tf//tensorflow/core:lib",

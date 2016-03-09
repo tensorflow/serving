@@ -80,7 +80,6 @@ cc_library(
     testonly = 1,
     srcs = ["dynamic_manager_test_util.cc"],
     hdrs = ["dynamic_manager_test_util.h"],
-    visibility = ["//tensorflow_serving:staging"],
     deps = [
         "//tensorflow_serving/core:dynamic_manager",
     ],
