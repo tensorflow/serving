@@ -57,7 +57,13 @@ Status GetNamedClassificationSignature(
     const string& name, const tensorflow::MetaGraphDef& meta_graph_def,
     ClassificationSignature* signature);
 
-// Runs a classification using the provide signature and initialized Session.
+// Gets a RegressionSignature from a MetaGraphDef's default signature.
+// Returns an error if the default signature is not a RegressionSignature,
+// or does not exist.
+Status GetRegressionSignature(const tensorflow::MetaGraphDef& meta_graph_def,
+                              RegressionSignature* signature);
+
+// Runs a classification using the provided signature and initialized Session.
 //   input: input batch of items to classify
 //   classes: output batch of classes; may be null if not needed
 //   scores: output batch of scores; may be null if not needed
@@ -67,6 +73,15 @@ Status GetNamedClassificationSignature(
 Status RunClassification(const ClassificationSignature& signature,
                          const Tensor& input, Session* session, Tensor* classes,
                          Tensor* scores);
+
+// Runs regression using the provided signature and initialized Session.
+//   input: input batch of items to run the regression model against
+//   output: output targets
+// Validates sizes of the inputs and outputs are consistent (e.g., input
+// batch size equals output batch sizes).
+// Does not do any type validation.
+Status RunRegression(const RegressionSignature& signature, const Tensor& input,
+                     Session* session, Tensor* output);
 
 // Gets the named GenericSignature from a MetaGraphDef.
 // Returns an error if a GenericSignature with the given name does not exist.
