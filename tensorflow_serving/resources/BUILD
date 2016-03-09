@@ -42,3 +42,24 @@ cc_library(
     deps = [
     ],
 )
+
+cc_library(
+    name = "resource_util",
+    srcs = ["resource_util.cc"],
+    hdrs = ["resource_util.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":resources_proto",
+    ],
+)
+
+cc_test(
+    name = "resource_util_test",
+    size = "small",
+    srcs = ["resource_util_test.cc"],
+    deps = [
+        ":resource_util",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+    ],
+)
