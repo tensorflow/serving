@@ -37,7 +37,7 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_types.h"
-#include "tensorflow/core/framework/types.proto.h"
+#include "tensorflow/core/framework/types.pb.h"
 #include "tensorflow/core/lib/core/command_line_flags.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/strings/strcat.h"
@@ -48,7 +48,7 @@ limitations under the License.
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/example/mnist_inference.grpc.pb.h"
 #include "tensorflow_serving/example/mnist_inference.pb.h"
-#include "tensorflow_serving/session_bundle/manifest.proto.h"
+#include "tensorflow_serving/session_bundle/manifest.pb.h"
 #include "tensorflow_serving/session_bundle/session_bundle.h"
 #include "tensorflow_serving/session_bundle/signature.h"
 
