@@ -34,14 +34,14 @@ class ResourceUtilTest : public ::testing::Test {
   ResourceUtil util_;
 };
 
-TEST_F(ResourceUtilTest, Add_Empty) {
+TEST_F(ResourceUtilTest, AddEmpty) {
   auto base = test_util::CreateProto<ResourceAllocation>("");
   const auto to_add = test_util::CreateProto<ResourceAllocation>("");
   util_.Add(to_add, &base);
   EXPECT_THAT(base, EqualsProto(""));
 }
 
-TEST_F(ResourceUtilTest, Add_Basic) {
+TEST_F(ResourceUtilTest, AddBasic) {
   auto base = test_util::CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
@@ -96,7 +96,7 @@ TEST_F(ResourceUtilTest, Add_Basic) {
                                 "} "));
 }
 
-TEST_F(ResourceUtilTest, Add_BoundAndUnbound) {
+TEST_F(ResourceUtilTest, AddBoundAndUnbound) {
   auto base = test_util::CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
@@ -163,14 +163,14 @@ TEST_F(ResourceUtilTest, Add_BoundAndUnbound) {
                                 "} "));
 }
 
-TEST_F(ResourceUtilTest, Subtract_Empty) {
+TEST_F(ResourceUtilTest, SubtractEmpty) {
   auto base = test_util::CreateProto<ResourceAllocation>("");
   const auto to_subtract = test_util::CreateProto<ResourceAllocation>("");
   EXPECT_TRUE(util_.Subtract(to_subtract, &base));
   EXPECT_THAT(base, EqualsProto(""));
 }
 
-TEST_F(ResourceUtilTest, Subtract_Basic) {
+TEST_F(ResourceUtilTest, SubtractBasic) {
   auto base = test_util::CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
@@ -232,7 +232,7 @@ TEST_F(ResourceUtilTest, Subtract_Basic) {
                                 "} "));
 }
 
-TEST_F(ResourceUtilTest, Subtract_NegativeResult) {
+TEST_F(ResourceUtilTest, SubtractNegativeResult) {
   const auto original_base = test_util::CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
@@ -276,7 +276,7 @@ TEST_F(ResourceUtilTest, Subtract_NegativeResult) {
   EXPECT_THAT(base, EqualsProto(original_base));
 }
 
-TEST_F(ResourceUtilTest, Subtract_OkayToSubtractZeroFromNothing) {
+TEST_F(ResourceUtilTest, SubtractOkayToSubtractZeroFromNothing) {
   auto base = test_util::CreateProto<ResourceAllocation>("");
   const auto to_subtract = test_util::CreateProto<ResourceAllocation>(
       "resource_quantities { "
@@ -290,7 +290,7 @@ TEST_F(ResourceUtilTest, Subtract_OkayToSubtractZeroFromNothing) {
   EXPECT_THAT(base, EqualsProto(""));
 }
 
-TEST_F(ResourceUtilTest, Subtract_BoundAndUnbound) {
+TEST_F(ResourceUtilTest, SubtractBoundAndUnbound) {
   auto base = test_util::CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
@@ -357,12 +357,12 @@ TEST_F(ResourceUtilTest, Subtract_BoundAndUnbound) {
                                 "} "));
 }
 
-TEST_F(ResourceUtilTest, LessThanOrEqual_Empty) {
+TEST_F(ResourceUtilTest, LessThanOrEqualEmpty) {
   const auto a = test_util::CreateProto<ResourceAllocation>("");
   EXPECT_TRUE(util_.LessThanOrEqual(a, a));
 }
 
-TEST_F(ResourceUtilTest, LessThanOrEqual_OneEntry) {
+TEST_F(ResourceUtilTest, LessThanOrEqualOneEntry) {
   const auto a = test_util::CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
@@ -384,7 +384,7 @@ TEST_F(ResourceUtilTest, LessThanOrEqual_OneEntry) {
   EXPECT_FALSE(util_.LessThanOrEqual(b, a));
 }
 
-TEST_F(ResourceUtilTest, LessThanOrEqual_TwoEntries) {
+TEST_F(ResourceUtilTest, LessThanOrEqualTwoEntries) {
   const auto a = test_util::CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
@@ -422,7 +422,7 @@ TEST_F(ResourceUtilTest, LessThanOrEqual_TwoEntries) {
   EXPECT_FALSE(util_.LessThanOrEqual(a, b));
 }
 
-TEST_F(ResourceUtilTest, LessThanOrEqual_ImplicitZero) {
+TEST_F(ResourceUtilTest, LessThanOrEqualImplicitZero) {
   const auto a = test_util::CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
