@@ -21,11 +21,6 @@ git_repository(
 )
 
 bind(
-    name = "protobuf_clib",
-    actual = "@tf//google/protobuf:protobuf",
-)
-
-bind(
     name = "zlib",
     actual = "@zlib_archive//:zlib",
 )
