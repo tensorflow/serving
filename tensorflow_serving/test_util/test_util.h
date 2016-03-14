@@ -18,7 +18,9 @@ limitations under the License.
 
 #include <string>
 
+#include "google/protobuf/message.h"
 #include "google/protobuf/text_format.h"
+#include <gmock/gmock.h>
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/platform/types.h"
@@ -36,6 +38,37 @@ T CreateProto(const string& textual_proto);
 // e.g. relative path = "tensorflow_serving/session_bundle".
 string TestSrcDirPath(const string& relative_path);
 
+// Simple implementation of a proto matcher comparing string representations.
+class ProtoStringMatcher {
+ public:
+  explicit ProtoStringMatcher(const string& expected);
+  explicit ProtoStringMatcher(const proto2::Message& expected);
+
+  template <typename Message>
+  bool MatchAndExplain(const Message& p,
+                       ::testing::MatchResultListener* /* listener */) const;
+
+  void DescribeTo(::std::ostream* os) const { *os << expected_; }
+  void DescribeNegationTo(::std::ostream* os) const {
+    *os << "not equal to expected message: " << expected_;
+  }
+
+ private:
+  const string expected_;
+};
+
+// Polymorphic matcher to compare any two protos.
+inline ::testing::PolymorphicMatcher<ProtoStringMatcher> EqualsProto(
+    const string& x) {
+  return ::testing::MakePolymorphicMatcher(ProtoStringMatcher(x));
+}
+
+// Polymorphic matcher to compare any two protos.
+inline ::testing::PolymorphicMatcher<ProtoStringMatcher> EqualsProto(
+    const proto2::Message& x) {
+  return ::testing::MakePolymorphicMatcher(ProtoStringMatcher(x));
+}
+
 //////////
 // Implementation details. API readers need not read.
 
@@ -44,6 +77,15 @@ T CreateProto(const string& textual_proto) {
   T proto;
   CHECK(protobuf::TextFormat::ParseFromString(textual_proto, &proto));
   return proto;
+}
+
+template <typename Message>
+bool ProtoStringMatcher::MatchAndExplain(
+    const Message& p, ::testing::MatchResultListener* /* listener */) const {
+  // Need to CreateProto and then print as string so that the formatting
+  // matches exactly.
+  return p.SerializeAsString() ==
+         CreateProto<Message>(expected_).SerializeAsString();
 }
 
 }  // namespace test_util

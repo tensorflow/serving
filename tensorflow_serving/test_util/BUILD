@@ -29,6 +29,7 @@ cc_library(
         "@tf//tensorflow/core",
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:test",
+        "//external:gtest",
     ],
 )
 

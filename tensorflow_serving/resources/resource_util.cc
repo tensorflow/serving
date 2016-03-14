@@ -15,7 +15,13 @@ limitations under the License.
 
 #include "tensorflow_serving/resources/resource_util.h"
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "google/protobuf/wrappers.pb.h"
+#include "tensorflow/core/platform/logging.h"
+#include "tensorflow/core/platform/types.h"
 
 namespace tensorflow {
 namespace serving {

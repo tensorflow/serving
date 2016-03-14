@@ -28,6 +28,11 @@ string TestSrcDirPath(const string& relative_path) {
       relative_path);
 }
 
+ProtoStringMatcher::ProtoStringMatcher(const string& expected)
+    : expected_(expected) {}
+ProtoStringMatcher::ProtoStringMatcher(const proto2::Message& expected)
+    : expected_(expected.DebugString()) {}
+
 }  // namespace test_util
 }  // namespace serving
 }  // namespace tensorflow

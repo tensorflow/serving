@@ -15,12 +15,14 @@ limitations under the License.
 
 #include "tensorflow_serving/resources/resource_util.h"
 
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
-using ::testing::EqualsProto;
+using tensorflow::serving::test_util::EqualsProto;
 
 namespace tensorflow {
 namespace serving {
