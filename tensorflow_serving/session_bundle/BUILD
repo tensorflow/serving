@@ -131,6 +131,7 @@ cc_test(
         "@tf//tensorflow/core:testlib",
         ":session_bundle",
         "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
     ],
 )
 

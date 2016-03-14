@@ -4,7 +4,7 @@ local_repository(
 )
 
 load('//tensorflow/tensorflow:workspace.bzl', 'tf_workspace')
-tf_workspace("tensorflow/")
+tf_workspace("tensorflow/", "@tf")
 
 # ===== gRPC dependencies =====
 

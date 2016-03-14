@@ -28,7 +28,9 @@ limitations under the License.
 
 using ::testing::HasSubstr;
 using ::testing::InvokeWithoutArgs;
+using ::testing::InSequence;
 using ::testing::IsNull;
+using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::ReturnRef;
 using ::testing::StrictMock;
@@ -158,6 +160,60 @@ TEST(ServableVersionHarnessTest, LoadError) {
     load_should_return.Notify();
   }
   EXPECT_EQ(LoaderHarness::kError, harness.state());
+}
+
+TEST(ServableVersionHarnessTest, RetryOnLoadErrorFinallySucceeds) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness harness(
+      ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
+      {2 /* max_num_load_tries */, 1 /* load_retry_interval_micros */});
+
+  EXPECT_CALL(*loader, Load())
+      .WillOnce(InvokeWithoutArgs(
+          []() { return Status(error::UNKNOWN, "test load error"); }))
+      .WillOnce(InvokeWithoutArgs([]() { return Status::OK(); }));
+  const Status status = harness.Load();
+  TF_EXPECT_OK(status);
+
+  QuiesceAndUnload(&harness);
+}
+
+// Tests cancelling a load by setting is_aspired to false,
+TEST(ServableVersionHarnessTest, RetryOnLoadErrorCancelledLoad) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
+                        {10 /* max_num_load_tries */, -1});
+
+  Notification load_called;
+  Notification load_should_return;
+  EXPECT_CALL(*loader, Load())
+      .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
+        load_called.Notify();
+        load_should_return.WaitForNotification();
+        return Status(error::UNKNOWN, "test load error");
+      }))
+      .WillRepeatedly(InvokeWithoutArgs([]() { return Status::OK(); }));
+  std::unique_ptr<Thread> test_thread(
+      Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
+        const Status status = harness.Load();
+        EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
+      }));
+  load_called.WaitForNotification();
+  harness.set_is_aspired(false);
+  load_should_return.Notify();
+}
+
+TEST(ServableVersionHarnessTest, RetryOnLoadErrorFinallyFails) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
+                        {2 /* max_num_load_tries */, -1});
+
+  EXPECT_CALL(*loader, Load())
+      .Times(2)
+      .WillRepeatedly(InvokeWithoutArgs(
+          []() { return Status(error::UNKNOWN, "test load error"); }));
+  const Status status = harness.Load();
+  EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
 }
 
 TEST(LoaderHarnessTest, ExternallySignalledError) {

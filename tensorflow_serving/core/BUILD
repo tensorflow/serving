@@ -309,6 +309,7 @@ cc_test(
         ":eager_load_policy",
         ":servable_state",
         "//tensorflow_serving/core/test_util:dynamic_manager_test_util",
+        "//tensorflow_serving/core/test_util:mock_loader",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:any_ptr",
         "//tensorflow_serving/util:event_bus",

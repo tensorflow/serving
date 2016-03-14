@@ -143,6 +143,57 @@ TEST(GetNamedClassificationSignature, WrongSignatureType) {
       << status.error_message();
 }
 
+TEST(GetRegressionSignature, Basic) {
+  tensorflow::MetaGraphDef meta_graph_def;
+  Signatures signatures;
+  RegressionSignature* input_signature =
+      signatures.mutable_default_signature()->mutable_regression_signature();
+  input_signature->mutable_input()->set_tensor_name("flow");
+  (*meta_graph_def.mutable_collection_def())[kSignaturesKey]
+      .mutable_any_list()
+      ->add_value()
+      ->PackFrom(signatures);
+
+  RegressionSignature signature;
+  const Status status = GetRegressionSignature(meta_graph_def, &signature);
+  TF_ASSERT_OK(status);
+  EXPECT_EQ(signature.input().tensor_name(), "flow");
+}
+
+TEST(GetRegressionSignature, MissingSignature) {
+  tensorflow::MetaGraphDef meta_graph_def;
+  Signatures signatures;
+  signatures.mutable_default_signature();
+  (*meta_graph_def.mutable_collection_def())[kSignaturesKey]
+      .mutable_any_list()
+      ->add_value()
+      ->PackFrom(signatures);
+
+  RegressionSignature signature;
+  const Status status = GetRegressionSignature(meta_graph_def, &signature);
+  ASSERT_FALSE(status.ok());
+  EXPECT_TRUE(StringPiece(status.error_message())
+                  .contains("Expected a regression signature"))
+      << status.error_message();
+}
+
+TEST(GetRegressionSignature, WrongSignatureType) {
+  tensorflow::MetaGraphDef meta_graph_def;
+  Signatures signatures;
+  signatures.mutable_default_signature()->mutable_classification_signature();
+  (*meta_graph_def.mutable_collection_def())[kSignaturesKey]
+      .mutable_any_list()
+      ->add_value()
+      ->PackFrom(signatures);
+
+  RegressionSignature signature;
+  const Status status = GetRegressionSignature(meta_graph_def, &signature);
+  ASSERT_FALSE(status.ok());
+  EXPECT_TRUE(StringPiece(status.error_message())
+                  .contains("Expected a regression signature"))
+      << status.error_message();
+}
+
 // MockSession used to test input and output interactions with a
 // tensorflow::Session.
 struct MockSession : public tensorflow::Session {

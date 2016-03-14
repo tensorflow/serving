@@ -85,6 +85,7 @@ cc_test(
         "//tensorflow_serving/core/test_util:source_adapter_test_util",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/session_bundle",
+        "//tensorflow_serving/test_util",
         "//tensorflow_serving/util:any_ptr",
     ],
 )
@@ -146,6 +147,7 @@ cc_test(
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/session_bundle",
+        "//tensorflow_serving/test_util",
         "//tensorflow_serving/util:unique_ptr_with_deps",
     ],
 )
@@ -154,9 +156,6 @@ cc_library(
     name = "serving_session",
     srcs = ["serving_session.cc"],
     hdrs = ["serving_session.h"],
-    visibility = [
-        "//tensorflow_serving:internal",
-    ],
     deps = [
         "@tf//tensorflow/core:core_cpu",
         "@tf//tensorflow/core:lib",

@@ -72,7 +72,17 @@ class LoaderHarness final {
     kError
   };
 
+  struct Options {
+    // Maximum number of times we try to load a servable before we give up.
+    int max_num_load_tries;
+
+    // The interval, in microseconds, between each servable load retry.
+    int64 load_retry_interval_micros;
+  };
+
   LoaderHarness(const ServableId& id, std::unique_ptr<Loader> loader);
+  LoaderHarness(const ServableId& id, std::unique_ptr<Loader> loader,
+                const Options& options);
 
   // Legal to destruct iff current state is kNew|kDisabled|kError.
   // Check-fails if violated.
@@ -91,9 +101,14 @@ class LoaderHarness final {
   // Returns the current overall state snapshot of the underlying Servable.
   ServableStateSnapshot loader_state_snapshot() const LOCKS_EXCLUDED(mu_);
 
-  // Transitions to kLoading, delegates to Servable::Load(), then
-  // transitions either to kReady if Load() succeeds, or to kError if
-  // Load() fails. This call may take a long time.
+  // Transitions to kLoading, delegates to Servable::Load(), then transitions
+  // either to kReady if Load() succeeds, or to kError if Load() fails. This
+  // call may take a long time.
+  //
+  // We retry the Servable::Load() according to the options set during
+  // construction of this class. We stop retrying and give up if 1. we have
+  // reached max_num_load_tries or, 2. if is_aspired is set to false.
+  //
   // Legal to call iff current state is kNew. Check-fails if violated.
   Status Load() LOCKS_EXCLUDED(mu_);
 
@@ -140,6 +155,7 @@ class LoaderHarness final {
 
   const ServableId id_;
   const std::unique_ptr<Loader> loader_;
+  const Options options_;
   mutable mutex mu_;
   State state_ GUARDED_BY(mu_) = kNew;
   bool is_aspired_ GUARDED_BY(mu_) = true;

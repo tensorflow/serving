@@ -1,0 +1,46 @@
+// Representations for resources used by servables, and available in a system.
+//
+// Each of the string-typed values are free-form, so that they can be extended
+// by third parties. However we strongly recommend using the values defined in
+// resource_values.h when possible, for standardization.
+
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+
+package tensorflow.serving;
+
+// One kind of resource on one device (or type of device).
+message Resource {
+  // The type of device on which the resource resides, e.g. CPU or GPU.
+  string device = 1;
+
+  // A specific instance of the device of type 'device' to which the resources
+  // are bound (instances are assumed to be numbered 0, 1, ...).
+  //
+  // When representing the resources required by a servable that has yet to be
+  // loaded, this field is optional. If not set, it denotes that the servable's
+  // resources are not (yet) bound to a specific instance.
+  google.protobuf.Int32Value device_instance = 2;
+
+  // The kind of resource on the device (instance), e.g. RAM or compute share.
+  //
+  // A given type of resource should have a standard unit that represents the
+  // smallest useful quantization. We strongly recommend including the unit
+  // (e.g. bytes or millicores) in this string, as in "ram_bytes".
+  string kind = 3;
+}
+
+// An allocation of one or more kinds of resources, along with the quantity of
+// each. Used to denote the resources that a servable (or collection of
+// servables) will use or is currently using. Also used to denote resources
+// available to the serving system for loading more servables.
+message ResourceAllocation {
+  // A collection of resources, each with a quantity. Treated as a resource->
+  // quantity map, i.e. no resource can repeat and the order is immaterial.
+  message Entry {
+    Resource resource = 1;
+    uint64 quantity = 2;
+  }
+  repeated Entry resource_quantities = 1;
+}

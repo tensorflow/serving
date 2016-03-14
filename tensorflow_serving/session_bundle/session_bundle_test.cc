@@ -31,16 +31,15 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/public/session_options.h"
+#include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
 namespace serving {
 namespace {
 
 TEST(LoadSessionBundleFromPath, Basic) {
-  const string export_path = tensorflow::io::JoinPath(
-      getenv("TEST_SRCDIR"),
-      "tensorflow_serving/session_bundle/example/"
-      "half_plus_two/00000123/");
+  const string export_path = test_util::TestSrcDirPath(
+      "tensorflow_serving/session_bundle/example/half_plus_two/00000123");
   tensorflow::SessionOptions options;
   SessionBundle bundle;
   TF_ASSERT_OK(LoadSessionBundleFromPath(options, export_path, &bundle));
@@ -89,8 +88,7 @@ TEST(LoadSessionBundleFromPath, Basic) {
 }
 
 TEST(LoadSessionBundleFromPath, BadExportPath) {
-  const string export_path =
-      tensorflow::io::JoinPath(getenv("TEST_SRCDIR"), "/tmp/bigfoot");
+  const string export_path = test_util::TestSrcDirPath("/tmp/bigfoot");
   tensorflow::SessionOptions options;
   options.target = "local";
   SessionBundle bundle;

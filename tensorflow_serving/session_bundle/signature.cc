@@ -144,6 +144,53 @@ Status RunClassification(const ClassificationSignature& signature,
   return Status::OK();
 }
 
+Status GetRegressionSignature(const tensorflow::MetaGraphDef& meta_graph_def,
+                              RegressionSignature* signature) {
+  Signatures signatures;
+  TF_RETURN_IF_ERROR(GetSignatures(meta_graph_def, &signatures));
+  if (!signatures.has_default_signature()) {
+    return errors::FailedPrecondition(strings::StrCat(
+        "Expected a default signature in: ", signatures.DebugString()));
+  }
+  if (!signatures.default_signature().has_regression_signature()) {
+    return errors::FailedPrecondition(
+        strings::StrCat("Expected a regression signature in: ",
+                        signatures.default_signature().DebugString()));
+  }
+  *signature = signatures.default_signature().regression_signature();
+  return Status::OK();
+}
+
+Status RunRegression(const RegressionSignature& signature,
+                     const Tensor& regression_input, Session* session,
+                     Tensor* regression_output) {
+  std::vector<string> output_tensor_names;
+  if (regression_output) {
+    output_tensor_names.push_back(signature.output().tensor_name());
+  }
+  // Run the graph with our inputs and outputs.
+  std::vector<Tensor> outputs;
+  const Status run_status =
+      session->Run({{signature.input().tensor_name(), regression_input}},
+                   output_tensor_names, {}, &outputs);
+  if (!run_status.ok()) {
+    return run_status;
+  }
+  // Ensure the regression score output is shaped how we expect.
+  // There should be one float Tensor of shape,
+  //   [batch_size, num_recommendations].
+  if (outputs.size() != output_tensor_names.size()) {
+    return errors::Internal(
+        strings::StrCat("Expected ", output_tensor_names.size(),
+                        " output tensor(s).  Got: ", outputs.size()));
+  }
+  if (regression_output) {
+    *regression_output = outputs[0];
+    TF_RETURN_IF_ERROR(BatchSizesMatch(regression_input, *regression_output));
+  }
+  return Status::OK();
+}
+
 Status GetGenericSignature(const string& name,
                            const tensorflow::MetaGraphDef& meta_graph_def,
                            GenericSignature* signature) {

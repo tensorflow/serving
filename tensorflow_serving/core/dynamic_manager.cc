@@ -356,7 +356,10 @@ void DynamicManager::SetAspiredVersions(
           loader = version.ConsumeDataOrDie();
         }
         std::shared_ptr<LoaderHarness> harness =
-            std::make_shared<LoaderHarness>(version.id(), std::move(loader));
+            std::make_shared<LoaderHarness>(
+                version.id(), std::move(loader),
+                LoaderHarness::Options{options_.max_num_load_tries,
+                                       options_.load_retry_interval_micros});
         if (!version.status().ok()) {
           LOG(ERROR) << "Version error: " << version.status().ToString();
           harness->Error(version.status());

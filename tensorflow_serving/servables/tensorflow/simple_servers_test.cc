@@ -31,6 +31,7 @@ limitations under the License.
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/session_bundle/session_bundle.h"
+#include "tensorflow_serving/test_util/test_util.h"
 #include "tensorflow_serving/util/unique_ptr_with_deps.h"
 
 namespace tensorflow {
@@ -40,10 +41,8 @@ namespace {
 class SimpleServersTest : public ::testing::Test {
  protected:
   SimpleServersTest()
-      : test_data_path_(io::JoinPath(
-            getenv("TEST_SRCDIR"),
-            "tensorflow_serving/session_bundle/"
-            "example/half_plus_two/")) {}
+      : test_data_path_(test_util::TestSrcDirPath(
+            "tensorflow_serving/session_bundle/example/half_plus_two")) {}
 
   // Test that a SessionBundle handles a single request for the half plus two
   // model properly. The request has size=2, for batching purposes.

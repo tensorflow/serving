@@ -21,7 +21,7 @@ import os.path
 
 import tensorflow as tf
 
-from tensorflow.core.framework import config_pb2
+from tensorflow.core.protobuf import config_pb2
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 
