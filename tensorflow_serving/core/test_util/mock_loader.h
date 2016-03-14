@@ -27,6 +27,7 @@ namespace test_util {
 
 class MockLoader : public Loader {
  public:
+  MOCK_CONST_METHOD0(EstimateResources, ResourceAllocation());
   MOCK_METHOD0(Load, Status());
   MOCK_METHOD0(Unload, void());
   MOCK_METHOD0(servable, AnyPtr());

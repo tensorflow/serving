@@ -43,7 +43,7 @@ using ::testing::UnorderedElementsAreArray;
 
 namespace {
 
-class FakeLoader : public Loader {
+class FakeLoader : public ResourceUnsafeLoader {
  public:
   explicit FakeLoader(int64 servable, const bool errors_on_load = false)
       : servable_(servable), errors_on_load_(errors_on_load) {}

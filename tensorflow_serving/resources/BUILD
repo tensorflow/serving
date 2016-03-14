@@ -63,3 +63,27 @@ cc_test(
         "//tensorflow_serving/test_util",
     ],
 )
+
+cc_library(
+    name = "resource_tracker",
+    srcs = ["resource_tracker.cc"],
+    hdrs = ["resource_tracker.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":resource_util",
+        ":resources_proto",
+        "//tensorflow_serving/core:loader",
+    ],
+)
+
+cc_test(
+    name = "resource_tracker_test",
+    size = "small",
+    srcs = ["resource_tracker_test.cc"],
+    deps = [
+        ":resource_tracker",
+        "//tensorflow_serving/core/test_util:mock_loader",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+    ],
+)

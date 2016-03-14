@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/core/source.h"
+#include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/util/any_ptr.h"
 
 namespace tensorflow {
@@ -56,6 +57,18 @@ class Loader {
   // The destructor will never be called on a Loader whose servable is currently
   // loaded, i.e. between (successful) calls to Load() and Unload().
   virtual ~Loader() = default;
+
+  // Returns an estimate of the resources the servable will consume once loaded.
+  // If the servable has already been loaded, returns an estimate of the actual
+  // resource usage.
+  //
+  // IMPORTANT:
+  //  1. The estimate must represent an upper bound on the actual value.
+  //  2. The estimate must be monotonically non-increasing, i.e. it cannot
+  //     increase over time.
+  // (These requirements enable the serving system to reason correctly about
+  // which servables can be loaded safely.)
+  virtual ResourceAllocation EstimateResources() const = 0;
 
   // Fetches any data that needs to be loaded before using the servable returned
   // by servable().
@@ -96,6 +109,16 @@ class Loader {
   // returns a valid, non-null AnyPtr object. If called before a successful
   // Load() call or after Unload(), it returns null AnyPtr.
   virtual AnyPtr servable() = 0;
+};
+
+// A Loader whose EstimateResources() method returns 0, thus effectively
+// disabling resource-based safety checks in the serving system. Useful for
+// experimental Loaders, or for environments that do not need the safety checks.
+class ResourceUnsafeLoader : public Loader {
+ public:
+  ResourceAllocation EstimateResources() const final {
+    return ResourceAllocation();
+  }
 };
 
 // A source that emits Loader unique pointers.

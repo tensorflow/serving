@@ -80,6 +80,7 @@ cc_library(
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",
         ":source",
+        "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/util:any_ptr",
     ],
 )

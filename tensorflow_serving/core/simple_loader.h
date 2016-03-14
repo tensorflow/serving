@@ -44,8 +44,12 @@ namespace serving {
 //           *servable = time(nullptr);
 //           return Status::OK();
 //       }));
+//
+// IMPORTANT: Use of SimpleLoader abdicates resource safety, i.e. servables
+// loaded via SimpleLoaders do not declare their resource usage, and hence the
+// serving system cannot enforce resource safety.
 template <typename ServableType>
-class SimpleLoader : public Loader {
+class SimpleLoader : public ResourceUnsafeLoader {
  public:
   // Creator is called in Load and used to create the servable.
   using Creator = std::function<Status(std::unique_ptr<ServableType>*)>;
