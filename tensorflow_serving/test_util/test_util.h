@@ -45,7 +45,7 @@ string TestSrcDirPath(const string& relative_path);
 class ProtoStringMatcher {
  public:
   explicit ProtoStringMatcher(const string& expected);
-  explicit ProtoStringMatcher(const proto2::Message& expected);
+  explicit ProtoStringMatcher(const google::protobuf::Message& expected);
 
   template <typename Message>
   bool MatchAndExplain(const Message& p,
@@ -68,7 +68,7 @@ inline ::testing::PolymorphicMatcher<ProtoStringMatcher> EqualsProto(
 
 // Polymorphic matcher to compare any two protos.
 inline ::testing::PolymorphicMatcher<ProtoStringMatcher> EqualsProto(
-    const proto2::Message& x) {
+    const google::protobuf::Message& x) {
   return ::testing::MakePolymorphicMatcher(ProtoStringMatcher(x));
 }
 
