@@ -39,6 +39,9 @@ T CreateProto(const string& textual_proto);
 string TestSrcDirPath(const string& relative_path);
 
 // Simple implementation of a proto matcher comparing string representations.
+//
+// IMPORTANT: Only use this for protos whose textual representation is
+// deterministic (that may not be the case for the map collection type).
 class ProtoStringMatcher {
  public:
   explicit ProtoStringMatcher(const string& expected);
