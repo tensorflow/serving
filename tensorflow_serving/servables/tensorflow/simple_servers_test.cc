@@ -41,8 +41,9 @@ namespace {
 class SimpleServersTest : public ::testing::Test {
  protected:
   SimpleServersTest()
-      : test_data_path_(test_util::TestSrcDirPath(
-            "tensorflow_serving/session_bundle/example/half_plus_two")) {}
+      : test_data_path_(
+            test_util::TestSrcDirPath("session_bundle/example/half_plus_two")) {
+  }
 
   // Test that a SessionBundle handles a single request for the half plus two
   // model properly. The request has size=2, for batching purposes.

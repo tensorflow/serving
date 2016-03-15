@@ -34,8 +34,8 @@ template <typename T>
 T CreateProto(const string& textual_proto);
 
 // Creates an absolute test srcdir path to the linked in runfiles given a path
-// relative to the current workspace.
-// e.g. relative path = "tensorflow_serving/session_bundle".
+// relative to tensorflow_serving/.
+// e.g. relative path = "session_bundle/example".
 string TestSrcDirPath(const string& relative_path);
 
 // Simple implementation of a proto matcher comparing string representations.

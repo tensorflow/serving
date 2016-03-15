@@ -39,7 +39,7 @@ namespace {
 
 TEST(LoadSessionBundleFromPath, Basic) {
   const string export_path = test_util::TestSrcDirPath(
-      "tensorflow_serving/session_bundle/example/half_plus_two/00000123");
+      "session_bundle/example/half_plus_two/00000123");
   tensorflow::SessionOptions options;
   SessionBundle bundle;
   TF_ASSERT_OK(LoadSessionBundleFromPath(options, export_path, &bundle));
