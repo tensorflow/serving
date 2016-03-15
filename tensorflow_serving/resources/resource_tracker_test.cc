@@ -51,7 +51,8 @@ class ResourceTrackerTest : public ::testing::Test {
                                             "  quantity: 16 "
                                             "} ")),
         tracker_(total_resources_,
-                 std::unique_ptr<ResourceUtil>(new ResourceUtil({}))) {
+                 std::unique_ptr<ResourceUtil>(
+                     new ResourceUtil({{{"cpu", 1}, {"gpu", 2}}}))) {
     loader_0_.reset(new NiceMock<test_util::MockLoader>);
     ON_CALL(*loader_0_, EstimateResources())
         .WillByDefault(Return(
