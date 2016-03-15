@@ -247,17 +247,22 @@ bool ResourceUtil::LessThanOrEqual(const ResourceAllocation& lhs,
   DCHECK(IsBound(rhs))
       << "LessThanOrEqual() requires the second argument to be bound";
 
+  // Phase 1: Attempt to subtract the bound entries in 'lhs' from 'rhs'.
+  ResourceAllocation subtracted_rhs = rhs;
   for (const ResourceAllocation::Entry& lhs_entry : lhs.resource_quantities()) {
     if (lhs_entry.resource().has_device_instance()) {
-      // This 'lhs' entry is bound. Compare it against the bound quantity in
-      // 'rhs'.
-      if (lhs_entry.quantity() >
-          GetQuantityForResource(lhs_entry.resource(), rhs)) {
+      ResourceAllocation to_subtract;
+      *to_subtract.add_resource_quantities() = lhs_entry;
+      if (!Subtract(to_subtract, &subtracted_rhs)) {
         return false;
       }
-    } else {
-      // This 'lhs' entry is unbound. See if 'rhs' has room in one of the
-      // instances.
+    }
+  }
+
+  // Phase 2: See if each unbound entry in 'lhs' can fit into a 'subtracted_rhs'
+  // via some device instance.
+  for (const ResourceAllocation::Entry& lhs_entry : lhs.resource_quantities()) {
+    if (!lhs_entry.resource().has_device_instance()) {
       const uint32 num_instances =
           devices_.find(lhs_entry.resource().device())->second;
       Resource bound_resource = lhs_entry.resource();
@@ -265,7 +270,7 @@ bool ResourceUtil::LessThanOrEqual(const ResourceAllocation& lhs,
       for (int instance = 0; instance < num_instances; ++instance) {
         bound_resource.mutable_device_instance()->set_value(instance);
         if (lhs_entry.quantity() <=
-            GetQuantityForResource(bound_resource, rhs)) {
+            GetQuantityForResource(bound_resource, subtracted_rhs)) {
           found_room = true;
           break;
         }

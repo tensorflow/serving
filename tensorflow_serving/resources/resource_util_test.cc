@@ -901,6 +901,31 @@ TEST_F(ResourceUtilTest, LessThanOrEqualUnbound) {
                                       "  quantity: 4 "
                                       "} "),
       base));
+  EXPECT_TRUE(util_.LessThanOrEqual(
+      CreateProto<ResourceAllocation>("resource_quantities { "
+                                      "  resource { "
+                                      "    device: 'gpu' "
+                                      "    device_instance { value: 0 } "
+                                      "    kind: 'processing' "
+                                      "  } "
+                                      "  quantity: 90 "
+                                      "} "
+                                      "resource_quantities { "
+                                      "  resource { "
+                                      "    device: 'gpu' "
+                                      "    device_instance { value: 1 } "
+                                      "    kind: 'processing' "
+                                      "  } "
+                                      "  quantity: 40 "
+                                      "} "
+                                      "resource_quantities { "
+                                      "  resource { "
+                                      "    device: 'gpu' "
+                                      "    kind: 'processing' "
+                                      "  } "
+                                      "  quantity: 10 "
+                                      "} "),
+      base));
   EXPECT_FALSE(util_.LessThanOrEqual(
       CreateProto<ResourceAllocation>("resource_quantities { "
                                       "  resource { "
@@ -931,6 +956,31 @@ TEST_F(ResourceUtilTest, LessThanOrEqualUnbound) {
                                       "    kind: 'ram' "
                                       "  } "
                                       "  quantity: 5 "
+                                      "} "),
+      base));
+  EXPECT_FALSE(util_.LessThanOrEqual(
+      CreateProto<ResourceAllocation>("resource_quantities { "
+                                      "  resource { "
+                                      "    device: 'gpu' "
+                                      "    device_instance { value: 0 } "
+                                      "    kind: 'processing' "
+                                      "  } "
+                                      "  quantity: 90 "
+                                      "} "
+                                      "resource_quantities { "
+                                      "  resource { "
+                                      "    device: 'gpu' "
+                                      "    device_instance { value: 1 } "
+                                      "    kind: 'processing' "
+                                      "  } "
+                                      "  quantity: 40 "
+                                      "} "
+                                      "resource_quantities { "
+                                      "  resource { "
+                                      "    device: 'gpu' "
+                                      "    kind: 'processing' "
+                                      "  } "
+                                      "  quantity: 20 "
                                       "} "),
       base));
 }
