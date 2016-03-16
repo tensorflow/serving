@@ -109,6 +109,7 @@ class SaveRestoreShardedTest(tf.test.TestCase):
       save = tf.train.import_meta_graph(
           os.path.join(export_path, exporter.VERSION_FORMAT_SPECIFIER %
                        global_step, exporter.META_GRAPH_DEF_FILENAME))
+      self.assertIsNotNone(save)
       meta_graph_def = save.export_meta_graph()
       collection_def = meta_graph_def.collection_def
 
