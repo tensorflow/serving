@@ -27,13 +27,13 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
-#include "grpc/include/grpc++/security/server_credentials.h"
-#include "grpc/include/grpc++/server.h"
-#include "grpc/include/grpc++/server_builder.h"
-#include "grpc/include/grpc++/server_context.h"
-#include "grpc/include/grpc++/support/status.h"
-#include "grpc/include/grpc++/support/status_code_enum.h"
-#include "grpc/include/grpc/grpc.h"
+#include "grpc++/security/server_credentials.h"
+#include "grpc++/server.h"
+#include "grpc++/server_builder.h"
+#include "grpc++/server_context.h"
+#include "grpc++/support/status.h"
+#include "grpc++/support/status_code_enum.h"
+#include "grpc/grpc.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_types.h"

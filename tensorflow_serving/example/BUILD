@@ -34,7 +34,7 @@ cc_library(
         "mnist_inference.pb.h",
     ],
     deps = [
-        "//grpc:grpc++",
+        "@grpc//:grpc++",
     ],
 )
 
@@ -68,7 +68,7 @@ cc_binary(
         "@tf//tensorflow/core:protos_all_cc",
         "@tf//tensorflow/core:tensorflow",
         ":mnist_grpc_cc",
-        "//grpc",
+        "@grpc//:grpc",
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/session_bundle:manifest_proto",
         "//tensorflow_serving/session_bundle:signature",
@@ -87,7 +87,7 @@ cc_binary(
         "@tf//tensorflow/core:protos_all_cc",
         "@tf//tensorflow/core:tensorflow",
         ":mnist_grpc_cc",
-        "//grpc",
+        "@grpc//:grpc",
         "//tensorflow_serving/batching:batch_scheduler",
         "//tensorflow_serving/batching:batch_scheduler_retrier",
         "//tensorflow_serving/batching:streaming_batch_scheduler",
