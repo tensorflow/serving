@@ -1,7 +1,3 @@
----
----
-<style>hr{display:none;}</style>
-
 # TensorFlow Inference Model Format
 
 [TOC]

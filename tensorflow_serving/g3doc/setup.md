@@ -112,3 +112,21 @@ bazel test tensorflow_serving/...
 
 See the [basic tutorial](serving_basic.md) and [advanced tutorial](serving_advanced.md)
 for more in-depth examples of running TensorFlow Serving.
+
+
+### Continuous integration build
+
+Our [continuous integration build](http://ci.tensorflow.org/view/Serving/job/serving-master-cpu/)
+using tensorflow [ci_build](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/ci_build)
+infrastructure offer you simplified development using docker. All you need is
+git and docker. No need to install all other dependencies manually.
+
+~~~shell
+git clone --recursive https://github.com/tensorflow/serving
+cd serving
+CI_TENSORFLOW_SUBMODULE_PATH=tensorflow tensorflow/tensorflow/tools/ci_build/ci_build.sh CPU bazel test //tensorflow_serving/...
+~~~
+
+Note: The `serving` directory is mapped into the container. You can develop
+outside the docker container (in your favourite editor) and when you run this
+build it will build with your changes.
