@@ -1,0 +1,3 @@
+build --spawn_strategy=standalone --genrule_strategy=standalone
+test --spawn_strategy=standalone --genrule_strategy=standalone
+run --spawn_strategy=standalone --genrule_strategy=standalone

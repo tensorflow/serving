@@ -21,7 +21,7 @@ message Resource {
   // When representing the resources required by a servable that has yet to be
   // loaded, this field is optional. If not set, it denotes that the servable's
   // resources are not (yet) bound to a specific instance.
-  google.protobuf.Int32Value device_instance = 2;
+  google.protobuf.UInt32Value device_instance = 2;
 
   // The kind of resource on the device (instance), e.g. RAM or compute share.
   //

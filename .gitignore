@@ -9,6 +9,5 @@ node_modules
 /bazel-tf
 /bazel-workspace
 /third_party/py/numpy/numpy_include
-/tools/bazel.rc
 /util/python/python_include
 /util/python/python_lib
