@@ -21,7 +21,6 @@ limitations under the License.
 
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/platform/google/integral_types.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/types.h"
 
