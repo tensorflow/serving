@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_UTIL_ANY_PTR_H_
 
 #include <cstddef>
+#include <memory>
 
 namespace tensorflow {
 namespace serving {
@@ -101,6 +102,68 @@ class AnyPtr {
 
   // The underlying pointer.
   void* ptr_;
+};
+
+// Like AnyPtr, but owns the pointed-to object (calls delete upon destruction).
+// This class is move-only, like std::unique_ptr.
+class UniqueAnyPtr {
+ public:
+  // UniqueAnyPtr is void and null by default.
+  UniqueAnyPtr() = default;
+  UniqueAnyPtr(std::nullptr_t) : UniqueAnyPtr() {}  // NOLINT
+
+  // Construct from a unique pointer to any type.
+  template <typename T>
+  explicit UniqueAnyPtr(std::unique_ptr<T> ptr)
+      : ptr_(ptr.release()), deleter_(DeleterForType<T>()) {}
+
+  ~UniqueAnyPtr() { deleter_(ptr_); }
+
+  // Disable copy.
+  UniqueAnyPtr(const UniqueAnyPtr& other) = delete;
+  UniqueAnyPtr& operator=(const UniqueAnyPtr& other) = delete;
+
+  // Allow move.
+  UniqueAnyPtr(UniqueAnyPtr&& other) { swap(other); }
+
+  UniqueAnyPtr& operator=(UniqueAnyPtr&& other) {
+    swap(other);
+    return *this;
+  }
+
+  // Returns the underlying pointer if it is of type T, otherwise null.
+  template <typename T>
+  T* get() const {
+    return ptr_.get<T>();
+  }
+
+  // Returns the underlying pointer as an AnyPtr.
+  const AnyPtr& as_any_ptr() const { return ptr_; }
+
+  void swap(UniqueAnyPtr& other) {
+    using ::std::swap;
+    swap(ptr_, other.ptr_);
+    swap(deleter_, other.deleter_);
+  }
+
+ private:
+  // We use a raw function pointer. This eliminates the copy and calling
+  // overhead of std::function.
+  using Deleter = void (*)(AnyPtr ptr);
+
+  // Returns a 'Deleter' that will delete it's argument as an instance of 'T'.
+  // Always returns the same value for the same 'T'.
+  template <typename T>
+  static Deleter DeleterForType() {
+    return [](AnyPtr ptr) { delete ptr.get<T>(); };
+  }
+
+  static Deleter NoOpDeleter() {
+    return [](AnyPtr ptr) {};
+  }
+
+  AnyPtr ptr_ = nullptr;
+  Deleter deleter_ = NoOpDeleter();
 };
 
 }  // namespace serving

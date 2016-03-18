@@ -82,6 +82,35 @@ TEST(AnyPtrTest, BaseClass) {
   EXPECT_EQ(nullptr, ptr.get<Child>());
 }
 
+struct Destructable {
+  ~Destructable() { *destroyed = true; }
+
+  bool* const destroyed;
+};
+
+TEST(UniqueAnyPtrTest, SetGetAndDestroy) {
+  bool destroyed = false;
+  UniqueAnyPtr ptr;
+
+  // Move constructable.
+  ptr =
+      UniqueAnyPtr{std::unique_ptr<Destructable>{new Destructable{&destroyed}}};
+  EXPECT_EQ(&destroyed, ptr.get<Destructable>()->destroyed);
+  EXPECT_EQ(nullptr, ptr.get<int>());
+  ASSERT_FALSE(destroyed);
+
+  // Implicitly settable/constructable from nullptr.
+  ptr = nullptr;
+  EXPECT_TRUE(destroyed);
+}
+
+TEST(UniqueAnyPtrTest, MoveConstruction) {
+  UniqueAnyPtr ptr1 = UniqueAnyPtr(std::unique_ptr<int>(new int(1)));
+  UniqueAnyPtr ptr2(std::move(ptr1));
+
+  ASSERT_EQ(1, *ptr2.get<int>());
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow
