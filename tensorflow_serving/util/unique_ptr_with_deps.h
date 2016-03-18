@@ -28,35 +28,10 @@ limitations under the License.
 
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow_serving/util/any_ptr.h"
 
 namespace tensorflow {
 namespace serving {
-
-class DeleterBase {
- public:
-  DeleterBase() {}
-  virtual ~DeleterBase() {}
-
- private:
-  TF_DISALLOW_COPY_AND_ASSIGN(DeleterBase);
-};
-
-template<typename T>
-class StandardDeleter : public DeleterBase {
- public:
-  explicit StandardDeleter(std::unique_ptr<T> to_delete)
-      : object_to_delete_(std::move(to_delete)) {}
-  ~StandardDeleter() override {}
-
- private:
-  std::unique_ptr<T> object_to_delete_;
-};
-
-template<typename T>
-std::unique_ptr<DeleterBase> NewStandardDeleter(std::unique_ptr<T> to_delete) {
-  return std::unique_ptr<DeleterBase>(
-      new StandardDeleter<T>(std::move(to_delete)));
-}
 
 // Holds an object with its dependencies. On destruction deletes the main
 // object and all dependencies, in the order inverse to the order of
@@ -83,7 +58,7 @@ class UniquePtrWithDeps {
   template <typename X>
   X* AddDependency(std::unique_ptr<X> dependency) {
     X* raw = dependency.get();
-    deleters_.emplace_back(new StandardDeleter<X>(std::move(dependency)));
+    deleters_.emplace_back(std::move(dependency));
     return raw;
   }
 
@@ -99,7 +74,7 @@ class UniquePtrWithDeps {
   T* operator->() const { return get(); }
 
  private:
-  std::vector<std::unique_ptr<DeleterBase>> deleters_;
+  std::vector<UniqueAnyPtr> deleters_;
   T* object_ = nullptr;
 };
 
