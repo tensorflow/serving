@@ -1,0 +1,22 @@
+// Protobuf definition of inception v3 model inference server.
+
+syntax = "proto3";
+
+package tensorflow.serving;
+
+message InceptionRequest {
+  // JPEG encoded stream of the image to be classified.
+  bytes jpeg_encoded = 1;
+};
+
+message InceptionResponse {
+  // Class indexes of top matches, in scores descending order.
+  repeated int32 classes = 1;
+  // Scores of top matches, in same order as classes.
+  repeated float scores = 2;
+};
+
+service InceptionService {
+  // Classifies an JPEG image into classes.
+  rpc Classify(InceptionRequest) returns (InceptionResponse);
+}

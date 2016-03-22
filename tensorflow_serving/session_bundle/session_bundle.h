@@ -33,7 +33,6 @@ namespace tensorflow {
 namespace serving {
 
 const char kMetaGraphDefFilename[] = "export.meta";
-const char kVariablesFilenamePattern[] = "export-\?\?\?\?\?-of-\?\?\?\?\?";
 const char kAssetsDirectory[] = "assets";
 const char kInitOpKey[] = "serving_init_op";
 const char kAssetsKey[] = "serving_assets";

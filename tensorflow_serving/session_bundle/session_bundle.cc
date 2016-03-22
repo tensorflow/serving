@@ -78,6 +78,27 @@ void AddAssetsTensorsToInputs(const StringPiece export_dir,
   }
 }
 
+// Historically, model exporter(exporter.py) takes only saver with
+// sharded=True, and therefore always exports checkpoint in pattern file names.
+// In practice, instead of training from scratch and export directly, we
+// usually want to restore from existing checkpoints and then export directly.
+// To support such case, model exporter now supports reusing saver object
+// restored from existing checkpoint, that may have sharded=False - it will
+// then export checkpoint file in plain file name.
+// This method is to support models exported by both types of saver object.
+// The change is backward-compatible, therefore no changes are needed for
+// existing model exports.
+string GetVariablesFilename(const StringPiece export_dir) {
+  const char kVariablesFilename[] = "export";
+  const char kVariablesFilenamePattern[] = "export-\?\?\?\?\?-of-\?\?\?\?\?";
+  if (Env::Default()->FileExists(
+      tensorflow::io::JoinPath(export_dir, kVariablesFilename))) {
+    return tensorflow::io::JoinPath(export_dir, kVariablesFilename);
+  } else {
+    return tensorflow::io::JoinPath(export_dir, kVariablesFilenamePattern);
+  }
+}
+
 Status RunRestoreOp(const StringPiece export_dir,
                     const std::vector<AssetFile>& asset_files,
                     const StringPiece restore_op_name,
@@ -85,7 +106,7 @@ Status RunRestoreOp(const StringPiece export_dir,
                     tensorflow::Session* session) {
   LOG(INFO) << "Running restore op for SessionBundle";
   Tensor variables_tensor = CreateStringTensor(
-      tensorflow::io::JoinPath(export_dir, kVariablesFilenamePattern));
+      GetVariablesFilename(export_dir));
   std::vector<std::pair<string, Tensor>> inputs = {
       {variables_filename_const_op_name.ToString(), variables_tensor}};
   AddAssetsTensorsToInputs(export_dir, asset_files, &inputs);

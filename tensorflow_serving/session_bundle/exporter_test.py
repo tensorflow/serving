@@ -43,7 +43,8 @@ class SaveRestoreShardedTest(tf.test.TestCase):
   def doBasicsOneExportPath(self,
                             export_path,
                             clear_devices=False,
-                            global_step=GLOBAL_STEP):
+                            global_step=GLOBAL_STEP,
+                            sharded=True):
     # Build a graph with 2 parameter nodes on different devices.
     tf.reset_default_graph()
     with tf.Session(
@@ -85,7 +86,7 @@ class SaveRestoreShardedTest(tf.test.TestCase):
       save = tf.train.Saver({"v0": v0,
                              "v1": v1},
                             restore_sequentially=True,
-                            sharded=True)
+                            sharded=sharded)
       export = exporter.Exporter(save)
       export.init(sess.graph.as_graph_def(),
                   init_op=init_op,
@@ -158,9 +159,16 @@ class SaveRestoreShardedTest(tf.test.TestCase):
       self.assertEquals("filename42:0", asset.tensor_binding.tensor_name)
 
       # Validate graph restoration.
-      save.restore(sess,
-                   os.path.join(export_path, exporter.VERSION_FORMAT_SPECIFIER %
-                                global_step, exporter.VARIABLES_DIRECTORY))
+      if sharded:
+        save.restore(sess,
+                     os.path.join(
+                        export_path, exporter.VERSION_FORMAT_SPECIFIER %
+                        global_step, exporter.VARIABLES_FILENAME_PATTERN))
+      else:
+        save.restore(sess,
+                     os.path.join(
+                        export_path, exporter.VERSION_FORMAT_SPECIFIER %
+                        global_step, exporter.VARIABLES_FILENAME))
       self.assertEqual(10, tf.get_collection("v")[0].eval())
       self.assertEqual(20, tf.get_collection("v")[1].eval())
       tf.get_collection(exporter.INIT_OP_KEY)[0].run()
@@ -174,6 +182,10 @@ class SaveRestoreShardedTest(tf.test.TestCase):
   def testBasics(self):
     export_path = os.path.join(tf.test.get_temp_dir(), "export")
     self.doBasicsOneExportPath(export_path)
+
+  def testBasicsNoShard(self):
+    export_path = os.path.join(tf.test.get_temp_dir(), "export_no_shard")
+    self.doBasicsOneExportPath(export_path, sharded=False)
 
   def testClearDevice(self):
     export_path = os.path.join(tf.test.get_temp_dir(), "export_clear_device")
