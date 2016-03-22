@@ -24,8 +24,10 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow_serving/core/test_util/mock_loader.h"
+#include "tensorflow_serving/test_util/test_util.h"
 #include "tensorflow_serving/util/any_ptr.h"
 
+using ::testing::_;
 using ::testing::HasSubstr;
 using ::testing::InvokeWithoutArgs;
 using ::testing::InSequence;
@@ -69,10 +71,10 @@ TEST(LoaderHarnessTest, set_is_aspired) {
 TEST(LoaderHarnessTest, Quiesce) {
   test_util::MockLoader* loader = new StrictMock<test_util::MockLoader>;
   LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
-  EXPECT_CALL(*loader, Load()).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*loader, Load(_)).WillOnce(Return(Status::OK()));
   EXPECT_CALL(*loader, Unload()).WillOnce(Return());
 
-  TF_ASSERT_OK(harness.Load());
+  TF_ASSERT_OK(harness.Load(ResourceAllocation()));
 
   harness.StartQuiescing();
   EXPECT_EQ(LoaderHarness::State::kQuiescing, harness.state());
@@ -89,9 +91,18 @@ TEST(LoaderHarnessTest, Load) {
   LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
   EXPECT_CALL(*loader, Unload()).WillOnce(Return());
 
+  const auto available_resources = test_util::CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'cpu' "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 16 "
+      "} ");
+
   Notification load_called;
   Notification load_should_return;
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, Load(test_util::EqualsProto(available_resources)))
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
         load_called.Notify();
         load_should_return.WaitForNotification();
@@ -99,8 +110,9 @@ TEST(LoaderHarnessTest, Load) {
       }));
   {
     std::unique_ptr<Thread> test_thread(Env::Default()->StartThread(
-        ThreadOptions(), "test",
-        [&harness]() { EXPECT_TRUE(harness.Load().ok()); }));
+        ThreadOptions(), "test", [&harness, &available_resources]() {
+          EXPECT_TRUE(harness.Load(available_resources).ok());
+        }));
     load_called.WaitForNotification();
     EXPECT_EQ(LoaderHarness::kLoading, harness.state());
     load_should_return.Notify();
@@ -115,8 +127,8 @@ TEST(LoaderHarnessTest, Load) {
 TEST(LoaderHarnessTest, Unload) {
   test_util::MockLoader* loader = new StrictMock<test_util::MockLoader>;
   LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
-  EXPECT_CALL(*loader, Load()).WillOnce(Return(Status::OK()));
-  EXPECT_TRUE(harness.Load().ok());
+  EXPECT_CALL(*loader, Load(_)).WillOnce(Return(Status::OK()));
+  EXPECT_TRUE(harness.Load(ResourceAllocation()).ok());
 
   Notification unload_called;
   Notification unload_should_return;
@@ -143,7 +155,7 @@ TEST(ServableVersionHarnessTest, LoadError) {
 
   Notification load_called;
   Notification load_should_return;
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, Load(_))
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
         load_called.Notify();
         load_should_return.WaitForNotification();
@@ -152,7 +164,7 @@ TEST(ServableVersionHarnessTest, LoadError) {
   {
     std::unique_ptr<Thread> test_thread(
         Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
-          Status status = harness.Load();
+          Status status = harness.Load(ResourceAllocation());
           EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
         }));
     load_called.WaitForNotification();
@@ -168,11 +180,11 @@ TEST(ServableVersionHarnessTest, RetryOnLoadErrorFinallySucceeds) {
       ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
       {2 /* max_num_load_tries */, 1 /* load_retry_interval_micros */});
 
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, Load(_))
       .WillOnce(InvokeWithoutArgs(
           []() { return Status(error::UNKNOWN, "test load error"); }))
       .WillOnce(InvokeWithoutArgs([]() { return Status::OK(); }));
-  const Status status = harness.Load();
+  const Status status = harness.Load(ResourceAllocation());
   TF_EXPECT_OK(status);
 
   QuiesceAndUnload(&harness);
@@ -186,7 +198,7 @@ TEST(ServableVersionHarnessTest, RetryOnLoadErrorCancelledLoad) {
 
   Notification load_called;
   Notification load_should_return;
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, Load(_))
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
         load_called.Notify();
         load_should_return.WaitForNotification();
@@ -195,7 +207,7 @@ TEST(ServableVersionHarnessTest, RetryOnLoadErrorCancelledLoad) {
       .WillRepeatedly(InvokeWithoutArgs([]() { return Status::OK(); }));
   std::unique_ptr<Thread> test_thread(
       Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
-        const Status status = harness.Load();
+        const Status status = harness.Load(ResourceAllocation());
         EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
       }));
   load_called.WaitForNotification();
@@ -208,11 +220,11 @@ TEST(ServableVersionHarnessTest, RetryOnLoadErrorFinallyFails) {
   LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
                         {2 /* max_num_load_tries */, -1});
 
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, Load(_))
       .Times(2)
       .WillRepeatedly(InvokeWithoutArgs(
           []() { return Status(error::UNKNOWN, "test load error"); }));
-  const Status status = harness.Load();
+  const Status status = harness.Load(ResourceAllocation());
   EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
 }
 

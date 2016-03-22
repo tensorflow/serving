@@ -59,7 +59,7 @@ TEST(SimpleLoader, VerifyServableStates) {
         return Status::OK();
       }));
   EXPECT_EQ(State::kNone, state);
-  const Status status = loader->Load();
+  const Status status = loader->Load(ResourceAllocation());
   TF_EXPECT_OK(status);
   EXPECT_EQ(State::kCtor, state);
   AnyPtr servable = loader->servable();
@@ -80,7 +80,7 @@ TEST(SimpleLoader, LoadError) {
       new SimpleLoader<Caller>([](std::unique_ptr<Caller>* caller) {
         return errors::InvalidArgument("No way!");
       }));
-  const Status status = loader->Load();
+  const Status status = loader->Load(ResourceAllocation());
   EXPECT_EQ(error::INVALID_ARGUMENT, status.code());
   EXPECT_EQ("No way!", status.error_message());
 }
@@ -103,7 +103,7 @@ TEST(SimpleLoaderSourceAdapter, Basic) {
         EXPECT_EQ(1, versions.size());
         TF_ASSERT_OK(versions[0].status());
         std::unique_ptr<Loader> loader = versions[0].ConsumeDataOrDie();
-        TF_ASSERT_OK(loader->Load());
+        TF_ASSERT_OK(loader->Load(ResourceAllocation()));
         AnyPtr servable = loader->servable();
         ASSERT_TRUE(servable.get<string>() != nullptr);
         EXPECT_EQ("test_data_was_here", *servable.get<string>());
