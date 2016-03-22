@@ -22,7 +22,6 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
-#include "tensorflow/core/platform/google/integral_types.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/test_util/mock_loader.h"
 #include "tensorflow_serving/resources/resources.pb.h"
