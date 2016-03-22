@@ -76,9 +76,9 @@ def classification_signature(input_tensor,
   """
   signature = manifest_pb2.Signature()
   signature.classification_signature.input.tensor_name = input_tensor.name
-  if classes_tensor:
+  if classes_tensor is not None:
     signature.classification_signature.classes.tensor_name = classes_tensor.name
-  if scores_tensor:
+  if scores_tensor is not None:
     signature.classification_signature.scores.tensor_name = scores_tensor.name
   return signature
 

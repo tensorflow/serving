@@ -496,6 +496,7 @@ cc_test(
         ":loader_harness",
         "//tensorflow_serving/core/test_util:mock_loader",
         "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
         "//tensorflow_serving/util:any_ptr",
     ],
 )

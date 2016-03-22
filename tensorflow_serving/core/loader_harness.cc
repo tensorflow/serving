@@ -48,7 +48,7 @@ ServableStateSnapshot LoaderHarness::loader_state_snapshot() const {
   return {id_, state_, is_aspired_};
 }
 
-Status LoaderHarness::Load() {
+Status LoaderHarness::Load(const ResourceAllocation& available_resources) {
   {
     mutex_lock l(mu_);
     DCHECK_EQ(kNew, state_);
@@ -68,7 +68,7 @@ Status LoaderHarness::Load() {
         LOG(INFO) << "Retrying load on servable version: " << id_
                   << " retry: " << num_tries;
       }
-      load_status = loader_->Load();
+      load_status = loader_->Load(available_resources);
       ++num_tries;
     } while (is_aspired() && !load_status.ok() &&
              num_tries < options_.max_num_load_tries);

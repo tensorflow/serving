@@ -456,8 +456,10 @@ void DynamicManager::PerformAction(const VersionPolicy::Action action,
                          harness_iter->second->status()});
       harness_iter->second->StartQuiescing();
       break;
-    case VersionPolicy::Action::kLoad:
-      const Status status = harness_iter->second->Load();
+    case VersionPolicy::Action::kLoad: {
+      // TODO(b/27494466): Pass a real value for 'available_resources'.
+      const ResourceAllocation available_resources;
+      const Status status = harness_iter->second->Load(available_resources);
       PublishOnEventBus({harness_iter->second->id(),
                          harness_iter->second->is_aspired(),
                          ServableState::ManagerState::kLoading,
@@ -473,6 +475,7 @@ void DynamicManager::PerformAction(const VersionPolicy::Action action,
                            harness_iter->second->status()});
       }
       break;
+    }
   }
 }
 

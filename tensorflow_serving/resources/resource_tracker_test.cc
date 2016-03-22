@@ -15,14 +15,22 @@ limitations under the License.
 
 #include "tensorflow_serving/resources/resource_tracker.h"
 
+#include <algorithm>
+#include <string>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/test_util/mock_loader.h"
+#include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
+#include "tensorflow_serving/util/any_ptr.h"
 
 using ::tensorflow::serving::test_util::CreateProto;
 using ::tensorflow::serving::test_util::EqualsProto;
+using ::testing::_;
 using ::testing::Return;
 using ::testing::NiceMock;
 
@@ -49,17 +57,27 @@ class ResourceTrackerTest : public ::testing::Test {
                                             "    kind: 'ram' "
                                             "  } "
                                             "  quantity: 16 "
-                                            "} ")),
-        tracker_(total_resources_,
-                 std::unique_ptr<ResourceUtil>(
-                     new ResourceUtil({{{"cpu", 1}, {"gpu", 2}}}))) {
+                                            "} "
+                                            "resource_quantities { "
+                                            "  resource { "
+                                            "    device: 'gpu' "
+                                            "    device_instance { value: 1 } "
+                                            "    kind: 'ram' "
+                                            "  } "
+                                            "  quantity: 16 "
+                                            "} ")) {
+    std::unique_ptr<ResourceUtil> util(
+        new ResourceUtil({{{"cpu", 1}, {"gpu", 2}}}));
+    TF_CHECK_OK(ResourceTracker::Create(
+        total_resources_, std::unique_ptr<ResourceUtil>(std::move(util)),
+        &tracker_));
+
     loader_0_.reset(new NiceMock<test_util::MockLoader>);
     ON_CALL(*loader_0_, EstimateResources())
         .WillByDefault(Return(
             CreateProto<ResourceAllocation>("resource_quantities { "
                                             "  resource { "
                                             "    device: 'cpu' "
-                                            "    device_instance { value: 0 } "
                                             "    kind: 'ram' "
                                             "  } "
                                             "  quantity: 1 "
@@ -79,7 +97,6 @@ class ResourceTrackerTest : public ::testing::Test {
             CreateProto<ResourceAllocation>("resource_quantities { "
                                             "  resource { "
                                             "    device: 'cpu' "
-                                            "    device_instance { value: 0 } "
                                             "    kind: 'ram' "
                                             "  } "
                                             "  quantity: 5 "
@@ -99,15 +116,38 @@ class ResourceTrackerTest : public ::testing::Test {
             CreateProto<ResourceAllocation>("resource_quantities { "
                                             "  resource { "
                                             "    device: 'cpu' "
-                                            "    device_instance { value: 0 } "
                                             "    kind: 'ram' "
                                             "  } "
                                             "  quantity: 15 "
                                             "} ")));
 
+    loader_3_.reset(new NiceMock<test_util::MockLoader>);
+    ON_CALL(*loader_3_, EstimateResources())
+        .WillByDefault(
+            Return(CreateProto<ResourceAllocation>("resource_quantities { "
+                                                   "  resource { "
+                                                   "    device: 'gpu' "
+                                                   "    kind: 'ram' "
+                                                   "  } "
+                                                   "  quantity: 12 "
+                                                   "} ")));
+
+    invalid_resources_loader_.reset(new NiceMock<test_util::MockLoader>);
+    ON_CALL(*invalid_resources_loader_, EstimateResources())
+        .WillByDefault(Return(
+            CreateProto<ResourceAllocation>("resource_quantities { "
+                                            "  resource { "
+                                            "    device: 'bogus_device' "
+                                            "    device_instance { value: 0 } "
+                                            "    kind: 'ram' "
+                                            "  } "
+                                            "  quantity: 4 "
+                                            "} ")));
+
     // Disallow calls to Load()/Unload().
-    for (auto* loader : {loader_0_.get(), loader_1_.get(), loader_2_.get()}) {
-      EXPECT_CALL(*loader, Load()).Times(0);
+    for (auto* loader : {loader_0_.get(), loader_1_.get(), loader_2_.get(),
+                         loader_3_.get(), invalid_resources_loader_.get()}) {
+      EXPECT_CALL(*loader, Load(_)).Times(0);
       EXPECT_CALL(*loader, Unload()).Times(0);
     }
   }
@@ -116,22 +156,70 @@ class ResourceTrackerTest : public ::testing::Test {
   const ResourceAllocation total_resources_;
 
   // The object under testing.
-  ResourceTracker tracker_;
+  std::unique_ptr<ResourceTracker> tracker_;
 
   // Some mock loaders with specific resource estimates (see the constructor).
   std::unique_ptr<test_util::MockLoader> loader_0_;
   std::unique_ptr<test_util::MockLoader> loader_1_;
   std::unique_ptr<test_util::MockLoader> loader_2_;
+  std::unique_ptr<test_util::MockLoader> loader_3_;
+  std::unique_ptr<test_util::MockLoader> invalid_resources_loader_;
 };
+
+TEST_F(ResourceTrackerTest, UnboundTotalResources) {
+  std::unique_ptr<ResourceUtil> util(
+      new ResourceUtil({{{"cpu", 1}, {"gpu", 2}}}));
+  std::unique_ptr<ResourceTracker> tracker;
+  const auto unbound_resources = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'gpu' "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 12 "
+      "} ");
+  EXPECT_FALSE(ResourceTracker::Create(
+                   unbound_resources,
+                   std::unique_ptr<ResourceUtil>(std::move(util)), &tracker)
+                   .ok());
+}
+
+TEST_F(ResourceTrackerTest, UnnormalizedTotalResources) {
+  std::unique_ptr<ResourceUtil> util(
+      new ResourceUtil({{{"cpu", 1}, {"gpu", 2}}}));
+  std::unique_ptr<ResourceTracker> tracker;
+  const auto unnormalized_resources = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'cpu' "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 12 "
+      "} ");
+  TF_ASSERT_OK(ResourceTracker::Create(
+      unnormalized_resources, std::unique_ptr<ResourceUtil>(std::move(util)),
+      &tracker));
+  // The total_resources proto should get normalized.
+  EXPECT_THAT(tracker->total_resources(),
+              EqualsProto("resource_quantities { "
+                          "  resource { "
+                          "    device: 'cpu' "
+                          "    device_instance { value: 0 } "
+                          "    kind: 'ram' "
+                          "  } "
+                          "  quantity: 12 "
+                          "} "));
+}
 
 TEST_F(ResourceTrackerTest, RecomputeUsedResources) {
   // Verify the initial state.
-  EXPECT_THAT(tracker_.used_resources(), EqualsProto(""));
-  EXPECT_THAT(tracker_.total_resources(), EqualsProto(total_resources_));
+  EXPECT_THAT(tracker_->used_resources(), EqualsProto(""));
+  EXPECT_THAT(tracker_->total_resources(), EqualsProto(total_resources_));
 
-  // Recompute used resources for {loader_0_, loader_1_}.
-  tracker_.RecomputeUsedResources({loader_0_.get(), loader_1_.get()});
-  EXPECT_THAT(tracker_.used_resources(),
+  // Recompute used resources for {loader_0_, loader_1_, loader_3_}.
+  TF_ASSERT_OK(tracker_->RecomputeUsedResources(
+      {loader_0_.get(), loader_1_.get(), loader_3_.get()}));
+  EXPECT_THAT(tracker_->used_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
                           "    device: 'cpu' "
@@ -147,12 +235,19 @@ TEST_F(ResourceTrackerTest, RecomputeUsedResources) {
                           "    kind: 'ram' "
                           "  } "
                           "  quantity: 10 "
+                          "} "
+                          "resource_quantities { "
+                          "  resource { "
+                          "    device: 'gpu' "
+                          "    kind: 'ram' "
+                          "  } "
+                          "  quantity: 12 "
                           "} "));
-  EXPECT_THAT(tracker_.total_resources(), EqualsProto(total_resources_));
+  EXPECT_THAT(tracker_->total_resources(), EqualsProto(total_resources_));
 
   // Recompute used resources for just {loader_0_}.
-  tracker_.RecomputeUsedResources({loader_0_.get()});
-  EXPECT_THAT(tracker_.used_resources(),
+  TF_ASSERT_OK(tracker_->RecomputeUsedResources({loader_0_.get()}));
+  EXPECT_THAT(tracker_->used_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
                           "    device: 'cpu' "
@@ -169,12 +264,12 @@ TEST_F(ResourceTrackerTest, RecomputeUsedResources) {
                           "  } "
                           "  quantity: 3 "
                           "} "));
-  EXPECT_THAT(tracker_.total_resources(), EqualsProto(total_resources_));
+  EXPECT_THAT(tracker_->total_resources(), EqualsProto(total_resources_));
 }
 
-TEST_F(ResourceTrackerTest, ReserveResourcesSuccess) {
-  tracker_.RecomputeUsedResources({loader_0_.get()});
-  EXPECT_THAT(tracker_.used_resources(),
+TEST_F(ResourceTrackerTest, ReserveResourcesSuccessWithUsedResourcesBound) {
+  TF_ASSERT_OK(tracker_->RecomputeUsedResources({loader_0_.get()}));
+  EXPECT_THAT(tracker_->used_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
                           "    device: 'cpu' "
@@ -193,8 +288,10 @@ TEST_F(ResourceTrackerTest, ReserveResourcesSuccess) {
                           "} "));
 
   // If just loader_0_ is loaded, loader_2_ should also fit.
-  EXPECT_TRUE(tracker_.ReserveResources(*loader_2_));
-  EXPECT_THAT(tracker_.used_resources(),
+  bool success;
+  TF_ASSERT_OK(tracker_->ReserveResources(*loader_2_, &success));
+  EXPECT_TRUE(success);
+  EXPECT_THAT(tracker_->used_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
                           "    device: 'cpu' "
@@ -211,12 +308,12 @@ TEST_F(ResourceTrackerTest, ReserveResourcesSuccess) {
                           "  } "
                           "  quantity: 3 "
                           "} "));
-  EXPECT_THAT(tracker_.total_resources(), EqualsProto(total_resources_));
+  EXPECT_THAT(tracker_->total_resources(), EqualsProto(total_resources_));
 }
 
-TEST_F(ResourceTrackerTest, ReserveResourcesFailure) {
-  tracker_.RecomputeUsedResources({loader_1_.get()});
-  EXPECT_THAT(tracker_.used_resources(),
+TEST_F(ResourceTrackerTest, ReserveResourcesFailureWithUsedResourcesBound) {
+  TF_ASSERT_OK(tracker_->RecomputeUsedResources({loader_1_.get()}));
+  EXPECT_THAT(tracker_->used_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
                           "    device: 'cpu' "
@@ -235,9 +332,11 @@ TEST_F(ResourceTrackerTest, ReserveResourcesFailure) {
                           "} "));
 
   // If loader_1_ is loaded, there isn't room for loader_2_.
-  EXPECT_FALSE(tracker_.ReserveResources(*loader_2_));
+  bool success;
+  TF_ASSERT_OK(tracker_->ReserveResources(*loader_2_, &success));
+  EXPECT_FALSE(success);
   // The used resources should remain unchanged (i.e. only reflect loader_1_).
-  EXPECT_THAT(tracker_.used_resources(),
+  EXPECT_THAT(tracker_->used_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
                           "    device: 'cpu' "
@@ -254,7 +353,87 @@ TEST_F(ResourceTrackerTest, ReserveResourcesFailure) {
                           "  } "
                           "  quantity: 7 "
                           "} "));
-  EXPECT_THAT(tracker_.total_resources(), EqualsProto(total_resources_));
+  EXPECT_THAT(tracker_->total_resources(), EqualsProto(total_resources_));
+}
+
+TEST_F(ResourceTrackerTest, ReserveResourcesSuccessWithUsedResourcesUnbound) {
+  TF_ASSERT_OK(tracker_->RecomputeUsedResources({loader_3_.get()}));
+  EXPECT_THAT(tracker_->used_resources(), EqualsProto("resource_quantities { "
+                                                      "  resource { "
+                                                      "    device: 'gpu' "
+                                                      "    kind: 'ram' "
+                                                      "  } "
+                                                      "  quantity: 12 "
+                                                      "} "));
+
+  // If just loader_3_ is loaded, loader_0_ should also fit.
+  bool success;
+  TF_ASSERT_OK(tracker_->ReserveResources(*loader_0_, &success));
+  EXPECT_TRUE(success);
+  EXPECT_THAT(tracker_->used_resources(),
+              EqualsProto("resource_quantities { "
+                          "  resource { "
+                          "    device: 'gpu' "
+                          "    kind: 'ram' "
+                          "  } "
+                          "  quantity: 12 "
+                          "} "
+                          "resource_quantities { "
+                          "  resource { "
+                          "    device: 'cpu' "
+                          "    device_instance { value: 0 } "
+                          "    kind: 'ram' "
+                          "  } "
+                          "  quantity: 1 "
+                          "} "
+                          "resource_quantities { "
+                          "  resource { "
+                          "    device: 'gpu' "
+                          "    device_instance { value: 0 } "
+                          "    kind: 'ram' "
+                          "  } "
+                          "  quantity: 3 "
+                          "} "));
+  EXPECT_THAT(tracker_->total_resources(), EqualsProto(total_resources_));
+}
+
+TEST_F(ResourceTrackerTest, ReserveResourcesFailureWithUsedResourcesUnbound) {
+  TF_ASSERT_OK(tracker_->RecomputeUsedResources({loader_3_.get()}));
+  EXPECT_THAT(tracker_->used_resources(), EqualsProto("resource_quantities { "
+                                                      "  resource { "
+                                                      "    device: 'gpu' "
+                                                      "    kind: 'ram' "
+                                                      "  } "
+                                                      "  quantity: 12 "
+                                                      "} "));
+
+  // If loader_3_ is loaded, there isn't room for loader_1_, or for another
+  // copy of loader_3_.
+  bool success;
+  TF_ASSERT_OK(tracker_->ReserveResources(*loader_1_, &success));
+  EXPECT_FALSE(success);
+  TF_ASSERT_OK(tracker_->ReserveResources(*loader_3_, &success));
+  EXPECT_FALSE(success);
+  // The used resources should remain unchanged (i.e. only reflect a single copy
+  // of loader_3_).
+  EXPECT_THAT(tracker_->used_resources(), EqualsProto("resource_quantities { "
+                                                      "  resource { "
+                                                      "    device: 'gpu' "
+                                                      "    kind: 'ram' "
+                                                      "  } "
+                                                      "  quantity: 12 "
+                                                      "} "));
+  EXPECT_THAT(tracker_->total_resources(), EqualsProto(total_resources_));
+}
+
+TEST_F(ResourceTrackerTest, InvalidResourceEstimate) {
+  bool success;
+  EXPECT_FALSE(
+      tracker_->ReserveResources(*invalid_resources_loader_, &success).ok());
+  EXPECT_FALSE(tracker_
+                   ->RecomputeUsedResources(
+                       {loader_0_.get(), invalid_resources_loader_.get()})
+                   .ok());
 }
 
 }  // namespace

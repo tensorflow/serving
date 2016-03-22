@@ -35,6 +35,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+using ::testing::_;
 using ::testing::Eq;
 using ::testing::Invoke;
 using ::testing::NiceMock;
@@ -588,7 +589,7 @@ TEST_F(DynamicManagerTest, RetryOnLoadErrorFinallySucceeds) {
   // Prevents it being changed without our knowledge.
   CHECK_EQ(dynamic_manager_options_.max_num_load_tries, 2);
   // We succeed on the last load, before the manager gives up.
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, Load(_))
       .WillOnce(Return(errors::Internal("Error on load.")))
       .WillOnce(Return(Status::OK()));
 

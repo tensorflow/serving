@@ -18,22 +18,43 @@ limitations under the License.
 #include <algorithm>
 #include <string>
 
+#include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 
 namespace tensorflow {
 namespace serving {
 
-ResourceTracker::ResourceTracker(const ResourceAllocation& total_resources,
-                                 std::unique_ptr<ResourceUtil> util)
-    : util_(std::move(util)), total_resources_(total_resources) {}
+Status ResourceTracker::Create(const ResourceAllocation& total_resources,
+                               std::unique_ptr<ResourceUtil> util,
+                               std::unique_ptr<ResourceTracker>* tracker) {
+  TF_RETURN_IF_ERROR(util->VerifyValidity(total_resources));
+  const ResourceAllocation normalized_total_resources =
+      util->Normalize(total_resources);
+  if (!util->IsBound(normalized_total_resources)) {
+    return errors::InvalidArgument("total_resources must be bound: ",
+                                   total_resources.DebugString());
+  }
+  tracker->reset(
+      new ResourceTracker(normalized_total_resources, std::move(util)));
+  return Status::OK();
+}
 
-bool ResourceTracker::ReserveResources(const Loader& servable) {
-  ResourceAllocation proposed_used_resources = used_resources_;
-  const ResourceAllocation servable_resources = servable.EstimateResources();
-  util_->Add(servable_resources, &proposed_used_resources);
-  if (util_->LessThanOrEqual(proposed_used_resources, total_resources_)) {
-    used_resources_ = proposed_used_resources;
-    return true;
+Status ResourceTracker::ReserveResources(const Loader& servable,
+                                         bool* success) {
+  ResourceAllocation servable_resources = servable.EstimateResources();
+  TF_RETURN_IF_ERROR(util_->VerifyValidity(servable_resources));
+  servable_resources = util_->Normalize(servable_resources);
+
+  ResourceAllocation conservative_proposed_used_resources =
+      util_->Overbind(used_resources_);
+  util_->Add(servable_resources, &conservative_proposed_used_resources);
+
+  if (util_->LessThanOrEqual(conservative_proposed_used_resources,
+                             total_resources_)) {
+    util_->Add(servable_resources, &used_resources_);
+    DCHECK(util_->IsNormalized(used_resources_));
+    *success = true;
   } else {
     LOG(INFO) << "Insufficient resources to load servable "
               << "\ntotal resources:\n"
@@ -41,17 +62,28 @@ bool ResourceTracker::ReserveResources(const Loader& servable) {
               << used_resources_.DebugString()
               << "resources requested by servable:\n"
               << servable_resources.DebugString();
-    return false;
+    *success = false;
   }
+
+  return Status::OK();
 }
 
-void ResourceTracker::RecomputeUsedResources(
+Status ResourceTracker::RecomputeUsedResources(
     const std::vector<const Loader*>& servables) {
   used_resources_.Clear();
   for (const Loader* servable : servables) {
-    util_->Add(servable->EstimateResources(), &used_resources_);
+    ResourceAllocation servable_resources = servable->EstimateResources();
+    TF_RETURN_IF_ERROR(util_->VerifyValidity(servable_resources));
+    servable_resources = util_->Normalize(servable_resources);
+    util_->Add(servable_resources, &used_resources_);
   }
+  DCHECK(util_->IsNormalized(used_resources_));
+  return Status::OK();
 }
+
+ResourceTracker::ResourceTracker(const ResourceAllocation& total_resources,
+                                 std::unique_ptr<ResourceUtil> util)
+    : util_(std::move(util)), total_resources_(total_resources) {}
 
 }  // namespace serving
 }  // namespace tensorflow

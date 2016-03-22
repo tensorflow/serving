@@ -32,16 +32,18 @@ namespace serving {
 // This class is not thread-safe.
 class ResourceTracker {
  public:
-  ResourceTracker(const ResourceAllocation& total_resources,
-                  std::unique_ptr<ResourceUtil> util);
+  static Status Create(const ResourceAllocation& total_resources,
+                       std::unique_ptr<ResourceUtil> util,
+                       std::unique_ptr<ResourceTracker>* tracker);
   ~ResourceTracker() = default;
 
   // Determines whether enough resources are available to load 'servable', i.e.
   // is it guaranteed to fit in the gap between the used and total resources?
   // If so, adds the servable's resource allocation to the used resources and
-  // returns true. Otherwise, leaves the used resources unchanged and returns
-  // false.
-  bool ReserveResources(const Loader& servable);
+  // sets 'success' to true. Otherwise, leaves the used resources unchanged and
+  // sets 'success' to false. Upon encountering illegal data, e.g. if 'servable'
+  // emits an invalid resource estimate, returns an error status.
+  Status ReserveResources(const Loader& servable, bool* success);
 
   // Recomputes the used resources from scratch, given every loader whose
   // servable is either loaded or transitioning to/from being loaded,
@@ -50,20 +52,24 @@ class ResourceTracker {
   //  * servables in the process of loading,
   //  * servables that are currently loaded,
   //  * servables in the process of unloading.
-  void RecomputeUsedResources(const std::vector<const Loader*>& servables);
+  Status RecomputeUsedResources(const std::vector<const Loader*>& servables);
 
   const ResourceAllocation& total_resources() const { return total_resources_; }
   const ResourceAllocation& used_resources() const { return used_resources_; }
 
  private:
+  ResourceTracker(const ResourceAllocation& total_resources,
+                  std::unique_ptr<ResourceUtil> util);
+
   // A ResourceUtil object to use for operations and comparisons on allocations.
   const std::unique_ptr<ResourceUtil> util_;
 
-  // The total resources the system has.
+  // The total resources the system has. Must be bound. Kept normalized.
   const ResourceAllocation total_resources_;
 
   // The resources currently set aside for servables that are loaded, or
-  // transitioning to/from being loaded.
+  // transitioning to/from being loaded. May be bound or unbound. Kept
+  // normalized.
   //
   // Under normal conditions, less than or equal to 'total_resources_'.
   ResourceAllocation used_resources_;

@@ -110,7 +110,8 @@ class LoaderHarness final {
   // reached max_num_load_tries or, 2. if is_aspired is set to false.
   //
   // Legal to call iff current state is kNew. Check-fails if violated.
-  Status Load() LOCKS_EXCLUDED(mu_);
+  Status Load(const ResourceAllocation& available_resources)
+      LOCKS_EXCLUDED(mu_);
 
   // Transitions to kUnloading, delegates to Servable::Unload(), then
   // transitions to kDisabled when Unload() is done.
