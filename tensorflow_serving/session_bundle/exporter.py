@@ -38,7 +38,8 @@ ASSETS_DIRECTORY = "assets"
 EXPORT_BASE_NAME = "export"
 EXPORT_SUFFIX_NAME = "meta"
 META_GRAPH_DEF_FILENAME = EXPORT_BASE_NAME + "." + EXPORT_SUFFIX_NAME
-VARIABLES_DIRECTORY = EXPORT_BASE_NAME + "-?????-of-?????"
+VARIABLES_FILENAME = EXPORT_BASE_NAME
+VARIABLES_FILENAME_PATTERN = VARIABLES_FILENAME + "-?????-of-?????"
 INIT_OP_KEY = "serving_init_op"
 SIGNATURES_KEY = "serving_signatures"
 ASSETS_KEY = "serving_assets"
@@ -102,14 +103,10 @@ class Exporter(object):
   """Exporter helps package a TensorFlow model for serving.
 
   Args:
-    saver: a Saver object created with sharded=True.
-
-    Raises:
-      AssertionError: if the Saver is not sharded.
+    saver: Saver object.
   """
 
   def __init__(self, saver):
-    assert saver.as_saver_def().sharded
     self._saver = saver
     self._has_init = False
 
@@ -235,6 +232,7 @@ class Exporter(object):
       gfile.MakeDirs(assets_dir)
       self._assets_callback(assets_dir)
 
+    # TODO(b/27794910): Delete *checkpoint* file before rename.
     gfile.Rename(tmp_export_dir, export_dir)
 
     if exports_to_keep:

@@ -1,0 +1,61 @@
+{
+  "apiVersion": "v1",
+  "kind": "ReplicationController",
+  "metadata": {
+    "name": "inception-controller"
+  },
+  "spec": {
+    "replicas": 3,
+    "selector": {
+      "worker": "inception-pod"
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "worker": "inception-pod"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "inception-container",
+            "image": "gcr.io/tensorflow-serving/inception",
+            "command": [
+              "/bin/sh",
+              "-c"
+            ],
+            "args": [
+              "/serving/bazel-bin/tensorflow_serving/example/inception_inference --port=9000 /serving/inception-export"
+            ],
+            "ports": [
+              {
+                "containerPort": 9000
+              }
+            ]
+          }
+        ],
+        "restartPolicy": "Always"
+      }
+    }
+  }
+}
+
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "inception-service"
+  },
+  "spec": {
+    "ports": [
+      {
+        "port": 9000,
+        "targetPort": 9000
+      }
+    ],
+    "selector": {
+      "worker": "inception-pod"
+    },
+    "type": "LoadBalancer"
+  }
+}

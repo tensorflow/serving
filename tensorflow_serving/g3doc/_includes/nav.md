@@ -7,6 +7,7 @@
 
 * [TensorFlow Serving Basics](serving_basic)
 * [TensorFlow Serving Advanced](serving_advanced)
+* [Serving Inception Model with TensorFlow Serving and Kubernetes](serving_inception)
 
 ## How To
 
