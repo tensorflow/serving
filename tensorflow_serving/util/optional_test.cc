@@ -58,18 +58,17 @@ struct Listenable {
 
 StructorListener* Listenable::listener = nullptr;
 
-
-TEST(optionalTest, DefaultConstructor) {
+TEST(OptionalTest, DefaultConstructor) {
   optional<int> empty;
   EXPECT_FALSE(empty);
 }
 
-TEST(optionalTest, NullOptConstructor) {
+TEST(OptionalTest, NullOptConstructor) {
   optional<int> empty(nullopt);
   EXPECT_FALSE(empty);
 }
 
-TEST(optionalTest, CopyConstructor) {
+TEST(OptionalTest, CopyConstructor) {
   optional<int> empty, opt42 = 42;
   optional<int> empty_copy(empty);
   EXPECT_FALSE(empty_copy);
@@ -78,7 +77,7 @@ TEST(optionalTest, CopyConstructor) {
   EXPECT_EQ(42, opt42_copy);
 }
 
-TEST(optionalTest, StructorBasic) {
+TEST(OptionalTest, StructorBasic) {
   StructorListener listener;
   Listenable::listener = &listener;
   {
@@ -97,7 +96,7 @@ TEST(optionalTest, StructorBasic) {
   EXPECT_EQ(3, listener.destruct);
 }
 
-TEST(optionalTest, CopyMoveStructor) {
+TEST(OptionalTest, CopyMoveStructor) {
   StructorListener listener;
   Listenable::listener = &listener;
   optional<Listenable> original(in_place);
@@ -114,7 +113,7 @@ TEST(optionalTest, CopyMoveStructor) {
   EXPECT_EQ(1, listener.move);
 }
 
-TEST(optionalTest, ListInit) {
+TEST(OptionalTest, ListInit) {
   StructorListener listener;
   Listenable::listener = &listener;
   optional<Listenable> listinit1(in_place, {1});
@@ -122,7 +121,7 @@ TEST(optionalTest, ListInit) {
   EXPECT_EQ(2, listener.listinit);
 }
 
-TEST(optionalTest, CopyAssignment) {
+TEST(OptionalTest, CopyAssignment) {
   const optional<int> empty, opt1 = 1, opt2 = 2;
   optional<int> empty_to_opt1, opt1_to_opt2, opt2_to_empty;
 
@@ -149,7 +148,7 @@ TEST(optionalTest, CopyAssignment) {
   EXPECT_FALSE(opt2_to_empty);
 }
 
-TEST(optionalTest, MoveAssignment) {
+TEST(OptionalTest, MoveAssignment) {
   StructorListener listener;
   Listenable::listener = &listener;
 
@@ -168,7 +167,7 @@ TEST(optionalTest, MoveAssignment) {
   EXPECT_EQ(1, listener.move_assign);
 }
 
-TEST(optionalTest, AssignmentVarious) {
+TEST(OptionalTest, AssignmentVarious) {
   optional<int> opt;
   EXPECT_FALSE(opt);
   opt = 42;
@@ -184,7 +183,7 @@ TEST(optionalTest, AssignmentVarious) {
   EXPECT_EQ(43, opt.value());
 }
 
-TEST(optionalTest, Emplace) {
+TEST(OptionalTest, Emplace) {
   StructorListener listener;
   Listenable::listener = &listener;
   optional<Listenable> opt;
@@ -197,7 +196,7 @@ TEST(optionalTest, Emplace) {
   EXPECT_EQ(1, listener.destruct);
 }
 
-TEST(optionalTest, Swap) {
+TEST(OptionalTest, Swap) {
   optional<int> opt_empty, opt1 = 1, opt2 = 2;
   EXPECT_FALSE(opt_empty);
   EXPECT_TRUE(opt1);
@@ -224,7 +223,7 @@ TEST(optionalTest, Swap) {
   EXPECT_EQ(1, opt2.value());
 }
 
-TEST(optionalTest, PointerStuff) {
+TEST(OptionalTest, PointerStuff) {
   optional<string> opt(in_place, "foo");
   EXPECT_EQ("foo", *opt);
   const auto& opt_const = opt;
@@ -242,7 +241,7 @@ TEST(optionalTest, PointerStuff) {
 #endif
 #endif
 
-TEST(optionalTest, Value) {
+TEST(OptionalTest, Value) {
   using O = optional<string>;
   using CO = const optional<string>;
   O lvalue(in_place, "lvalue");
@@ -255,7 +254,7 @@ TEST(optionalTest, Value) {
 #endif
 }
 
-TEST(optionalTest, ValueOr) {
+TEST(OptionalTest, ValueOr) {
   optional<double> opt_empty, opt_set = 1.2;
   EXPECT_EQ(42.0, opt_empty.value_or(42));
   EXPECT_EQ(1.2, opt_set.value_or(42));
@@ -263,12 +262,12 @@ TEST(optionalTest, ValueOr) {
   EXPECT_EQ(1.2, optional<double>(1.2).value_or(42));
 }
 
-TEST(optionalTest, make_optional) { EXPECT_EQ(42, make_optional(42).value()); }
+TEST(OptionalTest, make_optional) { EXPECT_EQ(42, make_optional(42).value()); }
 
-TEST(optionalTest, Comparisons) {
+TEST(OptionalTest, Comparisons) {
   optional<int> ae, be, a2 = 2, b2 = 2, a4 = 4, b4 = 4;
 
-#define optionalTest_Comparisons_EXPECT_LESS(x, y) \
+#define OptionalTest_Comparisons_EXPECT_LESS(x, y) \
   EXPECT_FALSE((x) == (y));                        \
   EXPECT_TRUE((x) != (y));                         \
   EXPECT_TRUE((x) < (y));                          \
@@ -276,7 +275,7 @@ TEST(optionalTest, Comparisons) {
   EXPECT_TRUE((x) <= (y));                         \
   EXPECT_FALSE((x) >= (y));
 
-#define optionalTest_Comparisons_EXPECT_SAME(x, y) \
+#define OptionalTest_Comparisons_EXPECT_SAME(x, y) \
   EXPECT_TRUE((x) == (y));                         \
   EXPECT_FALSE((x) != (y));                        \
   EXPECT_FALSE((x) < (y));                         \
@@ -284,7 +283,7 @@ TEST(optionalTest, Comparisons) {
   EXPECT_TRUE((x) <= (y));                         \
   EXPECT_TRUE((x) >= (y));
 
-#define optionalTest_Comparisons_EXPECT_GREATER(x, y) \
+#define OptionalTest_Comparisons_EXPECT_GREATER(x, y) \
   EXPECT_FALSE((x) == (y));                           \
   EXPECT_TRUE((x) != (y));                            \
   EXPECT_FALSE((x) < (y));                            \
@@ -295,38 +294,38 @@ TEST(optionalTest, Comparisons) {
   // LHS: nullopt, ae, a2, 3, a4
   // RHS: nullopt, be, b2, 3, b4
 
-  // optionalTest_Comparisons_EXPECT_NOT_TO_WORK(nullopt,nullopt);
-  optionalTest_Comparisons_EXPECT_SAME(nullopt, be);
-  optionalTest_Comparisons_EXPECT_LESS(nullopt, b2);
-  // optionalTest_Comparisons_EXPECT_NOT_TO_WORK(nullopt,3);
-  optionalTest_Comparisons_EXPECT_LESS(nullopt, b4);
+  // OptionalTest_Comparisons_EXPECT_NOT_TO_WORK(nullopt,nullopt);
+  OptionalTest_Comparisons_EXPECT_SAME(nullopt, be);
+  OptionalTest_Comparisons_EXPECT_LESS(nullopt, b2);
+  // OptionalTest_Comparisons_EXPECT_NOT_TO_WORK(nullopt,3);
+  OptionalTest_Comparisons_EXPECT_LESS(nullopt, b4);
 
-  optionalTest_Comparisons_EXPECT_SAME(ae, nullopt);
-  optionalTest_Comparisons_EXPECT_SAME(ae, be);
-  optionalTest_Comparisons_EXPECT_LESS(ae, b2);
-  optionalTest_Comparisons_EXPECT_LESS(ae, 3);
-  optionalTest_Comparisons_EXPECT_LESS(ae, b4);
+  OptionalTest_Comparisons_EXPECT_SAME(ae, nullopt);
+  OptionalTest_Comparisons_EXPECT_SAME(ae, be);
+  OptionalTest_Comparisons_EXPECT_LESS(ae, b2);
+  OptionalTest_Comparisons_EXPECT_LESS(ae, 3);
+  OptionalTest_Comparisons_EXPECT_LESS(ae, b4);
 
-  optionalTest_Comparisons_EXPECT_GREATER(a2, nullopt);
-  optionalTest_Comparisons_EXPECT_GREATER(a2, be);
-  optionalTest_Comparisons_EXPECT_SAME(a2, b2);
-  optionalTest_Comparisons_EXPECT_LESS(a2, 3);
-  optionalTest_Comparisons_EXPECT_LESS(a2, b4);
+  OptionalTest_Comparisons_EXPECT_GREATER(a2, nullopt);
+  OptionalTest_Comparisons_EXPECT_GREATER(a2, be);
+  OptionalTest_Comparisons_EXPECT_SAME(a2, b2);
+  OptionalTest_Comparisons_EXPECT_LESS(a2, 3);
+  OptionalTest_Comparisons_EXPECT_LESS(a2, b4);
 
-  // optionalTest_Comparisons_EXPECT_NOT_TO_WORK(3,nullopt);
-  optionalTest_Comparisons_EXPECT_GREATER(3, be);
-  optionalTest_Comparisons_EXPECT_GREATER(3, b2);
-  optionalTest_Comparisons_EXPECT_SAME(3, 3);
-  optionalTest_Comparisons_EXPECT_LESS(3, b4);
+  // OptionalTest_Comparisons_EXPECT_NOT_TO_WORK(3,nullopt);
+  OptionalTest_Comparisons_EXPECT_GREATER(3, be);
+  OptionalTest_Comparisons_EXPECT_GREATER(3, b2);
+  OptionalTest_Comparisons_EXPECT_SAME(3, 3);
+  OptionalTest_Comparisons_EXPECT_LESS(3, b4);
 
-  optionalTest_Comparisons_EXPECT_GREATER(a4, nullopt);
-  optionalTest_Comparisons_EXPECT_GREATER(a4, be);
-  optionalTest_Comparisons_EXPECT_GREATER(a4, b2);
-  optionalTest_Comparisons_EXPECT_GREATER(a4, 3);
-  optionalTest_Comparisons_EXPECT_SAME(a4, b4);
+  OptionalTest_Comparisons_EXPECT_GREATER(a4, nullopt);
+  OptionalTest_Comparisons_EXPECT_GREATER(a4, be);
+  OptionalTest_Comparisons_EXPECT_GREATER(a4, b2);
+  OptionalTest_Comparisons_EXPECT_GREATER(a4, 3);
+  OptionalTest_Comparisons_EXPECT_SAME(a4, b4);
 }
 
-TEST(optionalTest, SwapRegression) {
+TEST(OptionalTest, SwapRegression) {
   StructorListener listener;
   Listenable::listener = &listener;
 
@@ -351,7 +350,7 @@ TEST(optionalTest, SwapRegression) {
   EXPECT_EQ(4, listener.destruct);
 }
 
-TEST(optionalTest, BigStringLeakCheck) {
+TEST(OptionalTest, BigStringLeakCheck) {
   constexpr size_t n = 1 << 16;
 
   using OS = optional<string>;
@@ -500,7 +499,7 @@ TEST(optionalTest, BigStringLeakCheck) {
   af7.emplace(n, 'F');
 }
 
-TEST(optionalTest, MoveAssignRegression) {
+TEST(OptionalTest, MoveAssignRegression) {
   StructorListener listener;
   Listenable::listener = &listener;
 
@@ -515,7 +514,7 @@ TEST(optionalTest, MoveAssignRegression) {
   EXPECT_EQ(2, listener.destruct);
 }
 
-TEST(optionalTest, ValueType) {
+TEST(OptionalTest, ValueType) {
   EXPECT_TRUE((std::is_same<optional<int>::value_type, int>::value));
   EXPECT_TRUE((std::is_same<optional<string>::value_type, string>::value));
   EXPECT_FALSE((std::is_same<optional<int>::value_type, nullopt_t>::value));
