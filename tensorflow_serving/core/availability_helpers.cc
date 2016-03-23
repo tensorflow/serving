@@ -26,8 +26,9 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-bool ServablesAvailable(Manager* const manager,
-                        const std::vector<ServableRequest>& servables) {
+// Implements the test logic of WaitUntilServablesAvailableForRequests().
+bool ServablesAvailableForRequests(
+    const std::vector<ServableRequest>& servables, Manager* const manager) {
   // The subset of 'servables' that require a specific version
   std::set<ServableId> query_specific_servables;
   // The subset of 'servables' that do not require a specific version
@@ -69,11 +70,20 @@ bool ServablesAvailable(Manager* const manager,
 
 }  // namespace
 
-void WaitUntilServablesAvailable(
-    Manager* const manager, const std::vector<ServableRequest>& servables) {
-  while (!ServablesAvailable(manager, servables)) {
+void WaitUntilServablesAvailableForRequests(
+    const std::vector<ServableRequest>& servables, Manager* const manager) {
+  while (!ServablesAvailableForRequests(servables, manager)) {
     Env::Default()->SleepForMicroseconds(50 * 1000 /* 50 ms */);
   }
+}
+
+void WaitUntilServablesAvailable(const std::set<ServableId>& servables,
+                                 Manager* const manager) {
+  std::vector<ServableRequest> requests;
+  for (const ServableId& id : servables) {
+    requests.push_back(ServableRequest::FromId(id));
+  }
+  return WaitUntilServablesAvailableForRequests(requests, manager);
 }
 
 }  // namespace serving
