@@ -24,7 +24,7 @@ Serving.
 run;
 
 ```shell
-docker build -t $USER/tensorflow-serving-devel -f Dockerfile.devel .
+docker build --pull -t $USER/tensorflow-serving-devel -f Dockerfile.devel .
 ```
 
 ## Running a container
