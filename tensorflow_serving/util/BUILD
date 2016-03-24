@@ -250,3 +250,23 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
     ],
 )
+
+cc_library(
+    name = "shared_counter",
+    srcs = ["shared_counter.cc"],
+    hdrs = ["shared_counter.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "shared_counter_test",
+    size = "small",
+    srcs = ["shared_counter_test.cc"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":shared_counter",
+        "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
