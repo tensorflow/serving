@@ -218,6 +218,21 @@ Status GetDefaultSignature(const tensorflow::MetaGraphDef& meta_graph_def,
   return Status::OK();
 }
 
+Status GetNamedSignature(const string& name,
+                         const tensorflow::MetaGraphDef& meta_graph_def,
+                         Signature* signature) {
+  Signatures signatures;
+  TF_RETURN_IF_ERROR(GetSignatures(meta_graph_def, &signatures));
+  const auto& it = signatures.named_signatures().find(name);
+  if (it == signatures.named_signatures().end()) {
+    return errors::NotFound(strings::StrCat("Missing signature named \"", name,
+                                            "\" in: ",
+                                            signatures.DebugString()));
+  }
+  *signature = it->second;
+  return Status::OK();
+}
+
 Status BindGenericInputs(const GenericSignature& signature,
                          const std::vector<std::pair<string, Tensor>>& inputs,
                          std::vector<std::pair<string, Tensor>>* bound_inputs) {
