@@ -23,15 +23,22 @@ namespace test_util {
 
 thread_local bool FakeLoader::was_deleted_in_this_thread_;
 int FakeLoader::num_fake_loaders_ = 0;
+mutex FakeLoader::num_fake_loaders_mu_(LINKER_INITIALIZED);
 
 FakeLoader::FakeLoader(int64 servable, const Status load_status)
     : servable_(servable), load_status_(load_status) {
   was_deleted_in_this_thread_ = false;
-  ++num_fake_loaders_;
+  {
+    mutex_lock l(num_fake_loaders_mu_);
+    ++num_fake_loaders_;
+  }
 }
 
 FakeLoader::~FakeLoader() {
-  --num_fake_loaders_;
+  {
+    mutex_lock l(num_fake_loaders_mu_);
+    --num_fake_loaders_;
+  }
   was_deleted_in_this_thread_ = true;
 }
 
@@ -47,7 +54,10 @@ bool FakeLoader::was_deleted_in_this_thread() {
   return was_deleted_in_this_thread_;
 }
 
-int FakeLoader::num_fake_loaders() { return num_fake_loaders_; }
+int FakeLoader::num_fake_loaders() {
+  mutex_lock l(num_fake_loaders_mu_);
+  return num_fake_loaders_;
+}
 
 }  // namespace test_util
 }  // namespace serving
