@@ -40,8 +40,6 @@ class ThreadPoolExecutor : public Executor {
 
   void Schedule(std::function<void()> fn) override;
 
-  bool HasPendingClosures() const override;
-
  private:
   thread::ThreadPool thread_pool_;
 

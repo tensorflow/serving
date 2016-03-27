@@ -31,9 +31,6 @@ class Executor {
   // Schedule the specified 'fn' for execution in this executor. Depending on
   // the subclass implementation, this may block in some situations.
   virtual void Schedule(std::function<void()> fn) = 0;
-
-  // Returns true if there are any closures pending execution.
-  virtual bool HasPendingClosures() const = 0;
 };
 
 }  // namespace serving

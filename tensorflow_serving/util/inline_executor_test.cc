@@ -23,13 +23,10 @@ namespace {
 
 TEST(InlineExecutorTest, Executes) {
   InlineExecutor inline_executor;
-  EXPECT_FALSE(inline_executor.HasPendingClosures());
 
   int total_calls = 0;
   inline_executor.Schedule([&]() { ++total_calls; });
   EXPECT_EQ(1, total_calls);
-
-  EXPECT_FALSE(inline_executor.HasPendingClosures());
 }
 
 }  // namespace
