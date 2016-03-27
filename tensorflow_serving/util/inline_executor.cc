@@ -24,7 +24,5 @@ InlineExecutor::~InlineExecutor() {}
 
 void InlineExecutor::Schedule(std::function<void()> fn) { fn(); }
 
-bool InlineExecutor::HasPendingClosures() const { return false; }
-
 }  // namespace serving
 }  // namespace tensorflow

@@ -28,9 +28,5 @@ void ThreadPoolExecutor::Schedule(std::function<void()> fn) {
   thread_pool_.Schedule(fn);
 }
 
-bool ThreadPoolExecutor::HasPendingClosures() const {
-  return thread_pool_.HasPendingClosures();
-}
-
 }  // namespace serving
 }  // namespace tensorflow

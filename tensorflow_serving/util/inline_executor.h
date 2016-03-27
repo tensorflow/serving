@@ -32,7 +32,6 @@ class InlineExecutor : public Executor {
   InlineExecutor();
   ~InlineExecutor() override;
   void Schedule(std::function<void()> fn) override;
-  bool HasPendingClosures() const override;
 };
 
 }  // namespace serving
