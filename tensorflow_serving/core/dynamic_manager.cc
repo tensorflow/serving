@@ -238,7 +238,6 @@ void DynamicManager::ServingMap::Update(
   handles_map_.Update(std::move(new_handles_map));
   if (newly_available_harness != nullptr && servable_event_bus != nullptr) {
     servable_event_bus->Publish({newly_available_harness->id(),
-                                 newly_available_harness->is_aspired(),
                                  ServableState::ManagerState::kAvailable,
                                  newly_available_harness->status()});
   }
@@ -363,13 +362,11 @@ void DynamicManager::SetAspiredVersions(
         if (!version.status().ok()) {
           LOG(ERROR) << "Version error: " << version.status().ToString();
           harness->Error(version.status());
-          PublishOnEventBus({harness->id(), harness->is_aspired(),
-                             ServableState::ManagerState::kEnd,
+          PublishOnEventBus({harness->id(), ServableState::ManagerState::kEnd,
                              harness->status()});
         } else {
           managed_map_.emplace(servable_name.ToString(), harness);
-          PublishOnEventBus({harness->id(), harness->is_aspired(),
-                             ServableState::ManagerState::kStart,
+          PublishOnEventBus({harness->id(), ServableState::ManagerState::kStart,
                              harness->status()});
         }
       }
@@ -411,7 +408,7 @@ bool DynamicManager::UnloadQuiesced() {
           return false;
         }
         iter->second->Unload();
-        PublishOnEventBus({iter->second->id(), iter->second->is_aspired(),
+        PublishOnEventBus({iter->second->id(),
                            ServableState::ManagerState::kEnd,
                            iter->second->status()});
         // This erase will lead to the LoaderHarness being deleted.
@@ -451,7 +448,6 @@ void DynamicManager::PerformAction(const VersionPolicy::Action action,
   switch (action) {
     case VersionPolicy::Action::kUnload:
       PublishOnEventBus({harness_iter->second->id(),
-                         harness_iter->second->is_aspired(),
                          ServableState::ManagerState::kUnloading,
                          harness_iter->second->status()});
       harness_iter->second->StartQuiescing();
@@ -461,7 +457,6 @@ void DynamicManager::PerformAction(const VersionPolicy::Action action,
       const ResourceAllocation available_resources;
       const Status status = harness_iter->second->Load(available_resources);
       PublishOnEventBus({harness_iter->second->id(),
-                         harness_iter->second->is_aspired(),
                          ServableState::ManagerState::kLoading,
                          harness_iter->second->status()});
       if (!status.ok()) {
@@ -470,7 +465,6 @@ void DynamicManager::PerformAction(const VersionPolicy::Action action,
         // to do here from an error-handling perspective.
         LOG(ERROR) << "Servable load failure: " << status;
         PublishOnEventBus({harness_iter->second->id(),
-                           harness_iter->second->is_aspired(),
                            ServableState::ManagerState::kEnd,
                            harness_iter->second->status()});
       }
