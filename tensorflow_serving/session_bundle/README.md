@@ -209,3 +209,21 @@ the export directory.
 within the assets directory. `LoadSessionBundleFromPath` will handle the base
 path and asset directory swap/concatenation such that the tensor is set with
 the fully qualified filename upon return.
+
+# Notes of exporter usage
+
+The typical workflow of model exporting is:
+
+1. Build model graph G
+2. Train variables or load trained variables from checkpoint in session S
+3. [Optional] build inference graph I
+4. Export G
+
+The Exporter should be used as follows:
+
+1. The Saver used in Exporter(saver) should be created under the context of G
+2. Exporter.init() should be called under the context of G
+3. Exporter.export() should be called using session S
+4. If I is provided for Exporter.init(), an exact same Saver should be created
+   under I as the saver under G -- in the way that exact same Save/Restore ops
+   are created in both G and S
