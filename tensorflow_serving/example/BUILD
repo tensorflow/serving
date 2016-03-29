@@ -57,7 +57,7 @@ cc_binary(
     ],
     linkopts = ["-lm"],
     deps = [
-        "@grpc//:grpc",
+        "@grpc//:grpc++",
         "@tf//tensorflow/core:core_cpu",
         "@tf//tensorflow/core:framework",
         "@tf//tensorflow/core:lib",
@@ -77,7 +77,7 @@ cc_binary(
     ],
     linkopts = ["-lm"],
     deps = [
-        "@grpc//:grpc",
+        "@grpc//:grpc++",
         "@tf//tensorflow/core:framework",
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:protos_all_cc",
@@ -136,7 +136,7 @@ cc_binary(
     ],
     linkopts = ["-lm"],
     deps = [
-        "@grpc//:grpc",
+        "@grpc//:grpc++",
         "@tf//tensorflow/core:framework",
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:protos_all_cc",
