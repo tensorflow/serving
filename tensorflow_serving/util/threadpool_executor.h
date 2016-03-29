@@ -36,7 +36,7 @@ class ThreadPoolExecutor : public Executor {
 
   // Waits until all scheduled work has finished and then destroy the set of
   // threads.
-  virtual ~ThreadPoolExecutor();
+  ~ThreadPoolExecutor() override;
 
   void Schedule(std::function<void()> fn) override;
 
