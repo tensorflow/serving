@@ -41,8 +41,13 @@ namespace serving {
 // polling is 50ms.  We call ListAvailableServableIds on the manager, which may
 // have side-effects for certain manager implementations, e.g. causing servables
 // to be loaded.
-void WaitUntilServablesAvailable(Manager* manager,
-                                 const std::vector<ServableRequest>& servables);
+void WaitUntilServablesAvailableForRequests(
+    const std::vector<ServableRequest>& servables, Manager* manager);
+
+// Like WaitUntilServablesAvailableForRequests(), but taking a set of servable
+// ids (and hence waits for the specific versions specified in the ids).
+void WaitUntilServablesAvailable(const std::set<ServableId>& servables,
+                                 Manager* manager);
 
 }  // namespace serving
 }  // namespace tensorflow

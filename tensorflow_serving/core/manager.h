@@ -38,6 +38,7 @@ struct ServableRequest {
   // Initialization factories, for convenience and readability.
   static ServableRequest Specific(const string& name, const int64 version);
   static ServableRequest Latest(const string& name);
+  static ServableRequest FromId(const ServableId& id);
 
   // The name of a servable stream.
   string name;
@@ -87,6 +88,11 @@ inline ServableRequest ServableRequest::Specific(const string& name,
 
 inline ServableRequest ServableRequest::Latest(const string& name) {
   return ServableRequest{name, nullopt};
+}
+
+inline ServableRequest ServableRequest::FromId(const ServableId& id) {
+  DCHECK_GE(id.version, 0);
+  return Specific(id.name, id.version);
 }
 
 inline string ServableRequest::DebugString() const {

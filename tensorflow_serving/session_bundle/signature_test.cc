@@ -194,6 +194,40 @@ TEST(GetRegressionSignature, WrongSignatureType) {
       << status.error_message();
 }
 
+TEST(GetNamedSignature, Basic) {
+  tensorflow::MetaGraphDef meta_graph_def;
+  Signatures signatures;
+  ClassificationSignature* input_signature =
+      (*signatures.mutable_named_signatures())["foo"]
+          .mutable_classification_signature();
+  input_signature->mutable_input()->set_tensor_name("flow");
+  (*meta_graph_def.mutable_collection_def())[kSignaturesKey]
+      .mutable_any_list()
+      ->add_value()
+      ->PackFrom(signatures);
+
+  Signature signature;
+  const Status status = GetNamedSignature("foo", meta_graph_def, &signature);
+  TF_ASSERT_OK(status);
+  EXPECT_EQ(signature.classification_signature().input().tensor_name(), "flow");
+}
+
+TEST(GetNamedSignature, MissingSignature) {
+  tensorflow::MetaGraphDef meta_graph_def;
+  Signatures signatures;
+  (*meta_graph_def.mutable_collection_def())[kSignaturesKey]
+      .mutable_any_list()
+      ->add_value()
+      ->PackFrom(signatures);
+
+  Signature signature;
+  const Status status = GetNamedSignature("foo", meta_graph_def, &signature);
+  ASSERT_FALSE(status.ok());
+  EXPECT_TRUE(StringPiece(status.error_message())
+                  .contains("Missing signature named \"foo\""))
+      << status.error_message();
+}
+
 // MockSession used to test input and output interactions with a
 // tensorflow::Session.
 struct MockSession : public tensorflow::Session {

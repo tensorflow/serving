@@ -50,6 +50,18 @@ cc_library(
 )
 
 cc_library(
+    name = "fake_loader",
+    testonly = 1,
+    srcs = ["fake_loader.cc"],
+    hdrs = ["fake_loader.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        "//tensorflow_serving/core:loader",
+        "//tensorflow_serving/util:any_ptr",
+    ],
+)
+
+cc_library(
     name = "mock_storage_path_target",
     testonly = 1,
     hdrs = ["mock_storage_path_target.h"],

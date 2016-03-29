@@ -66,25 +66,20 @@ class FakeManager : public Manager {
   condition_variable list_available_servable_ids_condition_;
 };
 
-TEST(AvailabilityHelpersTest, Available) {
-  std::vector<ServableRequest> available_servables_query;
-  available_servables_query.emplace_back(
-      ServableRequest::Specific("servable0", 0));
+TEST(AvailabilityHelpersTest, SpecificAvailable) {
   FakeManager fake_manager;
   fake_manager.set_available_servable_ids({{"servable0", 0}});
-  WaitUntilServablesAvailable(&fake_manager, available_servables_query);
+  WaitUntilServablesAvailable({{"servable0", 0}}, &fake_manager);
 }
 
 TEST(AvailabilityHelpersTest, SpecificNotAvailable) {
   FakeManager fake_manager;
   fake_manager.set_available_servable_ids({{"servable0", 0}});
-  const std::vector<ServableRequest> available_servables_query = {
-      ServableRequest::Specific("servable0", 0),
-      ServableRequest::Specific("servable1", 0)};
   Notification finished;
   std::unique_ptr<Thread> wait(
       Env::Default()->StartThread({}, "WaitUntilServablesAvailable", [&]() {
-        WaitUntilServablesAvailable(&fake_manager, available_servables_query);
+        WaitUntilServablesAvailable({{"servable0", 0}, {"servable1", 0}},
+                                    &fake_manager);
         finished.Notify();
       }));
   // Waiting for 2 calls ensures that we waited at least once for the servables
@@ -98,13 +93,13 @@ TEST(AvailabilityHelpersTest, SpecificNotAvailable) {
 TEST(AvailabilityHelpersTest, LatestNotAvailable) {
   FakeManager fake_manager;
   fake_manager.set_available_servable_ids({{"servable0", 0}});
-  const std::vector<ServableRequest> available_servables_query = {
-      ServableRequest::Specific("servable0", 0),
-      ServableRequest::Latest("servable1")};
   Notification finished;
   std::unique_ptr<Thread> wait(
       Env::Default()->StartThread({}, "WaitUntilServablesAvailable", [&]() {
-        WaitUntilServablesAvailable(&fake_manager, available_servables_query);
+        WaitUntilServablesAvailableForRequests(
+            {ServableRequest::Specific("servable0", 0),
+             ServableRequest::Latest("servable1")},
+            &fake_manager);
         finished.Notify();
       }));
   // Waiting for 2 calls ensures that we waited at least once for the servables
@@ -116,21 +111,19 @@ TEST(AvailabilityHelpersTest, LatestNotAvailable) {
 }
 
 TEST(AvailabilityHelpersTest, LatestVersion) {
-  std::vector<ServableRequest> available_servables_query;
-  available_servables_query.emplace_back(ServableRequest::Latest("servable0"));
   FakeManager fake_manager;
   fake_manager.set_available_servable_ids({{"servable0", 123}});
-  WaitUntilServablesAvailable(&fake_manager, available_servables_query);
+  WaitUntilServablesAvailableForRequests({ServableRequest::Latest("servable0")},
+                                         &fake_manager);
 }
 
 TEST(AvailabilityHelpersTest, LatestAndExactVersion) {
-  std::vector<ServableRequest> available_servables_query;
-  available_servables_query.emplace_back(ServableRequest::Latest("servable0"));
-  available_servables_query.emplace_back(
-      ServableRequest::Specific("servable1", 1));
   FakeManager fake_manager;
   fake_manager.set_available_servable_ids({{"servable0", 0}, {"servable1", 1}});
-  WaitUntilServablesAvailable(&fake_manager, available_servables_query);
+  WaitUntilServablesAvailableForRequests(
+      {ServableRequest::Latest("servable0"),
+       ServableRequest::Specific("servable1", 1)},
+      &fake_manager);
 }
 
 }  // namespace
