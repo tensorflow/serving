@@ -169,6 +169,24 @@ TEST(ServableHandleTest, PointerOps) {
   EXPECT_EQ(&servables[0].member, &handles[0]->member);
 }
 
+TEST(ServableRequestTest, Specific) {
+  const auto request = ServableRequest::Specific("servable", 7);
+  EXPECT_EQ("servable", request.name);
+  EXPECT_EQ(7, *request.version);
+}
+
+TEST(ServableRequestTest, Latest) {
+  const auto request = ServableRequest::Latest("servable");
+  EXPECT_EQ("servable", request.name);
+  EXPECT_FALSE(request.version);
+}
+
+TEST(ServableRequestTest, FromId) {
+  const auto request = ServableRequest::FromId({"servable", 7});
+  EXPECT_EQ("servable", request.name);
+  EXPECT_EQ(7, *request.version);
+}
+
 }  // namespace
 
 }  // namespace serving

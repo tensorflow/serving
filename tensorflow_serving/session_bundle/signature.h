@@ -93,6 +93,12 @@ Status GetGenericSignature(const string& name,
 Status GetDefaultSignature(const tensorflow::MetaGraphDef& meta_graph_def,
                            Signature* default_signature);
 
+// Gets a named Signature from a MetaGraphDef.
+// Returns an error if a Signature with the given name does not exist.
+Status GetNamedSignature(const string& name,
+                         const tensorflow::MetaGraphDef& meta_graph_def,
+                         Signature* default_signature);
+
 // Binds TensorFlow inputs specified by the caller using the logical names
 // specified at Graph export time, to the actual Graph names.
 // Returns an error if any of the inputs do not have a binding in the export's

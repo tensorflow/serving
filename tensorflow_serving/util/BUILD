@@ -186,6 +186,50 @@ cc_test(
 )
 
 cc_library(
+    name = "executor",
+    hdrs = ["executor.h"],
+    deps = [
+    ],
+)
+
+cc_library(
+    name = "inline_executor",
+    srcs = ["inline_executor.cc"],
+    hdrs = ["inline_executor.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "inline_executor_test",
+    srcs = ["inline_executor_test.cc"],
+    deps = [
+        ":inline_executor",
+        "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
+
+cc_library(
+    name = "threadpool_executor",
+    srcs = ["threadpool_executor.cc"],
+    hdrs = ["threadpool_executor.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":executor",
+    ],
+)
+
+cc_test(
+    name = "threadpool_executor_test",
+    srcs = ["threadpool_executor_test.cc"],
+    deps = [
+        ":threadpool_executor",
+        "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
+
+cc_library(
     name = "unique_ptr_with_deps",
     hdrs = ["unique_ptr_with_deps.h"],
     visibility = ["//visibility:public"],
@@ -203,6 +247,26 @@ cc_test(
     ],
     deps = [
         ":unique_ptr_with_deps",
+        "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
+
+cc_library(
+    name = "shared_counter",
+    srcs = ["shared_counter.cc"],
+    hdrs = ["shared_counter.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "shared_counter_test",
+    size = "small",
+    srcs = ["shared_counter_test.cc"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":shared_counter",
         "//tensorflow_serving/core/test_util:test_main",
     ],
 )
