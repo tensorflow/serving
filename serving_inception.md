@@ -25,7 +25,7 @@ of building Tensorflow Serving Docker image.
 ### Run container
 
 We build a based image `$USER/tensorflow-serving-devel` using
-[Dockerfile.devel](https://github.com/tensorflow/serving/tree/tensorflow_serving/tools/docker/Dockerfile.devel).
+[Dockerfile.devel](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/tools/docker/Dockerfile.devel).
 And then start a container locally using the built image.
 
 ```shell
@@ -36,7 +36,7 @@ $ docker run --name=inception_container -it $USER/tensorflow-serving-devel
 ### Clone, configure and build Tensorflow Serving in container
 
 In the running container, we clone, configure and build Tensorflow Serving.
-Then test run [inception_inference.cc](https://github.com/tensorflow/serving/tree/tensorflow_serving/example/inception_inference.cc).
+Then test run [inception_inference.cc](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/inception_inference.cc).
 
 ```shell
 root@c97d8e820ced:/# git clone --recurse-submodules https://github.com/tensorflow/serving
@@ -54,7 +54,7 @@ E tensorflow_serving/example/inception_inference.cc:362] Usage: inception_infere
 ### Export Inception model in container
 
 In the running container, we run
-[inception_export.py](https://github.com/tensorflow/serving/tree/tensorflow_serving/example/inception_export.py)
+[inception_export.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/inception_export.py)
 to export the inception model using the released
 [Inception model training checkpoint](http://download.tensorflow.org/models/image/imagenet/inception-v3-2016-03-01.tar.gz).
 Instead of training from scratch, we use the readily available checkpoints
@@ -105,7 +105,7 @@ root@f07eec53fd95:/serving# bazel-bin/tensorflow_serving/example/inception_infer
 
 ### Query the server
 
-Query the server with [inception_client.py](https://github.com/tensorflow/serving/tree/tensorflow_serving/example/inception_client.py).
+Query the server with [inception_client.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/inception_client.py).
 The client sends an image specified by the command line parameter to the server
 over gRPC for classification. It then looks up the
 [ImageNet](http://www.image-net.org/) synset and metadata files and returns
@@ -194,7 +194,7 @@ along with an
 [External Load Balancer](http://kubernetes.io/docs/user-guide/load-balancer/).
 
 We create them using the example Kubernetes config
-[inception_k8s.json](https://github.com/tensorflow/serving/tree/tensorflow_serving/example/inception_k8s.json).
+[inception_k8s.json](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/inception_k8s.json).
 
 ```shell
 $ kubectl create -f tensorflow_serving/example/inception_k8s.json
@@ -255,9 +255,7 @@ IP address is listed next to LoadBalancer Ingress.
 We can now query the service at its external address from our local host.
 
 ```shell
-$ bazel-bin/tensorflow_serving/example/inception_client \
-    --server=146.148.88.232:9000
-    --image=/path/to/my_cat_image.jpg
+$ bazel-bin/tensorflow_serving/example/inception_client --server=146.148.88.232:9000 --image=/path/to/my_cat_image.jpg
 8.976576 : tabby, tabby cat
 8.725506 : Egyptian cat
 6.883981 : tiger cat
