@@ -20,6 +20,7 @@ See: go/tf-exporter
 
 import os
 import re
+import six
 
 import tensorflow as tf
 
@@ -94,7 +95,7 @@ def generic_signature(name_tensor_map):
     A Signature message.
   """
   signature = manifest_pb2.Signature()
-  for name, tensor in name_tensor_map.iteritems():
+  for name, tensor in six.iteritems(name_tensor_map):
     signature.generic_signature.map[name].tensor_name = tensor.name
   return signature
 
@@ -167,7 +168,7 @@ class Exporter(object):
     signatures_proto = manifest_pb2.Signatures()
     if default_graph_signature:
       signatures_proto.default_signature.CopyFrom(default_graph_signature)
-    for signature_name, signature in named_graph_signatures.iteritems():
+    for signature_name, signature in six.iteritems(named_graph_signatures):
       signatures_proto.named_signatures[signature_name].CopyFrom(signature)
     signatures_any_buf = any_pb2.Any()
     signatures_any_buf.Pack(signatures_proto)

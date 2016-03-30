@@ -198,6 +198,7 @@ cc_library(
     hdrs = ["inline_executor.h"],
     deps = [
         "@tf//tensorflow/core:lib",
+        ":executor",
     ],
 )
 

@@ -26,6 +26,8 @@ Output from this program is typically used to exercise Session
 loading and execution code.
 """
 
+from __future__ import print_function
+
 # This is a placeholder for a Google-internal import.
 
 import tensorflow as tf
@@ -63,7 +65,7 @@ def Export():
     # CopyAssets is used as a callback during export to copy files to the
     # given export directory.
     def CopyAssets(export_path):
-      print "copying asset files to: %s" % export_path
+      print("copying asset files to: %s" % export_path)
 
     # Use a fixed global step number.
     global_step_tensor = tf.Variable(123, name="global_step")
