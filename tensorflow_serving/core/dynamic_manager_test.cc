@@ -28,6 +28,7 @@ limitations under the License.
 #include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/test_util/dynamic_manager_test_util.h"
+#include "tensorflow_serving/core/test_util/fake_loader.h"
 #include "tensorflow_serving/core/test_util/mock_loader.h"
 #include "tensorflow_serving/util/any_ptr.h"
 #include "tensorflow_serving/util/event_bus.h"
@@ -36,39 +37,13 @@ namespace tensorflow {
 namespace serving {
 
 using ::testing::_;
-using ::testing::Eq;
 using ::testing::Invoke;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::UnorderedElementsAreArray;
+using test_util::FakeLoader;
 
 namespace {
-
-class FakeLoader : public ResourceUnsafeLoader {
- public:
-  explicit FakeLoader(int64 servable, const bool errors_on_load = false)
-      : servable_(servable), errors_on_load_(errors_on_load) {}
-  ~FakeLoader() override { --num_fake_loaders_; }
-
-  Status Load() override {
-    if (errors_on_load_) {
-      return errors::Internal("Error on load.");
-    } else {
-      return Status::OK();
-    }
-  }
-  void Unload() override {}
-  AnyPtr servable() override { return AnyPtr(&servable_); }
-  static int num_fake_loaders() { return num_fake_loaders_; }
-
- private:
-  // Counts the number of Fakeloader objects alive.
-  static int num_fake_loaders_;
-  int64 servable_;
-  // Whether to return an error when Load is called.
-  const bool errors_on_load_;
-};
-int FakeLoader::num_fake_loaders_ = 0;
 
 constexpr char kServableName[] = "kServableName";
 constexpr char kServableName2[] = "kServableName2";
@@ -227,7 +202,8 @@ TEST_F(DynamicManagerTest, ListAvailableServableIds) {
   // so never moves to a loaded state.
   std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
   const ServableId id = {kServableName, 7};
-  std::unique_ptr<Loader> loader(new FakeLoader(7, true /* errors_on_load */));
+  std::unique_ptr<Loader> loader(
+      new FakeLoader(7, errors::Internal("Error on load.")));
   aspired_versions.push_back({id, std::move(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
@@ -496,7 +472,8 @@ TEST_F(DynamicManagerTest, EventBusErroneousVersion) {
 TEST_F(DynamicManagerTest, EventBusErrorOnLoad) {
   std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
   const ServableId id = {kServableName, 7};
-  std::unique_ptr<Loader> loader(new FakeLoader(7, true /* errors_on_load */));
+  std::unique_ptr<Loader> loader(
+      new FakeLoader(7, errors::Internal("Error on load.")));
   aspired_versions.push_back({id, std::move(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
@@ -613,7 +590,8 @@ TEST_F(DynamicManagerTest, RetryOnLoadErrorFinallyFails) {
   std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
   const ServableId id = {kServableName, 7};
   // We always fail.
-  std::unique_ptr<Loader> loader(new FakeLoader(7, true /* errors_on_load */));
+  std::unique_ptr<Loader> loader(
+      new FakeLoader(7, errors::Internal("Error on load.")));
   aspired_versions.push_back({id, std::move(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));

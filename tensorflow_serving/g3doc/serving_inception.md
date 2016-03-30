@@ -29,7 +29,7 @@ We build a based image `$USER/tensorflow-serving-devel` using
 And then start a container locally using the built image.
 
 ```shell
-$ docker build -t $USER/tensorflow-serving-devel -f tensorflow_serving/tools/docker/Dockerfile.devel .
+$ docker build --pull -t $USER/tensorflow-serving-devel -f tensorflow_serving/tools/docker/Dockerfile.devel .
 $ docker run --name=inception_container -it $USER/tensorflow-serving-devel
 ```
 
