@@ -14,14 +14,14 @@ to `string`). It can be composed with a `SourceAdapter` that creates a servable
 Using paths as handles to servable data is not required; it merely
 illustrates one way to ingest servables into the system. Even if your
 environment does not encapsulate servable data in paths, this document will
-familiarize you with key abstractions. You have the option to create
+familiarize you with the key abstractions. You have the option to create
 `Source<T>` and `SourceAdapter<T1, T2>` modules for types that suit your
 environment (e.g. RPC or pub/sub messages, database records), or to simply
 create a monolithic `Source<std::unique_ptr<Loader>>` that emits servable
 loaders directly.
 
-Of course, whatever kind of data your source emits (whether it's POSIX paths or
-Google Cloud Storage paths or RPC handles), there needs to be accompanying
+Of course, whatever kind of data your source emits (whether it is POSIX paths,
+Google Cloud Storage paths, or RPC handles), there needs to be accompanying
 module(s) that are able to load servables based on that. Such modules are called
 `SourceAdapters`. Creating a custom one is described in the `custom_servable`
 document. TensorFlow Serving comes with one for instantiating TensorFlow
@@ -91,13 +91,14 @@ kinds of modules together to get a working server library is found in
 code flow (with bad error handling; real code should be more careful):
 
 First, create a manager:
-~~~
+
+~~~c++
 std::unique_ptr<DynamicManager> manager = ...;
 ~~~
 
 Then, create a `SessionBundle` source adapter and plug it into the manager:
 
-~~~
+~~~c++
 std::unique_ptr<SessionBundleSourceAdapter> bundle_adapter;
 SessionBundleSourceAdapterConfig config;
 // ... populate 'config' with TensorFlow options.
@@ -107,7 +108,7 @@ ConnectSourceToTarget(bundle_adapter.get(), manager.get());
 
 Lastly, create your path source and plug it into the `SessionBundle` adapter:
 
-~~~
+~~~c++
 auto your_source = new YourPathSource(...);
 ConnectSourceToTarget(your_source, bundle_adapter.get());
 ~~~
