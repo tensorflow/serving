@@ -462,7 +462,6 @@ TEST_F(DynamicManagerTest, EventBusErroneousVersion) {
 
   const ServableState expected_published_state = {
       {kServableName, 3},
-      true,
       ServableState::ManagerState::kEnd,
       errors::Unknown("error")};
   EXPECT_THAT(last_published_servable_state_,
@@ -479,7 +478,6 @@ TEST_F(DynamicManagerTest, EventBusErrorOnLoad) {
                                          std::move(aspired_versions));
 
   const ServableState start_state = {{kServableName, 7},
-                                     true,
                                      ServableState::ManagerState::kStart,
                                      Status::OK()};
   EXPECT_THAT(last_published_servable_state_, EqualsServableState(start_state));
@@ -487,7 +485,6 @@ TEST_F(DynamicManagerTest, EventBusErrorOnLoad) {
   RunManageState();
 
   const ServableState error_state = {{kServableName, 7},
-                                     true,
                                      ServableState::ManagerState::kEnd,
                                      errors::Internal("Error on load.")};
   EXPECT_THAT(last_published_servable_state_, EqualsServableState(error_state));
@@ -502,7 +499,6 @@ TEST_F(DynamicManagerTest, EventBusServableLifecycle) {
                                          std::move(aspired_versions));
 
   const ServableState start_state = {{kServableName, 7},
-                                     true,
                                      ServableState::ManagerState::kStart,
                                      Status::OK()};
   EXPECT_THAT(last_published_servable_state_, EqualsServableState(start_state));
@@ -511,7 +507,6 @@ TEST_F(DynamicManagerTest, EventBusServableLifecycle) {
 
   const ServableState available_state = {
       {kServableName, 7},
-      true,
       ServableState::ManagerState::kAvailable,
       Status::OK()};
   EXPECT_THAT(last_published_servable_state_,
@@ -527,7 +522,6 @@ TEST_F(DynamicManagerTest, EventBusServableLifecycle) {
 
   const ServableState unloading_state = {
       {kServableName, 7},
-      false,
       ServableState::ManagerState::kUnloading,
       Status::OK()};
   EXPECT_THAT(last_published_servable_state_,
@@ -536,7 +530,6 @@ TEST_F(DynamicManagerTest, EventBusServableLifecycle) {
   RunManageState();
 
   const ServableState end_state = {{kServableName, 7},
-                                   false,
                                    ServableState::ManagerState::kEnd,
                                    Status::OK()};
   EXPECT_THAT(last_published_servable_state_, EqualsServableState(end_state));
@@ -579,7 +572,6 @@ TEST_F(DynamicManagerTest, RetryOnLoadErrorFinallySucceeds) {
 
   const ServableState available_state = {
       {kServableName, 7},
-      true,
       ServableState::ManagerState::kAvailable,
       Status::OK()};
   EXPECT_THAT(last_published_servable_state_,
@@ -599,7 +591,6 @@ TEST_F(DynamicManagerTest, RetryOnLoadErrorFinallyFails) {
   RunManageState();
 
   const ServableState error_state = {{kServableName, 7},
-                                     true,
                                      ServableState::ManagerState::kEnd,
                                      errors::Internal("Error on load.")};
   EXPECT_THAT(last_published_servable_state_, EqualsServableState(error_state));

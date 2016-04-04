@@ -40,7 +40,6 @@ limitations under the License.
 #include "grpc++/support/status.h"
 #include "grpc++/support/status_code_enum.h"
 #include "grpc/grpc.h"
-#include "grpc/support/log.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/framework/types.pb.h"

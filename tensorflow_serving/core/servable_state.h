@@ -35,11 +35,6 @@ struct ServableState {
   // The identifier of the servable whose state is represented.
   ServableId id;
 
-  // Whether the servable is currently aspired by the source. If aspired, 'id'
-  // appeared in the most recent aspired-versions callback call with the
-  // servable name 'id.name'.
-  bool is_aspired;
-
   // The state of the servable as maintained by a manager. These states can only
   // transition from higher to lower ones on this list.
   enum class ManagerState : int {
@@ -75,16 +70,15 @@ struct ServableState {
 
   // Returns a string representation of this object. Useful in logging.
   string DebugString() const {
-    return strings::StrCat("{id: ", id.DebugString(), " is_aspired: ",
-                           is_aspired, " manager_state: ",
+    return strings::StrCat("{id: ", id.DebugString(), " manager_state: ",
                            static_cast<int>(manager_state), " health: ",
                            health.ToString(), "}");
   }
 };
 
 inline bool operator==(const ServableState& a, const ServableState& b) {
-  return a.id == b.id && a.is_aspired == b.is_aspired &&
-         a.manager_state == b.manager_state && a.health == b.health;
+  return a.id == b.id && a.manager_state == b.manager_state &&
+         a.health == b.health;
 }
 
 inline bool operator!=(const ServableState& a, const ServableState& b) {

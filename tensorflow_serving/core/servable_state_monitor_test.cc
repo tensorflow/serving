@@ -36,9 +36,8 @@ TEST(ServableStateMonitorTest, AddingStates) {
   EXPECT_TRUE(monitor.GetAllServableStates().empty());
 
   // Initial servable.
-  const ServableState state_0 = {ServableId{"foo", 42}, true /* is_aspired */,
-                                 ServableState::ManagerState::kStart,
-                                 Status::OK()};
+  const ServableState state_0 = {
+      ServableId{"foo", 42}, ServableState::ManagerState::kStart, Status::OK()};
   bus->Publish(state_0);
   ASSERT_TRUE(monitor.GetState(ServableId{"foo", 42}));
   EXPECT_EQ(state_0, *monitor.GetState(ServableId{"foo", 42}));
@@ -51,7 +50,7 @@ TEST(ServableStateMonitorTest, AddingStates) {
       UnorderedElementsAre(Pair("foo", ElementsAre(Pair(42, state_0)))));
 
   // New version of existing servable.
-  const ServableState state_1 = {ServableId{"foo", 43}, false /* is_aspired */,
+  const ServableState state_1 = {ServableId{"foo", 43},
                                  ServableState::ManagerState::kAvailable,
                                  errors::Unknown("error")};
   bus->Publish(state_1);
@@ -69,7 +68,7 @@ TEST(ServableStateMonitorTest, AddingStates) {
                   "foo", ElementsAre(Pair(42, state_0), Pair(43, state_1)))));
 
   // New servable name.
-  const ServableState state_2 = {ServableId{"bar", 7}, false /* is_aspired */,
+  const ServableState state_2 = {ServableId{"bar", 7},
                                  ServableState::ManagerState::kUnloading,
                                  Status::OK()};
   bus->Publish(state_2);
@@ -95,15 +94,14 @@ TEST(ServableStateMonitorTest, UpdatingStates) {
   ServableStateMonitor monitor(bus.get());
 
   // Initial servables.
-  const ServableState state_0 = {ServableId{"foo", 42}, true /* is_aspired */,
-                                 ServableState::ManagerState::kStart,
-                                 Status::OK()};
+  const ServableState state_0 = {
+      ServableId{"foo", 42}, ServableState::ManagerState::kStart, Status::OK()};
   bus->Publish(state_0);
-  const ServableState state_1 = {ServableId{"foo", 43}, false /* is_aspired */,
+  const ServableState state_1 = {ServableId{"foo", 43},
                                  ServableState::ManagerState::kAvailable,
                                  errors::Unknown("error")};
   bus->Publish(state_1);
-  const ServableState state_2 = {ServableId{"bar", 7}, false /* is_aspired */,
+  const ServableState state_2 = {ServableId{"bar", 7},
                                  ServableState::ManagerState::kUnloading,
                                  Status::OK()};
   bus->Publish(state_2);
@@ -113,9 +111,9 @@ TEST(ServableStateMonitorTest, UpdatingStates) {
                                    Pair("bar", ElementsAre(Pair(7, state_2)))));
 
   // Update one of them.
-  const ServableState state_1_updated = {
-      ServableId{"foo", 43}, true /* is_aspired */,
-      ServableState::ManagerState::kLoading, Status::OK()};
+  const ServableState state_1_updated = {ServableId{"foo", 43},
+                                         ServableState::ManagerState::kLoading,
+                                         Status::OK()};
   bus->Publish(state_1_updated);
   ASSERT_TRUE(monitor.GetState(ServableId{"foo", 42}));
   EXPECT_EQ(state_0, *monitor.GetState(ServableId{"foo", 42}));
