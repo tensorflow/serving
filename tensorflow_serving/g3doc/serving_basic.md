@@ -2,9 +2,9 @@
 
 This tutorial shows you how to use TensorFlow Serving components to export a
 trained TensorFlow model and build a server to serve the exported model. The
-server you'll build in this tutorial is relatively simple: it serves a single
+server you will build in this tutorial is relatively simple: it serves a single
 static TensorFlow model, it handles individual inference requests (not batch
-requests), and it calculates an aggregate inference error rate. If you're
+requests), and it calculates an aggregate inference error rate. If you are
 already familiar with TensorFlow Serving, and you want to create a more complex
 server that handles batched inference requests, and discovers and serves new
 versions of a TensorFlow model that is being dynamically updated, see the
@@ -12,15 +12,20 @@ versions of a TensorFlow model that is being dynamically updated, see the
 
 This tutorial uses the simple Softmax Regression model introduced in the
 TensorFlow tutorial for handwritten image (MNIST data) classification. If you
-don't know what TensorFlow or MNIST is, see the
+do not know what TensorFlow or MNIST is, see the
 [MNIST For ML Beginners](http://www.tensorflow.org/tutorials/mnist/beginners/index.html#mnist-for-ml-beginners)
-tutorial..
+tutorial.
 
-The code for this tutorial consists of two parts. A python file
-([mnist_export.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_export.py)) that
-trains and exports the model, and a C++ file
-([mnist_inference.cc](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_inference.cc)) that loads the
-exported model and runs a [gRPC](http://www.grpc.io) service to serve it.
+The code for this tutorial consists of two parts:
+
+* A Python file
+([mnist_export.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_export.py))
+that trains and exports the model.
+
+* A C++ file
+([mnist_inference.cc](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_inference.cc))
+that loads the exported model and runs a [gRPC](http://www.grpc.io) service to
+serve it.
 
 Before getting started, please complete the [prerequisites](setup.md#prerequisites).
 
@@ -72,16 +77,16 @@ export only the variables that will be used for inference.
 
     * `scores_tensor=y` specifies the scores tensor binding.
 
-    * Typically, you should also override `classes_tensor=None` argument to
-    specify class tensor binding. e.g. For a classification model that returns
-    the top 10 suggested videos, the output will consist of both videos
+    * Typically, you should also override the `classes_tensor=None` argument to
+    specify class tensor binding. As an example, for a classification model that
+    returns the top 10 suggested videos, the output will consist of both videos
     (classes) and scores for each video. In this case, however, the model always
-    returns Softmax scores for matching digit 0-9 in order, therefore
-    `classes_tensor` is not necessary.
+    returns Softmax scores for matching digit 0-9 in order. Therefore,
+    overriding `classes_tensor` is not necessary.
 
 `Exporter.export()` takes the following arguments:
 
-  * `export_path` is the path of export directory. `export` will create the
+  * `export_path` is the path of the export directory. `export` will create the
   directory if it does not exist.
 
   * `tf.constant(FLAGS.export_version)` is a tensor that specifies the
@@ -103,6 +108,13 @@ $>rm -rf /tmp/mnist_model
 ~~~shell
 $>bazel build //tensorflow_serving/example:mnist_export
 $>bazel-bin/tensorflow_serving/example/mnist_export /tmp/mnist_model
+Training model...
+
+...
+
+Done training!
+Exporting trained model to /tmp/mnist_model
+Done exporting!
 ~~~
 
 Now let's take a look at the export directory.
@@ -119,16 +131,16 @@ the corresponding sub-directory `00000001` is created.
 
 ~~~shell
 $>ls /tmp/mnist_model/00000001
-export.meta export-00000-of-00001
+checkpoint export-00000-of-00001 export.meta
 ~~~
 
 Each version sub-directory contains the following files:
 
   * `export.meta` is the serialized tensorflow::MetaGraphDef of the model. It
-  includes graph definition of the model, as well as metadata of the model
+  includes the graph definition of the model, as well as metadata of the model
   such as signatures.
 
-  * `export-?????-of-?????` are files that holds the serialized variables of
+  * `export-?????-of-?????` are files that hold the serialized variables of
   the graph.
 
 With that, your TensorFlow model is exported and ready to be loaded!
@@ -138,7 +150,7 @@ With that, your TensorFlow model is exported and ready to be loaded!
 The C++ code for loading the exported TensorFlow model is very simple (see
 mnist_inference.cc):
 
-~~~cc
+~~~c++
 int main(int argc, char** argv) {
   ...
 
@@ -163,7 +175,7 @@ Typically, a default `SessionOptions` is given when loading the model.
 Let's look at the `SessionBundle` definition in
 [session_bundle.h](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/session_bundle/session_bundle.h):
 
-~~~cc
+~~~c++
 struct SessionBundle {
   std::unique_ptr<tensorflow::Session> session;
   tensorflow::MetaGraphDef meta_graph_def;
@@ -172,11 +184,12 @@ struct SessionBundle {
 
 `session` is, guess what, a TensorFlow session that has the original graph
 with the needed variables properly restored. In other words, the trained model
-is now held in `session` and ready for running inference!
+is now held in `session` and is ready for running inference!
 
 All you need to do now is bind inference input and output to the proper tensors
-in the graph and do `session->run()`. But how do you know which tensors to bind
-to? As you may have probably guessed, the answer is in the `meta_graph_def`.
+in the graph and invoke `session->run()`. But how do you know which tensors to
+bind to? As you may have probably guessed, the answer is in the
+`meta_graph_def`.
 
 `tensorflow::MetaGraphDef` is the protobuf de-serialized from the `export.meta`
 file above (see [meta_graph.proto](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/core/protobuf/meta_graph.proto)).
@@ -185,7 +198,7 @@ extensible `collection_def`. In particular, it contains `Signatures` (see
 [manifest.proto](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/session_bundle/manifest.proto))
 that specifies the tensor to use.
 
-~~~
+~~~proto
 // Signatures of model export.
 message Signatures {
   // Default signature of the graph.
@@ -199,7 +212,7 @@ message Signatures {
 Remember how we specified the model signature in `export` above? The
 information eventually gets encoded here:
 
-~~~
+~~~proto
 message ClassificationSignature {
   TensorBinding input = 1;
   TensorBinding classes = 2;
@@ -223,24 +236,24 @@ steps:
   2. Transform protobuf input to inference input tensor and create output
   tensor placeholder.
 
-  3. Run inference -- note that in the `MnistServiceImpl` constructor you use
-  `GetClassificationSignature()` to extract model's signature from
+  3. Run inference. Note that in the `MnistServiceImpl` constructor you use
+  `GetClassificationSignature()` to extract the signature of the model from
   'meta_graph_def` and verify that it is a classification signature as expected.
   With the extracted signature, the server can bind the input and output tensors
   properly and run the session.
 
-~~~cc
-  const tensorflow::Status status =
-      bundle_->session->Run({{signature_.input().tensor_name(), input}},
-                            {signature_.scores().tensor_name()}, {},
-                            &outputs);
-~~~
+  ~~~c++
+    const tensorflow::Status status =
+        bundle_->session->Run({{signature_.input().tensor_name(), input}},
+                              {signature_.scores().tensor_name()}, {},
+                              &outputs);
+  ~~~
 
-  5. Transform inference output tensor to protobuf output.
+  4. Transform the inference output tensor to protobuf output.
 
 To run it:
 
-~~~
+~~~shell
 $>bazel build //tensorflow_serving/example:mnist_inference
 $>bazel-bin/tensorflow_serving/example/mnist_inference --port=9000 /tmp/mnist_model/00000001
 ~~~
@@ -253,7 +266,7 @@ requests to the server, and calculates the inference error rate.
 
 To run it:
 
-~~~
+~~~shell
 $>bazel build //tensorflow_serving/example:mnist_client
 $>bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:9000
 ...

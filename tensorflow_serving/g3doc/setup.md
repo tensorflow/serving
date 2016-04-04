@@ -62,6 +62,7 @@ sudo apt-get update && sudo apt-get install -y \
 
 ~~~shell
 git clone --recurse-submodules https://github.com/tensorflow/serving
+cd serving
 ~~~
 
 `--recurse-submodules` is required to fetch TensorFlow, gRPC, and other
@@ -117,8 +118,8 @@ for more in-depth examples of running TensorFlow Serving.
 ### Continuous integration build
 
 Our [continuous integration build](http://ci.tensorflow.org/view/Serving/job/serving-master-cpu/)
-using tensorflow [ci_build](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/ci_build)
-infrastructure offer you simplified development using docker. All you need is
+using TensorFlow [ci_build](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/ci_build)
+infrastructure offers you simplified development using docker. All you need is
 git and docker. No need to install all other dependencies manually.
 
 ~~~shell
