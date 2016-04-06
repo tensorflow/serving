@@ -29,7 +29,7 @@ filegroup(
 py_library(
     name = "exporter",
     srcs = ["exporter.py"],
-    visibility = ["//visibility:public"],
+    visibility = ["//tensorflow_serving:alpha"],
     deps = [
         "@tf//tensorflow:tensorflow_py",
         ":gc",
@@ -55,7 +55,7 @@ py_library(
     name = "gc",
     srcs = ["gc.py"],
     visibility = [
-        "//visibility:public",
+        "//tensorflow_serving:alpha",
     ],
     deps = [
         "@tf//tensorflow:tensorflow_py",
@@ -82,13 +82,13 @@ serving_proto_library(
     srcs = ["manifest.proto"],
     cc_api_version = 2,
     py_api_version = 2,
-    visibility = ["//visibility:public"],
+    visibility = ["//tensorflow_serving:alpha"],
 )
 
 serving_proto_library_py(
     name = "manifest_proto_py",
     srcs = ["manifest.proto"],
-    visibility = ["//visibility:public"],
+    visibility = ["//tensorflow_serving:alpha"],
     deps = [
         "@tf//google/protobuf:protobuf_python",
         "@tf//tensorflow/core:protos_all_py",
@@ -99,7 +99,7 @@ cc_library(
     name = "session_bundle",
     srcs = ["session_bundle.cc"],
     hdrs = ["session_bundle.h"],
-    visibility = ["//visibility:public"],
+    visibility = ["//tensorflow_serving:alpha"],
     deps = [
         "@tf//google/protobuf:cc_wkt_protos",
         "@tf//google/protobuf:protobuf_lite",
@@ -139,7 +139,7 @@ cc_library(
     name = "signature",
     srcs = ["signature.cc"],
     hdrs = ["signature.h"],
-    visibility = ["//visibility:public"],
+    visibility = ["//tensorflow_serving:alpha"],
     deps = [
         "@tf//google/protobuf:cc_wkt_protos",
         "@tf//google/protobuf:protobuf_lite",
