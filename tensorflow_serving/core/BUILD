@@ -396,6 +396,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "@tf//tensorflow/core:lib",
         ":servable_id",
         ":servable_state",
         "//tensorflow_serving/util:event_bus",
@@ -409,6 +410,7 @@ cc_test(
     deps = [
         ":servable_state_monitor",
         "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util:fake_clock_env",
     ],
 )
 
