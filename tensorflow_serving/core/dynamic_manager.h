@@ -146,6 +146,9 @@ class DynamicManager final : public Manager,
       const ServableRequest& request,
       std::unique_ptr<UntypedServableHandle>* untyped_handle) override;
 
+  std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
+  GetAvailableUntypedServableHandles() const override;
+
   // Updates the serving map by copying servables from the managed map, which
   // are ready to be served.
   void UpdateServingMap() EXCLUSIVE_LOCKS_REQUIRED(managed_map_mu_);
@@ -212,6 +215,11 @@ class DynamicManager final : public Manager,
     Status GetUntypedServableHandle(
         const ServableRequest& request,
         std::unique_ptr<UntypedServableHandle>* const untyped_handle);
+
+    // Returns a map of all the currently available servable_ids to their
+    // corresponding UntypedServableHandles.
+    std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
+    GetAvailableUntypedServableHandles() const;
 
     // Updates the serving map by copying servables from the managed map, which
     // are ready to be served.

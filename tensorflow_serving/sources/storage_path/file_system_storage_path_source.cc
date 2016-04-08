@@ -42,9 +42,6 @@ namespace {
 // FileSystemStoragePathSource should emit based on what was found.
 Status PollFileSystem(const FileSystemStoragePathSourceConfig& config,
                       std::vector<ServableData<StoragePath>>* versions) {
-  LOG(INFO) << "Polling the file system to look for a servable path under: "
-            << config.base_path();
-
   // First, determine whether the base path exists. This check guarantees that
   // we don't emit an empty aspired-versions list for a non-existent (or
   // transiently unavailable) base-path. (On some platforms, GetChildren()
@@ -82,7 +79,6 @@ Status PollFileSystem(const FileSystemStoragePathSourceConfig& config,
     const ServableId servable_id = {config.servable_name(), latest_version};
     const string full_path =
         io::JoinPath(config.base_path(), children[latest_version_child]);
-    LOG(INFO) << "Found a servable " << servable_id << " at path " << full_path;
     versions->emplace_back(ServableData<StoragePath>(servable_id, full_path));
   } else {
     LOG(WARNING) << "No servable versions found under base path: "
@@ -146,8 +142,12 @@ void FileSystemStoragePathSource::SetAspiredVersionsCallback(
 Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
   std::vector<ServableData<StoragePath>> versions;
   TF_RETURN_IF_ERROR(PollFileSystem(config_, &versions));
-  LOG(INFO) << "Aspiring " << versions.size() << " versions for servable "
-            << config_.servable_name();
+  for (const ServableData<StoragePath>& version : versions) {
+    if (version.status().ok()) {
+      LOG(INFO) << "Aspiring version for servable " << config_.servable_name()
+                << " from path: " << version.DataOrDie();
+    }
+  }
   aspired_versions_callback_(config_.servable_name(), versions);
   return Status::OK();
 }

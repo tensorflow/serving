@@ -54,9 +54,7 @@ py_test(
 py_library(
     name = "gc",
     srcs = ["gc.py"],
-    visibility = [
-        "//visibility:public",
-    ],
+    visibility = ["//visibility:public"],
     deps = [
         "@tf//tensorflow:tensorflow_py",
     ],

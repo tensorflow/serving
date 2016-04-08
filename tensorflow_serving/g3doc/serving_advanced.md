@@ -270,8 +270,8 @@ $>bazel-bin/tensorflow_serving/example/mnist_inference_2 --port=9000 /tmp/monito
 ~~~
 
 The server will emit log messages every one second that say
-"aspiring 1 version...", which means it has found the export, and is tracking
-its continued existence.
+"Aspiring version for servable ...", which means it has found the export, and is
+tracking its continued existence.
 
 Run the test with `--concurrency=10`. This will send concurrent requests to the
 server and thus trigger your batching logic.
