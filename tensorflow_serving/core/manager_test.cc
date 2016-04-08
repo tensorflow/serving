@@ -21,7 +21,6 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
-
 namespace {
 
 struct TestServable {
@@ -50,6 +49,14 @@ class TestManager : public Manager {
     result->reset(new TestHandle);
     return Status::OK();
   }
+
+  std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
+  GetAvailableUntypedServableHandles() const override {
+    std::map<ServableId, std::unique_ptr<UntypedServableHandle>> handles;
+    handles.emplace(ServableId{"Foo", 2},
+                    std::unique_ptr<UntypedServableHandle>(new TestHandle));
+    return handles;
+  }
 };
 
 TEST(ManagerTest, NoErrors) {
@@ -64,6 +71,24 @@ TEST(ManagerTest, TypeError) {
   ServableHandle<int> handle;
   EXPECT_FALSE(manager.GetServableHandle({"Foo", 2}, &handle).ok());
   EXPECT_EQ(nullptr, handle.get());
+}
+
+TEST(ManagerTest, GetAvailableServableHandles) {
+  TestManager manager;
+  const std::map<ServableId, ServableHandle<TestServable>> handles =
+      manager.GetAvailableServableHandles<TestServable>();
+  ASSERT_EQ(1, handles.size());
+  for (const auto& handle : handles) {
+    EXPECT_EQ((ServableId{"Foo", 2}), handle.first);
+    EXPECT_EQ(7, handle.second->member);
+  }
+}
+
+TEST(ManagerTest, GetAvailableServableHandlesWrongType) {
+  TestManager manager;
+  const std::map<ServableId, ServableHandle<int>> handles =
+      manager.GetAvailableServableHandles<int>();
+  EXPECT_EQ(0, handles.size());
 }
 
 // A manager that returns OK even though the result is null. This behavior
@@ -188,6 +213,5 @@ TEST(ServableRequestTest, FromId) {
 }
 
 }  // namespace
-
 }  // namespace serving
 }  // namespace tensorflow

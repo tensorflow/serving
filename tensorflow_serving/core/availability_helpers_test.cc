@@ -60,6 +60,11 @@ class FakeManager : public Manager {
     LOG(FATAL) << "Not expected to be called.";
   }
 
+  std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
+  GetAvailableUntypedServableHandles() const override {
+    LOG(FATAL) << "Not expected to be called.";
+  }
+
   mutex mtx_;
   std::vector<ServableId> available_servable_ids_ GUARDED_BY(mtx_);
   int num_list_available_servable_ids_calls_ GUARDED_BY(mtx_) = 0;
