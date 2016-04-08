@@ -181,6 +181,25 @@ Status DynamicManager::ServingMap::GetUntypedServableHandle(
   return Status::OK();
 }
 
+std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
+DynamicManager::ServingMap::GetAvailableUntypedServableHandles() const {
+  std::map<ServableId, std::unique_ptr<UntypedServableHandle>> result;
+  std::shared_ptr<const HandlesMap> handles_map = handles_map_.get();
+  for (const auto& handle : *handles_map) {
+    const ServableRequest& request = handle.first;
+    // If the entry is the one for the latest request, skip it. We would already
+    // get it from the entry which has the specific request.
+    if (!request.version) {
+      continue;
+    }
+    const ServableId id = {request.name, request.version.value()};
+    result.emplace(id, std::unique_ptr<UntypedServableHandle>(
+                           new SharedPtrHandle(std::shared_ptr<Loader>(
+                               handles_map, handle.second->loader()))));
+  }
+  return result;
+}
+
 void DynamicManager::ServingMap::Update(
     const ManagedMap& managed_map_,
     EventBus<ServableState>* const servable_event_bus) {
@@ -291,6 +310,11 @@ Status DynamicManager::GetUntypedServableHandle(
     const ServableRequest& request,
     std::unique_ptr<UntypedServableHandle>* const untyped_handle) {
   return serving_map_.GetUntypedServableHandle(request, untyped_handle);
+}
+
+std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
+DynamicManager::GetAvailableUntypedServableHandles() const {
+  return serving_map_.GetAvailableUntypedServableHandles();
 }
 
 void DynamicManager::SetAspiredVersions(

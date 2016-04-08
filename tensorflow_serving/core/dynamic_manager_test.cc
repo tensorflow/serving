@@ -218,6 +218,61 @@ TEST_F(DynamicManagerTest, ListAvailableServableIds) {
               UnorderedElementsAreArray(expected_after));
 }
 
+TEST_F(DynamicManagerTest, GetAvailableServableHandles) {
+  // Scoped to destruct handles at the end of it.
+  {
+    const std::map<ServableId, ServableHandle<int64>> handles_before =
+        manager_->GetAvailableServableHandles<int64>();
+    ASSERT_EQ(kNumVersionsPerServable * 2, handles_before.size());
+
+    const std::vector<ServableId> expected_ids_before = {{kServableName, 0},
+                                                         {kServableName, 1},
+                                                         {kServableName2, 0},
+                                                         {kServableName2, 1}};
+    for (const ServableId& expected_id : expected_ids_before) {
+      const auto found_it = handles_before.find(expected_id);
+      ASSERT_TRUE(found_it != handles_before.end());
+      EXPECT_EQ(expected_id.version, *found_it->second);
+    }
+  }
+
+  // Set stream kServableName to have servables 7.
+  // This causes 0 & 1 to be unloaded and 7 to be loaded, but 7 errors on load,
+  // so never moves to a loaded state.
+  std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
+  const ServableId id = {kServableName, 7};
+  std::unique_ptr<Loader> loader(
+      new FakeLoader(7, errors::Internal("An error.")));
+  aspired_versions.push_back({id, std::move(loader)});
+  manager_->GetAspiredVersionsCallback()(kServableName,
+                                         std::move(aspired_versions));
+  // We have to run the threads twice for unloading, because unloading of
+  // quiesced servables happens in the next manager thread run.
+  for (int i = 0; i < 2 * kNumVersionsPerServable; ++i) {
+    RunManageState();
+  }
+
+  {
+    const std::map<ServableId, ServableHandle<int64>> handles_after =
+        manager_->GetAvailableServableHandles<int64>();
+    ASSERT_EQ(kNumVersionsPerServable, handles_after.size());
+
+    const std::vector<ServableId> expected_ids_after = {{kServableName2, 0},
+                                                        {kServableName2, 1}};
+    for (const ServableId& expected_id : expected_ids_after) {
+      const auto found_it = handles_after.find(expected_id);
+      ASSERT_TRUE(found_it != handles_after.end());
+      EXPECT_EQ(expected_id.version, *found_it->second);
+    }
+  }
+}
+
+TEST_F(DynamicManagerTest, GetAvailableServableHandlesWrongType) {
+  const std::map<ServableId, ServableHandle<int>> wrong_type_handles =
+      manager_->GetAvailableServableHandles<int>();
+  EXPECT_EQ(0, wrong_type_handles.size());
+}
+
 TEST_F(DynamicManagerTest, AspiredRemovedFull) {
   // Scoped so that the handle is destructed at the end, and the harness is
   // destructed when we run the manager looping thread.
