@@ -18,8 +18,8 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-optional<VersionPolicy::ServableAction> EagerLoadPolicy::GetNextAction(
-    const std::vector<ServableStateSnapshot>& all_versions) const {
+optional<AspiredVersionPolicy::ServableAction> EagerLoadPolicy::GetNextAction(
+    const std::vector<AspiredServableStateSnapshot>& all_versions) const {
   // If there is a new aspired version, load it.
   for (const auto& version : all_versions) {
     if (version.is_aspired && version.state == LoaderHarness::State::kNew) {

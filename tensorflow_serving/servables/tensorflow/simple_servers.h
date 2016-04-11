@@ -26,7 +26,6 @@ limitations under the License.
 
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow_serving/core/dynamic_manager.h"
 #include "tensorflow_serving/core/manager.h"
 #include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/core/target.h"
