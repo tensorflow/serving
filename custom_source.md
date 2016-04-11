@@ -84,16 +84,16 @@ You will likely want to use your new source module in conjunction with
 (`servables/tensorflow/session_bundle_source_adapter*`), which will interpret
 each path your source emits as a TensorFlow export, and convert each path to a
 loader for a TensorFlow `SessionBundle` servable. You will likely plug the
-`SessionBundle` adapter into a `DynamicManager`, which takes care of actually
-loading and serving the servables. A good illustration of chaining these three
-kinds of modules together to get a working server library is found in
-`servables/tensorflow/simple_servers.cc`. Here is a walk-through of the main
+`SessionBundle` adapter into a `AspiredVersionsManager`, which takes care of
+actually loading and serving the servables. A good illustration of chaining
+these three kinds of modules together to get a working server library is found
+in `servables/tensorflow/simple_servers.cc`. Here is a walk-through of the main
 code flow (with bad error handling; real code should be more careful):
 
 First, create a manager:
 
 ~~~c++
-std::unique_ptr<DynamicManager> manager = ...;
+std::unique_ptr<AspiredVersionsManager> manager = ...;
 ~~~
 
 Then, create a `SessionBundle` source adapter and plug it into the manager:
