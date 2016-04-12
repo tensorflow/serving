@@ -22,7 +22,9 @@ ServableStateMonitor::ServableStateMonitor(const Options& options,
                                            EventBus<ServableState>* bus)
     : options_(options),
       bus_subscription_(bus->Subscribe(
-          [this](const ServableState& state) { this->HandleEvent(state); })) {}
+          [this](const EventBus<ServableState>::EventAndTime& state_and_time) {
+            this->HandleEvent(state_and_time);
+          })) {}
 
 ServableStateMonitor::ServableStateMonitor(EventBus<ServableState>* bus)
     : ServableStateMonitor(Options(), bus) {}
@@ -63,8 +65,10 @@ ServableStateMonitor::BoundedLog ServableStateMonitor::GetBoundedLog() const {
   return log_;
 }
 
-void ServableStateMonitor::HandleEvent(const ServableState& state) {
+void ServableStateMonitor::HandleEvent(
+    const EventBus<ServableState>::EventAndTime& state_and_time) {
   mutex_lock l(mu_);
+  const ServableState& state = state_and_time.event;
   states_[state.id.name][state.id.version] = state;
   if (options_.max_count_log_events == 0) {
     return;
@@ -72,7 +76,7 @@ void ServableStateMonitor::HandleEvent(const ServableState& state) {
   while (log_.size() >= options_.max_count_log_events) {
     log_.pop_front();
   }
-  log_.emplace_back(options_.env->NowMicros(), state);
+  log_.emplace_back(state_and_time.event_time_micros, state);
 }
 
 }  // namespace serving
