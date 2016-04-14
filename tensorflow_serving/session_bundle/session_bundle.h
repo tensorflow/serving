@@ -48,7 +48,7 @@ struct SessionBundle {
 };
 
 // Loads a manifest and initialized session using the output of an Exporter
-// using the format defined at go/tf-exporter.
+// using the format defined at https://goo.gl/OIDCqz.
 tensorflow::Status LoadSessionBundleFromPath(
     const tensorflow::SessionOptions& options,
     const tensorflow::StringPiece export_dir, SessionBundle* bundle);

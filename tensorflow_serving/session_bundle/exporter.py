@@ -15,7 +15,7 @@
 
 """Export a TensorFlow model.
 
-See: go/tf-exporter
+See: https://goo.gl/OIDCqz
 """
 
 import os
@@ -33,7 +33,7 @@ from tensorflow.python.training import training_util
 from tensorflow_serving.session_bundle import gc
 from tensorflow_serving.session_bundle import manifest_pb2
 
-# See: go/tf-exporter for these constants and directory structure.
+# See: https://goo.gl/OIDCqz for these constants and directory structure.
 VERSION_FORMAT_SPECIFIER = "%08d"
 ASSETS_DIRECTORY = "assets"
 EXPORT_BASE_NAME = "export"
