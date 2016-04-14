@@ -16,7 +16,7 @@
 """Exports a toy linear regression inference graph.
 
 Exports a TensorFlow graph to /tmp/half_plus_two/ based on the Exporter
-format, go/tf-exporter.
+format, https://goo.gl/OIDCqz.
 
 This graph calculates,
   y = a*x + b

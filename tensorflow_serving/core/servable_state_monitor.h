@@ -48,17 +48,13 @@ class ServableStateMonitor {
     // Upper bound for the number of events captured in the bounded log. If set
     // to 0, logging is disabled.
     uint64 max_count_log_events = 0;
-
-    // The environment to use for time.
-    // TODO(b/27453054) Use timestamps from when the events are generated.
-    Env* env = Env::Default();
   };
 
   struct ServableStateAndTime {
     ServableStateAndTime(uint64 event_time_micros, ServableState state)
         : event_time_micros(event_time_micros), state(std::move(state)) {}
 
-    // Time at which servable state event was handled.
+    // Time at which servable state event was published.
     uint64 event_time_micros;
 
     // State of the servable.
@@ -86,7 +82,7 @@ class ServableStateMonitor {
 
  private:
   // Handles a bus event.
-  void HandleEvent(const ServableState& state);
+  void HandleEvent(const EventBus<ServableState>::EventAndTime& state_and_time);
 
   const Options options_;
 

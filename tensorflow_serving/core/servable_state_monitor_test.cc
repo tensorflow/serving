@@ -31,12 +31,14 @@ namespace {
 
 TEST(ServableStateMonitorTest, AddingStates) {
   test_util::FakeClockEnv env(Env::Default());
-  ServableStateMonitor::Options options;
-  options.env = &env;
-  options.max_count_log_events = 4;
+  EventBus<ServableState>::Options bus_options;
+  bus_options.env = &env;
+  auto bus = EventBus<ServableState>::CreateEventBus(bus_options);
 
-  auto bus = EventBus<ServableState>::CreateEventBus();
-  ServableStateMonitor monitor(options, bus.get());
+  ServableStateMonitor::Options monitor_options;
+  monitor_options.max_count_log_events = 4;
+
+  ServableStateMonitor monitor(monitor_options, bus.get());
   EXPECT_FALSE(monitor.GetState(ServableId{"foo", 42}));
   EXPECT_TRUE(monitor.GetVersionStates("foo").empty());
   EXPECT_TRUE(monitor.GetAllServableStates().empty());
@@ -113,12 +115,13 @@ TEST(ServableStateMonitorTest, AddingStates) {
 
 TEST(ServableStateMonitorTest, UpdatingStates) {
   test_util::FakeClockEnv env(Env::Default());
-  ServableStateMonitor::Options options;
-  options.env = &env;
-  options.max_count_log_events = 3;
+  EventBus<ServableState>::Options bus_options;
+  bus_options.env = &env;
+  auto bus = EventBus<ServableState>::CreateEventBus(bus_options);
 
-  auto bus = EventBus<ServableState>::CreateEventBus();
-  ServableStateMonitor monitor(options, bus.get());
+  ServableStateMonitor::Options monitor_options;
+  monitor_options.max_count_log_events = 3;
+  ServableStateMonitor monitor(monitor_options, bus.get());
 
   // Initial servables.
   const ServableState state_0 = {
@@ -176,13 +179,13 @@ TEST(ServableStateMonitorTest, UpdatingStates) {
 
 TEST(ServableStateMonitorTest, DisableBoundedLogging) {
   test_util::FakeClockEnv env(Env::Default());
+  EventBus<ServableState>::Options bus_options;
+  bus_options.env = &env;
+  auto bus = EventBus<ServableState>::CreateEventBus(bus_options);
+
   // The default value for max_count_log_events in options is 0, which disables
   // logging.
-  ServableStateMonitor::Options options;
-  options.env = &env;
-
-  auto bus = EventBus<ServableState>::CreateEventBus();
-  ServableStateMonitor monitor(options, bus.get());
+  ServableStateMonitor monitor(bus.get());
   const ServableState state_0 = {
       ServableId{"foo", 42}, ServableState::ManagerState::kStart, Status::OK()};
   env.AdvanceByMicroseconds(1);

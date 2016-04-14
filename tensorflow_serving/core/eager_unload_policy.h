@@ -18,8 +18,8 @@ limitations under the License.
 
 #include <vector>
 
+#include "tensorflow_serving/core/aspired_version_policy.h"
 #include "tensorflow_serving/core/loader_harness.h"
-#include "tensorflow_serving/core/version_policy.h"
 #include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
@@ -38,10 +38,11 @@ namespace serving {
 // interruptions to a single servable's availability on a replica.
 //
 // NB: This policy does not in any way solve cross-replica availability.
-class EagerUnloadPolicy final : public VersionPolicy {
+class EagerUnloadPolicy final : public AspiredVersionPolicy {
  public:
   optional<ServableAction> GetNextAction(
-      const std::vector<ServableStateSnapshot>& all_versions) const override;
+      const std::vector<AspiredServableStateSnapshot>& all_versions)
+      const override;
 };
 
 }  // namespace serving
