@@ -13,31 +13,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_CORE_TEST_UTIL_DYNAMIC_MANAGER_TEST_UTIL_H_
-#define TENSORFLOW_SERVING_CORE_TEST_UTIL_DYNAMIC_MANAGER_TEST_UTIL_H_
-
-#include "tensorflow_serving/core/dynamic_manager.h"
+#include "tensorflow_serving/core/test_util/manager_test_util.h"
 
 namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-// A test utility that provides access to private DynamicManager members.
-class DynamicManagerTestAccess {
- public:
-  explicit DynamicManagerTestAccess(DynamicManager* manager);
+AspiredVersionsManagerTestAccess::AspiredVersionsManagerTestAccess(
+    AspiredVersionsManager* manager)
+    : manager_(manager) {}
 
-  // Invokes ManageState() on the manager.
-  void RunManageState();
-
- private:
-  DynamicManager* const manager_;
-
-  TF_DISALLOW_COPY_AND_ASSIGN(DynamicManagerTestAccess);
-};
+void AspiredVersionsManagerTestAccess::RunManageState() {
+  manager_->ManageState();
+}
 
 }  // namespace test_util
 }  // namespace serving
 }  // namespace tensorflow
-
-#endif  // TENSORFLOW_SERVING_CORE_TEST_UTIL_DYNAMIC_MANAGER_TEST_UTIL_H_

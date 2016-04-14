@@ -61,7 +61,7 @@ should be more careful):
 First, create a manager:
 
 ~~~c++
-std::unique_ptr<DynamicManager> manager = ...;
+std::unique_ptr<AspiredVersionsManager> manager = ...;
 ~~~
 
 Then, create a `YourServable` source adapter and plug it into the manager:

@@ -155,7 +155,7 @@ void BenchmarkState::RunBenchmarkReads(int iters) {
       }
       CHECK_GE(count, 0);
     }
-    // Prevent compiler optimizing this away per go/benchmark
+    // Prevent compiler optimizing this away.
     CHECK(*current != INT_MAX);
   }
 }

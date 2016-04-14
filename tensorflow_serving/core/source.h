@@ -39,7 +39,8 @@ namespace serving {
 // A Source monitors some external resource (e.g. file system, RPC calls) to
 // find out about new servables and/or new versions of servables and/or the
 // need to unload servable versions. It uses the provided callback to instruct
-// another module (e.g. DynamicManager) which version(s) of a given servable to
+// another module (e.g. AspiredVersionsManager) which version(s) of a given
+// servable to
 // load (and implicitly which ones to unload).
 //
 // A common case is that a Source emits versions for exactly one servable. An

@@ -15,7 +15,7 @@ limitations under the License.
 
 // Run with:
 // bazel run -c opt \
-// tensorflow_serving/core:dynamic_manager_benchmark --
+// tensorflow_serving/core:aspired_versions_manager_benchmark --
 // --benchmarks=. --benchmark_use_picoseconds
 // For a longer run time and more consistent results, consider a min time
 // e.g.: --benchmark_min_time=60.0
@@ -39,15 +39,15 @@ limitations under the License.
 #include "tensorflow/core/platform/test.h"
 #include "tensorflow/core/platform/test_benchmark.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow_serving/core/dynamic_manager.h"
+#include "tensorflow_serving/core/aspired_version_policy.h"
+#include "tensorflow_serving/core/aspired_versions_manager.h"
 #include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/manager.h"
 #include "tensorflow_serving/core/servable_data.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/simple_loader.h"
-#include "tensorflow_serving/core/test_util/dynamic_manager_test_util.h"
-#include "tensorflow_serving/core/version_policy.h"
+#include "tensorflow_serving/core/test_util/manager_test_util.h"
 #include "tensorflow_serving/util/periodic_function.h"
 
 namespace tensorflow {
@@ -56,9 +56,10 @@ namespace {
 
 constexpr char kServableName[] = "kServableName";
 
-// Benchmarks for read performance of the DynamicManager class both with and
-// without concurrent updates. These simulate the common expected access pattern
-// of DynamicManager for systems with high read rates and low update rates.
+// Benchmarks for read performance of the AspiredVersionsManager class both with
+// and without concurrent updates. These simulate the common expected access
+// pattern of AspiredVersionsManager for systems with high read rates and low
+// update rates.
 //
 // This class maintains all state for a benchmark and handles the concurrency
 // concerns around the concurrent read and update threads.
@@ -70,11 +71,11 @@ class BenchmarkState {
  public:
   BenchmarkState(const int interval_micros, const bool do_work)
       : interval_micros_(interval_micros), do_work_(do_work) {
-    DynamicManager::Options options;
+    AspiredVersionsManager::Options options;
     // Do policy thread won't be run automatically.
     options.manage_state_interval_micros = -1;
-    options.version_policy.reset(new EagerLoadPolicy());
-    manager_.reset(new DynamicManager(std::move(options)));
+    options.aspired_version_policy.reset(new EagerLoadPolicy());
+    TF_CHECK_OK(AspiredVersionsManager::Create(std::move(options), &manager_));
   }
 
   // Actually perform iters reads on the fast read ptr.
@@ -106,8 +107,9 @@ class BenchmarkState {
   // destruct state after it has exited.
   std::unique_ptr<PeriodicFunction> update_thread_;
 
-  // The DynamicManager being benchmarked primarily for read performance.
-  std::unique_ptr<DynamicManager> manager_;
+  // The AspiredVersionsManager being benchmarked primarily for read
+  // performance.
+  std::unique_ptr<AspiredVersionsManager> manager_;
 
   // Interval in microseconds for running the update thread.
   const int interval_micros_;
@@ -128,11 +130,11 @@ void BenchmarkState::StartServing(const int64 loader_version) {
   versions.push_back({{kServableName, loader_version}, std::move(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName, std::move(versions));
   // Will load the latest.
-  test_util::DynamicManagerTestAccess(manager_.get()).RunManageState();
+  test_util::AspiredVersionsManagerTestAccess(manager_.get()).RunManageState();
   // Will quiesce the previous.
-  test_util::DynamicManagerTestAccess(manager_.get()).RunManageState();
+  test_util::AspiredVersionsManagerTestAccess(manager_.get()).RunManageState();
   // Will delete the previous.
-  test_util::DynamicManagerTestAccess(manager_.get()).RunManageState();
+  test_util::AspiredVersionsManagerTestAccess(manager_.get()).RunManageState();
   CHECK_EQ(1, manager_->ListAvailableServableIds().size());
 }
 
@@ -163,7 +165,8 @@ void BenchmarkState::SetUp() {
 
   if (interval_micros_ > 0) {
     PeriodicFunction::Options pf_options;
-    pf_options.thread_name_prefix = "DynamicManager_Benchmark_Update_Thread";
+    pf_options.thread_name_prefix =
+        "AspiredVersionsManager_Benchmark_Update_Thread";
     update_thread_.reset(new PeriodicFunction([this] { RunUpdate(); },
                                               interval_micros_, pf_options));
   }
@@ -291,13 +294,13 @@ static void BM_GetServableHandle(const int iters) {
   // Number of versions of a particular servable stream.
   constexpr int kNumServableVersions = 2;
 
-  static DynamicManager* const manager = []() {
-    DynamicManager::Options options;
+  static AspiredVersionsManager* const manager = []() {
+    AspiredVersionsManager::Options options;
     // Do policy thread won't be run automatically.
     options.manage_state_interval_micros = -1;
-    options.version_policy.reset(new EagerLoadPolicy());
-    std::unique_ptr<DynamicManager> manager(
-        new DynamicManager(std::move(options)));
+    options.aspired_version_policy.reset(new EagerLoadPolicy());
+    std::unique_ptr<AspiredVersionsManager> manager;
+    TF_CHECK_OK(AspiredVersionsManager::Create(std::move(options), &manager));
     auto aspired_versions_callback = manager->GetAspiredVersionsCallback();
     for (int i = 0; i < kNumServableStreams; ++i) {
       const string servable_name = strings::StrCat(kServableName, i);
@@ -314,7 +317,8 @@ static void BM_GetServableHandle(const int iters) {
 
       aspired_versions_callback(servable_name, std::move(versions));
       for (int j = 0; j < kNumServableVersions; ++j) {
-        test_util::DynamicManagerTestAccess(manager.get()).RunManageState();
+        test_util::AspiredVersionsManagerTestAccess(manager.get())
+            .RunManageState();
       }
     }
     return manager.release();

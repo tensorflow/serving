@@ -25,17 +25,24 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/servable_id.h"
+#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
 
 // Forward-declaration for the use in LoaderHarness.
+template <typename T>
 struct ServableStateSnapshot;
 
-// LoaderHarness is a widget the Manager uses to hold on to and talk
-// to a Loader while it owns it. It tracks the overall state of a Servable
-// such that Manager can determine which state transitions to make at
-// what times. LoaderHarness is thread-safe.
+// LoaderHarness is a widget the Manager uses to hold on to and talk to a Loader
+// while it owns it. It tracks the overall state of a Servable such that Manager
+// can determine which state transitions to make at what times.
+//
+// A manager implementation can also add some additional state with each
+// harness. For example, a manager could put ACL or lifecycle metadata here. The
+// ownership is maintained by the harness.
+//
+// This class is thread-safe.
 class LoaderHarness final {
  public:
   // State of the underlying servable, from the perspective of the LoaderHarness
@@ -45,15 +52,25 @@ class LoaderHarness final {
   // Valid transitions:
   // kNew-->kLoading-->kReady-->kQuiescing-->kQuiesced-->kUnloading-->kDisabled
   // as well as: any_state-->kError.
-  enum State {
+  enum class State {
     // Initial state.
-    kNew = 0,
+    kNew,
+
+    // The manager has been requested to load this servable.
+    kLoadRequested,
+
+    // The servable has been approved for loading, e.g. resources have been set
+    // aside for it.
+    kLoadApproved,
 
     // 'loader_->Load()' has been called.
     kLoading,
 
     // 'loader_->Load()' has succeeded.
     kReady,
+
+    // The manager has been requested to unload this servable.
+    kUnloadRequested,
 
     // The servable is going to be made unavailable for serving.
     kQuiescing,
@@ -73,18 +90,31 @@ class LoaderHarness final {
   };
 
   struct Options {
-    // Maximum number of times we try to load a servable before we give up.
-    int max_num_load_tries;
+    Options() {}
+
+    // Maximum number of times we retry loading a servable, after the first
+    // failure, before we give up.
+    uint32 max_num_load_retries = 0;
 
     // The interval, in microseconds, between each servable load retry.
-    int64 load_retry_interval_micros;
+    uint64 load_retry_interval_micros = 0;
   };
 
-  LoaderHarness(const ServableId& id, std::unique_ptr<Loader> loader);
   LoaderHarness(const ServableId& id, std::unique_ptr<Loader> loader,
-                const Options& options);
+                const Options& options = Options());
 
-  // Legal to destruct iff current state is kNew|kDisabled|kError.
+  // Constructor to create a harness with additional state, which a manager
+  // needs.
+  template <typename T>
+  LoaderHarness(const ServableId& id, std::unique_ptr<Loader> loader,
+                std::unique_ptr<T> additional_state,
+                const Options& options = Options())
+      : id_(id),
+        loader_(std::move(loader)),
+        additional_state_(std::move(additional_state)),
+        options_(options) {}
+
+  // Legal to destruct iff current state is one of kNew, kDisabled or kError.
   // Check-fails if violated.
   ~LoaderHarness();
 
@@ -99,7 +129,20 @@ class LoaderHarness final {
   Loader* loader() const { return loader_.get(); }
 
   // Returns the current overall state snapshot of the underlying Servable.
-  ServableStateSnapshot loader_state_snapshot() const LOCKS_EXCLUDED(mu_);
+  template <typename T = std::nullptr_t>
+  ServableStateSnapshot<T> loader_state_snapshot() const LOCKS_EXCLUDED(mu_);
+
+  // Transitions the state of the harness to kLoadRequested. Returns ok if the
+  // state was transitioned successfully, else returns an error status.
+  //
+  // REQUIRES: That the harness is in state kNew when this method is called.
+  Status LoadRequested() LOCKS_EXCLUDED(mu_);
+
+  // Transitions to kLoadApproved.
+  //
+  // Legal to call iff current state is kLoadRequested. Returns an error status
+  // if violated.
+  Status LoadApproved() LOCKS_EXCLUDED(mu_);
 
   // Transitions to kLoading, delegates to Servable::Load(), then transitions
   // either to kReady if Load() succeeds, or to kError if Load() fails. This
@@ -107,32 +150,37 @@ class LoaderHarness final {
   //
   // We retry the Servable::Load() according to the options set during
   // construction of this class. We stop retrying and give up if 1. we have
-  // reached max_num_load_tries or, 2. if is_aspired is set to false.
+  // reached max_num_load_retries or, 2. if cancel_load() is set to true.
   //
-  // Legal to call iff current state is kNew. Check-fails if violated.
+  // Legal to call iff current state is kApprovedForLoading. Returns an error
+  // status if violated.
   Status Load(const ResourceAllocation& available_resources)
       LOCKS_EXCLUDED(mu_);
+
+  // Transitions the state of the harness to kUnloadRequested. Returns ok if the
+  // state was transitioned successfully, else returns an error status.
+  //
+  // REQUIRES: That the harness is in state kReady when this method is called.
+  Status UnloadRequested() LOCKS_EXCLUDED(mu_);
+
+  // Cancels retrying the load of the servable. This is best-effort, and does
+  // not preempt a Load() which is already happening, only subsequent calls.
+  //
+  // If the retries are cancelled, the servable goes into a state dependent on
+  // the last Load() called on it. If the last Load() was successful, it will be
+  // in state kReady, else in kError.
+  void set_cancel_load_retry(bool value) LOCKS_EXCLUDED(mu_);
+  bool cancel_load_retry() LOCKS_EXCLUDED(mu_);
 
   // Transitions to kUnloading, delegates to Servable::Unload(), then
   // transitions to kDisabled when Unload() is done.
   void Unload() LOCKS_EXCLUDED(mu_);
 
-  // Returns whether the underlying Servable is *aspired*. An aspired
-  // Servable should be loaded to serve user requests if resources
-  // permit. The underlying Servable is always set to aspired upon
-  // creation of LoaderHarness. Once it is no longer the case, it
-  // should eventually be unloaded to free up resources.
-  bool is_aspired() const LOCKS_EXCLUDED(mu_);
-
-  // Sets whether the underlying Servable is aspired.
-  // Note that this method simply remembers the aspired-state. It is the
-  // responsibility of ServableManager to eventually drive the
-  // state transition.
-  void set_is_aspired(bool is_aspired) LOCKS_EXCLUDED(mu_);
-
   // Transitions the state to kQuiescing, which means that we would like to not
   // give out any more handles to this servable.
-  void StartQuiescing() LOCKS_EXCLUDED(mu_);
+  //
+  // REQUIRES: State be kReady when called, else returns an error status.
+  Status StartQuiescing() LOCKS_EXCLUDED(mu_);
 
   // Transitions the state to kQuiesced, which means that there are no more live
   // handles to this servable available in the frontend. At this point, we can
@@ -149,6 +197,15 @@ class LoaderHarness final {
   // origin.
   Status status() const LOCKS_EXCLUDED(mu_);
 
+  // Gets the additional state. Returns nullptr if the type mismatches or if it
+  // wasn't set.
+  template <typename T>
+  T* additional_state() {
+    return additional_state_.get<T>();
+  }
+
+  static string StateDebugString(State state);
+
  private:
   // Transitions the state to kError. Private method to be used when we want to
   // set an error from another method in this class, where mu_ is already held.
@@ -156,23 +213,69 @@ class LoaderHarness final {
 
   const ServableId id_;
   const std::unique_ptr<Loader> loader_;
+  // Additional state that the manager uses.
+  const UniqueAnyPtr additional_state_;
   const Options options_;
   mutable mutex mu_;
-  State state_ GUARDED_BY(mu_) = kNew;
-  bool is_aspired_ GUARDED_BY(mu_) = true;
+  State state_ GUARDED_BY(mu_) = State::kNew;
   // If state_ is kError, this will be non-OK.
   Status status_ GUARDED_BY(mu_);
+  // If set to true, we don't try to retry the load of the servable, if not
+  // loaded by the first attempt.
+  bool cancel_load_retry_ GUARDED_BY(mu_) = false;
 
   TF_DISALLOW_COPY_AND_ASSIGN(LoaderHarness);
 };
 
 // A snapshot of a servable's state and aspiredness, from the LoaderHarness's
 // perspective.
+template <typename T = std::nullptr_t>
 struct ServableStateSnapshot final {
   ServableId id;
   LoaderHarness::State state;
-  bool is_aspired;
+  optional<T> additional_state;
 };
+
+template <typename T>
+inline bool operator==(const ServableStateSnapshot<T>& a,
+                       const ServableStateSnapshot<T>& b) {
+  return a.id == b.id && a.state == b.state &&
+         a.additional_state == b.additional_state;
+}
+
+template <typename T>
+inline bool operator!=(const ServableStateSnapshot<T>& a,
+                       const ServableStateSnapshot<T>& b) {
+  return !(a == b);
+}
+
+inline std::ostream& operator<<(std::ostream& os, LoaderHarness::State state) {
+  os << LoaderHarness::StateDebugString(state);
+}
+
+////
+// Implementation details. API readers may skip.
+////
+
+template <typename T>
+ServableStateSnapshot<T> LoaderHarness::loader_state_snapshot() const {
+  mutex_lock l(mu_);
+  if (additional_state_.get<T>() == nullptr) {
+    return {id_, state_, {}};
+  } else {
+    return {id_, state_, {*additional_state_.get<T>()}};
+  }
+}
+
+// Specialization for std::nullptr_t.
+//
+// We mark this inline to follow ODR.
+template <>
+inline ServableStateSnapshot<std::nullptr_t>
+LoaderHarness::loader_state_snapshot() const {
+  mutex_lock l(mu_);
+  return {id_, state_, {}};
+}
 
 }  // namespace serving
 }  // namespace tensorflow

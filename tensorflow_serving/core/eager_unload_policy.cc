@@ -18,13 +18,14 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-optional<VersionPolicy::ServableAction> EagerUnloadPolicy::GetNextAction(
-    const std::vector<ServableStateSnapshot>& all_versions) const {
+optional<AspiredVersionPolicy::ServableAction> EagerUnloadPolicy::GetNextAction(
+    const std::vector<AspiredServableStateSnapshot>& all_versions) const {
   // First iterate over all_versions and find any in kReady that are no longer
   // aspired. Unload the first if any.
   for (const auto& version : all_versions) {
     if (version.state == LoaderHarness::State::kReady && !version.is_aspired) {
-      return VersionPolicy::ServableAction({Action::kUnload, version.id});
+      return AspiredVersionPolicy::ServableAction(
+          {Action::kUnload, version.id});
     }
   }
 
@@ -32,7 +33,7 @@ optional<VersionPolicy::ServableAction> EagerUnloadPolicy::GetNextAction(
   // versions and find any in kNew that are aspired. Load the first if any.
   for (const auto& version : all_versions) {
     if (version.state == LoaderHarness::State::kNew && version.is_aspired) {
-      return VersionPolicy::ServableAction({Action::kLoad, version.id});
+      return AspiredVersionPolicy::ServableAction({Action::kLoad, version.id});
     }
   }
 

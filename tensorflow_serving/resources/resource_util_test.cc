@@ -32,7 +32,7 @@ namespace {
 
 class ResourceUtilTest : public ::testing::Test {
  protected:
-  ResourceUtilTest() : util_({{{"cpu", 1}, {"gpu", 2}}}) {}
+  ResourceUtilTest() : util_({{{"main", 1}, {"gpu", 2}}}) {}
 
   // The object under testing.
   ResourceUtil util_;
@@ -46,7 +46,7 @@ TEST_F(ResourceUtilTest, VerifyValidity) {
   TF_EXPECT_OK(util_.VerifyValidity(
       CreateProto<ResourceAllocation>("resource_quantities { "
                                       "  resource { "
-                                      "    device: 'cpu' "
+                                      "    device: 'main' "
                                       "    kind: 'processing' "
                                       "  } "
                                       "  quantity: 100 "
@@ -54,7 +54,7 @@ TEST_F(ResourceUtilTest, VerifyValidity) {
   TF_EXPECT_OK(util_.VerifyValidity(
       CreateProto<ResourceAllocation>("resource_quantities { "
                                       "  resource { "
-                                      "    device: 'cpu' "
+                                      "    device: 'main' "
                                       "    kind: 'processing' "
                                       "  } "
                                       "  quantity: 100 "
@@ -102,7 +102,7 @@ TEST_F(ResourceUtilTest, VerifyValidity) {
                    .VerifyValidity(CreateProto<ResourceAllocation>(
                        "resource_quantities { "
                        "  resource { "
-                       "    device: 'cpu' "
+                       "    device: 'main' "
                        "    kind: 'processing' "
                        "  } "
                        "  quantity: 100 "
@@ -196,14 +196,14 @@ TEST_F(ResourceUtilTest, Normalize) {
   EXPECT_THAT(
       util_.Normalize(CreateProto<ResourceAllocation>("resource_quantities { "
                                                       "  resource { "
-                                                      "    device: 'cpu' "
+                                                      "    device: 'main' "
                                                       "    kind: 'ram' "
                                                       "  } "
                                                       "  quantity: 2 "
                                                       "} ")),
       EqualsProto("resource_quantities { "
                   "  resource { "
-                  "    device: 'cpu' "
+                  "    device: 'main' "
                   "    device_instance { value: 0 } "
                   "    kind: 'ram' "
                   "  } "
@@ -213,7 +213,7 @@ TEST_F(ResourceUtilTest, Normalize) {
   EXPECT_THAT(util_.Normalize(CreateProto<ResourceAllocation>(
                   "resource_quantities { "
                   "  resource { "
-                  "    device: 'cpu' "
+                  "    device: 'main' "
                   "    device_instance { value: 0 } "
                   "    kind: 'ram' "
                   "  } "
@@ -221,7 +221,7 @@ TEST_F(ResourceUtilTest, Normalize) {
                   "} ")),
               EqualsProto("resource_quantities { "
                           "  resource { "
-                          "    device: 'cpu' "
+                          "    device: 'main' "
                           "    device_instance { value: 0 } "
                           "    kind: 'ram' "
                           "  } "
@@ -251,7 +251,7 @@ TEST_F(ResourceUtilTest, IsNormalized) {
   EXPECT_TRUE(util_.IsNormalized(
       CreateProto<ResourceAllocation>("resource_quantities { "
                                       "  resource { "
-                                      "    device: 'cpu' "
+                                      "    device: 'main' "
                                       "    device_instance { value: 0 } "
                                       "    kind: 'processing' "
                                       "  } "
@@ -269,7 +269,7 @@ TEST_F(ResourceUtilTest, IsNormalized) {
                                       "} "
                                       "resource_quantities { "
                                       "  resource { "
-                                      "    device: 'cpu' "
+                                      "    device: 'main' "
                                       "    device_instance { value: 0 } "
                                       "    kind: 'processing' "
                                       "  } "
@@ -278,7 +278,7 @@ TEST_F(ResourceUtilTest, IsNormalized) {
   EXPECT_FALSE(util_.IsNormalized(
       CreateProto<ResourceAllocation>("resource_quantities { "
                                       "  resource { "
-                                      "    device: 'cpu' "
+                                      "    device: 'main' "
                                       "    kind: 'processing' "
                                       "  } "
                                       "  quantity: 100 "
@@ -299,7 +299,7 @@ TEST_F(ResourceUtilTest, IsBound) {
   EXPECT_TRUE(util_.IsBound(
       CreateProto<ResourceAllocation>("resource_quantities { "
                                       "  resource { "
-                                      "    device: 'cpu' "
+                                      "    device: 'main' "
                                       "    device_instance { value: 0 } "
                                       "    kind: 'ram' "
                                       "  } "
@@ -325,7 +325,7 @@ TEST_F(ResourceUtilTest, IsBound) {
   EXPECT_FALSE(util_.IsBound(
       CreateProto<ResourceAllocation>("resource_quantities { "
                                       "  resource { "
-                                      "    device: 'cpu' "
+                                      "    device: 'main' "
                                       "    device_instance { value: 0 } "
                                       "    kind: 'ram' "
                                       "  } "
@@ -351,7 +351,7 @@ TEST_F(ResourceUtilTest, AddBasic) {
   auto base = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'processing' "
       "  } "
@@ -359,7 +359,7 @@ TEST_F(ResourceUtilTest, AddBasic) {
       "} "
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'ram' "
       "  } "
@@ -368,7 +368,7 @@ TEST_F(ResourceUtilTest, AddBasic) {
   const auto to_add = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'processing' "
       "  } "
@@ -384,7 +384,7 @@ TEST_F(ResourceUtilTest, AddBasic) {
   util_.Add(to_add, &base);
   EXPECT_THAT(base, EqualsProto("resource_quantities { "
                                 "  resource { "
-                                "    device: 'cpu' "
+                                "    device: 'main' "
                                 "    device_instance { value: 0 } "
                                 "    kind: 'processing' "
                                 "  } "
@@ -392,7 +392,7 @@ TEST_F(ResourceUtilTest, AddBasic) {
                                 "} "
                                 "resource_quantities { "
                                 "  resource { "
-                                "    device: 'cpu' "
+                                "    device: 'main' "
                                 "    device_instance { value: 0 } "
                                 "    kind: 'ram' "
                                 "  } "
@@ -485,7 +485,7 @@ TEST_F(ResourceUtilTest, SubtractBasic) {
   auto base = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'processing' "
       "  } "
@@ -493,7 +493,7 @@ TEST_F(ResourceUtilTest, SubtractBasic) {
       "} "
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'ram' "
       "  } "
@@ -509,7 +509,7 @@ TEST_F(ResourceUtilTest, SubtractBasic) {
   const auto to_subtract = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'processing' "
       "  } "
@@ -517,7 +517,7 @@ TEST_F(ResourceUtilTest, SubtractBasic) {
       "} "
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'ram' "
       "  } "
@@ -526,7 +526,7 @@ TEST_F(ResourceUtilTest, SubtractBasic) {
   EXPECT_TRUE(util_.Subtract(to_subtract, &base));
   EXPECT_THAT(base, EqualsProto("resource_quantities { "
                                 "  resource { "
-                                "    device: 'cpu' "
+                                "    device: 'main' "
                                 "    device_instance { value: 0 } "
                                 "    kind: 'processing' "
                                 "  } "
@@ -534,7 +534,7 @@ TEST_F(ResourceUtilTest, SubtractBasic) {
                                 "} "
                                 "resource_quantities { "
                                 "  resource { "
-                                "    device: 'cpu' "
+                                "    device: 'main' "
                                 "    device_instance { value: 0 } "
                                 "    kind: 'ram' "
                                 "  } "
@@ -553,7 +553,7 @@ TEST_F(ResourceUtilTest, SubtractNegativeResult) {
   const auto original_base = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'processing' "
       "  } "
@@ -561,7 +561,7 @@ TEST_F(ResourceUtilTest, SubtractNegativeResult) {
       "} "
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'ram' "
       "  } "
@@ -578,7 +578,7 @@ TEST_F(ResourceUtilTest, SubtractNegativeResult) {
   const auto to_subtract = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'processing' "
       "  } "
@@ -586,7 +586,7 @@ TEST_F(ResourceUtilTest, SubtractNegativeResult) {
       "} "
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'ram' "
       "  } "
@@ -601,7 +601,7 @@ TEST_F(ResourceUtilTest, SubtractNormalizeOutput) {
   auto base = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'processing' "
       "  } "
@@ -610,7 +610,7 @@ TEST_F(ResourceUtilTest, SubtractNormalizeOutput) {
   const auto to_subtract = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'processing' "
       "  } "
@@ -793,7 +793,7 @@ TEST_F(ResourceUtilTest, LessThanOrEqualUnbound) {
   const auto base = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    device_instance { value: 0 } "
       "    kind: 'processing' "
       "  } "
@@ -836,7 +836,7 @@ TEST_F(ResourceUtilTest, LessThanOrEqualUnbound) {
   EXPECT_TRUE(util_.LessThanOrEqual(
       CreateProto<ResourceAllocation>("resource_quantities { "
                                       "  resource { "
-                                      "    device: 'cpu' "
+                                      "    device: 'main' "
                                       "    device_instance { value: 0 } "
                                       "    kind: 'processing' "
                                       "  } "
@@ -991,7 +991,7 @@ TEST_F(ResourceUtilTest, Overbind) {
   EXPECT_THAT(util_.Overbind(CreateProto<ResourceAllocation>(
                   "resource_quantities { "
                   "  resource { "
-                  "    device: 'cpu' "
+                  "    device: 'main' "
                   "    device_instance { value: 0 } "
                   "    kind: 'processing' "
                   "  } "
@@ -1007,7 +1007,7 @@ TEST_F(ResourceUtilTest, Overbind) {
                   "} ")),
               EqualsProto("resource_quantities { "
                           "  resource { "
-                          "    device: 'cpu' "
+                          "    device: 'main' "
                           "    device_instance { value: 0 } "
                           "    kind: 'processing' "
                           "  } "
@@ -1097,7 +1097,7 @@ TEST_F(ResourceUtilTest, Overbind) {
 
 TEST_F(ResourceUtilTest, ResourceEquality) {
   std::vector<Resource> distinct_protos = {
-      CreateProto<Resource>(""), CreateProto<Resource>("device: 'cpu' "
+      CreateProto<Resource>(""), CreateProto<Resource>("device: 'main' "
                                                        "kind: 'ram' "),
       CreateProto<Resource>("device: 'gpu' "
                             "kind: 'ram' "),
