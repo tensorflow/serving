@@ -806,7 +806,7 @@ TEST_P(BasicManagerTest, LoadAfterCancelledLoad) {
 ResourceAllocation CreateResourceQuantity(const int quantity) {
   ResourceAllocation allocation;
   auto* ram_resource = allocation.add_resource_quantities();
-  ram_resource->mutable_resource()->set_device("cpu");
+  ram_resource->mutable_resource()->set_device("main");
   ram_resource->mutable_resource()->set_kind("ram");
   ram_resource->set_quantity(quantity);
   return allocation;
@@ -816,7 +816,7 @@ ResourceAllocation CreateResourceQuantity(const int quantity) {
 // initially has 'total_ram_resources' quantity of that resource.
 std::unique_ptr<ResourceTracker> CreateSimpleResourceTracker(
     const int resource_quantity) {
-  std::unique_ptr<ResourceUtil> util(new ResourceUtil({{{"cpu", 1}}}));
+  std::unique_ptr<ResourceUtil> util(new ResourceUtil({{{"main", 1}}}));
   std::unique_ptr<ResourceTracker> tracker;
   TF_CHECK_OK(ResourceTracker::Create(CreateResourceQuantity(resource_quantity),
                                       std::move(util), &tracker));
