@@ -30,7 +30,6 @@ limitations under the License.
 #include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/core/target.h"
 #include "tensorflow_serving/session_bundle/session_bundle.h"
-#include "tensorflow_serving/util/unique_ptr_with_deps.h"
 
 namespace tensorflow {
 namespace serving {
@@ -50,7 +49,7 @@ namespace simple_servers {
 // loading the new version. This is preferable from a resource utilization
 // perspective, but has reduced availability.
 Status CreateSingleTFModelManagerFromBasePath(
-    const string& base_path, UniquePtrWithDeps<Manager>* manager);
+    const string& base_path, std::unique_ptr<Manager>* manager);
 
 }  // namespace simple_servers
 }  // namespace serving
