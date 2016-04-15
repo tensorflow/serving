@@ -395,7 +395,7 @@ void RunServer(const int port, const string& servable_name,
 
 int main(int argc, char** argv) {
   // Parse command-line options.
-  int32 port = 0;
+  tensorflow::int32 port = 0;
   const bool parse_result =
       tensorflow::ParseFlags(&argc, argv, {tensorflow::Flag("port", &port)});
   if (!parse_result) {

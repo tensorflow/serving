@@ -156,6 +156,7 @@ TEST(LoaderHarnessTest, Unload) {
 TEST(LoaderHarnessTest, UnloadRequested) {
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
   LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
+  EXPECT_CALL(*loader, Load(_)).WillOnce(Return(Status::OK()));
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load(ResourceAllocation()));
@@ -236,6 +237,7 @@ TEST(LoaderHarnessTest, MultipleLoadApprovedOnlyFirstOneSucceeds) {
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
   LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
 
+  EXPECT_CALL(*loader, Load(_)).WillOnce(Return(Status::OK()));
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   const Status second_approve_for_loading_status = harness.LoadApproved();

@@ -165,7 +165,7 @@ void RunServer(int port, std::unique_ptr<SessionBundle> bundle) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  int32 port = 0;
+  tensorflow::int32 port = 0;
   const bool parse_result =
       tensorflow::ParseFlags(&argc, argv, {tensorflow::Flag("port", &port)});
   if (!parse_result) {
