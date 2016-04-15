@@ -80,6 +80,8 @@ class Manager {
                            ServableHandle<T>* const handle);
 
  private:
+  friend class ManagerWrapper;
+
   // Returns an UntypedServableHandle given a ServableRequest.
   // Returns error if no such Servable is available -- e.g. not yet loaded, has
   // been quiesced/unloaded, etc.
