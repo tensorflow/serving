@@ -355,21 +355,18 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorCancelledLoad) {
   Notification load_should_return;
   EXPECT_CALL(*loader, Load(_))
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
-        load_called.Notify();
-        load_should_return.WaitForNotification();
         return errors::Unknown("test load error");
       }))
+      // If the load is called again, we return Status::OK() to fail the test.
       .WillRepeatedly(InvokeWithoutArgs([]() { return Status::OK(); }));
   std::unique_ptr<Thread> test_thread(
       Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
         TF_ASSERT_OK(harness.LoadRequested());
         TF_ASSERT_OK(harness.LoadApproved());
+        harness.set_cancel_load_retry(true);
         const Status status = harness.Load(ResourceAllocation());
         EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
       }));
-  load_called.WaitForNotification();
-  harness.set_cancel_load_retry(true);
-  load_should_return.Notify();
 }
 
 TEST(LoaderHarnessTest, LoadAfterCancelledLoad) {

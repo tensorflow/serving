@@ -89,15 +89,11 @@ Status LoaderHarness::Load(const ResourceAllocation& available_resources) {
     Status load_status;
     int num_tries = 0;
     do {
-      if (cancel_load_retry()) {
-        LOG(INFO) << "Load cancelled for servable: " << id_;
-        if (num_tries == 0) {
-          return errors::Cancelled(
-              "Load cancelled before we could try to load.");
-        }
-        break;
-      }
       if (num_tries > 0) {
+        if (cancel_load_retry()) {
+          LOG(INFO) << "Load retry cancelled for servable: " << id_;
+          break;
+        }
         Env::Default()->SleepForMicroseconds(
             options_.load_retry_interval_micros);
         LOG(INFO) << "Retrying load on servable version: " << id_
@@ -108,7 +104,7 @@ Status LoaderHarness::Load(const ResourceAllocation& available_resources) {
         LOG(ERROR) << "Servable: " << id_ << " load failure: " << load_status;
       }
       ++num_tries;
-    } while (!load_status.ok() &&
+    } while (!cancel_load_retry() && !load_status.ok() &&
              (num_tries - 1) < options_.max_num_load_retries);
 
     return load_status;
