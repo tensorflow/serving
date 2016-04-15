@@ -38,7 +38,6 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/framework/types.pb.h"
-#include "tensorflow/core/lib/core/command_line_flags.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/init_main.h"
@@ -46,6 +45,7 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/public/session_options.h"
+#include "tensorflow/core/util/command_line_flags.h"
 #include "tensorflow_serving/example/mnist_inference.grpc.pb.h"
 #include "tensorflow_serving/example/mnist_inference.pb.h"
 #include "tensorflow_serving/session_bundle/manifest.pb.h"
@@ -66,8 +66,6 @@ using tensorflow::serving::SessionBundle;
 using tensorflow::string;
 using tensorflow::Tensor;
 using tensorflow::TensorShape;
-
-TF_DEFINE_int32(port, 0, "Port server listening on.");
 
 namespace {
 const int kImageSize = 28;
@@ -167,10 +165,13 @@ void RunServer(int port, std::unique_ptr<SessionBundle> bundle) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  tensorflow::Status s = tensorflow::ParseCommandLineFlags(&argc, argv);
-  if (!s.ok()) {
-    LOG(FATAL) << "Error parsing command line flags: " << s.ToString();
+  tensorflow::int32 port = 0;
+  const bool parse_result =
+      tensorflow::ParseFlags(&argc, argv, {tensorflow::Flag("port", &port)});
+  if (!parse_result) {
+    LOG(FATAL) << "Error parsing command line flags.";
   }
+
   if (argc != 2) {
     LOG(FATAL) << "Usage: mnist_inference --port=9000 /path/to/export";
   }
@@ -191,7 +192,7 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  RunServer(FLAGS_port, std::move(bundle));
+  RunServer(port, std::move(bundle));
 
   return 0;
 }

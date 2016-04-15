@@ -20,12 +20,17 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/error_codes.pb.h"
+#include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow_serving/core/test_util/mock_loader.h"
 #include "tensorflow_serving/test_util/test_util.h"
 #include "tensorflow_serving/util/any_ptr.h"
+
+namespace tensorflow {
+namespace serving {
+namespace {
 
 using ::testing::_;
 using ::testing::HasSubstr;
@@ -36,36 +41,35 @@ using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::ReturnRef;
 using ::testing::StrictMock;
-
-namespace tensorflow {
-namespace serving {
-
-namespace {
+using test_util::EqualsProto;
 
 void QuiesceAndUnload(LoaderHarness* const harness) {
+  harness->UnloadRequested();
   harness->StartQuiescing();
   harness->DoneQuiescing();
   harness->Unload();
 }
-}
+
+}  // namespace
 
 TEST(LoaderHarnessTest, Init) {
   test_util::MockLoader* loader = new StrictMock<test_util::MockLoader>;
   LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
 
   EXPECT_EQ((ServableId{"test", 0}), harness.id());
-  EXPECT_EQ(LoaderHarness::kNew, harness.state());
-  EXPECT_TRUE(harness.is_aspired());
-  EXPECT_EQ(harness.is_aspired(), harness.loader_state_snapshot().is_aspired);
-  EXPECT_EQ(harness.state(), harness.loader_state_snapshot().state);
+  EXPECT_EQ(LoaderHarness::State::kNew, harness.state());
+  EXPECT_EQ(harness.state(), harness.loader_state_snapshot<>().state);
 }
 
-TEST(LoaderHarnessTest, set_is_aspired) {
+TEST(LoaderHarnessTest, LoadRequested) {
   test_util::MockLoader* loader = new StrictMock<test_util::MockLoader>;
   LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
 
-  harness.set_is_aspired(false);
-  EXPECT_FALSE(harness.is_aspired());
+  TF_ASSERT_OK(harness.LoadRequested());
+  EXPECT_EQ(LoaderHarness::State::kLoadRequested, harness.state());
+
+  harness.Error(
+      errors::Unknown("Transitions harness to a legally destructible state."));
 }
 
 TEST(LoaderHarnessTest, Quiesce) {
@@ -74,9 +78,12 @@ TEST(LoaderHarnessTest, Quiesce) {
   EXPECT_CALL(*loader, Load(_)).WillOnce(Return(Status::OK()));
   EXPECT_CALL(*loader, Unload()).WillOnce(Return());
 
+  TF_ASSERT_OK(harness.LoadRequested());
+  TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load(ResourceAllocation()));
 
-  harness.StartQuiescing();
+  TF_ASSERT_OK(harness.UnloadRequested());
+  TF_ASSERT_OK(harness.StartQuiescing());
   EXPECT_EQ(LoaderHarness::State::kQuiescing, harness.state());
 
   harness.DoneQuiescing();
@@ -95,31 +102,33 @@ TEST(LoaderHarnessTest, Load) {
       "resource_quantities { "
       "  resource { "
       "    device: 'cpu' "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 100 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'gpu' "
       "    kind: 'ram' "
       "  } "
-      "  quantity: 16 "
+      "  quantity: 4 "
       "} ");
 
   Notification load_called;
   Notification load_should_return;
-  EXPECT_CALL(*loader, Load(test_util::EqualsProto(available_resources)))
-      .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
-        load_called.Notify();
-        load_should_return.WaitForNotification();
-        return Status::OK();
-      }));
+  EXPECT_CALL(*loader, Load(EqualsProto(available_resources)))
+      .WillOnce(Return(Status::OK()));
   {
     std::unique_ptr<Thread> test_thread(Env::Default()->StartThread(
-        ThreadOptions(), "test", [&harness, &available_resources]() {
+        ThreadOptions(), "test", [&available_resources, &harness]() {
+          TF_ASSERT_OK(harness.LoadRequested());
+          TF_ASSERT_OK(harness.LoadApproved());
           EXPECT_TRUE(harness.Load(available_resources).ok());
         }));
-    load_called.WaitForNotification();
-    EXPECT_EQ(LoaderHarness::kLoading, harness.state());
-    load_should_return.Notify();
     // Deleting the thread here forces join and ensures that
     // LoaderHarness::Load() returns.
   }
-  EXPECT_EQ(LoaderHarness::kReady, harness.state());
+  EXPECT_EQ(LoaderHarness::State::kReady, harness.state());
 
   QuiesceAndUnload(&harness);
 }
@@ -128,104 +137,66 @@ TEST(LoaderHarnessTest, Unload) {
   test_util::MockLoader* loader = new StrictMock<test_util::MockLoader>;
   LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
   EXPECT_CALL(*loader, Load(_)).WillOnce(Return(Status::OK()));
-  EXPECT_TRUE(harness.Load(ResourceAllocation()).ok());
+  TF_ASSERT_OK(harness.LoadRequested());
+  TF_ASSERT_OK(harness.LoadApproved());
+  TF_ASSERT_OK(harness.Load(ResourceAllocation()));
 
   Notification unload_called;
   Notification unload_should_return;
-  EXPECT_CALL(*loader, Unload())
-      .WillOnce(InvokeWithoutArgs([&unload_called, &unload_should_return]() {
-        unload_called.Notify();
-        unload_should_return.WaitForNotification();
-      }));
+  EXPECT_CALL(*loader, Unload()).WillOnce(Return());
   {
     std::unique_ptr<Thread> test_thread(Env::Default()->StartThread(
         ThreadOptions(), "test", [&harness]() { QuiesceAndUnload(&harness); }));
-    unload_called.WaitForNotification();
-    EXPECT_EQ(LoaderHarness::kUnloading, harness.state());
-    unload_should_return.Notify();
     // Deleting the thread here forces join and ensures that
     // LoaderHarness::Unload() returns.
   }
-  EXPECT_EQ(LoaderHarness::kDisabled, harness.state());
+  EXPECT_EQ(LoaderHarness::State::kDisabled, harness.state());
 }
 
-TEST(ServableVersionHarnessTest, LoadError) {
+TEST(LoaderHarnessTest, UnloadRequested) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
+  EXPECT_CALL(*loader, Load(_)).WillOnce(Return(Status::OK()));
+  TF_ASSERT_OK(harness.LoadRequested());
+  TF_ASSERT_OK(harness.LoadApproved());
+  TF_ASSERT_OK(harness.Load(ResourceAllocation()));
+
+  TF_ASSERT_OK(harness.UnloadRequested());
+  EXPECT_EQ(LoaderHarness::State::kUnloadRequested, harness.state());
+
+  QuiesceAndUnload(&harness);
+}
+
+TEST(LoaderHarnessTest, LoadApproved) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
+
+  TF_ASSERT_OK(harness.LoadRequested());
+  TF_ASSERT_OK(harness.LoadApproved());
+  EXPECT_EQ(LoaderHarness::State::kLoadApproved, harness.state());
+
+  harness.Error(
+      errors::Unknown("Transitions harness to a legally destructible state."));
+}
+
+TEST(LoaderHarnessTest, LoadError) {
   test_util::MockLoader* loader = new StrictMock<test_util::MockLoader>;
   LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
 
   Notification load_called;
   Notification load_should_return;
   EXPECT_CALL(*loader, Load(_))
-      .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
-        load_called.Notify();
-        load_should_return.WaitForNotification();
-        return Status(error::UNKNOWN, "test load error");
-      }));
+      .WillOnce(Return(errors::Unknown("test load error")));
   {
     std::unique_ptr<Thread> test_thread(
         Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
+          TF_ASSERT_OK(harness.LoadRequested());
+          TF_ASSERT_OK(harness.LoadApproved());
           Status status = harness.Load(ResourceAllocation());
           EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
         }));
-    load_called.WaitForNotification();
-    EXPECT_EQ(LoaderHarness::kLoading, harness.state());
-    load_should_return.Notify();
   }
-  EXPECT_EQ(LoaderHarness::kError, harness.state());
-}
-
-TEST(ServableVersionHarnessTest, RetryOnLoadErrorFinallySucceeds) {
-  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
-  LoaderHarness harness(
-      ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
-      {2 /* max_num_load_tries */, 1 /* load_retry_interval_micros */});
-
-  EXPECT_CALL(*loader, Load(_))
-      .WillOnce(InvokeWithoutArgs(
-          []() { return Status(error::UNKNOWN, "test load error"); }))
-      .WillOnce(InvokeWithoutArgs([]() { return Status::OK(); }));
-  const Status status = harness.Load(ResourceAllocation());
-  TF_EXPECT_OK(status);
-
-  QuiesceAndUnload(&harness);
-}
-
-// Tests cancelling a load by setting is_aspired to false,
-TEST(ServableVersionHarnessTest, RetryOnLoadErrorCancelledLoad) {
-  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
-  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
-                        {10 /* max_num_load_tries */, -1});
-
-  Notification load_called;
-  Notification load_should_return;
-  EXPECT_CALL(*loader, Load(_))
-      .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
-        load_called.Notify();
-        load_should_return.WaitForNotification();
-        return Status(error::UNKNOWN, "test load error");
-      }))
-      .WillRepeatedly(InvokeWithoutArgs([]() { return Status::OK(); }));
-  std::unique_ptr<Thread> test_thread(
-      Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
-        const Status status = harness.Load(ResourceAllocation());
-        EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
-      }));
-  load_called.WaitForNotification();
-  harness.set_is_aspired(false);
-  load_should_return.Notify();
-}
-
-TEST(ServableVersionHarnessTest, RetryOnLoadErrorFinallyFails) {
-  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
-  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
-                        {2 /* max_num_load_tries */, -1});
-
-  EXPECT_CALL(*loader, Load(_))
-      .Times(2)
-      .WillRepeatedly(InvokeWithoutArgs(
-          []() { return Status(error::UNKNOWN, "test load error"); }));
-  const Status status = harness.Load(ResourceAllocation());
-  EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
+  EXPECT_EQ(LoaderHarness::State::kError, harness.state());
 }
 
 TEST(LoaderHarnessTest, ExternallySignalledError) {
@@ -235,6 +206,204 @@ TEST(LoaderHarnessTest, ExternallySignalledError) {
   harness.Error(status);
   EXPECT_EQ(LoaderHarness::State::kError, harness.state());
   EXPECT_EQ(status, harness.status());
+}
+
+TEST(LoaderHarnessTest, AdditionalState) {
+  std::unique_ptr<int> object(new int(10));
+  LoaderHarness harness({"test", 42}, nullptr, std::move(object));
+
+  EXPECT_EQ(10, *harness.loader_state_snapshot<int>().additional_state);
+  EXPECT_EQ(10, *harness.additional_state<int>());
+  EXPECT_EQ(nullptr, harness.additional_state<float>());
+}
+
+TEST(LoaderHarnessTest, NoAdditionalState) {
+  LoaderHarness harness({"test", 42}, nullptr);
+
+  // Will return nullptr when there is no metadata set.
+  EXPECT_FALSE(harness.loader_state_snapshot<int>().additional_state);
+  EXPECT_EQ(nullptr, harness.additional_state<int>());
+  EXPECT_EQ(nullptr, harness.additional_state<float>());
+}
+
+TEST(LoaderHarnessTest, NonApprovedLoadFails) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
+
+  EXPECT_FALSE(harness.Load(ResourceAllocation()).ok());
+}
+
+TEST(LoaderHarnessTest, MultipleLoadApprovedOnlyFirstOneSucceeds) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
+
+  EXPECT_CALL(*loader, Load(_)).WillOnce(Return(Status::OK()));
+  TF_ASSERT_OK(harness.LoadRequested());
+  TF_ASSERT_OK(harness.LoadApproved());
+  const Status second_approve_for_loading_status = harness.LoadApproved();
+  EXPECT_FALSE(second_approve_for_loading_status.ok());
+  EXPECT_EQ(error::FAILED_PRECONDITION,
+            second_approve_for_loading_status.code());
+  EXPECT_THAT(second_approve_for_loading_status.error_message(),
+              HasSubstr("cannot be approved for loading"));
+
+  TF_ASSERT_OK(harness.Load(ResourceAllocation()));
+  QuiesceAndUnload(&harness);
+}
+
+TEST(LoaderHarnessTest, MultipleLoadsOnlyFirstOneSucceeds) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
+
+  EXPECT_CALL(*loader, Load(_)).WillRepeatedly(Return(Status::OK()));
+
+  TF_ASSERT_OK(harness.LoadRequested());
+  TF_ASSERT_OK(harness.LoadApproved());
+  TF_ASSERT_OK(harness.Load(ResourceAllocation()));
+  const Status second_load_status = harness.Load(ResourceAllocation());
+  EXPECT_FALSE(second_load_status.ok());
+  EXPECT_EQ(error::FAILED_PRECONDITION, second_load_status.code());
+  EXPECT_THAT(second_load_status.error_message(),
+              HasSubstr("cannot be loaded"));
+
+  QuiesceAndUnload(&harness);
+}
+
+TEST(LoaderHarnessTest, MultipleUnloadRequestedOnlyFirstOneSucceeds) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
+
+  TF_ASSERT_OK(harness.LoadRequested());
+  EXPECT_CALL(*loader, Load(_)).WillOnce(Return(Status::OK()));
+  TF_ASSERT_OK(harness.LoadApproved());
+  TF_ASSERT_OK(harness.Load(ResourceAllocation()));
+
+  TF_ASSERT_OK(harness.UnloadRequested());
+  const Status second_status = harness.UnloadRequested();
+  EXPECT_FALSE(second_status.ok());
+  EXPECT_EQ(error::FAILED_PRECONDITION, second_status.code());
+  EXPECT_THAT(second_status.error_message(),
+              HasSubstr("cannot be transitioned to unload-requested"));
+
+  QuiesceAndUnload(&harness);
+}
+
+TEST(LoaderHarnessTest, MultipleStartQuiescingOnlyFirstOneSucceeds) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
+
+  TF_ASSERT_OK(harness.LoadRequested());
+  EXPECT_CALL(*loader, Load(_)).WillOnce(Return(Status::OK()));
+  TF_ASSERT_OK(harness.LoadApproved());
+  TF_ASSERT_OK(harness.Load(ResourceAllocation()));
+
+  TF_ASSERT_OK(harness.UnloadRequested());
+  TF_ASSERT_OK(harness.StartQuiescing());
+  const Status second_status = harness.StartQuiescing();
+  EXPECT_FALSE(second_status.ok());
+  EXPECT_EQ(error::FAILED_PRECONDITION, second_status.code());
+  EXPECT_THAT(second_status.error_message(), HasSubstr("cannot be quiesced"));
+
+  QuiesceAndUnload(&harness);
+}
+
+TEST(LoaderHarnessTest, RetryOnLoadErrorFinallySucceeds) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness::Options options;
+  options.max_num_load_retries = 1;
+  options.load_retry_interval_micros = 1;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
+                        options);
+
+  EXPECT_CALL(*loader, Load(_))
+      .WillOnce(InvokeWithoutArgs(
+          []() { return errors::Unknown("test load error"); }))
+      .WillOnce(InvokeWithoutArgs([]() { return Status::OK(); }));
+  TF_EXPECT_OK(harness.LoadRequested());
+  TF_EXPECT_OK(harness.LoadApproved());
+  TF_EXPECT_OK(harness.Load(ResourceAllocation()));
+
+  QuiesceAndUnload(&harness);
+}
+
+TEST(LoaderHarnessTest, RetryOnLoadErrorFinallyFails) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness::Options options;
+  options.max_num_load_retries = 1;
+  options.load_retry_interval_micros = 0;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
+                        options);
+
+  EXPECT_CALL(*loader, Load(_))
+      .Times(2)
+      .WillRepeatedly(InvokeWithoutArgs(
+          []() { return errors::Unknown("test load error"); }));
+  TF_ASSERT_OK(harness.LoadRequested());
+  TF_ASSERT_OK(harness.LoadApproved());
+  const Status status = harness.Load(ResourceAllocation());
+  EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
+}
+
+// Tests cancelling load retries.
+TEST(LoaderHarnessTest, RetryOnLoadErrorCancelledLoad) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness::Options options;
+  options.max_num_load_retries = 10;
+  options.load_retry_interval_micros = 0;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
+                        options);
+
+  Notification load_called;
+  Notification load_should_return;
+  EXPECT_CALL(*loader, Load(_))
+      .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
+        return errors::Unknown("test load error");
+      }))
+      // If the load is called again, we return Status::OK() to fail the test.
+      .WillRepeatedly(InvokeWithoutArgs([]() { return Status::OK(); }));
+  std::unique_ptr<Thread> test_thread(
+      Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
+        TF_ASSERT_OK(harness.LoadRequested());
+        TF_ASSERT_OK(harness.LoadApproved());
+        harness.set_cancel_load_retry(true);
+        const Status status = harness.Load(ResourceAllocation());
+        EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
+      }));
+}
+
+TEST(LoaderHarnessTest, LoadAfterCancelledLoad) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  LoaderHarness::Options options;
+  options.max_num_load_retries = 10;
+  options.load_retry_interval_micros = 0;
+  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
+                        options);
+
+  Notification load_called;
+  Notification load_should_return;
+  EXPECT_CALL(*loader, Load(_))
+      .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
+        load_called.Notify();
+        load_should_return.WaitForNotification();
+        return errors::Unknown("test load error");
+      }))
+      .WillRepeatedly(InvokeWithoutArgs([]() { return Status::OK(); }));
+  {
+    std::unique_ptr<Thread> test_thread(
+        Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
+          TF_ASSERT_OK(harness.LoadRequested());
+          TF_ASSERT_OK(harness.LoadApproved());
+          const Status status = harness.Load(ResourceAllocation());
+          EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
+        }));
+    load_called.WaitForNotification();
+    harness.set_cancel_load_retry(true);
+    load_should_return.Notify();
+  }
+
+  const Status second_load_status = harness.Load(ResourceAllocation());
+  ASSERT_FALSE(second_load_status.ok());
+  EXPECT_EQ(error::FAILED_PRECONDITION, second_load_status.code());
 }
 
 }  // namespace serving

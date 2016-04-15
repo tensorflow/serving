@@ -48,6 +48,7 @@ limitations under the License.
 #include <type_traits>
 #include <vector>
 
+#include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/thread_annotations.h"
@@ -87,12 +88,23 @@ class EventBus : public std::enable_shared_from_this<EventBus<E>> {
     TF_DISALLOW_COPY_AND_ASSIGN(Subscription);
   };
 
+  struct Options {
+    // The environment to use for time.
+    Env* env = Env::Default();
+  };
+
   // Creates an EventBus and returns a shared_ptr to it. This is the only
   // allowed public mechanism for creating an EventBus so that we can track
   // references to an EventBus uniformly.
-  static std::shared_ptr<EventBus<E>> CreateEventBus();
+  static std::shared_ptr<EventBus> CreateEventBus(const Options& options = {});
 
   ~EventBus() = default;
+
+  // Event and the publish time associated with it.
+  struct EventAndTime {
+    const E& event;
+    uint64 event_time_micros;
+  };
 
   // The function type for EventBus Callbacks to be implemented by clients.
   // Important Warnings:
@@ -101,7 +113,7 @@ class EventBus : public std::enable_shared_from_this<EventBus<E>> {
   //   circular deadlock.
   // * Callbacks must do very little work as they are invoked on the
   //   publisher's thread. Any costly work should be performed asynchronously.
-  using Callback = std::function<void(const E&)>;
+  using Callback = std::function<void(const EventAndTime&)>;
 
   // Subscribes to all events on the EventBus.
   //
@@ -123,7 +135,7 @@ class EventBus : public std::enable_shared_from_this<EventBus<E>> {
   void Publish(const E& event) LOCKS_EXCLUDED(mutex_);
 
  private:
-  EventBus() = default;
+  explicit EventBus(const Options& options);
 
   // Unsubscribes the specified subscriber. Called only by Subscription.
   void Unsubscribe(const Subscription* subscription) LOCKS_EXCLUDED(mutex_);
@@ -143,6 +155,8 @@ class EventBus : public std::enable_shared_from_this<EventBus<E>> {
   // All subscriptions that the EventBus is aware of. Note that this is not
   // optimized for high scale in the number of subscribers.
   std::vector<SubscriptionTuple> subscriptions_ GUARDED_BY(mutex_);
+
+  const Options options_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(EventBus);
 };
@@ -172,8 +186,12 @@ std::unique_ptr<typename EventBus<E>::Subscription> EventBus<E>::Subscribe(
 }
 
 template <typename E>
-std::shared_ptr<EventBus<E>> EventBus<E>::CreateEventBus() {
-  return std::shared_ptr<EventBus<E>>(new EventBus<E>());
+EventBus<E>::EventBus(const Options& options) : options_(options) {}
+
+template <typename E>
+std::shared_ptr<EventBus<E>> EventBus<E>::CreateEventBus(
+    const Options& options) {
+  return std::shared_ptr<EventBus<E>>(new EventBus<E>(options));
 }
 
 template <typename E>
@@ -191,8 +209,10 @@ void EventBus<E>::Unsubscribe(
 template <typename E>
 void EventBus<E>::Publish(const E& event) {
   mutex_lock lock(mutex_);
+  const uint64 event_time = options_.env->NowMicros();
+  const EventAndTime event_and_time = {event, event_time};
   for (const SubscriptionTuple& subscription : subscriptions_) {
-    subscription.callback(event);
+    subscription.callback(event_and_time);
   }
 }
 

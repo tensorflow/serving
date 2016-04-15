@@ -108,12 +108,12 @@ int main(int argc, char** argv) {
   export directory) in `export_base_path`.
   * Instantiate a `SessionBundleSourceAdapter` that creates a new
   `SessionBundle` for each new model export.
-  * Instantiate a specific implementation of `Manager` called `DynamicManager`
-  that manages all `SessionBundle` instances created by the
-  `SessionBundleSourceAdapter`.
+  * Instantiate a specific implementation of `Manager` called
+  `AspiredVersionsManager` that manages all `SessionBundle` instances created by
+  the `SessionBundleSourceAdapter`.
 
-Whenever a new version is available, this `DynamicManager` always unloads the
-old version and replaces it with the new one. Note that
+Whenever a new version is available, this `AspiredVersionsManager` always
+unloads the old version and replaces it with the new one. Note that
 `CreateSingleTFModelManagerFromBasePath()` intentionally lacks any config
 parameters, because it is intended for a very first deployment. If you want to
 start customizing, you are encouraged to understand the components that it
@@ -122,7 +122,7 @@ creates internally, and how to configure them.
 It is worth mentioning that TensorFlow Serving is designed from scratch to be
 very flexible and extensible. You can build various plugins to customize system
 behavior, while taking advantage of generic core components like
-`DynamicManager`. For example, you could build a data source plugin that
+`AspiredVersionsManager`. For example, you could build a data source plugin that
 monitors cloud storage instead of local storage, or you could build a version
 policy plugin that does version transition in a different way -- in fact, you
 could even build a custom model plugin that serves non-TensorFlow models. These
@@ -225,8 +225,8 @@ To put all these into the context of this tutorial:
   stream for the TensorFlow model being served. Each export corresponds to a
   servables that can be loaded.
 
-  * `DynamicManager` monitors the export stream, and manages lifecycle of all
-  `SessionBundle` servables dynamically.
+  * `AspiredVersionsManager` monitors the export stream, and manages lifecycle
+  of all SessionBundle` servables dynamically.
 
 `DoClassifyInBatch` then just requests `SessionBundle` from the manager and uses
 it to run inference. Most of the logic and flow is very similar to the logic and

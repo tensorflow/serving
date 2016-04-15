@@ -274,71 +274,6 @@ cc_library(
 )
 
 cc_library(
-    name = "dynamic_manager",
-    srcs = ["dynamic_manager.cc"],
-    hdrs = ["dynamic_manager.h"],
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        "@tf//tensorflow/core:lib",
-        ":loader",
-        ":loader_harness",
-        ":manager",
-        ":servable_data",
-        ":servable_handle",
-        ":servable_id",
-        ":servable_state",
-        ":source",
-        ":target",
-        ":version_policy",
-        "//tensorflow_serving/util:event_bus",
-        "//tensorflow_serving/util:fast_read_dynamic_ptr",
-        "//tensorflow_serving/util:optional",
-        "//tensorflow_serving/util:periodic_function",
-    ],
-)
-
-cc_test(
-    name = "dynamic_manager_test",
-    srcs = ["dynamic_manager_test.cc"],
-    deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
-        "@tf//tensorflow/core:test",
-        ":dynamic_manager",
-        ":eager_load_policy",
-        ":servable_state",
-        "//tensorflow_serving/core/test_util:dynamic_manager_test_util",
-        "//tensorflow_serving/core/test_util:fake_loader",
-        "//tensorflow_serving/core/test_util:mock_loader",
-        "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/util:any_ptr",
-        "//tensorflow_serving/util:event_bus",
-    ],
-)
-
-cc_test(
-    name = "dynamic_manager_benchmark",
-    srcs = ["dynamic_manager_benchmark.cc"],
-    deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
-        "@tf//tensorflow/core:test",
-        ":dynamic_manager",
-        ":eager_load_policy",
-        ":loader",
-        ":manager",
-        ":servable_data",
-        ":servable_handle",
-        ":simple_loader",
-        ":version_policy",
-        "//tensorflow_serving/core/test_util:dynamic_manager_test_util",
-        "//tensorflow_serving/util:periodic_function",
-    ],
-)
-
-cc_library(
     name = "manager",
     hdrs = ["manager.h"],
     visibility = [
@@ -396,7 +331,6 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
         ":servable_id",
         ":servable_state",
         "//tensorflow_serving/util:event_bus",
@@ -415,8 +349,172 @@ cc_test(
 )
 
 cc_library(
-    name = "version_policy",
-    hdrs = ["version_policy.h"],
+    name = "loader_harness",
+    srcs = ["loader_harness.cc"],
+    hdrs = ["loader_harness.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:tensorflow",
+        ":loader",
+        ":servable_id",
+        "//tensorflow_serving/util:optional",
+    ],
+)
+
+cc_test(
+    name = "loader_harness_test",
+    srcs = ["loader_harness_test.cc"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:protos_all_cc",
+        "@tf//tensorflow/core:tensorflow",
+        "@tf//tensorflow/core:test",
+        ":loader_harness",
+        "//tensorflow_serving/core/test_util:mock_loader",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "//tensorflow_serving/util:any_ptr",
+    ],
+)
+
+cc_library(
+    name = "basic_manager",
+    srcs = ["basic_manager.cc"],
+    hdrs = ["basic_manager.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":loader",
+        ":loader_harness",
+        ":manager",
+        ":servable_data",
+        ":servable_handle",
+        ":servable_id",
+        ":servable_state",
+        "//tensorflow_serving/resources:resource_tracker",
+        "//tensorflow_serving/util:cleanup",
+        "//tensorflow_serving/util:event_bus",
+        "//tensorflow_serving/util:executor",
+        "//tensorflow_serving/util:fast_read_dynamic_ptr",
+        "//tensorflow_serving/util:inline_executor",
+        "//tensorflow_serving/util:threadpool_executor",
+    ],
+)
+
+cc_test(
+    name = "basic_manager_test",
+    size = "small",
+    srcs = ["basic_manager_test.cc"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:protos_all_cc",
+        "@tf//tensorflow/core:test",
+        ":availability_helpers",
+        ":basic_manager",
+        ":servable_state_monitor",
+        "//tensorflow_serving/core/test_util:availability_test_util",
+        "//tensorflow_serving/core/test_util:fake_loader",
+        "//tensorflow_serving/core/test_util:mock_loader",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/util:any_ptr",
+    ],
+)
+
+cc_library(
+    name = "aspired_versions_manager",
+    srcs = ["aspired_versions_manager.cc"],
+    hdrs = ["aspired_versions_manager.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":aspired_version_policy",
+        ":basic_manager",
+        ":loader",
+        ":manager",
+        ":servable_data",
+        ":servable_handle",
+        ":servable_id",
+        ":servable_state",
+        ":source",
+        ":target",
+        "//tensorflow_serving/util:event_bus",
+        "//tensorflow_serving/util:optional",
+        "//tensorflow_serving/util:periodic_function",
+    ],
+)
+
+cc_test(
+    name = "aspired_versions_manager_test",
+    size = "small",
+    srcs = ["aspired_versions_manager_test.cc"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:protos_all_cc",
+        "@tf//tensorflow/core:test",
+        ":aspired_versions_manager",
+        ":availability_helpers",
+        ":eager_load_policy",
+        ":servable_state_monitor",
+        "//tensorflow_serving/core/test_util:availability_test_util",
+        "//tensorflow_serving/core/test_util:fake_loader",
+        "//tensorflow_serving/core/test_util:manager_test_util",
+        "//tensorflow_serving/core/test_util:mock_loader",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/util:any_ptr",
+    ],
+)
+
+cc_test(
+    name = "aspired_versions_manager_benchmark",
+    srcs = ["aspired_versions_manager_benchmark.cc"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:tensorflow",
+        "@tf//tensorflow/core:test",
+        ":aspired_version_policy",
+        ":aspired_versions_manager",
+        ":eager_load_policy",
+        ":loader",
+        ":manager",
+        ":servable_data",
+        ":servable_handle",
+        ":simple_loader",
+        "//tensorflow_serving/core/test_util:manager_test_util",
+        "//tensorflow_serving/util:periodic_function",
+    ],
+)
+
+cc_library(
+    name = "static_manager",
+    srcs = ["static_manager.cc"],
+    hdrs = ["static_manager.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":basic_manager",
+        ":manager",
+        ":servable_handle",
+        ":servable_id",
+        ":simple_loader",
+    ],
+)
+
+cc_test(
+    name = "static_manager_test",
+    srcs = ["static_manager_test.cc"],
+    deps = [
+        ":static_manager",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util:fake_clock_env",
+    ],
+)
+
+cc_library(
+    name = "aspired_version_policy",
+    hdrs = ["aspired_version_policy.h"],
     visibility = [
         "//visibility:public",
     ],
@@ -436,8 +534,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":aspired_version_policy",
         ":loader_harness",
-        ":version_policy",
         "//tensorflow_serving/util:optional",
     ],
 )
@@ -460,8 +558,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":aspired_version_policy",
         ":loader_harness",
-        ":version_policy",
         "//tensorflow_serving/util:optional",
     ],
 )
@@ -473,33 +571,5 @@ cc_test(
         ":eager_unload_policy",
         ":servable_id",
         "//tensorflow_serving/core/test_util:test_main",
-    ],
-)
-
-cc_library(
-    name = "loader_harness",
-    srcs = ["loader_harness.cc"],
-    hdrs = ["loader_harness.h"],
-    deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
-        ":loader",
-        ":servable_id",
-    ],
-)
-
-cc_test(
-    name = "loader_harness_test",
-    srcs = ["loader_harness_test.cc"],
-    deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
-        "@tf//tensorflow/core:tensorflow",
-        "@tf//tensorflow/core:test",
-        ":loader_harness",
-        "//tensorflow_serving/core/test_util:mock_loader",
-        "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util",
-        "//tensorflow_serving/util:any_ptr",
     ],
 )

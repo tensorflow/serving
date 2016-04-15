@@ -21,14 +21,13 @@ limitations under the License.
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
-#include "tensorflow_serving/core/dynamic_manager.h"
+#include "tensorflow_serving/core/aspired_versions_manager.h"
 #include "tensorflow_serving/core/eager_unload_policy.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/core/target.h"
-#include "tensorflow_serving/core/version_policy.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/session_bundle/session_bundle.h"
@@ -42,13 +41,12 @@ namespace simple_servers {
 
 namespace {
 
-// Creates a DynamicManager with the EagerUnloadPolicy.
-std::unique_ptr<DynamicManager> CreateDynamicManager() {
-  DynamicManager::Options manager_options;
-  manager_options.version_policy.reset(new EagerUnloadPolicy());
-  std::unique_ptr<DynamicManager> manager(
-      new DynamicManager(std::move(manager_options)));
-  return manager;
+// Creates a AspiredVersionsManager with the EagerUnloadPolicy.
+Status CreateAspiredVersionsManager(
+    std::unique_ptr<AspiredVersionsManager>* const manager) {
+  AspiredVersionsManager::Options manager_options;
+  manager_options.aspired_version_policy.reset(new EagerUnloadPolicy());
+  return AspiredVersionsManager::Create(std::move(manager_options), manager);
 }
 
 // Creates a Source<StoragePath> that monitors a filesystem's base_path for new
@@ -80,7 +78,7 @@ Status CreateStoragePathSource(
 // FileSystemStoragePathSource as the Source and the SessionBundleSource as the
 // Target.
 Status CreateSessionBundleSource(
-    DynamicManager* manager,
+    AspiredVersionsManager* manager,
     std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
         source) {
   SessionBundleSourceAdapterConfig config;
@@ -96,18 +94,19 @@ Status CreateSessionBundleSource(
 
 Status CreateSingleTFModelManagerFromBasePath(
     const string& base_path, UniquePtrWithDeps<Manager>* manager) {
-  std::unique_ptr<DynamicManager> dynamic_manager = CreateDynamicManager();
+  std::unique_ptr<AspiredVersionsManager> aspired_versions_manager;
+  TF_RETURN_IF_ERROR(CreateAspiredVersionsManager(&aspired_versions_manager));
 
   std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>
       bundle_source;
-  TF_RETURN_IF_ERROR(
-      CreateSessionBundleSource(dynamic_manager.get(), &bundle_source));
+  TF_RETURN_IF_ERROR(CreateSessionBundleSource(aspired_versions_manager.get(),
+                                               &bundle_source));
 
   std::unique_ptr<Source<StoragePath>> path_source;
   TF_RETURN_IF_ERROR(CreateStoragePathSource(
       base_path, "default", bundle_source.get(), &path_source));
 
-  manager->SetOwned(std::move(dynamic_manager));
+  manager->SetOwned(std::move(aspired_versions_manager));
   manager->AddDependency(std::move(bundle_source));
   manager->AddDependency(std::move(path_source));
 
