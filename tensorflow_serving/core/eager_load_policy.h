@@ -18,23 +18,24 @@ limitations under the License.
 
 #include <vector>
 
+#include "tensorflow_serving/core/aspired_version_policy.h"
 #include "tensorflow_serving/core/loader_harness.h"
-#include "tensorflow_serving/core/version_policy.h"
 #include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
 
-// VersionPolicy that loads any aspired versions of a servable before
+// AspiredVersionPolicy that loads any aspired versions of a servable before
 // unloading any no-longer-aspired versions.
 //
 // This policy provides servable availability with the trade-off of temporary
 // increased resource consumption while the new version loads followed by the
 // old versions unloading.
-class EagerLoadPolicy final : public VersionPolicy {
+class EagerLoadPolicy final : public AspiredVersionPolicy {
  public:
   optional<ServableAction> GetNextAction(
-      const std::vector<ServableStateSnapshot>& all_versions) const override;
+      const std::vector<AspiredServableStateSnapshot>& all_versions)
+      const override;
 };
 
 }  // namespace serving

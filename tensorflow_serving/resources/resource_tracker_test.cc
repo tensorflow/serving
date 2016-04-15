@@ -44,7 +44,7 @@ class ResourceTrackerTest : public ::testing::Test {
       : total_resources_(
             CreateProto<ResourceAllocation>("resource_quantities { "
                                             "  resource { "
-                                            "    device: 'cpu' "
+                                            "    device: 'main' "
                                             "    device_instance { value: 0 } "
                                             "    kind: 'ram' "
                                             "  } "
@@ -67,7 +67,7 @@ class ResourceTrackerTest : public ::testing::Test {
                                             "  quantity: 16 "
                                             "} ")) {
     std::unique_ptr<ResourceUtil> util(
-        new ResourceUtil({{{"cpu", 1}, {"gpu", 2}}}));
+        new ResourceUtil({{{"main", 1}, {"gpu", 2}}}));
     TF_CHECK_OK(ResourceTracker::Create(
         total_resources_, std::unique_ptr<ResourceUtil>(std::move(util)),
         &tracker_));
@@ -77,7 +77,7 @@ class ResourceTrackerTest : public ::testing::Test {
         .WillByDefault(Return(
             CreateProto<ResourceAllocation>("resource_quantities { "
                                             "  resource { "
-                                            "    device: 'cpu' "
+                                            "    device: 'main' "
                                             "    kind: 'ram' "
                                             "  } "
                                             "  quantity: 1 "
@@ -96,7 +96,7 @@ class ResourceTrackerTest : public ::testing::Test {
         .WillByDefault(Return(
             CreateProto<ResourceAllocation>("resource_quantities { "
                                             "  resource { "
-                                            "    device: 'cpu' "
+                                            "    device: 'main' "
                                             "    kind: 'ram' "
                                             "  } "
                                             "  quantity: 5 "
@@ -112,14 +112,14 @@ class ResourceTrackerTest : public ::testing::Test {
 
     loader_2_.reset(new NiceMock<test_util::MockLoader>);
     ON_CALL(*loader_2_, EstimateResources())
-        .WillByDefault(Return(
-            CreateProto<ResourceAllocation>("resource_quantities { "
-                                            "  resource { "
-                                            "    device: 'cpu' "
-                                            "    kind: 'ram' "
-                                            "  } "
-                                            "  quantity: 15 "
-                                            "} ")));
+        .WillByDefault(
+            Return(CreateProto<ResourceAllocation>("resource_quantities { "
+                                                   "  resource { "
+                                                   "    device: 'main' "
+                                                   "    kind: 'ram' "
+                                                   "  } "
+                                                   "  quantity: 15 "
+                                                   "} ")));
 
     loader_3_.reset(new NiceMock<test_util::MockLoader>);
     ON_CALL(*loader_3_, EstimateResources())
@@ -168,7 +168,7 @@ class ResourceTrackerTest : public ::testing::Test {
 
 TEST_F(ResourceTrackerTest, UnboundTotalResources) {
   std::unique_ptr<ResourceUtil> util(
-      new ResourceUtil({{{"cpu", 1}, {"gpu", 2}}}));
+      new ResourceUtil({{{"main", 1}, {"gpu", 2}}}));
   std::unique_ptr<ResourceTracker> tracker;
   const auto unbound_resources = CreateProto<ResourceAllocation>(
       "resource_quantities { "
@@ -186,12 +186,12 @@ TEST_F(ResourceTrackerTest, UnboundTotalResources) {
 
 TEST_F(ResourceTrackerTest, UnnormalizedTotalResources) {
   std::unique_ptr<ResourceUtil> util(
-      new ResourceUtil({{{"cpu", 1}, {"gpu", 2}}}));
+      new ResourceUtil({{{"main", 1}, {"gpu", 2}}}));
   std::unique_ptr<ResourceTracker> tracker;
   const auto unnormalized_resources = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    kind: 'ram' "
       "  } "
       "  quantity: 12 "
@@ -203,7 +203,7 @@ TEST_F(ResourceTrackerTest, UnnormalizedTotalResources) {
   EXPECT_THAT(tracker->total_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
-                          "    device: 'cpu' "
+                          "    device: 'main' "
                           "    device_instance { value: 0 } "
                           "    kind: 'ram' "
                           "  } "
@@ -222,7 +222,7 @@ TEST_F(ResourceTrackerTest, RecomputeUsedResources) {
   EXPECT_THAT(tracker_->used_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
-                          "    device: 'cpu' "
+                          "    device: 'main' "
                           "    device_instance { value: 0 } "
                           "    kind: 'ram' "
                           "  } "
@@ -250,7 +250,7 @@ TEST_F(ResourceTrackerTest, RecomputeUsedResources) {
   EXPECT_THAT(tracker_->used_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
-                          "    device: 'cpu' "
+                          "    device: 'main' "
                           "    device_instance { value: 0 } "
                           "    kind: 'ram' "
                           "  } "
@@ -272,7 +272,7 @@ TEST_F(ResourceTrackerTest, ReserveResourcesSuccessWithUsedResourcesBound) {
   EXPECT_THAT(tracker_->used_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
-                          "    device: 'cpu' "
+                          "    device: 'main' "
                           "    device_instance { value: 0 } "
                           "    kind: 'ram' "
                           "  } "
@@ -294,7 +294,7 @@ TEST_F(ResourceTrackerTest, ReserveResourcesSuccessWithUsedResourcesBound) {
   EXPECT_THAT(tracker_->used_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
-                          "    device: 'cpu' "
+                          "    device: 'main' "
                           "    device_instance { value: 0 } "
                           "    kind: 'ram' "
                           "  } "
@@ -316,7 +316,7 @@ TEST_F(ResourceTrackerTest, ReserveResourcesFailureWithUsedResourcesBound) {
   EXPECT_THAT(tracker_->used_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
-                          "    device: 'cpu' "
+                          "    device: 'main' "
                           "    device_instance { value: 0 } "
                           "    kind: 'ram' "
                           "  } "
@@ -339,7 +339,7 @@ TEST_F(ResourceTrackerTest, ReserveResourcesFailureWithUsedResourcesBound) {
   EXPECT_THAT(tracker_->used_resources(),
               EqualsProto("resource_quantities { "
                           "  resource { "
-                          "    device: 'cpu' "
+                          "    device: 'main' "
                           "    device_instance { value: 0 } "
                           "    kind: 'ram' "
                           "  } "
@@ -380,7 +380,7 @@ TEST_F(ResourceTrackerTest, ReserveResourcesSuccessWithUsedResourcesUnbound) {
                           "} "
                           "resource_quantities { "
                           "  resource { "
-                          "    device: 'cpu' "
+                          "    device: 'main' "
                           "    device_instance { value: 0 } "
                           "    kind: 'ram' "
                           "  } "

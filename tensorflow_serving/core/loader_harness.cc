@@ -17,25 +17,25 @@ limitations under the License.
 
 #include <algorithm>
 
+#include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/env.h"
 
 namespace tensorflow {
 namespace serving {
 
 LoaderHarness::LoaderHarness(const ServableId& id,
-                             std::unique_ptr<Loader> loader)
-    : LoaderHarness(id, std::move(loader), Options()) {}
-
-LoaderHarness::LoaderHarness(const ServableId& id,
                              std::unique_ptr<Loader> loader,
                              const Options& options)
-    : id_(id), loader_(std::move(loader)), options_(options) {
-  VLOG(1) << "New aspired servable version " << id_;
-}
+    : id_(id),
+      loader_(std::move(loader)),
+      additional_state_(nullptr),
+      options_(options) {}
 
 LoaderHarness::~LoaderHarness() {
   mutex_lock l(mu_);
-  DCHECK(state_ == kNew || state_ == kDisabled || state_ == kError) << state_;
+  DCHECK(state_ == State::kNew || state_ == State::kDisabled ||
+         state_ == State::kError)
+      << "Servable: " << id_ << " state: " << state_;
 }
 
 LoaderHarness::State LoaderHarness::state() const {
@@ -43,16 +43,45 @@ LoaderHarness::State LoaderHarness::state() const {
   return state_;
 }
 
-ServableStateSnapshot LoaderHarness::loader_state_snapshot() const {
+Status LoaderHarness::LoadRequested() {
   mutex_lock l(mu_);
-  return {id_, state_, is_aspired_};
+
+  if (state_ != State::kNew) {
+    return errors::FailedPrecondition(
+        "Servable: ", id_.DebugString(),
+        " cannot be transitioned to load-requested. In state: ",
+        StateDebugString(state_), " instead of state: ",
+        StateDebugString(State::kNew));
+  }
+  state_ = State::kLoadRequested;
+  return Status::OK();
+}
+
+Status LoaderHarness::LoadApproved() {
+  mutex_lock l(mu_);
+
+  if (state_ != State::kLoadRequested) {
+    return errors::FailedPrecondition(
+        "Servable: ", id_.DebugString(),
+        " cannot be approved for loading. In state: ", StateDebugString(state_),
+        " instead of state: ", StateDebugString(State::kLoadRequested));
+  }
+  state_ = State::kLoadApproved;
+  VLOG(1) << "Approving load for servable version " << id_;
+
+  return Status::OK();
 }
 
 Status LoaderHarness::Load(const ResourceAllocation& available_resources) {
   {
     mutex_lock l(mu_);
-    DCHECK_EQ(kNew, state_);
-    state_ = kLoading;
+    if (state_ != State::kLoadApproved) {
+      return errors::FailedPrecondition(
+          "Servable: ", id_.DebugString(), " cannot be loaded. In state: ",
+          StateDebugString(state_), " instead of state: ",
+          StateDebugString(State::kLoadApproved));
+    }
+    state_ = State::kLoading;
     VLOG(1) << "Loading servable version " << id_;
   }
 
@@ -61,80 +90,104 @@ Status LoaderHarness::Load(const ResourceAllocation& available_resources) {
     int num_tries = 0;
     do {
       if (num_tries > 0) {
-        if (options_.load_retry_interval_micros > 0) {
-          Env::Default()->SleepForMicroseconds(
-              options_.load_retry_interval_micros);
+        if (cancel_load_retry()) {
+          LOG(INFO) << "Load retry cancelled for servable: " << id_;
+          break;
         }
+        Env::Default()->SleepForMicroseconds(
+            options_.load_retry_interval_micros);
         LOG(INFO) << "Retrying load on servable version: " << id_
                   << " retry: " << num_tries;
       }
       load_status = loader_->Load(available_resources);
+      if (!load_status.ok()) {
+        LOG(ERROR) << "Servable: " << id_ << " load failure: " << load_status;
+      }
       ++num_tries;
-    } while (is_aspired() && !load_status.ok() &&
-             num_tries < options_.max_num_load_tries);
+    } while (!cancel_load_retry() && !load_status.ok() &&
+             (num_tries - 1) < options_.max_num_load_retries);
+
     return load_status;
   }();
 
   {
     mutex_lock l(mu_);
-    DCHECK_EQ(kLoading, state_);
+    DCHECK_EQ(State::kLoading, state_);
     if (status.ok()) {
-      state_ = kReady;
+      state_ = State::kReady;
       VLOG(1) << "Successfully loaded servable version " << id_;
     } else {
       ErrorInternal(status);
     }
   }
+
   return status;
+}
+
+Status LoaderHarness::UnloadRequested() {
+  mutex_lock l(mu_);
+
+  if (state_ != State::kReady) {
+    return errors::FailedPrecondition(
+        "Servable: ", id_.DebugString(),
+        " cannot be transitioned to unload-requested. In state: ",
+        StateDebugString(state_), " instead of state: ",
+        StateDebugString(State::kReady));
+  }
+  state_ = State::kUnloadRequested;
+  return Status::OK();
+}
+
+void LoaderHarness::set_cancel_load_retry(const bool value) {
+  mutex_lock l(mu_);
+  cancel_load_retry_ = value;
+}
+
+bool LoaderHarness::cancel_load_retry() {
+  mutex_lock l(mu_);
+  return cancel_load_retry_;
 }
 
 void LoaderHarness::Unload() {
   {
     mutex_lock l(mu_);
-    DCHECK_EQ(state_, kQuiesced);
-    state_ = kUnloading;
+    DCHECK_EQ(state_, State::kQuiesced);
+    state_ = State::kUnloading;
     VLOG(1) << "Unloading servable version " << id_;
   }
+
   loader_->Unload();
+
   {
     mutex_lock l(mu_);
-    DCHECK_EQ(state_, kUnloading);
-    state_ = kDisabled;
+    DCHECK_EQ(state_, State::kUnloading);
+    state_ = State::kDisabled;
     VLOG(1) << "Done unloading servable version " << id_;
   }
 }
 
-bool LoaderHarness::is_aspired() const {
+Status LoaderHarness::StartQuiescing() {
   mutex_lock l(mu_);
-  return is_aspired_;
-}
-
-void LoaderHarness::set_is_aspired(const bool is_aspired) {
-  mutex_lock l(mu_);
-  // Only log if the value actually changes.
-  if (is_aspired != is_aspired_) {
-    is_aspired_ = is_aspired;
-    VLOG(1) << "Setting servable version " << id_ << " as "
-            << (is_aspired ? "" : "not ") << "aspired";
+  if (state_ != State::kUnloadRequested) {
+    return errors::FailedPrecondition(
+        "Servable: ", id_.DebugString(), " cannot be quiesced. In state: ",
+        StateDebugString(state_), " instead of state: ",
+        StateDebugString(State::kUnloadRequested));
   }
-}
-
-void LoaderHarness::StartQuiescing() {
-  mutex_lock l(mu_);
-  DCHECK_EQ(state_, kReady);
-  state_ = kQuiescing;
+  state_ = State::kQuiescing;
   VLOG(1) << "Quiescing servable version " << id_;
+  return Status::OK();
 }
 
 void LoaderHarness::DoneQuiescing() {
   mutex_lock l(mu_);
-  DCHECK_EQ(state_, kQuiescing);
-  state_ = kQuiesced;
+  DCHECK_EQ(state_, State::kQuiescing);
+  state_ = State::kQuiesced;
   VLOG(1) << "Done quiescing servable version " << id_;
 }
 
 void LoaderHarness::ErrorInternal(const Status status) {
-  state_ = kError;
+  state_ = State::kError;
   status_ = status;
   VLOG(1) << "Encountered an error for servable version " << id_ << ": "
           << status_;
@@ -148,6 +201,33 @@ void LoaderHarness::Error(const Status status) {
 Status LoaderHarness::status() const {
   mutex_lock l(mu_);
   return status_;
+}
+
+string LoaderHarness::StateDebugString(const State state) {
+  switch (state) {
+    case State::kNew:
+      return "new";
+    case State::kLoadRequested:
+      return "load-requested";
+    case State::kLoadApproved:
+      return "load-approved";
+    case State::kLoading:
+      return "loading";
+    case State::kReady:
+      return "ready";
+    case State::kUnloadRequested:
+      return "unload-requested";
+    case State::kQuiescing:
+      return "quiescing";
+    case State::kQuiesced:
+      return "quiesced";
+    case State::kUnloading:
+      return "unloading";
+    case State::kDisabled:
+      return "disabled";
+    case State::kError:
+      return "error";
+  }
 }
 
 }  // namespace serving

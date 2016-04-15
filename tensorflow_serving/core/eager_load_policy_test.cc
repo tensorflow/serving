@@ -24,7 +24,7 @@ namespace {
 
 // Test that the first new and aspired version is loaded first.
 TEST(EagerLoadPolicy, LoadsFirstAspired) {
-  std::vector<ServableStateSnapshot> versions;
+  std::vector<AspiredServableStateSnapshot> versions;
   versions.push_back({{"test", 1}, LoaderHarness::State::kUnloading, false});
   versions.push_back({{"test", 2}, LoaderHarness::State::kReady, true});
   versions.push_back({{"test", 3}, LoaderHarness::State::kReady, false});
@@ -34,14 +34,14 @@ TEST(EagerLoadPolicy, LoadsFirstAspired) {
   EagerLoadPolicy policy;
   const auto action = policy.GetNextAction(versions);
   ASSERT_TRUE(action);
-  EXPECT_EQ(VersionPolicy::Action::kLoad, action->action);
+  EXPECT_EQ(AspiredVersionPolicy::Action::kLoad, action->action);
   EXPECT_EQ(4, action->id.version);
 }
 
 // Test that the first non-aspired version is unloaded when there are none to
 // load.
 TEST(EagerLoadPolicy, UnLoadsFirstNonAspiredWhenNoneToLoad) {
-  std::vector<ServableStateSnapshot> versions;
+  std::vector<AspiredServableStateSnapshot> versions;
   versions.push_back({{"test", 1}, LoaderHarness::State::kReady, true});
   versions.push_back({{"test", 2}, LoaderHarness::State::kLoading, true});
   versions.push_back({{"test", 3}, LoaderHarness::State::kReady, false});
@@ -51,14 +51,14 @@ TEST(EagerLoadPolicy, UnLoadsFirstNonAspiredWhenNoneToLoad) {
   EagerLoadPolicy policy;
   const auto action = policy.GetNextAction(versions);
   ASSERT_TRUE(action);
-  EXPECT_EQ(VersionPolicy::Action::kUnload, action->action);
+  EXPECT_EQ(AspiredVersionPolicy::Action::kUnload, action->action);
   EXPECT_EQ(3, action->id.version);
 }
 
 // Test that no action is returned (empty optional) when there are no versions
 // needing loading or unloading.
 TEST(EagerLoadPolicy, ReturnsNoActionWhenNone) {
-  std::vector<ServableStateSnapshot> versions;
+  std::vector<AspiredServableStateSnapshot> versions;
   versions.push_back({{"test", 1}, LoaderHarness::State::kReady, true});
   versions.push_back({{"test", 2}, LoaderHarness::State::kError, true});
   versions.push_back({{"test", 3}, LoaderHarness::State::kLoading, true});

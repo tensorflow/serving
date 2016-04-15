@@ -76,6 +76,7 @@ cc_test(
     deps = [
         ":event_bus",
         "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util:fake_clock_env",
     ],
 )
 
