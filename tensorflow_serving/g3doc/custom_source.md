@@ -23,11 +23,11 @@ loaders directly.
 Of course, whatever kind of data your source emits (whether it is POSIX paths,
 Google Cloud Storage paths, or RPC handles), there needs to be accompanying
 module(s) that are able to load servables based on that. Such modules are called
-`SourceAdapters`. Creating a custom one is described in the `custom_servable`
-document. TensorFlow Serving comes with one for instantiating TensorFlow
-sessions based on paths in file systems that TensorFlow supports. One can add
-support for additional file systems to TensorFlow by extending the
-`RandomAccessFile` abstraction (`tensorflow/core/public/env.h`).
+`SourceAdapters`. Creating a custom one is described in the [Custom
+Servable](custom_servable.md) document. TensorFlow Serving comes with one for
+instantiating TensorFlow sessions based on paths in file systems that TensorFlow
+supports. One can add support for additional file systems to TensorFlow by
+extending the `RandomAccessFile` abstraction (`tensorflow/core/public/env.h`).
 
 This document focuses on creating a source that emits paths in a
 TensorFlow-supported file system. It ends with a walk-through of how to use your

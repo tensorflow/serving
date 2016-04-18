@@ -26,7 +26,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// An standardized abstraction for an object that manages the lifecycle of a
+// A standardized abstraction for an object that manages the lifecycle of a
 // servable, including loading and unloading it. Servables are arbitrary objects
 // that serve algorithms or data that often, though not necessarily, use a
 // machine-learned model.
@@ -48,8 +48,8 @@ namespace serving {
 // servable stream.
 //
 // Implementations need to ensure that the methods they expose are thread-safe,
-// or carefully document and/or coordinate with their clients their thread-
-// safety properties to ensure correctness.
+// or carefully document and/or coordinate their thread-safety properties with
+// their clients to ensure correctness.
 // Servables do not need to worry about concurrent execution of Load()/Unload()
 // as the caller will ensure that does not happen.
 class Loader {

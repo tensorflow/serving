@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-// A Unique Ptr like class that manages the lifecycle of an any dependencies in
+// A Unique Ptr like class that manages the lifecycle of any dependencies in
 // addition to the primary owned object.
 //
 // This enables the use-case of returning ownership of an object to some client
