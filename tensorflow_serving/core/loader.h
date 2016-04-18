@@ -72,7 +72,7 @@ class Loader {
   //     the estimate must specify the instance to which each resource is bound.
   //  4. The estimate must be monotonically non-increasing, i.e. it cannot
   //     increase over time.
-  virtual ResourceAllocation EstimateResources() const = 0;
+  virtual Status EstimateResources(ResourceAllocation* estimate) const = 0;
 
   // Fetches any data that needs to be loaded before using the servable returned
   // by servable(). May use no more resources than the estimate reported by
@@ -128,8 +128,9 @@ class Loader {
 // resource safety checks, can subclass ResourceUnsafeLoader instead of Loader.
 class ResourceUnsafeLoader : public Loader {
  public:
-  ResourceAllocation EstimateResources() const final {
-    return ResourceAllocation();
+  Status EstimateResources(ResourceAllocation* estimate) const final {
+    estimate->Clear();
+    return Status::OK();
   }
 
   Status Load(const ResourceAllocation& available_resources) final {
