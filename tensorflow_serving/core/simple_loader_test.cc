@@ -25,10 +25,14 @@ limitations under the License.
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow_serving/core/servable_data.h"
+#include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
 namespace serving {
 namespace {
+
+using test_util::CreateProto;
+using test_util::EqualsProto;
 
 // State reflects the current state of a Caller object.
 enum class State {
@@ -53,11 +57,12 @@ class Caller {
 // we expect.
 TEST(SimpleLoader, VerifyServableStates) {
   State state = State::kNone;
-  std::unique_ptr<Loader> loader(
-      new SimpleLoader<Caller>([&state](std::unique_ptr<Caller>* caller) {
+  std::unique_ptr<Loader> loader(new SimpleLoader<Caller>(
+      [&state](std::unique_ptr<Caller>* caller) {
         caller->reset(new Caller(&state));
         return Status::OK();
-      }));
+      },
+      SimpleLoader<Caller>::EstimateNoResources()));
   EXPECT_EQ(State::kNone, state);
   const Status status = loader->Load(ResourceAllocation());
   TF_EXPECT_OK(status);
@@ -73,23 +78,62 @@ TEST(SimpleLoader, VerifyServableStates) {
   EXPECT_EQ(State::kNone, state);
 }
 
+TEST(SimpleLoader, ResourceEstimation) {
+  const auto want = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 42 "
+      "} ");
+  std::unique_ptr<Loader> loader(new SimpleLoader<int>(
+      [](std::unique_ptr<int>* servable) {
+        servable->reset(new int);
+        return Status::OK();
+      },
+      [&want](ResourceAllocation* estimate) {
+        *estimate = want;
+        return Status::OK();
+      }));
+  for (int i = 0; i < 2; ++i) {
+    ResourceAllocation got;
+    TF_ASSERT_OK(loader->EstimateResources(&got));
+    EXPECT_THAT(got, EqualsProto(want));
+  }
+}
+
 // Verify that the error returned by the Creator is propagates back through
 // Load.
 TEST(SimpleLoader, LoadError) {
-  std::unique_ptr<Loader> loader(
-      new SimpleLoader<Caller>([](std::unique_ptr<Caller>* caller) {
+  std::unique_ptr<Loader> loader(new SimpleLoader<Caller>(
+      [](std::unique_ptr<Caller>* caller) {
         return errors::InvalidArgument("No way!");
-      }));
+      },
+      SimpleLoader<Caller>::EstimateNoResources()));
   const Status status = loader->Load(ResourceAllocation());
   EXPECT_EQ(error::INVALID_ARGUMENT, status.code());
   EXPECT_EQ("No way!", status.error_message());
 }
 
 TEST(SimpleLoaderSourceAdapter, Basic) {
+  const auto resource_estimate = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 42 "
+      "} ");
+
   SimpleLoaderSourceAdapter<string, string> adapter(
       [](const string& data, std::unique_ptr<string>* servable) {
         servable->reset(new string);
         **servable = strings::StrCat(data, "_was_here");
+        return Status::OK();
+      },
+      [&resource_estimate](ResourceAllocation* output) {
+        *output = resource_estimate;
         return Status::OK();
       });
 
@@ -103,6 +147,9 @@ TEST(SimpleLoaderSourceAdapter, Basic) {
         EXPECT_EQ(1, versions.size());
         TF_ASSERT_OK(versions[0].status());
         std::unique_ptr<Loader> loader = versions[0].ConsumeDataOrDie();
+        ResourceAllocation estimate_given;
+        TF_ASSERT_OK(loader->EstimateResources(&estimate_given));
+        EXPECT_THAT(estimate_given, EqualsProto(resource_estimate));
         TF_ASSERT_OK(loader->Load(ResourceAllocation()));
         AnyPtr servable = loader->servable();
         ASSERT_TRUE(servable.get<string>() != nullptr);

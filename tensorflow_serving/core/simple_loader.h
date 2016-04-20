@@ -19,45 +19,71 @@ limitations under the License.
 #include <functional>
 #include <memory>
 
+#include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/util/any_ptr.h"
+#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
 
-// SimpleLoader is a wrapper used to create a trivial servable Loader.
-// When constructing a SimpleLoader users provide a Creator callback.
-// This callback is used in the Load() method to construct a servable of type
-// ServableType and populate the servable.
-// The servable object is destroyed when Unload() is called.
+// SimpleLoader is a wrapper that simplifies Loader creation for common, simple
+// use-cases that conform to the following restrictions:
+//  - The servable's estimated resource footprint is static.
+//  - The servable can be loaded by invoking a no-argument closure.
+//  - The servable can be unloaded by invoking its destructor.
+//
+// When constructing a SimpleLoader users provide a Creator callback. This
+// callback is used in the Load() method to construct a servable of type
+// ServableType and populate the servable. The servable object is destroyed when
+// Unload() is called.
+//
+// SimpleLoader uses a second supplied callback to estimate the servable's
+// resource usage. It memoizes that callback's result, for efficiency.
 //
 // Example use: create a toy Loader for a servable of type time_t.  Here the
-// time is set to the time when Load() is called.
+// time servable is instantiated with the current time when Load() is called.
+//   auto servable_creator = [](std::unique_ptr<time_t>* servable) {
+//       servable->reset(new time_t);
+//       *servable = time(nullptr);
+//       return Status::OK();
+//   };
+//   auto resource_estimator = [](ResourceAllocation* estimate) {
+//       estimate->mutable_...(...)->set_...(...);
+//       return Status::OK();
+//   };
 //   std::unique_ptr<Loader> loader(new SimpleLoader<time_t>(
-//       {"name_of_servable", kVersion},
-//       [](std::unique_ptr<time_t>* servable) {
-//           servable->reset(new time_t);
-//           *servable = time(nullptr);
-//           return Status::OK();
-//       }));
-//
-// IMPORTANT: Use of SimpleLoader abdicates resource safety, i.e. servables
-// loaded via SimpleLoaders do not declare their resource usage, and hence the
-// serving system cannot enforce resource safety.
+//       servable_creator, resource_estimator));
 template <typename ServableType>
-class SimpleLoader : public ResourceUnsafeLoader {
+class SimpleLoader : public Loader {
  public:
   // Creator is called in Load and used to create the servable.
   using Creator = std::function<Status(std::unique_ptr<ServableType>*)>;
-  explicit SimpleLoader(Creator creator) : creator_(creator) {}
+
+  // A callback for estimating a servable's resource usage.
+  using ResourceEstimator = std::function<Status(ResourceAllocation*)>;
+
+  // Returns a dummy resource-estimation callback that estimates the servable's
+  // resource footprint at zero. Useful in best-effort or test environments that
+  // do not track resource usage.
+  //
+  // IMPORTANT: Use of EstimateNoResources() abdicates resource safety, i.e. a
+  // loader using that option does not declare its servable's resource usage,
+  // and hence the serving system cannot enforce resource safety.
+  static ResourceEstimator EstimateNoResources();
+
+  explicit SimpleLoader(Creator creator, ResourceEstimator resource_estimator =
+                                             EstimateNoResources());
   SimpleLoader() = delete;
   ~SimpleLoader() override = default;
 
-  Status Load() override;
+  Status EstimateResources(ResourceAllocation* estimate) const override;
+
+  Status Load(const ResourceAllocation& available_resources) override;
 
   void Unload() override;
 
@@ -65,6 +91,12 @@ class SimpleLoader : public ResourceUnsafeLoader {
 
  private:
   Creator creator_;
+
+  ResourceEstimator resource_estimator_;
+
+  // The memoized estimated resource requirement of the session bundle servable.
+  mutable optional<ResourceAllocation> memoized_resource_estimate_;
+
   std::unique_ptr<ServableType> servable_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(SimpleLoader);
@@ -94,7 +126,11 @@ class SimpleLoaderSourceAdapter
   // create objects of type ServableType. It takes a DataType object as input.
   using Creator =
       std::function<Status(const DataType&, std::unique_ptr<ServableType>*)>;
-  explicit SimpleLoaderSourceAdapter(Creator creator) : creator_(creator) {}
+  explicit SimpleLoaderSourceAdapter(
+      Creator creator,
+      typename SimpleLoader<ServableType>::ResourceEstimator
+          resource_estimator =
+              SimpleLoader<ServableType>::EstimateNoResources());
   SimpleLoaderSourceAdapter() = delete;
   ~SimpleLoaderSourceAdapter() override = default;
 
@@ -103,6 +139,7 @@ class SimpleLoaderSourceAdapter
 
  private:
   Creator creator_;
+  typename SimpleLoader<ServableType>::ResourceEstimator resource_estimator_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(SimpleLoaderSourceAdapter);
 };
@@ -111,7 +148,36 @@ class SimpleLoaderSourceAdapter
 // Implementation details follow. API users need not read.
 
 template <typename ServableType>
-Status SimpleLoader<ServableType>::Load() {
+typename SimpleLoader<ServableType>::ResourceEstimator
+SimpleLoader<ServableType>::EstimateNoResources() {
+  return [](ResourceAllocation* estimate) {
+    estimate->Clear();
+    return Status::OK();
+  };
+}
+
+template <typename ServableType>
+SimpleLoader<ServableType>::SimpleLoader(Creator creator,
+                                         ResourceEstimator resource_estimator)
+    : creator_(creator), resource_estimator_(resource_estimator) {}
+
+template <typename ServableType>
+Status SimpleLoader<ServableType>::EstimateResources(
+    ResourceAllocation* estimate) const {
+  if (memoized_resource_estimate_) {
+    *estimate = *memoized_resource_estimate_;
+    return Status::OK();
+  }
+
+  // Compute and memoize the resource estimate.
+  TF_RETURN_IF_ERROR(resource_estimator_(estimate));
+  memoized_resource_estimate_ = *estimate;
+  return Status::OK();
+}
+
+template <typename ServableType>
+Status SimpleLoader<ServableType>::Load(
+    const ResourceAllocation& available_resources) {
   const Status status = creator_(&servable_);
   return status;
 }
@@ -122,11 +188,20 @@ void SimpleLoader<ServableType>::Unload() {
 }
 
 template <typename DataType, typename ServableType>
+SimpleLoaderSourceAdapter<DataType, ServableType>::SimpleLoaderSourceAdapter(
+    Creator creator,
+    typename SimpleLoader<ServableType>::ResourceEstimator resource_estimator)
+    : creator_(creator), resource_estimator_(resource_estimator) {}
+
+template <typename DataType, typename ServableType>
 Status SimpleLoaderSourceAdapter<DataType, ServableType>::Convert(
     const DataType& data, std::unique_ptr<Loader>* loader) {
   loader->reset(new SimpleLoader<ServableType>(
       [this, data](std::unique_ptr<ServableType>* servable) {
         return this->creator_(data, servable);
+      },
+      [this](ResourceAllocation* estimate) {
+        return this->resource_estimator_(estimate);
       }));
   return Status::OK();
 }

@@ -97,6 +97,7 @@ cc_library(
         ":loader",
         ":source_adapter",
         "//tensorflow_serving/util:any_ptr",
+        "//tensorflow_serving/util:optional",
     ],
 )
 
@@ -112,6 +113,7 @@ cc_test(
         ":servable_data",
         ":simple_loader",
         "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
     ],
 )
 
