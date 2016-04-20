@@ -131,7 +131,7 @@ class BasicManager : public Manager {
   // loads and unloads have finished and then destroys the set of threads.
   ~BasicManager() override;
 
-  std::vector<ServableId> ListAvailableServableIds() override;
+  std::vector<ServableId> ListAvailableServableIds() const override;
 
   Status GetUntypedServableHandle(
       const ServableRequest& request,
@@ -361,7 +361,7 @@ class BasicManager : public Manager {
     ServingMap();
 
     // Gets a list of all servable ids.
-    std::vector<ServableId> ListAvailableServableIds();
+    std::vector<ServableId> ListAvailableServableIds() const;
 
     // Returns an UntypedServableHandle given a ServableRequest.
     // Returns error if no such Servable is available -- e.g. not yet loaded,

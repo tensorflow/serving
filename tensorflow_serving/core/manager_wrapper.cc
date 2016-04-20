@@ -21,7 +21,7 @@ namespace serving {
 ManagerWrapper::ManagerWrapper(UniquePtrWithDeps<Manager> wrapped)
     : wrapped_(std::move(wrapped)) {}
 
-std::vector<ServableId> ManagerWrapper::ListAvailableServableIds() {
+std::vector<ServableId> ManagerWrapper::ListAvailableServableIds() const {
   return wrapped_->ListAvailableServableIds();
 }
 

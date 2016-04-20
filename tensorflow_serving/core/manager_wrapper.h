@@ -36,7 +36,7 @@ class ManagerWrapper : public Manager {
   explicit ManagerWrapper(UniquePtrWithDeps<Manager> wrapped);
   ~ManagerWrapper() override = default;
 
-  std::vector<ServableId> ListAvailableServableIds() override;
+  std::vector<ServableId> ListAvailableServableIds() const override;
 
  private:
   Status GetUntypedServableHandle(

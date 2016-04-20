@@ -39,7 +39,7 @@ class FakeManager : public Manager {
     available_servable_ids_ = available_servable_ids;
   }
 
-  std::vector<ServableId> ListAvailableServableIds() override {
+  std::vector<ServableId> ListAvailableServableIds() const override {
     mutex_lock l(mtx_);
     ++num_list_available_servable_ids_calls_;
     list_available_servable_ids_condition_.notify_all();
@@ -65,10 +65,10 @@ class FakeManager : public Manager {
     LOG(FATAL) << "Not expected to be called.";
   }
 
-  mutex mtx_;
+  mutable mutex mtx_;
   std::vector<ServableId> available_servable_ids_ GUARDED_BY(mtx_);
-  int num_list_available_servable_ids_calls_ GUARDED_BY(mtx_) = 0;
-  condition_variable list_available_servable_ids_condition_;
+  mutable int num_list_available_servable_ids_calls_ GUARDED_BY(mtx_) = 0;
+  mutable condition_variable list_available_servable_ids_condition_;
 };
 
 TEST(AvailabilityHelpersTest, SpecificAvailable) {
