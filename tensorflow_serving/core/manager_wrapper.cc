@@ -13,28 +13,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_CORE_TEST_UTIL_MOCK_LOADER_H_
-#define TENSORFLOW_SERVING_CORE_TEST_UTIL_MOCK_LOADER_H_
-
-#include <gmock/gmock.h>
-#include "tensorflow/core/lib/core/status.h"
-#include "tensorflow_serving/core/loader.h"
-#include "tensorflow_serving/util/any_ptr.h"
+#include "tensorflow_serving/core/manager_wrapper.h"
 
 namespace tensorflow {
 namespace serving {
-namespace test_util {
 
-class MockLoader : public Loader {
- public:
-  MOCK_CONST_METHOD1(EstimateResources, Status(ResourceAllocation* estimate));
-  MOCK_METHOD1(Load, Status(const ResourceAllocation& available_resources));
-  MOCK_METHOD0(Unload, void());
-  MOCK_METHOD0(servable, AnyPtr());
-};
+ManagerWrapper::ManagerWrapper(UniquePtrWithDeps<Manager> wrapped)
+    : wrapped_(std::move(wrapped)) {}
 
-}  // namespace test_util
+std::vector<ServableId> ManagerWrapper::ListAvailableServableIds() const {
+  return wrapped_->ListAvailableServableIds();
+}
+
+Status ManagerWrapper::GetUntypedServableHandle(
+    const ServableRequest& request,
+    std::unique_ptr<UntypedServableHandle>* const untyped_handle) {
+  return wrapped_->GetUntypedServableHandle(request, untyped_handle);
+}
+
+std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
+ManagerWrapper::GetAvailableUntypedServableHandles() const {
+  return wrapped_->GetAvailableUntypedServableHandles();
+}
+
 }  // namespace serving
 }  // namespace tensorflow
-
-#endif  // TENSORFLOW_SERVING_CORE_TEST_UTIL_MOCK_LOADER_H_

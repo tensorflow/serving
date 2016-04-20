@@ -114,8 +114,7 @@ cc_library(
         "@tf//tensorflow/core:tensorflow",
         ":session_bundle_source_adapter",
         ":session_bundle_source_adapter_proto",
-        "//tensorflow_serving/core:aspired_version_policy",
-        "//tensorflow_serving/core:aspired_versions_manager",
+        "//tensorflow_serving/core:aspired_versions_manager_builder",
         "//tensorflow_serving/core:eager_unload_policy",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:manager",
@@ -126,7 +125,6 @@ cc_library(
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto",
-        "//tensorflow_serving/util:unique_ptr_with_deps",
     ],
 )
 

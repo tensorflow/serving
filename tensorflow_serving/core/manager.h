@@ -59,7 +59,7 @@ class Manager {
 
   // Gets a list of all available servable ids, i.e. each of these can
   // be retrieved using GetServableHandle.
-  virtual std::vector<ServableId> ListAvailableServableIds() = 0;
+  virtual std::vector<ServableId> ListAvailableServableIds() const = 0;
 
   // Returns a map of all the currently available servables of a particular type
   // T. The map is from the servable's id to its corresponding handle.
@@ -80,6 +80,8 @@ class Manager {
                            ServableHandle<T>* const handle);
 
  private:
+  friend class ManagerWrapper;
+
   // Returns an UntypedServableHandle given a ServableRequest.
   // Returns error if no such Servable is available -- e.g. not yet loaded, has
   // been quiesced/unloaded, etc.

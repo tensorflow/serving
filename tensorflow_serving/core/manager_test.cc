@@ -38,7 +38,7 @@ class TestHandle : public UntypedServableHandle {
 // A manager that a returns a TestHandle.
 class TestManager : public Manager {
  public:
-  std::vector<ServableId> ListAvailableServableIds() override {
+  std::vector<ServableId> ListAvailableServableIds() const override {
     LOG(FATAL) << "Not expected to be called.";
   }
 

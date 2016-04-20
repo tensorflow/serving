@@ -26,7 +26,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// An standardized abstraction for an object that manages the lifecycle of a
+// A standardized abstraction for an object that manages the lifecycle of a
 // servable, including loading and unloading it. Servables are arbitrary objects
 // that serve algorithms or data that often, though not necessarily, use a
 // machine-learned model.
@@ -48,8 +48,8 @@ namespace serving {
 // servable stream.
 //
 // Implementations need to ensure that the methods they expose are thread-safe,
-// or carefully document and/or coordinate with their clients their thread-
-// safety properties to ensure correctness.
+// or carefully document and/or coordinate their thread-safety properties with
+// their clients to ensure correctness.
 // Servables do not need to worry about concurrent execution of Load()/Unload()
 // as the caller will ensure that does not happen.
 class Loader {
@@ -72,7 +72,7 @@ class Loader {
   //     the estimate must specify the instance to which each resource is bound.
   //  4. The estimate must be monotonically non-increasing, i.e. it cannot
   //     increase over time.
-  virtual ResourceAllocation EstimateResources() const = 0;
+  virtual Status EstimateResources(ResourceAllocation* estimate) const = 0;
 
   // Fetches any data that needs to be loaded before using the servable returned
   // by servable(). May use no more resources than the estimate reported by
@@ -128,8 +128,9 @@ class Loader {
 // resource safety checks, can subclass ResourceUnsafeLoader instead of Loader.
 class ResourceUnsafeLoader : public Loader {
  public:
-  ResourceAllocation EstimateResources() const final {
-    return ResourceAllocation();
+  Status EstimateResources(ResourceAllocation* estimate) const final {
+    estimate->Clear();
+    return Status::OK();
   }
 
   Status Load(const ResourceAllocation& available_resources) final {
