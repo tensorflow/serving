@@ -302,6 +302,9 @@ cc_library(
     name = "manager_wrapper",
     srcs = ["manager_wrapper.cc"],
     hdrs = ["manager_wrapper.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":manager",
         ":servable_id",
@@ -313,6 +316,9 @@ cc_library(
     name = "aspired_versions_manager_builder",
     srcs = ["aspired_versions_manager_builder.cc"],
     hdrs = ["aspired_versions_manager_builder.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":aspired_versions_manager",
@@ -425,6 +431,9 @@ cc_library(
     name = "basic_manager",
     srcs = ["basic_manager.cc"],
     hdrs = ["basic_manager.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":loader",
