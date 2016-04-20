@@ -80,7 +80,8 @@ struct BasicManager::ServingMap::HashRequest {
 BasicManager::ServingMap::ServingMap()
     : handles_map_(std::unique_ptr<HandlesMap>(new HandlesMap())) {}
 
-std::vector<ServableId> BasicManager::ServingMap::ListAvailableServableIds() {
+std::vector<ServableId> BasicManager::ServingMap::ListAvailableServableIds()
+    const {
   std::vector<ServableId> ids;
   std::shared_ptr<const HandlesMap> handles_map = handles_map_.get();
   for (auto iter = handles_map->begin(); iter != handles_map->end();) {
@@ -249,7 +250,7 @@ void BasicManager::UnloadAllServables() {
   }
 }
 
-std::vector<ServableId> BasicManager::ListAvailableServableIds() {
+std::vector<ServableId> BasicManager::ListAvailableServableIds() const {
   return serving_map_.ListAvailableServableIds();
 }
 

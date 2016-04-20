@@ -153,7 +153,8 @@ AspiredVersionsManager::~AspiredVersionsManager() {
   manage_state_thread_.reset();
 }
 
-std::vector<ServableId> AspiredVersionsManager::ListAvailableServableIds() {
+std::vector<ServableId> AspiredVersionsManager::ListAvailableServableIds()
+    const {
   return basic_manager_->ListAvailableServableIds();
 }
 

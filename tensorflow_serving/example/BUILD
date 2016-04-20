@@ -93,7 +93,6 @@ cc_binary(
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/session_bundle:manifest_proto",
         "//tensorflow_serving/session_bundle:signature",
-        "//tensorflow_serving/util:unique_ptr_with_deps",
     ],
 )
 
@@ -152,7 +151,6 @@ cc_binary(
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/session_bundle:manifest_proto",
         "//tensorflow_serving/session_bundle:signature",
-        "//tensorflow_serving/util:unique_ptr_with_deps",
     ],
 )
 

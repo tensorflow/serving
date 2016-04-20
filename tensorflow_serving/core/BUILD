@@ -299,6 +299,50 @@ cc_test(
 )
 
 cc_library(
+    name = "manager_wrapper",
+    srcs = ["manager_wrapper.cc"],
+    hdrs = ["manager_wrapper.h"],
+    deps = [
+        ":manager",
+        ":servable_id",
+        "//tensorflow_serving/util:unique_ptr_with_deps",
+    ],
+)
+
+cc_library(
+    name = "aspired_versions_manager_builder",
+    srcs = ["aspired_versions_manager_builder.cc"],
+    hdrs = ["aspired_versions_manager_builder.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":aspired_versions_manager",
+        ":loader",
+        ":manager_wrapper",
+        ":source",
+        ":source_adapter",
+        "//tensorflow_serving/util:unique_ptr_with_deps",
+    ],
+)
+
+cc_test(
+    name = "aspired_versions_manager_builder_test",
+    srcs = ["aspired_versions_manager_builder_test.cc"],
+    deps = [
+        ":aspired_versions_manager_builder",
+        ":eager_load_policy",
+        ":servable_data",
+        ":servable_handle",
+        ":servable_state_monitor",
+        ":simple_loader",
+        ":storage_path",
+        "//tensorflow_serving/core/test_util:availability_test_util",
+        "//tensorflow_serving/core/test_util:source_adapter_test_util",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/util:event_bus",
+    ],
+)
+
+cc_library(
     name = "availability_helpers",
     srcs = ["availability_helpers.cc"],
     hdrs = ["availability_helpers.h"],

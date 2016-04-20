@@ -101,7 +101,7 @@ class AspiredVersionsManager : public Manager,
                        std::unique_ptr<AspiredVersionsManager>* manager);
   ~AspiredVersionsManager() override;
 
-  std::vector<ServableId> ListAvailableServableIds() override;
+  std::vector<ServableId> ListAvailableServableIds() const override;
 
   // Returns a callback to set the list of aspired versions for a particular
   // servable stream name, using Loaders. See the comments on
