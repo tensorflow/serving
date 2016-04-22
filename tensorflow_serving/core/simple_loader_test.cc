@@ -117,23 +117,16 @@ TEST(SimpleLoader, LoadError) {
 }
 
 TEST(SimpleLoaderSourceAdapter, Basic) {
-  const auto resource_estimate = CreateProto<ResourceAllocation>(
-      "resource_quantities { "
-      "  resource { "
-      "    device: 'main' "
-      "    kind: 'processing' "
-      "  } "
-      "  quantity: 42 "
-      "} ");
-
   SimpleLoaderSourceAdapter<string, string> adapter(
       [](const string& data, std::unique_ptr<string>* servable) {
         servable->reset(new string);
         **servable = strings::StrCat(data, "_was_here");
         return Status::OK();
       },
-      [&resource_estimate](ResourceAllocation* output) {
-        *output = resource_estimate;
+      [](const string& data, ResourceAllocation* output) {
+        ResourceAllocation::Entry* entry = output->add_resource_quantities();
+        entry->mutable_resource()->set_device(data);
+        entry->set_quantity(42);
         return Status::OK();
       });
 
@@ -149,7 +142,13 @@ TEST(SimpleLoaderSourceAdapter, Basic) {
         std::unique_ptr<Loader> loader = versions[0].ConsumeDataOrDie();
         ResourceAllocation estimate_given;
         TF_ASSERT_OK(loader->EstimateResources(&estimate_given));
-        EXPECT_THAT(estimate_given, EqualsProto(resource_estimate));
+        EXPECT_THAT(estimate_given, EqualsProto(CreateProto<ResourceAllocation>(
+                                        "resource_quantities { "
+                                        "  resource { "
+                                        "    device: 'test_data' "
+                                        "  } "
+                                        "  quantity: 42 "
+                                        "} ")));
         TF_ASSERT_OK(loader->Load(ResourceAllocation()));
         AnyPtr servable = loader->servable();
         ASSERT_TRUE(servable.get<string>() != nullptr);

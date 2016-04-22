@@ -112,8 +112,9 @@ class SimpleLoader : public Loader {
 //  - Like UnarySourceAdapter (see source_adapter.h), it translates aspired-
 // version items one at a time, giving a simpler interface but less flexibility.
 //
-//  - Like SimpleLoader, the emitted loaders' Unload() implementation simply
-// calls ServableType's destructor.
+//  - Like SimpleLoader, the servable's estimated resource footprint is static,
+//    and the emitted loaders' Unload() implementation simply calls
+//    ServableType's destructor.
 //
 // For more complex behaviors, SimpleLoaderSourceAdapter is inapplicable. You
 // must instead create a SourceAdapter and Loader. That said, you may still be
@@ -126,11 +127,24 @@ class SimpleLoaderSourceAdapter
   // create objects of type ServableType. It takes a DataType object as input.
   using Creator =
       std::function<Status(const DataType&, std::unique_ptr<ServableType>*)>;
+
+  // A callback for estimating a servable's resource usage. It takes a DataType
+  // object as input.
+  using ResourceEstimator =
+      std::function<Status(const DataType&, ResourceAllocation*)>;
+
+  // Returns a dummy resource-estimation callback that estimates the servable's
+  // resource footprint at zero. Useful in best-effort or test environments that
+  // do not track resource usage.
+  //
+  // IMPORTANT: Use of EstimateNoResources() abdicates resource safety, i.e. a
+  // loader using that option does not declare its servable's resource usage,
+  // and hence the serving system cannot enforce resource safety.
+  static ResourceEstimator EstimateNoResources();
+
   explicit SimpleLoaderSourceAdapter(
       Creator creator,
-      typename SimpleLoader<ServableType>::ResourceEstimator
-          resource_estimator =
-              SimpleLoader<ServableType>::EstimateNoResources());
+      ResourceEstimator resource_estimator = EstimateNoResources());
   SimpleLoaderSourceAdapter() = delete;
   ~SimpleLoaderSourceAdapter() override = default;
 
@@ -139,7 +153,7 @@ class SimpleLoaderSourceAdapter
 
  private:
   Creator creator_;
-  typename SimpleLoader<ServableType>::ResourceEstimator resource_estimator_;
+  ResourceEstimator resource_estimator_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(SimpleLoaderSourceAdapter);
 };
@@ -188,9 +202,17 @@ void SimpleLoader<ServableType>::Unload() {
 }
 
 template <typename DataType, typename ServableType>
+typename SimpleLoaderSourceAdapter<DataType, ServableType>::ResourceEstimator
+SimpleLoaderSourceAdapter<DataType, ServableType>::EstimateNoResources() {
+  return [](const DataType& data, ResourceAllocation* estimate) {
+    estimate->Clear();
+    return Status::OK();
+  };
+}
+
+template <typename DataType, typename ServableType>
 SimpleLoaderSourceAdapter<DataType, ServableType>::SimpleLoaderSourceAdapter(
-    Creator creator,
-    typename SimpleLoader<ServableType>::ResourceEstimator resource_estimator)
+    Creator creator, ResourceEstimator resource_estimator)
     : creator_(creator), resource_estimator_(resource_estimator) {}
 
 template <typename DataType, typename ServableType>
@@ -200,8 +222,8 @@ Status SimpleLoaderSourceAdapter<DataType, ServableType>::Convert(
       [this, data](std::unique_ptr<ServableType>* servable) {
         return this->creator_(data, servable);
       },
-      [this](ResourceAllocation* estimate) {
-        return this->resource_estimator_(estimate);
+      [this, data](ResourceAllocation* estimate) {
+        return this->resource_estimator_(data, estimate);
       }));
   return Status::OK();
 }
