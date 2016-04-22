@@ -135,7 +135,7 @@ class SimpleLoaderSourceAdapter
   ~SimpleLoaderSourceAdapter() override = default;
 
  protected:
-  Status Convert(const DataType& path, std::unique_ptr<Loader>* loader) final;
+  Status Convert(const DataType& data, std::unique_ptr<Loader>* loader) final;
 
  private:
   Creator creator_;
