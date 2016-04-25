@@ -109,7 +109,7 @@ def _prep_image(img, w=FLAGS.image_size, h=FLAGS.image_size):
 
 def _resize_to(img, w=None, h=None):
   '''
-  Resizes the image to a disired width and height. If either is undefined,
+  Resizes the image to a desired width and height. If either is undefined,
   it resizes such that the defined argument is satisfied and preserves aspect
   ratio. If both are defined, resizes to satisfy both arguments without
   preserving aspect ratio.
@@ -383,7 +383,7 @@ def main(_):
 
     # Create the request. See inception_inference.proto for gRPC request/
     # response details. Instead of using an encoded jpeg, we send the
-    # data as a row-major byte encoding using numpy's tobytes method.
+    # data as a row-major flattened list of floats.
     request.image_data = image.extend(image_array.flatten().tolist())
     result = stub.Classify(request, 10.0)  # 10 secs timeout
     for i in range(NUM_CLASSES):
