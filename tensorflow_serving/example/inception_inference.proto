@@ -1,12 +1,11 @@
 // Protobuf definition of inception v3 model inference server.
-
 syntax = "proto3";
 
 package tensorflow.serving;
 
 message InceptionRequest {
-  // JPEG encoded stream of the image to be classified.
-  bytes jpeg_encoded = 1;
+  // Image data as a flattened array of floats
+  repeated float image_data = 1 [packed = true];
 };
 
 message InceptionResponse {

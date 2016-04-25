@@ -77,6 +77,10 @@ using tensorflow::serving::ClassificationSignature;
 const int kNumTopClasses = 5;
 
 namespace {
+const int kImageSize = 299;
+const int kNumChannels = 3;
+const int kImageDataSize = kImageSize * kImageSize * kNumChannels;
+
 class InceptionServiceImpl;
 
 // Class encompassing the state and logic needed to serve a request.
@@ -208,10 +212,9 @@ InceptionServiceImpl::InceptionServiceImpl(
   // the numbers are extremely performance critical and should be tuned based
   // specific graph structure and usage.
   tensorflow::serving::StreamingBatchScheduler<Task>::Options scheduler_options;
-  scheduler_options.thread_pool_name = "inception_service_batch_threads";
-  // TODO(27776734): Current exported model supports only batch_size=1
-  // See inception_export.py for details.
-  scheduler_options.max_batch_size = 1;
+  scheduler_options.batch_timeout_micros = 1000 * 1000;  // 1 second
+  scheduler_options.num_batch_threads = 4;
+  scheduler_options.max_batch_size = 22;
   tensorflow::serving::BatchSchedulerRetrier<Task>::Options retry_options;
   // Retain the default retry options.
   TF_CHECK_OK(tensorflow::serving::CreateRetryingStreamingBatchScheduler<Task>(
@@ -283,17 +286,22 @@ void InceptionServiceImpl::DoClassifyInBatch(
   }
 
   // Transform protobuf input to inference input tensor.
-  tensorflow::Tensor batched_input(tensorflow::DT_STRING, {batch_size});
+  tensorflow::Tensor input(tensorflow::DT_FLOAT, {batch_size, kImageDataSize});
+  auto dst = input.flat_outer_dims<float>().data();
+  // Assemble the batch into a tensor, copying it from the batch data to
+  // the input tensor at location dst repeatedly for each item in the batch
   for (int i = 0; i < batch_size; ++i) {
-    batched_input.vec<string>()(i) =
-        batch->mutable_task(i)->calldata->request().jpeg_encoded();
+    std::copy_n(
+        batch->mutable_task(i)->calldata->request().image_data().begin(),
+        kImageDataSize, dst);
+    dst += kImageDataSize;
   }
 
   // Run classification.
   tensorflow::Tensor batched_classes;
   tensorflow::Tensor batched_scores;
   const tensorflow::Status run_status =
-      RunClassification(signature, batched_input, bundle->session.get(),
+      RunClassification(signature, input, bundle->session.get(),
                         &batched_classes, &batched_scores);
   if (!run_status.ok()) {
     complete_with_error(StatusCode::INTERNAL, run_status.error_message());
