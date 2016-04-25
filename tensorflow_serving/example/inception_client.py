@@ -305,7 +305,6 @@ def do_inference(hostport, concurrency, listfile):
   imagefns = []
   with open(listfile, 'r') as f:
     imagefns = f.read().splitlines()
-  _log.debug('Read %i images (%s, ...)', len(imagefns), imagefns[0])
   num_images = len(imagefns)
   host, port = hostport.split(':')
   channel = implementations.insecure_channel(host, int(port))
@@ -320,7 +319,6 @@ def do_inference(hostport, concurrency, listfile):
     Callback for result_future, modifies inference_results to hold the
     output of Inception.
     '''
-    _log.debug('Result future recieved for %s', filename)
     with cv:
       exception = result_future.exception()
       if exception:
@@ -339,7 +337,6 @@ def do_inference(hostport, concurrency, listfile):
   for imagefn in imagefns:
     image_array = prep_inception_from_file(imagefn)
     if image_array is None:
-      _log.debug('Could not read image %s', imagefn)
       num_images -= 1
       continue
     request = inception_inference_pb2.InceptionRequest()
