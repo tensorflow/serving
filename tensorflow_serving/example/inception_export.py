@@ -47,33 +47,15 @@ def export():
     # Build inference model.
     # Please refer to Tensorflow inception model for details.
 
-    # Input transformation.
-    # TODO(b/27776734): Add batching support.
-    jpegs = tf.placeholder(tf.string, shape=(1))
-    image_buffer = tf.squeeze(jpegs, [0])
-    # Decode the string as an RGB JPEG.
-    # Note that the resulting image contains an unknown height and width
-    # that is set dynamically by decode_jpeg. In other words, the height
-    # and width of image is unknown at compile-time.
-    image = tf.image.decode_jpeg(image_buffer, channels=3)
-    # After this point, all image pixels reside in [0,1)
-    # until the very end, when they're rescaled to (-1, 1).  The various
-    # adjust_* ops all require this range for dtype float.
-    image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-    # Crop the central region of the image with an area containing 87.5% of
-    # the original image.
-    image = tf.image.central_crop(image, central_fraction=0.875)
-    # Resize the image to the original height and width.
-    image = tf.expand_dims(image, 0)
-    image = tf.image.resize_bilinear(image,
-                                     [FLAGS.image_size, FLAGS.image_size],
-                                     align_corners=False)
-    image = tf.squeeze(image, [0])
-    # Finally, rescale to [-1,1] instead of [0, 1)
-    image = tf.sub(image, 0.5)
-    image = tf.mul(image, 2.0)
-    images = tf.expand_dims(image, 0)
-
+    # Note there is no preprocessing; this is all done client-side now.
+    # The images will be read in an N x (image_size ** 2 * n_channels)
+    flat_image_size = 3 * FLAGS.image_size ** 2
+    input_data = tf.placeholder(tf.float32, shape=(None, flat_image_size))
+    # reshape the images appropriately
+    images = tf.reshape(input_data, (-1,
+                                     FLAGS.image_size,
+                                     FLAGS.image_size,
+                                     3))
     # Run inference.
     logits, _ = inception_model.inference(images, NUM_CLASSES + 1)
 
