@@ -920,10 +920,25 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
       }));
   basic_manager_->ManageServable(CreateServableData(
       rejected_id, std::unique_ptr<Loader>(rejected_loader)));
-  basic_manager_->LoadServable(rejected_id, [](const Status& status) {
-    ASSERT_FALSE(status.ok());
-    ASSERT_EQ(error::RESOURCE_EXHAUSTED, status.code());
-  });
+  Notification rejection_received;
+  Status rejected_status;
+  basic_manager_->LoadServable(
+      rejected_id,
+      [&rejection_received, &rejected_status](const Status& status) {
+        ASSERT_FALSE(status.ok());
+        ASSERT_EQ(error::RESOURCE_EXHAUSTED, status.code());
+        rejected_status = status;
+        rejection_received.Notify();
+      });
+  rejection_received.WaitForNotification();
+  EXPECT_THAT(
+      basic_manager_->GetManagedServableStateSnapshots(rejected_id.name),
+      UnorderedElementsAre(ServableStateSnapshot<>{
+          rejected_id, LoaderHarness::State::kError, {}}));
+  const ServableState expected_error_state = {
+      rejected_id, ServableState::ManagerState::kEnd, rejected_status};
+  EXPECT_THAT(*servable_state_monitor_.GetState(rejected_id),
+              EqualsServableState(expected_error_state));
 }
 
 TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedIfLoadFails) {

@@ -101,7 +101,7 @@ TEST(LoaderHarnessTest, Load) {
   const auto available_resources = test_util::CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
-      "    device: 'cpu' "
+      "    device: 'main' "
       "    kind: 'processing' "
       "  } "
       "  quantity: 100 "
