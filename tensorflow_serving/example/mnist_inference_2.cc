@@ -23,7 +23,7 @@ limitations under the License.
 // version before loading the new one. The server also batches multiple
 // requests together and does batched inference for efficiency.
 // The intention of this example to demonstrate usage of DymanicManager,
-// VersionPolicy and StreamingBatchScheduler.
+// VersionPolicy and BasicBatchScheduler.
 
 #include <stddef.h>
 #include <algorithm>
@@ -49,9 +49,9 @@ limitations under the License.
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/util/command_line_flags.h"
+#include "tensorflow_serving/batching/basic_batch_scheduler.h"
 #include "tensorflow_serving/batching/batch_scheduler.h"
 #include "tensorflow_serving/batching/batch_scheduler_retrier.h"
-#include "tensorflow_serving/batching/streaming_batch_scheduler.h"
 #include "tensorflow_serving/core/manager.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_id.h"
@@ -213,11 +213,11 @@ MnistServiceImpl::MnistServiceImpl(
   // Use the default batch-size, timeout and thread options.  In general
   // the numbers are extremely performance critical and should be tuned based
   // specific graph structure and usage.
-  tensorflow::serving::StreamingBatchScheduler<Task>::Options scheduler_options;
+  tensorflow::serving::BasicBatchScheduler<Task>::Options scheduler_options;
   scheduler_options.thread_pool_name = "mnist_service_batch_threads";
   tensorflow::serving::BatchSchedulerRetrier<Task>::Options retry_options;
   // Retain the default retry options.
-  TF_CHECK_OK(tensorflow::serving::CreateRetryingStreamingBatchScheduler<Task>(
+  TF_CHECK_OK(tensorflow::serving::CreateRetryingBasicBatchScheduler<Task>(
       scheduler_options, retry_options,
       [this](std::unique_ptr<tensorflow::serving::Batch<Task>> batch) {
         this->DoClassifyInBatch(std::move(batch));
