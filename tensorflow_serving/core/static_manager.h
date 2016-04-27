@@ -71,7 +71,8 @@ Status StaticManagerBuilder::AddServable(const ServableId& id,
               [&servable](std::unique_ptr<T>* const returned_servable) {
                 *returned_servable = std::move(servable);
                 return Status::OK();
-              }))));
+              },
+              SimpleLoader<T>::EstimateNoResources()))));
   Status load_status;
   Notification load_done;
   basic_manager_->LoadServable(id, [&](const Status& status) {
