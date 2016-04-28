@@ -76,10 +76,10 @@ cc_test(
         "@tf//tensorflow/core:testlib",
         ":session_bundle_config_proto",
         ":session_bundle_factory",
+        "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/test_util",
-        "//testing/base/public:gunit_main",
     ],
 )
 
@@ -134,7 +134,6 @@ cc_test(
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/test_util",
         "//tensorflow_serving/util:any_ptr",
-        "//testing/base/public:gunit_main",
     ],
 )
 

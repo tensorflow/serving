@@ -65,8 +65,8 @@ cc_test(
     deps = [
         "@tf//tensorflow/core:test",
         ":shared_batch_scheduler",
+        "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util:fake_clock_env",
-        "//testing/base/public:gunit_main",
     ],
 )
 
@@ -90,7 +90,7 @@ cc_test(
     deps = [
         "@tf//tensorflow/core:test",
         ":basic_batch_scheduler",
-        "//testing/base/public:gunit_main",
+        "//tensorflow_serving/core/test_util:test_main",
     ],
 )
 
@@ -146,10 +146,10 @@ cc_test(
     deps = [
         "@tf//tensorflow/core:test",
         ":batching_session",
+        "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/test_util",
-        "//testing/base/public:gunit_main",
     ],
 )
 
