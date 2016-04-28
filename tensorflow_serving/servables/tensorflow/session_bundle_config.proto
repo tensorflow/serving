@@ -5,7 +5,7 @@ import "tensorflow/core/protobuf/config.proto";
 
 package tensorflow.serving;
 
-// Configuration parameters for a SessionBundle.
+// Configuration parameters for a SessionBundle, with optional batching.
 message SessionBundleConfig {
   // The TensorFlow runtime to connect to.
   // See full documentation in tensorflow/core/public/session_options.h.
@@ -18,4 +18,70 @@ message SessionBundleConfig {
   // TensorFlow Session configuration options.
   // See more details in tensorflow/core/framework/config.proto.
   ConfigProto session_config = 2;
+
+  // If set, each emitted session is wrapped with a layer that schedules Run()
+  // calls in batches. The batching layer is transparent to the client
+  // (implements the tensorflow::Session API).
+  //
+  // IMPORTANT: With batching enabled, client threads will spend most of their
+  // time blocked on Session::Run() calls, waiting for enough peer threads to
+  // also call Session::Run() such that a large batch can be formed. For good
+  // throughput, we recommend setting the number of client threads equal to
+  // roughly twice the maximum batch size ('max_batch_size' below).
+  //
+  // The batching layer uses a SharedBatchScheduler to coordinate batching
+  // across multiple session servables emitted by this source adapter. A
+  // BatchSchedulerRetrier is added on top of each batching session.
+  BatchingParameters batching_parameters = 3;
+}
+
+// Batching parameters. Each individual parameter is optional. If omitted, the
+// default value from the relevant batching config struct (SharedBatchScheduler
+// ::Options or BatchSchedulerRetrier::Options) is used.
+message BatchingParameters {
+  // SharedBatchScheduler options (see shared_batch_scheduler.h):
+  //
+
+  // The maximum, and ideal, size of each batch.
+  //
+  // IMPORTANT: As discussed above, use 'max_batch_size * 2' client threads to
+  // achieve high throughput with batching.
+  google.protobuf.Int64Value max_batch_size = 1;
+
+  // If a task has been enqueued for this amount of time (in microseconds), and
+  // a thread is available, the scheduler will immediately form a batch from
+  // enqueued tasks and assign the batch to the thread for processing, even if
+  // the batch's size is below 'max_batch_size'.
+  google.protobuf.Int64Value batch_timeout_micros = 2;
+
+  // The maximum length of the queue, in terms of the number of batches. (A
+  // batch that has been scheduled on a thread is considered to have been
+  // removed from the queue.)
+  google.protobuf.Int64Value max_enqueued_batches = 3;
+
+  // The number of threads to use to process batches.
+  // Must be >= 1, and should be tuned carefully.
+  google.protobuf.Int64Value num_batch_threads = 4;
+
+  // The name to use for the pool of batch threads.
+  google.protobuf.StringValue thread_pool_name = 5;
+
+  // BatchingSession options (see batching_session.h):
+  //
+
+  // The allowed batch sizes. (Ignored if left empty.)
+  // Requirements:
+  //  - The entries must be in increasing order.
+  //  - The final entry must equal 'max_batch_size'.
+  repeated int64 allowed_batch_sizes = 6;
+
+  // BatchSchedulerRetrier options (see batch_scheduler_retrier.h):
+  //
+
+  // The maximum amount of time to spend retrying batched Run() calls, in
+  // microseconds.
+  google.protobuf.Int64Value max_time_micros = 7;
+
+  // The amount of time to pause between retry attempts, in microseconds.
+  google.protobuf.Int64Value retry_delay_micros = 8;
 }

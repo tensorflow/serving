@@ -48,7 +48,9 @@ class FakeSourceAdapter
               servable_ptr->reset(
                   new StoragePath(strings::StrCat(path, "/", name_)));
               return Status::OK();
-            }),
+            },
+            SimpleLoaderSourceAdapter<StoragePath,
+                                      StoragePath>::EstimateNoResources()),
         name_(name),
         destruct_order_(destruct_order) {}
 
