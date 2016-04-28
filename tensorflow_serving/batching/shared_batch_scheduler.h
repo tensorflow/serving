@@ -91,7 +91,7 @@ class SharedBatchScheduler
   // TODO(b/25089730): Tune defaults based on best practices as they develop.
   struct Options {
     // The name to use for the pool of batch threads.
-    string thread_pool_name = "batch_threads";
+    string thread_pool_name = {"batch_threads"};
 
     // The number of threads to use to process batches.
     // Must be >= 1, and should be tuned carefully.

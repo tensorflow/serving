@@ -151,7 +151,7 @@ class BasicBatchScheduler : public BatchScheduler<TaskType> {
     int64 batch_timeout_micros = 10 * 1000 /* 10 milliseconds */;
 
     // The name to use for the pool of batch threads.
-    string thread_pool_name = "batch_threads";
+    string thread_pool_name = {"batch_threads"};
 
     // The number of threads to use to process batches.
     //
