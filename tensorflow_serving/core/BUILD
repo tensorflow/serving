@@ -565,6 +565,42 @@ cc_test(
 )
 
 cc_library(
+    name = "caching_manager",
+    srcs = ["caching_manager.cc"],
+    hdrs = ["caching_manager.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":basic_manager",
+        ":loader",
+        ":manager",
+        ":servable_data",
+        ":servable_handle",
+        ":servable_id",
+        "//tensorflow_serving/util:optional",
+    ],
+)
+
+cc_test(
+    name = "caching_manager_test",
+    srcs = ["caching_manager_test.cc"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:test",
+        ":caching_manager",
+        ":servable_data",
+        ":servable_handle",
+        ":servable_id",
+        ":servable_state",
+        ":servable_state_monitor",
+        ":simple_loader",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/util:any_ptr",
+        "//tensorflow_serving/util:event_bus",
+        "//tensorflow_serving/util:optional",
+    ],
+)
+
+cc_library(
     name = "aspired_version_policy",
     hdrs = ["aspired_version_policy.h"],
     visibility = [
