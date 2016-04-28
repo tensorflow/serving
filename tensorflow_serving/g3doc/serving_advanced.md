@@ -138,21 +138,21 @@ usually achieve best computation efficiency when inference requests are run in
 large batches.
 
 TensorFlow Serving `BatchScheduler` provides such functionality. A specific
-implementation of it -- `StreamingBatchScheduler` -- enqueues tasks (requests)
+implementation of it -- `BasicBatchScheduler` -- enqueues tasks (requests)
 until either of the following occur:
 
   * The next task would cause the batch to exceed the size target.
   * Waiting for more tasks to be added would exceed the timeout.
 
-When either of these occur, the `StreamingBatchScheduler` processes the entire
+When either of these occur, the `BasicBatchScheduler` processes the entire
 batch by executing a callback and passing it the current batch of tasks.
 
-Initializing `StreamingBatchScheduler` is straightforward and is done in a
-`MnistServiceImpl` constructor. A `StreamingBatchScheduler::Options` is given to
+Initializing `BasicBatchScheduler` is straightforward and is done in a
+`MnistServiceImpl` constructor. A `BasicBatchScheduler::Options` is given to
 configure the batch scheduler, and a callback is given to be executed when the
 batch is full or timeout exceeds.
 
-The default `StreamingBatchScheduler::Options` has batch size set to 32 and
+The default `BasicBatchScheduler::Options` has batch size set to 32 and
 timeout set to 10 milliseconds. These parameters are typically extremely
 performance critical and should be tuned based on a specific model/scenario in
 production. In this tutorial, you will not bother tuning them.

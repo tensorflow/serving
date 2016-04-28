@@ -433,9 +433,6 @@ cc_library(
     name = "basic_manager",
     srcs = ["basic_manager.cc"],
     hdrs = ["basic_manager.h"],
-    visibility = [
-        "//visibility:public",
-    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":loader",
