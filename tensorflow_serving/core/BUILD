@@ -433,9 +433,6 @@ cc_library(
     name = "basic_manager",
     srcs = ["basic_manager.cc"],
     hdrs = ["basic_manager.h"],
-    visibility = [
-        "//visibility:public",
-    ],
     deps = [
         "@tf//tensorflow/core:lib",
         ":loader",
@@ -564,6 +561,42 @@ cc_test(
         ":static_manager",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util:fake_clock_env",
+    ],
+)
+
+cc_library(
+    name = "caching_manager",
+    srcs = ["caching_manager.cc"],
+    hdrs = ["caching_manager.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":basic_manager",
+        ":loader",
+        ":manager",
+        ":servable_data",
+        ":servable_handle",
+        ":servable_id",
+        "//tensorflow_serving/util:optional",
+    ],
+)
+
+cc_test(
+    name = "caching_manager_test",
+    srcs = ["caching_manager_test.cc"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:test",
+        ":caching_manager",
+        ":servable_data",
+        ":servable_handle",
+        ":servable_id",
+        ":servable_state",
+        ":servable_state_monitor",
+        ":simple_loader",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/util:any_ptr",
+        "//tensorflow_serving/util:event_bus",
+        "//tensorflow_serving/util:optional",
     ],
 )
 

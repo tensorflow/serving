@@ -76,9 +76,7 @@ class SimpleLoader : public Loader {
   // and hence the serving system cannot enforce resource safety.
   static ResourceEstimator EstimateNoResources();
 
-  explicit SimpleLoader(Creator creator, ResourceEstimator resource_estimator =
-                                             EstimateNoResources());
-  SimpleLoader() = delete;
+  SimpleLoader(Creator creator, ResourceEstimator resource_estimator);
   ~SimpleLoader() override = default;
 
   Status EstimateResources(ResourceAllocation* estimate) const override;
@@ -142,10 +140,8 @@ class SimpleLoaderSourceAdapter
   // and hence the serving system cannot enforce resource safety.
   static ResourceEstimator EstimateNoResources();
 
-  explicit SimpleLoaderSourceAdapter(
-      Creator creator,
-      ResourceEstimator resource_estimator = EstimateNoResources());
-  SimpleLoaderSourceAdapter() = delete;
+  SimpleLoaderSourceAdapter(Creator creator,
+                            ResourceEstimator resource_estimator);
   ~SimpleLoaderSourceAdapter() override = default;
 
  protected:

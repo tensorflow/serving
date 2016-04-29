@@ -66,10 +66,9 @@ Status CreateStoragePathSource(
 // FileSystemStoragePathSource as the Source and the SessionBundleSource as the
 // Target.
 Status CreateSessionBundleSource(
-    std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
-        source) {
+    std::unique_ptr<SessionBundleSourceAdapter>* source) {
   SessionBundleSourceAdapterConfig config;
-  source->reset(new SessionBundleSourceAdapter(config));
+  TF_RETURN_IF_ERROR(SessionBundleSourceAdapter::Create(config, source));
 
   return Status::OK();
 }
@@ -78,8 +77,7 @@ Status CreateSessionBundleSource(
 
 Status CreateSingleTFModelManagerFromBasePath(
     const string& base_path, std::unique_ptr<Manager>* const manager) {
-  std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>
-      bundle_source;
+  std::unique_ptr<SessionBundleSourceAdapter> bundle_source;
   TF_RETURN_IF_ERROR(CreateSessionBundleSource(&bundle_source));
   std::unique_ptr<Source<StoragePath>> path_source;
   TF_RETURN_IF_ERROR(
