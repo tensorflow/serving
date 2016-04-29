@@ -153,14 +153,17 @@ TEST_P(BasicManagerTest, ServableHandleLatestVersionIsZero) {
       ServableRequest::Latest(kServableName3), &handle);
   TF_ASSERT_OK(status);
   EXPECT_EQ(1, *handle);
+  EXPECT_EQ(id, handle.id());
 }
 
 TEST_P(BasicManagerTest, ServableHandleSpecificVersion) {
   ServableHandle<int64> handle;
-  const Status status = basic_manager_->GetServableHandle(
-      ServableRequest::Specific(kServableName2, 1), &handle);
+  const ServableId id = {kServableName2, 1};
+  const Status status =
+      basic_manager_->GetServableHandle(ServableRequest::FromId(id), &handle);
   TF_ASSERT_OK(status);
   EXPECT_EQ(1, *handle);
+  EXPECT_EQ(id, handle.id());
 }
 
 TEST_P(BasicManagerTest, ListAvailableServableIds) {

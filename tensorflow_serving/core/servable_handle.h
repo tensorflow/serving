@@ -37,6 +37,8 @@ class UntypedServableHandle {
  public:
   virtual ~UntypedServableHandle() = default;
 
+  virtual const ServableId& id() const = 0;
+
   virtual AnyPtr servable() = 0;
 };
 
@@ -78,9 +80,7 @@ class ServableHandle {
   // ServableHandle is null by default.
   ServableHandle() = default;
 
-  // Implicit cast from null.
-  ServableHandle(std::nullptr_t)  // NOLINT(runtime/explicit)
-      : ServableHandle() {}
+  const ServableId& id() const { return untyped_handle_->id(); }
 
   // Smart pointer operations.
 
@@ -114,38 +114,33 @@ class SharedPtrHandle final : public UntypedServableHandle {
  public:
   ~SharedPtrHandle() override = default;
 
-  explicit SharedPtrHandle(std::shared_ptr<Loader> loader)
-      : loader_(std::move(loader)) {}
+  explicit SharedPtrHandle(const ServableId& id, std::shared_ptr<Loader> loader)
+      : id_(id), loader_(std::move(loader)) {}
 
   AnyPtr servable() override { return loader_->servable(); }
 
+  const ServableId& id() const override { return id_; }
+
  private:
+  const ServableId id_;
   std::shared_ptr<Loader> loader_;
 };
 
-// Macro to define relational operators for ServableHandle without too much
-// boiler-plate.
-//
-// Note that these are not deep comparisons, only the addresses are used.
-#define SERVABLE_HANDLE_REL_OP(OP)                                         \
-  template <typename T, typename U>                                        \
-  constexpr bool operator OP(const ServableHandle<T>& l,                   \
-                             const ServableHandle<U>& r) {                 \
-    return l.get() OP r.get();                                             \
-  }                                                                        \
-  template <typename T>                                                    \
-  constexpr bool operator OP(std::nullptr_t, const ServableHandle<T>& r) { \
-    return nullptr OP r.get();                                             \
-  }                                                                        \
-  template <typename T>                                                    \
-  constexpr bool operator OP(const ServableHandle<T>& l, std::nullptr_t) { \
-    return l.get() OP nullptr;                                             \
-  }
+// We compare handles using both the servable pointer and the id. So if you
+// share the same pointer amongst different versions, the handles won't be
+// equal.
+template <typename T, typename U>
+constexpr bool operator==(const ServableHandle<T>& l,
+                          const ServableHandle<U>& r) {
+  return l.get() == r.get() && l.id() == r.id();
+}
 
-SERVABLE_HANDLE_REL_OP(==)
-SERVABLE_HANDLE_REL_OP(!=)
+template <typename T, typename U>
+constexpr bool operator!=(const ServableHandle<T>& l,
+                          const ServableHandle<U>& r) {
+  return !(l == r);
+}
 
-#undef SERVABLE_HANDLE_REL_OP
 }  // namespace serving
 }  // namespace tensorflow
 
