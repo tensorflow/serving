@@ -3,11 +3,12 @@
 This tutorial shows you how to use TensorFlow Serving components to export a
 trained TensorFlow model and build a server to serve the exported model. The
 server you will build in this tutorial is relatively simple: it serves a single
-static TensorFlow model, it handles individual inference requests (not batch
-requests), and it calculates an aggregate inference error rate. If you are
-already familiar with TensorFlow Serving, and you want to create a more complex
-server that handles batched inference requests, and discovers and serves new
-versions of a TensorFlow model that is being dynamically updated, see the
+static TensorFlow model, it handles inference requests, and it calculates an
+aggregate inference error rate. If you are already familiar with TensorFlow
+Serving, and you want to create a more sophisticated server that handles
+inference requests asynchronously (without blocking client threads), and
+discovers and serves new versions of a TensorFlow model that is being
+dynamically updated, see the
 [TensorFlow Serving advanced tutorial](serving_advanced.md).
 
 This tutorial uses the simple Softmax Regression model introduced in the
@@ -147,18 +148,20 @@ With that, your TensorFlow model is exported and ready to be loaded!
 
 ## Load Exported TensorFlow Model
 
-The C++ code for loading the exported TensorFlow model is very simple (see
-mnist_inference.cc):
+The C++ code for loading the exported TensorFlow model is in the `main()`
+function in mnist_inference.cc, and is simple. The basic code is:
 
 ~~~c++
 int main(int argc, char** argv) {
   ...
 
-  tensorflow::SessionOptions session_options;
+  SessionBundleConfig session_bundle_config;
+  ... (ignoring batching for now; see below)
+  std::unique_ptr<SessionBundleFactory> bundle_factory;
+  TF_QCHECK_OK(
+      SessionBundleFactory::Create(session_bundle_config, &bundle_factory));
   std::unique_ptr<SessionBundle> bundle(new SessionBundle);
-  const tensorflow::Status status =
-      tensorflow::serving::LoadSessionBundleFromPath(session_options,
-                                                     bundle_path, bundle.get());
+  TF_QCHECK_OK(bundle_factory->CreateSessionBundle(bundle_path, &bundle));
   ...
 
   RunServer(FLAGS_port, std::move(bundle));
@@ -168,11 +171,40 @@ int main(int argc, char** argv) {
 ~~~
 
 It uses the `SessionBundle` component of TensorFlow Serving.
-`LoadSessionBundleFromPath()` loads an exported TensorFlow model at the given
-path and creates a `SessionBundle` object for running inference with the model.
-Typically, a default `SessionOptions` is given when loading the model.
+`SessionBundleFactory::CreateSessionBundle()` loads an exported TensorFlow model
+at the given path and creates a `SessionBundle` object for running inference
+with the model. Typically, a default `tensorflow::SessionOptions` proto is given
+when loading the model; a custom one can be passed via `SessionBundleConfig` if
+desired.
 
-Let's look at the `SessionBundle` definition in
+With a small amount of extra code, you can arrange for the server to batch
+groups of inference requests together into larger tensors, which tends to
+improve throughput, especially on GPUs. To enable batching you simply populate
+the `BatchingParameters` sub-message of the `SessionBundleConfig`, like so:
+
+~~~c++
+int main(int argc, char** argv) {
+  ...
+  BatchingParameters* batching_parameters =
+      session_bundle_config.mutable_batching_parameters();
+  batching_parameters->mutable_thread_pool_name()->set_value(
+      "mnist_service_batch_threads");
+  ...
+}
+~~~
+
+This example sticks with default tuning parameters for batching; if you want to
+adjust the maximum batch size, timeout threshold or the number of background
+threads used for batched inference, you can do so by setting more values in
+`BatchingParameters`. Note that the (simplified) batching API offered by
+`SessionBundleFactory` requires a client thread to block while awaiting other
+peer threads with which to form a batch -- gRPC promises to adjust the number of
+client threads to keep things flowing smoothly. Lastly, the batcher's timeout
+threshold bounds the amount of time a given request spends in the blocked state,
+so a low request volume does not compromise latency.
+
+Whether or not we enable batching, we wind up with a `SessionBundle`; let's look
+at its definition in
 [session_bundle.h](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/session_bundle/session_bundle.h):
 
 ~~~c++

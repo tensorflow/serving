@@ -1,12 +1,15 @@
-# Serving Dynamically Updated TensorFlow Model with Batching
+# Serving Dynamically Updated TensorFlow Model with Asynchronous Batching
 
 This tutorial shows you how to use TensorFlow Serving components to build a
 server that dynamically discovers and serves new versions of a trained
-TensorFlow model. You'll also learn how to use TensorFlow Serving
-batch scheduler to do batched inference. The code examples in this tutorial
-focus on the discovery, batching, and serving logic. If you just want to use
-TensorFlow Serving to serve a single version model without batching, see
-[TensorFlow Serving basic tutorial](serving_basic.md).
+TensorFlow model. You'll also learn how to use TensorFlow Serving's more
+flexible, lower-level batch scheduling API. One advantage of the lower-level API
+is its asynchronous behavior, which allows you to reduce the number of client
+threads and thus use less memory without compromising throughput. The code
+examples in this tutorial focus on the discovery, asynchronous batching, and
+serving logic. If you just want to use TensorFlow Serving to serve a single
+version model, and are fine with synchronous batching (relying on many client
+threads that block), see [TensorFlow Serving basic tutorial](serving_basic.md).
 
 This tutorial uses the simple Softmax Regression model introduced in the
 TensorFlow tutorial for handwritten image (MNIST data) classification. If you
