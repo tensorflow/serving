@@ -42,7 +42,7 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-using ::testing::EqualsProto;
+using test_util::EqualsProto;
 
 class SessionBundleSourceAdapterTest : public ::testing::Test {
  protected:

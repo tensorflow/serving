@@ -134,6 +134,7 @@ cc_library(
         ":basic_batch_scheduler",
         ":batch_scheduler",
         "//tensorflow_serving/servables/tensorflow:serving_session",
+        "//tensorflow_serving/util:cleanup",
     ],
 )
 
