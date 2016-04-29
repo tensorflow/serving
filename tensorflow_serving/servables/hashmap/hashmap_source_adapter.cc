@@ -66,10 +66,13 @@ Status LoadHashmapFromFile(const string& path,
 
 HashmapSourceAdapter::HashmapSourceAdapter(
     const HashmapSourceAdapterConfig& config)
-    : SimpleLoaderSourceAdapter<StoragePath, Hashmap>([config](
-          const StoragePath& path, std::unique_ptr<Hashmap> * hashmap) {
-        return LoadHashmapFromFile(path, config.format(), hashmap);
-      }) {}
+    : SimpleLoaderSourceAdapter<StoragePath, Hashmap>(
+          [config](const StoragePath& path, std::unique_ptr<Hashmap>* hashmap) {
+            return LoadHashmapFromFile(path, config.format(), hashmap);
+          },
+          // Decline to supply a resource footprint estimate.
+          SimpleLoaderSourceAdapter<StoragePath,
+                                    Hashmap>::EstimateNoResources()) {}
 
 }  // namespace serving
 }  // namespace tensorflow
