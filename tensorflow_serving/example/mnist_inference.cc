@@ -48,6 +48,8 @@ limitations under the License.
 #include "tensorflow/core/util/command_line_flags.h"
 #include "tensorflow_serving/example/mnist_inference.grpc.pb.h"
 #include "tensorflow_serving/example/mnist_inference.pb.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_factory.h"
 #include "tensorflow_serving/session_bundle/manifest.pb.h"
 #include "tensorflow_serving/session_bundle/session_bundle.h"
 #include "tensorflow_serving/session_bundle/signature.h"
@@ -62,7 +64,10 @@ using tensorflow::serving::ClassificationSignature;
 using tensorflow::serving::MnistRequest;
 using tensorflow::serving::MnistResponse;
 using tensorflow::serving::MnistService;
+using tensorflow::serving::BatchingParameters;
 using tensorflow::serving::SessionBundle;
+using tensorflow::serving::SessionBundleConfig;
+using tensorflow::serving::SessionBundleFactory;
 using tensorflow::string;
 using tensorflow::Tensor;
 using tensorflow::TensorShape;
@@ -182,15 +187,27 @@ int main(int argc, char** argv) {
   // WARNING(break-tutorial-inline-code): The following code snippet is
   // in-lined in tutorials, please update tutorial documents accordingly
   // whenever code changes.
-  tensorflow::SessionOptions session_options;
+
+  SessionBundleConfig session_bundle_config;
+
+  //////
+  // Request batching, keeping default values for the tuning parameters.
+  //
+  // (If you prefer to disable batching, simply omit the following lines of code
+  // such that session_bundle_config.batching_parameters remains unset.)
+  BatchingParameters* batching_parameters =
+      session_bundle_config.mutable_batching_parameters();
+  batching_parameters->mutable_thread_pool_name()->set_value(
+      "mnist_service_batch_threads");
+  //////
+
+  std::unique_ptr<SessionBundleFactory> bundle_factory;
+  TF_QCHECK_OK(
+      SessionBundleFactory::Create(session_bundle_config, &bundle_factory));
   std::unique_ptr<SessionBundle> bundle(new SessionBundle);
-  const tensorflow::Status status =
-      tensorflow::serving::LoadSessionBundleFromPath(session_options,
-                                                     bundle_path, bundle.get());
-  if (!status.ok()) {
-    LOG(ERROR) << "Fail to load tensorflow export: " << status.error_message();
-    return -1;
-  }
+  TF_QCHECK_OK(bundle_factory->CreateSessionBundle(bundle_path, &bundle));
+
+  // END WARNING(break-tutorial-inline-code)
 
   RunServer(port, std::move(bundle));
 

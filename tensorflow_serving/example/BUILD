@@ -64,6 +64,8 @@ cc_binary(
         "@tf//tensorflow/core:protos_all_cc",
         "@tf//tensorflow/core:tensorflow",
         ":mnist_inference_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_factory",
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/session_bundle:manifest_proto",
         "//tensorflow_serving/session_bundle:signature",
