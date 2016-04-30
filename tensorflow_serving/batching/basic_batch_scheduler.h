@@ -155,15 +155,14 @@ class BasicBatchScheduler : public BatchScheduler<TaskType> {
 
     // The number of threads to use to process batches.
     //
-    // This parameter also determines the maximum number of batches worth of
-    // tasks that can be enqueued: If all batch threads are busy, Schedule()
-    // will accept at most 'num_batch_threads' additional batches worth of tasks
-    // before rejecting tasks with an UNAVAILABLE error.
+    // If all threads are busy, Schedule() will enqueue up to 
+    // max_enqueued_batches * max_batch_size individual tasks before throwing
+    // an UNAVAILABLE error.
     //
     // Must be >= 1, and should be tuned carefully.
     int num_batch_threads = 1;
 
-    // The maximum number of batches that can be enqueued (accepted by
+    // The maximum number of enqueued tasks in terms of batches (accepted by
     // Schedule() but not yet being processed on a batch thread). See the
     // class documentation above for guidelines on how to tune this parameter.
     int max_enqueued_batches = 1;
