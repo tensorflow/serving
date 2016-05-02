@@ -454,7 +454,7 @@ cc_library(
 
 cc_test(
     name = "basic_manager_test",
-    size = "small",
+    size = "medium",
     srcs = ["basic_manager_test.cc"],
     deps = [
         "@tf//tensorflow/core:lib",
