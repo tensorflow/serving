@@ -166,5 +166,8 @@ py_binary(
         "imagenet_lsvrc_2015_synsets.txt",
         "imagenet_metadata.txt",
     ],
-    deps = ["@tf//tensorflow:tensorflow_py"],
+    deps = [
+        "@tf//tensorflow:tensorflow_py",
+        "//third_party/py/numpy",
+    ],
 )

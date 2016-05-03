@@ -1042,15 +1042,14 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedAfterUnload) {
         return Status::OK();
       }));
   Notification load_done;
-  EXPECT_CALL(*unloading_loader, Load(_))
-      .WillOnce(Invoke([&load_done](const ResourceAllocation& allocation) {
-        load_done.Notify();
-        return Status::OK();
-      }));
+  EXPECT_CALL(*unloading_loader, Load(_)).WillOnce(Return(Status::OK()));
   basic_manager_->ManageServable(CreateServableData(
       unloading_id, std::unique_ptr<Loader>(unloading_loader)));
-  basic_manager_->LoadServable(
-      unloading_id, [](const Status& status) { TF_EXPECT_OK(status); });
+  basic_manager_->LoadServable(unloading_id,
+                               [&load_done](const Status& status) {
+                                 TF_EXPECT_OK(status);
+                                 load_done.Notify();
+                               });
   load_done.WaitForNotification();
   Notification unload_started;
   Notification finish_unload;
