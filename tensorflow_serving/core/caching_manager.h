@@ -75,11 +75,14 @@ class CachingManager : public Manager {
     virtual ~LoaderFactory() = default;
 
     // Creates servable data consisting of the loader corresponding to the
-    // request.
+    // servable-id.
     virtual Status CreateLoader(
-        const ServableRequest& request,
+        const ServableId& servable_id,
         std::unique_ptr<ServableData<std::unique_ptr<Loader>>>*
             loader_data) = 0;
+
+    // Returns the latest version corresponding to the servable name.
+    virtual int64 GetLatestVersion(const string& servable_name) const = 0;
   };
 
   static Status Create(Options options,
@@ -100,18 +103,17 @@ class CachingManager : public Manager {
   // Returns the untyped handle for the servable request.
   //
   // Semantics related to a ServableRequest for "latest":
-  // 1. If the manager does not have any version of the requested servable
-  // loaded, it forwards the "latest" request to the loader-factory, which emits
-  // its notion of the "latest" version. This is then managed and loaded by the
-  // manager.
-  // 2. If the manager already has one or more versions of the requested
-  // servable name, it will return the latest among those versions (regardless
-  // of whether the loader-factory may know of a later version).
-  //
-  // TODO(b/25449742): Always return latest as determined by the loader factory.
+  // The manager forwards the "latest" request to the loader-factory, which
+  // emits its notion of the "latest" version. This is then managed and loaded
+  // by the manager, if not already available, and a handle to it is returned.
   Status GetUntypedServableHandle(
       const ServableRequest& request,
       std::unique_ptr<UntypedServableHandle>* handle) override;
+
+  // Returns the untyped handle for a servable-id.
+  Status GetUntypedServableHandleForId(
+      const ServableId& servable_id,
+      std::unique_ptr<UntypedServableHandle>* handle);
 
   std::unique_ptr<LoaderFactory> loader_factory_;
 
