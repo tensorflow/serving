@@ -154,7 +154,6 @@ class BasicBatchScheduler : public BatchScheduler<TaskType> {
     string thread_pool_name = {"batch_threads"};
 
     // The number of threads to use to process batches.
-    //
     // Must be >= 1, and should be tuned carefully.
     int num_batch_threads = 1;
 
