@@ -162,12 +162,5 @@ py_binary(
         "inception_client.py",
         "inception_inference_pb2.py",
     ],
-    data = [
-        "imagenet_lsvrc_2015_synsets.txt",
-        "imagenet_metadata.txt",
-    ],
-    deps = [
-        "@tf//tensorflow:tensorflow_py",
-        "//third_party/py/numpy",
-    ],
+    deps = ["@tf//tensorflow:tensorflow_py"],
 )

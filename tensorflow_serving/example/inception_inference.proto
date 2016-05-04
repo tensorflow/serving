@@ -10,8 +10,8 @@ message InceptionRequest {
 };
 
 message InceptionResponse {
-  // Class indexes of top matches, in scores descending order.
-  repeated int32 classes = 1;
+  // Human readable descriptions of the classes, in scores descending order.
+  repeated string classes = 3;
   // Scores of top matches, in same order as classes.
   repeated float scores = 2;
 };
