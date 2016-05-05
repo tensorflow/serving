@@ -107,9 +107,8 @@ root@f07eec53fd95:/serving# bazel-bin/tensorflow_serving/example/inception_infer
 
 Query the server with [inception_client.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/inception_client.py).
 The client sends an image specified by the command line parameter to the server
-over gRPC for classification. It then looks up the
-[ImageNet](http://www.image-net.org/) synset and metadata files and returns
-human readable descriptions of the categories.
+over gRPC for classification into human readable descriptions of the
+[ImageNet](http://www.image-net.org/) categories.
 
 ```shell
 root@f07eec53fd95:/serving# bazel-bin/tensorflow_serving/example/inception_client --server=localhost:9000 --image=/path/to/my_cat_image.jpg
