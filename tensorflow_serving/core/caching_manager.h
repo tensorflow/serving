@@ -115,9 +115,25 @@ class CachingManager : public Manager {
       const ServableId& servable_id,
       std::unique_ptr<UntypedServableHandle>* handle);
 
+  // Load the servable corresponding to the servable-id. For multiple concurrent
+  // requests for the same servable-id, enforces that exactly one thread
+  // performs the load operation using the wrapped basic-manager. All other
+  // requests block until the load completes and then trivially succeed.
+  Status LoadServable(const ServableId& servable_id)
+      LOCKS_EXCLUDED(load_mutex_map_mu_);
+
   std::unique_ptr<LoaderFactory> loader_factory_;
 
   std::unique_ptr<BasicManager> basic_manager_;
+
+  // Used to protect access to the load_mutex_map_.
+  mutable mutex load_mutex_map_mu_;
+
+  // Map of servable-id to a mutex, which is required to synchronize calls to
+  // load the servable using the wrapped basic-manager.
+  // TODO(b/28445976): Add support for garbage-collection of map entries.
+  std::map<ServableId, std::unique_ptr<mutex>> load_mutex_map_
+      GUARDED_BY(load_mutex_map_mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(CachingManager);
 };

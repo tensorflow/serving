@@ -96,19 +96,63 @@ Status CachingManager::GetUntypedServableHandleForId(
   // caching-manager as well (via the basic manager).
   basic_manager_->ManageServable(std::move(*loader_data));
 
-  // Load the servable and use a notification to wait until it is complete.
-  Notification load_done;
-  Status load_status;
-  basic_manager_->LoadServable(servable_id, [&](const Status& status) {
-    load_status = status;
-    load_done.Notify();
-  });
-  load_done.WaitForNotification();
-  TF_RETURN_IF_ERROR(load_status);
+  // Load the servable corresponding to the servable-id. For multiple concurrent
+  // requests enforces that exactly one thread performs the load operation with
+  // the wrapped basic-manager. All other requests block until the load
+  // completes and then trivially succeed.
+  LoadServable(servable_id);
 
   // Return the handle using the loaded servable data now.
   return basic_manager_->GetUntypedServableHandle(
       ServableRequest::FromId(servable_id), handle);
+}
+
+Status CachingManager::LoadServable(const ServableId& servable_id) {
+  mutex* servable_id_mu;
+  {
+    mutex_lock l(load_mutex_map_mu_);
+    auto iter = load_mutex_map_.find(servable_id);
+    if (iter == load_mutex_map_.end()) {
+      iter = load_mutex_map_
+                 .emplace(servable_id, std::unique_ptr<mutex>(new mutex))
+                 .first;
+    }
+    servable_id_mu = iter->second.get();
+  }
+
+  {
+    // Ensure only one thread attempts to load the servable at a time.
+    mutex_lock l(*servable_id_mu);
+
+    // Retrieve the state of the servable from the wrapped basic-manager. The
+    // servable should already be managed by the basic-manager. If a snapshot
+    // corresponding to the managed servable-id is not found, it is considered
+    // an error.
+    // TODO(b/28617799): Update to use the basic-manager API to get the
+    // servable state snapshot per servable id.
+    LoaderHarness::State snapshot_state = LoaderHarness::State::kError;
+    const std::vector<ServableStateSnapshot<>> snapshots =
+        basic_manager_->GetManagedServableStateSnapshots(servable_id.name);
+    for (const auto& snapshot : snapshots) {
+      if (snapshot.id.version == servable_id.version) {
+        snapshot_state = snapshot.state;
+        break;
+      }
+    }
+
+    // Load the servable since it has not been loaded yet based on its state.
+    if (snapshot_state == LoaderHarness::State::kNew) {
+      Notification load_done;
+      Status load_status;
+      basic_manager_->LoadServable(servable_id, [&](const Status& status) {
+        load_status = status;
+        load_done.Notify();
+      });
+      load_done.WaitForNotification();
+      TF_RETURN_IF_ERROR(load_status);
+    }
+  }
+  return Status::OK();
 }
 
 std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
