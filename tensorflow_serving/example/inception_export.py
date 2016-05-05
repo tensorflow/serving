@@ -41,8 +41,24 @@ FLAGS = tf.app.flags.FLAGS
 NUM_CLASSES = 1000
 NUM_TOP_CLASSES = 5
 
+WORKING_DIR = os.path.dirname(os.path.realpath(__file__))
+SYNSET_FILE = os.path.join(WORKING_DIR, 'imagenet_lsvrc_2015_synsets.txt')
+METADATA_FILE = os.path.join(WORKING_DIR, 'imagenet_metadata.txt')
+
 
 def export():
+  # Create index->synset mapping
+  synsets = []
+  with open(SYNSET_FILE) as f:
+    synsets = f.read().splitlines()
+  # Create synset->metadata mapping
+  texts = {}
+  with open(METADATA_FILE) as f:
+    for line in f.read().splitlines():
+      parts = line.split('\t')
+      assert len(parts) == 2
+      texts[parts[0]] = parts[1]
+
   with tf.Graph().as_default():
     # Build inference model.
     # Please refer to Tensorflow inception model for details.
@@ -80,6 +96,13 @@ def export():
     # Transform output to topK result.
     values, indices = tf.nn.top_k(logits, NUM_TOP_CLASSES)
 
+    # Create a constant string Tensor where the i'th element is
+    # the human readable class description for the i'th index.
+    class_tensor = tf.constant([texts[s] for s in synsets])
+
+    classes = tf.contrib.lookup.index_to_string(tf.to_int64(indices),
+                                                mapping=class_tensor)
+
     # Restore variables from training checkpoint.
     variable_averages = tf.train.ExponentialMovingAverage(
         inception_model.MOVING_AVERAGE_DECAY)
@@ -89,22 +112,25 @@ def export():
       # Restore variables from training checkpoints.
       ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
       if ckpt and ckpt.model_checkpoint_path:
-        saver.restore(sess, ckpt.model_checkpoint_path)
+        full_path = os.path.join(FLAGS.checkpoint_dir,
+                                 ckpt.model_checkpoint_path)
+        saver.restore(sess, full_path)
         # Assuming model_checkpoint_path looks something like:
         #   /my-favorite-path/imagenet_train/model.ckpt-0,
         # extract global_step from it.
         global_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
         print('Successfully loaded model from %s at step=%s.' %
-              (ckpt.model_checkpoint_path, global_step))
+              (full_path, global_step))
       else:
         print('No checkpoint file found at %s' % FLAGS.checkpoint_dir)
         return
 
       # Export inference model.
+      init_op = tf.group(tf.initialize_all_tables(), name='init_op')
       model_exporter = exporter.Exporter(saver)
       signature = exporter.classification_signature(
-          input_tensor=jpegs, classes_tensor=indices, scores_tensor=values)
-      model_exporter.init(default_graph_signature=signature)
+          input_tensor=jpegs, classes_tensor=classes, scores_tensor=values)
+      model_exporter.init(default_graph_signature=signature, init_op=init_op)
       model_exporter.export(FLAGS.export_dir, tf.constant(global_step), sess)
       print('Successfully exported model to %s' % FLAGS.export_dir)
 

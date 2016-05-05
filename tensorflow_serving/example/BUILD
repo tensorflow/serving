@@ -64,6 +64,8 @@ cc_binary(
         "@tf//tensorflow/core:protos_all_cc",
         "@tf//tensorflow/core:tensorflow",
         ":mnist_inference_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_factory",
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/session_bundle:manifest_proto",
         "//tensorflow_serving/session_bundle:signature",
@@ -159,10 +161,6 @@ py_binary(
     srcs = [
         "inception_client.py",
         "inception_inference_pb2.py",
-    ],
-    data = [
-        "imagenet_lsvrc_2015_synsets.txt",
-        "imagenet_metadata.txt",
     ],
     deps = ["@tf//tensorflow:tensorflow_py"],
 )

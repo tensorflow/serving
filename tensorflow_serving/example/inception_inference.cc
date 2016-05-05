@@ -306,7 +306,7 @@ void InceptionServiceImpl::DoClassifyInBatch(
     auto classes = calldata->mutable_response()->mutable_classes();
     auto scores = calldata->mutable_response()->mutable_scores();
     for (int j = 0; j < kNumTopClasses; j++) {
-      classes->Add(batched_classes.matrix<int>()(i, j));
+      *classes->Add() = batched_classes.matrix<string>()(i, j);
       scores->Add(batched_scores.matrix<float>()(i, j));
     }
     calldata->Finish(Status::OK);

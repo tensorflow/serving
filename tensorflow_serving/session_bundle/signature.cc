@@ -60,8 +60,8 @@ Status GetSignatures(const tensorflow::MetaGraphDef& meta_graph_def,
   return Status::OK();
 }
 
-Status SetSignatures(tensorflow::MetaGraphDef* meta_graph_def,
-                     const Signatures& signatures) {
+Status SetSignatures(const Signatures& signatures,
+                     tensorflow::MetaGraphDef* meta_graph_def) {
   auto& collection_def = *(meta_graph_def->mutable_collection_def());
   auto* any_list = collection_def[kSignaturesKey].mutable_any_list();
   any_list->mutable_value()->Clear();
