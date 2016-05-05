@@ -166,5 +166,6 @@ cc_test(
         ":manifest_proto",
         ":signature",
         "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
     ],
 )

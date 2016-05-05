@@ -61,10 +61,23 @@ CachingManager::~CachingManager() {}
 
 Status CachingManager::GetUntypedServableHandle(
     const ServableRequest& request,
+    std::unique_ptr<UntypedServableHandle>* const handle) {
+  if (request.version) {
+    return GetUntypedServableHandleForId({request.name, *request.version},
+                                         handle);
+  }
+  // Since there is no explicit version in the request, get the latest from the
+  // loader-factory.
+  const int64 latest_version = loader_factory_->GetLatestVersion(request.name);
+  return GetUntypedServableHandleForId({request.name, latest_version}, handle);
+}
+
+Status CachingManager::GetUntypedServableHandleForId(
+    const ServableId& servable_id,
     std::unique_ptr<UntypedServableHandle>* handle) {
   // Check if the underlying basic manager can already serve this request.
-  const Status handle_status =
-      basic_manager_->GetUntypedServableHandle(request, handle);
+  const Status handle_status = basic_manager_->GetUntypedServableHandle(
+      ServableRequest::FromId(servable_id), handle);
 
   // If the servable is already managed and loaded by the basic manager, serve
   // it.
@@ -72,13 +85,9 @@ Status CachingManager::GetUntypedServableHandle(
     return handle_status;
   }
 
-  // Build the servable data corresponding to the request.
+  // Build the servable data corresponding to the servable-id.
   std::unique_ptr<ServableData<std::unique_ptr<Loader>>> loader_data;
-  TF_RETURN_IF_ERROR(
-      loader_factory_->CreateLoader(std::move(request), &loader_data));
-
-  // Keep track of the servable id to use for loading the servable.
-  const ServableId id = loader_data->id();
+  TF_RETURN_IF_ERROR(loader_factory_->CreateLoader(servable_id, &loader_data));
 
   // Manage the servable using the basic manager. The loader_data may contain an
   // error and the basic manager is equipped to handle that appropriately. By
@@ -90,7 +99,7 @@ Status CachingManager::GetUntypedServableHandle(
   // Load the servable and use a notification to wait until it is complete.
   Notification load_done;
   Status load_status;
-  basic_manager_->LoadServable(id, [&](const Status& status) {
+  basic_manager_->LoadServable(servable_id, [&](const Status& status) {
     load_status = status;
     load_done.Notify();
   });
@@ -98,7 +107,8 @@ Status CachingManager::GetUntypedServableHandle(
   TF_RETURN_IF_ERROR(load_status);
 
   // Return the handle using the loaded servable data now.
-  return basic_manager_->GetUntypedServableHandle(request, handle);
+  return basic_manager_->GetUntypedServableHandle(
+      ServableRequest::FromId(servable_id), handle);
 }
 
 std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
