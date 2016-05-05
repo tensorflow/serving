@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/test_util/test_util.h"
 
 #include "tensorflow/core/lib/io/path.h"
+#include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/test.h"
 
 namespace tensorflow {
@@ -23,6 +24,14 @@ namespace serving {
 namespace test_util {
 
 string TestSrcDirPath(const string& relative_path) {
+  const string base_path = tensorflow::io::JoinPath(
+      getenv("TEST_SRCDIR"), "tf_serving/tensorflow_serving");
+  if (Env::Default()->FileExists(base_path)) {
+    // Supported in Bazel 0.2.2+.
+    return tensorflow::io::JoinPath(base_path, relative_path);
+  }
+  // Old versions of Bazel sometimes don't include the workspace name in the
+  // runfiles path.
   return tensorflow::io::JoinPath(
       tensorflow::io::JoinPath(getenv("TEST_SRCDIR"),
                                "tensorflow_serving"),

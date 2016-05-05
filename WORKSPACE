@@ -1,3 +1,5 @@
+workspace(name = "tf_serving")
+
 local_repository(
   name = "tf",
   path = __workspace_dir__ + "/tensorflow",
