@@ -135,10 +135,11 @@ class SharedBatchScheduler
     // above.)
     int64 batch_timeout_micros = 10 * 1000 /* 10 milliseconds */;
 
-    // The maximum length of the queue, in terms of the number of batches. (A
-    // batch that has been scheduled on a thread is considered to have been
-    // removed from the queue.) See the class documentation above for guidelines
-    // on how to tune this parameter.
+    // The maximum allowable number of enqueued (accepted by Schedule() but
+    // not yet being processed on a batch thread) tasks in terms of batches.
+    // If this limit is reached, Schedule() will return an UNAVAILABLE error.
+    // See the class documentation above for guidelines on how to tune this
+    // parameter.
     int max_enqueued_batches = 1;
   };
   Status AddQueue(const QueueOptions& options,
