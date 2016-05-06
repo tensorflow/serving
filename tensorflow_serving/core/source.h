@@ -39,9 +39,10 @@ namespace serving {
 // A Source monitors some external resource (e.g. file system, RPC calls) to
 // find out about new servables and/or new versions of servables and/or the
 // need to unload servable versions. It uses the provided callback to instruct
-// another module (e.g. AspiredVersionsManager) which version(s) of a given
-// servable to
-// load (and implicitly which ones to unload).
+// a Target module (e.g. AspiredVersionsManager) which version(s) of a given
+// servable to load. Furthermore, depending on the semantics of the Target
+// module, the Source implicitly instructs it which ones to unload by omitting
+// those servables.
 //
 // A common case is that a Source emits versions for exactly one servable. An
 // even simpler case is that a servable has a single, static version for the
@@ -63,37 +64,24 @@ class Source {
  public:
   virtual ~Source() = default;
 
-  // A callback for sources to use to specify which version(s) of a given
-  // servable should be loaded. A single invocation of the callback pertains to
-  // a single servable stream (given by 'servable_name'), and specifies all the
-  // versions (if any) the recipient should aim to have loaded. Implicitly, the
-  // recipient should aim to unload any currently-loaded versions that are
-  // absent from the list.
+  // A callback for a Source to supply version(s) of a servable to a Target, to
+  // be loaded.
   //
-  // All versions supplied in a call must be for the servable identified in
-  // 'servable_name'.
+  // A single invocation of the callback pertains to a single servable stream
+  // (given by 'servable_name'). All versions supplied in a call must be for the
+  // servable identified in 'servable_name'. Invocations on different servable
+  // streams are orthogonal to one another.
   //
-  // Each call is independent. A call with servable name P does not influence
-  // the aspired version set of any other servable. A subsequent call with P
-  // supercedes all prior calls.
+  // Multiple invocations may supply servable-data objects with identical
+  // ids (i.e. same servable name and version). Such servable-data objects are
+  // treated as semantically equivalent. The recipient will ultimately retain
+  // one and discard the rest.
   //
-  // First example call sequence:
-  //  callback(A, {A1})      // Aspire to load version 1 of servable A.
-  //  callback(B, {B1, B2})  // Aspire to load versions 1 and 2 of servable B.
-  //  callback(A, {A2})      // Aspire to unload A1 and load A2.
-  //  callback(B, {})        // Aspire to unload all versions of servable B.
-  //
-  // Second example call sequence:
-  //  callback(A, {A1})      // Aspire to load version 1 of servable A.
-  //  callback(A, {A1, A2})  // Aspire to load versions 1 and 2 of servable A.
-  //  callback(A, {A2})      // Aspire to unload A1.
-  //
-  //
-  // Multiple callback calls may supply servable-data objects with identical
-  // ids, as shown in the second example sequence above, in which separate
-  // objects with id A1 are supplied in two separate callback calls. Those two
-  // servable-data objects are treated as semantically equivalent. The recipient
-  // will ultimately discard one of them.
+  // If a servable version V is supplied in a first invocation, and subsequently
+  // omitted from a second invocation, the implication of omitting V depends on
+  // the semantics of the Target of the callback. Certain Targets will interpret
+  // V's omission as an implicit instruction to unload V. Each Target must
+  // document its semantics in this regard.
   using AspiredVersionsCallback = std::function<void(
       const StringPiece servable_name, std::vector<ServableData<T>> versions)>;
 

@@ -153,14 +153,17 @@ TEST_P(BasicManagerTest, ServableHandleLatestVersionIsZero) {
       ServableRequest::Latest(kServableName3), &handle);
   TF_ASSERT_OK(status);
   EXPECT_EQ(1, *handle);
+  EXPECT_EQ(id, handle.id());
 }
 
 TEST_P(BasicManagerTest, ServableHandleSpecificVersion) {
   ServableHandle<int64> handle;
-  const Status status = basic_manager_->GetServableHandle(
-      ServableRequest::Specific(kServableName2, 1), &handle);
+  const ServableId id = {kServableName2, 1};
+  const Status status =
+      basic_manager_->GetServableHandle(ServableRequest::FromId(id), &handle);
   TF_ASSERT_OK(status);
   EXPECT_EQ(1, *handle);
+  EXPECT_EQ(id, handle.id());
 }
 
 TEST_P(BasicManagerTest, ListAvailableServableIds) {
@@ -920,10 +923,25 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
       }));
   basic_manager_->ManageServable(CreateServableData(
       rejected_id, std::unique_ptr<Loader>(rejected_loader)));
-  basic_manager_->LoadServable(rejected_id, [](const Status& status) {
-    ASSERT_FALSE(status.ok());
-    ASSERT_EQ(error::RESOURCE_EXHAUSTED, status.code());
-  });
+  Notification rejection_received;
+  Status rejected_status;
+  basic_manager_->LoadServable(
+      rejected_id,
+      [&rejection_received, &rejected_status](const Status& status) {
+        ASSERT_FALSE(status.ok());
+        ASSERT_EQ(error::RESOURCE_EXHAUSTED, status.code());
+        rejected_status = status;
+        rejection_received.Notify();
+      });
+  rejection_received.WaitForNotification();
+  EXPECT_THAT(
+      basic_manager_->GetManagedServableStateSnapshots(rejected_id.name),
+      UnorderedElementsAre(ServableStateSnapshot<>{
+          rejected_id, LoaderHarness::State::kError, {}}));
+  const ServableState expected_error_state = {
+      rejected_id, ServableState::ManagerState::kEnd, rejected_status};
+  EXPECT_THAT(*servable_state_monitor_.GetState(rejected_id),
+              EqualsServableState(expected_error_state));
 }
 
 TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedIfLoadFails) {
@@ -1024,15 +1042,14 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedAfterUnload) {
         return Status::OK();
       }));
   Notification load_done;
-  EXPECT_CALL(*unloading_loader, Load(_))
-      .WillOnce(Invoke([&load_done](const ResourceAllocation& allocation) {
-        load_done.Notify();
-        return Status::OK();
-      }));
+  EXPECT_CALL(*unloading_loader, Load(_)).WillOnce(Return(Status::OK()));
   basic_manager_->ManageServable(CreateServableData(
       unloading_id, std::unique_ptr<Loader>(unloading_loader)));
-  basic_manager_->LoadServable(
-      unloading_id, [](const Status& status) { TF_EXPECT_OK(status); });
+  basic_manager_->LoadServable(unloading_id,
+                               [&load_done](const Status& status) {
+                                 TF_EXPECT_OK(status);
+                                 load_done.Notify();
+                               });
   load_done.WaitForNotification();
   Notification unload_started;
   Notification finish_unload;

@@ -107,12 +107,13 @@ Status BasicManager::ServingMap::GetUntypedServableHandle(
                             request.DebugString());
   }
 
+  const LoaderHarness& harness = *found_it->second;
   // We use the aliasing constructor of shared_ptr here. So even though we are
   // returning a shared_ptr to servable, the ref-counting is happening on the
   // handles_map. This delays the map destruction till the last handle from the
   // previous map is freed, when we are doing handles_map updates.
   untyped_handle->reset(new SharedPtrHandle(
-      std::shared_ptr<Loader>(handles_map, found_it->second->loader())));
+      harness.id(), std::shared_ptr<Loader>(handles_map, harness.loader())));
   return Status::OK();
 }
 
@@ -127,10 +128,11 @@ BasicManager::ServingMap::GetAvailableUntypedServableHandles() const {
     if (!request.version) {
       continue;
     }
-    const ServableId id = {request.name, request.version.value()};
-    result.emplace(id, std::unique_ptr<UntypedServableHandle>(
-                           new SharedPtrHandle(std::shared_ptr<Loader>(
-                               handles_map, handle.second->loader()))));
+    const LoaderHarness& harness = *handle.second;
+    result.emplace(harness.id(),
+                   std::unique_ptr<UntypedServableHandle>(new SharedPtrHandle(
+                       harness.id(), std::shared_ptr<Loader>(
+                                         handles_map, harness.loader()))));
   }
   return result;
 }

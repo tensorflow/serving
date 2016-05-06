@@ -78,46 +78,8 @@ namespace serving {
 //
 // RECOMMENDED USE-CASES:
 //
-// StreamingBatchScheduler is suitable for use-cases that feature a single kind
-// of request (e.g. a server performing inference with a single machine-learned
-// model, possibly evolving over time), with loose versioning semantics.
-// Concretely, the following conditions should hold:
-//
-//  A. All requests batched onto a given resource (e.g. a hardware accelerator,
-//     or a pool accelerators) are of the same type. For example, they all
-//     invoke the same machine-learned model.
-//
-//     These variations are permitted:
-//      - The model may reside in a single servable, or it may be spread across
-//        multiple servables that are used in unison (e.g. a vocabulary lookup
-//        table servable and a tensorflow session servable).
-//      - The model's servable(s) may be static, or they may evolve over time
-//        (successive servable versions).
-//      - Zero or more of the servables are used in the request thread; the rest
-//        are used in the batch thread. In our running example, the vocabulary
-//        lookups and tensorflow runs may both be performed in the batch thread,
-//        or alternatively the vocabulary lookup may occur in the request thread
-//        with only the tensorflow run performed in the batch thread.
-//
-//     In contrast, StreamingBatchScheduler is not a good fit if the server
-//     hosts multiple distinct models running on a pool accelerators, with each
-//     request specifying which model it wants to use. StreamingBatchScheduler
-//     has no facility to time-multiplex the batch threads across multiple
-//     models in a principled way. More basically, it cannot ensure that a given
-//     batch doesn't contain a mixture of requests for different models.
-//
-//  B. Requests do not specify a particular version of the servable(s) that must
-//     be used. Instead, each request is content to use the "latest" version.
-//
-//     StreamingBatchScheduler does not constrain which requests get grouped
-//     together into a batch, so using this scheduler there is no way to achieve
-//     cohesion of versioned requests to version-specific batches.
-//
-//  C. No servable version coordination needs to be performed between the
-//     request threads and the batch threads. Often, servables are only used in
-//     the batch threads, in which case this condition trivially holds. If
-//     servables are used in both threads, then the use-case must tolerate
-//     version skew across the servables used in the two kinds of threads.
+// Please see the RECOMMENDED USE-CASES section of BasicBatchScheduler's class
+// documentation. The same applies here.
 //
 //
 // EXAMPLE USE-CASE FLOW:

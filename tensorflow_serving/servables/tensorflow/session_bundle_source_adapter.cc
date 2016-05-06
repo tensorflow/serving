@@ -15,45 +15,42 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
 
-#include <algorithm>
 #include <memory>
 #include <string>
 
-#include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow/core/protobuf/config.pb.h"
-#include "tensorflow/core/public/session.h"
-#include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/core/simple_loader.h"
-#include "tensorflow_serving/core/storage_path.h"
-#include "tensorflow_serving/servables/tensorflow/serving_session.h"
-#include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
+#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
-namespace {
 
-SessionOptions GetSessionOptions(const SessionBundleConfig& config) {
-  SessionOptions options;
-  options.target = config.session_target();
-  options.config = config.session_config();
-  return options;
+Status SessionBundleSourceAdapter::Create(
+    const SessionBundleSourceAdapterConfig& config,
+    std::unique_ptr<SessionBundleSourceAdapter>* adapter) {
+  std::unique_ptr<SessionBundleFactory> bundle_factory;
+  TF_RETURN_IF_ERROR(
+      SessionBundleFactory::Create(config.config(), &bundle_factory));
+  adapter->reset(new SessionBundleSourceAdapter(std::move(bundle_factory)));
+  return Status::OK();
 }
 
-}  // namespace
-
 SessionBundleSourceAdapter::SessionBundleSourceAdapter(
-    const SessionBundleSourceAdapterConfig& config)
-    : SimpleLoaderSourceAdapter<StoragePath, SessionBundle>([config](
-          const StoragePath& path, std::unique_ptr<SessionBundle> * bundle) {
-        bundle->reset(new SessionBundle);
-        TF_RETURN_IF_ERROR(LoadSessionBundleFromPath(
-            GetSessionOptions(config.config()), path, bundle->get()));
-        (*bundle)->session.reset(
-            new ServingSessionWrapper(std::move((*bundle)->session)));
-        return Status::OK();
-      }) {}
+    std::unique_ptr<SessionBundleFactory> bundle_factory)
+    : bundle_factory_(std::move(bundle_factory)) {}
+
+Status SessionBundleSourceAdapter::Convert(const StoragePath& path,
+                                           std::unique_ptr<Loader>* loader) {
+  auto servable_creator = [this, path](std::unique_ptr<SessionBundle>* bundle) {
+    return this->bundle_factory_->CreateSessionBundle(path, bundle);
+  };
+  auto resource_estimator = [this, path](ResourceAllocation* estimate) {
+    return this->bundle_factory_->EstimateResourceRequirement(path, estimate);
+  };
+  loader->reset(
+      new SimpleLoader<SessionBundle>(servable_creator, resource_estimator));
+  return Status::OK();
+}
 
 }  // namespace serving
 }  // namespace tensorflow

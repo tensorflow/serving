@@ -18,14 +18,12 @@
 """Send JPEG image to inception_inference server for classification.
 """
 
-import os
 import sys
 import threading
 
 # This is a placeholder for a Google-internal import.
 
 from grpc.beta import implementations
-import numpy
 import tensorflow as tf
 
 from tensorflow_serving.example import inception_inference_pb2
@@ -38,26 +36,12 @@ FLAGS = tf.app.flags.FLAGS
 
 
 NUM_CLASSES = 5
-WORKING_DIR = os.path.dirname(os.path.realpath(__file__))
-SYNSET_FILE = os.path.join(WORKING_DIR, 'imagenet_lsvrc_2015_synsets.txt')
-METADATA_FILE = os.path.join(WORKING_DIR, 'imagenet_metadata.txt')
 
 
 def main(_):
   host, port = FLAGS.server.split(':')
   channel = implementations.insecure_channel(host, int(port))
   stub = inception_inference_pb2.beta_create_InceptionService_stub(channel)
-  # Create label->synset mapping
-  synsets = []
-  with open(SYNSET_FILE) as f:
-    synsets = f.read().splitlines()
-  # Create synset->metadata mapping
-  texts = {}
-  with open(METADATA_FILE) as f:
-    for line in f.read().splitlines():
-      parts = line.split('\t')
-      assert len(parts) == 2
-      texts[parts[0]] = parts[1]
   # Send request
   with open(FLAGS.image, 'rb') as f:
     # See inception_inference.proto for gRPC request/response details.
@@ -65,10 +49,7 @@ def main(_):
     request = inception_inference_pb2.InceptionRequest()
     request.jpeg_encoded = data
     result = stub.Classify(request, 10.0)  # 10 secs timeout
-    for i in range(NUM_CLASSES):
-      index = result.classes[i]
-      score = result.scores[i]
-      print '%f : %s' % (score, texts[synsets[index - 1]])
+    print result
 
 
 if __name__ == '__main__':

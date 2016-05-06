@@ -125,7 +125,8 @@ void BenchmarkState::StartServing(const int64 loader_version) {
         servable->reset(new int64);
         **servable = loader_version;
         return Status::OK();
-      }));
+      },
+      SimpleLoader<int64>::EstimateNoResources()));
   std::vector<ServableData<std::unique_ptr<Loader>>> versions;
   versions.push_back({{kServableName, loader_version}, std::move(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName, std::move(versions));
@@ -311,7 +312,8 @@ static void BM_GetServableHandle(const int iters) {
               servable->reset(new int64);
               **servable = j;
               return Status::OK();
-            }));
+            },
+            SimpleLoader<int64>::EstimateNoResources()));
         versions.push_back({{servable_name, j}, std::move(loader)});
       }
 

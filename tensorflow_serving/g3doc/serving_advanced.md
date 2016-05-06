@@ -1,12 +1,15 @@
-# Serving Dynamically Updated TensorFlow Model with Batching
+# Serving Dynamically Updated TensorFlow Model with Asynchronous Batching
 
 This tutorial shows you how to use TensorFlow Serving components to build a
 server that dynamically discovers and serves new versions of a trained
-TensorFlow model. You'll also learn how to use TensorFlow Serving
-batch scheduler to do batched inference. The code examples in this tutorial
-focus on the discovery, batching, and serving logic. If you just want to use
-TensorFlow Serving to serve a single version model without batching, see
-[TensorFlow Serving basic tutorial](serving_basic.md).
+TensorFlow model. You'll also learn how to use TensorFlow Serving's more
+flexible, lower-level batch scheduling API. One advantage of the lower-level API
+is its asynchronous behavior, which allows you to reduce the number of client
+threads and thus use less memory without compromising throughput. The code
+examples in this tutorial focus on the discovery, asynchronous batching, and
+serving logic. If you just want to use TensorFlow Serving to serve a single
+version model, and are fine with synchronous batching (relying on many client
+threads that block), see [TensorFlow Serving basic tutorial](serving_basic.md).
 
 This tutorial uses the simple Softmax Regression model introduced in the
 TensorFlow tutorial for handwritten image (MNIST data) classification. If you
@@ -138,21 +141,21 @@ usually achieve best computation efficiency when inference requests are run in
 large batches.
 
 TensorFlow Serving `BatchScheduler` provides such functionality. A specific
-implementation of it -- `StreamingBatchScheduler` -- enqueues tasks (requests)
+implementation of it -- `BasicBatchScheduler` -- enqueues tasks (requests)
 until either of the following occur:
 
   * The next task would cause the batch to exceed the size target.
   * Waiting for more tasks to be added would exceed the timeout.
 
-When either of these occur, the `StreamingBatchScheduler` processes the entire
+When either of these occur, the `BasicBatchScheduler` processes the entire
 batch by executing a callback and passing it the current batch of tasks.
 
-Initializing `StreamingBatchScheduler` is straightforward and is done in a
-`MnistServiceImpl` constructor. A `StreamingBatchScheduler::Options` is given to
+Initializing `BasicBatchScheduler` is straightforward and is done in a
+`MnistServiceImpl` constructor. A `BasicBatchScheduler::Options` is given to
 configure the batch scheduler, and a callback is given to be executed when the
 batch is full or timeout exceeds.
 
-The default `StreamingBatchScheduler::Options` has batch size set to 32 and
+The default `BasicBatchScheduler::Options` has batch size set to 32 and
 timeout set to 10 milliseconds. These parameters are typically extremely
 performance critical and should be tuned based on a specific model/scenario in
 production. In this tutorial, you will not bother tuning them.

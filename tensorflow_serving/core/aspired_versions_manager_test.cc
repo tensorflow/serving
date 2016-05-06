@@ -197,14 +197,17 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleLatestVersionIsZero) {
       ServableRequest::Latest(kServableName3), &handle);
   TF_ASSERT_OK(status);
   EXPECT_EQ(0, *handle);
+  EXPECT_EQ(id, handle.id());
 }
 
 TEST_P(AspiredVersionsManagerTest, ServableHandleSpecificVersion) {
   ServableHandle<int64> handle;
-  const Status status = manager_->GetServableHandle(
-      ServableRequest::Specific(kServableName2, 0), &handle);
+  const ServableId id = {kServableName2, 0};
+  const Status status =
+      manager_->GetServableHandle(ServableRequest::FromId(id), &handle);
   TF_ASSERT_OK(status);
   EXPECT_EQ(0, *handle);
+  EXPECT_EQ(id, handle.id());
 }
 
 TEST_P(AspiredVersionsManagerTest, ListAvailableServableIds) {
