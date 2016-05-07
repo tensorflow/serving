@@ -23,7 +23,7 @@ limitations under the License.
 // version before loading the new one. The server also batches multiple
 // requests together and does batched inference for efficiency.
 // The intention of this example to demonstrate usage of DymanicManager,
-// VersionPolicy and StreamingBatchScheduler.
+// VersionPolicy and BasicBatchScheduler.
 
 #include <stddef.h>
 #include <algorithm>
@@ -49,9 +49,9 @@ limitations under the License.
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/util/command_line_flags.h"
+#include "tensorflow_serving/batching/basic_batch_scheduler.h"
 #include "tensorflow_serving/batching/batch_scheduler.h"
 #include "tensorflow_serving/batching/batch_scheduler_retrier.h"
-#include "tensorflow_serving/batching/streaming_batch_scheduler.h"
 #include "tensorflow_serving/core/manager.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_id.h"
@@ -61,7 +61,6 @@ limitations under the License.
 #include "tensorflow_serving/session_bundle/manifest.pb.h"
 #include "tensorflow_serving/session_bundle/session_bundle.h"
 #include "tensorflow_serving/session_bundle/signature.h"
-#include "tensorflow_serving/util/unique_ptr_with_deps.h"
 
 using grpc::InsecureServerCredentials;
 using grpc::Server;
@@ -77,7 +76,6 @@ using tensorflow::serving::MnistService;
 using tensorflow::string;
 using tensorflow::Tensor;
 using tensorflow::serving::ClassificationSignature;
-using tensorflow::serving::UniquePtrWithDeps;
 
 namespace {
 const int kImageSize = 28;
@@ -143,7 +141,7 @@ struct Task : public tensorflow::serving::BatchTask {
 class MnistServiceImpl final {
  public:
   MnistServiceImpl(const string& servable_name,
-                   UniquePtrWithDeps<tensorflow::serving::Manager> manager);
+                   std::unique_ptr<tensorflow::serving::Manager> manager);
 
   void Classify(CallData* call_data);
 
@@ -154,7 +152,7 @@ class MnistServiceImpl final {
   // Name of the servable to use for inference.
   const string servable_name_;
   // Manager in charge of loading and unloading servables.
-  UniquePtrWithDeps<tensorflow::serving::Manager> manager_;
+  std::unique_ptr<tensorflow::serving::Manager> manager_;
   // A scheduler for batching multiple request calls into single calls to
   // Session->Run().
   std::unique_ptr<tensorflow::serving::BatchScheduler<Task>> batch_scheduler_;
@@ -203,7 +201,7 @@ void CallData::Finish(Status status) {
 
 MnistServiceImpl::MnistServiceImpl(
     const string& servable_name,
-    UniquePtrWithDeps<tensorflow::serving::Manager> manager)
+    std::unique_ptr<tensorflow::serving::Manager> manager)
     : servable_name_(servable_name), manager_(std::move(manager)) {
   // Setup a batcher used to combine multiple requests (tasks) into a single
   // graph run for efficiency.
@@ -215,11 +213,11 @@ MnistServiceImpl::MnistServiceImpl(
   // Use the default batch-size, timeout and thread options.  In general
   // the numbers are extremely performance critical and should be tuned based
   // specific graph structure and usage.
-  tensorflow::serving::StreamingBatchScheduler<Task>::Options scheduler_options;
+  tensorflow::serving::BasicBatchScheduler<Task>::Options scheduler_options;
   scheduler_options.thread_pool_name = "mnist_service_batch_threads";
   tensorflow::serving::BatchSchedulerRetrier<Task>::Options retry_options;
   // Retain the default retry options.
-  TF_CHECK_OK(tensorflow::serving::CreateRetryingStreamingBatchScheduler<Task>(
+  TF_CHECK_OK(tensorflow::serving::CreateRetryingBasicBatchScheduler<Task>(
       scheduler_options, retry_options,
       [this](std::unique_ptr<tensorflow::serving::Batch<Task>> batch) {
         this->DoClassifyInBatch(std::move(batch));
@@ -374,7 +372,7 @@ void HandleRpcs(MnistServiceImpl* service_impl,
 
 // Runs MnistService server until shutdown.
 void RunServer(const int port, const string& servable_name,
-               UniquePtrWithDeps<tensorflow::serving::Manager> manager) {
+               std::unique_ptr<tensorflow::serving::Manager> manager) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
 
@@ -410,7 +408,7 @@ int main(int argc, char** argv) {
   // WARNING(break-tutorial-inline-code): The following code snippet is
   // in-lined in tutorials, please update tutorial documents accordingly
   // whenever code changes.
-  UniquePtrWithDeps<tensorflow::serving::Manager> manager;
+  std::unique_ptr<tensorflow::serving::Manager> manager;
   tensorflow::Status status = tensorflow::serving::simple_servers::
       CreateSingleTFModelManagerFromBasePath(export_base_path, &manager);
 

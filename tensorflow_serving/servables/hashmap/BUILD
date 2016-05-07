@@ -28,6 +28,9 @@ cc_library(
     name = "hashmap_source_adapter",
     srcs = ["hashmap_source_adapter.cc"],
     hdrs = ["hashmap_source_adapter.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",

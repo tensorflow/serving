@@ -46,9 +46,9 @@ limitations under the License.
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/util/command_line_flags.h"
+#include "tensorflow_serving/batching/basic_batch_scheduler.h"
 #include "tensorflow_serving/batching/batch_scheduler.h"
 #include "tensorflow_serving/batching/batch_scheduler_retrier.h"
-#include "tensorflow_serving/batching/streaming_batch_scheduler.h"
 #include "tensorflow_serving/core/manager.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_id.h"
@@ -58,7 +58,6 @@ limitations under the License.
 #include "tensorflow_serving/session_bundle/manifest.pb.h"
 #include "tensorflow_serving/session_bundle/session_bundle.h"
 #include "tensorflow_serving/session_bundle/signature.h"
-#include "tensorflow_serving/util/unique_ptr_with_deps.h"
 
 using grpc::InsecureServerCredentials;
 using grpc::Server;
@@ -74,7 +73,6 @@ using tensorflow::serving::InceptionService;
 using tensorflow::string;
 using tensorflow::Tensor;
 using tensorflow::serving::ClassificationSignature;
-using tensorflow::serving::UniquePtrWithDeps;
 
 const int kNumTopClasses = 5;
 
@@ -137,7 +135,7 @@ struct Task : public tensorflow::serving::BatchTask {
 class InceptionServiceImpl final {
  public:
   InceptionServiceImpl(const string& servable_name,
-                   UniquePtrWithDeps<tensorflow::serving::Manager> manager);
+                       std::unique_ptr<tensorflow::serving::Manager> manager);
 
   void Classify(CallData* call_data);
 
@@ -148,7 +146,7 @@ class InceptionServiceImpl final {
   // Name of the servable to use for inference.
   const string servable_name_;
   // Manager in charge of loading and unloading servables.
-  UniquePtrWithDeps<tensorflow::serving::Manager> manager_;
+  std::unique_ptr<tensorflow::serving::Manager> manager_;
   // A scheduler for batching multiple request calls into single calls to
   // Session->Run().
   std::unique_ptr<tensorflow::serving::BatchScheduler<Task>> batch_scheduler_;
@@ -197,7 +195,7 @@ void CallData::Finish(Status status) {
 
 InceptionServiceImpl::InceptionServiceImpl(
     const string& servable_name,
-    UniquePtrWithDeps<tensorflow::serving::Manager> manager)
+    std::unique_ptr<tensorflow::serving::Manager> manager)
     : servable_name_(servable_name), manager_(std::move(manager)) {
   // Setup a batcher used to combine multiple requests (tasks) into a single
   // graph run for efficiency.
@@ -209,14 +207,14 @@ InceptionServiceImpl::InceptionServiceImpl(
   // Use the default batch-size, timeout and thread options.  In general
   // the numbers are extremely performance critical and should be tuned based
   // specific graph structure and usage.
-  tensorflow::serving::StreamingBatchScheduler<Task>::Options scheduler_options;
+  tensorflow::serving::BasicBatchScheduler<Task>::Options scheduler_options;
   scheduler_options.thread_pool_name = "inception_service_batch_threads";
   // TODO(27776734): Current exported model supports only batch_size=1
   // See inception_export.py for details.
   scheduler_options.max_batch_size = 1;
   tensorflow::serving::BatchSchedulerRetrier<Task>::Options retry_options;
   // Retain the default retry options.
-  TF_CHECK_OK(tensorflow::serving::CreateRetryingStreamingBatchScheduler<Task>(
+  TF_CHECK_OK(tensorflow::serving::CreateRetryingBasicBatchScheduler<Task>(
       scheduler_options, retry_options,
       [this](std::unique_ptr<tensorflow::serving::Batch<Task>> batch) {
         this->DoClassifyInBatch(std::move(batch));
@@ -308,7 +306,7 @@ void InceptionServiceImpl::DoClassifyInBatch(
     auto classes = calldata->mutable_response()->mutable_classes();
     auto scores = calldata->mutable_response()->mutable_scores();
     for (int j = 0; j < kNumTopClasses; j++) {
-      classes->Add(batched_classes.matrix<int>()(i, j));
+      *classes->Add() = batched_classes.matrix<string>()(i, j);
       scores->Add(batched_scores.matrix<float>()(i, j));
     }
     calldata->Finish(Status::OK);
@@ -334,7 +332,7 @@ void HandleRpcs(InceptionServiceImpl* service_impl,
 
 // Runs InceptionService server until shutdown.
 void RunServer(const int port, const string& servable_name,
-               UniquePtrWithDeps<tensorflow::serving::Manager> manager) {
+               std::unique_ptr<tensorflow::serving::Manager> manager) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
 
@@ -369,7 +367,7 @@ int main(int argc, char** argv) {
   const string export_base_path(argv[1]);
   tensorflow::port::InitMain(argv[0], &argc, &argv);
 
-  UniquePtrWithDeps<tensorflow::serving::Manager> manager;
+  std::unique_ptr<tensorflow::serving::Manager> manager;
   tensorflow::Status status = tensorflow::serving::simple_servers::
       CreateSingleTFModelManagerFromBasePath(export_base_path, &manager);
 

@@ -41,6 +41,49 @@ serving_proto_library(
 )
 
 cc_library(
+    name = "session_bundle_factory",
+    srcs = ["session_bundle_factory.cc"],
+    hdrs = ["session_bundle_factory.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "@tf//google/protobuf:cc_wkt_protos",
+        "@tf//tensorflow/core:core_cpu",
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:tensorflow",
+        ":session_bundle_config_proto",
+        "//tensorflow_serving/batching:batching_session",
+        "//tensorflow_serving/batching:shared_batch_scheduler",
+        "//tensorflow_serving/resources:resource_values",
+        "//tensorflow_serving/resources:resources_proto",
+        "//tensorflow_serving/servables/tensorflow:serving_session",
+        "//tensorflow_serving/session_bundle",
+    ],
+)
+
+cc_test(
+    name = "session_bundle_factory_test",
+    size = "medium",
+    srcs = ["session_bundle_factory_test.cc"],
+    data = ["//tensorflow_serving/session_bundle/example:half_plus_two"],
+    deps = [
+        "@tf//google/protobuf:cc_wkt_protos",
+        "@tf//tensorflow/core:core_cpu",
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:tensorflow",
+        "@tf//tensorflow/core:test",
+        "@tf//tensorflow/core:testlib",
+        ":session_bundle_config_proto",
+        ":session_bundle_factory",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/resources:resource_values",
+        "//tensorflow_serving/session_bundle",
+        "//tensorflow_serving/test_util",
+    ],
+)
+
+cc_library(
     name = "session_bundle_source_adapter",
     srcs = ["session_bundle_source_adapter.cc"],
     hdrs = ["session_bundle_source_adapter.h"],
@@ -53,12 +96,15 @@ cc_library(
         "@tf//tensorflow/core:protos_all_cc",
         "@tf//tensorflow/core:tensorflow",
         ":session_bundle_config_proto",
+        ":session_bundle_factory",
         ":session_bundle_source_adapter_proto",
+        "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:simple_loader",
         "//tensorflow_serving/core:source_adapter",
         "//tensorflow_serving/core:storage_path",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/session_bundle",
+        "//tensorflow_serving/util:optional",
     ],
 )
 
@@ -76,6 +122,7 @@ cc_test(
         "@tf//tensorflow/core:tensorflow",
         "@tf//tensorflow/core:test",
         "@tf//tensorflow/core:testlib",
+        ":session_bundle_config_proto",
         ":session_bundle_source_adapter",
         ":session_bundle_source_adapter_proto",
         "//tensorflow_serving/core:loader",
@@ -114,8 +161,7 @@ cc_library(
         "@tf//tensorflow/core:tensorflow",
         ":session_bundle_source_adapter",
         ":session_bundle_source_adapter_proto",
-        "//tensorflow_serving/core:aspired_version_policy",
-        "//tensorflow_serving/core:aspired_versions_manager",
+        "//tensorflow_serving/core:aspired_versions_manager_builder",
         "//tensorflow_serving/core:eager_unload_policy",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:manager",
@@ -126,7 +172,6 @@ cc_library(
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto",
-        "//tensorflow_serving/util:unique_ptr_with_deps",
     ],
 )
 

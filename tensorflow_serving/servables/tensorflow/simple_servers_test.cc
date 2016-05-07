@@ -32,7 +32,6 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/session_bundle/session_bundle.h"
 #include "tensorflow_serving/test_util/test_util.h"
-#include "tensorflow_serving/util/unique_ptr_with_deps.h"
 
 namespace tensorflow {
 namespace serving {
@@ -74,7 +73,7 @@ class SimpleServersTest : public ::testing::Test {
 };
 
 TEST_F(SimpleServersTest, Basic) {
-  UniquePtrWithDeps<Manager> manager;
+  std::unique_ptr<Manager> manager;
   const Status status = simple_servers::CreateSingleTFModelManagerFromBasePath(
       test_data_path_, &manager);
   TF_CHECK_OK(status);

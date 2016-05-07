@@ -20,8 +20,8 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -33,14 +33,16 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_id.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/core/test_util/source_adapter_test_util.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/session_bundle/session_bundle.h"
 #include "tensorflow_serving/test_util/test_util.h"
-#include "tensorflow_serving/util/any_ptr.h"
 
 namespace tensorflow {
 namespace serving {
 namespace {
+
+using test_util::EqualsProto;
 
 class SessionBundleSourceAdapterTest : public ::testing::Test {
  protected:
@@ -77,12 +79,21 @@ class SessionBundleSourceAdapterTest : public ::testing::Test {
 
   void TestSessionBundleSourceAdapter(
       const SessionBundleSourceAdapterConfig& config) {
-    auto adapter = std::unique_ptr<SessionBundleSourceAdapter>(
-        new SessionBundleSourceAdapter(config));
+    std::unique_ptr<SessionBundleSourceAdapter> adapter;
+    TF_CHECK_OK(SessionBundleSourceAdapter::Create(config, &adapter));
     ServableData<std::unique_ptr<Loader>> loader_data =
         test_util::RunSourceAdapter(export_dir_, adapter.get());
     TF_ASSERT_OK(loader_data.status());
     std::unique_ptr<Loader> loader = loader_data.ConsumeDataOrDie();
+
+    // We should get a non-empty resource estimate, and we should get the same
+    // value twice (via memoization).
+    ResourceAllocation first_resource_estimate;
+    TF_ASSERT_OK(loader->EstimateResources(&first_resource_estimate));
+    EXPECT_FALSE(first_resource_estimate.resource_quantities().empty());
+    ResourceAllocation second_resource_estimate;
+    TF_ASSERT_OK(loader->EstimateResources(&second_resource_estimate));
+    EXPECT_THAT(second_resource_estimate, EqualsProto(first_resource_estimate));
 
     TF_ASSERT_OK(loader->Load(ResourceAllocation()));
 

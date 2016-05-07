@@ -31,14 +31,17 @@ class TestHandle : public UntypedServableHandle {
  public:
   AnyPtr servable() override { return &servable_; }
 
+  const ServableId& id() const override { return id_; }
+
  private:
+  const ServableId id_ = {"servable", 7};
   TestServable servable_;
 };
 
 // A manager that a returns a TestHandle.
 class TestManager : public Manager {
  public:
-  std::vector<ServableId> ListAvailableServableIds() override {
+  std::vector<ServableId> ListAvailableServableIds() const override {
     LOG(FATAL) << "Not expected to be called.";
   }
 
@@ -132,35 +135,41 @@ TEST(ManagerTest, ErrorReturnsNullHandle) {
 // Wraps a pointer as a servable. Does a bit of type-gymnastics since servable
 // handles can only be constructed by managers.
 template <typename T>
-ServableHandle<T> WrapAsHandle(T* t) {
+ServableHandle<T> WrapAsHandle(const ServableId& id, T* t) {
   // Perform some type gymnastics to create a handle that points to 't'.
   class DummyHandle : public UntypedServableHandle {
    public:
-    explicit DummyHandle(T* servable) : servable_(servable) {}
+    explicit DummyHandle(const ServableId& id, T* servable)
+        : id_(id), servable_(servable) {}
 
     AnyPtr servable() override { return servable_; }
 
+    const ServableId& id() const override { return id_; }
+
    private:
+    const ServableId id_;
     T* servable_;
   };
 
   // Always returns the same servable.
   class DummyManager : public TestManager {
    public:
-    explicit DummyManager(T* servable) : servable_(servable) {}
+    explicit DummyManager(const ServableId& id, T* servable)
+        : id_(id), servable_(servable) {}
 
     Status GetUntypedServableHandle(
         const ServableRequest& request,
         std::unique_ptr<UntypedServableHandle>* result) override {
-      result->reset(new DummyHandle(servable_));
+      result->reset(new DummyHandle(id_, servable_));
       return Status::OK();
     }
 
    private:
+    const ServableId id_;
     T* servable_;
   };
 
-  DummyManager manager{t};
+  DummyManager manager{id, t};
   ServableHandle<T> handle;
   TF_CHECK_OK(manager.GetServableHandle({"Dummy", 0}, &handle));
   return handle;
@@ -170,28 +179,35 @@ TEST(ServableHandleTest, PointerOps) {
   TestServable servables[2];
   ServableHandle<TestServable> handles[2];
 
-  handles[0] = WrapAsHandle(&servables[0]);
-  handles[1] = WrapAsHandle(&servables[1]);
-  ServableHandle<TestServable> null_handle = nullptr;
+  const ServableId id = {"servable", 7};
+  handles[0] = WrapAsHandle(id, &servables[0]);
+  handles[1] = WrapAsHandle(id, &servables[1]);
 
   // Equality.
   EXPECT_EQ(handles[0], handles[0]);
-  EXPECT_EQ(null_handle, nullptr);
-  EXPECT_EQ(nullptr, null_handle);
 
   // Inequality.
   EXPECT_NE(handles[0], handles[1]);
-  EXPECT_NE(handles[0], nullptr);
-  EXPECT_NE(nullptr, handles[0]);
 
   // Bool conversion.
   EXPECT_TRUE(handles[0]);
-  EXPECT_FALSE(null_handle);
 
   // Dereference and get.
   EXPECT_EQ(&servables[0], handles[0].get());
   EXPECT_EQ(&servables[0], &*handles[0]);
   EXPECT_EQ(&servables[0].member, &handles[0]->member);
+}
+
+TEST(ServableHandleTest, Id) {
+  TestServable servables[2];
+  ServableHandle<TestServable> handles[2];
+
+  const ServableId id = {"servable", 7};
+  handles[0] = WrapAsHandle(id, &servables[0]);
+  handles[1] = WrapAsHandle(id, &servables[1]);
+
+  EXPECT_EQ(id, handles[0].id());
+  EXPECT_EQ(id, handles[1].id());
 }
 
 TEST(ServableRequestTest, Specific) {

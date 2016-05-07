@@ -42,7 +42,8 @@ Status ResourceTracker::Create(const ResourceAllocation& total_resources,
 
 Status ResourceTracker::ReserveResources(const Loader& servable,
                                          bool* success) {
-  ResourceAllocation servable_resources = servable.EstimateResources();
+  ResourceAllocation servable_resources;
+  TF_RETURN_IF_ERROR(servable.EstimateResources(&servable_resources));
   TF_RETURN_IF_ERROR(util_->VerifyValidity(servable_resources));
   servable_resources = util_->Normalize(servable_resources);
 
@@ -72,7 +73,8 @@ Status ResourceTracker::RecomputeUsedResources(
     const std::vector<const Loader*>& servables) {
   used_resources_.Clear();
   for (const Loader* servable : servables) {
-    ResourceAllocation servable_resources = servable->EstimateResources();
+    ResourceAllocation servable_resources;
+    TF_RETURN_IF_ERROR(servable->EstimateResources(&servable_resources));
     TF_RETURN_IF_ERROR(util_->VerifyValidity(servable_resources));
     servable_resources = util_->Normalize(servable_resources);
     util_->Add(servable_resources, &used_resources_);

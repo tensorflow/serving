@@ -60,18 +60,33 @@ TEST(StaticManagerTest, Errors) {
                    .ok());
 }
 
-TEST(StaticManagerTest, GetLatestVesrion) {
+TEST(StaticManagerTest, GetLatestVersion) {
   StaticManagerBuilder builder;
   TF_CHECK_OK(builder.AddServable(ServableId{"name", 22},
                                   std::unique_ptr<int>{new int{22}}));
-  TF_CHECK_OK(builder.AddServable(ServableId{"name", 24},
-                                  std::unique_ptr<int>{new int{24}}));
+  const ServableId id = {"name", 24};
+  TF_CHECK_OK(builder.AddServable(id, std::unique_ptr<int>{new int{24}}));
   auto manager = builder.Build();
 
   ServableHandle<int> handle;
   TF_CHECK_OK(
       manager->GetServableHandle(ServableRequest::Latest("name"), &handle));
   EXPECT_EQ(24, *handle);
+  EXPECT_EQ(id, handle.id());
+}
+
+TEST(StaticManagerTest, GetSpecificVersion) {
+  StaticManagerBuilder builder;
+  const ServableId id = {"name", 22};
+  TF_CHECK_OK(builder.AddServable(id, std::unique_ptr<int>{new int{22}}));
+  TF_CHECK_OK(builder.AddServable(ServableId{"name", 24},
+                                  std::unique_ptr<int>{new int{24}}));
+  auto manager = builder.Build();
+
+  ServableHandle<int> handle;
+  TF_CHECK_OK(manager->GetServableHandle(ServableRequest::FromId(id), &handle));
+  EXPECT_EQ(22, *handle);
+  EXPECT_EQ(id, handle.id());
 }
 
 TEST(StaticManagerTest, ServableNotFound) {
@@ -81,7 +96,7 @@ TEST(StaticManagerTest, ServableNotFound) {
   EXPECT_EQ(error::NOT_FOUND,
             manager->GetServableHandle(ServableRequest::Latest("name"), &handle)
                 .code());
-  EXPECT_EQ(nullptr, handle);
+  EXPECT_EQ(nullptr, handle.get());
 }
 
 TEST(StaticManagerTest, VersionNotFound) {
@@ -94,7 +109,7 @@ TEST(StaticManagerTest, VersionNotFound) {
       error::NOT_FOUND,
       manager->GetServableHandle(ServableRequest::Specific("name", 21), &handle)
           .code());
-  EXPECT_EQ(nullptr, handle);
+  EXPECT_EQ(nullptr, handle.get());
 }
 
 }  // namespace

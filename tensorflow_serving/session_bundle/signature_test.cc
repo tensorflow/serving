@@ -30,6 +30,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/session_bundle/manifest.pb.h"
+#include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -397,6 +398,77 @@ TEST(RunClassification, WrongBatchOutputs) {
   EXPECT_TRUE(StringPiece(status.error_message())
                   .contains("Input batch size did not match output batch size"))
       << status.error_message();
+}
+
+constexpr char kRegressionsName[] = "regressions:0";
+
+class RunRegressionTest : public ::testing::Test {
+ public:
+  void SetUp() override {
+    signature_.mutable_input()->set_tensor_name(kInputName);
+    signature_.mutable_output()->set_tensor_name(kRegressionsName);
+  }
+
+ protected:
+  RegressionSignature signature_;
+  Tensor input_tensor_;
+  Tensor output_tensor_;
+  MockSession session_;
+};
+
+TEST_F(RunRegressionTest, Basic) {
+  input_tensor_ = test::AsTensor<int>({99, 100});
+  session_.outputs = {test::AsTensor<float>({1, 2})};
+  const Status status =
+      RunRegression(signature_, input_tensor_, &session_, &output_tensor_);
+
+  // Validate outputs.
+  TF_ASSERT_OK(status);
+  test::ExpectTensorEqual<float>(test::AsTensor<float>({1, 2}), output_tensor_);
+
+  // Validate inputs.
+  ASSERT_EQ(1, session_.inputs.size());
+  EXPECT_EQ(kInputName, session_.inputs[0].first);
+  test::ExpectTensorEqual<int>(test::AsTensor<int>({99, 100}),
+                               session_.inputs[0].second);
+
+  ASSERT_EQ(1, session_.output_tensor_names.size());
+  EXPECT_EQ(kRegressionsName, session_.output_tensor_names[0]);
+}
+
+TEST_F(RunRegressionTest, RunNotOk) {
+  input_tensor_ = test::AsTensor<int>({99});
+  session_.status = errors::DataLoss("Data is gone");
+  const Status status =
+      RunRegression(signature_, input_tensor_, &session_, &output_tensor_);
+  ASSERT_FALSE(status.ok());
+  EXPECT_TRUE(StringPiece(status.error_message()).contains("Data is gone"))
+      << status.error_message();
+}
+
+TEST_F(RunRegressionTest, MismatchedSizeForBatchInputAndOutput) {
+  input_tensor_ = test::AsTensor<int>({99, 100});
+  session_.outputs = {test::AsTensor<float>({3})};
+
+  const Status status =
+      RunRegression(signature_, input_tensor_, &session_, &output_tensor_);
+  ASSERT_FALSE(status.ok());
+  EXPECT_TRUE(StringPiece(status.error_message())
+                  .contains("Input batch size did not match output batch size"))
+      << status.error_message();
+}
+
+TEST(SetAndGetSignatures, RoundTrip) {
+  tensorflow::MetaGraphDef meta_graph_def;
+  Signatures signatures;
+  signatures.mutable_default_signature()
+      ->mutable_classification_signature()
+      ->mutable_input()
+      ->set_tensor_name("in:0");
+  TF_ASSERT_OK(SetSignatures(signatures, &meta_graph_def));
+  Signatures read_signatures;
+  TF_ASSERT_OK(GetSignatures(meta_graph_def, &read_signatures));
+  EXPECT_THAT(read_signatures, test_util::EqualsProto(signatures));
 }
 
 // GenericSignature test fixture that contains a signature initialized with two

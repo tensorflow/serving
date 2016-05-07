@@ -64,6 +64,8 @@ cc_binary(
         "@tf//tensorflow/core:protos_all_cc",
         "@tf//tensorflow/core:tensorflow",
         ":mnist_inference_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_factory",
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/session_bundle:manifest_proto",
         "//tensorflow_serving/session_bundle:signature",
@@ -83,9 +85,9 @@ cc_binary(
         "@tf//tensorflow/core:protos_all_cc",
         "@tf//tensorflow/core:tensorflow",
         ":mnist_inference_proto",
+        "//tensorflow_serving/batching:basic_batch_scheduler",
         "//tensorflow_serving/batching:batch_scheduler",
         "//tensorflow_serving/batching:batch_scheduler_retrier",
-        "//tensorflow_serving/batching:streaming_batch_scheduler",
         "//tensorflow_serving/core:manager",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/core:servable_id",
@@ -93,7 +95,6 @@ cc_binary(
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/session_bundle:manifest_proto",
         "//tensorflow_serving/session_bundle:signature",
-        "//tensorflow_serving/util:unique_ptr_with_deps",
     ],
 )
 
@@ -142,9 +143,9 @@ cc_binary(
         "@tf//tensorflow/core:protos_all_cc",
         "@tf//tensorflow/core:tensorflow",
         ":inception_inference_proto",
+        "//tensorflow_serving/batching:basic_batch_scheduler",
         "//tensorflow_serving/batching:batch_scheduler",
         "//tensorflow_serving/batching:batch_scheduler_retrier",
-        "//tensorflow_serving/batching:streaming_batch_scheduler",
         "//tensorflow_serving/core:manager",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/core:servable_id",
@@ -152,7 +153,6 @@ cc_binary(
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/session_bundle:manifest_proto",
         "//tensorflow_serving/session_bundle:signature",
-        "//tensorflow_serving/util:unique_ptr_with_deps",
     ],
 )
 
@@ -161,10 +161,6 @@ py_binary(
     srcs = [
         "inception_client.py",
         "inception_inference_pb2.py",
-    ],
-    data = [
-        "imagenet_lsvrc_2015_synsets.txt",
-        "imagenet_metadata.txt",
     ],
     deps = ["@tf//tensorflow:tensorflow_py"],
 )

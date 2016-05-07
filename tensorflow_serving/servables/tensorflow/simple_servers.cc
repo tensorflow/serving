@@ -21,7 +21,7 @@ limitations under the License.
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
-#include "tensorflow_serving/core/aspired_versions_manager.h"
+#include "tensorflow_serving/core/aspired_versions_manager_builder.h"
 #include "tensorflow_serving/core/eager_unload_policy.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/source.h"
@@ -33,7 +33,6 @@ limitations under the License.
 #include "tensorflow_serving/session_bundle/session_bundle.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
-#include "tensorflow_serving/util/unique_ptr_with_deps.h"
 
 namespace tensorflow {
 namespace serving {
@@ -41,21 +40,12 @@ namespace simple_servers {
 
 namespace {
 
-// Creates a AspiredVersionsManager with the EagerUnloadPolicy.
-Status CreateAspiredVersionsManager(
-    std::unique_ptr<AspiredVersionsManager>* const manager) {
-  AspiredVersionsManager::Options manager_options;
-  manager_options.aspired_version_policy.reset(new EagerUnloadPolicy());
-  return AspiredVersionsManager::Create(std::move(manager_options), manager);
-}
-
 // Creates a Source<StoragePath> that monitors a filesystem's base_path for new
 // directories. Upon finding these, it provides the target with the new version
 // (a directory). The servable_name param simply allows this source to create
 // all AspiredVersions for the target with the same servable_name.
 Status CreateStoragePathSource(
     const string& base_path, const string& servable_name,
-    Target<StoragePath>* target,
     std::unique_ptr<Source<StoragePath>>* path_source) {
   FileSystemStoragePathSourceConfig config;
   config.set_servable_name(servable_name);
@@ -65,8 +55,6 @@ Status CreateStoragePathSource(
   std::unique_ptr<FileSystemStoragePathSource> file_system_source;
   TF_RETURN_IF_ERROR(
       FileSystemStoragePathSource::Create(config, &file_system_source));
-
-  ConnectSourceToTarget(file_system_source.get(), target);
 
   *path_source = std::move(file_system_source);
   return Status::OK();
@@ -78,14 +66,9 @@ Status CreateStoragePathSource(
 // FileSystemStoragePathSource as the Source and the SessionBundleSource as the
 // Target.
 Status CreateSessionBundleSource(
-    AspiredVersionsManager* manager,
-    std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
-        source) {
+    std::unique_ptr<SessionBundleSourceAdapter>* source) {
   SessionBundleSourceAdapterConfig config;
-
-  source->reset(new SessionBundleSourceAdapter(config));
-
-  ConnectSourceToTarget(source->get(), manager);
+  TF_RETURN_IF_ERROR(SessionBundleSourceAdapter::Create(config, source));
 
   return Status::OK();
 }
@@ -93,22 +76,20 @@ Status CreateSessionBundleSource(
 }  // namespace
 
 Status CreateSingleTFModelManagerFromBasePath(
-    const string& base_path, UniquePtrWithDeps<Manager>* manager) {
-  std::unique_ptr<AspiredVersionsManager> aspired_versions_manager;
-  TF_RETURN_IF_ERROR(CreateAspiredVersionsManager(&aspired_versions_manager));
-
-  std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>
-      bundle_source;
-  TF_RETURN_IF_ERROR(CreateSessionBundleSource(aspired_versions_manager.get(),
-                                               &bundle_source));
-
+    const string& base_path, std::unique_ptr<Manager>* const manager) {
+  std::unique_ptr<SessionBundleSourceAdapter> bundle_source;
+  TF_RETURN_IF_ERROR(CreateSessionBundleSource(&bundle_source));
   std::unique_ptr<Source<StoragePath>> path_source;
-  TF_RETURN_IF_ERROR(CreateStoragePathSource(
-      base_path, "default", bundle_source.get(), &path_source));
+  TF_RETURN_IF_ERROR(
+      CreateStoragePathSource(base_path, "default", &path_source));
 
-  manager->SetOwned(std::move(aspired_versions_manager));
-  manager->AddDependency(std::move(bundle_source));
-  manager->AddDependency(std::move(path_source));
+  AspiredVersionsManagerBuilder::Options manager_options;
+  manager_options.aspired_version_policy.reset(new EagerUnloadPolicy());
+  std::unique_ptr<AspiredVersionsManagerBuilder> builder;
+  TF_CHECK_OK(AspiredVersionsManagerBuilder::Create(std::move(manager_options),
+                                                    &builder));
+  builder->AddSourceChain(std::move(path_source), std::move(bundle_source));
+  *manager = builder->Build();
 
   return Status::OK();
 }

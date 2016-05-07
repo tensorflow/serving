@@ -51,12 +51,21 @@ class AspiredVersionsManagerTestAccess;
 }  // namespace test_util
 
 // A manager that implements the Target<Loader> API which uses aspired-versions
-// callbacks to dictate which servables to load/unload.
+// callbacks to dictate which servable versions to load. This manager also uses
+// that API to infer which ones to unload: If a given servable version is
+// currently loaded, and is omitted from an aspired-versions callback invocation
+// pertaining to its servable stream, this manager interprets that omission as
+// an implicit instruction to unload the version. See below for details.
 //
-// The manager makes transitions between versions of a servable stream using a
+// (The implicit-unload semantics facilitates stateless Source implementations,
+// whereby a given iteration of the Source's logic simply decides which versions
+// of a servable ought to be loaded, without needing to know what it has decided
+// in the past.)
+//
+// This manager makes transitions between versions of a servable stream using a
 // configured AspiredVersionPolicy. The manager prefers unloading before loading
-// to free up resources in the server when deciding amongst transitions
-// suggested by the policy.
+// to free up resources in the server when deciding among transitions suggested
+// by the policy.
 class AspiredVersionsManager : public Manager,
                                public Target<std::unique_ptr<Loader>> {
  public:
@@ -101,16 +110,34 @@ class AspiredVersionsManager : public Manager,
                        std::unique_ptr<AspiredVersionsManager>* manager);
   ~AspiredVersionsManager() override;
 
-  std::vector<ServableId> ListAvailableServableIds() override;
+  std::vector<ServableId> ListAvailableServableIds() const override;
 
   // Returns a callback to set the list of aspired versions for a particular
-  // servable stream name, using Loaders. See the comments on
-  // AspiredVersionsCallback in source.h.
+  // servable stream, using Loaders. AspiredVersionsManager's semantics with
+  // respect to this callback are as follows:
   //
-  // Below are some contract details pertaining specifically to
-  // AspiredVersionsManager.
+  // 1. OMITTING A VERSION INSTRUCTS THE MANAGER TO UNLOAD IT
   //
-  // Load()/Unload() CALLS GO TO A SINGLE LOADER OBJECT:
+  // An invocation of the callback for servable stream S specifies all the
+  // versions of S (if any) the manager should aim to have loaded. Each callback
+  // invocation for S supercedes any prior invocations for S. Versions of S
+  // supplied in previous invocations that are omitted from the latest
+  // invocation will be unloaded. An invocation for S supplying an empty version
+  // list causes the manager to unload all versions of S.
+  //
+  // First example call sequence:
+  //  callback(A, {A1})      // Aspire to load version 1 of servable A.
+  //  callback(B, {B1, B2})  // Aspire to load versions 1 and 2 of servable B.
+  //  callback(A, {A2})      // Aspire to unload A1 and load A2.
+  //  callback(B, {})        // Aspire to unload all versions of servable B.
+  //
+  // Second example call sequence:
+  //  callback(A, {A1})      // Aspire to load version 1 of servable A.
+  //  callback(A, {A1, A2})  // Aspire to load versions 1 and 2 of servable A.
+  //  callback(A, {A2})      // Aspire to unload A1.
+  //
+  //
+  // 2. Load()/Unload() CALLS GO TO A SINGLE LOADER OBJECT
   //
   // In general, multiple callback calls may supply a loader object for a given
   // servable id. Once the manager calls Load() on one of those loaders, its
@@ -118,7 +145,8 @@ class AspiredVersionsManager : public Manager,
   // other words, bracketed Load() and Unload() calls will be to the same loader
   // object.)
   //
-  // NO SPONTANEOUS UNLOADING:
+  //
+  // 3. NO SPONTANEOUS UNLOADING
   //
   // The manager aims to evolve the loadedness states of the servable objects it
   // manages to match the aspired list, but at a given point in time the two may
@@ -135,6 +163,7 @@ class AspiredVersionsManager : public Manager,
   // any prior version(s) that are loaded, for that matter). As long as V-1 is
   // currently loaded, and remains part of the aspired list, V can rely on V-1
   // remaining loaded.
+  //
   Source<std::unique_ptr<Loader>>::AspiredVersionsCallback
   GetAspiredVersionsCallback() override;
 

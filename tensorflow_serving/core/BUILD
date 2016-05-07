@@ -97,6 +97,7 @@ cc_library(
         ":loader",
         ":source_adapter",
         "//tensorflow_serving/util:any_ptr",
+        "//tensorflow_serving/util:optional",
     ],
 )
 
@@ -112,6 +113,7 @@ cc_test(
         ":servable_data",
         ":simple_loader",
         "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
     ],
 )
 
@@ -299,6 +301,56 @@ cc_test(
 )
 
 cc_library(
+    name = "manager_wrapper",
+    srcs = ["manager_wrapper.cc"],
+    hdrs = ["manager_wrapper.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":manager",
+        ":servable_id",
+        "//tensorflow_serving/util:unique_ptr_with_deps",
+    ],
+)
+
+cc_library(
+    name = "aspired_versions_manager_builder",
+    srcs = ["aspired_versions_manager_builder.cc"],
+    hdrs = ["aspired_versions_manager_builder.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":aspired_versions_manager",
+        ":loader",
+        ":manager_wrapper",
+        ":source",
+        ":source_adapter",
+        "//tensorflow_serving/util:unique_ptr_with_deps",
+    ],
+)
+
+cc_test(
+    name = "aspired_versions_manager_builder_test",
+    srcs = ["aspired_versions_manager_builder_test.cc"],
+    deps = [
+        ":aspired_versions_manager_builder",
+        ":eager_load_policy",
+        ":servable_data",
+        ":servable_handle",
+        ":servable_state_monitor",
+        ":simple_loader",
+        ":storage_path",
+        "//tensorflow_serving/core/test_util:availability_test_util",
+        "//tensorflow_serving/core/test_util:source_adapter_test_util",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/util:event_bus",
+    ],
+)
+
+cc_library(
     name = "availability_helpers",
     srcs = ["availability_helpers.cc"],
     hdrs = ["availability_helpers.h"],
@@ -402,7 +454,7 @@ cc_library(
 
 cc_test(
     name = "basic_manager_test",
-    size = "small",
+    size = "medium",
     srcs = ["basic_manager_test.cc"],
     deps = [
         "@tf//tensorflow/core:lib",
@@ -509,6 +561,42 @@ cc_test(
         ":static_manager",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util:fake_clock_env",
+    ],
+)
+
+cc_library(
+    name = "caching_manager",
+    srcs = ["caching_manager.cc"],
+    hdrs = ["caching_manager.h"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        ":basic_manager",
+        ":loader",
+        ":manager",
+        ":servable_data",
+        ":servable_handle",
+        ":servable_id",
+        "//tensorflow_serving/util:optional",
+    ],
+)
+
+cc_test(
+    name = "caching_manager_test",
+    srcs = ["caching_manager_test.cc"],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:test",
+        ":caching_manager",
+        ":servable_data",
+        ":servable_handle",
+        ":servable_id",
+        ":servable_state",
+        ":servable_state_monitor",
+        ":simple_loader",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/util:any_ptr",
+        "//tensorflow_serving/util:event_bus",
+        "//tensorflow_serving/util:optional",
     ],
 )
 
