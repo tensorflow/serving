@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_CORE_ROUTER_H_
-#define TENSORFLOW_SERVING_CORE_ROUTER_H_
+#ifndef TENSORFLOW_SERVING_CORE_SOURCE_ROUTER_H_
+#define TENSORFLOW_SERVING_CORE_SOURCE_ROUTER_H_
 
 #include <algorithm>
 #include <memory>
@@ -39,14 +39,14 @@ namespace serving {
 //  /path/to/some/apple/servable
 //  /path/to/some/orange/servable
 // where the servable kinds are distinguished based on the presence of "apple"
-// or "orange" in the path. A Router can be interposed between a file-system
-// monitoring Source<StoragePath>, and a pair of SourceAdapters (one that emits
-// loaders of apple servables, and one that emits loaders of orange servables),
-// to route each path to the appropriate SourceAdapter.
+// or "orange" in the path. A SourceRouter can be interposed between a file-
+// system monitoring Source<StoragePath>, and a pair of SourceAdapters (one that
+// emits loaders of apple servables, and one that emits loaders of orange
+// servables), to route each path to the appropriate SourceAdapter.
 template <typename T>
-class Router : public TargetBase<T> {
+class SourceRouter : public TargetBase<T> {
  public:
-  ~Router() override = default;
+  ~SourceRouter() override = default;
 
   // Returns a vector of N source pointers, corresponding to the N output ports
   // of the router. The caller must invoke ConnectSourceToTarget() (or directly
@@ -106,12 +106,12 @@ class IdentitySourceAdapter : public UnarySourceAdapter<T, T> {
 }  // namespace internal
 
 template <typename T>
-std::vector<Source<T>*> Router<T>::GetOutputPorts() {
+std::vector<Source<T>*> SourceRouter<T>::GetOutputPorts() {
   if (!output_ports_created_.HasBeenNotified()) {
     int num_ports = num_output_ports();
     if (num_ports < 1) {
-      LOG(ERROR) << "Router abstraction used improperly; num_output_ports() "
-                    "must return a number greater than 0";
+      LOG(ERROR) << "SourceRouter abstraction used improperly; "
+                    "num_output_ports() must return a number greater than 0";
       DCHECK(false);
       num_ports = 1;
     }
@@ -129,14 +129,15 @@ std::vector<Source<T>*> Router<T>::GetOutputPorts() {
 }
 
 template <typename T>
-void Router<T>::SetAspiredVersions(const StringPiece servable_name,
-                                   std::vector<ServableData<T>> versions) {
+void SourceRouter<T>::SetAspiredVersions(
+    const StringPiece servable_name, std::vector<ServableData<T>> versions) {
   output_ports_created_.WaitForNotification();
   int output_port = Route(servable_name, versions);
   if (output_port < 0 || output_port > output_ports_.size() - 1) {
-    LOG(ERROR) << "Router abstraction used improperly; Route() must return a "
-                  "value in [0, num_output_ports()-1]; suppressing the "
-                  "aspired-versions request";
+    LOG(ERROR)
+        << "SourceRouter abstraction used improperly; Route() must return a "
+           "value in [0, num_output_ports()-1]; suppressing the "
+           "aspired-versions request";
     DCHECK(false);
     return;
   }
@@ -147,4 +148,4 @@ void Router<T>::SetAspiredVersions(const StringPiece servable_name,
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_CORE_ROUTER_H_
+#endif  // TENSORFLOW_SERVING_CORE_SOURCE_ROUTER_H_

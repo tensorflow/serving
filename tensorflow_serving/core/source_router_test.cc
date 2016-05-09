@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/core/router.h"
+#include "tensorflow_serving/core/source_router.h"
 
 #include <string>
 
@@ -38,10 +38,10 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-class TestRouter : public Router<StoragePath> {
+class TestSourceRouter : public SourceRouter<StoragePath> {
  public:
-  TestRouter() = default;
-  ~TestRouter() override = default;
+  TestSourceRouter() = default;
+  ~TestSourceRouter() override = default;
 
  protected:
   int num_output_ports() const override { return 2; }
@@ -58,11 +58,11 @@ class TestRouter : public Router<StoragePath> {
   }
 
  private:
-  TF_DISALLOW_COPY_AND_ASSIGN(TestRouter);
+  TF_DISALLOW_COPY_AND_ASSIGN(TestSourceRouter);
 };
 
-TEST(RouterTest, Basic) {
-  TestRouter router;
+TEST(SourceRouterTest, Basic) {
+  TestSourceRouter router;
   std::vector<Source<StoragePath>*> output_ports = router.GetOutputPorts();
   ASSERT_EQ(2, output_ports.size());
   std::vector<std::unique_ptr<test_util::MockStoragePathTarget>> targets;
@@ -87,12 +87,12 @@ TEST(RouterTest, Basic) {
                             {ServableData<StoragePath>({"one", 1}, "floo")});
 }
 
-TEST(RouterTest, SetAspiredVersionsBlocksUntilAllTargetsConnected_1) {
+TEST(SourceRouterTest, SetAspiredVersionsBlocksUntilAllTargetsConnected_1) {
   // Scenario 1: When SetAspiredVersions() is invoked, GetOutputPorts() has not
   // yet been called. The SetAspiredVersions() call should block until the ports
   // have been emitted and all of them have been connected to targets.
 
-  TestRouter router;
+  TestSourceRouter router;
   Notification done;
 
   // Connect the output ports to targets asynchronously, after a long delay.
@@ -124,12 +124,12 @@ TEST(RouterTest, SetAspiredVersionsBlocksUntilAllTargetsConnected_1) {
   done.Notify();
 }
 
-TEST(RouterTest, SetAspiredVersionsBlocksUntilAllTargetsConnected_2) {
+TEST(SourceRouterTest, SetAspiredVersionsBlocksUntilAllTargetsConnected_2) {
   // Scenario 2: When SetAspiredVersions() is invoked, GetOutputPorts() has been
   // called but only one of the two ports has been connected to a target. The
   // SetAspiredVersions() call should block until the other port is connected.
 
-  TestRouter router;
+  TestSourceRouter router;
   std::vector<Source<StoragePath>*> output_ports = router.GetOutputPorts();
   ASSERT_EQ(2, output_ports.size());
   std::vector<std::unique_ptr<test_util::MockStoragePathTarget>> targets;
