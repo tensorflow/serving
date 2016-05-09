@@ -87,10 +87,7 @@ serving_proto_library_py(
     name = "manifest_proto_py",
     srcs = ["manifest.proto"],
     visibility = ["//visibility:public"],
-    deps = [
-        "@tf//google/protobuf:protobuf_python",
-        "@tf//tensorflow/core:protos_all_py",
-    ],
+    deps = ["@tf//tensorflow/core:protos_all_py"],
 )
 
 cc_library(
