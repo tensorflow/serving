@@ -152,34 +152,28 @@ void BasicManager::ServingMap::Update(const ManagedMap& managed_map) {
   };
   std::multimap<ServableRequest, std::shared_ptr<const LoaderHarness>,
                 CompareRequests>
-      sorted_managed_map;
+      sorted_available_map;
   for (const auto& elem : managed_map) {
-    const ServableRequest request = ServableRequest::Specific(
-        elem.second->id().name, elem.second->id().version);
-    sorted_managed_map.emplace(request, elem.second);
+    std::shared_ptr<const LoaderHarness> harness = elem.second;
+    if (harness->state() == LoaderHarness::State::kReady) {
+      sorted_available_map.emplace(ServableRequest::FromId(harness->id()),
+                                   harness);
+    }
   }
 
-  const std::vector<ServableId> available_servable_ids =
-      ListAvailableServableIds();
-  const std::unordered_set<ServableId, HashServableId>
-      old_available_servable_ids(available_servable_ids.begin(),
-                                 available_servable_ids.end());
-
   std::unique_ptr<HandlesMap> new_handles_map(new HandlesMap());
-  for (auto iter = sorted_managed_map.begin(); iter != sorted_managed_map.end();
-       ++iter) {
-    if (iter->second->state() == LoaderHarness::State::kReady) {
-      new_handles_map->insert(*iter);
-      // If this is the last element with this servable name, add it again to
-      // the handles_map, marking it as latest.
-      const auto next_iter = std::next(iter);
-      if (next_iter == sorted_managed_map.end() ||
-          next_iter->second->id().name != iter->second->id().name) {
-        const ServableRequest latest_request =
-            ServableRequest::Latest(iter->second->id().name);
-        // We don't set the version to mark it as latest.
-        new_handles_map->emplace(latest_request, iter->second);
-      }
+  for (auto iter = sorted_available_map.begin();
+       iter != sorted_available_map.end(); ++iter) {
+    std::shared_ptr<const LoaderHarness> harness = iter->second;
+    new_handles_map->emplace(ServableRequest::FromId(harness->id()), harness);
+    // If this is the last harness in the stream, add it again to the
+    // handles_map, marking it as the latest for that stream.
+    const auto next_iter = std::next(iter);
+    if (next_iter == sorted_available_map.end() ||
+        next_iter->second->id().name != harness->id().name) {
+      const ServableRequest latest_request =
+          ServableRequest::Latest(harness->id().name);
+      new_handles_map->emplace(latest_request, harness);
     }
   }
 
