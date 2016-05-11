@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/core/static_router.h"
+#include "tensorflow_serving/core/static_source_router.h"
 
 #include <algorithm>
 
@@ -38,10 +38,10 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-TEST(StaticRouterTest, Basic) {
+TEST(StaticSourceRouterTest, Basic) {
   const std::vector<string> regexps = {"0th.*", ".*1st"};
-  std::unique_ptr<StaticRouter<StoragePath>> router;
-  TF_ASSERT_OK(StaticRouter<string>::Create(regexps, &router));
+  std::unique_ptr<StaticSourceRouter<StoragePath>> router;
+  TF_ASSERT_OK(StaticSourceRouter<string>::Create(regexps, &router));
   std::vector<Source<StoragePath>*> output_ports = router->GetOutputPorts();
   ASSERT_EQ(regexps.size() + 1, output_ports.size());
   std::vector<std::unique_ptr<test_util::MockStoragePathTarget>> targets;
