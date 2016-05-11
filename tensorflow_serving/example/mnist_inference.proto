@@ -1,7 +1,7 @@
 // Protobuf definition of MNIST model inference server.
 // The server classifies 28x28 greyscale image into digit 0-9.
-// See mnist_model.py for model details.
-// See minist_inference.cc for server implementation.
+// See mnist_export.py for model details.
+// See mnist_inference.cc for server implementation.
 
 syntax = "proto3";
 
