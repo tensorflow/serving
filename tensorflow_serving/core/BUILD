@@ -171,8 +171,8 @@ cc_test(
 )
 
 cc_library(
-    name = "router",
-    hdrs = ["router.h"],
+    name = "source_router",
+    hdrs = ["source_router.h"],
     visibility = [
         "//visibility:public",
     ],
@@ -185,13 +185,13 @@ cc_library(
 )
 
 cc_test(
-    name = "router_test",
-    srcs = ["router_test.cc"],
+    name = "source_router_test",
+    srcs = ["source_router_test.cc"],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:test",
-        ":router",
         ":servable_data",
+        ":source_router",
         ":storage_path",
         "//tensorflow_serving/core/test_util:mock_storage_path_target",
         "//tensorflow_serving/core/test_util:test_main",
@@ -199,27 +199,27 @@ cc_test(
 )
 
 cc_library(
-    name = "static_router",
-    hdrs = ["static_router.h"],
+    name = "static_source_router",
+    hdrs = ["static_source_router.h"],
     visibility = [
         "//visibility:public",
     ],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",
-        ":router",
+        ":source_router",
     ],
 )
 
 cc_test(
-    name = "static_router_test",
-    srcs = ["static_router_test.cc"],
+    name = "static_source_router_test",
+    srcs = ["static_source_router_test.cc"],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:test",
         ":servable_data",
         ":source",
-        ":static_router",
+        ":static_source_router",
         ":storage_path",
         ":target",
         "//tensorflow_serving/core/test_util:mock_storage_path_target",

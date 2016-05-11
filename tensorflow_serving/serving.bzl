@@ -28,7 +28,7 @@ def serving_proto_library_py(name, srcs=[], deps=[], visibility=None, testonly=0
   py_proto_library(name=name,
                    srcs=srcs,
                    srcs_version = "PY2AND3",
-                   deps=deps,
+                   deps=["@tf//google/protobuf:protobuf_python"] + deps,
                    default_runtime="@tf//google/protobuf:protobuf_python",
                    protoc="@tf//google/protobuf:protoc",
                    visibility=visibility,

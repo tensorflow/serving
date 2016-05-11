@@ -166,6 +166,78 @@ TEST_P(BasicManagerTest, ServableHandleSpecificVersion) {
   EXPECT_EQ(id, handle.id());
 }
 
+// Tests an edge-case when the serving map is updated and the last version of a
+// stream is not in kReady state.
+TEST_P(BasicManagerTest, UpdateServingMapServableHandleLatest) {
+  // Using kServableName3 which doesn't have any servables loaded in the
+  // manager, as opposed to kServableName which already has 2 loaded.
+  const ServableId id0 = {kServableName3, 0};
+  // Servable is int64 with value 0.
+  basic_manager_->ManageServable(CreateServable(id0));
+  basic_manager_->LoadServable(
+      id0, [](const Status& status) { TF_ASSERT_OK(status); });
+  WaitUntilServablesAvailable({id0}, basic_manager_.get());
+
+  test_util::MockLoader* notify_to_unload = new NiceMock<test_util::MockLoader>;
+  // Don't make it const otherwise servable types will mismatch: const int64 vs
+  // int64.
+  int64 servable = 1;
+  ON_CALL(*notify_to_unload, servable())
+      .WillByDefault(Return(AnyPtr(&servable)));
+  ON_CALL(*notify_to_unload, EstimateResources(_))
+      .WillByDefault(Return(Status::OK()));
+  ON_CALL(*notify_to_unload, Load(_)).WillByDefault(Return(Status::OK()));
+  const ServableId id1 = {kServableName3, 1};
+  basic_manager_->ManageServable(
+      {id1, std::unique_ptr<Loader>(notify_to_unload)});
+  basic_manager_->LoadServable(
+      id1, [](const Status& status) { TF_ASSERT_OK(status); });
+  WaitUntilServablesAvailable({id1}, basic_manager_.get());
+
+  // We have loaded both versions 0 and 1 of kServableName3, so the latest
+  // handle should be that of v1.
+  {
+    ServableHandle<int64> handle;
+    const Status status = basic_manager_->GetServableHandle(
+        ServableRequest::Latest(kServableName3), &handle);
+    TF_ASSERT_OK(status);
+    EXPECT_EQ(id1, handle.id());
+  }
+
+  // We will now try to unload v1, but we only allow it to move out from kReady
+  // state, and not complete the unload. Also, after it moves out from kReady,
+  // the serving map is also updated, so v0 would be the latest.
+  Notification unload_started;
+  Notification finish_unload;
+  EXPECT_CALL(*notify_to_unload, Unload()).WillOnce(Invoke([&]() {
+    unload_started.Notify();
+    finish_unload.WaitForNotification();
+  }));
+  Notification unload_finished;
+  std::unique_ptr<Thread> unload_last_servable(
+      Env::Default()->StartThread({}, "UnloadLastServable", [&]() {
+        basic_manager_->UnloadServable(id1, [&](const Status& status) {
+          TF_EXPECT_OK(status);
+          unload_finished.Notify();
+        });
+      }));
+  unload_started.WaitForNotification();
+
+  // Servable map should just have {kServableName3, 0} at this point.
+  {
+    ServableHandle<int64> handle;
+    const Status status = basic_manager_->GetServableHandle(
+        ServableRequest::Latest(kServableName3), &handle);
+    TF_EXPECT_OK(status);
+    EXPECT_EQ(id0, handle.id());
+  }
+  finish_unload.Notify();
+  // We have to ensure that the unload has finished completely, otherwise the
+  // address of the notifications could be invalid in the load when we exit from
+  // this scope.
+  unload_finished.WaitForNotification();
+}
+
 TEST_P(BasicManagerTest, ListAvailableServableIds) {
   const std::vector<ServableId> expected_before = {{kServableName, 1},
                                                    {kServableName, 2},

@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_CORE_STATIC_ROUTER_H_
-#define TENSORFLOW_SERVING_CORE_STATIC_ROUTER_H_
+#ifndef TENSORFLOW_SERVING_CORE_STATIC_SOURCE_ROUTER_H_
+#define TENSORFLOW_SERVING_CORE_STATIC_SOURCE_ROUTER_H_
 
 #include <memory>
 #include <string>
@@ -22,12 +22,12 @@ limitations under the License.
 
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/regexp.h"
-#include "tensorflow_serving/core/router.h"
+#include "tensorflow_serving/core/source_router.h"
 
 namespace tensorflow {
 namespace serving {
 
-// A router with N statically-configured output ports. Items are routed to
+// A SourceRouter with N statically-configured output ports. Items are routed to
 // output ports based on regular-expression matching against the servable name.
 // The router is configured with N-1 regular expressions (regexps), with "fall-
 // through" semantics. In particular: The regexps are numbered 0, 1, ..., N-2.
@@ -35,13 +35,13 @@ namespace serving {
 // fail to match regexp 0 but do match regexp 1 are sent to port 1; and so on.
 // Items that match none of the regexps are sent to port N-1.
 template <typename T>
-class StaticRouter : public Router<T> {
+class StaticSourceRouter : public SourceRouter<T> {
  public:
-  // Creates a StaticRouter with 'route_regexps.size() + 1' output ports, based
-  // on cascading regular expression matching as described above.
+  // Creates a StaticSourceRouter with 'route_regexps.size() + 1' output ports,
+  // based on cascading regular expression matching as described above.
   static Status Create(const std::vector<string>& route_regexps,
-                       std::unique_ptr<StaticRouter<T>>* result);
-  ~StaticRouter() override = default;
+                       std::unique_ptr<StaticSourceRouter<T>>* result);
+  ~StaticSourceRouter() override = default;
 
  protected:
   int num_output_ports() const override {
@@ -52,27 +52,28 @@ class StaticRouter : public Router<T> {
             const std::vector<ServableData<T>>& versions) override;
 
  private:
-  explicit StaticRouter(const std::vector<string>& route_regexps);
+  explicit StaticSourceRouter(const std::vector<string>& route_regexps);
 
   // The regexps of the first N-1 routes (the Nth route is the default route).
   std::vector<std::unique_ptr<RE2>> routes_except_default_;
 
-  TF_DISALLOW_COPY_AND_ASSIGN(StaticRouter);
+  TF_DISALLOW_COPY_AND_ASSIGN(StaticSourceRouter);
 };
 
 //////////
 // Implementation details follow. API users need not read.
 
 template <typename T>
-Status StaticRouter<T>::Create(const std::vector<string>& route_regexps,
-                               std::unique_ptr<StaticRouter<T>>* result) {
-  result->reset(new StaticRouter<T>(route_regexps));
+Status StaticSourceRouter<T>::Create(
+    const std::vector<string>& route_regexps,
+    std::unique_ptr<StaticSourceRouter<T>>* result) {
+  result->reset(new StaticSourceRouter<T>(route_regexps));
   return Status::OK();
 }
 
 template <typename T>
-int StaticRouter<T>::Route(const StringPiece servable_name,
-                           const std::vector<ServableData<T>>& versions) {
+int StaticSourceRouter<T>::Route(const StringPiece servable_name,
+                                 const std::vector<ServableData<T>>& versions) {
   for (int i = 0; i < routes_except_default_.size(); ++i) {
     if (RE2::FullMatch(servable_name.ToString(), *routes_except_default_[i])) {
       LOG(INFO) << "Routing servable(s) from stream " << servable_name
@@ -87,7 +88,8 @@ int StaticRouter<T>::Route(const StringPiece servable_name,
 }
 
 template <typename T>
-StaticRouter<T>::StaticRouter(const std::vector<string>& route_regexps) {
+StaticSourceRouter<T>::StaticSourceRouter(
+    const std::vector<string>& route_regexps) {
   for (const string& route_regexp : route_regexps) {
     routes_except_default_.emplace_back(new RE2(route_regexp));
   }
@@ -96,4 +98,4 @@ StaticRouter<T>::StaticRouter(const std::vector<string>& route_regexps) {
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_CORE_STATIC_ROUTER_H_
+#endif  // TENSORFLOW_SERVING_CORE_STATIC_SOURCE_ROUTER_H_

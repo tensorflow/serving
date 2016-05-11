@@ -420,10 +420,8 @@ TEST_P(CachingManagerTest, EventBusErrorHandle) {
 
 ///////////////////////////////////////////////////////////////////////////////
 // Concurrent requests.
-// TODO(b/25449742): Update with test for the same ServableId once the caching
-// manager has support for multithreading.
 
-TEST_P(CachingManagerTest, ServableHandleConcurrentRequestsDifferentIds) {
+TEST_P(CachingManagerTest, ConcurrentDisjointRequests) {
   // Track the status of each request.
   mutex status_mu;
   std::vector<Status> statuses(4);
@@ -458,6 +456,43 @@ TEST_P(CachingManagerTest, ServableHandleConcurrentRequestsDifferentIds) {
                                                  {kServableName, 31},
                                                  {kServableName, 32},
                                                  {kServableName, 33}};
+  EXPECT_THAT(actual_keys, UnorderedElementsAreArray(expected_keys));
+}
+
+TEST_P(CachingManagerTest, ConcurrentIntersectingRequests) {
+  mutex status_mu;
+  std::vector<Status> statuses(8);
+  {
+    ThreadPoolExecutor request_executor(Env::Default(), "GetHandles",
+                                        kNumThreads);
+    for (int i = 0; i < 8; i++) {
+      // Use two different versions to send concurrent requests.
+      const int version = i % 2 + 30;
+      const ServableId id = {kServableName, version};
+      request_executor.Schedule([this, i, id, &statuses, &status_mu]() {
+        ServableHandle<string> handle;
+        const Status status =
+            manager_->GetServableHandle(ServableRequest::FromId(id), &handle);
+        mutex_lock l(status_mu);
+        statuses[i] = status;
+      });
+    }
+  }
+  // Check that all requests returned with an ok status.
+  for (int i = 0; i < 8; i++) {
+    mutex_lock l(status_mu);
+    EXPECT_EQ(Status::OK(), statuses[i]);
+  }
+  // Check that the available servable handles now includes all requested
+  // servables.
+  const std::map<ServableId, ServableHandle<string>> handles =
+      manager_->GetAvailableServableHandles<string>();
+  std::vector<ServableId> actual_keys;
+  for (const auto& it_handle : handles) {
+    actual_keys.push_back(it_handle.first);
+  }
+  const std::vector<ServableId> expected_keys = {{kServableName, 30},
+                                                 {kServableName, 31}};
   EXPECT_THAT(actual_keys, UnorderedElementsAreArray(expected_keys));
 }
 
