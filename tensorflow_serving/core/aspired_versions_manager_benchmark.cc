@@ -14,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 // Run with:
-// bazel run -c opt \
+// bazel run -c opt --dynamic_mode=off \
 // tensorflow_serving/core:aspired_versions_manager_benchmark --
 // --benchmarks=. --benchmark_use_picoseconds
 // For a longer run time and more consistent results, consider a min time
