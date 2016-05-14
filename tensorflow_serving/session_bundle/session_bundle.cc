@@ -20,7 +20,6 @@ limitations under the License.
 #include <vector>
 
 #include "google/protobuf/any.pb.h"
-#include "google/protobuf/map.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
@@ -31,6 +30,7 @@ limitations under the License.
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/protobuf/saver.pb.h"
