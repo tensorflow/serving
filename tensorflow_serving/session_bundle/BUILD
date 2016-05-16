@@ -97,7 +97,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "@tf//google/protobuf:cc_wkt_protos",
-        "@tf//google/protobuf:protobuf_lite",
         "@tf//tensorflow/core:core_cpu",
         "@tf//tensorflow/core:framework",
         "@tf//tensorflow/core:lib",
@@ -106,6 +105,24 @@ cc_library(
         ":manifest_proto",
         ":signature",
     ],
+)
+
+filegroup(
+    name = "session_bundle_srcs",
+    srcs = [
+        "session_bundle.cc",
+        "session_bundle.h",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "signature_srcs",
+    srcs = [
+        "signature.cc",
+        "signature.h",
+    ],
+    visibility = ["//visibility:public"],
 )
 
 cc_test(
@@ -137,7 +154,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "@tf//google/protobuf:cc_wkt_protos",
-        "@tf//google/protobuf:protobuf_lite",
         "@tf//tensorflow/core:core_cpu",
         "@tf//tensorflow/core:framework",
         "@tf//tensorflow/core:lib",

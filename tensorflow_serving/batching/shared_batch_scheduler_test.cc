@@ -563,7 +563,8 @@ TEST(SharedBatchSchedulerTest, QueueDestructorBlocksUntilAllTasksProcessed) {
     EXPECT_EQ(kMaxEnqueuedBatches, num_enqueued_batches);
     EXPECT_EQ(error::UNAVAILABLE, ScheduleTask(10, queue.get()).code());
 
-    // Destroy the queue. The destructor should block until the queue is empty.
+    // Destroy the queue. The destructor should block until all tasks have been
+    // processed.
     Notification destroy_queue_thread_started, queue_destroyed;
     std::unique_ptr<Thread> destroy_queue_thread(Env::Default()->StartThread(
         {}, "DestroyQueueThread",

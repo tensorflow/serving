@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
 """Tests for exporter.py."""
 
 import os.path
@@ -72,13 +71,17 @@ class SaveRestoreShardedTest(tf.test.TestCase):
           "generic": exporter.generic_signature(named_tensor_bindings)
       }
 
-      def write_asset(path):
-        file_path = os.path.join(path, "file.txt")
-        with gfile.FastGFile(file_path, "w") as f:
-          f.write("your data here")
+      asset_filepath_orig = os.path.join(tf.test.get_temp_dir(), "hello42.txt")
+      asset_file = tf.constant(asset_filepath_orig, name="filename42")
+      tf.add_to_collection(tf.GraphKeys.ASSET_FILEPATHS, asset_file)
 
-      asset_file = tf.Variable("hello42.txt", name="filename42")
-      assets = {("hello42.txt", asset_file)}
+      with gfile.FastGFile(asset_filepath_orig, "w") as f:
+        f.write("your data here")
+      assets_collection = tf.get_collection(tf.GraphKeys.ASSET_FILEPATHS)
+
+      ignored_asset = os.path.join(tf.test.get_temp_dir(), "ignored.txt")
+      with gfile.FastGFile(ignored_asset, "w") as f:
+        f.write("additional data here")
 
       tf.initialize_all_variables().run()
 
@@ -94,8 +97,7 @@ class SaveRestoreShardedTest(tf.test.TestCase):
                   default_graph_signature=exporter.classification_signature(
                       input_tensor=v0),
                   named_graph_signatures=signatures,
-                  assets=assets,
-                  assets_callback=write_asset)
+                  assets_collection=assets_collection)
       export.export(export_path,
                     global_step_tensor,
                     sess,
@@ -150,13 +152,19 @@ class SaveRestoreShardedTest(tf.test.TestCase):
       self.assertEquals(len(assets_any), 1)
       asset = manifest_pb2.AssetFile()
       assets_any[0].Unpack(asset)
-      assets_path = os.path.join(
-          export_path, exporter.VERSION_FORMAT_SPECIFIER % global_step,
-          exporter.ASSETS_DIRECTORY, "file.txt")
+      assets_path = os.path.join(export_path,
+                                 exporter.VERSION_FORMAT_SPECIFIER %
+                                 global_step, exporter.ASSETS_DIRECTORY,
+                                 "hello42.txt")
       asset_contents = gfile.GFile(assets_path).read()
       self.assertEqual(asset_contents, "your data here")
       self.assertEquals("hello42.txt", asset.filename)
       self.assertEquals("filename42:0", asset.tensor_binding.tensor_name)
+      ignored_asset_path = os.path.join(export_path,
+                                        exporter.VERSION_FORMAT_SPECIFIER %
+                                        global_step, exporter.ASSETS_DIRECTORY,
+                                        "ignored.txt")
+      self.assertFalse(gfile.Exists(ignored_asset_path))
 
       # Validate graph restoration.
       if sharded:

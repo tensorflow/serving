@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
 """Export a TensorFlow model.
 
 See: https://goo.gl/OIDCqz
@@ -45,6 +44,35 @@ INIT_OP_KEY = "serving_init_op"
 SIGNATURES_KEY = "serving_signatures"
 ASSETS_KEY = "serving_assets"
 GRAPH_KEY = "serving_graph"
+
+
+def gfile_copy_callback(files_to_copy, export_dir_path):
+  """Callback to copy files using `gfile.Copy` to an export directory.
+
+  This method is used as the default `assets_callback` in `Exporter.init` to
+  copy assets from the `assets_collection`. It can also be invoked directly to
+  copy additional supplementary files into the export directory (in which case
+  it is not a callback).
+
+  Args:
+    files_to_copy: A dictionary that maps original file paths to desired
+      basename in the export directory.
+    export_dir_path: Directory to copy the files to.
+  """
+  tf.logging.info("Write assest into: %s using gfile_copy.", export_dir_path)
+  if not gfile.Exists(export_dir_path):
+    gfile.MakeDirs(export_dir_path)
+  for source_filepath, basename in files_to_copy.items():
+    new_path = os.path.join(export_dir_path, basename)
+    tf.logging.info("Copying asset %s to path %s.", source_filepath, new_path)
+
+    if gfile.Exists(new_path):
+      # Guard against being restarted while copying assets, and the file
+      # existing and being in an unknown state.
+      # TODO(b/28676216): Do some file checks before deleting.
+      tf.logging.info("Removing file %s.", new_path)
+      gfile.Remove(new_path)
+    tf.gfile.Copy(source_filepath, new_path)
 
 
 def regression_signature(input_tensor, output_tensor):
@@ -110,6 +138,7 @@ class Exporter(object):
   def __init__(self, saver):
     self._saver = saver
     self._has_init = False
+    self._assets_to_copy = {}
 
   def init(self,
            graph_def=None,
@@ -117,8 +146,8 @@ class Exporter(object):
            clear_devices=False,
            default_graph_signature=None,
            named_graph_signatures=None,
-           assets=None,
-           assets_callback=None):
+           assets_collection=None,
+           assets_callback=gfile_copy_callback):
     """Initialization.
 
     Args:
@@ -128,20 +157,28 @@ class Exporter(object):
       clear_devices: If device info of the graph should be cleared upon export.
       default_graph_signature: Default signature of the graph.
       named_graph_signatures: Map of named input/output signatures of the graph.
-      assets: A list of tuples of asset files with the first element being the
-        filename (string) and the second being the Tensor.
-      assets_callback: callback with a single string argument; called during
-        export with the asset path.
-
+      assets_collection: A collection of constant asset filepath tensors. If set
+        the assets will be exported into the asset directory.
+      assets_callback: callback with two argument called during export with the
+        list of files to copy and the asset path.
     Raises:
       RuntimeError: if init is called more than once.
       TypeError: if init_op is not an Operation or None.
+      ValueError: if asset file path tensors are not non-empty constant string
+        scalar tensors.
     """
     # Avoid Dangerous default value []
     if named_graph_signatures is None:
       named_graph_signatures = {}
-    if assets is None:
-      assets = {}
+    assets = []
+    if assets_collection:
+      for asset_tensor in assets_collection:
+        asset_filepath = self._file_path_value(asset_tensor)
+        if not asset_filepath:
+          raise ValueError("invalid asset filepath tensor %s" % asset_tensor)
+        basename = os.path.basename(asset_filepath)
+        assets.append((basename, asset_tensor))
+        self._assets_to_copy[asset_filepath] = basename
 
     if self._has_init:
       raise RuntimeError("init should be called only once")
@@ -200,6 +237,9 @@ class Exporter(object):
       exports_to_keep: a gc.Path filter function used to determine the set of
         exports to keep. If set to None, all versions will be kept.
 
+    Returns:
+      The string path to the exported directory.
+
     Raises:
       RuntimeError: if init is not called.
       RuntimeError: if the export would overwrite an existing directory.
@@ -228,10 +268,10 @@ class Exporter(object):
                      meta_graph_suffix=EXPORT_SUFFIX_NAME)
 
     # Run the asset callback.
-    if self._assets_callback:
+    if self._assets_callback and self._assets_to_copy:
       assets_dir = os.path.join(tmp_export_dir, ASSETS_DIRECTORY)
       gfile.MakeDirs(assets_dir)
-      self._assets_callback(assets_dir)
+      self._assets_callback(self._assets_to_copy, assets_dir)
 
     # TODO(b/27794910): Delete *checkpoint* file before rename.
     gfile.Rename(tmp_export_dir, export_dir)
@@ -247,3 +287,18 @@ class Exporter(object):
       paths_to_delete = gc.negation(exports_to_keep)
       for p in paths_to_delete(gc.get_paths(export_dir_base, parser=parser)):
         gfile.DeleteRecursively(p.path)
+
+    return export_dir
+
+  def _file_path_value(self, path_tensor):
+    """Returns the filepath value stored in constant `path_tensor`."""
+    if not isinstance(path_tensor, tf.Tensor):
+      raise TypeError("tensor is not a Tensor")
+    if path_tensor.op.type != "Const":
+      raise TypeError("Only constants tensor are supported")
+    if path_tensor.dtype != tf.string:
+      raise TypeError("File paths should be string")
+    str_value = path_tensor.op.get_attr("value").string_val
+    if len(str_value) != 1:
+      raise TypeError("Only scalar tensors are supported")
+    return str_value[0]

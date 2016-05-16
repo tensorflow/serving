@@ -112,15 +112,13 @@ def export():
       # Restore variables from training checkpoints.
       ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
       if ckpt and ckpt.model_checkpoint_path:
-        full_path = os.path.join(FLAGS.checkpoint_dir,
-                                 ckpt.model_checkpoint_path)
-        saver.restore(sess, full_path)
+        saver.restore(sess, ckpt.model_checkpoint_path)
         # Assuming model_checkpoint_path looks something like:
         #   /my-favorite-path/imagenet_train/model.ckpt-0,
         # extract global_step from it.
         global_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
         print('Successfully loaded model from %s at step=%s.' %
-              (full_path, global_step))
+              (ckpt.model_checkpoint_path, global_step))
       else:
         print('No checkpoint file found at %s' % FLAGS.checkpoint_dir)
         return
