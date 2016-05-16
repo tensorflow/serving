@@ -100,7 +100,7 @@ Status CachingManager::GetUntypedServableHandleForId(
   // requests enforces that exactly one thread performs the load operation with
   // the wrapped basic-manager. All other requests block until the load
   // completes and then trivially succeed.
-  LoadServable(servable_id);
+  TF_RETURN_IF_ERROR(LoadServable(servable_id));
 
   // Return the handle using the loaded servable data now.
   return basic_manager_->GetUntypedServableHandle(
@@ -125,23 +125,22 @@ Status CachingManager::LoadServable(const ServableId& servable_id) {
     mutex_lock l(*servable_id_mu);
 
     // Retrieve the state of the servable from the wrapped basic-manager. The
-    // servable should already be managed by the basic-manager. If a snapshot
-    // corresponding to the managed servable-id is not found, it is considered
-    // an error.
-    // TODO(b/28617799): Update to use the basic-manager API to get the
-    // servable state snapshot per servable id.
-    LoaderHarness::State snapshot_state = LoaderHarness::State::kError;
-    const std::vector<ServableStateSnapshot<>> snapshots =
-        basic_manager_->GetManagedServableStateSnapshots(servable_id.name);
-    for (const auto& snapshot : snapshots) {
-      if (snapshot.id.version == servable_id.version) {
-        snapshot_state = snapshot.state;
-        break;
-      }
+    // servable should already be managed by the basic-manager.
+    const optional<ServableStateSnapshot<>> snapshot =
+        basic_manager_->GetManagedServableStateSnapshot(servable_id);
+    // If no snapshot is found, the requested servable is not being managed by
+    // the wrapped basic-manager yet. This is a broken invariant since we expect
+    // ManageServable() to have been invoked just before calling this method.
+    // Return an error accordingly.
+    if (!snapshot) {
+      const string error_msg = strings::StrCat(
+          "Servable requested for load is not being managed by the manager: ",
+          servable_id.DebugString());
+      DCHECK(false) << error_msg;
+      return errors::Internal(error_msg);
     }
-
     // Load the servable since it has not been loaded yet based on its state.
-    if (snapshot_state == LoaderHarness::State::kNew) {
+    if (snapshot.value().state == LoaderHarness::State::kNew) {
       Notification load_done;
       Status load_status;
       basic_manager_->LoadServable(servable_id, [&](const Status& status) {
