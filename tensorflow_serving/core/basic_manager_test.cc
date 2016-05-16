@@ -353,6 +353,35 @@ TEST_P(BasicManagerTest,
               UnorderedElementsAreArray(expected));
 }
 
+TEST_P(BasicManagerTest, GetManagedServableStateSnapshot) {
+  // Check servable state snapshot corresponding to a servable-id that is in
+  // ready state.
+  const ServableId id_ready = {kServableName, 1};
+  const optional<ServableStateSnapshot<>> actual_ready_snapshot =
+      basic_manager_->GetManagedServableStateSnapshot(id_ready);
+  EXPECT_TRUE(actual_ready_snapshot);
+  const ServableStateSnapshot<> expected_ready_snapshot = {
+      id_ready, LoaderHarness::State::kReady, {}};
+  EXPECT_EQ(actual_ready_snapshot, expected_ready_snapshot);
+
+  // Check servable state snapshot corresponding to a servable-id that is in
+  // error state.
+  const ServableId id_error = {kServableName, 7};
+  basic_manager_->ManageServable(ServableData<std::unique_ptr<Loader>>(
+      id_error, errors::Internal("An error.")));
+  const optional<ServableStateSnapshot<>> actual_error_snapshot =
+      basic_manager_->GetManagedServableStateSnapshot(id_error);
+  EXPECT_TRUE(actual_error_snapshot);
+  const ServableStateSnapshot<> expected_error_snapshot = {
+      id_error, LoaderHarness::State::kError, {}};
+  EXPECT_EQ(actual_error_snapshot, expected_error_snapshot);
+
+  // Check servable state snapshot corresponding to a servable-id that is not
+  // managed by the basic-manager.
+  const ServableId id_notmanaged = {kServableName, 8};
+  EXPECT_FALSE(basic_manager_->GetManagedServableStateSnapshot(id_notmanaged));
+}
+
 TEST_P(BasicManagerTest, GetManagedServableStateSnapshotsWithAdditionalState) {
   basic_manager_->ManageServableWithAdditionalState(
       CreateServable({kServableName3, 0}), std::unique_ptr<int>(new int(0)));
