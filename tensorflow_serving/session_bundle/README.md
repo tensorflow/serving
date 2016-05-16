@@ -181,29 +181,43 @@ In order to create hermetic exports these asset files need to be 1) copied to
 each export directory and 2) read when recovering a session from an export base
 directory.
 
-Copying assets to the export dir is handled with the callback mechanism. During
-an export the export dir is passed to a callback which should copy all assets to
-the export directory.
+Copying assets to the export dir is handled with a callback mechanism.
+The callback function receives two parameters 1) the dictionary of source files
+to desired basename and 2) the export directory. The default callback uses
+`gfile.Copy` to perform the copy.
+
+The tensors that contains the filepath to be copied and be replaced for
+inference in specified by passing the collection of asset filepath tensor,
+which is usually extracted from the graph by `tf.get_collection(tf.GraphKeys.ASSET_FILEPATHS)`.
 
 ~~~python
-      def write_asset(path):
-        file_path = os.path.join(path, "file.txt")
-        with gfile.FastGFile(file_path, "w") as f:
-          f.write("your data here")
+      # Run an export.
+      export = exporter.Exporter(save)
+      export.init(
+          sess.graph.as_graph_def(),
+          asset_collection=tf.get_collection(tf.GraphKeys.ASSET_FILEPATHS))
+      export.export(export_path, global_step_tensor, sess)
+~~~
 
-      # Gather asset files.
-      some_file = tf.constant("file.txt")
-      assets = {("file.txt", some_file)}
+Users can use their own callbacks as shown in the following example, with the
+requirement to keep the basename of the original files:
+
+~~~python
+      def my_custom_copy_callback(files_to_copy, export_dir_path):
+        # Copy all source files (keys) in files_to_copy to export_dir_path
+        # using the corresponging basename (value).
+        ...
+
 
       # Run an export.
       export = exporter.Exporter(save)
-      export.init(sess.graph.as_graph_def(),
-                  assets=assets
-                  assets_callback=write_asset)
-      export.export(export_path,
-                    global_step_tensor,
-                    sess)
+      export.init(
+          sess.graph.as_graph_def(),
+          asset_collection=tf.get_collection(tf.GraphKeys.ASSET_FILEPATHS),
+          asset_callback=my_custom_copy_callback)
+      export.export(export_path, global_step_tensor, sess)
 ~~~
+
 
 `AssetFile` binds the name of a tensor in the graph to the name of a file
 within the assets directory. `LoadSessionBundleFromPath` will handle the base
