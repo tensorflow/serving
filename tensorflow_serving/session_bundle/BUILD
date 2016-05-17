@@ -33,7 +33,19 @@ py_library(
     deps = [
         "@tf//tensorflow:tensorflow_py",
         ":gc",
-        ":manifest_proto_py",
+        ":manifest_py_pb2",
+    ],
+)
+
+py_library(
+    name = "session_bundle_py",
+    srcs = ["session_bundle.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@tf//tensorflow:tensorflow_py",
+        "@tf//tensorflow/core:protos_all_py_pb2",
+        ":exporter",
+        ":manifest_py_pb2",
     ],
 )
 
@@ -47,7 +59,26 @@ py_test(
         "@tf//tensorflow:tensorflow_py",
         ":exporter",
         ":gc",
-        ":manifest_proto_py",
+        ":manifest_py_pb2",
+    ],
+)
+
+py_test(
+    name = "session_bundle_py_test",
+    size = "small",
+    srcs = [
+        "session_bundle_test.py",
+    ],
+    data = [
+        "//tensorflow_serving/session_bundle/example:half_plus_two",
+    ],
+    main = "session_bundle_test.py",
+    deps = [
+        "@tf//google/protobuf:any_py_pb2",
+        "@tf//tensorflow:tensorflow_py",
+        "@tf//tensorflow/core:protos_all_py_pb2",
+        ":manifest_py_pb2",
+        ":session_bundle_py",
     ],
 )
 
@@ -88,6 +119,17 @@ serving_proto_library_py(
     srcs = ["manifest.proto"],
     visibility = ["//visibility:public"],
     deps = ["@tf//tensorflow/core:protos_all_py"],
+)
+
+proto_library(
+    name = "manifest_proto_lib",
+    srcs = ["manifest.proto"],
+)
+
+py_proto_library(
+    name = "manifest_py_pb2",
+    api_version = 2,
+    deps = [":manifest_proto_lib"],
 )
 
 cc_library(
