@@ -107,5 +107,6 @@ cc_library(
     hdrs = ["manager_test_util.h"],
     deps = [
         "//tensorflow_serving/core:aspired_versions_manager",
+        "//tensorflow_serving/core:caching_manager",
     ],
 )

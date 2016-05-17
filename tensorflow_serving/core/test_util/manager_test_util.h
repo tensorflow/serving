@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_CORE_TEST_UTIL_MANAGER_TEST_UTIL_H_
 
 #include "tensorflow_serving/core/aspired_versions_manager.h"
+#include "tensorflow_serving/core/caching_manager.h"
 
 namespace tensorflow {
 namespace serving {
@@ -35,6 +36,22 @@ class AspiredVersionsManagerTestAccess {
   AspiredVersionsManager* const manager_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(AspiredVersionsManagerTestAccess);
+};
+
+// A test utility that provides access to private CachingManager members.
+class CachingManagerTestAccess {
+ public:
+  explicit CachingManagerTestAccess(CachingManager* manager)
+      : manager_(manager) {}
+
+  // Returns the size of the load-mutex map that stores the mutex reference per
+  // servable-id requested for load.
+  int64 GetLoadMutexMapSize() const;
+
+ private:
+  CachingManager* const manager_;
+
+  TF_DISALLOW_COPY_AND_ASSIGN(CachingManagerTestAccess);
 };
 
 }  // namespace test_util

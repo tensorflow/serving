@@ -27,6 +27,10 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+namespace test_util {
+class CachingManagerTestAccess;
+}  // namespace test_util
+
 // A manager that manages and loads servables on-demand. Upon receiving the
 // request for a servable name and optional version, the manager checks if it
 // already has the requested servable loaded. If not, it initiates the load
@@ -97,6 +101,8 @@ class CachingManager : public Manager {
   std::vector<ServableId> ListAvailableServableIds() const override;
 
  private:
+  friend class test_util::CachingManagerTestAccess;
+
   CachingManager(std::unique_ptr<LoaderFactory> loader_factory,
                  std::unique_ptr<BasicManager> basic_manager);
 
@@ -121,6 +127,9 @@ class CachingManager : public Manager {
   // requests block until the load completes and then trivially succeed.
   Status LoadServable(const ServableId& servable_id)
       LOCKS_EXCLUDED(load_mutex_map_mu_);
+
+  // Returns the size of the load_mutex_map_.
+  int64 GetLoadMutexMapSize() const LOCKS_EXCLUDED(load_mutex_map_mu_);
 
   std::unique_ptr<LoaderFactory> loader_factory_;
 
