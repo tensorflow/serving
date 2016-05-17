@@ -104,7 +104,7 @@ class MnistServiceImpl final : public MnistService::Service {
 
     // Transform protobuf input to inference input tensor and create
     // output tensor placeholder.
-    // See minist_export.py for details.
+    // See mnist_export.py for details.
     Tensor input(tensorflow::DT_FLOAT, {1, kImageDataSize});
     std::copy_n(request->image_data().begin(), kImageDataSize,
                 input.flat<float>().data());
@@ -125,7 +125,7 @@ class MnistServiceImpl final : public MnistService::Service {
     }
 
     // Transform inference output tensor to protobuf output.
-    // See minist_export.py for details.
+    // See mnist_export.py for details.
     if (outputs.size() != 1) {
       return Status(StatusCode::INTERNAL,
                     tensorflow::strings::StrCat(

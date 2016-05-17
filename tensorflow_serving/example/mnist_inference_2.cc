@@ -302,7 +302,7 @@ void MnistServiceImpl::DoClassifyInBatch(
   }
 
   // Transform protobuf input to inference input tensor.
-  // See minist_model.py for details.
+  // See mnist_model.py for details.
   // WARNING(break-tutorial-inline-code): The following code snippet is
   // in-lined in tutorials, please update tutorial documents accordingly
   // whenever code changes.
@@ -342,7 +342,7 @@ void MnistServiceImpl::DoClassifyInBatch(
   }
 
   // Transform inference output tensor to protobuf output.
-  // See minist_model.py for details.
+  // See mnist_model.py for details.
   const auto& scores_mat = scores.matrix<float>();
   for (int i = 0; i < batch_size; ++i) {
     auto calldata = batch->mutable_task(i)->calldata;
