@@ -154,6 +154,11 @@ Status CachingManager::LoadServable(const ServableId& servable_id) {
   return Status::OK();
 }
 
+int64 CachingManager::GetLoadMutexMapSize() const {
+  mutex_lock l(load_mutex_map_mu_);
+  return load_mutex_map_.size();
+}
+
 std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
 CachingManager::GetAvailableUntypedServableHandles() const {
   return basic_manager_->GetAvailableUntypedServableHandles();
