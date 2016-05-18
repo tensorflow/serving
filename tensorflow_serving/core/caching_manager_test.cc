@@ -465,10 +465,9 @@ TEST_P(CachingManagerTest, ConcurrentDisjointRequests) {
                                                  {kServableName, 32},
                                                  {kServableName, 33}};
   EXPECT_THAT(actual_keys, UnorderedElementsAreArray(expected_keys));
-  // Since there is no garbage-collection on the entries of the load_mutex_map_
-  // in the caching-manager, we expect entries corresponding to all four
-  // requested servable-ids.
-  EXPECT_EQ(4, GetLoadMutexMapSize());
+  // Since the map entries in load_mutex_map_ are garbage-collected, we expect
+  // no remaining entries in the map.
+  EXPECT_EQ(0, GetLoadMutexMapSize());
 }
 
 TEST_P(CachingManagerTest, ConcurrentIntersectingRequests) {
@@ -506,10 +505,9 @@ TEST_P(CachingManagerTest, ConcurrentIntersectingRequests) {
   const std::vector<ServableId> expected_keys = {{kServableName, 30},
                                                  {kServableName, 31}};
   EXPECT_THAT(actual_keys, UnorderedElementsAreArray(expected_keys));
-  // Since there is no garbage-collection on the entries of the load_mutex_map_
-  // in the caching-manager, we expect entries corresponding to both requested
-  // servable-ids.
-  EXPECT_EQ(2, GetLoadMutexMapSize());
+  // Since the map entries in load_mutex_map_ are garbage-collected, we expect
+  // no remaining entries in the map.
+  EXPECT_EQ(0, GetLoadMutexMapSize());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

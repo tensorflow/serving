@@ -108,16 +108,15 @@ Status CachingManager::GetUntypedServableHandleForId(
 }
 
 Status CachingManager::LoadServable(const ServableId& servable_id) {
-  mutex* servable_id_mu;
+  std::shared_ptr<mutex> servable_id_mu;
   {
     mutex_lock l(load_mutex_map_mu_);
     auto iter = load_mutex_map_.find(servable_id);
     if (iter == load_mutex_map_.end()) {
-      iter = load_mutex_map_
-                 .emplace(servable_id, std::unique_ptr<mutex>(new mutex))
-                 .first;
+      iter =
+          load_mutex_map_.emplace(servable_id, std::make_shared<mutex>()).first;
     }
-    servable_id_mu = iter->second.get();
+    servable_id_mu = iter->second;
   }
 
   {
@@ -151,7 +150,20 @@ Status CachingManager::LoadServable(const ServableId& servable_id) {
       TF_RETURN_IF_ERROR(load_status);
     }
   }
+  servable_id_mu.reset();
+  MaybeEraseLoadMutexMapEntry(servable_id);
   return Status::OK();
+}
+
+void CachingManager::MaybeEraseLoadMutexMapEntry(
+    const ServableId& servable_id) {
+  mutex_lock l(load_mutex_map_mu_);
+  auto iter = load_mutex_map_.find(servable_id);
+  // Erase the entry from the map if one exists and if the mutex shared_ptr
+  // is the last remaining one.
+  if (iter != load_mutex_map_.end() && iter->second.unique()) {
+    load_mutex_map_.erase(iter);
+  }
 }
 
 int64 CachingManager::GetLoadMutexMapSize() const {
