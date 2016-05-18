@@ -20,7 +20,7 @@ import os.path
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.platform import flags
-from tensorflow_serving.session_bundle import exporter
+from tensorflow_serving.session_bundle import constants
 from tensorflow_serving.session_bundle import manifest_pb2
 from tensorflow_serving.session_bundle import session_bundle
 
@@ -39,7 +39,7 @@ class SessionBundleLoadTest(tf.test.TestCase):
         base_path, target="", config=tf.ConfigProto(device_count={"CPU": 2}))
 
     self.assertTrue(sess)
-    asset_path = os.path.join(base_path, exporter.ASSETS_DIRECTORY)
+    asset_path = os.path.join(base_path, constants.ASSETS_DIRECTORY)
     with sess.as_default():
       path1, path2 = sess.run(["filename1:0", "filename2:0"])
       self.assertEqual(os.path.join(asset_path, "hello1.txt"), path1)
@@ -47,7 +47,7 @@ class SessionBundleLoadTest(tf.test.TestCase):
 
       collection_def = meta_graph_def.collection_def
 
-      signatures_any = collection_def[exporter.SIGNATURES_KEY].any_list.value
+      signatures_any = collection_def[constants.SIGNATURES_KEY].any_list.value
       self.assertEquals(len(signatures_any), 1)
 
       signatures = manifest_pb2.Signatures()
