@@ -26,7 +26,7 @@ import tensorflow as tf
 
 from tensorflow.core.protobuf import meta_graph_pb2
 from tensorflow.python.platform import gfile
-from tensorflow_serving.session_bundle import exporter
+from tensorflow_serving.session_bundle import constants
 from tensorflow_serving.session_bundle import manifest_pb2
 
 
@@ -51,19 +51,19 @@ def LoadSessionBundleFromPath(export_dir, target="", config=None):
     fields, i.e. the exported model is invalid.
   """
   meta_graph_filename = os.path.join(export_dir,
-                                     exporter.META_GRAPH_DEF_FILENAME)
+                                     constants.META_GRAPH_DEF_FILENAME)
   if not gfile.Exists(meta_graph_filename):
     raise RuntimeError("Expected meta graph file missing %s" %
                        meta_graph_filename)
   variables_filename = os.path.join(export_dir,
-                                    exporter.VARIABLES_FILENAME)
+                                    constants.VARIABLES_FILENAME)
   if not gfile.Exists(variables_filename):
     variables_filename = os.path.join(
-        export_dir, exporter.VARIABLES_FILENAME_PATTERN)
+        export_dir, constants.VARIABLES_FILENAME_PATTERN)
     if not gfile.Glob(variables_filename):
       raise RuntimeError("Expected variables file missing %s" %
                          variables_filename)
-  assets_dir = os.path.join(export_dir, exporter.ASSETS_DIRECTORY)
+  assets_dir = os.path.join(export_dir, constants.ASSETS_DIRECTORY)
 
   # Reads meta graph file.
   meta_graph_def = meta_graph_pb2.MetaGraphDef()
@@ -72,9 +72,9 @@ def LoadSessionBundleFromPath(export_dir, target="", config=None):
 
   collection_def = meta_graph_def.collection_def
   graph_def = tf.GraphDef()
-  if exporter.GRAPH_KEY in collection_def:
+  if constants.GRAPH_KEY in collection_def:
     # Use serving graph_def in MetaGraphDef collection_def if exists
-    graph_def_any = collection_def[exporter.GRAPH_KEY].any_list.value
+    graph_def_any = collection_def[constants.GRAPH_KEY].any_list.value
     if len(graph_def_any) != 1:
       raise RuntimeError(
           "Expected exactly one serving GraphDef in : %s" % meta_graph_def)
@@ -91,17 +91,17 @@ def LoadSessionBundleFromPath(export_dir, target="", config=None):
   saver.restore(sess, variables_filename)
 
   init_op_tensor = None
-  if exporter.INIT_OP_KEY in collection_def:
-    init_ops = collection_def[exporter.INIT_OP_KEY].node_list.value
+  if constants.INIT_OP_KEY in collection_def:
+    init_ops = collection_def[constants.INIT_OP_KEY].node_list.value
     if len(init_ops) != 1:
       raise RuntimeError(
           "Expected exactly one serving init op in : %s" % meta_graph_def)
-    init_op_tensor = tf.get_collection(exporter.INIT_OP_KEY)[0]
+    init_op_tensor = tf.get_collection(constants.INIT_OP_KEY)[0]
 
   # Create asset input tensor list.
   asset_tensor_dict = {}
-  if exporter.ASSETS_KEY in collection_def:
-    assets_any = collection_def[exporter.ASSETS_KEY].any_list.value
+  if constants.ASSETS_KEY in collection_def:
+    assets_any = collection_def[constants.ASSETS_KEY].any_list.value
     for asset in assets_any:
       asset_pb = manifest_pb2.AssetFile()
       asset.Unpack(asset_pb)

@@ -27,11 +27,17 @@ filegroup(
 )
 
 py_library(
+    name = "constants",
+    srcs = ["constants.py"],
+)
+
+py_library(
     name = "exporter",
     srcs = ["exporter.py"],
     visibility = ["//visibility:public"],
     deps = [
         "@tf//tensorflow:tensorflow_py",
+        ":constants",
         ":gc",
         ":manifest_py_pb2",
     ],
@@ -44,6 +50,7 @@ py_library(
     deps = [
         "@tf//tensorflow:tensorflow_py",
         "@tf//tensorflow/core:protos_all_py",
+        ":constants",
         ":exporter",
         ":manifest_py_pb2",
     ],
@@ -57,6 +64,7 @@ py_test(
     ],
     deps = [
         "@tf//tensorflow:tensorflow_py",
+        ":constants",
         ":exporter",
         ":gc",
         ":manifest_py_pb2",
