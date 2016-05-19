@@ -39,7 +39,7 @@ py_library(
         "@tf//tensorflow:tensorflow_py",
         ":constants",
         ":gc",
-        ":manifest_py_pb2",
+        ":manifest_proto_py",
     ],
 )
 
@@ -52,7 +52,7 @@ py_library(
         "@tf//tensorflow/core:protos_all_py",
         ":constants",
         ":exporter",
-        ":manifest_py_pb2",
+        ":manifest_proto_py",
     ],
 )
 
@@ -67,7 +67,7 @@ py_test(
         ":constants",
         ":exporter",
         ":gc",
-        ":manifest_py_pb2",
+        ":manifest_proto_py",
     ],
 )
 
@@ -85,7 +85,7 @@ py_test(
         "@tf//google/protobuf:protobuf_python",
         "@tf//tensorflow:tensorflow_py",
         "@tf//tensorflow/core:protos_all_py",
-        ":manifest_py_pb2",
+        ":manifest_proto_py",
         ":session_bundle_py",
     ],
 )
@@ -127,17 +127,6 @@ serving_proto_library_py(
     srcs = ["manifest.proto"],
     visibility = ["//visibility:public"],
     deps = ["@tf//tensorflow/core:protos_all_py"],
-)
-
-proto_library(
-    name = "manifest_proto_lib",
-    srcs = ["manifest.proto"],
-)
-
-py_proto_library(
-    name = "manifest_py_pb2",
-    api_version = 2,
-    deps = [":manifest_proto_lib"],
 )
 
 cc_library(
