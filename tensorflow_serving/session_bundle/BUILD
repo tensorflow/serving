@@ -27,12 +27,31 @@ filegroup(
 )
 
 py_library(
+    name = "constants",
+    srcs = ["constants.py"],
+)
+
+py_library(
     name = "exporter",
     srcs = ["exporter.py"],
     visibility = ["//visibility:public"],
     deps = [
         "@tf//tensorflow:tensorflow_py",
+        ":constants",
         ":gc",
+        ":manifest_proto_py",
+    ],
+)
+
+py_library(
+    name = "session_bundle_py",
+    srcs = ["session_bundle.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@tf//tensorflow:tensorflow_py",
+        "@tf//tensorflow/core:protos_all_py_pb2",
+        ":constants",
+        ":exporter",
         ":manifest_proto_py",
     ],
 )
@@ -45,9 +64,29 @@ py_test(
     ],
     deps = [
         "@tf//tensorflow:tensorflow_py",
+        ":constants",
         ":exporter",
         ":gc",
         ":manifest_proto_py",
+    ],
+)
+
+py_test(
+    name = "session_bundle_py_test",
+    size = "small",
+    srcs = [
+        "session_bundle_test.py",
+    ],
+    data = [
+        "//tensorflow_serving/session_bundle/example:half_plus_two",
+    ],
+    main = "session_bundle_test.py",
+    deps = [
+        "@tf//google/protobuf:any_py_pb2",
+        "@tf//tensorflow:tensorflow_py",
+        "@tf//tensorflow/core:protos_all_py_pb2",
+        ":manifest_proto_py",
+        ":session_bundle_py",
     ],
 )
 
