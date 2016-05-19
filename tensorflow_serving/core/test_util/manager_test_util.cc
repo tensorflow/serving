@@ -27,6 +27,10 @@ void AspiredVersionsManagerTestAccess::RunManageState() {
   manager_->ManageState();
 }
 
+int64 CachingManagerTestAccess::GetLoadMutexMapSize() const {
+  return manager_->GetLoadMutexMapSize();
+}
+
 }  // namespace test_util
 }  // namespace serving
 }  // namespace tensorflow
