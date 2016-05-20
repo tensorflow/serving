@@ -27,6 +27,10 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+namespace test_util {
+class CachingManagerTestAccess;
+}  // namespace test_util
+
 // A manager that manages and loads servables on-demand. Upon receiving the
 // request for a servable name and optional version, the manager checks if it
 // already has the requested servable loaded. If not, it initiates the load
@@ -97,6 +101,8 @@ class CachingManager : public Manager {
   std::vector<ServableId> ListAvailableServableIds() const override;
 
  private:
+  friend class test_util::CachingManagerTestAccess;
+
   CachingManager(std::unique_ptr<LoaderFactory> loader_factory,
                  std::unique_ptr<BasicManager> basic_manager);
 
@@ -122,6 +128,13 @@ class CachingManager : public Manager {
   Status LoadServable(const ServableId& servable_id)
       LOCKS_EXCLUDED(load_mutex_map_mu_);
 
+  // Returns the size of the load_mutex_map_.
+  int64 GetLoadMutexMapSize() const LOCKS_EXCLUDED(load_mutex_map_mu_);
+
+  // Erases the entry from the map corresponding to the servable-id if there is
+  // only one remaining reference to the mutex.
+  void MaybeEraseLoadMutexMapEntry(const ServableId& servable_id);
+
   std::unique_ptr<LoaderFactory> loader_factory_;
 
   std::unique_ptr<BasicManager> basic_manager_;
@@ -130,9 +143,10 @@ class CachingManager : public Manager {
   mutable mutex load_mutex_map_mu_;
 
   // Map of servable-id to a mutex, which is required to synchronize calls to
-  // load the servable using the wrapped basic-manager.
-  // TODO(b/28445976): Add support for garbage-collection of map entries.
-  std::map<ServableId, std::unique_ptr<mutex>> load_mutex_map_
+  // load the servable using the wrapped basic-manager. The value in the map is
+  // a shared_ptr to allow for reference counting and consequent garbage
+  // collection.
+  std::map<ServableId, std::shared_ptr<mutex>> load_mutex_map_
       GUARDED_BY(load_mutex_map_mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(CachingManager);

@@ -30,6 +30,7 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/simple_loader.h"
+#include "tensorflow_serving/core/test_util/manager_test_util.h"
 #include "tensorflow_serving/util/event_bus.h"
 #include "tensorflow_serving/util/optional.h"
 #include "tensorflow_serving/util/threadpool_executor.h"
@@ -175,6 +176,13 @@ class CachingManagerTest : public ::testing::TestWithParam<int> {
     TF_CHECK_OK(CachingManager::Create(
         std::move(options), std::move(error_loader_factory), &error_manager));
     return error_manager;
+  }
+
+  // Helper function to return the size of the load-mutex map from the
+  // caching-manager.
+  int64 GetLoadMutexMapSize() {
+    return test_util::CachingManagerTestAccess(manager_.get())
+        .GetLoadMutexMapSize();
   }
 
   std::shared_ptr<EventBus<ServableState>> servable_event_bus_;
@@ -457,6 +465,9 @@ TEST_P(CachingManagerTest, ConcurrentDisjointRequests) {
                                                  {kServableName, 32},
                                                  {kServableName, 33}};
   EXPECT_THAT(actual_keys, UnorderedElementsAreArray(expected_keys));
+  // Since the map entries in load_mutex_map_ are garbage-collected, we expect
+  // no remaining entries in the map.
+  EXPECT_EQ(0, GetLoadMutexMapSize());
 }
 
 TEST_P(CachingManagerTest, ConcurrentIntersectingRequests) {
@@ -494,6 +505,9 @@ TEST_P(CachingManagerTest, ConcurrentIntersectingRequests) {
   const std::vector<ServableId> expected_keys = {{kServableName, 30},
                                                  {kServableName, 31}};
   EXPECT_THAT(actual_keys, UnorderedElementsAreArray(expected_keys));
+  // Since the map entries in load_mutex_map_ are garbage-collected, we expect
+  // no remaining entries in the map.
+  EXPECT_EQ(0, GetLoadMutexMapSize());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

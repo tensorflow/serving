@@ -168,6 +168,15 @@ class BasicManager : public Manager {
   std::vector<ServableStateSnapshot<T>> GetManagedServableStateSnapshots(
       const string& servable_name) const;
 
+  // Returns the state snapshot of a particular servable-id managed by this
+  // manager if available.
+  //
+  // REQUIRES: This manager should have been managing this servable already,
+  // else we return nullopt.
+  template <typename T = std::nullptr_t>
+  optional<ServableStateSnapshot<T>> GetManagedServableStateSnapshot(
+      const ServableId& id);
+
   // Returns the additional state for the servable. Returns nullptr if there is
   // no additional state setup or if there is a type mismatch between what was
   // setup and what is being asked for.
@@ -462,6 +471,18 @@ BasicManager::GetManagedServableStateSnapshots(
   }
 
   return state_snapshots;
+}
+
+template <typename T>
+optional<ServableStateSnapshot<T>>
+BasicManager::GetManagedServableStateSnapshot(const ServableId& id) {
+  mutex_lock l(mu_);
+
+  auto iter = FindHarnessInMap(id);
+  if (iter == managed_map_.end()) {
+    return nullopt;
+  }
+  return iter->second->loader_state_snapshot<T>();
 }
 
 template <typename T>
