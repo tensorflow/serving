@@ -29,21 +29,9 @@ from tensorflow.python.framework import ops
 from tensorflow.python.platform import gfile
 from tensorflow.python.training import training_util
 
+from tensorflow_serving.session_bundle import constants
 from tensorflow_serving.session_bundle import gc
 from tensorflow_serving.session_bundle import manifest_pb2
-
-# See: https://goo.gl/OIDCqz for these constants and directory structure.
-VERSION_FORMAT_SPECIFIER = "%08d"
-ASSETS_DIRECTORY = "assets"
-EXPORT_BASE_NAME = "export"
-EXPORT_SUFFIX_NAME = "meta"
-META_GRAPH_DEF_FILENAME = EXPORT_BASE_NAME + "." + EXPORT_SUFFIX_NAME
-VARIABLES_FILENAME = EXPORT_BASE_NAME
-VARIABLES_FILENAME_PATTERN = VARIABLES_FILENAME + "-?????-of-?????"
-INIT_OP_KEY = "serving_init_op"
-SIGNATURES_KEY = "serving_signatures"
-ASSETS_KEY = "serving_assets"
-GRAPH_KEY = "serving_graph"
 
 
 def gfile_copy_callback(files_to_copy, export_dir_path):
@@ -195,12 +183,12 @@ class Exporter(object):
           node.device = ""
       graph_any_buf = any_pb2.Any()
       graph_any_buf.Pack(copy)
-      tf.add_to_collection(GRAPH_KEY, graph_any_buf)
+      tf.add_to_collection(constants.GRAPH_KEY, graph_any_buf)
 
     if init_op:
       if not isinstance(init_op, ops.Operation):
         raise TypeError("init_op needs to be an Operation: %s" % init_op)
-      tf.add_to_collection(INIT_OP_KEY, init_op)
+      tf.add_to_collection(constants.INIT_OP_KEY, init_op)
 
     signatures_proto = manifest_pb2.Signatures()
     if default_graph_signature:
@@ -209,7 +197,7 @@ class Exporter(object):
       signatures_proto.named_signatures[signature_name].CopyFrom(signature)
     signatures_any_buf = any_pb2.Any()
     signatures_any_buf.Pack(signatures_proto)
-    tf.add_to_collection(SIGNATURES_KEY, signatures_any_buf)
+    tf.add_to_collection(constants.SIGNATURES_KEY, signatures_any_buf)
 
     for filename, tensor in assets:
       asset = manifest_pb2.AssetFile()
@@ -217,7 +205,7 @@ class Exporter(object):
       asset.tensor_binding.tensor_name = tensor.name
       asset_any_buf = any_pb2.Any()
       asset_any_buf.Pack(asset)
-      tf.add_to_collection(ASSETS_KEY, asset_any_buf)
+      tf.add_to_collection(constants.ASSETS_KEY, asset_any_buf)
 
     self._assets_callback = assets_callback
 
@@ -249,7 +237,7 @@ class Exporter(object):
 
     global_step = training_util.global_step(sess, global_step_tensor)
     export_dir = os.path.join(export_dir_base,
-                              VERSION_FORMAT_SPECIFIER % global_step)
+                              constants.VERSION_FORMAT_SPECIFIER % global_step)
 
     # Prevent overwriting on existing exports which could lead to bad/corrupt
     # storage and loading of models. This is an important check that must be
@@ -264,12 +252,12 @@ class Exporter(object):
     gfile.MakeDirs(tmp_export_dir)
 
     self._saver.save(sess,
-                     os.path.join(tmp_export_dir, EXPORT_BASE_NAME),
-                     meta_graph_suffix=EXPORT_SUFFIX_NAME)
+                     os.path.join(tmp_export_dir, constants.EXPORT_BASE_NAME),
+                     meta_graph_suffix=constants.EXPORT_SUFFIX_NAME)
 
     # Run the asset callback.
     if self._assets_callback and self._assets_to_copy:
-      assets_dir = os.path.join(tmp_export_dir, ASSETS_DIRECTORY)
+      assets_dir = os.path.join(tmp_export_dir, constants.ASSETS_DIRECTORY)
       gfile.MakeDirs(assets_dir)
       self._assets_callback(self._assets_to_copy, assets_dir)
 
