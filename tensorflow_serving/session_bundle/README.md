@@ -87,7 +87,7 @@ signature = exporter.classification_signature(input_tensor=input,
                                               classes_tensor=output)
 export = exporter.Exporter(saver)
 export.init(sess.graph.as_graph_def(),
-            default_graph_signature=signature)
+            default_graph_signatures=signature)
 export.export(export_path,
               global_step_tensor,
               sess)
@@ -141,7 +141,7 @@ signatures = {
     "generic": exporter.generic_signature(named_tensor_bindings)}
 export = exporter.Exporter(saver)
 export.init(sess.graph.as_graph_def(),
-            named_graph_signature=signatures)
+            named_graph_signatures=signatures)
 export.export(export_path,
               global_step_tensor,
               sess)

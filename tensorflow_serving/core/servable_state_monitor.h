@@ -39,36 +39,48 @@ namespace serving {
 // published on the event bus, e.g. giving the event bus to a Manager.
 class ServableStateMonitor {
  public:
-  using ServableName = string;
-  using Version = int64;
-  using VersionMap = std::map<Version, ServableState>;
-  using ServableMap = std::map<ServableName, VersionMap>;
-
-  struct Options {
-    // Upper bound for the number of events captured in the bounded log. If set
-    // to 0, logging is disabled.
-    uint64 max_count_log_events = 0;
-  };
-
   struct ServableStateAndTime {
-    ServableStateAndTime(uint64 event_time_micros, ServableState state)
-        : event_time_micros(event_time_micros), state(std::move(state)) {}
+    ServableStateAndTime() = default;
+    ServableStateAndTime(ServableState servable_state, const uint64 event_time)
+        : state(std::move(servable_state)), event_time_micros(event_time) {}
+
+    // State of the servable.
+    ServableState state;
 
     // Time at which servable state event was published.
     uint64 event_time_micros;
 
-    // State of the servable.
-    ServableState state;
+    // Returns a string representation of this struct useful for debugging or
+    // logging.
+    string DebugString() const;
+  };
+
+  using ServableName = string;
+  using Version = int64;
+  using VersionMap = std::map<Version, ServableStateAndTime>;
+  using ServableMap = std::map<ServableName, VersionMap>;
+
+  struct Options {
+    Options() {}
+
+    // Upper bound for the number of events captured in the bounded log. If set
+    // to 0, logging is disabled.
+    uint64 max_count_log_events = 0;
   };
   using BoundedLog = std::deque<ServableStateAndTime>;
 
-  explicit ServableStateMonitor(EventBus<ServableState>* bus);
-  ServableStateMonitor(const Options& options, EventBus<ServableState>* bus);
-  ~ServableStateMonitor() = default;
+  explicit ServableStateMonitor(EventBus<ServableState>* bus,
+                                const Options& options = Options());
+  virtual ~ServableStateMonitor() = default;
 
   // Returns the current state of one servable, or nullopt if that servable is
   // not being tracked.
   optional<ServableState> GetState(const ServableId& servable_id) const;
+
+  // Returns the current state and time of one servable, or nullopt if that
+  // servable is not being tracked.
+  optional<ServableStateAndTime> GetStateAndTime(
+      const ServableId& servable_id) const;
 
   // Returns the current states of all tracked versions of the given servable,
   // if any.
@@ -77,10 +89,21 @@ class ServableStateMonitor {
   // Returns the current states of all tracked versions of all servables.
   ServableMap GetAllServableStates() const;
 
+  // Returns the current states of all versions of all servables which have not
+  // transitioned to state ServableState::ManagerState::kEnd.
+  ServableMap GetLiveServableStates() const;
+
   // Returns the current bounded log of handled servable state events.
   BoundedLog GetBoundedLog() const;
 
  private:
+  // This method is called when an event comes in, but before we update our
+  // state with the contents of the event. Subclasses may override this method
+  // to do custom prepreocessing based on the event and the previous state of
+  // the monitor, like calculate load-time, etc.
+  virtual void PreHandleEvent(
+      const EventBus<ServableState>::EventAndTime& state_and_time);
+
   // Handles a bus event.
   void HandleEvent(const EventBus<ServableState>::EventAndTime& state_and_time);
 
@@ -94,6 +117,10 @@ class ServableStateMonitor {
   // (Entries are never removed, even when they enter state kEnd.)
   ServableMap states_ GUARDED_BY(mu_);
 
+  // The current state of each servable version that has not transitioned to
+  // state ServableState::ManagerState::kEnd.
+  ServableMap live_states_ GUARDED_BY(mu_);
+
   // Deque of pairs of timestamp and ServableState, corresponding to the most
   // recent servable state events handled by the monitor. The size of this deque
   // is upper bounded by max_count_log_events in Options.
@@ -105,6 +132,17 @@ class ServableStateMonitor {
 inline bool operator==(const ServableStateMonitor::ServableStateAndTime& a,
                        const ServableStateMonitor::ServableStateAndTime& b) {
   return a.event_time_micros == b.event_time_micros && a.state == b.state;
+}
+
+inline bool operator!=(const ServableStateMonitor::ServableStateAndTime& a,
+                       const ServableStateMonitor::ServableStateAndTime& b) {
+  return !(a == b);
+}
+
+inline std::ostream& operator<<(
+    std::ostream& os,
+    const ServableStateMonitor::ServableStateAndTime& state_and_time) {
+  return os << state_and_time.DebugString();
 }
 
 }  // namespace serving
