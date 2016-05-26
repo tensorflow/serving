@@ -94,6 +94,21 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "basic_batch_scheduler_benchmark",
+    srcs = ["basic_batch_scheduler_benchmark.cc"],
+    tags = [
+        "local",
+        "manual",
+    ],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:tensorflow",
+        "@tf//tensorflow/core:test",
+        ":basic_batch_scheduler",
+    ],
+)
+
 cc_library(
     name = "streaming_batch_scheduler",
     srcs = ["streaming_batch_scheduler.cc"],
