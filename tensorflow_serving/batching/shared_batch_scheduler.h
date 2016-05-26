@@ -16,8 +16,14 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_BATCHING_SHARED_BATCH_SCHEDULER_H_
 #define TENSORFLOW_SERVING_BATCHING_SHARED_BATCH_SCHEDULER_H_
 
+#include <stddef.h>
 #include <deque>
+#include <functional>
 #include <list>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"

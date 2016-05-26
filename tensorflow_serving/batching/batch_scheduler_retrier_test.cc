@@ -15,7 +15,6 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/batch_scheduler_retrier.h"
 
-#include <algorithm>
 #include <limits>
 
 #include <gtest/gtest.h>

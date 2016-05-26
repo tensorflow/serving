@@ -16,6 +16,12 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_BATCHING_BASIC_BATCH_SCHEDULER_H_
 #define TENSORFLOW_SERVING_BATCHING_BASIC_BATCH_SCHEDULER_H_
 
+#include <stddef.h>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <string>
+
 #include "tensorflow_serving/batching/batch_scheduler_retrier.h"
 #include "tensorflow_serving/batching/shared_batch_scheduler.h"
 

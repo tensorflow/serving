@@ -15,8 +15,13 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/basic_batch_scheduler.h"
 
+#include <utility>
+
 #include <gtest/gtest.h>
+#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/platform/macros.h"
+#include "tensorflow_serving/batching/batch_scheduler.h"
 
 namespace tensorflow {
 namespace serving {
