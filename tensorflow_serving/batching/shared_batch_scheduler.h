@@ -16,8 +16,14 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_BATCHING_SHARED_BATCH_SCHEDULER_H_
 #define TENSORFLOW_SERVING_BATCHING_SHARED_BATCH_SCHEDULER_H_
 
+#include <stddef.h>
 #include <deque>
+#include <functional>
 #include <list>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -133,7 +139,12 @@ class SharedBatchScheduler
     // stuck in the queue indefinitely waiting for enough tasks to arrive to
     // make a full batch. (The latency bound is given in the class documentation
     // above.)
-    int64 batch_timeout_micros = 10 * 1000 /* 10 milliseconds */;
+    //
+    // The goal is to smooth out batch sizes under low request rates, and thus
+    // avoid latency spikes. The default value of 1 millisecond was determined
+    // via benchmarking. You may need to adjust it to suit your workload and
+    // environment.
+    int64 batch_timeout_micros = 1 * 1000 /* 1 millisecond */;
 
     // The maximum allowable number of enqueued (accepted by Schedule() but
     // not yet being processed on a batch thread) tasks in terms of batches.

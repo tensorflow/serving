@@ -98,7 +98,11 @@ by the hardware should be used; it will likely be model-dependent.
 
 * `batch_timeout_micros`: A way to bound request latency. The scheduler will
 avoid delaying a task too long by processing an underfull batch, if needed.
-(See `basic_batch_scheduler.h` for the exact latency contract.)
+(See `basic_batch_scheduler.h` for the exact latency contract.) A value slightly
+above zero, e.g. 1 millisecond, tends to smooth out batch sizes when the request
+rate is low, thus keeping tail latency low while still maintaining high
+throughput. The best value to use is of course a function of your workload and
+system.
 
 * `num_batch_threads`: The number of threads used to process batches.
 

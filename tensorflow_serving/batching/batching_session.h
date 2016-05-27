@@ -19,6 +19,13 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_BATCHING_BATCHING_SESSION_H_
 #define TENSORFLOW_SERVING_BATCHING_BATCHING_SESSION_H_
 
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/batching/basic_batch_scheduler.h"
 #include "tensorflow_serving/batching/batch_scheduler.h"

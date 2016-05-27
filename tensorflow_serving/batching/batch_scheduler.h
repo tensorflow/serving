@@ -30,6 +30,7 @@ limitations under the License.
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "tensorflow/core/lib/core/notification.h"

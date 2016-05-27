@@ -16,6 +16,12 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_BATCHING_BASIC_BATCH_SCHEDULER_H_
 #define TENSORFLOW_SERVING_BATCHING_BASIC_BATCH_SCHEDULER_H_
 
+#include <stddef.h>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <string>
+
 #include "tensorflow_serving/batching/batch_scheduler_retrier.h"
 #include "tensorflow_serving/batching/shared_batch_scheduler.h"
 
@@ -148,7 +154,12 @@ class BasicBatchScheduler : public BatchScheduler<TaskType> {
     // stuck in the queue indefinitely waiting for enough tasks to arrive to
     // make a full batch. (The latency bound is given in the class documentation
     // above.)
-    int64 batch_timeout_micros = 10 * 1000 /* 10 milliseconds */;
+    //
+    // The goal is to smooth out batch sizes under low request rates, and thus
+    // avoid latency spikes. The default value of 1 millisecond was determined
+    // via benchmarking. You may need to adjust it to suit your workload and
+    // environment.
+    int64 batch_timeout_micros = 1 * 1000 /* 1 millisecond */;
 
     // The name to use for the pool of batch threads.
     string thread_pool_name = {"batch_threads"};

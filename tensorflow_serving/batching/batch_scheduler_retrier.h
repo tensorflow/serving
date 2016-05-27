@@ -19,6 +19,7 @@ limitations under the License.
 #include <stddef.h>
 #include <cstddef>
 #include <memory>
+#include <utility>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/env.h"

@@ -116,6 +116,7 @@ cc_library(
     name = "optional",
     srcs = ["optional.cc"],
     hdrs = ["optional.h"],
+    visibility = ["//visibility:public"],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",
