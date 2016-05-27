@@ -19,21 +19,17 @@ import os.path
 # This is a placeholder for a Google-internal import.
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.platform import flags
 from tensorflow_serving.session_bundle import constants
 from tensorflow_serving.session_bundle import manifest_pb2
 from tensorflow_serving.session_bundle import session_bundle
-
-
-FLAGS = flags.FLAGS
+from tensorflow_serving.test_util import test_util
 
 
 class SessionBundleLoadTest(tf.test.TestCase):
 
   def testBasic(self):
-    base_path = os.path.join(os.environ['TEST_SRCDIR'],
-                             "tensorflow_serving"
-                             "/session_bundle/example/half_plus_two/00000123")
+    base_path = test_util.TestSrcDirPath(
+        "session_bundle/example/half_plus_two/00000123")
     tf.reset_default_graph()
     sess, meta_graph_def = session_bundle.LoadSessionBundleFromPath(
         base_path, target="", config=tf.ConfigProto(device_count={"CPU": 2}))
@@ -63,7 +59,7 @@ class SessionBundleLoadTest(tf.test.TestCase):
       self.assertEqual(y[0][3], 3.5)
 
   def testBadPath(self):
-    base_path = os.path.join(os.environ['TEST_SRCDIR'], "/no/such/a/dir")
+    base_path = test_util.TestSrcDirPath("/no/such/a/dir")
     tf.reset_default_graph()
     with self.assertRaises(RuntimeError) as cm:
       _, _ = session_bundle.LoadSessionBundleFromPath(

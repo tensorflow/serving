@@ -38,8 +38,20 @@ cc_library(
     testonly = 1,
     srcs = ["fake_clock_env.cc"],
     hdrs = ["fake_clock_env.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",
+    ],
+)
+
+py_library(
+    name = "test_util_py",
+    testonly = 1,
+    srcs = ["test_util.py"],
+    deps = [
+        "@tf//tensorflow:tensorflow_py",
     ],
 )

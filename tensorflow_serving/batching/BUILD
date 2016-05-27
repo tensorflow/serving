@@ -52,6 +52,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "@tf//tensorflow/core:lib",
         ":batch_scheduler",
         "//tensorflow_serving/util:periodic_function",
     ],
@@ -63,6 +64,8 @@ cc_test(
         "shared_batch_scheduler_test.cc",
     ],
     deps = [
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:protos_all_cc",
         "@tf//tensorflow/core:test",
         ":shared_batch_scheduler",
         "//tensorflow_serving/core/test_util:test_main",
@@ -88,9 +91,26 @@ cc_test(
         "basic_batch_scheduler_test.cc",
     ],
     deps = [
+        "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:test",
         ":basic_batch_scheduler",
+        ":batch_scheduler",
         "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
+
+cc_test(
+    name = "basic_batch_scheduler_benchmark",
+    srcs = ["basic_batch_scheduler_benchmark.cc"],
+    tags = [
+        "local",
+        "manual",
+    ],
+    deps = [
+        "@tf//tensorflow/core:lib",
+        "@tf//tensorflow/core:tensorflow",
+        "@tf//tensorflow/core:test",
+        ":basic_batch_scheduler",
     ],
 )
 
@@ -130,9 +150,13 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "@tf//tensorflow/core:core_cpu",
+        "@tf//tensorflow/core:framework",
+        "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:tensorflow",
         ":basic_batch_scheduler",
         ":batch_scheduler",
+        ":batch_scheduler_retrier",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/util:cleanup",
     ],
@@ -145,7 +169,12 @@ cc_test(
     ],
     data = ["//tensorflow_serving/session_bundle/example:half_plus_two"],
     deps = [
+        "@tf//tensorflow/core:core_cpu",
+        "@tf//tensorflow/core:framework",
+        "@tf//tensorflow/core:lib",
         "@tf//tensorflow/core:test",
+        "@tf//tensorflow/core:testlib",
+        ":batch_scheduler_retrier",
         ":batching_session",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/servables/tensorflow:serving_session",

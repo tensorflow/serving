@@ -70,9 +70,9 @@ struct ServableState {
 
   // Returns a string representation of this object. Useful in logging.
   string DebugString() const {
-    return strings::StrCat("{id: ", id.DebugString(), " manager_state: ",
+    return strings::StrCat("id: ", id.DebugString(), " manager_state: ",
                            static_cast<int>(manager_state), " health: ",
-                           health.ToString(), "}");
+                           health.ToString());
   }
 };
 
@@ -83,6 +83,10 @@ inline bool operator==(const ServableState& a, const ServableState& b) {
 
 inline bool operator!=(const ServableState& a, const ServableState& b) {
   return !(a == b);
+}
+
+inline std::ostream& operator<<(std::ostream& os, const ServableState& state) {
+  return os << state.DebugString();
 }
 
 }  // namespace serving

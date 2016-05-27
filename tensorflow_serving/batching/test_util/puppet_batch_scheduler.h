@@ -22,6 +22,7 @@ limitations under the License.
 #include <limits>
 #include <memory>
 #include <queue>
+#include <utility>
 
 #include "tensorflow_serving/batching/batch_scheduler.h"
 
