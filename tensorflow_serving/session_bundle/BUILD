@@ -87,6 +87,7 @@ py_test(
         "@tf//tensorflow/core:protos_all_py",
         ":manifest_proto_py",
         ":session_bundle_py",
+        "//tensorflow_serving/test_util:test_util_py",
     ],
 )
 
