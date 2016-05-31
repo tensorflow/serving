@@ -100,8 +100,9 @@ def export():
     # the human readable class description for the i'th index.
     class_tensor = tf.constant([texts[s] for s in synsets])
 
-    classes = tf.contrib.lookup.index_to_string(tf.to_int64(indices),
-                                                mapping=class_tensor)
+    classes = tf.contrib.lookup.index_to_string(
+      tf.sub(tf.to_int64(indices), tf.constant(1, dtype=tf.int64)), 
+      mapping=class_tensor)
 
     # Restore variables from training checkpoint.
     variable_averages = tf.train.ExponentialMovingAverage(
