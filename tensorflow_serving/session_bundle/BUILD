@@ -136,7 +136,6 @@ cc_library(
     hdrs = ["session_bundle.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//google/protobuf:cc_wkt_protos",
         "@tf//tensorflow/core:core_cpu",
         "@tf//tensorflow/core:framework",
         "@tf//tensorflow/core:lib",
@@ -193,7 +192,6 @@ cc_library(
     hdrs = ["signature.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//google/protobuf:cc_wkt_protos",
         "@tf//tensorflow/core:core_cpu",
         "@tf//tensorflow/core:framework",
         "@tf//tensorflow/core:lib",

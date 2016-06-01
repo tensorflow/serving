@@ -93,9 +93,7 @@ cc_library(
     deps = [
         "@tf//tensorflow/core:core_cpu",
         "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
         "@tf//tensorflow/core:tensorflow",
-        ":session_bundle_config_proto",
         ":session_bundle_factory",
         ":session_bundle_source_adapter_proto",
         "//tensorflow_serving/core:loader",
