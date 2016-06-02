@@ -98,11 +98,15 @@ def export():
 
     # Create a constant string Tensor where the i'th element is
     # the human readable class description for the i'th index.
-    class_tensor = tf.constant([texts[s] for s in synsets])
+    # Note that the 0th index is an unused background class
+    # (see inception model definition code).
+    class_descriptions = ['unused background']
+    for s in synsets:
+      class_descriptions.append(texts[s])
+    class_tensor = tf.constant(class_descriptions)
 
-    classes = tf.contrib.lookup.index_to_string(
-      tf.sub(tf.to_int64(indices), tf.constant(1, dtype=tf.int64)), 
-      mapping=class_tensor)
+    classes = tf.contrib.lookup.index_to_string(tf.to_int64(indices), 
+                                                mapping=class_tensor)
 
     # Restore variables from training checkpoint.
     variable_averages = tf.train.ExponentialMovingAverage(
