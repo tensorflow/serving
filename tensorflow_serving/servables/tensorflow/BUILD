@@ -93,9 +93,7 @@ cc_library(
     deps = [
         "@tf//tensorflow/core:core_cpu",
         "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
         "@tf//tensorflow/core:tensorflow",
-        ":session_bundle_config_proto",
         ":session_bundle_factory",
         ":session_bundle_source_adapter_proto",
         "//tensorflow_serving/core:loader",
@@ -162,7 +160,7 @@ cc_library(
         ":session_bundle_source_adapter",
         ":session_bundle_source_adapter_proto",
         "//tensorflow_serving/core:aspired_versions_manager_builder",
-        "//tensorflow_serving/core:eager_unload_policy",
+        "//tensorflow_serving/core:eager_load_policy",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:manager",
         "//tensorflow_serving/core:source",
