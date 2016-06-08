@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-#!/usr/bin/python2.7
+#!/usr/bin/env python
 """Export inception model given existing training checkpoints.
 """
 

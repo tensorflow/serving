@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-#!/usr/bin/python2.7
+#!/usr/bin/env python
 
 """Send JPEG image to inception_inference server for classification.
 """
