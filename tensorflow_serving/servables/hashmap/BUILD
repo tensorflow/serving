@@ -32,8 +32,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
         ":hashmap_source_adapter_proto",
         "//tensorflow_serving/core:simple_loader",
         "//tensorflow_serving/core:source_adapter",
@@ -46,8 +46,8 @@ cc_test(
     size = "medium",
     srcs = ["hashmap_source_adapter_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
         ":hashmap_source_adapter",
         ":hashmap_source_adapter_proto",
         "//tensorflow_serving/core:loader",

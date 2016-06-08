@@ -33,7 +33,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":static_storage_path_source_proto",
         "//tensorflow_serving/core:servable_data",
         "//tensorflow_serving/core:servable_id",
@@ -56,8 +56,8 @@ cc_test(
     size = "small",
     srcs = ["static_storage_path_source_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
         ":static_storage_path_source",
         "//tensorflow_serving/core:servable_data",
         "//tensorflow_serving/core:target",
@@ -74,8 +74,8 @@ cc_library(
     visibility = ["//visibility:public"],
     deps =
         [
-            "@tf//tensorflow/core:lib",
-            "@tf//tensorflow/core:tensorflow",
+            "@org_tensorflow//tensorflow/core:lib",
+            "@org_tensorflow//tensorflow/core:tensorflow",
             ":file_system_storage_path_source_proto",
             "//tensorflow_serving/core:servable_data",
             "//tensorflow_serving/core:servable_id",
@@ -99,8 +99,8 @@ cc_test(
             "file_system_storage_path_source_test.cc",
         ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
         ":file_system_storage_path_source",
         ":file_system_storage_path_source_proto",
         "//tensorflow_serving/core:servable_data",

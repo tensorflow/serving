@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_CORE_SERVABLE_STATE_MONITOR_H_
 
 #include <deque>
+#include <functional>
 #include <map>
 
 #include "tensorflow/core/platform/env.h"
@@ -57,7 +58,8 @@ class ServableStateMonitor {
 
   using ServableName = string;
   using Version = int64;
-  using VersionMap = std::map<Version, ServableStateAndTime>;
+  using VersionMap =
+      std::map<Version, ServableStateAndTime, std::greater<Version>>;
   using ServableMap = std::map<ServableName, VersionMap>;
 
   struct Options {
