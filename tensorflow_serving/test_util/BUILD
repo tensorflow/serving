@@ -25,10 +25,10 @@ cc_library(
     srcs = ["test_util.cc"],
     hdrs = ["test_util.h"],
     deps = [
-        "@tf//google/protobuf:protobuf",
-        "@tf//tensorflow/core",
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+        "@protobuf//:protobuf",
         "//external:gtest",
     ],
 )
@@ -42,8 +42,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -52,6 +52,6 @@ py_library(
     testonly = 1,
     srcs = ["test_util.py"],
     deps = [
-        "@tf//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )

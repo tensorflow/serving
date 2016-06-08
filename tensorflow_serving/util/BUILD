@@ -34,8 +34,8 @@ cc_library(
     hdrs = ["event_bus.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -53,7 +53,7 @@ cc_library(
     name = "observer",
     hdrs = ["observer.h"],
     deps = [
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -62,7 +62,7 @@ cc_test(
     size = "small",
     srcs = ["observer_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":observer",
         ":periodic_function",
         "//tensorflow_serving/core/test_util:test_main",
@@ -84,8 +84,8 @@ cc_library(
     name = "fast_read_dynamic_ptr",
     hdrs = ["fast_read_dynamic_ptr.h"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -93,8 +93,8 @@ cc_test(
     name = "fast_read_dynamic_ptr_test",
     srcs = ["fast_read_dynamic_ptr_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
         ":fast_read_dynamic_ptr",
         "//tensorflow_serving/core/test_util:test_main",
     ],
@@ -104,9 +104,9 @@ cc_test(
     name = "fast_read_dynamic_ptr_benchmark",
     srcs = ["fast_read_dynamic_ptr_benchmark.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
         ":fast_read_dynamic_ptr",
         ":periodic_function",
     ],
@@ -118,8 +118,8 @@ cc_library(
     hdrs = ["optional.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -130,7 +130,7 @@ cc_test(
         "optional_test.cc",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":optional",
         "//tensorflow_serving/core/test_util:test_main",
     ],
@@ -141,8 +141,8 @@ cc_library(
     srcs = ["periodic_function.cc"],
     hdrs = ["periodic_function.h"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -150,7 +150,7 @@ cc_test(
     name = "periodic_function_test",
     srcs = ["periodic_function_test.cc"],
     deps = [
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:tensorflow",
         ":periodic_function",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util:fake_clock_env",
@@ -172,8 +172,8 @@ cc_library(
     name = "cleanup",
     hdrs = ["cleanup.h"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -199,7 +199,7 @@ cc_library(
     srcs = ["inline_executor.cc"],
     hdrs = ["inline_executor.h"],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":executor",
     ],
 )
@@ -218,7 +218,7 @@ cc_library(
     srcs = ["threadpool_executor.cc"],
     hdrs = ["threadpool_executor.h"],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":executor",
     ],
 )
@@ -237,7 +237,7 @@ cc_library(
     hdrs = ["unique_ptr_with_deps.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":any_ptr",
     ],
 )

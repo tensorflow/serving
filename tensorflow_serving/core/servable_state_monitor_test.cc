@@ -78,12 +78,12 @@ TEST(ServableStateMonitorTest, AddingStates) {
   EXPECT_FALSE(monitor.GetState(ServableId{"bar", 42}));
   EXPECT_THAT(
       monitor.GetVersionStates("foo"),
-      ElementsAre(Pair(42, state_0_and_time), Pair(43, state_1_and_time)));
+      ElementsAre(Pair(43, state_1_and_time), Pair(42, state_0_and_time)));
   EXPECT_TRUE(monitor.GetVersionStates("bar").empty());
   EXPECT_THAT(monitor.GetAllServableStates(),
               UnorderedElementsAre(
-                  Pair("foo", ElementsAre(Pair(42, state_0_and_time),
-                                          Pair(43, state_1_and_time)))));
+                  Pair("foo", ElementsAre(Pair(43, state_1_and_time),
+                                          Pair(42, state_0_and_time)))));
   EXPECT_THAT(monitor.GetBoundedLog(),
               ElementsAre(state_0_and_time, state_1_and_time));
 
@@ -103,14 +103,14 @@ TEST(ServableStateMonitorTest, AddingStates) {
   EXPECT_FALSE(monitor.GetState(ServableId{"bar", 42}));
   EXPECT_THAT(
       monitor.GetVersionStates("foo"),
-      ElementsAre(Pair(42, state_0_and_time), Pair(43, state_1_and_time)));
+      ElementsAre(Pair(43, state_1_and_time), Pair(42, state_0_and_time)));
   EXPECT_THAT(monitor.GetVersionStates("bar"),
               ElementsAre(Pair(7, state_2_and_time)));
   EXPECT_TRUE(monitor.GetVersionStates("baz").empty());
   EXPECT_THAT(monitor.GetAllServableStates(),
               UnorderedElementsAre(
-                  Pair("foo", ElementsAre(Pair(42, state_0_and_time),
-                                          Pair(43, state_1_and_time))),
+                  Pair("foo", ElementsAre(Pair(43, state_1_and_time),
+                                          Pair(42, state_0_and_time))),
                   Pair("bar", ElementsAre(Pair(7, state_2_and_time)))));
 
   EXPECT_THAT(
@@ -146,8 +146,8 @@ TEST(ServableStateMonitorTest, UpdatingStates) {
   bus->Publish(state_2);
   EXPECT_THAT(monitor.GetAllServableStates(),
               UnorderedElementsAre(
-                  Pair("foo", ElementsAre(Pair(42, state_0_and_time),
-                                          Pair(43, state_1_and_time))),
+                  Pair("foo", ElementsAre(Pair(43, state_1_and_time),
+                                          Pair(42, state_0_and_time))),
                   Pair("bar", ElementsAre(Pair(7, state_2_and_time)))));
   EXPECT_THAT(
       monitor.GetBoundedLog(),
@@ -167,14 +167,14 @@ TEST(ServableStateMonitorTest, UpdatingStates) {
   ASSERT_TRUE(monitor.GetState(ServableId{"bar", 7}));
   EXPECT_EQ(state_2, *monitor.GetState(ServableId{"bar", 7}));
   EXPECT_THAT(monitor.GetVersionStates("foo"),
-              ElementsAre(Pair(42, state_0_and_time),
-                          Pair(43, state_1_updated_and_time)));
+              ElementsAre(Pair(43, state_1_updated_and_time),
+                          Pair(42, state_0_and_time)));
   EXPECT_THAT(monitor.GetVersionStates("bar"),
               ElementsAre(Pair(7, state_2_and_time)));
   EXPECT_THAT(monitor.GetAllServableStates(),
               UnorderedElementsAre(
-                  Pair("foo", ElementsAre(Pair(42, state_0_and_time),
-                                          Pair(43, state_1_updated_and_time))),
+                  Pair("foo", ElementsAre(Pair(43, state_1_updated_and_time),
+                                          Pair(42, state_0_and_time))),
                   Pair("bar", ElementsAre(Pair(7, state_2_and_time)))));
 
   // The max count for events logged in the bounded log is 3, so the first entry
@@ -241,6 +241,33 @@ TEST(ServableStateMonitorTest, GetLiveServableStates) {
   EXPECT_THAT(monitor.GetLiveServableStates(),
               UnorderedElementsAre(
                   Pair("bar", ElementsAre(Pair(7, state_1_and_time)))));
+}
+
+TEST(ServableStateMonitorTest, VersionMapDescendingOrder) {
+  test_util::FakeClockEnv env(Env::Default());
+  EventBus<ServableState>::Options bus_options;
+  bus_options.env = &env;
+  auto bus = EventBus<ServableState>::CreateEventBus(bus_options);
+  ServableStateMonitor monitor(bus.get());
+
+  const ServableState state_0 = {
+      ServableId{"foo", 42}, ServableState::ManagerState::kStart, Status::OK()};
+  env.AdvanceByMicroseconds(1);
+  const ServableStateAndTime state_0_and_time = {state_0, 1};
+  bus->Publish(state_0);
+  EXPECT_THAT(monitor.GetLiveServableStates(),
+              UnorderedElementsAre(
+                  Pair("foo", ElementsAre(Pair(42, state_0_and_time)))));
+
+  const ServableState state_1 = {ServableId{"foo", 7},
+                                 ServableState::ManagerState::kAvailable,
+                                 Status::OK()};
+  env.AdvanceByMicroseconds(1);
+  const ServableStateAndTime state_1_and_time = {state_1, 2};
+  bus->Publish(state_1);
+  EXPECT_THAT(monitor.GetLiveServableStates(),
+              ElementsAre(Pair("foo", ElementsAre(Pair(42, state_0_and_time),
+                                                  Pair(7, state_1_and_time)))));
 }
 
 }  // namespace
