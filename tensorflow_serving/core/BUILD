@@ -32,8 +32,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -53,8 +53,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
         ":servable_id",
     ],
 )
@@ -63,8 +63,8 @@ cc_test(
     name = "servable_data_test",
     srcs = ["servable_data_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
         ":servable_data",
         "//tensorflow_serving/core/test_util:test_main",
     ],
@@ -77,8 +77,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
         ":source",
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/util:any_ptr",
@@ -92,8 +92,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
         ":loader",
         ":source_adapter",
         "//tensorflow_serving/util:any_ptr",
@@ -107,9 +107,9 @@ cc_test(
         "simple_loader_test.cc",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
         ":servable_data",
         ":simple_loader",
         "//tensorflow_serving/core/test_util:test_main",
@@ -124,7 +124,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":servable_data",
     ],
 )
@@ -136,7 +136,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":servable_data",
         ":source",
         "//tensorflow_serving/util:observer",
@@ -150,7 +150,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":servable_data",
         ":source",
         ":target",
@@ -161,7 +161,7 @@ cc_test(
     name = "source_adapter_test",
     srcs = ["source_adapter_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":servable_id",
         ":source_adapter",
         ":storage_path",
@@ -177,7 +177,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":source",
         ":source_adapter",
         ":target",
@@ -188,8 +188,8 @@ cc_test(
     name = "source_router_test",
     srcs = ["source_router_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
         ":servable_data",
         ":source_router",
         ":storage_path",
@@ -205,8 +205,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
         ":source_router",
     ],
 )
@@ -215,8 +215,8 @@ cc_test(
     name = "static_source_router_test",
     srcs = ["static_source_router_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
         ":servable_data",
         ":source",
         ":static_source_router",
@@ -234,7 +234,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":servable_data",
         ":servable_id",
     ],
@@ -244,7 +244,7 @@ cc_test(
     name = "storage_path_test",
     srcs = ["storage_path_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":storage_path",
         "//tensorflow_serving/core/test_util:test_main",
     ],
@@ -257,7 +257,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":servable_id",
     ],
 )
@@ -269,7 +269,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:tensorflow",
         ":loader",
         "//tensorflow_serving/util:any_ptr",
     ],
@@ -282,7 +282,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":servable_handle",
         ":servable_id",
         "//tensorflow_serving/util:optional",
@@ -293,7 +293,7 @@ cc_test(
     name = "manager_test",
     srcs = ["manager_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":manager",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:any_ptr",
@@ -322,7 +322,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":aspired_versions_manager",
         ":loader",
         ":manager_wrapper",
@@ -358,7 +358,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":manager",
         ":servable_id",
     ],
@@ -368,7 +368,7 @@ cc_test(
     name = "availability_helpers_test",
     srcs = ["availability_helpers_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":availability_helpers",
         ":servable_handle",
         "//tensorflow_serving/core/test_util:test_main",
@@ -405,8 +405,8 @@ cc_library(
     srcs = ["loader_harness.cc"],
     hdrs = ["loader_harness.h"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
         ":loader",
         ":servable_id",
         "//tensorflow_serving/util:optional",
@@ -417,10 +417,10 @@ cc_test(
     name = "loader_harness_test",
     srcs = ["loader_harness_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
-        "@tf//tensorflow/core:tensorflow",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
         ":loader_harness",
         "//tensorflow_serving/core/test_util:mock_loader",
         "//tensorflow_serving/core/test_util:test_main",
@@ -434,7 +434,7 @@ cc_library(
     srcs = ["basic_manager.cc"],
     hdrs = ["basic_manager.h"],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":loader",
         ":loader_harness",
         ":manager",
@@ -457,9 +457,9 @@ cc_test(
     size = "small",
     srcs = ["basic_manager_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
         ":availability_helpers",
         ":basic_manager",
         ":servable_state_monitor",
@@ -479,7 +479,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":aspired_version_policy",
         ":basic_manager",
         ":loader",
@@ -501,9 +501,9 @@ cc_test(
     size = "small",
     srcs = ["aspired_versions_manager_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
         ":aspired_versions_manager",
         ":availability_helpers",
         ":eager_load_policy",
@@ -521,9 +521,9 @@ cc_test(
     name = "aspired_versions_manager_benchmark",
     srcs = ["aspired_versions_manager_benchmark.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
         ":aspired_version_policy",
         ":aspired_versions_manager",
         ":eager_load_policy",
@@ -545,7 +545,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":basic_manager",
         ":manager",
         ":servable_handle",
@@ -569,7 +569,7 @@ cc_library(
     srcs = ["caching_manager.cc"],
     hdrs = ["caching_manager.h"],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":basic_manager",
         ":loader",
         ":manager",
@@ -584,8 +584,8 @@ cc_test(
     name = "caching_manager_test",
     srcs = ["caching_manager_test.cc"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
         ":caching_manager",
         ":servable_data",
         ":servable_handle",
@@ -608,7 +608,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":loader_harness",
         ":servable_id",
         "//tensorflow_serving/util:optional",

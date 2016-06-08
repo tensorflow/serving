@@ -36,7 +36,7 @@ py_library(
     srcs = ["exporter.py"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow:tensorflow_py",
         ":constants",
         ":gc",
         ":manifest_proto_py",
@@ -48,8 +48,8 @@ py_library(
     srcs = ["session_bundle.py"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//tensorflow:tensorflow_py",
-        "@tf//tensorflow/core:protos_all_py",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/core:protos_all_py",
         ":constants",
         ":exporter",
         ":manifest_proto_py",
@@ -63,7 +63,7 @@ py_test(
         "exporter_test.py",
     ],
     deps = [
-        "@tf//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow:tensorflow_py",
         ":constants",
         ":exporter",
         ":gc",
@@ -82,9 +82,9 @@ py_test(
     ],
     main = "session_bundle_test.py",
     deps = [
-        "@tf//google/protobuf:protobuf_python",
-        "@tf//tensorflow:tensorflow_py",
-        "@tf//tensorflow/core:protos_all_py",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/core:protos_all_py",
+        "@protobuf//:protobuf_python",
         ":manifest_proto_py",
         ":session_bundle_py",
         "//tensorflow_serving/test_util:test_util_py",
@@ -96,7 +96,7 @@ py_library(
     srcs = ["gc.py"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )
 
@@ -107,7 +107,7 @@ py_test(
     ],
     visibility = ["//visibility:private"],
     deps = [
-        "@tf//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow:tensorflow_py",
         ":gc",
     ],
 )
@@ -127,7 +127,7 @@ serving_proto_library_py(
     name = "manifest_proto_py",
     srcs = ["manifest.proto"],
     visibility = ["//visibility:public"],
-    deps = ["@tf//tensorflow/core:protos_all_py"],
+    deps = ["@org_tensorflow//tensorflow/core:protos_all_py"],
 )
 
 cc_library(
@@ -136,11 +136,11 @@ cc_library(
     hdrs = ["session_bundle.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//tensorflow/core:core_cpu",
-        "@tf//tensorflow/core:framework",
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
-        "@tf//tensorflow/core:tensorflow_opensource",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow_opensource",
         ":manifest_proto",
         ":signature",
     ],
@@ -174,12 +174,12 @@ cc_test(
     # Link in all registered kernels.
     linkstatic = 1,
     deps = [
-        "@tf//google/protobuf:cc_wkt_protos",
-        "@tf//tensorflow/core:core_cpu",
-        "@tf//tensorflow/core:framework",
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:test",
-        "@tf//tensorflow/core:testlib",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
+        "@protobuf//:cc_wkt_protos",
         ":session_bundle",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
@@ -192,10 +192,10 @@ cc_library(
     hdrs = ["signature.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//tensorflow/core:core_cpu",
-        "@tf//tensorflow/core:framework",
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow_opensource",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow_opensource",
         ":manifest_proto",
     ],
 )
@@ -205,15 +205,15 @@ cc_test(
     size = "small",
     srcs = ["signature_test.cc"],
     deps = [
-        "@tf//google/protobuf:cc_wkt_protos",
-        "@tf//google/protobuf:protobuf_lite",
-        "@tf//tensorflow/core:core_cpu",
-        "@tf//tensorflow/core:framework",
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
-        "@tf//tensorflow/core:tensorflow_opensource",
-        "@tf//tensorflow/core:test",
-        "@tf//tensorflow/core:testlib",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow_opensource",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
+        "@protobuf//:cc_wkt_protos",
+        "@protobuf//:protobuf_lite",
         ":manifest_proto",
         ":signature",
         "//tensorflow_serving/core/test_util:test_main",

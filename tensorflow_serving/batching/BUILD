@@ -28,8 +28,8 @@ cc_library(
     hdrs = ["batch_scheduler.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -39,7 +39,7 @@ cc_test(
         "batch_scheduler_test.cc",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":batch_scheduler",
         "//tensorflow_serving/core/test_util:test_main",
     ],
@@ -52,7 +52,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":batch_scheduler",
         "//tensorflow_serving/util:periodic_function",
     ],
@@ -64,9 +64,9 @@ cc_test(
         "shared_batch_scheduler_test.cc",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
         ":shared_batch_scheduler",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util:fake_clock_env",
@@ -91,8 +91,8 @@ cc_test(
         "basic_batch_scheduler_test.cc",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
         ":basic_batch_scheduler",
         ":batch_scheduler",
         "//tensorflow_serving/core/test_util:test_main",
@@ -107,9 +107,9 @@ cc_test(
         "manual",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
         ":basic_batch_scheduler",
     ],
 )
@@ -120,7 +120,7 @@ cc_library(
     hdrs = ["streaming_batch_scheduler.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":batch_scheduler",
         ":batch_scheduler_retrier",
         "//tensorflow_serving/util:optional",
@@ -133,9 +133,9 @@ cc_test(
         "streaming_batch_scheduler_test.cc",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
         ":streaming_batch_scheduler",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util:fake_clock_env",
@@ -150,10 +150,10 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@tf//tensorflow/core:core_cpu",
-        "@tf//tensorflow/core:framework",
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
         ":basic_batch_scheduler",
         ":batch_scheduler",
         ":batch_scheduler_retrier",
@@ -169,11 +169,11 @@ cc_test(
     ],
     data = ["//tensorflow_serving/session_bundle/example:half_plus_two"],
     deps = [
-        "@tf//tensorflow/core:core_cpu",
-        "@tf//tensorflow/core:framework",
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:test",
-        "@tf//tensorflow/core:testlib",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
         ":batch_scheduler_retrier",
         ":batching_session",
         "//tensorflow_serving/core/test_util:test_main",
@@ -188,7 +188,7 @@ cc_library(
     hdrs = ["batch_scheduler_retrier.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@tf//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:lib",
         ":batch_scheduler",
     ],
 )
@@ -199,9 +199,9 @@ cc_test(
         "batch_scheduler_retrier_test.cc",
     ],
     deps = [
-        "@tf//tensorflow/core:lib",
-        "@tf//tensorflow/core:protos_all_cc",
-        "@tf//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
         ":batch_scheduler_retrier",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util:fake_clock_env",
