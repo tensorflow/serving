@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-#!/usr/grte/v4/bin/python2.7
+#!/usr/bin/env python2.7
 """Export inception model given existing training checkpoints.
 """
 
@@ -105,7 +105,7 @@ def export():
       class_descriptions.append(texts[s])
     class_tensor = tf.constant(class_descriptions)
 
-    classes = tf.contrib.lookup.index_to_string(tf.to_int64(indices), 
+    classes = tf.contrib.lookup.index_to_string(tf.to_int64(indices),
                                                 mapping=class_tensor)
 
     # Restore variables from training checkpoint.
