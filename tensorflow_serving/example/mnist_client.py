@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 """A client that talks to mnist_inference service.
 
