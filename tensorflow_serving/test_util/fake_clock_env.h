@@ -56,8 +56,6 @@ class FakeClockEnv : public EnvWrapper {
   void SleepForMicroseconds(int micros) override;
 
  private:
-  Env* wrapped_;
-
   mutex mu_;
 
   uint64 current_time_ GUARDED_BY(mu_) = 0;
