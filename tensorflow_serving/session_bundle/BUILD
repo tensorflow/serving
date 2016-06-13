@@ -119,7 +119,6 @@ serving_proto_library(
     name = "manifest_proto",
     srcs = ["manifest.proto"],
     cc_api_version = 2,
-    py_api_version = 2,
     visibility = ["//visibility:public"],
 )
 
