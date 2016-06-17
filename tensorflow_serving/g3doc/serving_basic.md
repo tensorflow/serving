@@ -201,7 +201,8 @@ threads used for batched inference, you can do so by setting more values in
 peer threads with which to form a batch -- gRPC promises to adjust the number of
 client threads to keep things flowing smoothly. Lastly, the batcher's timeout
 threshold bounds the amount of time a given request spends in the blocked state,
-so a low request volume does not compromise latency.
+so a low request volume does not compromise latency. For more information about
+batching, see the [Batching Guide](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/batching/README.md).
 
 Whether or not we enable batching, we wind up with a `SessionBundle`; let's look
 at its definition in

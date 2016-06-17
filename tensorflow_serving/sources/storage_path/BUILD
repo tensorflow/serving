@@ -33,12 +33,12 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@org_tensorflow//tensorflow/core:lib",
         ":static_storage_path_source_proto",
         "//tensorflow_serving/core:servable_data",
         "//tensorflow_serving/core:servable_id",
         "//tensorflow_serving/core:source",
         "//tensorflow_serving/core:storage_path",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
@@ -56,14 +56,14 @@ cc_test(
     size = "small",
     srcs = ["static_storage_path_source_test.cc"],
     deps = [
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:test",
         ":static_storage_path_source",
         "//tensorflow_serving/core:servable_data",
         "//tensorflow_serving/core:target",
         "//tensorflow_serving/core/test_util:mock_storage_path_target",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
     ],
 )
 
@@ -74,14 +74,14 @@ cc_library(
     visibility = ["//visibility:public"],
     deps =
         [
-            "@org_tensorflow//tensorflow/core:lib",
-            "@org_tensorflow//tensorflow/core:tensorflow",
             ":file_system_storage_path_source_proto",
             "//tensorflow_serving/core:servable_data",
             "//tensorflow_serving/core:servable_id",
             "//tensorflow_serving/core:source",
             "//tensorflow_serving/core:storage_path",
             "//tensorflow_serving/util:periodic_function",
+            "@org_tensorflow//tensorflow/core:lib",
+            "@org_tensorflow//tensorflow/core:tensorflow",
         ],
 )
 
@@ -99,8 +99,6 @@ cc_test(
             "file_system_storage_path_source_test.cc",
         ],
     deps = [
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:test",
         ":file_system_storage_path_source",
         ":file_system_storage_path_source_proto",
         "//tensorflow_serving/core:servable_data",
@@ -108,5 +106,7 @@ cc_test(
         "//tensorflow_serving/core/test_util:mock_storage_path_target",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
     ],
 )
