@@ -116,13 +116,13 @@ class StreamingBatchScheduler : public BatchScheduler<TaskType> {
   struct Options {
     constexpr Options() {}
 
-    // The maximum, and ideal, size of each batch.
+    // The maximum size of each batch.
     //
     // The scheduler may form batches of any size between 1 and this number
     // (inclusive). If there is a need to quantize the batch sizes, i.e. only
     // submit batches whose size is in a small set of allowed sizes, that can be
     // done by adding padding in the process-batch callback.
-    size_t max_batch_size = 32;
+    size_t max_batch_size = 1000;
 
     // The maximum amount of time a task can sit in a batch before the scheduler
     // closes the batch, in microseconds.

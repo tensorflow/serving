@@ -137,13 +137,13 @@ class BasicBatchScheduler : public BatchScheduler<TaskType> {
   // (Keep them mirrored to the ones in SharedBatchScheduler::QueueOptions and
   // SharedBatchScheduler::Options.)
   struct Options {
-    // The maximum, and ideal, size of each batch.
+    // The maximum size of each batch.
     //
     // The scheduler may form batches of any size between 1 and this number
     // (inclusive). If there is a need to quantize the batch sizes, i.e. only
     // submit batches whose size is in a small set of allowed sizes, that can be
     // done by adding padding in the process-batch callback.
-    int max_batch_size = 32;
+    int max_batch_size = 1000;
 
     // If a task has been enqueued for this amount of time (in microseconds),
     // and a thread is available, the scheduler will immediately form a batch

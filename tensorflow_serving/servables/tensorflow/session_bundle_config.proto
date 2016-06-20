@@ -42,7 +42,7 @@ message BatchingParameters {
   // SharedBatchScheduler options (see shared_batch_scheduler.h):
   //
 
-  // The maximum, and ideal, size of each batch.
+  // The maximum size of each batch.
   //
   // IMPORTANT: As discussed above, use 'max_batch_size * 2' client threads to
   // achieve high throughput with batching.
