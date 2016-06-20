@@ -74,17 +74,20 @@ namespace serving {
 // timeout parameters, which govern when a batch is eligible to be processed.
 //
 // Each queue is independently configured with a maximum size (in terms of the
-// maximum number of batches worth of enqueued tasks). It is recommended that
-// the queue sizes be configured such that the sum of the sizes of the active
-// queues roughly equal the number of batch threads. (The idea is that if all
-// threads become available at roughly the same time, there will be enough
-// enqueued work for them to take on, but no more.)
+// maximum number of batches worth of enqueued tasks). For online serving, it is
+// recommended that the queue sizes be configured such that the sum of the sizes
+// of the active queues roughly equal the number of batch threads. (The idea is
+// that if all threads become available at roughly the same time, there will be
+// enough enqueued work for them to take on, but no more.)
 //
 // If queue sizes are configured in the manner suggested above, the maximum time
 // a task can spend in a queue before being placed in a batch and assigned to a
 // thread for processing, is the greater of:
 //  - the maximum time to process one batch of tasks from any active queue
 //  - the configured timeout parameter for the task's queue (which can be 0)
+//
+// For bulk processing jobs and throughput-oriented benchmarks, you may want to
+// set the maximum queue size to a large value.
 //
 // TODO(b/26539183): Support queue servicing policies other than round-robin.
 // E.g. let each queue specify a "share" (an int >= 1), so e.g. with queues A

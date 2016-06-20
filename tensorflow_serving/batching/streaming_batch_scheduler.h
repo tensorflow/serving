@@ -224,7 +224,7 @@ class StreamingBatchScheduler : public BatchScheduler<TaskType> {
 
 // Constructs a StreamingBatchScheduler wrapped with a retrier, for convenience.
 template <typename TaskType>
-static Status CreateRetryingStreamingBatchScheduler(
+Status CreateRetryingStreamingBatchScheduler(
     const typename StreamingBatchScheduler<TaskType>::Options& schedule_options,
     const typename BatchSchedulerRetrier<TaskType>::Options& retry_options,
     std::function<void(std::unique_ptr<Batch<TaskType>>)>

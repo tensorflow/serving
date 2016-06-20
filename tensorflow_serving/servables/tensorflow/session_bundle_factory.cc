@@ -157,26 +157,12 @@ Status SessionBundleFactory::WrapSessionForBatching(SessionBundle* bundle) {
     batching_session_options.allowed_batch_sizes.push_back(allowed_batch_size);
   }
 
-  BatchSchedulerRetrier<BatchingSessionTask>::Options retry_options;
-  if (batching_config.has_max_time_micros()) {
-    retry_options.max_time_micros = batching_config.max_time_micros().value();
-  }
-  if (batching_config.has_retry_delay_micros()) {
-    retry_options.retry_delay_micros =
-        batching_config.retry_delay_micros().value();
-  }
-
-  auto create_queue = [this, queue_options, retry_options](
+  auto create_queue = [this, queue_options](
       std::function<void(std::unique_ptr<Batch<BatchingSessionTask>>)>
           process_batch_callback,
       std::unique_ptr<BatchScheduler<BatchingSessionTask>>* batch_scheduler) {
-    std::unique_ptr<BatchScheduler<BatchingSessionTask>> queue;
     TF_RETURN_IF_ERROR(this->batch_scheduler_->AddQueue(
-        queue_options, process_batch_callback, &queue));
-    std::unique_ptr<BatchSchedulerRetrier<BatchingSessionTask>> retrier;
-    TF_RETURN_IF_ERROR(BatchSchedulerRetrier<BatchingSessionTask>::Create(
-        retry_options, std::move(queue), &retrier));
-    *batch_scheduler = std::move(retrier);
+        queue_options, process_batch_callback, batch_scheduler));
     return Status::OK();
   };
   TF_RETURN_IF_ERROR(

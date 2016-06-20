@@ -86,8 +86,7 @@ TEST_F(SessionBundleFactoryTest, Batching) {
   SessionBundleConfig config;
   BatchingParameters* batching_params = config.mutable_batching_parameters();
   batching_params->mutable_max_batch_size()->set_value(2);
-  batching_params->mutable_max_time_micros()->set_value(
-      10 * 1000 * 1000 /* 10 seconds (should be plenty of time) */);
+  batching_params->mutable_max_enqueued_batches()->set_value(INT_MAX);
   std::unique_ptr<SessionBundleFactory> factory;
   TF_ASSERT_OK(SessionBundleFactory::Create(config, &factory));
   std::unique_ptr<SessionBundle> bundle;
