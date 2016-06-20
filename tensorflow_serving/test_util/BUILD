@@ -25,11 +25,11 @@ cc_library(
     srcs = ["test_util.cc"],
     hdrs = ["test_util.h"],
     deps = [
+        "//external:gtest",
         "@org_tensorflow//tensorflow/core",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
         "@protobuf//:protobuf",
-        "//external:gtest",
     ],
 )
 

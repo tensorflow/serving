@@ -217,7 +217,8 @@ the cost of performing inference, especially in the presence of hardware
 accelerators such as GPUs. TensorFlow Serving includes a request batching
 widget that lets clients easily batch their type-specific inferences across
 requests into batch requests that algorithm systems can more efficiently
-process.
+process. See the [Batching Guide](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/batching/README.md)
+for more information.
 
 ## Next Steps
 

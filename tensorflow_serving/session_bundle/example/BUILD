@@ -28,8 +28,8 @@ py_binary(
         "export_half_plus_two.py",
     ],
     deps = [
-        "@org_tensorflow//tensorflow:tensorflow_py",
         "//tensorflow_serving/session_bundle:exporter",
+        "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )
 

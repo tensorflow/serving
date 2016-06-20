@@ -53,6 +53,7 @@ Status LoadHashmapFromFile(const string& path,
         const string& value = cols[1];
         (*hashmap)->insert({key, value});
       }
+      delete file;
       break;
     }
     default:
