@@ -189,6 +189,8 @@ int main(int argc, char** argv) {
       session_bundle_config.mutable_batching_parameters();
   batching_parameters->mutable_thread_pool_name()->set_value(
       "mnist_service_batch_threads");
+  // Use a very large queue, to avoid rejecting requests.
+  batching_parameters->mutable_max_enqueued_batches()->set_value(1000);
   ...
 }
 ~~~

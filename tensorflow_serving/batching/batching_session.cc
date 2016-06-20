@@ -25,7 +25,6 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow_serving/batching/batch_scheduler_retrier.h"
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
 #include "tensorflow_serving/util/cleanup.h"
 
@@ -372,9 +371,8 @@ Status CreateBatchingSession(
   return Status::OK();
 }
 
-Status CreateRetryingBasicBatchingSession(
+Status CreateBasicBatchingSession(
     const BasicBatchScheduler<BatchingSessionTask>::Options& schedule_options,
-    const BatchSchedulerRetrier<BatchingSessionTask>::Options& retry_options,
     const BatchingSessionOptions& batching_session_options,
     std::unique_ptr<Session> session,
     std::unique_ptr<Session>* batching_session) {
@@ -389,17 +387,15 @@ Status CreateRetryingBasicBatchingSession(
     }
   }
 
-  auto scheduler_creator = [schedule_options, retry_options](
+  auto scheduler_creator = [schedule_options](
       std::function<void(std::unique_ptr<Batch<BatchingSessionTask>>)>
           process_batch_callback,
       std::unique_ptr<BatchScheduler<BatchingSessionTask>>* batch_scheduler) {
-    std::unique_ptr<BasicBatchScheduler<BatchingSessionTask>> scheduler;
+    std::unique_ptr<BasicBatchScheduler<BatchingSessionTask>>
+        basic_batch_scheduler;
     TF_RETURN_IF_ERROR(BasicBatchScheduler<BatchingSessionTask>::Create(
-        schedule_options, process_batch_callback, &scheduler));
-    std::unique_ptr<BatchSchedulerRetrier<BatchingSessionTask>> retrier;
-    TF_RETURN_IF_ERROR(BatchSchedulerRetrier<BatchingSessionTask>::Create(
-        retry_options, std::move(scheduler), &retrier));
-    *batch_scheduler = std::move(retrier);
+        schedule_options, process_batch_callback, &basic_batch_scheduler));
+    *batch_scheduler = std::move(basic_batch_scheduler);
     return Status::OK();
   };
   return CreateBatchingSession(batching_session_options, scheduler_creator,
