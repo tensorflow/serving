@@ -32,8 +32,8 @@ cc_library(
     srcs = ["test_main.cc"],
     linkopts = ["-lm"],
     deps = [
-        "@org_tensorflow//tensorflow/core:testlib",
         "//external:gtest",
+        "@org_tensorflow//tensorflow/core:testlib",
     ],
 )
 
@@ -42,10 +42,10 @@ cc_library(
     testonly = 1,
     hdrs = ["mock_loader.h"],
     deps = [
-        "@org_tensorflow//tensorflow/core:lib",
         "//external:gtest",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/util:any_ptr",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
@@ -55,9 +55,9 @@ cc_library(
     srcs = ["fake_loader.cc"],
     hdrs = ["fake_loader.h"],
     deps = [
-        "@org_tensorflow//tensorflow/core:lib",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/util:any_ptr",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
@@ -66,10 +66,10 @@ cc_library(
     testonly = 1,
     hdrs = ["mock_storage_path_target.h"],
     deps = [
-        "@org_tensorflow//tensorflow/core:lib",
         "//external:gtest",
         "//tensorflow_serving/core:storage_path",
         "//tensorflow_serving/core:target",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
@@ -79,11 +79,11 @@ cc_library(
     hdrs = ["source_adapter_test_util.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@org_tensorflow//tensorflow/core:lib",
         "//external:gtest",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:servable_data",
         "//tensorflow_serving/core:servable_id",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
@@ -94,9 +94,9 @@ cc_library(
     hdrs = ["availability_test_util.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@org_tensorflow//tensorflow/core:lib",
         "//external:gtest",
         "//tensorflow_serving/core:servable_state_monitor",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 

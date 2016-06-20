@@ -48,10 +48,6 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
-        "@protobuf//:cc_wkt_protos",
         ":session_bundle_config_proto",
         "//tensorflow_serving/batching:batching_session",
         "//tensorflow_serving/batching:shared_batch_scheduler",
@@ -59,6 +55,10 @@ cc_library(
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/session_bundle",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@protobuf//:cc_wkt_protos",
     ],
 )
 
@@ -68,18 +68,18 @@ cc_test(
     srcs = ["session_bundle_factory_test.cc"],
     data = ["//tensorflow_serving/session_bundle/example:half_plus_two"],
     deps = [
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
-        "@org_tensorflow//tensorflow/core:test",
-        "@org_tensorflow//tensorflow/core:testlib",
-        "@protobuf//:cc_wkt_protos",
         ":session_bundle_config_proto",
         ":session_bundle_factory",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
+        "@protobuf//:cc_wkt_protos",
     ],
 )
 
@@ -91,9 +91,6 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         ":session_bundle_factory",
         ":session_bundle_source_adapter_proto",
         "//tensorflow_serving/core:loader",
@@ -103,6 +100,9 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/util:optional",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -114,12 +114,6 @@ cc_test(
     # Link in all registered kernels.
     linkstatic = 1,
     deps = [
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
-        "@org_tensorflow//tensorflow/core:test",
-        "@org_tensorflow//tensorflow/core:testlib",
         ":session_bundle_config_proto",
         ":session_bundle_source_adapter",
         ":session_bundle_source_adapter_proto",
@@ -132,6 +126,12 @@ cc_test(
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/test_util",
         "//tensorflow_serving/util:any_ptr",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
     ],
 )
 
@@ -155,8 +155,6 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         ":session_bundle_source_adapter",
         ":session_bundle_source_adapter_proto",
         "//tensorflow_serving/core:aspired_versions_manager_builder",
@@ -170,6 +168,8 @@ cc_library(
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -180,18 +180,18 @@ cc_test(
     # Link in all registered kernels.
     linkstatic = 1,
     deps = [
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
-        "@org_tensorflow//tensorflow/core:test",
-        "@org_tensorflow//tensorflow/core:testlib",
         ":simple_servers",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/session_bundle",
         "//tensorflow_serving/test_util",
         "//tensorflow_serving/util:unique_ptr_with_deps",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
     ],
 )
 
