@@ -321,13 +321,17 @@ void HandleRpcs(InceptionServiceImpl* service_impl,
   // Spawn a new CallData instance to serve new clients.
   new CallData(service_impl, service, cq);
   void* tag;  // uniquely identifies a request.
-  bool ok;
+  bool ok = false;
   while (true) {
     // Block waiting to read the next event from the completion queue. The
     // event is uniquely identified by its tag, which in this case is the
     // memory address of a CallData instance.
-    cq->Next(&tag, &ok);
-    GPR_ASSERT(ok);
+    if (!cq->Next(&tag, &ok)) {
+      break;  // server shutting down
+    }
+    if (!ok) {
+      continue;  // irregular event
+    }
     static_cast<CallData*>(tag)->Proceed();
   }
 }
