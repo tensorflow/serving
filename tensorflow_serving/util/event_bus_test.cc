@@ -20,6 +20,7 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
+namespace {
 
 typedef EventBus<int> IntEventBus;
 
@@ -124,5 +125,6 @@ TEST(EventBusTest, TestAutomaticUnsubscribing) {
   EXPECT_EQ(3, value_timestamp);
 }
 
+}  // namespace
 }  // namespace serving
 }  // namespace tensorflow

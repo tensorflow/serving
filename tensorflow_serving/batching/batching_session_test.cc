@@ -32,6 +32,7 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
+namespace {
 
 // A wrapper around a Session that captures the batch size.
 class BatchSizeCapturingSession : public ServingSession {
@@ -271,5 +272,6 @@ TEST(BatchingSessionTest,
           .ok());
 }
 
+}  // namespace
 }  // namespace serving
 }  // namespace tensorflow

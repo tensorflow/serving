@@ -30,7 +30,6 @@ using ::testing::UnorderedElementsAre;
 
 namespace tensorflow {
 namespace serving {
-
 namespace {
 
 class FakeTask : public BatchTask {
