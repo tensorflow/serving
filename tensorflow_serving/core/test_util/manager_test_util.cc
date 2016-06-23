@@ -27,6 +27,9 @@ void AspiredVersionsManagerTestAccess::RunManageState() {
   manager_->ManageState();
 }
 
+CachingManagerTestAccess::CachingManagerTestAccess(CachingManager* manager)
+    : manager_(manager) {}
+
 int64 CachingManagerTestAccess::GetLoadMutexMapSize() const {
   return manager_->GetLoadMutexMapSize();
 }

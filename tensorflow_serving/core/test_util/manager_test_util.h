@@ -41,8 +41,7 @@ class AspiredVersionsManagerTestAccess {
 // A test utility that provides access to private CachingManager members.
 class CachingManagerTestAccess {
  public:
-  explicit CachingManagerTestAccess(CachingManager* manager)
-      : manager_(manager) {}
+  explicit CachingManagerTestAccess(CachingManager* manager);
 
   // Returns the size of the load-mutex map that stores the mutex reference per
   // servable-id requested for load.
