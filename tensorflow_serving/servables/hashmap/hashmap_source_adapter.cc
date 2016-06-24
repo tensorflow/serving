@@ -39,10 +39,10 @@ Status LoadHashmapFromFile(const string& path,
   hashmap->reset(new Hashmap);
   switch (format) {
     case HashmapSourceAdapterConfig::SIMPLE_CSV: {
-      RandomAccessFile* file;
+      std::unique_ptr<RandomAccessFile> file;
       TF_RETURN_IF_ERROR(Env::Default()->NewRandomAccessFile(path, &file));
       const size_t kBufferSizeBytes = 262144;
-      io::InputBuffer in(file, kBufferSizeBytes);
+      io::InputBuffer in(file.get(), kBufferSizeBytes);
       string line;
       while (in.ReadLine(&line).ok()) {
         std::vector<string> cols = str_util::Split(line, ',');
@@ -53,7 +53,6 @@ Status LoadHashmapFromFile(const string& path,
         const string& value = cols[1];
         (*hashmap)->insert({key, value});
       }
-      delete file;
       break;
     }
     default:

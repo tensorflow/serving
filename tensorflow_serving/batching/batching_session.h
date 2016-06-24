@@ -112,12 +112,10 @@ Status CreateBatchingSession(
     std::unique_ptr<Session>* batching_session);
 
 // A convenience for using CreateBatchingSession() to create a
-// BasicBatchScheduler wrapped in a retrier.
-Status CreateRetryingBasicBatchingSession(
+// BasicBatchScheduler.
+Status CreateBasicBatchingSession(
     const typename BasicBatchScheduler<BatchingSessionTask>::Options&
         schedule_options,
-    const typename BatchSchedulerRetrier<BatchingSessionTask>::Options&
-        retry_options,
     const BatchingSessionOptions& batching_session_options,
     std::unique_ptr<Session> session,
     std::unique_ptr<Session>* batching_session);

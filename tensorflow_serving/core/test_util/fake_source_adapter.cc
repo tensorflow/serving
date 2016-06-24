@@ -13,27 +13,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/core/test_util/manager_test_util.h"
+#include "tensorflow_serving/core/test_util/fake_source_adapter.h"
 
 namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-AspiredVersionsManagerTestAccess::AspiredVersionsManagerTestAccess(
-    AspiredVersionsManager* manager)
-    : manager_(manager) {}
+FakeSourceAdapter::FakeSourceAdapter()
+    : SimpleLoaderSourceAdapter(
+          [](const StoragePath& path, std::unique_ptr<string>* servable_ptr) {
+            servable_ptr->reset(new string(path));
+            return Status::OK();
+          },
+          SimpleLoaderSourceAdapter<StoragePath,
+                                    string>::EstimateNoResources()) {}
 
-void AspiredVersionsManagerTestAccess::RunManageState() {
-  manager_->ManageState();
+std::function<Status(
+    std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*)>
+FakeSourceAdapter::GetCreator() {
+  return [](std::unique_ptr<tensorflow::serving::SourceAdapter<
+                StoragePath, std::unique_ptr<Loader>>>* source) {
+    source->reset(new FakeSourceAdapter);
+    return Status::OK();
+  };
 }
-
-CachingManagerTestAccess::CachingManagerTestAccess(CachingManager* manager)
-    : manager_(manager) {}
-
-int64 CachingManagerTestAccess::GetLoadMutexMapSize() const {
-  return manager_->GetLoadMutexMapSize();
-}
-
 }  // namespace test_util
 }  // namespace serving
 }  // namespace tensorflow
