@@ -251,6 +251,7 @@ inline bool operator!=(const ServableStateSnapshot<T>& a,
 
 inline std::ostream& operator<<(std::ostream& os, LoaderHarness::State state) {
   os << LoaderHarness::StateDebugString(state);
+  return os;
 }
 
 ////

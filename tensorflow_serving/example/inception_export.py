@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-#!/usr/grte/v4/bin/python2.7
+#!/usr/bin/env python2.7
 """Export inception model given existing training checkpoints.
 """
 

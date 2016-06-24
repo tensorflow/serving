@@ -51,9 +51,9 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
 
   ~StringLoaderFactory() override = default;
 
-  Status CreateLoader(
-      const ServableId& id,
-      std::unique_ptr<ServableData<std::unique_ptr<Loader>>>* loaded_data) {
+  Status CreateLoader(const ServableId& id,
+                      std::unique_ptr<ServableData<std::unique_ptr<Loader>>>*
+                          loaded_data) override {
     auto servable_creator = [&](std::unique_ptr<string>* servable) {
       servable->reset(new string);
       **servable = strings::StrCat(id.name, "-", id.version);
@@ -71,7 +71,7 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
   }
 
   // Returns the latest version corresponding to the servable name.
-  int64 GetLatestVersion(const string& request_name) const {
+  int64 GetLatestVersion(const string& request_name) const override {
     // Increment the current latest version until a maximum of 42.
     mutex_lock l(mu_);
     return latest_version_;
@@ -109,9 +109,9 @@ class ErrorLoaderFactory : public CachingManager::LoaderFactory {
   ErrorLoaderFactory() = default;
   ~ErrorLoaderFactory() override = default;
 
-  Status CreateLoader(
-      const ServableId& id,
-      std::unique_ptr<ServableData<std::unique_ptr<Loader>>>* loaded_data) {
+  Status CreateLoader(const ServableId& id,
+                      std::unique_ptr<ServableData<std::unique_ptr<Loader>>>*
+                          loaded_data) override {
     auto servable_creator = [&](std::unique_ptr<string>* servable) {
       return errors::Unknown("error loader-factory");
     };
@@ -123,7 +123,7 @@ class ErrorLoaderFactory : public CachingManager::LoaderFactory {
     return Status::OK();
   }
 
-  int64 GetLatestVersion(const string& request_name) const {
+  int64 GetLatestVersion(const string& request_name) const override {
     // A simple "latest" interpretation that always returns version 42.
     return 42;
   }
