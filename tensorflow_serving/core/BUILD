@@ -344,6 +344,7 @@ cc_test(
         ":simple_loader",
         ":storage_path",
         "//tensorflow_serving/core/test_util:availability_test_util",
+        "//tensorflow_serving/core/test_util:fake_source_adapter",
         "//tensorflow_serving/core/test_util:source_adapter_test_util",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:event_bus",

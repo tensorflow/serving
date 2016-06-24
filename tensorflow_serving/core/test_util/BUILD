@@ -66,7 +66,7 @@ cc_library(
     testonly = 1,
     srcs = ["fake_source_adapter.cc"],
     hdrs = ["fake_source_adapter.h"],
-    visibility = ["//learning/serving:__subpackages__"],
+    visibility = ["//visibility:public"],
     deps = [
         "//tensorflow_serving/core:simple_loader",
         "//tensorflow_serving/core:storage_path",

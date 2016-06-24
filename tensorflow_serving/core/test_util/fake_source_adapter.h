@@ -25,12 +25,21 @@ namespace serving {
 namespace test_util {
 
 // A fake source adapter that generates string servables from paths.
+// When a suffix is provided, it is concatenated with a "/" to the path.
+// Example:
+// If path = "/a/simple/path" and suffix = "foo", the servable string is
+// "a/simple/path/foo".
+//
+// The constructor may also take a callback to be invoked upon destruction. The
+// suffix provided to the source-adapter during construction is passed to the
+// string argument of the callback when it is invoked.
 class FakeSourceAdapter
     : public SimpleLoaderSourceAdapter<StoragePath, string> {
  public:
-  FakeSourceAdapter();
+  FakeSourceAdapter(const string& suffix = "",
+                    std::function<void(const string&)> call_on_destruct = {});
 
-  ~FakeSourceAdapter() override = default;
+  ~FakeSourceAdapter() override;
 
   // Returns a function to create a fake source adapter.
   static std::function<Status(
@@ -38,6 +47,8 @@ class FakeSourceAdapter
   GetCreator();
 
  private:
+  const string suffix_;
+  std::function<void(const string&)> call_on_destruct_;
   TF_DISALLOW_COPY_AND_ASSIGN(FakeSourceAdapter);
 };
 

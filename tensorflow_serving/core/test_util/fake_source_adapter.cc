@@ -19,14 +19,27 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-FakeSourceAdapter::FakeSourceAdapter()
+FakeSourceAdapter::FakeSourceAdapter(
+    const string& suffix, std::function<void(const string&)> call_on_destruct)
     : SimpleLoaderSourceAdapter(
-          [](const StoragePath& path, std::unique_ptr<string>* servable_ptr) {
-            servable_ptr->reset(new string(path));
+          [this](const StoragePath& path,
+                 std::unique_ptr<string>* servable_ptr) {
+            const string servable = suffix_.length() > 0
+                                        ? strings::StrCat(path, "/", suffix_)
+                                        : path;
+            servable_ptr->reset(new string(servable));
             return Status::OK();
           },
           SimpleLoaderSourceAdapter<StoragePath,
-                                    string>::EstimateNoResources()) {}
+                                    string>::EstimateNoResources()),
+      suffix_(suffix),
+      call_on_destruct_(call_on_destruct) {}
+
+FakeSourceAdapter::~FakeSourceAdapter() {
+  if (call_on_destruct_) {
+    call_on_destruct_(suffix_);
+  }
+}
 
 std::function<Status(
     std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*)>
