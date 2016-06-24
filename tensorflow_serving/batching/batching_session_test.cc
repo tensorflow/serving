@@ -26,13 +26,13 @@ limitations under the License.
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/public/session_options.h"
-#include "tensorflow_serving/batching/batch_scheduler_retrier.h"
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
 #include "tensorflow_serving/session_bundle/session_bundle.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
 namespace serving {
+namespace {
 
 // A wrapper around a Session that captures the batch size.
 class BatchSizeCapturingSession : public ServingSession {
@@ -104,12 +104,11 @@ TEST(BatchingSessionTest, Basic) {
   schedule_options.max_batch_size = 4;  // fits two 2-unit tasks
   schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
   schedule_options.num_batch_threads = 1;
-  BatchSchedulerRetrier<BatchingSessionTask>::Options retry_options;
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
-  TF_ASSERT_OK(CreateRetryingBasicBatchingSession(
-      schedule_options, retry_options, batching_session_options,
-      CreateHalfPlusTwoSession(), &batching_session));
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, CreateHalfPlusTwoSession(),
+      &batching_session));
 
   // Asynchronously send two requests whose total size is 4. The two requests in
   // conjunction should trigger a batch to be processed.
@@ -128,23 +127,21 @@ TEST(BatchingSessionTest, SingletonBatch) {
   schedule_options.max_batch_size = 4;  // fits two 2-unit tasks
   schedule_options.batch_timeout_micros = 0;
   schedule_options.num_batch_threads = 1;
-  BatchSchedulerRetrier<BatchingSessionTask>::Options retry_options;
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
-  TF_ASSERT_OK(CreateRetryingBasicBatchingSession(
-      schedule_options, retry_options, batching_session_options,
-      CreateHalfPlusTwoSession(), &batching_session));
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, CreateHalfPlusTwoSession(),
+      &batching_session));
   TestSingleRequest(100.0f, 42.0f, batching_session.get());
 }
 
 TEST(BatchingSessionTest, RequestWithIncompatibleInputTensorSizes) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
-  BatchSchedulerRetrier<BatchingSessionTask>::Options retry_options;
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
-  TF_ASSERT_OK(CreateRetryingBasicBatchingSession(
-      schedule_options, retry_options, batching_session_options,
-      CreateHalfPlusTwoSession(), &batching_session));
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, CreateHalfPlusTwoSession(),
+      &batching_session));
 
   ExpectError(
       "Batching session Run() input tensors must have equal 0th-dimension size",
@@ -157,12 +154,11 @@ TEST(BatchingSessionTest, RequestsWithDifferentInputTensors) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 2;  // fits two 1-unit tasks
   schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
-  BatchSchedulerRetrier<BatchingSessionTask>::Options retry_options;
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
-  TF_ASSERT_OK(CreateRetryingBasicBatchingSession(
-      schedule_options, retry_options, batching_session_options,
-      CreateHalfPlusTwoSession(), &batching_session));
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, CreateHalfPlusTwoSession(),
+      &batching_session));
 
   std::unique_ptr<Thread> thread_1(Env::Default()->StartThread(
       ThreadOptions(), "thread_1", [&batching_session] {
@@ -185,12 +181,11 @@ TEST(BatchingSessionTest, RequestsWithDifferentOutputTensors) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 2;  // fits two 1-unit tasks
   schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
-  BatchSchedulerRetrier<BatchingSessionTask>::Options retry_options;
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
-  TF_ASSERT_OK(CreateRetryingBasicBatchingSession(
-      schedule_options, retry_options, batching_session_options,
-      CreateHalfPlusTwoSession(), &batching_session));
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, CreateHalfPlusTwoSession(),
+      &batching_session));
 
   std::unique_ptr<Thread> thread_1(Env::Default()->StartThread(
       ThreadOptions(), "thread_1", [&batching_session] {
@@ -218,12 +213,11 @@ TEST(BatchingSessionTest, AllowedBatchSizes_NoPaddingNeeded) {
   schedule_options.max_batch_size = 4;
   schedule_options.batch_timeout_micros = 0;
   schedule_options.num_batch_threads = 1;
-  BatchSchedulerRetrier<BatchingSessionTask>::Options retry_options;
   BatchingSessionOptions batching_session_options;
   batching_session_options.allowed_batch_sizes = {2, 4};
   std::unique_ptr<Session> batching_session;
-  TF_ASSERT_OK(CreateRetryingBasicBatchingSession(
-      schedule_options, retry_options, batching_session_options,
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options,
       std::move(batch_size_capturing_session), &batching_session));
   TestSingleRequest(100.0f, 42.0f, batching_session.get());
 
@@ -241,12 +235,11 @@ TEST(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
   schedule_options.max_batch_size = 4;
   schedule_options.batch_timeout_micros = 0;
   schedule_options.num_batch_threads = 1;
-  BatchSchedulerRetrier<BatchingSessionTask>::Options retry_options;
   BatchingSessionOptions batching_session_options;
   batching_session_options.allowed_batch_sizes = {1, 3, 4};
   std::unique_ptr<Session> batching_session;
-  TF_ASSERT_OK(CreateRetryingBasicBatchingSession(
-      schedule_options, retry_options, batching_session_options,
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options,
       std::move(batch_size_capturing_session), &batching_session));
   TestSingleRequest(100.0f, 42.0f, batching_session.get());
 
@@ -257,29 +250,28 @@ TEST(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
 TEST(BatchingSessionTest, UnsortedAllowedBatchSizesRejected) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 4;
-  BatchSchedulerRetrier<BatchingSessionTask>::Options retry_options;
   BatchingSessionOptions batching_session_options;
   batching_session_options.allowed_batch_sizes = {4, 2};  // Not sorted.
   std::unique_ptr<Session> batching_session;
-  EXPECT_FALSE(CreateRetryingBasicBatchingSession(
-                   schedule_options, retry_options, batching_session_options,
-                   CreateHalfPlusTwoSession(), &batching_session)
-                   .ok());
+  EXPECT_FALSE(
+      CreateBasicBatchingSession(schedule_options, batching_session_options,
+                                 CreateHalfPlusTwoSession(), &batching_session)
+          .ok());
 }
 
 TEST(BatchingSessionTest,
      FinalAllowedBatchSizeDifferingFromMaxBatchSizeRejected) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 4;
-  BatchSchedulerRetrier<BatchingSessionTask>::Options retry_options;
   BatchingSessionOptions batching_session_options;
   batching_session_options.allowed_batch_sizes = {2, 8};  // Final entry != 4.
   std::unique_ptr<Session> batching_session;
-  EXPECT_FALSE(CreateRetryingBasicBatchingSession(
-                   schedule_options, retry_options, batching_session_options,
-                   CreateHalfPlusTwoSession(), &batching_session)
-                   .ok());
+  EXPECT_FALSE(
+      CreateBasicBatchingSession(schedule_options, batching_session_options,
+                                 CreateHalfPlusTwoSession(), &batching_session)
+          .ok());
 }
 
+}  // namespace
 }  // namespace serving
 }  // namespace tensorflow
