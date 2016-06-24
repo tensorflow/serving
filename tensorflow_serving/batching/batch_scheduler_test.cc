@@ -21,7 +21,6 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
-
 namespace {
 
 class FakeTask : public BatchTask {
@@ -37,8 +36,6 @@ class FakeTask : public BatchTask {
 
   TF_DISALLOW_COPY_AND_ASSIGN(FakeTask);
 };
-
-}  // namespace
 
 TEST(BatchTest, Basic) {
   Batch<FakeTask> batch;
@@ -110,5 +107,6 @@ TEST(BatchTest, DeletionBlocksUntilClosed) {
   deleted.WaitForNotification();
 }
 
+}  // namespace
 }  // namespace serving
 }  // namespace tensorflow

@@ -22,7 +22,6 @@ limitations under the License.
 #include <memory>
 #include <string>
 
-#include "tensorflow_serving/batching/batch_scheduler_retrier.h"
 #include "tensorflow_serving/batching/shared_batch_scheduler.h"
 
 namespace tensorflow {
@@ -48,10 +47,11 @@ namespace serving {
 // parameter. If the timeout parameter is set to 0, then the batch threads will
 // always be kept busy (unless there are zero tasks waiting to be processed).
 //
-// It is recommended to set the maximum number of enqueued batches worth of
-// tasks equal to the number of batch threads, which allows enqueuing of enough
-// tasks s.t. if every thread becomes available it can be kept busy, but no
-// more.
+// For online serving, it is recommended to set the maximum number of enqueued
+// batches worth of tasks equal to the number of batch threads, which allows
+// enqueuing of enough tasks s.t. if every thread becomes available it can be
+// kept busy, but no more. For bulk processing jobs and throughput-oriented
+// benchmarks, you may want to set it much higher.
 //
 // When Schedule() is called, if the queue is full the call will fail with an
 // UNAVAILABLE error (after which the client may retry again later). If the call
@@ -137,13 +137,13 @@ class BasicBatchScheduler : public BatchScheduler<TaskType> {
   // (Keep them mirrored to the ones in SharedBatchScheduler::QueueOptions and
   // SharedBatchScheduler::Options.)
   struct Options {
-    // The maximum, and ideal, size of each batch.
+    // The maximum size of each batch.
     //
     // The scheduler may form batches of any size between 1 and this number
     // (inclusive). If there is a need to quantize the batch sizes, i.e. only
     // submit batches whose size is in a small set of allowed sizes, that can be
     // done by adding padding in the process-batch callback.
-    int max_batch_size = 32;
+    int max_batch_size = 1000;
 
     // If a task has been enqueued for this amount of time (in microseconds),
     // and a thread is available, the scheduler will immediately form a batch
@@ -202,15 +202,6 @@ class BasicBatchScheduler : public BatchScheduler<TaskType> {
   TF_DISALLOW_COPY_AND_ASSIGN(BasicBatchScheduler);
 };
 
-// Constructs a BasicBatchScheduler wrapped with a retrier, for convenience.
-template <typename TaskType>
-static Status CreateRetryingBasicBatchScheduler(
-    const typename BasicBatchScheduler<TaskType>::Options& schedule_options,
-    const typename BatchSchedulerRetrier<TaskType>::Options& retry_options,
-    std::function<void(std::unique_ptr<Batch<TaskType>>)>
-        process_batch_callback,
-    std::unique_ptr<BatchScheduler<TaskType>>* scheduler);
-
 //////////
 // Implementation details follow. API users need not read.
 
@@ -265,23 +256,6 @@ template <typename TaskType>
 BasicBatchScheduler<TaskType>::BasicBatchScheduler(
     std::unique_ptr<BatchScheduler<TaskType>> shared_scheduler_queue)
     : shared_scheduler_queue_(std::move(shared_scheduler_queue)) {}
-
-template <typename TaskType>
-Status CreateRetryingBasicBatchScheduler(
-    const typename BasicBatchScheduler<TaskType>::Options& schedule_options,
-    const typename BatchSchedulerRetrier<TaskType>::Options& retry_options,
-    std::function<void(std::unique_ptr<Batch<TaskType>>)>
-        process_batch_callback,
-    std::unique_ptr<BatchScheduler<TaskType>>* scheduler) {
-  std::unique_ptr<BasicBatchScheduler<TaskType>> basic_scheduler;
-  TF_RETURN_IF_ERROR(BasicBatchScheduler<TaskType>::Create(
-      schedule_options, process_batch_callback, &basic_scheduler));
-  std::unique_ptr<BatchSchedulerRetrier<TaskType>> retrier;
-  TF_RETURN_IF_ERROR(BatchSchedulerRetrier<TaskType>::Create(
-      retry_options, std::move(basic_scheduler), &retrier));
-  *scheduler = std::move(retrier);
-  return Status::OK();
-}
 
 }  // namespace serving
 }  // namespace tensorflow

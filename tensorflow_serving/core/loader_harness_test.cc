@@ -50,8 +50,6 @@ void QuiesceAndUnload(LoaderHarness* const harness) {
   harness->Unload();
 }
 
-}  // namespace
-
 TEST(LoaderHarnessTest, Init) {
   test_util::MockLoader* loader = new StrictMock<test_util::MockLoader>;
   LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
@@ -406,5 +404,6 @@ TEST(LoaderHarnessTest, LoadAfterCancelledLoad) {
   EXPECT_EQ(error::FAILED_PRECONDITION, second_load_status.code());
 }
 
+}  // namespace
 }  // namespace serving
 }  // namespace tensorflow

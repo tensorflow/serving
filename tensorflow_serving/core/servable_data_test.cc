@@ -24,6 +24,7 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
+namespace {
 
 TEST(ServableDataTest, NoError) {
   ServableId id = {"name", 42};
@@ -50,5 +51,6 @@ TEST(ServableDataTest, Error) {
   EXPECT_EQ(errors::Unknown("d'oh"), data.status());
 }
 
+}  // namespace
 }  // namespace serving
 }  // namespace tensorflow

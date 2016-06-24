@@ -25,6 +25,7 @@ limitations under the License.
 #include "tensorflow_serving/core/simple_loader.h"
 #include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
+#include "tensorflow_serving/core/test_util/fake_source_adapter.h"
 #include "tensorflow_serving/core/test_util/source_adapter_test_util.h"
 #include "tensorflow_serving/util/event_bus.h"
 
@@ -33,37 +34,8 @@ namespace serving {
 namespace {
 
 using ::testing::ElementsAre;
+using test_util::FakeSourceAdapter;
 using test_util::WaitUntilServableManagerStateIsOneOf;
-
-// A SourceAdapter that generates phony servables from paths. The servable is
-// a StoragePath equal to the path from which it was generated.
-class FakeSourceAdapter
-    : public SimpleLoaderSourceAdapter<StoragePath, StoragePath> {
- public:
-  FakeSourceAdapter(const string& name,
-                    std::vector<string>* destruct_order = nullptr)
-      : SimpleLoaderSourceAdapter(
-            [this](const StoragePath& path,
-                   std::unique_ptr<StoragePath>* servable_ptr) {
-              servable_ptr->reset(
-                  new StoragePath(strings::StrCat(path, "/", name_)));
-              return Status::OK();
-            },
-            SimpleLoaderSourceAdapter<StoragePath,
-                                      StoragePath>::EstimateNoResources()),
-        name_(name),
-        destruct_order_(destruct_order) {}
-
-  ~FakeSourceAdapter() override {
-    if (destruct_order_ != nullptr) {
-      destruct_order_->push_back(name_);
-    }
-  }
-
- private:
-  const string name_;
-  std::vector<string>* const destruct_order_;
-};
 
 // A UnarySourceAdapter that appends its own name to every incoming StoragePath.
 class TestUnaryAdapter : public UnarySourceAdapter<StoragePath, StoragePath> {
@@ -144,11 +116,13 @@ TEST_F(AspiredVersionsManagerBuilderTest, AddSourceChainDestructionOrder) {
   // The destructor of each adapter pushes its own name into this vector, and we
   // use it to verify the destruction order.
   std::vector<string> destruct_order;
+  std::function<void(const string&)> call_on_destruct =
+      [&](const string& suffix) { destruct_order.push_back(suffix); };
   auto* const adapter0 = new TestUnaryAdapter("adapter0", &destruct_order);
   auto adapter1 = std::unique_ptr<TestUnaryAdapter>(
       new TestUnaryAdapter("adapter1", &destruct_order));
   auto adapter2 = std::unique_ptr<FakeSourceAdapter>(
-      new FakeSourceAdapter("adapter2", &destruct_order));
+      new FakeSourceAdapter("adapter2", call_on_destruct));
   builder_->AddSourceChain(std::unique_ptr<TestUnaryAdapter>(adapter0),
                            std::move(adapter1), std::move(adapter2));
   std::unique_ptr<Manager> manager = builder_->Build();

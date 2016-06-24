@@ -116,16 +116,6 @@ benchmarks, you may want to set it much higher.
 `allowed_batch_sizes` parameter, you can have your callback code pad the
 batches.)
 
-### `BatchSchedulerRetrier`
-
-`BatchScheduler::Schedule()` will reject a task if the scheduler currently has
-no capacity to process or enqueue it. If you want to automatically retry tasks
-that are rejected for that reason you can layer a `BatchSchedulerRetrier` on
-top of the batch scheduler. Note, however, that rejecting tasks may be the
-right behavior for servers that would rather reject requests than incur
-excessive latency, e.g. environments that (re-)route rejected requests to other
-server instances.
-
 ## Servers with Multiple Models, Model Versions or Subtasks
 
 Some server instances service multiple request types (e.g. multiple models, or
@@ -171,6 +161,12 @@ callback the batch scheduler calls. To allow the callback to perform non-
 batched work on tasks before a batch is fully formed, you can use
 `StreamingBatchScheduler`. It is designed for servers that control latency very
 precisely, and need fine control over each stage of the pipeline.
+
+`StreamingBatchScheduler` will reject a task if the scheduler currently has
+no capacity to process it. If you want to automatically retry tasks that are
+rejected for that reason you can layer a `BatchSchedulerRetrier` on top of the
+batch scheduler. There is a convenience function for creating a streaming
+scheduler coupled with a retrier: `CreateRetryingStreamingBatchScheduler()'.
 
 When splitting model inference logic into multiple distinct phases to optimize
 latency or utilization, keep in mind that for a given request, every phase

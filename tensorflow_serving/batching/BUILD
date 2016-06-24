@@ -80,7 +80,6 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        ":batch_scheduler_retrier",
         ":shared_batch_scheduler",
     ],
 )
@@ -152,7 +151,6 @@ cc_library(
     deps = [
         ":basic_batch_scheduler",
         ":batch_scheduler",
-        ":batch_scheduler_retrier",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/util:cleanup",
         "@org_tensorflow//tensorflow/core:core_cpu",
@@ -169,7 +167,6 @@ cc_test(
     ],
     data = ["//tensorflow_serving/session_bundle/example:half_plus_two"],
     deps = [
-        ":batch_scheduler_retrier",
         ":batching_session",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/servables/tensorflow:serving_session",
