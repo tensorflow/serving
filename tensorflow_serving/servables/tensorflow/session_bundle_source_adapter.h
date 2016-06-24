@@ -38,6 +38,11 @@ class SessionBundleSourceAdapter
 
   ~SessionBundleSourceAdapter() override = default;
 
+  // Returns a function to create a session bundle source adapter.
+  static std::function<Status(
+      std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*)>
+  GetCreator(const SessionBundleSourceAdapterConfig& config);
+
  private:
   explicit SessionBundleSourceAdapter(
       std::unique_ptr<SessionBundleFactory> bundle_factory);

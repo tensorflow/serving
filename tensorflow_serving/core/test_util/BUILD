@@ -62,6 +62,18 @@ cc_library(
 )
 
 cc_library(
+    name = "fake_source_adapter",
+    testonly = 1,
+    srcs = ["fake_source_adapter.cc"],
+    hdrs = ["fake_source_adapter.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tensorflow_serving/core:simple_loader",
+        "//tensorflow_serving/core:storage_path",
+    ],
+)
+
+cc_library(
     name = "mock_storage_path_target",
     testonly = 1,
     hdrs = ["mock_storage_path_target.h"],
