@@ -26,44 +26,45 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-// Implements the test logic of WaitUntilServablesAvailableForRequests().
-bool ServablesAvailableForRequests(
-    const std::vector<ServableRequest>& servables, Manager* const manager) {
-  // The subset of 'servables' that require a specific version
-  std::set<ServableId> query_specific_servables;
-  // The subset of 'servables' that do not require a specific version
-  std::set<string> query_latest_servables;
-
-  // Build sets of the query specific servables and latest servables
-  for (const ServableRequest& request : servables) {
+// Builds sets of specific and latest servable requests.
+void ExtractRequestSets(const std::vector<ServableRequest>& requests,
+                        std::set<ServableId>* specific_servable_requests,
+                        std::set<string>* latest_servable_requests) {
+  for (const ServableRequest& request : requests) {
     if (request.version) {
-      query_specific_servables.emplace(
+      specific_servable_requests->emplace(
           ServableId{request.name, request.version.value()});
     } else {
-      query_latest_servables.emplace(request.name);
+      latest_servable_requests->emplace(request.name);
     }
   }
+}
 
-  // Build sets of the available specific servables and latest servables
-  const std::vector<ServableId> available_servables_list =
+// Implements the test logic of WaitUntilServablesAvailableForRequests().
+bool ServablesAvailableForRequests(
+    const std::set<ServableId>& specific_servable_requests,
+    const std::set<string>& latest_servable_requests, Manager* const manager) {
+  // Build sets of the specific and latest servables available in the manager.
+  const std::vector<ServableId> servables_list =
       manager->ListAvailableServableIds();
-  const std::set<ServableId> available_specific_servables = {
-      available_servables_list.begin(), available_servables_list.end()};
-
-  std::set<string> available_latest_servables;
-  for (const ServableId& id : available_specific_servables) {
-    available_latest_servables.insert(id.name);
+  const std::set<ServableId> specific_available_servables = {
+      servables_list.begin(), servables_list.end()};
+  std::set<string> latest_available_servables;
+  for (const ServableId& id : specific_available_servables) {
+    latest_available_servables.insert(id.name);
   }
 
-  // Check that the available specific servables includes the query's.
+  // Check that the specific available servables include the requested
+  // servables.
   const bool specific_servables_available = std::includes(
-      available_specific_servables.begin(), available_specific_servables.end(),
-      query_specific_servables.begin(), query_specific_servables.end());
+      specific_available_servables.begin(), specific_available_servables.end(),
+      specific_servable_requests.begin(), specific_servable_requests.end());
 
-  // Check that the available latest servables includes the query's.
+  // Check that the latest available servables includes the requested
+  // servables.
   const bool latest_servables_available = std::includes(
-      available_latest_servables.begin(), available_latest_servables.end(),
-      query_latest_servables.begin(), query_latest_servables.end());
+      latest_available_servables.begin(), latest_available_servables.end(),
+      latest_servable_requests.begin(), latest_servable_requests.end());
 
   return specific_servables_available && latest_servables_available;
 }
@@ -71,8 +72,17 @@ bool ServablesAvailableForRequests(
 }  // namespace
 
 void WaitUntilServablesAvailableForRequests(
-    const std::vector<ServableRequest>& servables, Manager* const manager) {
-  while (!ServablesAvailableForRequests(servables, manager)) {
+    const std::vector<ServableRequest>& requests, Manager* const manager) {
+  // The subset of requests that require a specific version.
+  std::set<ServableId> specific_servable_requests;
+  // The subset of requests that do not require a specific version i.e. require
+  // the latest version.
+  std::set<string> latest_servable_requests;
+
+  ExtractRequestSets(requests, &specific_servable_requests,
+                     &latest_servable_requests);
+  while (!ServablesAvailableForRequests(specific_servable_requests,
+                                        latest_servable_requests, manager)) {
     Env::Default()->SleepForMicroseconds(50 * 1000 /* 50 ms */);
   }
 }
