@@ -145,6 +145,24 @@ cc_library(
     ],
 )
 
+# This is a lite version of the session_bundle target that does not link in any
+# Tensorflow ops in order to minimize its size. Clients using this should link
+# any required ops manually.
+cc_library(
+    name = "session_bundle_lite",
+    srcs = ["session_bundle.cc"],
+    hdrs = ["session_bundle.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":manifest_proto",
+        ":signature_lite",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+    ],
+)
+
 filegroup(
     name = "session_bundle_srcs",
     srcs = [
@@ -196,6 +214,22 @@ cc_library(
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow_opensource",
+    ],
+)
+
+# This is a lite version of the signature target that does not link in any
+# Tensorflow ops in order to minimize its size. Clients using this should
+# link any required ops manually.
+cc_library(
+    name = "signature_lite",
+    srcs = ["signature.cc"],
+    hdrs = ["signature.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":manifest_proto",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 

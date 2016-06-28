@@ -51,10 +51,9 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
 
   ~StringLoaderFactory() override = default;
 
-  Status CreateLoader(
-      const ServableId& id,
-      std::unique_ptr<ServableData<std::unique_ptr<Loader>>>* loaded_data)
-      override {
+  Status CreateLoader(const ServableId& id,
+                      std::unique_ptr<ServableData<std::unique_ptr<Loader>>>*
+                          loaded_data) override {
     auto servable_creator = [&](std::unique_ptr<string>* servable) {
       servable->reset(new string);
       **servable = strings::StrCat(id.name, "-", id.version);
@@ -110,10 +109,9 @@ class ErrorLoaderFactory : public CachingManager::LoaderFactory {
   ErrorLoaderFactory() = default;
   ~ErrorLoaderFactory() override = default;
 
-  Status CreateLoader(
-      const ServableId& id,
-      std::unique_ptr<ServableData<std::unique_ptr<Loader>>>* loaded_data)
-      override {
+  Status CreateLoader(const ServableId& id,
+                      std::unique_ptr<ServableData<std::unique_ptr<Loader>>>*
+                          loaded_data) override {
     auto servable_creator = [&](std::unique_ptr<string>* servable) {
       return errors::Unknown("error loader-factory");
     };
