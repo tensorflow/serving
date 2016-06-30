@@ -40,9 +40,9 @@ genrule(
         "half_plus_two/00000123/export-00000-of-00001",
     ],
     cmd =
-        "rm -rf /tmp/half_plus_two; " +
+        "rm -rf /tmp/tf_serving_half_plus_two; " +
         "$(locations :export_half_plus_two); " +
-        "cp -r /tmp/half_plus_two/* $(@D)/half_plus_two",
+        "cp -r /tmp/tf_serving_half_plus_two/* $(@D)/half_plus_two",
     tools = [
         ":export_half_plus_two",
     ],

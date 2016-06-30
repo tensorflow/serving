@@ -14,8 +14,8 @@
 # ==============================================================================
 """Exports a toy linear regression inference graph.
 
-Exports a TensorFlow graph to /tmp/half_plus_two/ based on the Exporter
-format, https://goo.gl/OIDCqz.
+Exports a TensorFlow graph to /tmp/tf_serving_half_plus_two/ based on the
+Exporter format, https://goo.gl/OIDCqz.
 
 This graph calculates,
   y = a*x + b
@@ -34,7 +34,7 @@ from tensorflow_serving.session_bundle import exporter
 
 
 def Export():
-  export_path = "/tmp/half_plus_two"
+  export_path = "/tmp/tf_serving_half_plus_two"
   with tf.Session() as sess:
     # Make model parameters a&b variables instead of constants to
     # exercise the variable reloading mechanisms.

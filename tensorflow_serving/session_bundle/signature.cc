@@ -20,6 +20,7 @@ limitations under the License.
 #include <vector>
 
 #include "google/protobuf/any.pb.h"
+#include "tensorflow/contrib/session_bundle/manifest.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -57,13 +58,16 @@ Status GetSignatures(const tensorflow::MetaGraphDef& meta_graph_def,
                         meta_graph_def.DebugString()));
   }
   const auto& any = it->second.any_list().value(0);
-  if (!any.Is<Signatures>()) {
+  // Check if the Any proto is a Signatures or a tensorflow::contrib::Signatures
+  // (same proto in a different namespace).
+  // Either format will be parsed into the same Signatures object.
+  if (!any.Is<Signatures>() && !any.Is<tensorflow::contrib::Signatures>()) {
     return errors::FailedPrecondition(
         "Expected signature Any type_url for: ",
         signatures->descriptor()->full_name(), ". Got: ",
         string(any.type_url().data(), any.type_url().size()), ".");
   }
-  if (!any.UnpackTo(signatures)) {
+  if (!signatures->ParseFromString(any.value())) {
     return errors::FailedPrecondition("Failed to unpack: ", any.DebugString());
   }
   return Status::OK();

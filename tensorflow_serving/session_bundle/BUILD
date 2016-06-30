@@ -156,6 +156,7 @@ cc_library(
     deps = [
         ":manifest_proto",
         ":signature_lite",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -187,6 +188,7 @@ cc_test(
     srcs = ["session_bundle_test.cc"],
     data = [
         "//tensorflow_serving/session_bundle/example:half_plus_two",
+        "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
     ],
     # Link in all registered kernels.
     linkstatic = 1,
@@ -194,6 +196,7 @@ cc_test(
         ":session_bundle",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -210,6 +213,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":manifest_proto",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -227,6 +231,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":manifest_proto",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -242,6 +247,7 @@ cc_test(
         ":signature",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
