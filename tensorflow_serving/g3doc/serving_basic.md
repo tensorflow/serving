@@ -277,12 +277,12 @@ steps:
   With the extracted signature, the server can bind the input and output tensors
   properly and run the session.
 
-  ~~~c++
-    const tensorflow::Status status =
-        bundle_->session->Run({{signature_.input().tensor_name(), input}},
-                              {signature_.scores().tensor_name()}, {},
-                              &outputs);
-  ~~~
+~~~c++
+const tensorflow::Status status =
+   bundle_->session->Run({{signature_.input().tensor_name(), input}},
+                         {signature_.scores().tensor_name()}, {},
+                         &outputs);
+~~~
 
   4. Transform the inference output tensor to protobuf output.
 

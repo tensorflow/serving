@@ -21,6 +21,7 @@ limitations under the License.
 #include "google/protobuf/map.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "tensorflow/contrib/session_bundle/manifest.pb.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
@@ -469,6 +470,64 @@ TEST(SetAndGetSignatures, RoundTrip) {
   Signatures read_signatures;
   TF_ASSERT_OK(GetSignatures(meta_graph_def, &read_signatures));
   EXPECT_THAT(read_signatures, test_util::EqualsProto(signatures));
+}
+
+TEST(SetAndGetSignatures, ContribSignatureRoundTrip) {
+  tensorflow::contrib::Signatures signatures;
+  signatures.mutable_default_signature()
+      ->mutable_classification_signature()
+      ->mutable_input()
+      ->set_tensor_name("in:0");
+  tensorflow::MetaGraphDef meta_graph_def;
+  auto& collection_def = *(meta_graph_def.mutable_collection_def());
+  auto* any =
+      collection_def[kSignaturesKey].mutable_any_list()->mutable_value()->Add();
+  any->PackFrom(signatures);
+
+  Signatures read_signatures;
+  TF_ASSERT_OK(GetSignatures(meta_graph_def, &read_signatures));
+  EXPECT_THAT(read_signatures, test_util::EqualsProto(signatures));
+}
+
+TEST(GetSignatures, MissingSignature) {
+  tensorflow::MetaGraphDef meta_graph_def;
+  Signatures read_signatures;
+  const auto status = GetSignatures(meta_graph_def, &read_signatures);
+  EXPECT_FALSE(status.ok());
+  EXPECT_TRUE(
+      StringPiece(status.error_message()).contains("Expected exactly one"))
+      << status.error_message();
+}
+
+TEST(GetSignatures, WrongProtoInAny) {
+  tensorflow::MetaGraphDef meta_graph_def;
+  auto& collection_def = *(meta_graph_def.mutable_collection_def());
+  auto* any =
+      collection_def[kSignaturesKey].mutable_any_list()->mutable_value()->Add();
+  // Put an unexpected type into the Signatures Any.
+  any->PackFrom(TensorBinding());
+  Signatures read_signatures;
+  const auto status = GetSignatures(meta_graph_def, &read_signatures);
+  EXPECT_FALSE(status.ok());
+  EXPECT_TRUE(StringPiece(status.error_message())
+                  .contains("Expected signature Any type_url for: "
+                            "tensorflow.serving.Signatures"))
+      << status.error_message();
+}
+
+TEST(GetSignatures, JunkInAny) {
+  tensorflow::MetaGraphDef meta_graph_def;
+  auto& collection_def = *(meta_graph_def.mutable_collection_def());
+  auto* any =
+      collection_def[kSignaturesKey].mutable_any_list()->mutable_value()->Add();
+  // Create a valid Any then corrupt it.
+  any->PackFrom(Signatures());
+  any->set_value("junk junk");
+  Signatures read_signatures;
+  const auto status = GetSignatures(meta_graph_def, &read_signatures);
+  EXPECT_FALSE(status.ok());
+  EXPECT_TRUE(StringPiece(status.error_message()).contains("Failed to unpack"))
+      << status.error_message();
 }
 
 // GenericSignature test fixture that contains a signature initialized with two

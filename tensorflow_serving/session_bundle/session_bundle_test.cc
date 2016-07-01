@@ -31,15 +31,14 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/public/session_options.h"
+#include "tensorflow_serving/session_bundle/signature.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
 namespace serving {
 namespace {
 
-TEST(LoadSessionBundleFromPath, Basic) {
-  const string export_path = test_util::TestSrcDirPath(
-      "session_bundle/example/half_plus_two/00000123");
+void BasicTest(const string& export_path) {
   tensorflow::SessionOptions options;
   SessionBundle bundle;
   TF_ASSERT_OK(LoadSessionBundleFromPath(options, export_path, &bundle));
@@ -68,10 +67,8 @@ TEST(LoadSessionBundleFromPath, Basic) {
   Tensor input = test::AsTensor<float>({0, 1, 2, 3}, TensorShape({4, 1}));
 
   // Recover the Tensor names of our inputs and outputs.
-  auto collection_def = bundle.meta_graph_def.collection_def();
   Signatures signatures;
-  ASSERT_EQ(1, collection_def[kSignaturesKey].any_list().value_size());
-  collection_def[kSignaturesKey].any_list().value(0).UnpackTo(&signatures);
+  TF_ASSERT_OK(GetSignatures(bundle.meta_graph_def, &signatures));
   ASSERT_TRUE(signatures.default_signature().has_regression_signature());
   const tensorflow::serving::RegressionSignature regression_signature =
       signatures.default_signature().regression_signature();
@@ -85,6 +82,22 @@ TEST(LoadSessionBundleFromPath, Basic) {
   ASSERT_EQ(outputs.size(), 1);
   test::ExpectTensorEqual<float>(
       outputs[0], test::AsTensor<float>({2, 2.5, 3, 3.5}, TensorShape({4, 1})));
+}
+
+// Test using an exported model from tensorflow/contrib.
+TEST(LoadSessionBundleFromPath, BasicTensorflowContrib) {
+  const string export_path = tensorflow::io::JoinPath(
+      getenv("TEST_SRCDIR"),
+      "tf_serving/external/org_tensorflow/tensorflow/"
+      "contrib/session_bundle/example/half_plus_two/00000123");
+  BasicTest(export_path);
+}
+
+// Test using an exported model from tensorflow_serving.
+TEST(LoadSessionBundleFromPath, BasicTensorflowServing) {
+  const string export_path = test_util::TestSrcDirPath(
+      "session_bundle/example/half_plus_two/00000123");
+  BasicTest(export_path);
 }
 
 TEST(LoadSessionBundleFromPath, BadExportPath) {
