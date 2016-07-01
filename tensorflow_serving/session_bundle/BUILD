@@ -164,24 +164,6 @@ cc_library(
     ],
 )
 
-filegroup(
-    name = "session_bundle_srcs",
-    srcs = [
-        "session_bundle.cc",
-        "session_bundle.h",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-filegroup(
-    name = "signature_srcs",
-    srcs = [
-        "signature.cc",
-        "signature.h",
-    ],
-    visibility = ["//visibility:public"],
-)
-
 cc_test(
     name = "session_bundle_test",
     size = "small",
