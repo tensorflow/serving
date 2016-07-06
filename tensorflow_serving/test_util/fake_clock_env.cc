@@ -72,7 +72,7 @@ uint64 FakeClockEnv::NowMicros() {
   }
 }
 
-void FakeClockEnv::SleepForMicroseconds(int micros) {
+void FakeClockEnv::SleepForMicroseconds(int64 micros) {
   if (micros == 0) {
     return;
   }
