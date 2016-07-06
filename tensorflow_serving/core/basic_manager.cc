@@ -30,6 +30,7 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/util/cleanup.h"
+#include "tensorflow_serving/util/hash.h"
 #include "tensorflow_serving/util/inline_executor.h"
 #include "tensorflow_serving/util/threadpool_executor.h"
 
@@ -67,13 +68,13 @@ struct BasicManager::ServingMap::HashRequest {
     const uint64 version_hash = [&]() -> uint64 {
       if (request.version) {
         return std::hash<int64>()(request.version.value()) *
-               0x9E3779B9;  // (sqrt(5) - 1)/2 as a binary fraction.
+               0x9E3779B97F4A7C13;  // (sqrt(5) - 1)/2 as a binary fraction.
       } else {
-        return 0x9E3779B9;
+        return 0xDECAFCAFFE;
       }
     }();
     // Using version_hash as the seed here to combine the hashes.
-    return Hash64(request.name.data(), request.name.size(), version_hash);
+    return HashCombine(version_hash, std::hash<string>()(request.name));
   }
 };
 
