@@ -20,9 +20,9 @@ limitations under the License.
 #include <string>
 #include <unordered_map>
 
-#include "tensorflow/core/lib/hash/hash.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow_serving/util/hash.h"
 
 namespace tensorflow {
 namespace serving {
@@ -64,13 +64,13 @@ struct HashServableId {
     const uint64 version_hash = [&]() -> uint64 {
       if (id.version >= 0) {
         return std::hash<int64>()(id.version) *
-               0x9E3779B9;  // (sqrt(5) - 1)/2 as a binary fraction.
+               0x9E3779B97F4A7C13;  // (sqrt(5) - 1)/2 as a binary fraction.
       } else {
-        return 0x9E3779B9;
+        return 0xDECAFCAFFE;
       }
     }();
     // Using version_hash as the seed here to combine the hashes.
-    return Hash64(id.name.data(), id.name.size(), version_hash);
+    return HashCombine(version_hash, std::hash<string>()(id.name));
   }
 };
 

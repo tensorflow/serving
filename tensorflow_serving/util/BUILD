@@ -50,6 +50,15 @@ cc_library(
 ###############################################################################
 
 cc_library(
+    name = "hash",
+    srcs = ["hash.cc"],
+    hdrs = ["hash.h"],
+    deps = [
+        "@org_tensorflow//tensorflow/core:tensorflow",
+    ],
+)
+
+cc_library(
     name = "observer",
     hdrs = ["observer.h"],
     deps = [

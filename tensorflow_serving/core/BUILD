@@ -32,6 +32,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "//tensorflow_serving/util:hash",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
     ],
@@ -447,6 +448,7 @@ cc_library(
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:executor",
         "//tensorflow_serving/util:fast_read_dynamic_ptr",
+        "//tensorflow_serving/util:hash",
         "//tensorflow_serving/util:inline_executor",
         "//tensorflow_serving/util:threadpool_executor",
         "@org_tensorflow//tensorflow/core:lib",
