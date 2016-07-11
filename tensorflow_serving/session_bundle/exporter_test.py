@@ -20,6 +20,7 @@ import os.path
 
 import tensorflow as tf
 
+from tensorflow.contrib.session_bundle import manifest_pb2
 from tensorflow.core.protobuf import config_pb2
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
@@ -27,7 +28,6 @@ from tensorflow.python.platform import gfile
 from tensorflow_serving.session_bundle import constants
 from tensorflow_serving.session_bundle import exporter
 from tensorflow_serving.session_bundle import gc
-from tensorflow_serving.session_bundle import manifest_pb2
 
 FLAGS = flags.FLAGS
 

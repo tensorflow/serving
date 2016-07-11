@@ -20,7 +20,6 @@ limitations under the License.
 #include <vector>
 
 #include "google/protobuf/any.pb.h"
-#include "tensorflow/contrib/session_bundle/manifest.pb.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
@@ -169,18 +168,14 @@ tensorflow::Status LoadSessionBundleFromPath(
     const auto& any_assets = assets_it->second.any_list().value();
     for (const auto& any_asset : any_assets) {
       AssetFile asset_file;
-      // Check if the Any proto is an AssetFile or a
-      // tensorflow::contrib::AssetFile (same proto in a different namespace).
-      // Either format will be parsed into the same AssetFile object.
-      if (!any_asset.Is<AssetFile>() &&
-          !any_asset.Is<tensorflow::contrib::AssetFile>()) {
+      if (!any_asset.Is<AssetFile>()) {
         return errors::FailedPrecondition(
             "Expected asset Any type_url for: ",
             asset_file.descriptor()->full_name(), ". Got: ",
             string(any_asset.type_url().data(), any_asset.type_url().size()),
             ".");
       }
-      if (!asset_file.ParseFromString(any_asset.value())) {
+      if (!any_asset.UnpackTo(&asset_file)) {
         return errors::FailedPrecondition("Failed to unpack: ",
                                           any_asset.DebugString());
       }

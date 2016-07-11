@@ -25,13 +25,13 @@ import tensorflow as tf
 
 from google.protobuf import any_pb2
 
+from tensorflow.contrib.session_bundle import manifest_pb2
 from tensorflow.python.framework import ops
 from tensorflow.python.platform import gfile
 from tensorflow.python.training import training_util
 
 from tensorflow_serving.session_bundle import constants
 from tensorflow_serving.session_bundle import gc
-from tensorflow_serving.session_bundle import manifest_pb2
 
 
 def gfile_copy_callback(files_to_copy, export_dir_path):

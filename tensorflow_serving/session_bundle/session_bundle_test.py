@@ -19,8 +19,8 @@ import os.path
 # This is a placeholder for a Google-internal import.
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib.session_bundle import manifest_pb2
 from tensorflow_serving.session_bundle import constants
-from tensorflow_serving.session_bundle import manifest_pb2
 from tensorflow_serving.session_bundle import session_bundle
 from tensorflow_serving.test_util import test_util
 
