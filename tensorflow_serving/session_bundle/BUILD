@@ -112,18 +112,15 @@ py_test(
     ],
 )
 
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
-
-# Proto used only in C++ code, and disallowed in Python, please do not add a
-# py_proto_library rule. Use tensorflow/contrib/session_bundle:manifest_proto_py_pb2
-# instead in Python code.
-# manifest_proto and the rest of tensorflow_serving/session_bundle will be removed
-# soon in favor of the copy in tensorflow/contrib.
-serving_proto_library(
+# Proto header forwarding to tensorflow/contrib/session_bundle:manifest_proto
+cc_library(
     name = "manifest_proto",
-    srcs = ["manifest.proto"],
-    cc_api_version = 2,
+    hdrs = [
+        "manifest.pb.h",
+        "manifest.proto.h",
+    ],
     visibility = ["//visibility:public"],
+    deps = ["@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc"],
 )
 
 cc_library(
