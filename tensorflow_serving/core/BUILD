@@ -385,15 +385,18 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":manager",
         ":servable_id",
         ":servable_state",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:optional",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
 cc_test(
     name = "servable_state_monitor_test",
+    size = "small",
     srcs = ["servable_state_monitor_test.cc"],
     deps = [
         ":servable_state_monitor",
