@@ -70,7 +70,11 @@ def do_inference(hostport, work_dir, concurrency, num_tests):
   result = {'active': 0, 'error': 0, 'done': 0}
   def done(result_future, label):
     with cv:
-      exception = result_future.exception()
+      # Workaround for gRPC issue https://github.com/grpc/grpc/issues/7133
+      try:
+        exception = result_future.exception()
+      except AttributeError:
+        exception = None
       if exception:
         result['error'] += 1
         print exception
