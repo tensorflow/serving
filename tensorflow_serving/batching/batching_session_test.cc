@@ -64,7 +64,7 @@ class BatchSizeCapturingSession : public ServingSession {
 // Creates a (non-batching) session with the half-plus-two model loaded.
 std::unique_ptr<Session> CreateHalfPlusTwoSession() {
   tensorflow::SessionOptions session_options;
-  const string export_dir = test_util::TestSrcDirPath(
+  const string export_dir = test_util::ContribTestSrcDirPath(
       "session_bundle/example/half_plus_two/00000123");
   SessionBundle session_bundle;
   TF_CHECK_OK(

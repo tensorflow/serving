@@ -78,12 +78,11 @@ py_test(
         "session_bundle_test.py",
     ],
     data = [
-        "//tensorflow_serving/session_bundle/example:half_plus_two",
+        "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
     ],
     main = "session_bundle_test.py",
     deps = [
         ":session_bundle_py",
-        "//tensorflow_serving/test_util:test_util_py",
         "@org_tensorflow//tensorflow:tensorflow_py",
         "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py",
         "@org_tensorflow//tensorflow/core:protos_all_py",
@@ -162,7 +161,6 @@ cc_test(
     size = "small",
     srcs = ["session_bundle_test.cc"],
     data = [
-        "//tensorflow_serving/session_bundle/example:half_plus_two",
         "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
     ],
     # Link in all registered kernels.

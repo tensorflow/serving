@@ -20,15 +20,32 @@ import os.path
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.session_bundle import manifest_pb2
+from tensorflow.python.platform import flags
 from tensorflow_serving.session_bundle import constants
 from tensorflow_serving.session_bundle import session_bundle
-from tensorflow_serving.test_util import test_util
+
+FLAGS = flags.FLAGS
+
+
+def ContribTestSrcDirPath(relative_path):
+  """Creates an absolute test srcdir path given a path relative to
+     tensorflow/contrib.
+
+  Args:
+    relative_path: a path relative to tensorflow/contrib
+      e.g. "session_bundle/example".
+
+  Returns:
+    An absolute path to the linked in runfiles given the relative path.
+  """
+  return os.path.join(os.environ['TEST_SRCDIR'],
+                      "tf_serving/external/org_tensorflow/tensorflow/contrib", relative_path)
 
 
 class SessionBundleLoadTest(tf.test.TestCase):
 
   def testBasic(self):
-    base_path = test_util.TestSrcDirPath(
+    base_path = ContribTestSrcDirPath(
         "session_bundle/example/half_plus_two/00000123")
     tf.reset_default_graph()
     sess, meta_graph_def = session_bundle.LoadSessionBundleFromPath(
@@ -59,7 +76,7 @@ class SessionBundleLoadTest(tf.test.TestCase):
       self.assertEqual(y[0][3], 3.5)
 
   def testBadPath(self):
-    base_path = test_util.TestSrcDirPath("/no/such/a/dir")
+    base_path = ContribTestSrcDirPath("/no/such/a/dir")
     tf.reset_default_graph()
     with self.assertRaises(RuntimeError) as cm:
       _, _ = session_bundle.LoadSessionBundleFromPath(
