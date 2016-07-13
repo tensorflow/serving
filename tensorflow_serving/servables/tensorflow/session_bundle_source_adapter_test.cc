@@ -47,7 +47,7 @@ using test_util::EqualsProto;
 class SessionBundleSourceAdapterTest : public ::testing::Test {
  protected:
   SessionBundleSourceAdapterTest()
-      : export_dir_(test_util::TestSrcDirPath(
+      : export_dir_(test_util::ContribTestSrcDirPath(
             "session_bundle/example/half_plus_two/00000123")) {}
 
   // Test data path, to be initialized to point at an export of half-plus-two.

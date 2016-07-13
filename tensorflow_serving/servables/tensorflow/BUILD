@@ -66,7 +66,7 @@ cc_test(
     name = "session_bundle_factory_test",
     size = "medium",
     srcs = ["session_bundle_factory_test.cc"],
-    data = ["//tensorflow_serving/session_bundle/example:half_plus_two"],
+    data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
     deps = [
         ":session_bundle_config_proto",
         ":session_bundle_factory",
@@ -110,7 +110,7 @@ cc_test(
     name = "session_bundle_source_adapter_test",
     size = "medium",
     srcs = ["session_bundle_source_adapter_test.cc"],
-    data = ["//tensorflow_serving/session_bundle/example:half_plus_two"],
+    data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
     # Link in all registered kernels.
     linkstatic = 1,
     deps = [
@@ -176,7 +176,7 @@ cc_library(
 cc_test(
     name = "simple_servers_test",
     srcs = ["simple_servers_test.cc"],
-    data = ["//tensorflow_serving/session_bundle/example:half_plus_two"],
+    data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
     # Link in all registered kernels.
     linkstatic = 1,
     deps = [

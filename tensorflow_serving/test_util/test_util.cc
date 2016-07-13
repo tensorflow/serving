@@ -23,19 +23,11 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-string TestSrcDirPath(const string& relative_path) {
-  const string base_path = tensorflow::io::JoinPath(
-      getenv("TEST_SRCDIR"), "tf_serving/tensorflow_serving");
-  if (Env::Default()->FileExists(base_path)) {
-    // Supported in Bazel 0.2.2+.
-    return tensorflow::io::JoinPath(base_path, relative_path);
-  }
-  // Old versions of Bazel sometimes don't include the workspace name in the
-  // runfiles path.
-  return tensorflow::io::JoinPath(
-      tensorflow::io::JoinPath(getenv("TEST_SRCDIR"),
-                               "tensorflow_serving"),
-      relative_path);
+string ContribTestSrcDirPath(const string& relative_path) {
+  const string base_path = tensorflow::io::JoinPath(  //
+      getenv("TEST_SRCDIR"),                              //
+      "tf_serving/external/org_tensorflow/tensorflow/contrib/");
+  return tensorflow::io::JoinPath(base_path, relative_path);
 }
 
 ProtoStringMatcher::ProtoStringMatcher(const string& expected)

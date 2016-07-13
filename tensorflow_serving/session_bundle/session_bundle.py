@@ -24,10 +24,10 @@ import os
 
 import tensorflow as tf
 
+from tensorflow.contrib.session_bundle import manifest_pb2
 from tensorflow.core.protobuf import meta_graph_pb2
 from tensorflow.python.platform import gfile
 from tensorflow_serving.session_bundle import constants
-from tensorflow_serving.session_bundle import manifest_pb2
 
 
 def LoadSessionBundleFromPath(export_dir, target="", config=None):
