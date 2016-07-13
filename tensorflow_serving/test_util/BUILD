@@ -46,12 +46,3 @@ cc_library(
         "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
-
-py_library(
-    name = "test_util_py",
-    testonly = 1,
-    srcs = ["test_util.py"],
-    deps = [
-        "@org_tensorflow//tensorflow:tensorflow_py",
-    ],
-)

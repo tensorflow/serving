@@ -53,7 +53,7 @@ Status CopyExport(const string& export_path, const string& variables_filename,
                   const string& meta_graph_def_filename,
                   const MetaGraphDefTwiddler& twiddler) {
   TF_RETURN_IF_ERROR(Env::Default()->CreateDir(export_path));
-  const string orig_path = test_util::TestSrcDirPath(
+  const string orig_path = test_util::ContribTestSrcDirPath(
       "session_bundle/example/half_plus_two/00000123");
   {
     const string source =
@@ -128,22 +128,13 @@ void BasicTest(const string& export_path) {
 
 // Test using an exported model from tensorflow/contrib.
 TEST(LoadSessionBundleFromPath, BasicTensorflowContrib) {
-  const string export_path = tensorflow::io::JoinPath(
-      getenv("TEST_SRCDIR"),
-      "tf_serving/external/org_tensorflow/tensorflow/"
-      "contrib/session_bundle/example/half_plus_two/00000123");
-  BasicTest(export_path);
-}
-
-// Test using an exported model from tensorflow_serving.
-TEST(LoadSessionBundleFromPath, BasicTensorflowServing) {
-  const string export_path = test_util::TestSrcDirPath(
+  const string export_path = test_util::ContribTestSrcDirPath(
       "session_bundle/example/half_plus_two/00000123");
   BasicTest(export_path);
 }
 
 TEST(LoadSessionBundleFromPath, BadExportPath) {
-  const string export_path = test_util::TestSrcDirPath("/tmp/bigfoot");
+  const string export_path = test_util::ContribTestSrcDirPath("/tmp/bigfoot");
   tensorflow::SessionOptions options;
   options.target = "local";
   SessionBundle bundle;

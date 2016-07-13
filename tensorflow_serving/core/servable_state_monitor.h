@@ -21,6 +21,10 @@ limitations under the License.
 #include <map>
 
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/macros.h"
+#include "tensorflow/core/platform/mutex.h"
+#include "tensorflow/core/platform/thread_annotations.h"
+#include "tensorflow_serving/core/manager.h"
 #include "tensorflow_serving/core/servable_id.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/util/event_bus.h"
@@ -77,28 +81,110 @@ class ServableStateMonitor {
 
   // Returns the current state of one servable, or nullopt if that servable is
   // not being tracked.
-  optional<ServableState> GetState(const ServableId& servable_id) const;
+  optional<ServableState> GetState(const ServableId& servable_id) const
+      LOCKS_EXCLUDED(mu_);
 
   // Returns the current state and time of one servable, or nullopt if that
   // servable is not being tracked.
   optional<ServableStateAndTime> GetStateAndTime(
-      const ServableId& servable_id) const;
+      const ServableId& servable_id) const LOCKS_EXCLUDED(mu_);
 
   // Returns the current states of all tracked versions of the given servable,
   // if any.
-  VersionMap GetVersionStates(const string& servable_name) const;
+  VersionMap GetVersionStates(const string& servable_name) const
+      LOCKS_EXCLUDED(mu_);
 
   // Returns the current states of all tracked versions of all servables.
-  ServableMap GetAllServableStates() const;
+  ServableMap GetAllServableStates() const LOCKS_EXCLUDED(mu_);
 
   // Returns the current states of all versions of all servables which have not
   // transitioned to state ServableState::ManagerState::kEnd.
-  ServableMap GetLiveServableStates() const;
+  ServableMap GetLiveServableStates() const LOCKS_EXCLUDED(mu_);
 
   // Returns the current bounded log of handled servable state events.
-  BoundedLog GetBoundedLog() const;
+  BoundedLog GetBoundedLog() const LOCKS_EXCLUDED(mu_);
+
+  // Notifies when all of the servables have reached the 'goal_state'.
+  //
+  // Servables can be specified in two ways:
+  //   1. As specific versions of a servable stream name. In this case, we check
+  //   whether the specific version has reached the 'goal_state' or kEnd.
+  //   2. As latest versions, in which case any version for a servable stream
+  //   name will be matched against the 'goal_state'.
+  //
+  // We call the 'notifier_fn' when both conditions are true -
+  //   1. All of the specific servable requests have either reached the
+  //   'goal_state' or kEnd.
+  //   2. All of the latest servable requests have reached 'goal_state'.
+  // The 'notifier_fn' will be called only once, and not repeatedly.
+  //
+  // WARNING: If all versions (or the one and only version) of a servable stream
+  // have errors and fail to reach 'goal_state', we will never notify.
+  //
+  // The 'reached_goal_state' argument is set as true iff all of the specific
+  // servables have reached 'goal_state'.  So callers should verify that
+  // 'reached_goal_state' is true in the 'notifier_fn'.
+  //
+  // The 'states_reached' argument is populated with the servable's id and the
+  // state it reached. The state would be 'goal_state' if 'reached_goal_state'
+  // is true, else it will contain one or more servables in kEnd state. For
+  // latest servable requests, the servable id will be the id of the servable in
+  // the stream which reached the 'goal_state'.
+  //
+  // For specific servable requests, we are fine if they reach kEnd, probably by
+  // an error, because the servable can never reach 'goal_state' once it has
+  // transitioned to kEnd.
+  //
+  // For latest servable requests, even if a specific version errors out and
+  // transitions to kEnd, we continue looking for another version to reach the
+  // 'goal_state'.
+  using ServableStateNotifierFn = std::function<void(
+      bool reached_goal_state,
+      const std::map<ServableId, ServableState::ManagerState>& states_reached)>;
+  void NotifyWhenServablesReachState(
+      const std::vector<ServableRequest>& servables,
+      ServableState::ManagerState goal_state,
+      const ServableStateNotifierFn& notifier_fn) LOCKS_EXCLUDED(mu_);
+
+  // Similar to NotifyWhenServablesReachState(...), but instead of notifying, we
+  // wait until the 'goal_state' is reached.
+  //
+  // WARNING: Using 'latest' is dangerous because if all versions (or the one
+  // and only version) of a servable stream have errors and fail to reach
+  // 'goal_state' this method will wait indefinitely.
+  //
+  // To understand the return value and the return parameter 'states_reached',
+  // please read the documentation on NotifyWhenServablesReachState(...).
+  bool WaitUntilServablesReachState(
+      const std::vector<ServableRequest>& servables,
+      ServableState::ManagerState goal_state,
+      std::map<ServableId, ServableState::ManagerState>* states_reached =
+          nullptr) LOCKS_EXCLUDED(mu_) TF_MUST_USE_RESULT;
 
  private:
+  optional<ServableStateMonitor::ServableStateAndTime> GetStateAndTimeInternal(
+      const ServableId& servable_id) const EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
+  // Request to send notification, setup using
+  // NotifyWhenServablesReachState(...).
+  struct ServableStateNotificationRequest {
+    std::vector<ServableRequest> servables;
+    ServableState::ManagerState goal_state;
+    ServableStateNotifierFn notifier_fn;
+  };
+
+  // Checks whether the notification request is satisfied and we cand send it.
+  // If so, returns the 'reached_goal_state' bool and the 'states_reached' by
+  // each servable.  Oterwise returns nullopt.
+  optional<std::pair<bool, std::map<ServableId, ServableState::ManagerState>>>
+  ShouldSendNotification(
+      const ServableStateNotificationRequest& notification_request)
+      EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
+  // Goes through the notification requests and tries to see if any of them can
+  // be sent. If a notification is sent, the corresponding request is removed.
+  void MaybeSendNotifications() EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
   // This method is called when an event comes in, but before we update our
   // state with the contents of the event. Subclasses may override this method
   // to do custom prepreocessing based on the event and the previous state of
@@ -107,7 +193,8 @@ class ServableStateMonitor {
       const EventBus<ServableState>::EventAndTime& state_and_time);
 
   // Handles a bus event.
-  void HandleEvent(const EventBus<ServableState>::EventAndTime& state_and_time);
+  void HandleEvent(const EventBus<ServableState>::EventAndTime& state_and_time)
+      LOCKS_EXCLUDED(mu_);
 
   const Options options_;
 
@@ -127,6 +214,9 @@ class ServableStateMonitor {
   // recent servable state events handled by the monitor. The size of this deque
   // is upper bounded by max_count_log_events in Options.
   BoundedLog log_ GUARDED_BY(mu_);
+
+  std::vector<ServableStateNotificationRequest>
+      servable_state_notification_requests_ GUARDED_BY(mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(ServableStateMonitor);
 };

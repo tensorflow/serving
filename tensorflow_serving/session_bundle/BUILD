@@ -38,8 +38,8 @@ py_library(
     deps = [
         ":constants",
         ":gc",
-        ":manifest_proto_py",
         "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py",
     ],
 )
 
@@ -50,8 +50,8 @@ py_library(
     deps = [
         ":constants",
         ":exporter",
-        ":manifest_proto_py",
         "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py",
         "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
 )
@@ -66,8 +66,8 @@ py_test(
         ":constants",
         ":exporter",
         ":gc",
-        ":manifest_proto_py",
         "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py",
     ],
 )
 
@@ -78,14 +78,13 @@ py_test(
         "session_bundle_test.py",
     ],
     data = [
-        "//tensorflow_serving/session_bundle/example:half_plus_two",
+        "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
     ],
     main = "session_bundle_test.py",
     deps = [
-        ":manifest_proto_py",
         ":session_bundle_py",
-        "//tensorflow_serving/test_util:test_util_py",
         "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py",
         "@org_tensorflow//tensorflow/core:protos_all_py",
         "@protobuf//:protobuf_python",
     ],
@@ -112,21 +111,15 @@ py_test(
     ],
 )
 
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
-
-serving_proto_library(
+# Proto header forwarding to tensorflow/contrib/session_bundle:manifest_proto
+cc_library(
     name = "manifest_proto",
-    srcs = ["manifest.proto"],
-    cc_api_version = 2,
+    hdrs = [
+        "manifest.pb.h",
+        "manifest.proto.h",
+    ],
     visibility = ["//visibility:public"],
-)
-
-serving_proto_library_py(
-    name = "manifest_proto_py",
-    srcs = ["manifest.proto"],
-    visibility = ["//visibility:public"],
-    deps = ["@org_tensorflow//tensorflow/core:protos_all_py"],
+    deps = ["@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc"],
 )
 
 cc_library(
@@ -156,7 +149,6 @@ cc_library(
     deps = [
         ":manifest_proto",
         ":signature_lite",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -169,7 +161,6 @@ cc_test(
     size = "small",
     srcs = ["session_bundle_test.cc"],
     data = [
-        "//tensorflow_serving/session_bundle/example:half_plus_two",
         "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
     ],
     # Link in all registered kernels.
@@ -178,7 +169,6 @@ cc_test(
         ":session_bundle",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -195,7 +185,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":manifest_proto",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -213,7 +202,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":manifest_proto",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -229,7 +217,6 @@ cc_test(
         ":signature",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",

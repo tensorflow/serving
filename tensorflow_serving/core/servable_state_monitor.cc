@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/core/servable_state_monitor.h"
 
+#include "tensorflow/core/lib/core/notification.h"
+
 namespace tensorflow {
 namespace serving {
 namespace {
@@ -58,6 +60,44 @@ void UpdateLiveStates(
   }
 }
 
+// Returns the state reached iff the servable has reached 'goal_state' or kEnd,
+// otherwise nullopt.
+optional<ServableState::ManagerState> HasSpecificServableReachedState(
+    const ServableId& servable_id, const ServableState::ManagerState goal_state,
+    const optional<ServableStateMonitor::ServableStateAndTime>
+        opt_servable_state_time) {
+  if (!opt_servable_state_time) {
+    return {};
+  }
+  const ServableState::ManagerState state =
+      opt_servable_state_time->state.manager_state;
+  if (state != goal_state && state != ServableState::ManagerState::kEnd) {
+    return {};
+  }
+  return {state};
+}
+
+// Returns the id of the servable in the stream which has reached 'goal_state'.
+// If no servable has done so, returns nullopt.
+optional<ServableId> HasAnyServableInStreamReachedState(
+    const string& stream_name, const ServableState::ManagerState goal_state,
+    const ServableStateMonitor::ServableMap& live_states) {
+  optional<ServableId> opt_servable_id;
+  const auto found_it = live_states.find(stream_name);
+  if (found_it == live_states.end()) {
+    return {};
+  }
+  const ServableStateMonitor::VersionMap& version_map = found_it->second;
+  for (const auto& version_and_state_time : version_map) {
+    const ServableStateMonitor::ServableStateAndTime& state_and_time =
+        version_and_state_time.second;
+    if (state_and_time.state.manager_state == goal_state) {
+      return {version_and_state_time.second.state.id};
+    }
+  }
+  return {};
+}
+
 }  // namespace
 
 string ServableStateMonitor::ServableStateAndTime::DebugString() const {
@@ -74,9 +114,8 @@ ServableStateMonitor::ServableStateMonitor(EventBus<ServableState>* bus,
           })) {}
 
 optional<ServableStateMonitor::ServableStateAndTime>
-ServableStateMonitor::GetStateAndTime(const ServableId& servable_id) const {
-  mutex_lock l(mu_);
-
+ServableStateMonitor::GetStateAndTimeInternal(
+    const ServableId& servable_id) const {
   auto it = states_.find(servable_id.name);
   if (it == states_.end()) {
     return nullopt;
@@ -87,6 +126,12 @@ ServableStateMonitor::GetStateAndTime(const ServableId& servable_id) const {
     return nullopt;
   }
   return it2->second;
+}
+
+optional<ServableStateMonitor::ServableStateAndTime>
+ServableStateMonitor::GetStateAndTime(const ServableId& servable_id) const {
+  mutex_lock l(mu_);
+  return GetStateAndTimeInternal(servable_id);
 }
 
 optional<ServableState> ServableStateMonitor::GetState(
@@ -126,6 +171,36 @@ ServableStateMonitor::BoundedLog ServableStateMonitor::GetBoundedLog() const {
   return log_;
 }
 
+void ServableStateMonitor::NotifyWhenServablesReachState(
+    const std::vector<ServableRequest>& servables,
+    const ServableState::ManagerState goal_state,
+    const ServableStateNotifierFn& notifier_fn) {
+  mutex_lock l(mu_);
+  servable_state_notification_requests_.push_back(
+      {servables, goal_state, notifier_fn});
+}
+
+bool ServableStateMonitor::WaitUntilServablesReachState(
+    const std::vector<ServableRequest>& servables,
+    const ServableState::ManagerState goal_state,
+    std::map<ServableId, ServableState::ManagerState>* const states_reached) {
+  bool reached_goal_state;
+  Notification notified;
+  NotifyWhenServablesReachState(
+      servables, goal_state,
+      [&](const bool incoming_reached_goal_state,
+          const std::map<ServableId, ServableState::ManagerState>&
+              incoming_states_reached) {
+        if (states_reached != nullptr) {
+          *states_reached = incoming_states_reached;
+        }
+        reached_goal_state = incoming_reached_goal_state;
+        notified.Notify();
+      });
+  notified.WaitForNotification();
+  return reached_goal_state;
+}
+
 void ServableStateMonitor::PreHandleEvent(
     const EventBus<ServableState>::EventAndTime& state_and_time) {}
 
@@ -139,6 +214,8 @@ void ServableStateMonitor::HandleEvent(
   states_[state_and_time.state.id.name][state_and_time.state.id.version] =
       state_and_time;
   UpdateLiveStates(state_and_time, &live_states_);
+  MaybeSendNotifications();
+
   if (options_.max_count_log_events == 0) {
     return;
   }
@@ -146,6 +223,56 @@ void ServableStateMonitor::HandleEvent(
     log_.pop_front();
   }
   log_.emplace_back(state_and_time.state, state_and_time.event_time_micros);
+}
+
+optional<std::pair<bool, std::map<ServableId, ServableState::ManagerState>>>
+ServableStateMonitor::ShouldSendNotification(
+    const ServableStateNotificationRequest& notification_request) {
+  bool reached_goal_state = true;
+  std::map<ServableId, ServableState::ManagerState> states_reached;
+  for (const auto& servable_request : notification_request.servables) {
+    if (servable_request.version) {
+      const ServableId servable_id = {servable_request.name,
+                                      *servable_request.version};
+      const optional<ServableState::ManagerState> opt_state =
+          HasSpecificServableReachedState(servable_id,
+                                          notification_request.goal_state,
+                                          GetStateAndTimeInternal(servable_id));
+      if (!opt_state) {
+        return {};
+      }
+      reached_goal_state = *opt_state == notification_request.goal_state;
+      states_reached[servable_id] = *opt_state;
+    } else {
+      const optional<ServableId> opt_servable_id =
+          HasAnyServableInStreamReachedState(servable_request.name,
+                                             notification_request.goal_state,
+                                             live_states_);
+      if (!opt_servable_id) {
+        return {};
+      }
+      states_reached[*opt_servable_id] = notification_request.goal_state;
+    }
+  }
+  return {{reached_goal_state, states_reached}};
+}
+
+void ServableStateMonitor::MaybeSendNotifications() {
+  for (auto iter = servable_state_notification_requests_.begin();
+       iter != servable_state_notification_requests_.end();) {
+    const ServableStateNotificationRequest& notification_request = *iter;
+    const optional<
+        std::pair<bool, std::map<ServableId, ServableState::ManagerState>>>
+        opt_state_and_states_reached =
+            ShouldSendNotification(notification_request);
+    if (opt_state_and_states_reached) {
+      notification_request.notifier_fn(opt_state_and_states_reached->first,
+                                       opt_state_and_states_reached->second);
+      iter = servable_state_notification_requests_.erase(iter);
+    } else {
+      ++iter;
+    }
+  }
 }
 
 }  // namespace serving

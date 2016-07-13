@@ -165,7 +165,7 @@ cc_test(
     srcs = [
         "batching_session_test.cc",
     ],
-    data = ["//tensorflow_serving/session_bundle/example:half_plus_two"],
+    data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
     deps = [
         ":batching_session",
         "//tensorflow_serving/core/test_util:test_main",
