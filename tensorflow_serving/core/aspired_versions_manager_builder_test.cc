@@ -25,7 +25,8 @@ limitations under the License.
 #include "tensorflow_serving/core/simple_loader.h"
 #include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
-#include "tensorflow_serving/core/test_util/fake_source_adapter.h"
+#include "tensorflow_serving/core/test_util/fake_loader_source_adapter.h"
+#include "tensorflow_serving/core/test_util/fake_storage_path_source_adapter.h"
 #include "tensorflow_serving/core/test_util/source_adapter_test_util.h"
 #include "tensorflow_serving/util/event_bus.h"
 
@@ -34,32 +35,9 @@ namespace serving {
 namespace {
 
 using ::testing::ElementsAre;
-using test_util::FakeSourceAdapter;
+using test_util::FakeLoaderSourceAdapter;
+using test_util::FakeStoragePathSourceAdapter;
 using test_util::WaitUntilServableManagerStateIsOneOf;
-
-// A UnarySourceAdapter that appends its own name to every incoming StoragePath.
-class TestUnaryAdapter : public UnarySourceAdapter<StoragePath, StoragePath> {
- public:
-  TestUnaryAdapter(const string& name,
-                   std::vector<string>* destruct_order = nullptr)
-      : name_(name), destruct_order_(destruct_order) {}
-
-  ~TestUnaryAdapter() override {
-    if (destruct_order_ != nullptr) {
-      destruct_order_->push_back(name_);
-    }
-  }
-
- private:
-  Status Convert(const StoragePath& data,
-                 StoragePath* const converted_data) override {
-    *converted_data = strings::StrCat(data, "/", name_);
-    return Status::OK();
-  }
-
-  const string name_;
-  std::vector<string>* const destruct_order_;
-};
 
 class AspiredVersionsManagerBuilderTest : public ::testing::Test {
  protected:
@@ -79,8 +57,8 @@ class AspiredVersionsManagerBuilderTest : public ::testing::Test {
 };
 
 TEST_F(AspiredVersionsManagerBuilderTest, AddSourceConnection) {
-  auto* const adapter = new FakeSourceAdapter("adapter");
-  builder_->AddSource(std::unique_ptr<FakeSourceAdapter>(adapter));
+  auto* const adapter = new FakeLoaderSourceAdapter("adapter");
+  builder_->AddSource(std::unique_ptr<FakeLoaderSourceAdapter>(adapter));
   std::unique_ptr<Manager> manager = builder_->Build();
 
   const ServableId id = {"servable", 1};
@@ -91,13 +69,14 @@ TEST_F(AspiredVersionsManagerBuilderTest, AddSourceConnection) {
 }
 
 TEST_F(AspiredVersionsManagerBuilderTest, AddSourceChainConnection) {
-  auto* const adapter0 = new TestUnaryAdapter("adapter0");
-  auto adapter1 =
-      std::unique_ptr<TestUnaryAdapter>(new TestUnaryAdapter("adapter1"));
-  auto adapter2 =
-      std::unique_ptr<FakeSourceAdapter>(new FakeSourceAdapter("adapter2"));
-  builder_->AddSourceChain(std::unique_ptr<TestUnaryAdapter>(adapter0),
-                           std::move(adapter1), std::move(adapter2));
+  auto* const adapter0 = new FakeStoragePathSourceAdapter("adapter0");
+  auto adapter1 = std::unique_ptr<FakeStoragePathSourceAdapter>(
+      new FakeStoragePathSourceAdapter("adapter1"));
+  auto adapter2 = std::unique_ptr<FakeLoaderSourceAdapter>(
+      new FakeLoaderSourceAdapter("adapter2"));
+  builder_->AddSourceChain(
+      std::unique_ptr<FakeStoragePathSourceAdapter>(adapter0),
+      std::move(adapter1), std::move(adapter2));
   std::unique_ptr<Manager> manager = builder_->Build();
 
   const ServableId id = {"servable", 1};
@@ -118,13 +97,15 @@ TEST_F(AspiredVersionsManagerBuilderTest, AddSourceChainDestructionOrder) {
   std::vector<string> destruct_order;
   std::function<void(const string&)> call_on_destruct =
       [&](const string& suffix) { destruct_order.push_back(suffix); };
-  auto* const adapter0 = new TestUnaryAdapter("adapter0", &destruct_order);
-  auto adapter1 = std::unique_ptr<TestUnaryAdapter>(
-      new TestUnaryAdapter("adapter1", &destruct_order));
-  auto adapter2 = std::unique_ptr<FakeSourceAdapter>(
-      new FakeSourceAdapter("adapter2", call_on_destruct));
-  builder_->AddSourceChain(std::unique_ptr<TestUnaryAdapter>(adapter0),
-                           std::move(adapter1), std::move(adapter2));
+  auto* const adapter0 =
+      new FakeStoragePathSourceAdapter("adapter0", call_on_destruct);
+  auto adapter1 = std::unique_ptr<FakeStoragePathSourceAdapter>(
+      new FakeStoragePathSourceAdapter("adapter1", call_on_destruct));
+  auto adapter2 = std::unique_ptr<FakeLoaderSourceAdapter>(
+      new FakeLoaderSourceAdapter("adapter2", call_on_destruct));
+  builder_->AddSourceChain(
+      std::unique_ptr<FakeStoragePathSourceAdapter>(adapter0),
+      std::move(adapter1), std::move(adapter2));
   std::unique_ptr<Manager> manager = builder_->Build();
 
   manager.reset();

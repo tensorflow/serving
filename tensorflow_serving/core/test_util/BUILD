@@ -62,14 +62,26 @@ cc_library(
 )
 
 cc_library(
-    name = "fake_source_adapter",
+    name = "fake_loader_source_adapter",
     testonly = 1,
-    srcs = ["fake_source_adapter.cc"],
-    hdrs = ["fake_source_adapter.h"],
+    srcs = ["fake_loader_source_adapter.cc"],
+    hdrs = ["fake_loader_source_adapter.h"],
     visibility = ["//visibility:public"],
     deps = [
         "//tensorflow_serving/core:simple_loader",
         "//tensorflow_serving/core:storage_path",
+    ],
+)
+
+cc_library(
+    name = "fake_storage_path_source_adapter",
+    testonly = 1,
+    srcs = ["fake_storage_path_source_adapter.cc"],
+    hdrs = ["fake_storage_path_source_adapter.h"],
+    deps = [
+        "//tensorflow_serving/core:source_adapter",
+        "//tensorflow_serving/core:storage_path",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
