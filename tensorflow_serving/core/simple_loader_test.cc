@@ -55,7 +55,7 @@ class Caller {
 
 // Move a Loader through its lifetime and ensure the servable is in the state
 // we expect.
-TEST(SimpleLoader, VerifyServableStates) {
+TEST(SimpleLoaderTest, VerifyServableStates) {
   State state = State::kNone;
   std::unique_ptr<Loader> loader(new SimpleLoader<Caller>(
       [&state](std::unique_ptr<Caller>* caller) {
@@ -78,7 +78,7 @@ TEST(SimpleLoader, VerifyServableStates) {
   EXPECT_EQ(State::kNone, state);
 }
 
-TEST(SimpleLoader, ResourceEstimation) {
+TEST(SimpleLoaderTest, ResourceEstimation) {
   const auto want = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
@@ -105,7 +105,7 @@ TEST(SimpleLoader, ResourceEstimation) {
 
 // Verify that the error returned by the Creator is propagates back through
 // Load.
-TEST(SimpleLoader, LoadError) {
+TEST(SimpleLoaderTest, LoadError) {
   std::unique_ptr<Loader> loader(new SimpleLoader<Caller>(
       [](std::unique_ptr<Caller>* caller) {
         return errors::InvalidArgument("No way!");
@@ -116,7 +116,7 @@ TEST(SimpleLoader, LoadError) {
   EXPECT_EQ("No way!", status.error_message());
 }
 
-TEST(SimpleLoaderSourceAdapter, Basic) {
+TEST(SimpleLoaderSourceAdapterTest, Basic) {
   SimpleLoaderSourceAdapter<string, string> adapter(
       [](const string& data, std::unique_ptr<string>* servable) {
         servable->reset(new string);
