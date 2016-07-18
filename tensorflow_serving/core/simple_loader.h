@@ -214,12 +214,17 @@ SimpleLoaderSourceAdapter<DataType, ServableType>::SimpleLoaderSourceAdapter(
 template <typename DataType, typename ServableType>
 Status SimpleLoaderSourceAdapter<DataType, ServableType>::Convert(
     const DataType& data, std::unique_ptr<Loader>* loader) {
+  // We copy 'creator_' and 'resource_estimator_', rather than passing via
+  // reference, so that the loader we emit is not tied to the adapter, in case
+  // the adapter is deleted before the loader.
+  const auto creator = creator_;
+  const auto resource_estimator = resource_estimator_;
   loader->reset(new SimpleLoader<ServableType>(
-      [this, data](std::unique_ptr<ServableType>* servable) {
-        return this->creator_(data, servable);
+      [creator, data](std::unique_ptr<ServableType>* servable) {
+        return creator(data, servable);
       },
-      [this, data](ResourceAllocation* estimate) {
-        return this->resource_estimator_(data, estimate);
+      [resource_estimator, data](ResourceAllocation* estimate) {
+        return resource_estimator(data, estimate);
       }));
   return Status::OK();
 }
