@@ -22,6 +22,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -35,7 +36,6 @@ limitations under the License.
 #include "tensorflow_serving/core/test_util/source_adapter_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
-#include "tensorflow_serving/session_bundle/session_bundle.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {

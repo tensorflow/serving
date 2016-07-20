@@ -1,4 +1,12 @@
 # Description: Tensorflow Serving session bundle.
+#
+# All C++ targets simply forward to the equivalent
+# tensorflow/contrib/session_bundle targets.
+# Python code will soon be updated in a similar way.
+#
+# IMPORTANT: All code in tensorflow_serving/session_bundle will soon be deleted
+# In favor of the copy in tensorflow/contrib/session_bundle. All new code
+# should use the new directory instead.
 
 package(
     default_visibility = [
@@ -111,7 +119,7 @@ py_test(
     ],
 )
 
-# Proto header forwarding to tensorflow/contrib/session_bundle:manifest_proto
+# Proto header forwarding to tensorflow/contrib/session_bundle:manifest_proto.
 cc_library(
     name = "manifest_proto",
     hdrs = [
@@ -122,109 +130,51 @@ cc_library(
     deps = ["@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc"],
 )
 
+# Header forwarding to tensorflow/contrib/session_bundle:session_bundle.
 cc_library(
     name = "session_bundle",
-    srcs = ["session_bundle.cc"],
     hdrs = ["session_bundle.h"],
     visibility = ["//visibility:public"],
     deps = [
-        ":manifest_proto",
         ":signature",
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow_opensource",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
     ],
 )
 
+# Header forwarding to tensorflow/contrib/session_bundle:session_bundle_lite.
+#
 # This is a lite version of the session_bundle target that does not link in any
 # Tensorflow ops in order to minimize its size. Clients using this should link
 # any required ops manually.
 cc_library(
     name = "session_bundle_lite",
-    srcs = ["session_bundle.cc"],
     hdrs = ["session_bundle.h"],
     visibility = ["//visibility:public"],
     deps = [
-        ":manifest_proto",
-        ":signature_lite",
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:session_bundle_lite",
     ],
 )
 
-cc_test(
-    name = "session_bundle_test",
-    size = "small",
-    srcs = ["session_bundle_test.cc"],
-    data = [
-        "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
-    ],
-    # Link in all registered kernels.
-    linkstatic = 1,
-    deps = [
-        ":session_bundle",
-        "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util",
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:test",
-        "@org_tensorflow//tensorflow/core:testlib",
-        "@protobuf//:cc_wkt_protos",
-    ],
-)
-
+# Header forwarding to tensorflow/contrib/session_bundle:signature.
 cc_library(
     name = "signature",
-    srcs = ["signature.cc"],
     hdrs = ["signature.h"],
     visibility = ["//visibility:public"],
     deps = [
-        ":manifest_proto",
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow_opensource",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
     ],
 )
 
+# Header forwarding to tensorflow/contrib/session_bundle:signature_lite.
+#
 # This is a lite version of the signature target that does not link in any
 # Tensorflow ops in order to minimize its size. Clients using this should
 # link any required ops manually.
 cc_library(
     name = "signature_lite",
-    srcs = ["signature.cc"],
     hdrs = ["signature.h"],
     visibility = ["//visibility:public"],
     deps = [
-        ":manifest_proto",
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
-cc_test(
-    name = "signature_test",
-    size = "small",
-    srcs = ["signature_test.cc"],
-    deps = [
-        ":manifest_proto",
-        ":signature",
-        "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util",
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow_opensource",
-        "@org_tensorflow//tensorflow/core:test",
-        "@org_tensorflow//tensorflow/core:testlib",
-        "@protobuf//:cc_wkt_protos",
-        "@protobuf//:protobuf_lite",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:signature_lite",
     ],
 )

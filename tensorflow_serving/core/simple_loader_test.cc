@@ -55,7 +55,7 @@ class Caller {
 
 // Move a Loader through its lifetime and ensure the servable is in the state
 // we expect.
-TEST(SimpleLoader, VerifyServableStates) {
+TEST(SimpleLoaderTest, VerifyServableStates) {
   State state = State::kNone;
   std::unique_ptr<Loader> loader(new SimpleLoader<Caller>(
       [&state](std::unique_ptr<Caller>* caller) {
@@ -78,7 +78,7 @@ TEST(SimpleLoader, VerifyServableStates) {
   EXPECT_EQ(State::kNone, state);
 }
 
-TEST(SimpleLoader, ResourceEstimation) {
+TEST(SimpleLoaderTest, ResourceEstimation) {
   const auto want = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
@@ -105,7 +105,7 @@ TEST(SimpleLoader, ResourceEstimation) {
 
 // Verify that the error returned by the Creator is propagates back through
 // Load.
-TEST(SimpleLoader, LoadError) {
+TEST(SimpleLoaderTest, LoadError) {
   std::unique_ptr<Loader> loader(new SimpleLoader<Caller>(
       [](std::unique_ptr<Caller>* caller) {
         return errors::InvalidArgument("No way!");
@@ -116,7 +116,7 @@ TEST(SimpleLoader, LoadError) {
   EXPECT_EQ("No way!", status.error_message());
 }
 
-TEST(SimpleLoaderSourceAdapter, Basic) {
+TEST(SimpleLoaderSourceAdapterTest, Basic) {
   SimpleLoaderSourceAdapter<string, string> adapter(
       [](const string& data, std::unique_ptr<string>* servable) {
         servable->reset(new string);
@@ -157,6 +157,42 @@ TEST(SimpleLoaderSourceAdapter, Basic) {
   adapter.SetAspiredVersions(
       kServableName, {ServableData<string>({kServableName, 0}, "test_data")});
   EXPECT_TRUE(callback_called);
+}
+
+// This test verifies that deleting a SimpleLoaderSourceAdapter doesn't affect
+// the loaders it has emitted. This is a regression test for b/30189916.
+TEST(SimpleLoaderSourceAdapterTest, OkayToDeleteAdapter) {
+  std::unique_ptr<Loader> loader;
+  {
+    // Allocate 'adapter' on the heap so ASAN will catch a use-after-free.
+    auto adapter = std::unique_ptr<SimpleLoaderSourceAdapter<string, string>>(
+        new SimpleLoaderSourceAdapter<string, string>(
+            [](const string& data, std::unique_ptr<string>* servable) {
+              servable->reset(new string);
+              **servable = strings::StrCat(data, "_was_here");
+              return Status::OK();
+            },
+            SimpleLoaderSourceAdapter<string, string>::EstimateNoResources()));
+
+    const string kServableName = "test_servable_name";
+    adapter->SetAspiredVersionsCallback(
+        [&](const StringPiece servable_name,
+            std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
+          ASSERT_EQ(1, versions.size());
+          TF_ASSERT_OK(versions[0].status());
+          loader = versions[0].ConsumeDataOrDie();
+        });
+    adapter->SetAspiredVersions(
+        kServableName, {ServableData<string>({kServableName, 0}, "test_data")});
+
+    // Let 'adapter' fall out of scope and be deleted.
+  }
+
+  // We should be able to invoke the resource-estimation and servable-creation
+  // callbacks, despite the fact that 'adapter' has been deleted.
+  ResourceAllocation estimate_given;
+  TF_ASSERT_OK(loader->EstimateResources(&estimate_given));
+  TF_ASSERT_OK(loader->Load(ResourceAllocation()));
 }
 
 }  // namespace

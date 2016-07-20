@@ -23,6 +23,7 @@ limitations under the License.
 #include "google/protobuf/wrappers.pb.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -30,7 +31,6 @@ limitations under the License.
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
-#include "tensorflow_serving/session_bundle/session_bundle.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {

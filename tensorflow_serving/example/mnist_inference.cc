@@ -34,6 +34,9 @@ limitations under the License.
 #include "grpc++/support/status.h"
 #include "grpc++/support/status_code_enum.h"
 #include "grpc/grpc.h"
+#include "tensorflow/contrib/session_bundle/manifest.pb.h"
+#include "tensorflow/contrib/session_bundle/session_bundle.h"
+#include "tensorflow/contrib/session_bundle/signature.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_types.h"
@@ -50,9 +53,6 @@ limitations under the License.
 #include "tensorflow_serving/example/mnist_inference.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_factory.h"
-#include "tensorflow_serving/session_bundle/manifest.pb.h"
-#include "tensorflow_serving/session_bundle/session_bundle.h"
-#include "tensorflow_serving/session_bundle/signature.h"
 
 using grpc::InsecureServerCredentials;
 using grpc::Server;
