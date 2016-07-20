@@ -13,13 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/core/test_util/fake_source_adapter.h"
+#include "tensorflow_serving/core/test_util/fake_loader_source_adapter.h"
 
 namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-FakeSourceAdapter::FakeSourceAdapter(
+FakeLoaderSourceAdapter::FakeLoaderSourceAdapter(
     const string& suffix, std::function<void(const string&)> call_on_destruct)
     : SimpleLoaderSourceAdapter(
           [this](const StoragePath& path,
@@ -35,7 +35,7 @@ FakeSourceAdapter::FakeSourceAdapter(
       suffix_(suffix),
       call_on_destruct_(call_on_destruct) {}
 
-FakeSourceAdapter::~FakeSourceAdapter() {
+FakeLoaderSourceAdapter::~FakeLoaderSourceAdapter() {
   if (call_on_destruct_) {
     call_on_destruct_(suffix_);
   }
@@ -43,10 +43,10 @@ FakeSourceAdapter::~FakeSourceAdapter() {
 
 std::function<Status(
     std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*)>
-FakeSourceAdapter::GetCreator() {
+FakeLoaderSourceAdapter::GetCreator() {
   return [](std::unique_ptr<tensorflow::serving::SourceAdapter<
                 StoragePath, std::unique_ptr<Loader>>>* source) {
-    source->reset(new FakeSourceAdapter);
+    source->reset(new FakeLoaderSourceAdapter);
     return Status::OK();
   };
 }

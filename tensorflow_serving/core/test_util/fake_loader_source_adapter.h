@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_CORE_TEST_UTIL_FAKE_SOURCE_ADAPTER_H_
-#define TENSORFLOW_SERVING_CORE_TEST_UTIL_FAKE_SOURCE_ADAPTER_H_
+#ifndef TENSORFLOW_SERVING_CORE_TEST_UTIL_FAKE_LOADER_SOURCE_ADAPTER_H_
+#define TENSORFLOW_SERVING_CORE_TEST_UTIL_FAKE_LOADER_SOURCE_ADAPTER_H_
 
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/core/simple_loader.h"
@@ -24,22 +24,24 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-// A fake source adapter that generates string servables from paths.
-// When a suffix is provided, it is concatenated with a "/" to the path.
-// Example:
-// If path = "/a/simple/path" and suffix = "foo", the servable string is
+// A fake loader source adapter that creates loaders of servable-type string
+// from data of type StoragePath.
+//
+// If path = "/a/simple/path" and suffix = "foo", the servable string becomes
 // "a/simple/path/foo".
 //
-// The constructor may also take a callback to be invoked upon destruction. The
-// suffix provided to the source-adapter during construction is passed to the
-// string argument of the callback when it is invoked.
-class FakeSourceAdapter
+// To help with verifying the order of destruction of these adapters in tests,
+// the adapter may take a callback to be invoked upon destruction. The
+// suffix provided to the source-adapter is passed to the string argument of the
+// callback when it is invoked.
+class FakeLoaderSourceAdapter
     : public SimpleLoaderSourceAdapter<StoragePath, string> {
  public:
-  FakeSourceAdapter(const string& suffix = "",
-                    std::function<void(const string&)> call_on_destruct = {});
+  FakeLoaderSourceAdapter(
+      const string& suffix = "",
+      std::function<void(const string&)> call_on_destruct = {});
 
-  ~FakeSourceAdapter() override;
+  ~FakeLoaderSourceAdapter() override;
 
   // Returns a function to create a fake source adapter.
   static std::function<Status(
@@ -49,11 +51,11 @@ class FakeSourceAdapter
  private:
   const string suffix_;
   std::function<void(const string&)> call_on_destruct_;
-  TF_DISALLOW_COPY_AND_ASSIGN(FakeSourceAdapter);
+  TF_DISALLOW_COPY_AND_ASSIGN(FakeLoaderSourceAdapter);
 };
 
 }  // namespace test_util
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_CORE_TEST_UTIL_FAKE_SOURCE_ADAPTER_H_
+#endif  // TENSORFLOW_SERVING_CORE_TEST_UTIL_FAKE_LOADER_SOURCE_ADAPTER_H_

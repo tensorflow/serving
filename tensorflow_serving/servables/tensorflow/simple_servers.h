@@ -24,12 +24,12 @@ limitations under the License.
 #include <memory>
 #include <string>
 
+#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/manager.h"
 #include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/core/target.h"
-#include "tensorflow_serving/session_bundle/session_bundle.h"
 
 namespace tensorflow {
 namespace serving {

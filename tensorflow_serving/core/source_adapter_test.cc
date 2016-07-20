@@ -27,6 +27,7 @@ limitations under the License.
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/core/servable_id.h"
 #include "tensorflow_serving/core/storage_path.h"
+#include "tensorflow_serving/core/test_util/fake_storage_path_source_adapter.h"
 #include "tensorflow_serving/core/test_util/mock_storage_path_target.h"
 
 using ::testing::ElementsAre;
@@ -73,29 +74,8 @@ TEST(SourceAdapterTest, SetAspiredVersionsBlocksUntilTargetConnected) {
   adapter.SetAspiredVersions("foo", {});
 }
 
-// A UnarySourceAdapter that appends "_adapted" to every incoming StoragePath.
-class TestUnaryAdapter : public UnarySourceAdapter<StoragePath, StoragePath> {
- public:
-  TestUnaryAdapter() = default;
-  ~TestUnaryAdapter() override = default;
-
- protected:
-  Status Convert(const StoragePath& data,
-                 StoragePath* converted_data) override {
-    if (data == "invalid") {
-      return errors::InvalidArgument(
-          "TestUnaryAdapter Convert() dutifully failing on \"invalid\" data");
-    }
-    *converted_data = strings::StrCat(data, "_adapted");
-    return Status::OK();
-  }
-
- private:
-  TF_DISALLOW_COPY_AND_ASSIGN(TestUnaryAdapter);
-};
-
 TEST(UnarySourceAdapterTest, Basic) {
-  TestUnaryAdapter adapter;
+  test_util::FakeStoragePathSourceAdapter adapter;
   std::unique_ptr<test_util::MockStoragePathTarget> target(
       new StrictMock<test_util::MockStoragePathTarget>);
   ConnectSourceToTarget(&adapter, target.get());
@@ -104,11 +84,12 @@ TEST(UnarySourceAdapterTest, Basic) {
       SetAspiredVersions(
           Eq("foo"),
           ElementsAre(
-              ServableData<StoragePath>({"foo", 0}, "mrop_adapted"),
+              ServableData<StoragePath>({"foo", 0}, "mrop"),
               ServableData<StoragePath>(
-                  {"foo", 1}, errors::InvalidArgument(
-                                  "TestUnaryAdapter Convert() dutifully "
-                                  "failing on \"invalid\" data")),
+                  {"foo", 1},
+                  errors::InvalidArgument(
+                      "FakeStoragePathSourceAdapter Convert() dutifully "
+                      "failing on \"invalid\" data")),
               ServableData<StoragePath>({"foo", 2}, errors::Unknown("d'oh")))));
   adapter.SetAspiredVersions(
       "foo", {ServableData<StoragePath>({"foo", 0}, "mrop"),
