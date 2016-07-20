@@ -24,9 +24,8 @@ import sys
 
 import tensorflow as tf
 
+from tensorflow.contrib.session_bundle import exporter
 from inception import inception_model
-
-from tensorflow_serving.session_bundle import exporter
 
 
 tf.app.flags.DEFINE_string('checkpoint_dir', '/tmp/inception_train',

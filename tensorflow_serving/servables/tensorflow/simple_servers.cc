@@ -19,6 +19,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 
+#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/core/aspired_versions_manager_builder.h"
@@ -30,7 +31,6 @@ limitations under the License.
 #include "tensorflow_serving/core/target.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
-#include "tensorflow_serving/session_bundle/session_bundle.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
 
