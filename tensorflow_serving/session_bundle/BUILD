@@ -46,21 +46,8 @@ py_library(
     deps = [
         ":constants",
         ":gc",
-        "@org_tensorflow//tensorflow:tensorflow_py",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py",
-    ],
-)
-
-py_library(
-    name = "session_bundle_py",
-    srcs = ["session_bundle.py"],
-    visibility = ["//visibility:public"],
-    deps = [
-        ":constants",
-        ":exporter",
-        "@org_tensorflow//tensorflow:tensorflow_py",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py",
-        "@org_tensorflow//tensorflow/core:protos_all_py",
+        "//third_party/py/tensorflow",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py_pb2",
     ],
 )
 
@@ -74,27 +61,8 @@ py_test(
         ":constants",
         ":exporter",
         ":gc",
-        "@org_tensorflow//tensorflow:tensorflow_py",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py",
-    ],
-)
-
-py_test(
-    name = "session_bundle_py_test",
-    size = "small",
-    srcs = [
-        "session_bundle_test.py",
-    ],
-    data = [
-        "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
-    ],
-    main = "session_bundle_test.py",
-    deps = [
-        ":session_bundle_py",
-        "@org_tensorflow//tensorflow:tensorflow_py",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py",
-        "@org_tensorflow//tensorflow/core:protos_all_py",
-        "@protobuf//:protobuf_python",
+        "//third_party/py/tensorflow",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py_pb2",
     ],
 )
 
@@ -103,7 +71,7 @@ py_library(
     srcs = ["gc.py"],
     visibility = ["//visibility:public"],
     deps = [
-        "@org_tensorflow//tensorflow:tensorflow_py",
+        "//third_party/py/tensorflow",
     ],
 )
 
@@ -115,7 +83,7 @@ py_test(
     visibility = ["//visibility:private"],
     deps = [
         ":gc",
-        "@org_tensorflow//tensorflow:tensorflow_py",
+        "//third_party/py/tensorflow",
     ],
 )
 
@@ -127,7 +95,7 @@ cc_library(
         "manifest.proto.h",
     ],
     visibility = ["//visibility:public"],
-    deps = ["@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc"],
+    deps = ["@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto"],
 )
 
 # Header forwarding to tensorflow/contrib/session_bundle:session_bundle.
