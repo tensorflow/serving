@@ -42,12 +42,13 @@ py_library(
 py_library(
     name = "exporter",
     srcs = ["exporter.py"],
+    deprecation = "b/28851205. Depend on tensorflow/contrib/session_bundle instead.",
     visibility = ["//visibility:public"],
     deps = [
         ":constants",
         ":gc",
-        "//third_party/py/tensorflow",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py_pb2",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py",
     ],
 )
 
@@ -61,17 +62,18 @@ py_test(
         ":constants",
         ":exporter",
         ":gc",
-        "//third_party/py/tensorflow",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py_pb2",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_py",
     ],
 )
 
 py_library(
     name = "gc",
     srcs = ["gc.py"],
+    deprecation = "b/28851205. Depend on tensorflow/contrib/session_bundle instead.",
     visibility = ["//visibility:public"],
     deps = [
-        "//third_party/py/tensorflow",
+        "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )
 
@@ -83,7 +85,7 @@ py_test(
     visibility = ["//visibility:private"],
     deps = [
         ":gc",
-        "//third_party/py/tensorflow",
+        "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )
 
@@ -94,14 +96,16 @@ cc_library(
         "manifest.pb.h",
         "manifest.proto.h",
     ],
+    deprecation = "b/28851205. Depend on tensorflow/contrib/session_bundle instead.",
     visibility = ["//visibility:public"],
-    deps = ["@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto"],
+    deps = ["@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc"],
 )
 
 # Header forwarding to tensorflow/contrib/session_bundle:session_bundle.
 cc_library(
     name = "session_bundle",
     hdrs = ["session_bundle.h"],
+    deprecation = "b/28851205. Depend on tensorflow/contrib/session_bundle instead.",
     visibility = ["//visibility:public"],
     deps = [
         ":signature",
@@ -117,6 +121,7 @@ cc_library(
 cc_library(
     name = "session_bundle_lite",
     hdrs = ["session_bundle.h"],
+    deprecation = "b/28851205. Depend on tensorflow/contrib/session_bundle instead.",
     visibility = ["//visibility:public"],
     deps = [
         "@org_tensorflow//tensorflow/contrib/session_bundle:session_bundle_lite",
@@ -127,6 +132,7 @@ cc_library(
 cc_library(
     name = "signature",
     hdrs = ["signature.h"],
+    deprecation = "b/28851205. Depend on tensorflow/contrib/session_bundle instead.",
     visibility = ["//visibility:public"],
     deps = [
         "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
@@ -141,6 +147,7 @@ cc_library(
 cc_library(
     name = "signature_lite",
     hdrs = ["signature.h"],
+    deprecation = "b/28851205. Depend on tensorflow/contrib/session_bundle instead.",
     visibility = ["//visibility:public"],
     deps = [
         "@org_tensorflow//tensorflow/contrib/session_bundle:signature_lite",
