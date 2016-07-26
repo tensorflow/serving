@@ -18,7 +18,6 @@
 """
 
 import os.path
-import sys
 
 # This is a placeholder for a Google-internal import.
 
