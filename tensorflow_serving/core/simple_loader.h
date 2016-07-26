@@ -22,9 +22,11 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/macros.h"
+#include "tensorflow/core/platform/mem.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/source_adapter.h"
+#include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/util/any_ptr.h"
 #include "tensorflow_serving/util/optional.h"
 
@@ -43,7 +45,9 @@ namespace serving {
 // Unload() is called.
 //
 // SimpleLoader uses a second supplied callback to estimate the servable's
-// resource usage. It memoizes that callback's result, for efficiency.
+// resource usage. It memoizes that callback's result, for efficiency. If main-
+// memory resources are specified, Unload() releases that amount of memory to
+// the OS after deleting the servable.
 //
 // Example use: create a toy Loader for a servable of type time_t.  Here the
 // time servable is instantiated with the current time when Load() is called.
@@ -111,8 +115,8 @@ class SimpleLoader : public Loader {
 // version items one at a time, giving a simpler interface but less flexibility.
 //
 //  - Like SimpleLoader, the servable's estimated resource footprint is static,
-//    and the emitted loaders' Unload() implementation simply calls
-//    ServableType's destructor.
+//    and the emitted loaders' Unload() implementation calls ServableType's
+//    destructor and releases the memory to the OS.
 //
 // For more complex behaviors, SimpleLoaderSourceAdapter is inapplicable. You
 // must instead create a SourceAdapter and Loader. That said, you may still be
@@ -194,7 +198,28 @@ Status SimpleLoader<ServableType>::Load(
 
 template <typename ServableType>
 void SimpleLoader<ServableType>::Unload() {
+  // Before destroying the servable, run the resource estimator (in case the
+  // estimation routine calls into the servable behind the scenes.)
+  ResourceAllocation resource_estimate;
+  Status resource_status = EstimateResources(&resource_estimate);
+
+  // Delete the servable no matter what (even if the resource estimator had some
+  // error).
   servable_.reset();
+
+  if (!resource_status.ok()) {
+    return;
+  }
+
+  // If we have a main-memory footprint estimate, release that amount of memory
+  // to the OS.
+  for (const ResourceAllocation::Entry& entry :
+       resource_estimate.resource_quantities()) {
+    if (entry.resource().device() == device_types::kMain &&
+        entry.resource().kind() == resource_kinds::kRamBytes) {
+      ::tensorflow::port::MallocExtension_ReleaseToSystem(entry.quantity());
+    }
+  }
 }
 
 template <typename DataType, typename ServableType>

@@ -95,6 +95,7 @@ cc_library(
     deps = [
         ":loader",
         ":source_adapter",
+        "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/util:any_ptr",
         "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/core:lib",
