@@ -42,7 +42,7 @@ Then we use TensorFlow Serving `Exporter` module to export the model.
 it can be loaded later for inference.
 
 ~~~python
-from tensorflow_serving.session_bundle import exporter
+from tensorflow.contrib.session_bundle import exporter
 ...
 export_path = sys.argv[-1]
 print 'Exporting trained model to', export_path
@@ -208,7 +208,7 @@ batching, see the [Batching Guide](https://github.com/tensorflow/serving/tree/ma
 
 Whether or not we enable batching, we wind up with a `SessionBundle`; let's look
 at its definition in
-[session_bundle.h](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/session_bundle/session_bundle.h):
+[session_bundle.h](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/session_bundle/session_bundle.h):
 
 ~~~c++
 struct SessionBundle {
@@ -230,7 +230,7 @@ bind to? As you may have probably guessed, the answer is in the
 file above (see [meta_graph.proto](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/core/protobuf/meta_graph.proto)).
 We add all needed description and metadata of a TensorFlow model export to its
 extensible `collection_def`. In particular, it contains `Signatures` (see
-[manifest.proto](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/session_bundle/manifest.proto))
+[manifest.proto](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/session_bundle/manifest.proto))
 that specifies the tensor to use.
 
 ~~~proto

@@ -213,9 +213,7 @@ InceptionServiceImpl::InceptionServiceImpl(
   // server with load balancing may want to use the default, much smaller,
   // value.)
   scheduler_options.max_enqueued_batches = 1000;
-  // TODO(27776734): Current exported model supports only batch_size=1
-  // See inception_export.py for details.
-  scheduler_options.max_batch_size = 1;
+  scheduler_options.max_batch_size = 10;
   TF_CHECK_OK(tensorflow::serving::BasicBatchScheduler<Task>::Create(
       scheduler_options,
       [this](std::unique_ptr<tensorflow::serving::Batch<Task>> batch) {
