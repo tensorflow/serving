@@ -50,7 +50,9 @@ class SessionBundleSourceAdapter
   Status Convert(const StoragePath& path,
                  std::unique_ptr<Loader>* loader) override;
 
-  std::unique_ptr<SessionBundleFactory> bundle_factory_;
+  // We use a shared ptr to share ownership with Loaders we emit, in case they
+  // outlive this object.
+  std::shared_ptr<SessionBundleFactory> bundle_factory_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(SessionBundleSourceAdapter);
 };
