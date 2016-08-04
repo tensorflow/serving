@@ -16,7 +16,7 @@ message SessionBundleConfig {
   string session_target = 1;
 
   // TensorFlow Session configuration options.
-  // See more details in tensorflow/core/framework/config.proto.
+  // See details at tensorflow/core/protobuf/config.proto.
   ConfigProto session_config = 2;
 
   // If set, each emitted session is wrapped with a layer that schedules Run()
