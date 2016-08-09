@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+option cc_enable_arenas = true;
+
+import "tensorflow/core/framework/tensor.proto";
+import "tensorflow_serving/apis/model.proto";
+
+// PredictRequest specifies which TensorFlow model to run, as well as
+// how inputs are mapped to tensors and how outputs are filtered before
+// returning to user.
+message PredictRequest {
+  // Model Specification.
+  ModelSpec model_spec = 1;
+
+  // Input tensors.
+  // Names of input tensor are alias names. The mapping from aliases to real
+  // input tensor names is expected to be stored as named generic signature
+  // under the key "inputs" in the model export.
+  // Each alias listed in a generic signature named "inputs" should be provided
+  // exactly once in order to run the prediction.
+  map<string, TensorProto> inputs = 2;
+
+  // Output filter.
+  // Names specified are alias names. The mapping from aliases to real output
+  // tensor names is expected to be stored as named generic signature under
+  // the key "outputs" in the model export.
+  // Only tensors specified here will be run/fetched and returned, with the
+  // exception that when none is specified, all tensors specified in the
+  // named signature will be run/fetched and returned.
+  repeated string output_filter = 3;
+}
+
+// Response for PredictRequest on successful run.
+message PredictResponse {
+  // Output tensors.
+  map<string, TensorProto> outputs = 1;
+}

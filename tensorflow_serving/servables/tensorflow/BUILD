@@ -1,4 +1,4 @@
-# Description: Tensorflow Serving tensorflow servable.
+# Description: TensorFlow servables.
 
 package(
     default_visibility = [
@@ -204,5 +204,19 @@ cc_library(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
+    ],
+)
+
+cc_library(
+    name = "predict_impl",
+    srcs = ["predict_impl.cc"],
+    hdrs = ["predict_impl.h"],
+    deps = [
+        "//tensorflow_serving/apis:predict_proto",
+        "//tensorflow_serving/core:servable_handle",
+        "//tensorflow_serving/model_servers:server_core",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
 )

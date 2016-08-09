@@ -16,7 +16,7 @@ message SessionBundleConfig {
   string session_target = 1;
 
   // TensorFlow Session configuration options.
-  // See more details in tensorflow/core/framework/config.proto.
+  // See details at tensorflow/core/protobuf/config.proto.
   ConfigProto session_config = 2;
 
   // If set, each emitted session is wrapped with a layer that schedules Run()
@@ -33,6 +33,12 @@ message SessionBundleConfig {
   // across multiple session servables emitted by this source adapter. A
   // BatchSchedulerRetrier is added on top of each batching session.
   BatchingParameters batching_parameters = 3;
+
+  // If set, session run calls use a separate threadpool for restore and init
+  // ops as part of loading the session-bundle. The value of this field should
+  // correspond to the index of the tensorflow::ThreadPoolOptionProto defined as
+  // part of `session_config.session_inter_op_thread_pool`.
+  google.protobuf.Int32Value session_run_load_threadpool_index = 4;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the
