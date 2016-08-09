@@ -56,13 +56,22 @@ Status PollFileSystem(const FileSystemStoragePathSourceConfig& config,
   TF_RETURN_IF_ERROR(
       Env::Default()->GetChildren(config.base_path(), &children));
 
+  // GetChildren() returns all descendants instead for cloud storage like GCS.
+  // In such case we should filter out all non-direct descendants.
+  std::set<string> real_children;
+  for (int i = 0; i < children.size(); ++i) {
+    const string& child = children[i];
+    real_children.insert(child.substr(0, child.find_first_of('/')));
+  }
+  children.clear();
+  children.insert(children.begin(), real_children.begin(), real_children.end());
+
   // Identify the latest version, among children that can be interpreted as
   // version numbers.
   int latest_version_child = -1;
   int64 latest_version;
   for (int i = 0; i < children.size(); ++i) {
     const string& child = children[i];
-
     int64 child_version_num;
     if (!strings::safe_strto64(child.c_str(), &child_version_num)) {
       continue;
