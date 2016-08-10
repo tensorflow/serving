@@ -20,6 +20,7 @@
 import atexit
 import os
 import shlex
+import socket
 import subprocess
 import time
 
@@ -34,6 +35,14 @@ from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2
 
 FLAGS = flags.FLAGS
+
+
+def PickUnusedPort():
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  s.bind(('localhost', 0))
+  _, port = s.getsockname()
+  s.close()
+  return port
 
 
 class TensorflowModelServerTest(tf.test.TestCase):
@@ -59,14 +68,14 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Run tensorflow_model_server using test config."""
     print 'Starting test server...'
     command = os.path.join(self.binary_dir, 'tensorflow_model_server')
-    command += ' --port=' + port
+    command += ' --port=' + str(port)
     command += ' --model_name=' + model_name
     command += ' --model_base_path=' + model_path
     command += ' --alsologtostderr'
     print command
     self.server_proc = subprocess.Popen(shlex.split(command))
     print 'Server started'
-    return 'localhost:' + port
+    return 'localhost:' + str(port)
 
   def VerifyPredictRequest(self,
                            model_server_address,
@@ -95,7 +104,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Test PredictionService.Predict implementation."""
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(
-        '8500', 'default', os.path.join(self.testdata_dir, 'half_plus_two'))
+        PickUnusedPort(), 'default',
+        os.path.join(self.testdata_dir, 'half_plus_two'))
     time.sleep(5)
     self.VerifyPredictRequest(model_server_address)
     self.VerifyPredictRequest(model_server_address, specify_output=False)
