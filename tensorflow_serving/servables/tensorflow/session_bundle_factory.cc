@@ -113,8 +113,20 @@ Status SessionBundleFactory::EstimateResourceRequirement(
 Status SessionBundleFactory::CreateSessionBundle(
     const string& path, std::unique_ptr<SessionBundle>* bundle) {
   bundle->reset(new SessionBundle);
-  TF_RETURN_IF_ERROR(LoadSessionBundleFromPath(GetSessionOptions(this->config_),
-                                               path, bundle->get()));
+
+  // Setup RunOptions for the session, if specified and load session-bundle.
+  if (this->config_.has_session_run_load_threadpool_index()) {
+    RunOptions run_options;
+    run_options.set_inter_op_thread_pool(
+        this->config_.session_run_load_threadpool_index().value());
+    TF_RETURN_IF_ERROR(LoadSessionBundleFromPathUsingRunOptions(
+        GetSessionOptions(this->config_), run_options, path, bundle->get()));
+  } else {
+    TF_RETURN_IF_ERROR(LoadSessionBundleFromPath(
+        GetSessionOptions(this->config_), path, bundle->get()));
+  }
+
+  // Initialize batching, if specified.
   if (this->config_.has_batching_parameters()) {
     TF_RETURN_IF_ERROR(this->WrapSessionForBatching(bundle->get()));
   } else {
