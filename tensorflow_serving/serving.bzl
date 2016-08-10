@@ -2,7 +2,7 @@ load("@protobuf//:protobuf.bzl", "cc_proto_library")
 load("@protobuf//:protobuf.bzl", "py_proto_library")
 
 def serving_proto_library(name, srcs=[], has_services=False,
-                          deps=[], visibility=None, testonly=0,
+                          deps=[], visibility=None, testonly=0,  # pylint: disable=unused-argument
                           cc_grpc_version = None,
                           cc_api_version=2, go_api_version=2,
                           java_api_version=2,
@@ -24,7 +24,7 @@ def serving_proto_library(name, srcs=[], has_services=False,
                    testonly=testonly,
                    visibility=visibility,)
 
-def serving_proto_library_py(name, srcs=[], deps=[], visibility=None, testonly=0):
+def serving_proto_library_py(name, proto_library, srcs=[], deps=[], visibility=None, testonly=0):  # pylint: disable=unused-argument
   py_proto_library(name=name,
                    srcs=srcs,
                    srcs_version = "PY2AND3",
