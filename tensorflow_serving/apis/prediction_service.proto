@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+option cc_enable_arenas = true;
+
+import "tensorflow_serving/apis/predict.proto";
+
+// PredictionService provides access to machine-learned models loaded by
+// model_servers.
+service PredictionService {
+  // Predict -- provides access to loaded TensorFlow model.
+  rpc Predict(PredictRequest) returns (PredictResponse);
+}
