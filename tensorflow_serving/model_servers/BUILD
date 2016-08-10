@@ -107,7 +107,11 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
     ],
-    tags = ["local"],
+    tags = [
+        "local",
+        # TODO(b/30796002): Remove the "manual" tag when Jenkins can run this test.
+        "manual",
+    ],
     deps = [
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
         "@org_tensorflow//tensorflow:tensorflow_py",
