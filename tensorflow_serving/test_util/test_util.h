@@ -37,6 +37,10 @@ T CreateProto(const string& textual_proto);
 // tensorflow/contrib.
 string ContribTestSrcDirPath(const string& relative_path);
 
+// Return an absolute runfiles srcdir given a path relative to
+// tensorflow_serving.
+string TestSrcDirPath(const string& relative_path);
+
 // Simple implementation of a proto matcher comparing string representations.
 //
 // IMPORTANT: Only use this for protos whose textual representation is
