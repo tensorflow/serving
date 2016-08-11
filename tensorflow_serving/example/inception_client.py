@@ -18,9 +18,6 @@
 """Send JPEG image to inception_inference server for classification.
 """
 
-import sys
-import threading
-
 # This is a placeholder for a Google-internal import.
 
 from grpc.beta import implementations
