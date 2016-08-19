@@ -171,6 +171,126 @@ TEST(FileSystemStoragePathSourceTest, MultipleVersions) {
                    .PollFileSystemAndInvokeCallback());
 }
 
+TEST(FileSystemStoragePathSourceTest, MultipleServables) {
+  FileSystemStoragePathSourceConfig config;
+  config.set_fail_if_zero_versions_at_startup(false);
+  config.set_file_system_poll_wait_seconds(-1);  // Disable the polling thread.
+
+  // Servable 0 has two versions.
+  const string base_path_0 =
+      io::JoinPath(testing::TmpDir(), "MultipleServables_0");
+  TF_ASSERT_OK(Env::Default()->CreateDir(base_path_0));
+  TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path_0, "1")));
+  TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path_0, "3")));
+  auto* servable_0 = config.add_servables();
+  servable_0->set_servable_name("servable_0");
+  servable_0->set_base_path(base_path_0);
+
+  // Servable 1 has one version.
+  const string base_path_1 =
+      io::JoinPath(testing::TmpDir(), "MultipleServables_1");
+  TF_ASSERT_OK(Env::Default()->CreateDir(base_path_1));
+  TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path_1, "42")));
+  auto* servable_1 = config.add_servables();
+  servable_1->set_servable_name("servable_1");
+  servable_1->set_base_path(base_path_1);
+
+  // Servable 2 has no versions.
+  const string base_path_2 =
+      io::JoinPath(testing::TmpDir(), "MultipleServables_2");
+  TF_ASSERT_OK(Env::Default()->CreateDir(base_path_2));
+  auto* servable_2 = config.add_servables();
+  servable_2->set_servable_name("servable_2");
+  servable_2->set_base_path(base_path_2);
+
+  // Create a source and connect it to a mock target.
+  std::unique_ptr<FileSystemStoragePathSource> source;
+  TF_ASSERT_OK(FileSystemStoragePathSource::Create(config, &source));
+  std::unique_ptr<test_util::MockStoragePathTarget> target(
+      new StrictMock<test_util::MockStoragePathTarget>);
+  ConnectSourceToTarget(source.get(), target.get());
+
+  // Have the source poll the FS, and expect certain callback calls.
+  EXPECT_CALL(*target,
+              SetAspiredVersions(
+                  Eq("servable_0"),
+                  ElementsAre(ServableData<StoragePath>(
+                      {"servable_0", 3}, io::JoinPath(base_path_0, "3")))));
+  EXPECT_CALL(*target,
+              SetAspiredVersions(
+                  Eq("servable_1"),
+                  ElementsAre(ServableData<StoragePath>(
+                      {"servable_1", 42}, io::JoinPath(base_path_1, "42")))));
+  EXPECT_CALL(*target, SetAspiredVersions(Eq("servable_2"), IsEmpty()));
+  TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
+                   .PollFileSystemAndInvokeCallback());
+}
+
+TEST(FileSystemStoragePathSourceTest, ChangeSetOfServables) {
+  FileSystemStoragePathSourceConfig config;
+  config.set_fail_if_zero_versions_at_startup(false);
+  config.set_file_system_poll_wait_seconds(-1);  // Disable the polling thread.
+
+  // Create three servables, each with a single version numbered 0.
+  const string base_path_prefix =
+      io::JoinPath(testing::TmpDir(), "ChangeSetOfServables_");
+  for (int i = 0; i <= 2; ++i) {
+    const string base_path = strings::StrCat(base_path_prefix, i);
+    TF_ASSERT_OK(Env::Default()->CreateDir(base_path));
+    TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path, "0")));
+  }
+
+  // Configure a source initially with servables 0 and 1.
+  for (int i : {0, 1}) {
+    auto* servable = config.add_servables();
+    servable->set_servable_name(strings::StrCat("servable_", i));
+    servable->set_base_path(strings::StrCat(base_path_prefix, i));
+  }
+  std::unique_ptr<FileSystemStoragePathSource> source;
+  TF_ASSERT_OK(FileSystemStoragePathSource::Create(config, &source));
+  std::unique_ptr<test_util::MockStoragePathTarget> target(
+      new StrictMock<test_util::MockStoragePathTarget>);
+  ConnectSourceToTarget(source.get(), target.get());
+  for (int i : {0, 1}) {
+    EXPECT_CALL(
+        *target,
+        SetAspiredVersions(
+            Eq(strings::StrCat("servable_", i)),
+            ElementsAre(ServableData<StoragePath>(
+                {strings::StrCat("servable_", i), 0},
+                io::JoinPath(strings::StrCat(base_path_prefix, i), "0")))));
+  }
+  TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
+                   .PollFileSystemAndInvokeCallback());
+
+  // Reconfigure the source to have servables 1 and 2 (dropping servable 0).
+  config.clear_servables();
+  for (int i : {1, 2}) {
+    auto* servable = config.add_servables();
+    servable->set_servable_name(strings::StrCat("servable_", i));
+    servable->set_base_path(strings::StrCat(base_path_prefix, i));
+  }
+  // Servable 0 should get a zero-versions callback, causing the manager to
+  // unload it.
+  EXPECT_CALL(*target, SetAspiredVersions(Eq("servable_0"), IsEmpty()));
+  // Servables 1 and 2 should each get a one-version callback. Importantly,
+  // servable 1 (which is in both the old and new configs) should *not* see a
+  // zero-version callback followed by a one-version one, which could cause the
+  // manager to temporarily unload the servable.
+  for (int i : {1, 2}) {
+    EXPECT_CALL(
+        *target,
+        SetAspiredVersions(
+            Eq(strings::StrCat("servable_", i)),
+            ElementsAre(ServableData<StoragePath>(
+                {strings::StrCat("servable_", i), 0},
+                io::JoinPath(strings::StrCat(base_path_prefix, i), "0")))));
+  }
+  TF_ASSERT_OK(source->UpdateConfig(config));
+  TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
+                   .PollFileSystemAndInvokeCallback());
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

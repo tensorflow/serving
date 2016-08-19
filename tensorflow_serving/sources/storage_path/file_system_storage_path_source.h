@@ -37,20 +37,32 @@ class FileSystemStoragePathSourceTestAccess;
 namespace tensorflow {
 namespace serving {
 
-// A storage path source that monitors a file-system path associated with a
-// servable, using a thread that polls the file-system periodically. Upon each
-// poll, it identifies children of a base path whose name is a number (e.g. 123)
-// and returns the path corresponding to the largest number.
-// For example, if the base path is /foo/bar, and a poll reveals child paths
-// /foo/bar/baz, /foo/bar/123 and /foo/bar/456, the aspired-versions callback is
-// called with {{456, "/foo/bar/456"}}.
-// If, at any time, the base path is found to contain no numerical children, the
+// A storage path source that aspires versions for a given set of servables. For
+// each servable, it monitors a given file-system base path. It identifies base-
+// path children whose name is a number (e.g. 123) and emits the path
+// corresponding to the largest number as the servable's single aspired version.
+// (To do the file-system monitoring, it uses a background thread that polls the
+// file system periodically.)
+//
+// For example, if a configured servable's base path is /foo/bar, and a file-
+// system poll reveals child paths /foo/bar/baz, /foo/bar/123 and /foo/bar/456,
+// the aspired-versions callback is called with {{456, "/foo/bar/456"}}. If, at
+// any time, the base path is found to contain no numerical children, the
 // aspired-versions callback is called with an empty versions list.
+//
+// The configured set of servables to monitor can be updated at any time by
+// calling UpdateConfig(). If any servables were present in the old config but
+// not in the new one, the source will immediately aspire zero versions for that
+// servable (causing it to be unloaded in the Manager that ultimately consumes
+// the aspired-versions calls).
 class FileSystemStoragePathSource : public Source<StoragePath> {
  public:
   static Status Create(const FileSystemStoragePathSourceConfig& config,
                        std::unique_ptr<FileSystemStoragePathSource>* result);
   ~FileSystemStoragePathSource() override;
+
+  // Supplies a new config to use. See class comment for more information.
+  Status UpdateConfig(const FileSystemStoragePathSourceConfig& config);
 
   void SetAspiredVersionsCallback(AspiredVersionsCallback callback) override;
 
@@ -59,6 +71,9 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
 
   FileSystemStoragePathSource() = default;
 
+  // (Re)sets 'fs_polling_thread_' based on 'config_'.
+  void ResetFSPollingThread() EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
   // Polls the file system and identify numerical children of the base path.
   // If zero such children are found, invokes 'aspired_versions_callback_' with
   // an empty versions list. If one or more such children are found, invokes
@@ -66,12 +81,18 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
   // such child.
   Status PollFileSystemAndInvokeCallback();
 
-  FileSystemStoragePathSourceConfig config_;
+  // Sends empty aspired-versions lists for each servable in 'servable_names'.
+  Status UnaspireServables(const std::set<string>& servable_names)
+      EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
-  AspiredVersionsCallback aspired_versions_callback_;
+  mutable mutex mu_;
+
+  FileSystemStoragePathSourceConfig config_ GUARDED_BY(mu_);
+
+  AspiredVersionsCallback aspired_versions_callback_ GUARDED_BY(mu_);
 
   // A thread that periodically calls PollFileSystemAndInvokeCallback().
-  std::unique_ptr<PeriodicFunction> fs_polling_thread_;
+  std::unique_ptr<PeriodicFunction> fs_polling_thread_ GUARDED_BY(mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(FileSystemStoragePathSource);
 };

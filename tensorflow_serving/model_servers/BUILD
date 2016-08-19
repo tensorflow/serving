@@ -109,7 +109,6 @@ py_test(
     ],
     tags = [
         "local",
-        # TODO(b/30796002): Remove the "manual" tag when Jenkins can run this test.
         "manual",
     ],
     deps = [
