@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y \
         swig \
         zip \
         zlib1g-dev \
+        libcurl3-dev \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
