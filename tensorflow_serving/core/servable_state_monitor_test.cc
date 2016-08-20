@@ -270,7 +270,7 @@ TEST(ServableStateMonitorTest, VersionMapDescendingOrder) {
                                                   Pair(7, state_1_and_time)))));
 }
 
-TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateSpecific) {
+TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateSpecificAvailable) {
   auto bus = EventBus<ServableState>::CreateEventBus({});
   ServableStateMonitor monitor(bus.get());
   std::vector<ServableRequest> servables;
@@ -283,7 +283,7 @@ TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateSpecific) {
 
   Notification notified;
   monitor.NotifyWhenServablesReachState(
-      std::move(servables), ManagerState::kAvailable,
+      servables, ManagerState::kAvailable,
       [&](const bool reached,
           std::map<ServableId, ManagerState> states_reached) {
         EXPECT_TRUE(reached);
@@ -296,8 +296,7 @@ TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateSpecific) {
   notified.WaitForNotification();
 }
 
-TEST(ServableStateMonitorTest,
-     NotifyWhenServablesReachStateSpecificInErrorState) {
+TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateSpecificError) {
   auto bus = EventBus<ServableState>::CreateEventBus({});
   ServableStateMonitor monitor(bus.get());
   std::vector<ServableRequest> servables;
@@ -310,7 +309,7 @@ TEST(ServableStateMonitorTest,
 
   Notification notified;
   monitor.NotifyWhenServablesReachState(
-      std::move(servables), ManagerState::kAvailable,
+      servables, ManagerState::kAvailable,
       [&](const bool reached,
           std::map<ServableId, ManagerState> states_reached) {
         EXPECT_FALSE(reached);
@@ -323,25 +322,22 @@ TEST(ServableStateMonitorTest,
   notified.WaitForNotification();
 }
 
-TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateServableStream) {
+TEST(ServableStateMonitorTest,
+     NotifyWhenServablesReachStateServableLatestAvailable) {
   auto bus = EventBus<ServableState>::CreateEventBus({});
   ServableStateMonitor monitor(bus.get());
   std::vector<ServableRequest> servables;
   servables.push_back(ServableRequest::Latest("servable_stream"));
-  const ServableId servable_stream_error_state_id = {"servable_stream", 7};
   const ServableId servable_stream_available_state_id = {"servable_stream", 42};
 
   using ManagerState = ServableState::ManagerState;
-  const ServableState servable_stream_error_state = {
-      servable_stream_error_state_id, ManagerState::kEnd,
-      errors::Internal("error")};
   const ServableState servable_stream_available_state = {
       servable_stream_available_state_id, ManagerState::kAvailable,
       Status::OK()};
 
   Notification notified;
   monitor.NotifyWhenServablesReachState(
-      std::move(servables), ManagerState::kAvailable,
+      servables, ManagerState::kAvailable,
       [&](const bool reached,
           std::map<ServableId, ManagerState> states_reached) {
         EXPECT_TRUE(reached);
@@ -350,9 +346,34 @@ TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateServableStream) {
                                              ManagerState::kAvailable)));
         notified.Notify();
       });
-  bus->Publish(servable_stream_error_state);
-  ASSERT_FALSE(notified.HasBeenNotified());
   bus->Publish(servable_stream_available_state);
+  notified.WaitForNotification();
+}
+
+TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateLatestError) {
+  auto bus = EventBus<ServableState>::CreateEventBus({});
+  ServableStateMonitor monitor(bus.get());
+  std::vector<ServableRequest> servables;
+  servables.push_back(ServableRequest::Latest("servable_stream"));
+  const ServableId servable_stream_error_state_id = {"servable_stream", 7};
+
+  using ManagerState = ServableState::ManagerState;
+  const ServableState servable_stream_error_state = {
+      servable_stream_error_state_id, ManagerState::kEnd,
+      errors::Internal("error")};
+
+  Notification notified;
+  monitor.NotifyWhenServablesReachState(
+      servables, ManagerState::kAvailable,
+      [&](const bool reached,
+          std::map<ServableId, ManagerState> states_reached) {
+        EXPECT_FALSE(reached);
+        EXPECT_THAT(states_reached,
+                    UnorderedElementsAre(Pair(servable_stream_error_state_id,
+                                              ManagerState::kEnd)));
+        notified.Notify();
+      });
+  bus->Publish(servable_stream_error_state);
   notified.WaitForNotification();
 }
 
@@ -371,7 +392,7 @@ TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateFullFunctionality) {
 
   Notification notified;
   monitor.NotifyWhenServablesReachState(
-      std::move(servables), ManagerState::kAvailable,
+      servables, ManagerState::kAvailable,
       [&](const bool reached,
           std::map<ServableId, ManagerState> states_reached) {
         EXPECT_FALSE(reached);
@@ -411,7 +432,7 @@ TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateOnlyNotifiedOnce) {
 
   Notification notified;
   monitor.NotifyWhenServablesReachState(
-      std::move(servables), ManagerState::kAvailable,
+      servables, ManagerState::kAvailable,
       [&](const bool reached,
           std::map<ServableId, ManagerState> states_reached) {
         // Will fail if this function is called twice.
@@ -455,7 +476,7 @@ TEST(ServableStateMonitorTest, WaitUntilServablesReachStateFullFunctionality) {
   std::unique_ptr<Thread> wait_till_servable_state_reached(
       Env::Default()->StartThread({}, "WaitUntilServablesReachState", [&]() {
         EXPECT_FALSE(monitor.WaitUntilServablesReachState(
-            std::move(servables), ManagerState::kAvailable, &states_reached));
+            servables, ManagerState::kAvailable, &states_reached));
         EXPECT_THAT(states_reached,
                     UnorderedElementsAre(
                         Pair(specific_goal_state_id, ManagerState::kAvailable),
