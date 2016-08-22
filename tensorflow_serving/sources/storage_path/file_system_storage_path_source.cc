@@ -183,6 +183,15 @@ Status FileSystemStoragePathSource::Create(
 
 Status FileSystemStoragePathSource::UpdateConfig(
     const FileSystemStoragePathSourceConfig& config) {
+  mutex_lock l(mu_);
+
+  if (fs_polling_thread_ != nullptr &&
+      config.file_system_poll_wait_seconds() !=
+          config_.file_system_poll_wait_seconds()) {
+    return errors::InvalidArgument(
+        "Changing file_system_poll_wait_seconds is not supported");
+  }
+
   const FileSystemStoragePathSourceConfig normalized_config =
       NormalizeConfig(config);
 
@@ -190,16 +199,10 @@ Status FileSystemStoragePathSource::UpdateConfig(
     TF_RETURN_IF_ERROR(FailIfZeroVersions(normalized_config));
   }
 
-  mutex_lock l(mu_);
-
   if (aspired_versions_callback_) {
     UnaspireServables(GetDeletedServables(config_, normalized_config));
   }
   config_ = normalized_config;
-
-  if (aspired_versions_callback_) {
-    ResetFSPollingThread();
-  }
 
   return Status::OK();
 }
@@ -216,13 +219,7 @@ void FileSystemStoragePathSource::SetAspiredVersionsCallback(
   }
   aspired_versions_callback_ = callback;
 
-  ResetFSPollingThread();
-}
-
-void FileSystemStoragePathSource::ResetFSPollingThread() {
-  if (config_.file_system_poll_wait_seconds() < 0) {
-    fs_polling_thread_.reset(nullptr);
-  } else {
+  if (config_.file_system_poll_wait_seconds() >= 0) {
     // Kick off a thread to poll the file system periodically, and call the
     // callback.
     PeriodicFunction::Options pf_options;
