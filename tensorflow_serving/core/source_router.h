@@ -43,10 +43,15 @@ namespace serving {
 // system monitoring Source<StoragePath>, and a pair of SourceAdapters (one that
 // emits loaders of apple servables, and one that emits loaders of orange
 // servables), to route each path to the appropriate SourceAdapter.
+//
+// IMPORTANT: If the the subclass's virtual method implementations access any
+// member variables, destructor must call Detach() (see class TargetBase in
+// target.h) as its first action. Doing so ensures that no virtual method calls
+// are in flight during destruction of the member variables.
 template <typename T>
 class SourceRouter : public TargetBase<T> {
  public:
-  ~SourceRouter() override = default;
+  ~SourceRouter() override;
 
   // Returns a vector of N source pointers, corresponding to the N output ports
   // of the router. The caller must invoke ConnectSourceToTarget() (or directly
@@ -104,6 +109,11 @@ class IdentitySourceAdapter : public UnarySourceAdapter<T, T> {
 };
 
 }  // namespace internal
+
+template <typename T>
+SourceRouter<T>::~SourceRouter() {
+  TargetBase<T>::Detach();
+}
 
 template <typename T>
 std::vector<Source<T>*> SourceRouter<T>::GetOutputPorts() {

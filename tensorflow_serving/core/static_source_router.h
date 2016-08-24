@@ -35,13 +35,13 @@ namespace serving {
 // fail to match regexp 0 but do match regexp 1 are sent to port 1; and so on.
 // Items that match none of the regexps are sent to port N-1.
 template <typename T>
-class StaticSourceRouter : public SourceRouter<T> {
+class StaticSourceRouter final : public SourceRouter<T> {
  public:
   // Creates a StaticSourceRouter with 'route_regexps.size() + 1' output ports,
   // based on cascading regular expression matching as described above.
   static Status Create(const std::vector<string>& route_regexps,
                        std::unique_ptr<StaticSourceRouter<T>>* result);
-  ~StaticSourceRouter() override = default;
+  ~StaticSourceRouter() override;
 
  protected:
   int num_output_ports() const override {
@@ -69,6 +69,11 @@ Status StaticSourceRouter<T>::Create(
     std::unique_ptr<StaticSourceRouter<T>>* result) {
   result->reset(new StaticSourceRouter<T>(route_regexps));
   return Status::OK();
+}
+
+template <typename T>
+StaticSourceRouter<T>::~StaticSourceRouter() {
+  TargetBase<T>::Detach();
 }
 
 template <typename T>
