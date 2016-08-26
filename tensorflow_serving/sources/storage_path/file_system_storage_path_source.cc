@@ -249,11 +249,10 @@ Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
     const std::vector<ServableData<StoragePath>>& versions = entry.second;
     for (const ServableData<StoragePath>& version : versions) {
       if (version.status().ok()) {
-        LOG_EVERY_N(INFO, 100)
-            << "File-system polling update: Servable:" << version.id()
-            << "; Servable path: " << version.DataOrDie()
-            << "; Polling frequency: "
-            << config_.file_system_poll_wait_seconds();
+        LOG(INFO) << "File-system polling update: Servable:" << version.id()
+                  << "; Servable path: " << version.DataOrDie()
+                  << "; Polling frequency: "
+                  << config_.file_system_poll_wait_seconds();
       }
     }
     aspired_versions_callback_(servable, versions);
