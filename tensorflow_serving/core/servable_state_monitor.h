@@ -110,16 +110,13 @@ class ServableStateMonitor {
   //   1. As specific versions of a servable stream name. In this case, we check
   //   whether the specific version has reached the 'goal_state' or kEnd.
   //   2. As latest versions, in which case any version for a servable stream
-  //   name will be matched against the 'goal_state'.
+  //   name will be matched against the 'goal_state' or kEnd.
   //
   // We call the 'notifier_fn' when both conditions are true -
   //   1. All of the specific servable requests have either reached the
   //   'goal_state' or kEnd.
-  //   2. All of the latest servable requests have reached 'goal_state'.
+  //   2. All of the latest servable requests have reached 'goal_state' or kEnd.
   // The 'notifier_fn' will be called only once, and not repeatedly.
-  //
-  // WARNING: If all versions (or the one and only version) of a servable stream
-  // have errors and fail to reach 'goal_state', we will never notify.
   //
   // The 'reached_goal_state' argument is set as true iff all of the specific
   // servables have reached 'goal_state'.  So callers should verify that
@@ -129,15 +126,7 @@ class ServableStateMonitor {
   // state it reached. The state would be 'goal_state' if 'reached_goal_state'
   // is true, else it will contain one or more servables in kEnd state. For
   // latest servable requests, the servable id will be the id of the servable in
-  // the stream which reached the 'goal_state'.
-  //
-  // For specific servable requests, we are fine if they reach kEnd, probably by
-  // an error, because the servable can never reach 'goal_state' once it has
-  // transitioned to kEnd.
-  //
-  // For latest servable requests, even if a specific version errors out and
-  // transitions to kEnd, we continue looking for another version to reach the
-  // 'goal_state'.
+  // the stream which reached the state.
   using ServableStateNotifierFn = std::function<void(
       bool reached_goal_state,
       const std::map<ServableId, ServableState::ManagerState>& states_reached)>;
@@ -147,11 +136,7 @@ class ServableStateMonitor {
       const ServableStateNotifierFn& notifier_fn) LOCKS_EXCLUDED(mu_);
 
   // Similar to NotifyWhenServablesReachState(...), but instead of notifying, we
-  // wait until the 'goal_state' is reached.
-  //
-  // WARNING: Using 'latest' is dangerous because if all versions (or the one
-  // and only version) of a servable stream have errors and fail to reach
-  // 'goal_state' this method will wait indefinitely.
+  // wait until the 'goal_state' or kEnd is reached.
   //
   // To understand the return value and the return parameter 'states_reached',
   // please read the documentation on NotifyWhenServablesReachState(...).

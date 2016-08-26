@@ -61,7 +61,10 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
                        std::unique_ptr<FileSystemStoragePathSource>* result);
   ~FileSystemStoragePathSource() override;
 
-  // Supplies a new config to use. See class comment for more information.
+  // Supplies a new config to use. The set of servables to monitor can be
+  // changed at any time (see class comment for more information), but it is
+  // illegal to change the file-system polling period once
+  // SetAspiredVersionsCallback() has been called.
   Status UpdateConfig(const FileSystemStoragePathSourceConfig& config);
 
   void SetAspiredVersionsCallback(AspiredVersionsCallback callback) override;
@@ -70,9 +73,6 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
   friend class internal::FileSystemStoragePathSourceTestAccess;
 
   FileSystemStoragePathSource() = default;
-
-  // (Re)sets 'fs_polling_thread_' based on 'config_'.
-  void ResetFSPollingThread() EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Polls the file system and identify numerical children of the base path.
   // If zero such children are found, invokes 'aspired_versions_callback_' with
