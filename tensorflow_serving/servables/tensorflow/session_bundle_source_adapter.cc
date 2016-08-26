@@ -35,6 +35,8 @@ Status SessionBundleSourceAdapter::Create(
   return Status::OK();
 }
 
+SessionBundleSourceAdapter::~SessionBundleSourceAdapter() { Detach(); }
+
 SessionBundleSourceAdapter::SessionBundleSourceAdapter(
     std::unique_ptr<SessionBundleFactory> bundle_factory)
     : bundle_factory_(std::move(bundle_factory)) {}

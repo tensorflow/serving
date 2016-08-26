@@ -42,10 +42,18 @@ namespace serving {
 // SourceAdapters are typically stateless. However, as with all Sources they can
 // house state that is shared among multiple emitted servables. See the
 // discussion in source.h.
+//
+// Implementing subclasses supply an implementation of the Adapt() virtual
+// method, which converts a servable version list from InputType to OutputType.
+//
+// IMPORTANT: If the Adapt() implementation accesses any member variables, the
+// destructor must call Detach() (see class TargetBase in target.h) as its first
+// action. Doing so ensures that no Adapt() calls are in flight during
+// destruction of the member variables.
 template <typename InputType, typename OutputType>
 class SourceAdapter : public TargetBase<InputType>, public Source<OutputType> {
  public:
-  ~SourceAdapter() = default;
+  ~SourceAdapter() override;
 
   // This method is implemented in terms of Adapt(), which the implementing
   // subclass must supply.
@@ -76,6 +84,14 @@ class SourceAdapter : public TargetBase<InputType>, public Source<OutputType> {
 // not need the full generality of SourceAdapter.
 //
 // Requires OutputType to be default-constructable and updatable in-place.
+//
+// Implementing subclasses supply an implementation of the Convert() virtual
+// method, which converts a servable from InputType to OutputType.
+//
+// IMPORTANT: If the Convert() implementation accesses any member variables, the
+// destructor must call Detach() (see class TargetBase in target.h) as its first
+// action. Doing so ensures that no Convert() calls are in flight during
+// destruction of the member variables.
 template <typename InputType, typename OutputType>
 class UnarySourceAdapter : public SourceAdapter<InputType, OutputType> {
  public:
@@ -110,7 +126,7 @@ class ErrorInjectingSourceAdapter
     : public SourceAdapter<InputType, OutputType> {
  public:
   explicit ErrorInjectingSourceAdapter(const Status& error);
-  ~ErrorInjectingSourceAdapter() override = default;
+  ~ErrorInjectingSourceAdapter() override;
 
  private:
   std::vector<ServableData<OutputType>> Adapt(
@@ -125,6 +141,11 @@ class ErrorInjectingSourceAdapter
 
 //////////
 // Implementation details follow. API users need not read.
+
+template <typename InputType, typename OutputType>
+SourceAdapter<InputType, OutputType>::~SourceAdapter() {
+  TargetBase<InputType>::Detach();
+}
 
 template <typename InputType, typename OutputType>
 void SourceAdapter<InputType, OutputType>::SetAspiredVersions(
@@ -171,6 +192,12 @@ ErrorInjectingSourceAdapter<InputType, OutputType>::ErrorInjectingSourceAdapter(
     const Status& error)
     : error_(error) {
   DCHECK(!error.ok());
+}
+
+template <typename InputType, typename OutputType>
+ErrorInjectingSourceAdapter<InputType,
+                            OutputType>::~ErrorInjectingSourceAdapter() {
+  TargetBase<InputType>::Detach();
 }
 
 template <typename InputType, typename OutputType>

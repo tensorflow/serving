@@ -291,6 +291,20 @@ TEST(FileSystemStoragePathSourceTest, ChangeSetOfServables) {
                    .PollFileSystemAndInvokeCallback());
 }
 
+TEST(FileSystemStoragePathSourceTest, AttemptToChangePollingPeriod) {
+  FileSystemStoragePathSourceConfig config;
+  config.set_file_system_poll_wait_seconds(1);
+  std::unique_ptr<FileSystemStoragePathSource> source;
+  TF_ASSERT_OK(FileSystemStoragePathSource::Create(config, &source));
+  std::unique_ptr<test_util::MockStoragePathTarget> target(
+      new StrictMock<test_util::MockStoragePathTarget>);
+  ConnectSourceToTarget(source.get(), target.get());
+
+  FileSystemStoragePathSourceConfig new_config = config;
+  new_config.set_file_system_poll_wait_seconds(5);
+  EXPECT_FALSE(source->UpdateConfig(new_config).ok());
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

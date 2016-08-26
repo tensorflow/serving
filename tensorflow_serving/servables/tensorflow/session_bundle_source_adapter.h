@@ -36,7 +36,7 @@ class SessionBundleSourceAdapter
   static Status Create(const SessionBundleSourceAdapterConfig& config,
                        std::unique_ptr<SessionBundleSourceAdapter>* adapter);
 
-  ~SessionBundleSourceAdapter() override = default;
+  ~SessionBundleSourceAdapter() override;
 
   // Returns a function to create a session bundle source adapter.
   static std::function<Status(
