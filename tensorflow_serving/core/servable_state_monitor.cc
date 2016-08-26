@@ -77,21 +77,23 @@ optional<ServableState::ManagerState> HasSpecificServableReachedState(
   return {state};
 }
 
-// Returns the id of the servable in the stream which has reached 'goal_state'.
-// If no servable has done so, returns nullopt.
+// Returns the id of the servable in the stream which has reached 'goal_state'
+// or kEnd. If no servable has done so, returns nullopt.
 optional<ServableId> HasAnyServableInStreamReachedState(
     const string& stream_name, const ServableState::ManagerState goal_state,
-    const ServableStateMonitor::ServableMap& live_states) {
+    const ServableStateMonitor::ServableMap& states) {
   optional<ServableId> opt_servable_id;
-  const auto found_it = live_states.find(stream_name);
-  if (found_it == live_states.end()) {
+  const auto found_it = states.find(stream_name);
+  if (found_it == states.end()) {
     return {};
   }
   const ServableStateMonitor::VersionMap& version_map = found_it->second;
   for (const auto& version_and_state_time : version_map) {
     const ServableStateMonitor::ServableStateAndTime& state_and_time =
         version_and_state_time.second;
-    if (state_and_time.state.manager_state == goal_state) {
+    if (state_and_time.state.manager_state == goal_state ||
+        state_and_time.state.manager_state ==
+            ServableState::ManagerState::kEnd) {
       return {version_and_state_time.second.state.id};
     }
   }
@@ -241,17 +243,23 @@ ServableStateMonitor::ShouldSendNotification(
       if (!opt_state) {
         return {};
       }
-      reached_goal_state = *opt_state == notification_request.goal_state;
+      // Remains false once false.
+      reached_goal_state =
+          reached_goal_state && *opt_state == notification_request.goal_state;
       states_reached[servable_id] = *opt_state;
     } else {
       const optional<ServableId> opt_servable_id =
-          HasAnyServableInStreamReachedState(servable_request.name,
-                                             notification_request.goal_state,
-                                             live_states_);
+          HasAnyServableInStreamReachedState(
+              servable_request.name, notification_request.goal_state, states_);
       if (!opt_servable_id) {
         return {};
       }
-      states_reached[*opt_servable_id] = notification_request.goal_state;
+      const ServableState::ManagerState reached_state =
+          GetStateAndTimeInternal(*opt_servable_id)->state.manager_state;
+      // Remains false once false.
+      reached_goal_state = reached_goal_state &&
+                           reached_state == notification_request.goal_state;
+      states_reached[*opt_servable_id] = reached_state;
     }
   }
   return {{reached_goal_state, states_reached}};

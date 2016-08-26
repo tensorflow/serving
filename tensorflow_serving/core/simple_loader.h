@@ -121,6 +121,11 @@ class SimpleLoader : public Loader {
 // For more complex behaviors, SimpleLoaderSourceAdapter is inapplicable. You
 // must instead create a SourceAdapter and Loader. That said, you may still be
 // able to use one of UnarySourceAdapter or SimpleLoader.
+//
+// IMPORTANT: If the the subclass's Creator or ResourceEstimator implementations
+// access any member variables, the destructor must call Detach() (see class
+// TargetBase in target.h) as its first action. Doing so ensures that no virtual
+// method calls are in flight during destruction of the member variables.
 template <typename DataType, typename ServableType>
 class SimpleLoaderSourceAdapter
     : public UnarySourceAdapter<DataType, std::unique_ptr<Loader>> {
@@ -146,7 +151,7 @@ class SimpleLoaderSourceAdapter
 
   SimpleLoaderSourceAdapter(Creator creator,
                             ResourceEstimator resource_estimator);
-  ~SimpleLoaderSourceAdapter() override = default;
+  ~SimpleLoaderSourceAdapter() override;
 
  protected:
   Status Convert(const DataType& data, std::unique_ptr<Loader>* loader) final;
@@ -235,6 +240,12 @@ template <typename DataType, typename ServableType>
 SimpleLoaderSourceAdapter<DataType, ServableType>::SimpleLoaderSourceAdapter(
     Creator creator, ResourceEstimator resource_estimator)
     : creator_(creator), resource_estimator_(resource_estimator) {}
+
+template <typename DataType, typename ServableType>
+SimpleLoaderSourceAdapter<DataType,
+                          ServableType>::~SimpleLoaderSourceAdapter() {
+  TargetBase<DataType>::Detach();
+}
 
 template <typename DataType, typename ServableType>
 Status SimpleLoaderSourceAdapter<DataType, ServableType>::Convert(

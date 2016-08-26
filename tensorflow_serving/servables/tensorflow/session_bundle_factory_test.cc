@@ -150,6 +150,46 @@ TEST_F(SessionBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
   EXPECT_THAT(got, EqualsProto(want));
 }
 
+TEST_F(SessionBundleFactoryTest, RunOptions) {
+  SessionBundleConfig config;
+
+  // Configure the session-config with two threadpools. The first is setup with
+  // default settings. The second is explicitly setup with 1 thread.
+  config.mutable_session_config()->add_session_inter_op_thread_pool();
+  config.mutable_session_config()
+      ->add_session_inter_op_thread_pool()
+      ->set_num_threads(1);
+
+  // Set the threadpool index to use for session-run calls to 1.
+  config.mutable_session_run_load_threadpool_index()->set_value(1);
+
+  std::unique_ptr<SessionBundleFactory> factory;
+  TF_ASSERT_OK(SessionBundleFactory::Create(config, &factory));
+
+  // Since the session_run_load_threadpool_index in the config is set, the
+  // session-bundle should be loaded successfully from path with RunOptions.
+  std::unique_ptr<SessionBundle> bundle;
+  TF_ASSERT_OK(factory->CreateSessionBundle(export_dir_, &bundle));
+
+  TestSingleRequest(bundle.get());
+}
+
+TEST_F(SessionBundleFactoryTest, RunOptionsError) {
+  // Session bundle config with the default global threadpool.
+  SessionBundleConfig config;
+
+  // Invalid threadpool index to use for session-run calls.
+  config.mutable_session_run_load_threadpool_index()->set_value(100);
+
+  std::unique_ptr<SessionBundleFactory> factory;
+  TF_ASSERT_OK(SessionBundleFactory::Create(config, &factory));
+
+  // Since RunOptions used in the session run calls refers to an invalid
+  // threadpool index, load session bundle from path should fail.
+  std::unique_ptr<SessionBundle> bundle;
+  EXPECT_FALSE(factory->CreateSessionBundle(export_dir_, &bundle).ok());
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

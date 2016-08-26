@@ -83,13 +83,13 @@ struct CompareActions {
 namespace internal {
 
 // AspiredVersionManager's implementation of the Target API.
-class AspiredVersionsManagerTargetImpl
+class AspiredVersionsManagerTargetImpl final
     : public TargetBase<std::unique_ptr<Loader>> {
  public:
   explicit AspiredVersionsManagerTargetImpl(
       AspiredVersionsManager* const parent)
       : parent_(parent) {}
-  ~AspiredVersionsManagerTargetImpl() override = default;
+  ~AspiredVersionsManagerTargetImpl() override { Detach(); }
 
  protected:
   void SetAspiredVersions(
@@ -149,6 +149,10 @@ AspiredVersionsManager::AspiredVersionsManager(
 }
 
 AspiredVersionsManager::~AspiredVersionsManager() {
+  // Shut off incoming aspired-versions calls. It is important to do this before
+  // tearing down any other manager state.
+  target_impl_.reset();
+
   // This will wait till the thread is joined.
   manage_state_thread_.reset();
 }

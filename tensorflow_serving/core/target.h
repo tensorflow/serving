@@ -20,6 +20,7 @@ limitations under the License.
 #include <memory>
 #include <vector>
 
+#include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/strings/strcat.h"
@@ -66,15 +67,37 @@ class TargetBase : public Target<T> {
   // A method supplied by the implementing subclass to handle incoming aspired-
   // versions requests from sources.
   //
-  // Must be thread-safe, to handle the case of multiple sources (or one multi-
-  // threaded source).
+  // IMPORTANT: If the SetAspiredVersions() implementation accesses any member
+  // variables of the subclass, the subclass's destructor must call Detach() as
+  // its first action. Doing so ensures that no SetAspiredVersions() calls are
+  // in flight during destruction of the member variables.
+  //
+  // IMPORTANT: The SetAspiredVersions() implementation must be thread-safe, to
+  // handle the case of multiple sources (or one multi-threaded source).
   //
   // May block until the target has been fully set up and is able to handle the
   // incoming request.
   virtual void SetAspiredVersions(const StringPiece servable_name,
                                   std::vector<ServableData<T>> versions) = 0;
 
+  // Stops receiving SetAspiredVersions() calls. Implementing subclasses whose
+  // SetAspiredVersions() implementations access class state should call this at
+  // the top of their destructors to avoid races with destruction of that state.
+  // After Detach() returns, it is guaranteed that no SetAspiredVersions() calls
+  // are running (in any thread) and no new ones can run. Detach() is
+  // idempotent.
+  void Detach();
+
  private:
+  // Used to synchronize all class state. The shared pointer permits use in an
+  // observer lambda while being impervious to this class's destruction.
+  mutable std::shared_ptr<mutex> mu_;
+
+  // Notified when Detach() has been called. The shared pointer permits use in
+  // an observer lambda while being impervious to this class's destruction.
+  std::shared_ptr<Notification> detached_;
+
+  // An observer object that forwards to SetAspiredVersions(), if not detached.
   std::unique_ptr<Observer<const StringPiece, std::vector<ServableData<T>>>>
       observer_;
 };
@@ -88,10 +111,17 @@ void ConnectSourceToTarget(Source<T>* source, Target<T>* target);
 // Implementation details follow. API users need not read.
 
 template <typename T>
-TargetBase<T>::TargetBase() {
+TargetBase<T>::TargetBase() : mu_(new mutex), detached_(new Notification) {
+  std::shared_ptr<mutex> mu = mu_;
+  std::shared_ptr<Notification> detached = detached_;
   observer_.reset(new Observer<const StringPiece, std::vector<ServableData<T>>>(
-      [this](const StringPiece servable_name,
-             std::vector<ServableData<T>> versions) {
+      [mu, detached, this](const StringPiece servable_name,
+                           std::vector<ServableData<T>> versions) {
+        mutex_lock l(*mu);
+        if (detached->HasBeenNotified()) {
+          // We're detached. Perform a no-op.
+          return;
+        }
         this->SetAspiredVersions(servable_name, std::move(versions));
       }));
 }
@@ -99,7 +129,28 @@ TargetBase<T>::TargetBase() {
 template <typename T>
 typename Source<T>::AspiredVersionsCallback
 TargetBase<T>::GetAspiredVersionsCallback() {
+  mutex_lock l(*mu_);
+  if (detached_->HasBeenNotified()) {
+    // We're detached. Return a no-op callback.
+    return [](const StringPiece, std::vector<ServableData<T>>) {};
+  }
   return observer_->Notifier();
+}
+
+template <typename T>
+void TargetBase<T>::Detach() {
+  // We defer deleting the observer until after we've released the lock, to
+  // avoid a deadlock with the observer's internal lock when it calls our
+  // lambda.
+  std::unique_ptr<Observer<const StringPiece, std::vector<ServableData<T>>>>
+      detached_observer;
+  {
+    mutex_lock l(*mu_);
+    detached_observer = std::move(observer_);
+    if (!detached_->HasBeenNotified()) {
+      detached_->Notify();
+    }
+  }
 }
 
 template <typename T>
