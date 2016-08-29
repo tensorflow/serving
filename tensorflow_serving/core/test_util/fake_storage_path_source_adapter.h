@@ -35,7 +35,7 @@ namespace test_util {
 // the adapter may take a callback to be invoked upon destruction. The
 // suffix provided to the source-adapter is passed to the string argument of the
 // callback when it is invoked.
-class FakeStoragePathSourceAdapter
+class FakeStoragePathSourceAdapter final
     : public UnarySourceAdapter<StoragePath, StoragePath> {
  public:
   FakeStoragePathSourceAdapter(

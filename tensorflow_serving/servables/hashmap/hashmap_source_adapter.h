@@ -30,11 +30,12 @@ namespace serving {
 // A SourceAdapter for string-string hashmaps. It takes storage paths that give
 // the locations of serialized hashmaps (in the format indicated in the config)
 // and produces loaders for them.
-class HashmapSourceAdapter
+class HashmapSourceAdapter final
     : public SimpleLoaderSourceAdapter<StoragePath,
                                        std::unordered_map<string, string>> {
  public:
   explicit HashmapSourceAdapter(const HashmapSourceAdapterConfig& config);
+  ~HashmapSourceAdapter() override;
 
  private:
   TF_DISALLOW_COPY_AND_ASSIGN(HashmapSourceAdapter);

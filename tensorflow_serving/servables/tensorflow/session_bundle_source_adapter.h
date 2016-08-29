@@ -30,7 +30,7 @@ namespace serving {
 // A SourceAdapter that creates SessionBundle Loaders from export paths. It
 // keeps a SessionBundleFactory as its state, which may house a batch scheduler
 // that is shared across all of the session bundles it emits.
-class SessionBundleSourceAdapter
+class SessionBundleSourceAdapter final
     : public UnarySourceAdapter<StoragePath, std::unique_ptr<Loader>> {
  public:
   static Status Create(const SessionBundleSourceAdapterConfig& config,

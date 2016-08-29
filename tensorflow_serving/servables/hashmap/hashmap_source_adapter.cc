@@ -74,5 +74,7 @@ HashmapSourceAdapter::HashmapSourceAdapter(
           SimpleLoaderSourceAdapter<StoragePath,
                                     Hashmap>::EstimateNoResources()) {}
 
+HashmapSourceAdapter::~HashmapSourceAdapter() { Detach(); }
+
 }  // namespace serving
 }  // namespace tensorflow
