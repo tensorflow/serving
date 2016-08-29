@@ -26,6 +26,7 @@ FakeStoragePathSourceAdapter::FakeStoragePathSourceAdapter(
     : suffix_(suffix), call_on_destruct_(call_on_destruct) {}
 
 FakeStoragePathSourceAdapter::~FakeStoragePathSourceAdapter() {
+  Detach();
   if (call_on_destruct_) {
     call_on_destruct_(suffix_);
   }

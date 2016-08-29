@@ -34,7 +34,7 @@ namespace test_util {
 // the adapter may take a callback to be invoked upon destruction. The
 // suffix provided to the source-adapter is passed to the string argument of the
 // callback when it is invoked.
-class FakeLoaderSourceAdapter
+class FakeLoaderSourceAdapter final
     : public SimpleLoaderSourceAdapter<StoragePath, string> {
  public:
   FakeLoaderSourceAdapter(

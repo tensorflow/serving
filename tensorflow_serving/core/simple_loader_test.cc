@@ -116,8 +116,24 @@ TEST(SimpleLoaderTest, LoadError) {
   EXPECT_EQ("No way!", status.error_message());
 }
 
+// A pass-through implementation of SimpleLoaderSourceAdapter, which can be
+// instantiated.
+template <typename DataType, typename ServableType>
+class SimpleLoaderSourceAdapterImpl final
+    : public SimpleLoaderSourceAdapter<DataType, ServableType> {
+ public:
+  SimpleLoaderSourceAdapterImpl(
+      typename SimpleLoaderSourceAdapter<DataType, ServableType>::Creator
+          creator,
+      typename SimpleLoaderSourceAdapter<
+          DataType, ServableType>::ResourceEstimator resource_estimator)
+      : SimpleLoaderSourceAdapter<DataType, ServableType>(creator,
+                                                          resource_estimator) {}
+  ~SimpleLoaderSourceAdapterImpl() override { TargetBase<DataType>::Detach(); }
+};
+
 TEST(SimpleLoaderSourceAdapterTest, Basic) {
-  SimpleLoaderSourceAdapter<string, string> adapter(
+  SimpleLoaderSourceAdapterImpl<string, string> adapter(
       [](const string& data, std::unique_ptr<string>* servable) {
         servable->reset(new string);
         **servable = strings::StrCat(data, "_was_here");
@@ -166,7 +182,7 @@ TEST(SimpleLoaderSourceAdapterTest, OkayToDeleteAdapter) {
   {
     // Allocate 'adapter' on the heap so ASAN will catch a use-after-free.
     auto adapter = std::unique_ptr<SimpleLoaderSourceAdapter<string, string>>(
-        new SimpleLoaderSourceAdapter<string, string>(
+        new SimpleLoaderSourceAdapterImpl<string, string>(
             [](const string& data, std::unique_ptr<string>* servable) {
               servable->reset(new string);
               **servable = strings::StrCat(data, "_was_here");

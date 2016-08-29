@@ -54,23 +54,23 @@ class Target {
 // A base class for Target implementations. Takes care of ensuring that the
 // emitted aspired-versions callbacks outlive the Target object. Target
 // implementations should extend TargetBase.
+//
+// IMPORTANT: Every leaf derived class must call Detach() at the top of its
+// destructor. (See documentation on Detach() below.)
 template <typename T>
 class TargetBase : public Target<T> {
  public:
-  TargetBase();
-  ~TargetBase() override = default;
+  ~TargetBase() override;
 
   typename Source<T>::AspiredVersionsCallback GetAspiredVersionsCallback()
       final;
 
  protected:
+  // This is an abstract class.
+  TargetBase();
+
   // A method supplied by the implementing subclass to handle incoming aspired-
   // versions requests from sources.
-  //
-  // IMPORTANT: If the SetAspiredVersions() implementation accesses any member
-  // variables of the subclass, the subclass's destructor must call Detach() as
-  // its first action. Doing so ensures that no SetAspiredVersions() calls are
-  // in flight during destruction of the member variables.
   //
   // IMPORTANT: The SetAspiredVersions() implementation must be thread-safe, to
   // handle the case of multiple sources (or one multi-threaded source).
@@ -80,12 +80,11 @@ class TargetBase : public Target<T> {
   virtual void SetAspiredVersions(const StringPiece servable_name,
                                   std::vector<ServableData<T>> versions) = 0;
 
-  // Stops receiving SetAspiredVersions() calls. Implementing subclasses whose
-  // SetAspiredVersions() implementations access class state should call this at
-  // the top of their destructors to avoid races with destruction of that state.
-  // After Detach() returns, it is guaranteed that no SetAspiredVersions() calls
-  // are running (in any thread) and no new ones can run. Detach() is
-  // idempotent.
+  // Stops receiving SetAspiredVersions() calls. Every leaf derived class (i.e.
+  // sub-sub-...-class with no children) must call Detach() at the top of its
+  // destructor to avoid races with state destruction. After Detach() returns,
+  // it is guaranteed that no SetAspiredVersions() calls are running (in any
+  // thread) and no new ones can run. Detach() must be called exactly once.
   void Detach();
 
  private:
@@ -127,6 +126,13 @@ TargetBase<T>::TargetBase() : mu_(new mutex), detached_(new Notification) {
 }
 
 template <typename T>
+TargetBase<T>::~TargetBase() {
+  DCHECK(detached_->HasBeenNotified()) << "Detach() must be called exactly "
+                                          "once, at the top of the leaf "
+                                          "derived class's destructor";
+}
+
+template <typename T>
 typename Source<T>::AspiredVersionsCallback
 TargetBase<T>::GetAspiredVersionsCallback() {
   mutex_lock l(*mu_);
@@ -139,6 +145,10 @@ TargetBase<T>::GetAspiredVersionsCallback() {
 
 template <typename T>
 void TargetBase<T>::Detach() {
+  DCHECK(!detached_->HasBeenNotified()) << "Detach() must be called exactly "
+                                           "once, at the top of the leaf "
+                                           "derived class's destructor";
+
   // We defer deleting the observer until after we've released the lock, to
   // avoid a deadlock with the observer's internal lock when it calls our
   // lambda.
