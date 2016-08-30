@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 // Helper methods related to the availability of servables.
+// DEPRECATED. Use ServableStateMonitor::WaitUntilServablesReachState() instead.
 
 #ifndef TENSORFLOW_SERVING_CORE_AVAILABILITY_HELPERS_H_
 #define TENSORFLOW_SERVING_CORE_AVAILABILITY_HELPERS_H_

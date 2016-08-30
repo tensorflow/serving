@@ -355,6 +355,7 @@ cc_test(
     ],
 )
 
+# DEPRECATED. See comment in availability_helpers.h for what to use instead.
 cc_library(
     name = "availability_helpers",
     srcs = ["availability_helpers.cc"],
