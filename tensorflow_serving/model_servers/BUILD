@@ -36,7 +36,6 @@ cc_library(
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:aspired_versions_manager",
-        "//tensorflow_serving/core:availability_helpers",
         "//tensorflow_serving/core:eager_load_policy",
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/core:source",
