@@ -25,7 +25,6 @@ limitations under the License.
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
-#include "tensorflow_serving/core/availability_helpers.h"
 #include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
@@ -116,7 +115,11 @@ class AspiredVersionsManagerTest : public ::testing::TestWithParam<int> {
       // version.
       RunManageState();
     }
-    WaitUntilServablesAvailable(servables, manager_.get());
+    for (const ServableId& servable : servables) {
+      WaitUntilServableManagerStateIsOneOf(
+          servable_state_monitor_, servable,
+          {ServableState::ManagerState::kAvailable});
+    }
   }
 
   void RunManageState() {
@@ -170,7 +173,8 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleLatest) {
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
   RunManageState();
-  WaitUntilServablesAvailable({id}, manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   ServableHandle<int64> handle;
   const Status status = manager_->GetServableHandle(
@@ -190,7 +194,8 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleLatestVersionIsZero) {
                                          std::move(aspired_versions));
 
   RunManageState();
-  WaitUntilServablesAvailable({id}, manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   ServableHandle<int64> handle;
   const Status status = manager_->GetServableHandle(
@@ -387,7 +392,8 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {
   EXPECT_EQ(error::NOT_FOUND, not_ready_status.code());
 
   RunManageState();
-  WaitUntilServablesAvailable({id}, manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   ServableHandle<int64> handle;
   const Status status =
@@ -625,7 +631,8 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
               EqualsServableState(loading_state));
 
   load_continue.Notify();
-  WaitUntilServablesAvailable({id}, manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   const ServableState available_state = {
       id, ServableState::ManagerState::kAvailable, Status::OK()};

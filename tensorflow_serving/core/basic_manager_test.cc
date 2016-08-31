@@ -25,7 +25,6 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
-#include "tensorflow_serving/core/availability_helpers.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 #include "tensorflow_serving/core/test_util/fake_loader.h"
@@ -94,7 +93,11 @@ class BasicManagerTest : public ::testing::TestWithParam<int> {
         loaded_servables.insert(id);
       }
     }
-    WaitUntilServablesAvailable(loaded_servables, basic_manager_.get());
+    for (const ServableId& loaded_servable : loaded_servables) {
+      WaitUntilServableManagerStateIsOneOf(
+          servable_state_monitor_, loaded_servable,
+          {ServableState::ManagerState::kAvailable});
+    }
   }
 
   int num_load_unload_threads_;
@@ -131,7 +134,8 @@ TEST_P(BasicManagerTest, ServableHandleLatest) {
   basic_manager_->ManageServable(CreateServable(id));
   basic_manager_->LoadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   ServableHandle<int64> handle;
   const Status status = basic_manager_->GetServableHandle(
@@ -146,7 +150,8 @@ TEST_P(BasicManagerTest, ServableHandleLatestVersionIsZero) {
   basic_manager_->ManageServable(CreateServable(id));
   basic_manager_->LoadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   ServableHandle<int64> handle;
   const Status status = basic_manager_->GetServableHandle(
@@ -176,7 +181,8 @@ TEST_P(BasicManagerTest, UpdateServingMapServableHandleLatest) {
   basic_manager_->ManageServable(CreateServable(id0));
   basic_manager_->LoadServable(
       id0, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id0}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id0, {ServableState::ManagerState::kAvailable});
 
   test_util::MockLoader* notify_to_unload = new NiceMock<test_util::MockLoader>;
   // Don't make it const otherwise servable types will mismatch: const int64 vs
@@ -192,7 +198,8 @@ TEST_P(BasicManagerTest, UpdateServingMapServableHandleLatest) {
       {id1, std::unique_ptr<Loader>(notify_to_unload)});
   basic_manager_->LoadServable(
       id1, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id1}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id1, {ServableState::ManagerState::kAvailable});
 
   // We have loaded both versions 0 and 1 of kServableName3, so the latest
   // handle should be that of v1.
@@ -447,7 +454,8 @@ TEST_P(BasicManagerTest, DestructOnNonServingThread) {
       CreateServableData(id, std::unique_ptr<Loader>(new FakeLoader(7))));
   basic_manager_->LoadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   std::unique_ptr<ServableHandle<int64>> latest_handle(
       new ServableHandle<int64>());
@@ -512,7 +520,8 @@ TEST_P(BasicManagerTest, MultipleLoadServables) {
   basic_manager_->ManageServable(CreateServable(id));
   basic_manager_->LoadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
   basic_manager_->LoadServable(id, [](const Status& status) {
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(error::FAILED_PRECONDITION, status.code());
@@ -526,7 +535,8 @@ TEST_P(BasicManagerTest, MultipleUnloadServables) {
   basic_manager_->ManageServable(CreateServable(id));
   basic_manager_->LoadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
   basic_manager_->UnloadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
@@ -630,7 +640,8 @@ TEST_P(BasicManagerTest, EventBusServableLifecycle) {
               EqualsServableState(loading_state));
 
   load_continue.Notify();
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   const ServableState available_state = {
       id, ServableState::ManagerState::kAvailable, Status::OK()};
@@ -703,7 +714,11 @@ TEST_P(BasicManagerTest, LoadsThenUnloads) {
   }
 
   // At this point, all loads may not have completed, so we wait for them.
-  WaitUntilServablesAvailable(servables, basic_manager_.get());
+  for (const ServableId& servable : servables) {
+    WaitUntilServableManagerStateIsOneOf(
+        servable_state_monitor_, servable,
+        {ServableState::ManagerState::kAvailable});
+  }
 
   {
     ThreadPoolExecutor unload_executor(Env::Default(), "UnloadServables",
@@ -781,7 +796,8 @@ TEST_P(BasicManagerTest, ConcurrentUnloadsOnlyOneSucceeds) {
   basic_manager_->LoadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
   // At this point, all loads may not have completed, so we wait for them.
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   mutex status_mu;
   std::vector<Status> statuses(4);

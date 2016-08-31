@@ -355,32 +355,6 @@ cc_test(
     ],
 )
 
-# DEPRECATED. See comment in availability_helpers.h for what to use instead.
-cc_library(
-    name = "availability_helpers",
-    srcs = ["availability_helpers.cc"],
-    hdrs = ["availability_helpers.h"],
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        ":manager",
-        ":servable_id",
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
-cc_test(
-    name = "availability_helpers_test",
-    srcs = ["availability_helpers_test.cc"],
-    deps = [
-        ":availability_helpers",
-        ":servable_handle",
-        "//tensorflow_serving/core/test_util:test_main",
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
 cc_library(
     name = "servable_state_monitor",
     srcs = ["servable_state_monitor.cc"],
@@ -467,7 +441,6 @@ cc_test(
     size = "small",
     srcs = ["basic_manager_test.cc"],
     deps = [
-        ":availability_helpers",
         ":basic_manager",
         ":servable_state_monitor",
         "//tensorflow_serving/core/test_util:availability_test_util",
@@ -475,6 +448,8 @@ cc_test(
         "//tensorflow_serving/core/test_util:mock_loader",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:any_ptr",
+        "//tensorflow_serving/util:event_bus",
+        "//tensorflow_serving/util:threadpool_executor",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
@@ -512,7 +487,6 @@ cc_test(
     srcs = ["aspired_versions_manager_test.cc"],
     deps = [
         ":aspired_versions_manager",
-        ":availability_helpers",
         ":eager_load_policy",
         ":servable_state_monitor",
         "//tensorflow_serving/core/test_util:availability_test_util",
@@ -521,6 +495,7 @@ cc_test(
         "//tensorflow_serving/core/test_util:mock_loader",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:any_ptr",
+        "//tensorflow_serving/util:event_bus",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
