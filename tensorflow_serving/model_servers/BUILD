@@ -93,6 +93,7 @@ cc_binary(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
         "//tensorflow_serving/apis:prediction_service_proto",
+        "//tensorflow_serving/core:servable_state_monitor",
         "@grpc//:grpc++",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
 )
