@@ -57,6 +57,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 #include "tensorflow_serving/apis/prediction_service.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
+#include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
@@ -104,7 +105,7 @@ tensorflow::Status CreateSourceAdapter(
 tensorflow::Status CreateServableStateMonitor(
     EventBus<ServableState>* event_bus,
     std::unique_ptr<ServableStateMonitor>* monitor) {
-  *monitor = nullptr;
+  monitor->reset(new ServableStateMonitor(event_bus));
   return tensorflow::Status::OK();
 }
 
