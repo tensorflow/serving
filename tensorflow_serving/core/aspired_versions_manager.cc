@@ -78,6 +78,23 @@ struct CompareActions {
   }
 };
 
+// Determines whether 'state_snapshots' contains any entries with
+// is_aspired==false that are in 'next_aspired_versions'. (Ignores servable
+// names and only looks at version numbers; assumes all information pertains to
+// a single servable name.)
+bool ContainsAnyReaspiredVersions(
+    const std::vector<ServableStateSnapshot<Aspired>>& state_snapshots,
+    const std::set<int64>& next_aspired_versions) {
+  for (const ServableStateSnapshot<Aspired>& state_snapshot : state_snapshots) {
+    if (!state_snapshot.additional_state->is_aspired &&
+        next_aspired_versions.find(state_snapshot.id.version) !=
+            next_aspired_versions.end()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
 namespace internal {
@@ -183,8 +200,7 @@ void AspiredVersionsManager::SetAspiredVersions(
     std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
   // We go through the aspired_servable_versions and fill a vector with the
   // next aspired version numbers, and sort it.
-  std::vector<int64> next_aspired_versions;
-  next_aspired_versions.reserve(versions.size());
+  std::set<int64> next_aspired_versions;
   for (const auto& version : versions) {
     if (servable_name != version.id().name) {
       LOG(ERROR) << "Servable name: " << servable_name
@@ -193,23 +209,44 @@ void AspiredVersionsManager::SetAspiredVersions(
       DCHECK(false) << "See previous servable name mismatch error message.";
       return;
     }
-    next_aspired_versions.push_back(version.id().version);
+    next_aspired_versions.insert(version.id().version);
   }
-  std::sort(next_aspired_versions.begin(), next_aspired_versions.end());
 
   {
     mutex_lock l(basic_manager_read_modify_write_mu_);
+
+    // We wait for any re-aspired versions (versions currently not aspired, but
+    // present in 'next_aspired_versions') to quiesce and be removed from
+    // BasicManager. Doing so ensures that re-aspired versions start with a
+    // clean slate by being re-inserted from scratch into BasicManager, below.
+    //
+    // TODO(b/31269483): Make SetAspiredVersions() asynchronous to avoid
+    // blocking the calling thread in situations like this.
+    std::vector<ServableStateSnapshot<Aspired>> state_snapshots;
+    while (true) {
+      state_snapshots =
+          basic_manager_->GetManagedServableStateSnapshots<Aspired>(
+              servable_name.ToString());
+      if (!ContainsAnyReaspiredVersions(state_snapshots,
+                                        next_aspired_versions)) {
+        break;
+      }
+      const auto kWaitTime = std::chrono::milliseconds(10);
+      // (We use this condition variable in a degenerate way -- it never gets
+      // notified -- to sleep without holding the mutex.)
+      condition_variable cv;
+      cv.wait_for(l, kWaitTime);
+    }
 
     // We gather all the servables with the servable_name and
     // 1. Add the current aspired version numbers to a vector and sort it,
     // 2. Set the aspired bool to false for all current servable harnesses which
     // are not aspired.
-    std::vector<int64> current_aspired_versions;
+    std::set<int64> current_aspired_versions;
     for (const ServableStateSnapshot<Aspired> state_snapshot :
-         basic_manager_->GetManagedServableStateSnapshots<Aspired>(
-             servable_name.ToString())) {
+         state_snapshots) {
       if (state_snapshot.additional_state->is_aspired) {
-        current_aspired_versions.push_back(state_snapshot.id.version);
+        current_aspired_versions.insert(state_snapshot.id.version);
       }
       // If this version is not part of the aspired versions.
       if (std::find(next_aspired_versions.begin(), next_aspired_versions.end(),
@@ -219,13 +256,11 @@ void AspiredVersionsManager::SetAspiredVersions(
         basic_manager_->CancelLoadServableRetry(state_snapshot.id);
       }
     }
-    std::sort(current_aspired_versions.begin(), current_aspired_versions.end());
 
     // We do a set_difference (A - B), on the next aspired versions and the
     // current aspired versions to find the version numbers which need to be
     // added the harness map.
-    std::vector<int64> additions;
-    additions.reserve(next_aspired_versions.size());
+    std::set<int64> additions;
     std::set_difference(
         next_aspired_versions.begin(), next_aspired_versions.end(),
         current_aspired_versions.begin(), current_aspired_versions.end(),

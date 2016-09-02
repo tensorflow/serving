@@ -348,14 +348,10 @@ TEST_P(BasicManagerTest, GetManagedServableNames) {
 }
 
 TEST_P(BasicManagerTest,
-       GetManagedServableStateSnapshotsWithoutAdditionalState) {
-  const ServableId id = {kServableName, 7};
-  basic_manager_->ManageServable(
-      ServableData<std::unique_ptr<Loader>>(id, errors::Internal("An error.")));
+       GetManagedServableStateSnapshotWithoutAdditionalState) {
   const std::vector<ServableStateSnapshot<>> expected = {
       {{kServableName, 1}, LoaderHarness::State::kReady, {}},
-      {{kServableName, 2}, LoaderHarness::State::kReady, {}},
-      {{kServableName, 7}, LoaderHarness::State::kError, {}}};
+      {{kServableName, 2}, LoaderHarness::State::kReady, {}}};
   EXPECT_THAT(basic_manager_->GetManagedServableStateSnapshots(kServableName),
               UnorderedElementsAreArray(expected));
 }
@@ -371,18 +367,6 @@ TEST_P(BasicManagerTest, GetManagedServableStateSnapshot) {
       id_ready, LoaderHarness::State::kReady, {}};
   EXPECT_EQ(actual_ready_snapshot, expected_ready_snapshot);
 
-  // Check servable state snapshot corresponding to a servable-id that is in
-  // error state.
-  const ServableId id_error = {kServableName, 7};
-  basic_manager_->ManageServable(ServableData<std::unique_ptr<Loader>>(
-      id_error, errors::Internal("An error.")));
-  const optional<ServableStateSnapshot<>> actual_error_snapshot =
-      basic_manager_->GetManagedServableStateSnapshot(id_error);
-  EXPECT_TRUE(actual_error_snapshot);
-  const ServableStateSnapshot<> expected_error_snapshot = {
-      id_error, LoaderHarness::State::kError, {}};
-  EXPECT_EQ(actual_error_snapshot, expected_error_snapshot);
-
   // Check servable state snapshot corresponding to a servable-id that is not
   // managed by the basic-manager.
   const ServableId id_notmanaged = {kServableName, 8};
@@ -394,14 +378,9 @@ TEST_P(BasicManagerTest, GetManagedServableStateSnapshotsWithAdditionalState) {
       CreateServable({kServableName3, 0}), std::unique_ptr<int>(new int(0)));
   basic_manager_->ManageServableWithAdditionalState(
       CreateServable({kServableName3, 1}), std::unique_ptr<int>(new int(1)));
-  basic_manager_->ManageServableWithAdditionalState(
-      ServableData<std::unique_ptr<Loader>>({kServableName3, 2},
-                                            errors::Internal("An error.")),
-      std::unique_ptr<int>(new int(2)));
   const std::vector<ServableStateSnapshot<int>> expected = {
       {{kServableName3, 0}, LoaderHarness::State::kNew, {0}},
-      {{kServableName3, 1}, LoaderHarness::State::kNew, {1}},
-      {{kServableName3, 2}, LoaderHarness::State::kError, {2}}};
+      {{kServableName3, 1}, LoaderHarness::State::kNew, {1}}};
   EXPECT_THAT(
       basic_manager_->GetManagedServableStateSnapshots<int>(kServableName3),
       UnorderedElementsAreArray(expected));
@@ -437,9 +416,8 @@ TEST_P(BasicManagerTest, ErroneousServable) {
   Status status = basic_manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 3), &handle);
   EXPECT_FALSE(status.ok()) << status;
-  basic_manager_->LoadServable(id, [](const Status& status) {
-    EXPECT_EQ(errors::Unknown("error"), status);
-  });
+  basic_manager_->LoadServable(
+      id, [](const Status& status) { EXPECT_FALSE(status.ok()) << status; });
 
   status = basic_manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 3), &handle);
@@ -917,9 +895,8 @@ TEST_P(BasicManagerTest, LoadAfterCancelledLoad) {
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
 
-  basic_manager_->LoadServable(id, [](const Status& status) {
-    EXPECT_EQ(errors::Internal("Load error."), status);
-  });
+  basic_manager_->LoadServable(
+      id, [](const Status& status) { EXPECT_FALSE(status.ok()) << status; });
 }
 
 // Creates a ResourceAllocation proto with 'quantity' units of RAM.
@@ -1051,10 +1028,6 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
         rejection_received.Notify();
       });
   rejection_received.WaitForNotification();
-  EXPECT_THAT(
-      basic_manager_->GetManagedServableStateSnapshots(rejected_id.name),
-      UnorderedElementsAre(ServableStateSnapshot<>{
-          rejected_id, LoaderHarness::State::kError, {}}));
   const ServableState expected_error_state = {
       rejected_id, ServableState::ManagerState::kEnd, rejected_status};
   EXPECT_THAT(*servable_state_monitor_.GetState(rejected_id),
