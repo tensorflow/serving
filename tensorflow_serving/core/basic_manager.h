@@ -291,9 +291,14 @@ class BasicManager : public Manager {
   Status ApproveLoadOrUnload(const LoadOrUnloadRequest& request,
                              LoaderHarness** harness) LOCKS_EXCLUDED(mu_);
 
-  // The decision phase of whether to approve a load request. If it succeeds,
-  // places the servable into state kApprovedForLoad. Among other things, that
-  // prevents a subsequent load request from proceeding concurrently.
+  // The decision phase of whether to approve a load request.
+  //
+  // If it succeeds, places the servable into state kApprovedForLoad. Among
+  // other things, that prevents a subsequent load request from proceeding
+  // concurrently.
+  //
+  // If it fails, removes 'harness' from 'managed_map_' (which causes 'harness'
+  // to be deleted).
   //
   // Argument 'mu_lock' is a lock held on 'mu_'. It is released temporarily via
   // 'num_ongoing_load_unload_executions_cv_'.
@@ -310,6 +315,9 @@ class BasicManager : public Manager {
   //
   // Upon completion (and regardless of the outcome), signals exit of the
   // execution phase by decrementing 'num_ongoing_load_unload_executions_'.
+  //
+  // If it fails, removes 'harness' from 'managed_map_' (which causes 'harness'
+  // to be deleted).
   Status ExecuteLoadOrUnload(const LoadOrUnloadRequest& request,
                              LoaderHarness* harness);
 
@@ -340,6 +348,12 @@ class BasicManager : public Manager {
   // harness_map_.end(), if the harness is not found.
   ManagedMap::iterator FindHarnessInMap(const ServableId& id)
       EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
+  // Removes the harness associated with 'id' from 'managed_map_' and deletes
+  // the harness.
+  //
+  // If no matching harness is found, DCHECK-fails and logs an error.
+  void DeleteHarness(const ServableId& id) EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Publishes the state on the event bus, if an event bus was part of the
   // options, if not we ignore it.
