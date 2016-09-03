@@ -131,8 +131,17 @@ ModelServerConfig BuildSingleModelConfig(const string& model_name,
 }
 
 grpc::Status ToGRPCStatus(const tensorflow::Status& status) {
+  const int kErrorMessageLimit = 1024;
+  string error_message;
+  if (status.error_message().length() > kErrorMessageLimit) {
+    LOG(ERROR) << "Truncating error: " << status.error_message();
+    error_message =
+        status.error_message().substr(0, kErrorMessageLimit) + "...TRUNCATED";
+  } else {
+    error_message = status.error_message();
+  }
   return grpc::Status(static_cast<grpc::StatusCode>(status.code()),
-                      status.error_message());
+                      error_message);
 }
 
 class PredictionServiceImpl final : public PredictionService::Service {
