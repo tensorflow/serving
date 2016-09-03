@@ -104,6 +104,8 @@ py_test(
     srcs = ["tensorflow_model_server_test.py"],
     data = [
         ":tensorflow_model_server",
+        "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
+        "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
     ],
@@ -111,6 +113,15 @@ py_test(
         "local",
         "manual",
     ],
+    deps = [
+        "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+    ],
+)
+
+py_binary(
+    name = "tensorflow_model_server_test_client",
+    srcs = ["tensorflow_model_server_test_client.py"],
     deps = [
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
         "@org_tensorflow//tensorflow:tensorflow_py",
