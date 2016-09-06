@@ -29,8 +29,11 @@ class AspiredVersionsManagerTestAccess {
  public:
   explicit AspiredVersionsManagerTestAccess(AspiredVersionsManager* manager);
 
-  // Invokes ManageState() on the manager.
-  void RunManageState();
+  // Invokes HandlePendingAspiredVersionsRequests() on the manager.
+  void HandlePendingAspiredVersionsRequests();
+
+  // Invokes InvokePolicyAndExecuteAction() on the manager.
+  void InvokePolicyAndExecuteAction();
 
  private:
   AspiredVersionsManager* const manager_;

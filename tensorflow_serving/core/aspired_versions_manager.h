@@ -183,12 +183,27 @@ class AspiredVersionsManager : public Manager,
   std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
   GetAvailableUntypedServableHandles() const override;
 
-  // Handles incoming aspired-versions requests from sources, via
-  // 'target_impl_'.
-  void SetAspiredVersions(
+  // Enqueues an incoming aspired-versions request to be processed later,
+  // asynchronously.
+  void EnqueueAspiredVersionsRequest(
       const StringPiece servable_name,
       std::vector<ServableData<std::unique_ptr<Loader>>> versions)
-      LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_);
+      LOCKS_EXCLUDED(pending_aspired_versions_requests_mu_);
+
+  // Processes an aspired-versions request. It assumes the request doesn't
+  // re-aspire any servables currently marked as not aspired in
+  // 'basic_manager_'.
+  void ProcessAspiredVersionsRequest(
+      const StringPiece servable_name,
+      std::vector<ServableData<std::unique_ptr<Loader>>> versions)
+      EXCLUSIVE_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
+
+  // Determines whether an aspired-versions request contains any versions that
+  // are currently being managed in 'basic_manager_' with is_aspired==false.
+  bool ContainsAnyReaspiredVersions(
+      const StringPiece servable_name,
+      const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) const
+      SHARED_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
 
   // Performs the action on the harness.
   void PerformAction(const AspiredVersionPolicy::ServableAction action)
@@ -200,16 +215,39 @@ class AspiredVersionsManager : public Manager,
   optional<AspiredVersionPolicy::ServableAction> GetNextAction()
       EXCLUSIVE_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
 
-  // Manages the state of the servables periodically.
-  void ManageState() LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_);
+  // Handles enqueued aspired-versions requests. This method is intended to be
+  // invoked periodically, interleaved with InvokePolicyAndExecuteAction().
+  void HandlePendingAspiredVersionsRequests()
+      LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_,
+                     pending_aspired_versions_requests_mu_);
+
+  // Invokes the aspired-version policy and executes any returned policy action.
+  // This method is intended to be invoked periodically.
+  void InvokePolicyAndExecuteAction()
+      LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_);
 
   std::unique_ptr<AspiredVersionPolicy> aspired_version_policy_;
+
+  // Aspired-versions requests pending to be processed, keyed by servable name.
+  //
+  // We stage incoming aspired-versions requests here and process them
+  // asynchronously from the SetAspiredVersions() call, to avoid blocking in
+  // SetAspiredVersions() to handle re-aspiring versions.
+  //
+  // For a given servable name we to need store at most pending request, since
+  // each new request we receive supercedes the prior one.
+  using AspiredVersionsMap =
+      std::map<string, std::vector<ServableData<std::unique_ptr<Loader>>>>;
+  AspiredVersionsMap pending_aspired_versions_requests_
+      GUARDED_BY(pending_aspired_versions_requests_mu_);
+  mutable mutex pending_aspired_versions_requests_mu_;
 
   // To lock basic_manager_ to perform atomic read/modify/write operations on
   // the set of managed servables and their state (in particular, aspiredness).
   mutable mutex basic_manager_read_modify_write_mu_;
 
-  // Periodically runs the ManageState method in a background thread.
+  // Periodically runs HandlePendingAspiredVersionsRequests() and
+  // InvokePolicyAndExecuteAction() in a background thread.
   std::unique_ptr<PeriodicFunction> manage_state_thread_;
 
   // The object that implements the Target API on behalf of this manager.
