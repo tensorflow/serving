@@ -100,6 +100,7 @@ class AspiredVersionsManagerTest : public ::testing::TestWithParam<int> {
     }
     manager_->GetAspiredVersionsCallback()(kServableName,
                                            std::move(aspired_versions));
+    HandlePendingAspiredVersionsRequests();
 
     std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions2;
     for (int i = 0; i < kNumVersionsPerServable; ++i) {
@@ -109,11 +110,12 @@ class AspiredVersionsManagerTest : public ::testing::TestWithParam<int> {
     }
     manager_->GetAspiredVersionsCallback()(kServableName2,
                                            std::move(aspired_versions2));
+    HandlePendingAspiredVersionsRequests();
 
     for (int i = 0; i < kNumTotalVersions; ++i) {
       // Each time the state manager thread is run, we should load a servable
       // version.
-      RunManageState();
+      InvokePolicyAndExecuteAction();
     }
     for (const ServableId& servable : servables) {
       WaitUntilServableManagerStateIsOneOf(
@@ -122,9 +124,14 @@ class AspiredVersionsManagerTest : public ::testing::TestWithParam<int> {
     }
   }
 
-  void RunManageState() {
+  void HandlePendingAspiredVersionsRequests() {
     test_util::AspiredVersionsManagerTestAccess(manager_.get())
-        .RunManageState();
+        .HandlePendingAspiredVersionsRequests();
+  }
+
+  void InvokePolicyAndExecuteAction() {
+    test_util::AspiredVersionsManagerTestAccess(manager_.get())
+        .InvokePolicyAndExecuteAction();
   }
 
   std::shared_ptr<EventBus<ServableState>> servable_event_bus_;
@@ -172,7 +179,8 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleLatest) {
   aspired_versions.push_back(CreateAspiredVersion(id));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
-  RunManageState();
+  HandlePendingAspiredVersionsRequests();
+  InvokePolicyAndExecuteAction();
   WaitUntilServableManagerStateIsOneOf(
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
@@ -192,8 +200,9 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleLatestVersionIsZero) {
   aspired_versions.push_back(CreateAspiredVersion(id));
   manager_->GetAspiredVersionsCallback()(kServableName3,
                                          std::move(aspired_versions));
+  HandlePendingAspiredVersionsRequests();
 
-  RunManageState();
+  InvokePolicyAndExecuteAction();
   WaitUntilServableManagerStateIsOneOf(
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
@@ -233,8 +242,9 @@ TEST_P(AspiredVersionsManagerTest, ListAvailableServableIds) {
   aspired_versions.push_back({id, std::move(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
+  HandlePendingAspiredVersionsRequests();
   for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
-    RunManageState();
+    InvokePolicyAndExecuteAction();
   }
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
@@ -279,8 +289,9 @@ TEST_P(AspiredVersionsManagerTest, GetAvailableServableHandles) {
   aspired_versions.push_back({id, std::move(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
+  HandlePendingAspiredVersionsRequests();
   for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
-    RunManageState();
+    InvokePolicyAndExecuteAction();
   }
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
@@ -324,10 +335,11 @@ TEST_P(AspiredVersionsManagerTest, AspiredRemovedFull) {
   }
 
   manager_->GetAspiredVersionsCallback()(kServableName, {});
+  HandlePendingAspiredVersionsRequests();
 
   const int num_fake_loaders_before = FakeLoader::num_fake_loaders();
   for (int i = 0; i < kNumVersionsPerServable; ++i) {
-    RunManageState();
+    InvokePolicyAndExecuteAction();
   }
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
                                        {kServableName, 0},
@@ -359,8 +371,9 @@ TEST_P(AspiredVersionsManagerTest, AspiredRemovedPartial) {
   aspired_versions.push_back(CreateAspiredVersion({kServableName, 0}));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
+  HandlePendingAspiredVersionsRequests();
 
-  RunManageState();
+  InvokePolicyAndExecuteAction();
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
                                        {kServableName, 1},
                                        {ServableState::ManagerState::kEnd});
@@ -384,6 +397,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {
   aspired_versions.push_back(CreateAspiredVersion(id));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
+  HandlePendingAspiredVersionsRequests();
 
   ServableHandle<int64> not_ready_handle;
   const Status not_ready_status = manager_->GetServableHandle(
@@ -391,7 +405,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {
   ASSERT_FALSE(not_ready_status.ok()) << not_ready_status;
   EXPECT_EQ(error::NOT_FOUND, not_ready_status.code());
 
-  RunManageState();
+  InvokePolicyAndExecuteAction();
   WaitUntilServableManagerStateIsOneOf(
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
@@ -412,9 +426,10 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateUnload) {
   }
 
   manager_->GetAspiredVersionsCallback()(kServableName, {});
+  HandlePendingAspiredVersionsRequests();
 
   for (int i = 0; i < kNumVersionsPerServable; ++i) {
-    RunManageState();
+    InvokePolicyAndExecuteAction();
   }
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
                                        {kServableName, 0},
@@ -462,11 +477,12 @@ TEST_P(AspiredVersionsManagerTest, ManagerPrefersUnloadOverLoad) {
     }
     manager_->GetAspiredVersionsCallback()(servable_aspired.name,
                                            std::move(aspired_versions));
+    HandlePendingAspiredVersionsRequests();
   }
 
   // The manager prefers to unload a servable before loading a servable, so it
   // should prefer to unload version 0 of the first servable stream.
-  RunManageState();
+  InvokePolicyAndExecuteAction();
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
                                        {kServableName, 0},
                                        {ServableState::ManagerState::kEnd});
@@ -483,7 +499,7 @@ TEST_P(AspiredVersionsManagerTest, ManagerPrefersUnloadOverLoad) {
   EXPECT_EQ(error::NOT_FOUND, not_found_2_status.code());
 
   // Now it should load version 2 of the second servable stream.
-  RunManageState();
+  InvokePolicyAndExecuteAction();
   WaitUntilServableManagerStateIsOneOf(
       servable_state_monitor_, {kServableName2, 2},
       {ServableState::ManagerState::kAvailable});
@@ -502,13 +518,14 @@ TEST_P(AspiredVersionsManagerTest, ErroneousAspiredVersion) {
   aspired_versions.push_back(CreateErroneousAspiredVersion({kServableName, 3}));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
+  HandlePendingAspiredVersionsRequests();
 
   ServableHandle<int64> handle;
   Status status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 3), &handle);
   EXPECT_FALSE(status.ok()) << status;
 
-  RunManageState();
+  InvokePolicyAndExecuteAction();
 
   status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 3), &handle);
@@ -526,13 +543,14 @@ TEST_P(AspiredVersionsManagerTest, DestructOnNonServingThread) {
   EXPECT_EQ(1, **latest_handle);
 
   manager_->GetAspiredVersionsCallback()(kServableName, {});
+  HandlePendingAspiredVersionsRequests();
 
   Notification done_unload_servable;
   std::unique_ptr<Thread> unload_servable(
       Env::Default()->StartThread({}, "UnloadServable", [&]() {
         // Unload the servable.
         for (int i = 0; i < kNumVersionsPerServable; ++i) {
-          RunManageState();
+          InvokePolicyAndExecuteAction();
         }
         WaitUntilServableManagerStateIsOneOf(
             servable_state_monitor_, {kServableName, 0},
@@ -567,6 +585,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusErroneousVersion) {
       ServableData<std::unique_ptr<Loader>>(id, errors::Unknown("error")));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
+  HandlePendingAspiredVersionsRequests();
 
   const ServableState expected_published_state = {
       id, ServableState::ManagerState::kEnd, errors::Unknown("error")};
@@ -582,13 +601,14 @@ TEST_P(AspiredVersionsManagerTest, EventBusErrorOnLoad) {
   aspired_versions.push_back({id, std::move(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
+  HandlePendingAspiredVersionsRequests();
 
   const ServableState start_state = {id, ServableState::ManagerState::kStart,
                                      Status::OK()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(start_state));
 
-  RunManageState();
+  InvokePolicyAndExecuteAction();
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
 
@@ -605,6 +625,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
   aspired_versions.push_back({id, std::unique_ptr<Loader>(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
+  HandlePendingAspiredVersionsRequests();
 
   const ServableState start_state = {id, ServableState::ManagerState::kStart,
                                      Status::OK()};
@@ -620,8 +641,9 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
         return Status::OK();
       }));
 
-  std::unique_ptr<Thread> load_thread(Env::Default()->StartThread(
-      ThreadOptions(), "LoadThread", [&]() { RunManageState(); }));
+  std::unique_ptr<Thread> load_thread(
+      Env::Default()->StartThread(ThreadOptions(), "LoadThread",
+                                  [&]() { InvokePolicyAndExecuteAction(); }));
 
   load_called.WaitForNotification();
 
@@ -640,6 +662,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
               EqualsServableState(available_state));
 
   manager_->GetAspiredVersionsCallback()(kServableName, {});
+  HandlePendingAspiredVersionsRequests();
 
   Notification unload_called;
   Notification unload_continue;
@@ -652,7 +675,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
   std::unique_ptr<Thread> unload_thread(
       Env::Default()->StartThread(ThreadOptions(), "UnloadThread", [&]() {
         for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
-          RunManageState();
+          InvokePolicyAndExecuteAction();
         }
       }));
 
@@ -690,6 +713,7 @@ TEST_P(AspiredVersionsManagerTest, NoEventBus) {
   aspired_versions.push_back({id, std::move(loader)});
   aspired_versions_manager->GetAspiredVersionsCallback()(
       kServableName, std::move(aspired_versions));
+  HandlePendingAspiredVersionsRequests();
 }
 
 TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallySucceeds) {
@@ -706,8 +730,9 @@ TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallySucceeds) {
   aspired_versions.push_back({id, std::unique_ptr<Loader>(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
+  HandlePendingAspiredVersionsRequests();
 
-  RunManageState();
+  InvokePolicyAndExecuteAction();
   WaitUntilServableManagerStateIsOneOf(
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
@@ -728,8 +753,9 @@ TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallyFails) {
   aspired_versions.push_back({id, std::move(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
+  HandlePendingAspiredVersionsRequests();
 
-  RunManageState();
+  InvokePolicyAndExecuteAction();
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
 
@@ -754,9 +780,8 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   EXPECT_CALL(*first_loader, Load(_)).WillOnce(Return(Status::OK()));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
-
-  std::unique_ptr<Thread> load_thread(Env::Default()->StartThread(
-      ThreadOptions(), "LoadThread", [&]() { RunManageState(); }));
+  HandlePendingAspiredVersionsRequests();
+  InvokePolicyAndExecuteAction();
 
   // Pin 'first_loader' in the manager by holding a handle to its servable.
   WaitUntilServableManagerStateIsOneOf(
@@ -774,10 +799,22 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   // The manager should wait until it is able to unload the first loader, then
   // bring up the second loader.
 
+  Notification first_unload_called;
+  EXPECT_CALL(*first_loader, Unload()).WillOnce(InvokeWithoutArgs([&]() {
+    first_unload_called.Notify();
+  }));
+
   std::vector<ServableData<std::unique_ptr<Loader>>> empty_aspired_versions;
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(empty_aspired_versions));
+  HandlePendingAspiredVersionsRequests();
+  // The following thread will block trying to unload the first loader, while we
+  // hold the handle.
+  std::unique_ptr<Thread> unload_thread(
+      Env::Default()->StartThread(ThreadOptions(), "UnloadThread",
+                                  [&]() { InvokePolicyAndExecuteAction(); }));
 
+  // Re-aspire the servable with a fresh loader.
   std::vector<ServableData<std::unique_ptr<Loader>>> second_aspired_versions;
   test_util::MockLoader* second_loader = new NiceMock<test_util::MockLoader>();
   second_aspired_versions.push_back(
@@ -787,30 +824,28 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
     second_load_called.Notify();
     return Status::OK();
   }));
-  // TODO(b/31269483): Once we make SetAspiredVersions() non-blocking we won't
-  // need to run this in a separate thread.
+  manager_->GetAspiredVersionsCallback()(kServableName,
+                                         std::move(second_aspired_versions));
+
+  // Run the manager's background logic in a loop. Nothing should happen for now
+  // because the first loader is pinned.
   std::unique_ptr<Thread> reaspire_thread(
       Env::Default()->StartThread(ThreadOptions(), "ReaspireThread", [&]() {
-        manager_->GetAspiredVersionsCallback()(
-            kServableName, std::move(second_aspired_versions));
+        while (!second_load_called.HasBeenNotified()) {
+          HandlePendingAspiredVersionsRequests();
+          InvokePolicyAndExecuteAction();
+          Env::Default()->SleepForMicroseconds(1000 /* 1 ms */);
+        }
       }));
-
-  // Give the re-aspire call some time to sit on the request, and make sure it
-  // doesn't process it prematurely or do any other bad things.
   Env::Default()->SleepForMicroseconds(50 * 1000 /* 50 ms */);
+  EXPECT_FALSE(first_unload_called.HasBeenNotified());
+  EXPECT_FALSE(second_load_called.HasBeenNotified());
 
-  // Unpin the first loader. Eventually the manager should bring up the second
-  // loader.
+  // Unpin the first loader. The manager should unload the first loader and
+  // bring up the second loader.
   first_loader_handle = nullptr;
-  {
-    std::unique_ptr<Thread> reload_thread(
-        Env::Default()->StartThread(ThreadOptions(), "ReloadThread", [&]() {
-          while (!second_load_called.HasBeenNotified()) {
-            RunManageState();
-          }
-        }));
-  }
-  ASSERT_TRUE(second_load_called.HasBeenNotified());
+  first_unload_called.WaitForNotification();
+  second_load_called.WaitForNotification();
 }
 
 }  // namespace

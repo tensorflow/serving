@@ -23,8 +23,12 @@ AspiredVersionsManagerTestAccess::AspiredVersionsManagerTestAccess(
     AspiredVersionsManager* manager)
     : manager_(manager) {}
 
-void AspiredVersionsManagerTestAccess::RunManageState() {
-  manager_->ManageState();
+void AspiredVersionsManagerTestAccess::HandlePendingAspiredVersionsRequests() {
+  manager_->HandlePendingAspiredVersionsRequests();
+}
+
+void AspiredVersionsManagerTestAccess::InvokePolicyAndExecuteAction() {
+  manager_->InvokePolicyAndExecuteAction();
 }
 
 CachingManagerTestAccess::CachingManagerTestAccess(CachingManager* manager)
