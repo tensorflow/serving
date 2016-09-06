@@ -51,8 +51,8 @@ namespace serving {
 // can go on to load the servable after this by calling LoadServable. Loading
 // will also make the servable available to serve. Once you decide to unload it,
 // you can call UnloadServable on it, which will make it unavailable to serve,
-// then unload the servable and delete it. After unload, the servable is no
-// longer managed by the manager.
+// then unload the servable and delete it. After unload, or after hitting an
+// error, the servable is no longer managed by the manager.
 //
 // BasicManager tracks the resources (e.g. RAM) used by loaded servables, and
 // only allows loading new servables that fit within the overall resource pool.
