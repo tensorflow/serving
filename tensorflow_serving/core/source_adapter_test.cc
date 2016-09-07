@@ -41,10 +41,10 @@ namespace serving {
 namespace {
 
 // A SourceAdapter that expects all aspired-versions requests to be empty.
-class LimitedAdapter : public SourceAdapter<StoragePath, StoragePath> {
+class LimitedAdapter final : public SourceAdapter<StoragePath, StoragePath> {
  public:
   LimitedAdapter() = default;
-  ~LimitedAdapter() override = default;
+  ~LimitedAdapter() override { Detach(); }
 
  protected:
   std::vector<ServableData<StoragePath>> Adapt(

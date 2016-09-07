@@ -279,7 +279,18 @@ BasicManager::ManagedMap::iterator BasicManager::FindHarnessInMap(
   return managed_map_.end();
 }
 
-void BasicManager::ManageServableInternal(
+void BasicManager::DeleteHarness(const ServableId& id) {
+  const auto it = FindHarnessInMap(id);
+  DCHECK(it != managed_map_.end());
+  if (it == managed_map_.end()) {
+    LOG(ERROR) << "Request to delete harness for " << id
+               << ", but no such harness found in managed_map_";
+    return;
+  }
+  managed_map_.erase(it);
+}
+
+Status BasicManager::ManageServableInternal(
     ServableData<std::unique_ptr<Loader>> servable,
     std::function<std::shared_ptr<LoaderHarness>(const ServableId&,
                                                  std::unique_ptr<Loader>)>
@@ -288,9 +299,9 @@ void BasicManager::ManageServableInternal(
 
   const auto iter = BasicManager::FindHarnessInMap(servable.id());
   if (iter != managed_map_.end()) {
-    LOG(INFO) << "This servable is already being managed: "
-              << servable.id().DebugString();
-    return;
+    return errors::FailedPrecondition(
+        "This servable is already being managed: ",
+        servable.id().DebugString());
   }
 
   std::unique_ptr<Loader> loader;
@@ -307,13 +318,15 @@ void BasicManager::ManageServableInternal(
   } else {
     PublishOnEventBus({harness->id(), ServableState::ManagerState::kStart,
                        harness->status()});
+    managed_map_.emplace(servable.id().name, harness);
   }
-  managed_map_.emplace(servable.id().name, harness);
+
+  return Status::OK();
 }
 
-void BasicManager::ManageServable(
+Status BasicManager::ManageServable(
     ServableData<std::unique_ptr<Loader>> servable) {
-  ManageServableInternal(
+  return ManageServableInternal(
       std::move(servable),
       [this](const ServableId& id, std::unique_ptr<Loader> loader) {
         return std::make_shared<LoaderHarness>(id, std::move(loader),
@@ -405,6 +418,7 @@ Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
     if (!load_status.ok()) {
       PublishOnEventBus({harness->id(), ServableState::ManagerState::kEnd,
                          harness->status()});
+      DeleteHarness(harness->id());
       return load_status;
     }
 
@@ -583,12 +597,14 @@ Status BasicManager::ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock) {
         // for this servable.
         LOG(WARNING) << "Unable to reserve resources to load servable "
                      << harness->id().DebugString();
-        harness->Error(errors::ResourceExhausted(
+        const Status error = errors::ResourceExhausted(
             "Insufficient resources to load servable ",
-            harness->id().DebugString()));
+            harness->id().DebugString());
+        harness->Error(error);
         PublishOnEventBus({harness->id(), ServableState::ManagerState::kEnd,
                            harness->status()});
-        return harness->status();
+        DeleteHarness(harness->id());
+        return error;
       } else {
         // Wait until at least one load/unload request finishes, then retry.
         num_ongoing_load_unload_executions_cv_.wait(*mu_lock);

@@ -42,7 +42,7 @@ tensorflow::Status CreateSourceAdapter(
 tensorflow::Status CreateServableStateMonitor(
     EventBus<ServableState>* event_bus,
     std::unique_ptr<ServableStateMonitor>* monitor) {
-  *monitor = nullptr;
+  monitor->reset(new ServableStateMonitor(event_bus));
   return tensorflow::Status::OK();
 }
 
@@ -64,7 +64,7 @@ ModelServerConfig CreateModelServerConfig() {
 
 // TODO(b/29012372): Currently we only support a single config reload.
 // Verify multiple calls result in an error.
-TEST(ServerCore, MultipleLoadConfigs) {
+TEST(ServerCoreTest, MultipleLoadConfigs) {
   // Create with an empty config.
   std::unique_ptr<ServerCore> server_core;
   TF_ASSERT_OK(ServerCore::Create(ModelServerConfig(), &CreateSourceAdapter,
@@ -80,7 +80,7 @@ TEST(ServerCore, MultipleLoadConfigs) {
       ::testing::HasSubstr("Repeated ReloadConfig calls not supported"));
 }
 
-TEST(ServerCore, CreateWaitsTillModelsAvailable) {
+TEST(ServerCoreTest, CreateWaitsTillModelsAvailable) {
   std::unique_ptr<ServerCore> server_core;
   TF_ASSERT_OK(ServerCore::Create(
       CreateModelServerConfig(), &CreateSourceAdapter,
@@ -92,6 +92,23 @@ TEST(ServerCore, CreateWaitsTillModelsAvailable) {
   ASSERT_EQ(available_servables.size(), 1);
   const ServableId expected_id = {"test_model", 123};
   EXPECT_EQ(available_servables.at(0), expected_id);
+}
+
+TEST(ServerCoreTest, ErroringModel) {
+  std::unique_ptr<ServerCore> server_core;
+  const Status status = ServerCore::Create(
+      CreateModelServerConfig(),
+      [](const string& model_type,
+         std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
+             source_adapter) -> Status {
+        source_adapter->reset(
+            new ErrorInjectingSourceAdapter<StoragePath,
+                                            std::unique_ptr<Loader>>(
+                Status(error::CANCELLED, "")));
+        return Status::OK();
+      },
+      &CreateServableStateMonitor, &LoadDynamicModelConfig, &server_core);
+  EXPECT_FALSE(status.ok());
 }
 
 }  // namespace

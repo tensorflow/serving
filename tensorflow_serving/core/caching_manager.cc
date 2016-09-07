@@ -89,25 +89,21 @@ Status CachingManager::GetUntypedServableHandleForId(
   std::unique_ptr<ServableData<std::unique_ptr<Loader>>> loader_data;
   TF_RETURN_IF_ERROR(loader_factory_->CreateLoader(servable_id, &loader_data));
 
-  // Manage the servable using the basic manager. The loader_data may contain an
-  // error and the basic manager is equipped to handle that appropriately. By
-  // propagating such errors back to the basic manager, the functionality of the
-  // event-bus and the servable state monitor are automatically available in the
-  // caching-manager as well (via the basic manager).
-  basic_manager_->ManageServable(std::move(*loader_data));
-
   // Load the servable corresponding to the servable-id. For multiple concurrent
   // requests enforces that exactly one thread performs the load operation with
   // the wrapped basic-manager. All other requests block until the load
   // completes and then trivially succeed.
-  TF_RETURN_IF_ERROR(LoadServable(servable_id));
+  TF_RETURN_IF_ERROR(LoadServable(std::move(loader_data)));
 
   // Return the handle using the loaded servable data now.
   return basic_manager_->GetUntypedServableHandle(
       ServableRequest::FromId(servable_id), handle);
 }
 
-Status CachingManager::LoadServable(const ServableId& servable_id) {
+Status CachingManager::LoadServable(
+    std::unique_ptr<ServableData<std::unique_ptr<Loader>>> loader_data) {
+  const ServableId servable_id = loader_data->id();
+
   std::shared_ptr<mutex> servable_id_mu;
   {
     mutex_lock l(load_mutex_map_mu_);
@@ -127,19 +123,37 @@ Status CachingManager::LoadServable(const ServableId& servable_id) {
     // servable should already be managed by the basic-manager.
     const optional<ServableStateSnapshot<>> snapshot =
         basic_manager_->GetManagedServableStateSnapshot(servable_id);
-    // If no snapshot is found, the requested servable is not being managed by
-    // the wrapped basic-manager yet. This is a broken invariant since we expect
-    // ManageServable() to have been invoked just before calling this method.
-    // Return an error accordingly.
-    if (!snapshot) {
-      const string error_msg = strings::StrCat(
-          "Servable requested for load is not being managed by the manager: ",
-          servable_id.DebugString());
-      DCHECK(false) << error_msg;
-      return errors::Internal(error_msg);
-    }
-    // Load the servable since it has not been loaded yet based on its state.
-    if (snapshot.value().state == LoaderHarness::State::kNew) {
+    if (snapshot) {
+      // The servable is already being managed by 'basic_manager_'. Hence it
+      // ought to be loaded, based on CachingManager's implementation invariant
+      // of doing manage+load atomically.
+      if (snapshot.value().state != LoaderHarness::State::kReady) {
+        const string error_msg = strings::StrCat(
+            "Servable requested for load is already being managed, but is not "
+            "loaded: ",
+            servable_id.DebugString());
+        DCHECK(false) << error_msg;
+        return errors::Internal(error_msg);
+      }
+    } else {
+      // Load the servable since it has not been loaded yet based on its state.
+      //
+      // First, transfer the servable to the basic manager. The loader_data may
+      // contain an error and the basic manager is equipped to handle that
+      // appropriately. By propagating such errors back to the basic manager,
+      // the functionality of the event-bus and the servable state monitor are
+      // automatically available in the caching-manager as well (via the basic
+      // manager).
+      const Status manage_status =
+          basic_manager_->ManageServable(std::move(*loader_data));
+      if (!manage_status.ok()) {
+        const string error_msg = strings::StrCat(
+            "Internal error: unable to transfer servable to 'basic_manager_': ",
+            manage_status.error_message());
+        DCHECK(false) << error_msg;
+        return errors::Internal(error_msg);
+      }
+
       Notification load_done;
       Status load_status;
       basic_manager_->LoadServable(servable_id, [&](const Status& status) {

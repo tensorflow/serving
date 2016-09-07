@@ -36,6 +36,7 @@ FakeLoaderSourceAdapter::FakeLoaderSourceAdapter(
       call_on_destruct_(call_on_destruct) {}
 
 FakeLoaderSourceAdapter::~FakeLoaderSourceAdapter() {
+  Detach();
   if (call_on_destruct_) {
     call_on_destruct_(suffix_);
   }

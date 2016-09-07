@@ -25,7 +25,6 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
-#include "tensorflow_serving/core/availability_helpers.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 #include "tensorflow_serving/core/test_util/fake_loader.h"
@@ -94,7 +93,11 @@ class BasicManagerTest : public ::testing::TestWithParam<int> {
         loaded_servables.insert(id);
       }
     }
-    WaitUntilServablesAvailable(loaded_servables, basic_manager_.get());
+    for (const ServableId& loaded_servable : loaded_servables) {
+      WaitUntilServableManagerStateIsOneOf(
+          servable_state_monitor_, loaded_servable,
+          {ServableState::ManagerState::kAvailable});
+    }
   }
 
   int num_load_unload_threads_;
@@ -131,7 +134,8 @@ TEST_P(BasicManagerTest, ServableHandleLatest) {
   basic_manager_->ManageServable(CreateServable(id));
   basic_manager_->LoadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   ServableHandle<int64> handle;
   const Status status = basic_manager_->GetServableHandle(
@@ -140,13 +144,20 @@ TEST_P(BasicManagerTest, ServableHandleLatest) {
   EXPECT_EQ(kNumVersionsPerServable + 1, *handle);
 }
 
+TEST_P(BasicManagerTest, AlreadyManagedError) {
+  const ServableId id = {"banana", 42};
+  TF_ASSERT_OK(basic_manager_->ManageServable(CreateServable(id)));
+  EXPECT_FALSE(basic_manager_->ManageServable(CreateServable(id)).ok());
+}
+
 // Tests the case where the latest version of a servable available is 0.
 TEST_P(BasicManagerTest, ServableHandleLatestVersionIsZero) {
   const ServableId id = {kServableName3, 1};
   basic_manager_->ManageServable(CreateServable(id));
   basic_manager_->LoadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   ServableHandle<int64> handle;
   const Status status = basic_manager_->GetServableHandle(
@@ -176,7 +187,8 @@ TEST_P(BasicManagerTest, UpdateServingMapServableHandleLatest) {
   basic_manager_->ManageServable(CreateServable(id0));
   basic_manager_->LoadServable(
       id0, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id0}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id0, {ServableState::ManagerState::kAvailable});
 
   test_util::MockLoader* notify_to_unload = new NiceMock<test_util::MockLoader>;
   // Don't make it const otherwise servable types will mismatch: const int64 vs
@@ -192,7 +204,8 @@ TEST_P(BasicManagerTest, UpdateServingMapServableHandleLatest) {
       {id1, std::unique_ptr<Loader>(notify_to_unload)});
   basic_manager_->LoadServable(
       id1, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id1}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id1, {ServableState::ManagerState::kAvailable});
 
   // We have loaded both versions 0 and 1 of kServableName3, so the latest
   // handle should be that of v1.
@@ -341,14 +354,10 @@ TEST_P(BasicManagerTest, GetManagedServableNames) {
 }
 
 TEST_P(BasicManagerTest,
-       GetManagedServableStateSnapshotsWithoutAdditionalState) {
-  const ServableId id = {kServableName, 7};
-  basic_manager_->ManageServable(
-      ServableData<std::unique_ptr<Loader>>(id, errors::Internal("An error.")));
+       GetManagedServableStateSnapshotWithoutAdditionalState) {
   const std::vector<ServableStateSnapshot<>> expected = {
       {{kServableName, 1}, LoaderHarness::State::kReady, {}},
-      {{kServableName, 2}, LoaderHarness::State::kReady, {}},
-      {{kServableName, 7}, LoaderHarness::State::kError, {}}};
+      {{kServableName, 2}, LoaderHarness::State::kReady, {}}};
   EXPECT_THAT(basic_manager_->GetManagedServableStateSnapshots(kServableName),
               UnorderedElementsAreArray(expected));
 }
@@ -364,18 +373,6 @@ TEST_P(BasicManagerTest, GetManagedServableStateSnapshot) {
       id_ready, LoaderHarness::State::kReady, {}};
   EXPECT_EQ(actual_ready_snapshot, expected_ready_snapshot);
 
-  // Check servable state snapshot corresponding to a servable-id that is in
-  // error state.
-  const ServableId id_error = {kServableName, 7};
-  basic_manager_->ManageServable(ServableData<std::unique_ptr<Loader>>(
-      id_error, errors::Internal("An error.")));
-  const optional<ServableStateSnapshot<>> actual_error_snapshot =
-      basic_manager_->GetManagedServableStateSnapshot(id_error);
-  EXPECT_TRUE(actual_error_snapshot);
-  const ServableStateSnapshot<> expected_error_snapshot = {
-      id_error, LoaderHarness::State::kError, {}};
-  EXPECT_EQ(actual_error_snapshot, expected_error_snapshot);
-
   // Check servable state snapshot corresponding to a servable-id that is not
   // managed by the basic-manager.
   const ServableId id_notmanaged = {kServableName, 8};
@@ -387,14 +384,9 @@ TEST_P(BasicManagerTest, GetManagedServableStateSnapshotsWithAdditionalState) {
       CreateServable({kServableName3, 0}), std::unique_ptr<int>(new int(0)));
   basic_manager_->ManageServableWithAdditionalState(
       CreateServable({kServableName3, 1}), std::unique_ptr<int>(new int(1)));
-  basic_manager_->ManageServableWithAdditionalState(
-      ServableData<std::unique_ptr<Loader>>({kServableName3, 2},
-                                            errors::Internal("An error.")),
-      std::unique_ptr<int>(new int(2)));
   const std::vector<ServableStateSnapshot<int>> expected = {
       {{kServableName3, 0}, LoaderHarness::State::kNew, {0}},
-      {{kServableName3, 1}, LoaderHarness::State::kNew, {1}},
-      {{kServableName3, 2}, LoaderHarness::State::kError, {2}}};
+      {{kServableName3, 1}, LoaderHarness::State::kNew, {1}}};
   EXPECT_THAT(
       basic_manager_->GetManagedServableStateSnapshots<int>(kServableName3),
       UnorderedElementsAreArray(expected));
@@ -430,9 +422,8 @@ TEST_P(BasicManagerTest, ErroneousServable) {
   Status status = basic_manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 3), &handle);
   EXPECT_FALSE(status.ok()) << status;
-  basic_manager_->LoadServable(id, [](const Status& status) {
-    EXPECT_EQ(errors::Unknown("error"), status);
-  });
+  basic_manager_->LoadServable(
+      id, [](const Status& status) { EXPECT_FALSE(status.ok()) << status; });
 
   status = basic_manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 3), &handle);
@@ -447,7 +438,8 @@ TEST_P(BasicManagerTest, DestructOnNonServingThread) {
       CreateServableData(id, std::unique_ptr<Loader>(new FakeLoader(7))));
   basic_manager_->LoadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   std::unique_ptr<ServableHandle<int64>> latest_handle(
       new ServableHandle<int64>());
@@ -512,7 +504,8 @@ TEST_P(BasicManagerTest, MultipleLoadServables) {
   basic_manager_->ManageServable(CreateServable(id));
   basic_manager_->LoadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
   basic_manager_->LoadServable(id, [](const Status& status) {
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(error::FAILED_PRECONDITION, status.code());
@@ -526,7 +519,8 @@ TEST_P(BasicManagerTest, MultipleUnloadServables) {
   basic_manager_->ManageServable(CreateServable(id));
   basic_manager_->LoadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
   basic_manager_->UnloadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
@@ -630,7 +624,8 @@ TEST_P(BasicManagerTest, EventBusServableLifecycle) {
               EqualsServableState(loading_state));
 
   load_continue.Notify();
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   const ServableState available_state = {
       id, ServableState::ManagerState::kAvailable, Status::OK()};
@@ -703,7 +698,11 @@ TEST_P(BasicManagerTest, LoadsThenUnloads) {
   }
 
   // At this point, all loads may not have completed, so we wait for them.
-  WaitUntilServablesAvailable(servables, basic_manager_.get());
+  for (const ServableId& servable : servables) {
+    WaitUntilServableManagerStateIsOneOf(
+        servable_state_monitor_, servable,
+        {ServableState::ManagerState::kAvailable});
+  }
 
   {
     ThreadPoolExecutor unload_executor(Env::Default(), "UnloadServables",
@@ -781,7 +780,8 @@ TEST_P(BasicManagerTest, ConcurrentUnloadsOnlyOneSucceeds) {
   basic_manager_->LoadServable(
       id, [](const Status& status) { TF_ASSERT_OK(status); });
   // At this point, all loads may not have completed, so we wait for them.
-  WaitUntilServablesAvailable({id}, basic_manager_.get());
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   mutex status_mu;
   std::vector<Status> statuses(4);
@@ -901,9 +901,8 @@ TEST_P(BasicManagerTest, LoadAfterCancelledLoad) {
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
 
-  basic_manager_->LoadServable(id, [](const Status& status) {
-    EXPECT_EQ(errors::Internal("Load error."), status);
-  });
+  basic_manager_->LoadServable(
+      id, [](const Status& status) { EXPECT_FALSE(status.ok()) << status; });
 }
 
 // Creates a ResourceAllocation proto with 'quantity' units of RAM.
@@ -1035,10 +1034,6 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
         rejection_received.Notify();
       });
   rejection_received.WaitForNotification();
-  EXPECT_THAT(
-      basic_manager_->GetManagedServableStateSnapshots(rejected_id.name),
-      UnorderedElementsAre(ServableStateSnapshot<>{
-          rejected_id, LoaderHarness::State::kError, {}}));
   const ServableState expected_error_state = {
       rejected_id, ServableState::ManagerState::kEnd, rejected_status};
   EXPECT_THAT(*servable_state_monitor_.GetState(rejected_id),
