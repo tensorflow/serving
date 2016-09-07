@@ -122,14 +122,16 @@ class SimpleLoader : public Loader {
 // must instead create a SourceAdapter and Loader. That said, you may still be
 // able to use one of UnarySourceAdapter or SimpleLoader.
 //
-// IMPORTANT: If the the subclass's Creator or ResourceEstimator implementations
-// access any member variables, the destructor must call Detach() (see class
-// TargetBase in target.h) as its first action. Doing so ensures that no virtual
-// method calls are in flight during destruction of the member variables.
+// IMPORTANT: Every leaf derived class must call Detach() at the top of its
+// destructor. (See documentation on TargetBase::Detach() in target.h.) Doing so
+// ensures that no virtual method calls are in flight during destruction of
+// member variables.
 template <typename DataType, typename ServableType>
 class SimpleLoaderSourceAdapter
     : public UnarySourceAdapter<DataType, std::unique_ptr<Loader>> {
  public:
+  ~SimpleLoaderSourceAdapter() override = 0;
+
   // Creator is called by the produced Loaders' Load() method, and used to
   // create objects of type ServableType. It takes a DataType object as input.
   using Creator =
@@ -149,11 +151,11 @@ class SimpleLoaderSourceAdapter
   // and hence the serving system cannot enforce resource safety.
   static ResourceEstimator EstimateNoResources();
 
+ protected:
+  // This is an abstract class.
   SimpleLoaderSourceAdapter(Creator creator,
                             ResourceEstimator resource_estimator);
-  ~SimpleLoaderSourceAdapter() override;
 
- protected:
   Status Convert(const DataType& data, std::unique_ptr<Loader>* loader) final;
 
  private:
@@ -228,6 +230,10 @@ void SimpleLoader<ServableType>::Unload() {
 }
 
 template <typename DataType, typename ServableType>
+SimpleLoaderSourceAdapter<DataType,
+                          ServableType>::~SimpleLoaderSourceAdapter() {}
+
+template <typename DataType, typename ServableType>
 typename SimpleLoaderSourceAdapter<DataType, ServableType>::ResourceEstimator
 SimpleLoaderSourceAdapter<DataType, ServableType>::EstimateNoResources() {
   return [](const DataType& data, ResourceAllocation* estimate) {
@@ -240,12 +246,6 @@ template <typename DataType, typename ServableType>
 SimpleLoaderSourceAdapter<DataType, ServableType>::SimpleLoaderSourceAdapter(
     Creator creator, ResourceEstimator resource_estimator)
     : creator_(creator), resource_estimator_(resource_estimator) {}
-
-template <typename DataType, typename ServableType>
-SimpleLoaderSourceAdapter<DataType,
-                          ServableType>::~SimpleLoaderSourceAdapter() {
-  TargetBase<DataType>::Detach();
-}
 
 template <typename DataType, typename ServableType>
 Status SimpleLoaderSourceAdapter<DataType, ServableType>::Convert(

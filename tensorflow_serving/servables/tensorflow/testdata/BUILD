@@ -36,9 +36,21 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "export_bad_half_plus_two",
+    srcs = [
+        "export_bad_half_plus_two.py",
+    ],
+    deps = [
+        "@org_tensorflow//tensorflow:tensorflow_py",
+    ],
+)
+
 # Note: re-generate these files with :export_half_plus_two whenever model
 # changes.
 exports_files([
     "half_plus_two/00000123/export",
     "half_plus_two/00000123/export.meta",
+    "bad_half_plus_two/00000123/export",
+    "bad_half_plus_two/00000123/export.meta",
 ])

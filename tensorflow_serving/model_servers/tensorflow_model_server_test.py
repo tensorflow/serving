@@ -22,11 +22,14 @@ import os
 import shlex
 import socket
 import subprocess
+import sys
 import time
 
 # This is a placeholder for a Google-internal import.
 
+from grpc import *
 from grpc.beta import implementations
+from grpc.framework.interfaces.face import face
 import tensorflow as tf
 
 from tensorflow.core.framework import types_pb2
@@ -96,9 +99,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
     result = stub.Predict(request, 5.0)  # 5 secs timeout
     # Verify response
     self.assertTrue('y' in result.outputs)
-    self.assertEqual(result.outputs['y'].dtype, types_pb2.DT_FLOAT)
-    self.assertEqual(len(result.outputs['y'].float_val), 1)
-    self.assertEqual(result.outputs['y'].float_val[0], 3.0)
+    self.assertIs(types_pb2.DT_FLOAT, result.outputs['y'].dtype)
+    self.assertEquals(1, len(result.outputs['y'].float_val))
+    self.assertEquals(3.0, result.outputs['y'].float_val[0])
 
   def testPredict(self):
     """Test PredictionService.Predict implementation."""
@@ -109,6 +112,20 @@ class TensorflowModelServerTest(tf.test.TestCase):
     time.sleep(5)
     self.VerifyPredictRequest(model_server_address)
     self.VerifyPredictRequest(model_server_address, specify_output=False)
+
+  def testBadModel(self):
+    """Test PredictionService.Predict against a bad model export."""
+    atexit.register(self.TerminateProcs)
+    model_server_address = self.RunServer(
+        PickUnusedPort(), 'default',
+        os.path.join(self.testdata_dir, 'bad_half_plus_two'))
+    time.sleep(5)
+    with self.assertRaises(face.AbortionError) as error:
+      self.VerifyPredictRequest(model_server_address)
+    self.assertIs(StatusCode.FAILED_PRECONDITION,
+                  error.exception.code)
+    self.assertTrue(error.exception.details.startswith(
+        'Expected exactly one signatures proto'))
 
 
 if __name__ == '__main__':

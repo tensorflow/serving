@@ -38,10 +38,10 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-class TestSourceRouter : public SourceRouter<StoragePath> {
+class TestSourceRouter final : public SourceRouter<StoragePath> {
  public:
   TestSourceRouter() = default;
-  ~TestSourceRouter() override = default;
+  ~TestSourceRouter() override { Detach(); }
 
  protected:
   int num_output_ports() const override { return 2; }

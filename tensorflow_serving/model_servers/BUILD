@@ -36,7 +36,6 @@ cc_library(
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:aspired_versions_manager",
-        "//tensorflow_serving/core:availability_helpers",
         "//tensorflow_serving/core:eager_load_policy",
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/core:source",
@@ -94,6 +93,7 @@ cc_binary(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
         "//tensorflow_serving/apis:prediction_service_proto",
+        "//tensorflow_serving/core:servable_state_monitor",
         "@grpc//:grpc++",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
 )
@@ -104,6 +104,8 @@ py_test(
     srcs = ["tensorflow_model_server_test.py"],
     data = [
         ":tensorflow_model_server",
+        "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
+        "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
     ],
@@ -111,6 +113,15 @@ py_test(
         "local",
         "manual",
     ],
+    deps = [
+        "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+    ],
+)
+
+py_binary(
+    name = "tensorflow_model_server_test_client",
+    srcs = ["tensorflow_model_server_test_client.py"],
     deps = [
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
         "@org_tensorflow//tensorflow:tensorflow_py",

@@ -78,6 +78,31 @@ struct CompareActions {
   }
 };
 
+// Validates whether all entries in 'versions' pertain to the servable named
+// 'servable_name'.
+Status ValidateAspiredVersions(
+    const StringPiece servable_name,
+    const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) {
+  for (const auto& version : versions) {
+    if (servable_name != version.id().name) {
+      return errors::InvalidArgument(strings::StrCat(
+          "Servable name: ", servable_name,
+          " doesn't match name in servable version: ", version.id().name));
+    }
+  }
+  return Status::OK();
+}
+
+// Returns the set of version numbers in 'versions'.
+std::set<int64> GetVersionNumbers(
+    const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) {
+  std::set<int64> version_numbers;
+  for (const auto& version : versions) {
+    version_numbers.insert(version.id().version);
+  }
+  return version_numbers;
+}
+
 }  // namespace
 
 namespace internal {
@@ -95,7 +120,7 @@ class AspiredVersionsManagerTargetImpl final
   void SetAspiredVersions(
       const StringPiece servable_name,
       std::vector<ServableData<std::unique_ptr<Loader>>> versions) override {
-    parent_->SetAspiredVersions(servable_name, std::move(versions));
+    parent_->EnqueueAspiredVersionsRequest(servable_name, std::move(versions));
   }
 
  private:
@@ -144,7 +169,11 @@ AspiredVersionsManager::AspiredVersionsManager(
     pf_options.env = env;
     pf_options.thread_name_prefix = "AspiredVersionsManager_ManageState_Thread";
     manage_state_thread_.reset(new PeriodicFunction(
-        [this]() { this->ManageState(); }, manage_state_interval_micros));
+        [this]() {
+          this->HandlePendingAspiredVersionsRequests();
+          this->InvokePolicyAndExecuteAction();
+        },
+        manage_state_interval_micros));
   }
 }
 
@@ -178,70 +207,93 @@ AspiredVersionsManager::GetAspiredVersionsCallback() {
   return target_impl_->GetAspiredVersionsCallback();
 }
 
-void AspiredVersionsManager::SetAspiredVersions(
+void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
     const StringPiece servable_name,
     std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
-  // We go through the aspired_servable_versions and fill a vector with the
-  // next aspired version numbers, and sort it.
-  std::vector<int64> next_aspired_versions;
-  next_aspired_versions.reserve(versions.size());
-  for (const auto& version : versions) {
-    if (servable_name != version.id().name) {
-      LOG(ERROR) << "Servable name: " << servable_name
-                 << " doesn't match name in servable version: "
-                 << version.id().name;
-      DCHECK(false) << "See previous servable name mismatch error message.";
-      return;
-    }
-    next_aspired_versions.push_back(version.id().version);
+  const Status validation_status =
+      ValidateAspiredVersions(servable_name, versions);
+  DCHECK(validation_status.ok()) << validation_status.error_message();
+  if (!validation_status.ok()) {
+    LOG(ERROR) << validation_status.error_message();
+    return;
   }
-  std::sort(next_aspired_versions.begin(), next_aspired_versions.end());
 
   {
-    mutex_lock l(basic_manager_read_modify_write_mu_);
+    mutex_lock l(pending_aspired_versions_requests_mu_);
+    pending_aspired_versions_requests_[servable_name.ToString()] =
+        std::move(versions);
+  }
+}
 
-    // We gather all the servables with the servable_name and
-    // 1. Add the current aspired version numbers to a vector and sort it,
-    // 2. Set the aspired bool to false for all current servable harnesses which
-    // are not aspired.
-    std::vector<int64> current_aspired_versions;
-    for (const ServableStateSnapshot<Aspired> state_snapshot :
-         basic_manager_->GetManagedServableStateSnapshots<Aspired>(
-             servable_name.ToString())) {
-      if (state_snapshot.additional_state->is_aspired) {
-        current_aspired_versions.push_back(state_snapshot.id.version);
-      }
-      // If this version is not part of the aspired versions.
-      if (std::find(next_aspired_versions.begin(), next_aspired_versions.end(),
-                    state_snapshot.id.version) == next_aspired_versions.end()) {
-        basic_manager_->GetAdditionalServableState<Aspired>(state_snapshot.id)
-            ->is_aspired = false;
-        basic_manager_->CancelLoadServableRetry(state_snapshot.id);
-      }
+void AspiredVersionsManager::ProcessAspiredVersionsRequest(
+    const StringPiece servable_name,
+    std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
+  const std::set<int64> next_aspired_versions = GetVersionNumbers(versions);
+
+  // We gather all the servables with the servable_name and
+  // 1. Add the current aspired version numbers to a set,
+  // 2. Set the aspired bool to false for all current servable harnesses which
+  // are not aspired.
+  std::set<int64> current_aspired_versions;
+  const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
+      basic_manager_->GetManagedServableStateSnapshots<Aspired>(
+          servable_name.ToString());
+  for (const ServableStateSnapshot<Aspired> state_snapshot : state_snapshots) {
+    if (state_snapshot.additional_state->is_aspired) {
+      current_aspired_versions.insert(state_snapshot.id.version);
     }
-    std::sort(current_aspired_versions.begin(), current_aspired_versions.end());
+    // If this version is not part of the aspired versions.
+    if (std::find(next_aspired_versions.begin(), next_aspired_versions.end(),
+                  state_snapshot.id.version) == next_aspired_versions.end()) {
+      basic_manager_->GetAdditionalServableState<Aspired>(state_snapshot.id)
+          ->is_aspired = false;
+      basic_manager_->CancelLoadServableRetry(state_snapshot.id);
+    }
+  }
 
-    // We do a set_difference (A - B), on the next aspired versions and the
-    // current aspired versions to find the version numbers which need to be
-    // added the harness map.
-    std::vector<int64> additions;
-    additions.reserve(next_aspired_versions.size());
-    std::set_difference(
-        next_aspired_versions.begin(), next_aspired_versions.end(),
-        current_aspired_versions.begin(), current_aspired_versions.end(),
-        std::inserter(additions, additions.begin()));
+  // We do a set_difference (A - B), on the next aspired versions and the
+  // current aspired versions to find the version numbers which need to be
+  // added the harness map.
+  std::set<int64> additions;
+  std::set_difference(
+      next_aspired_versions.begin(), next_aspired_versions.end(),
+      current_aspired_versions.begin(), current_aspired_versions.end(),
+      std::inserter(additions, additions.begin()));
 
-    // We go through the aspired_servable_versions, pull out the versions which
-    // need to be added and add them to the harness map.
-    for (auto& version : versions) {
-      // if this aspired version is not already present in the map.
-      if (std::find(additions.begin(), additions.end(), version.id().version) !=
-          additions.end()) {
-        basic_manager_->ManageServableWithAdditionalState(
-            std::move(version), std::unique_ptr<Aspired>(new Aspired{true}));
+  // We go through the aspired_servable_versions, pull out the versions which
+  // need to be added and add them to the harness map.
+  for (auto& version : versions) {
+    // if this aspired version is not already present in the map.
+    if (std::find(additions.begin(), additions.end(), version.id().version) !=
+        additions.end()) {
+      const Status manage_status =
+          basic_manager_->ManageServableWithAdditionalState(
+              std::move(version), std::unique_ptr<Aspired>(new Aspired{true}));
+      DCHECK(manage_status.ok()) << manage_status.error_message();
+      if (!manage_status.ok()) {
+        LOG(ERROR) << "Internal error: Unable to transfer servable "
+                   << version.id().DebugString()
+                   << " to 'basic_manager_': " << manage_status.error_message();
       }
     }
   }
+}
+
+bool AspiredVersionsManager::ContainsAnyReaspiredVersions(
+    const StringPiece servable_name,
+    const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) const {
+  const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
+      basic_manager_->GetManagedServableStateSnapshots<Aspired>(
+          servable_name.ToString());
+  const std::set<int64> version_numbers = GetVersionNumbers(versions);
+  for (const ServableStateSnapshot<Aspired>& state_snapshot : state_snapshots) {
+    if (!state_snapshot.additional_state->is_aspired &&
+        version_numbers.find(state_snapshot.id.version) !=
+            version_numbers.end()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // We collect the version policy actions for each servable stream first. Then
@@ -292,7 +344,31 @@ void AspiredVersionsManager::PerformAction(
   }
 }
 
-void AspiredVersionsManager::ManageState() {
+void AspiredVersionsManager::HandlePendingAspiredVersionsRequests() {
+  mutex_lock l(basic_manager_read_modify_write_mu_);
+  mutex_lock l2(pending_aspired_versions_requests_mu_);
+
+  // To be able to process an aspired-versions request, we wait for any
+  // re-aspired versions (versions not currently marked aspired, but present in
+  // the latest aspired-versions request) to quiesce and be removed from
+  // BasicManager. If an enqueued request does contain re-aspired versions, we
+  // simply leave it in the queue for now.
+  for (auto it = pending_aspired_versions_requests_.begin();
+       it != pending_aspired_versions_requests_.end();) {
+    const string& servable_name = it->first;
+    std::vector<ServableData<std::unique_ptr<Loader>>>& versions = it->second;
+
+    if (ContainsAnyReaspiredVersions(servable_name, versions)) {
+      // Sit on it for now. We'll check again later.
+      ++it;
+    } else {
+      ProcessAspiredVersionsRequest(servable_name, std::move(versions));
+      it = pending_aspired_versions_requests_.erase(it);
+    }
+  }
+}
+
+void AspiredVersionsManager::InvokePolicyAndExecuteAction() {
   mutex_lock l(basic_manager_read_modify_write_mu_);
 
   const optional<AspiredVersionPolicy::ServableAction> next_action =

@@ -51,8 +51,8 @@ namespace serving {
 // can go on to load the servable after this by calling LoadServable. Loading
 // will also make the servable available to serve. Once you decide to unload it,
 // you can call UnloadServable on it, which will make it unavailable to serve,
-// then unload the servable and delete it. After unload, the servable is no
-// longer managed by the manager.
+// then unload the servable and delete it. After unload, or after hitting an
+// error, the servable is no longer managed by the manager.
 //
 // BasicManager tracks the resources (e.g. RAM) used by loaded servables, and
 // only allows loading new servables that fit within the overall resource pool.
@@ -142,17 +142,22 @@ class BasicManager : public Manager {
 
   // Starts managing the servable.
   //
-  // If called multiple times with the same servable id, all of them are
-  // accepted, but only the first one is used. We accept the servable even if
-  // called with erroneous ServableData.
-  void ManageServable(ServableData<std::unique_ptr<Loader>> servable);
+  // Returns an error if given a servable that is already being managed.
+  //
+  // If 'servable' is in an error state, this method does *not* return an error.
+  // Instead, the manager accepts the servable, puts it in state kError (with a
+  // notification sent to the event bus), and then immediately stops managing
+  // it. This behavior facilitates uniform handling of errors that occur in
+  // sources (e.g. invalid file path to servable data) and ones that occur in
+  // the manager (e.g. insufficient resources to load servable).
+  Status ManageServable(ServableData<std::unique_ptr<Loader>> servable);
 
   // Similar to the above method, but callers, usually other managers built on
   // top of this one, can associate additional state with the servable.
   // Additional state may be ACL or lifetime metadata for that servable.  The
   // ownership of the state is transferred to this class.
   template <typename T>
-  void ManageServableWithAdditionalState(
+  Status ManageServableWithAdditionalState(
       ServableData<std::unique_ptr<Loader>> servable,
       std::unique_ptr<T> additional_state);
 
@@ -241,10 +246,10 @@ class BasicManager : public Manager {
   // Also accepts a closure to create the harness as a shared_ptr. The harness
   // has a different constructors for creating it with or without
   // additional_state.
-  void ManageServableInternal(ServableData<std::unique_ptr<Loader>> servable,
-                              std::function<std::shared_ptr<LoaderHarness>(
-                                  const ServableId&, std::unique_ptr<Loader>)>
-                                  harness_creator);
+  Status ManageServableInternal(ServableData<std::unique_ptr<Loader>> servable,
+                                std::function<std::shared_ptr<LoaderHarness>(
+                                    const ServableId&, std::unique_ptr<Loader>)>
+                                    harness_creator);
 
   // Obtains the harness associated with the given servable id. Returns an ok
   // status if a corresponding harness was found, else an error status.
@@ -291,9 +296,14 @@ class BasicManager : public Manager {
   Status ApproveLoadOrUnload(const LoadOrUnloadRequest& request,
                              LoaderHarness** harness) LOCKS_EXCLUDED(mu_);
 
-  // The decision phase of whether to approve a load request. If it succeeds,
-  // places the servable into state kApprovedForLoad. Among other things, that
-  // prevents a subsequent load request from proceeding concurrently.
+  // The decision phase of whether to approve a load request.
+  //
+  // If it succeeds, places the servable into state kApprovedForLoad. Among
+  // other things, that prevents a subsequent load request from proceeding
+  // concurrently.
+  //
+  // If it fails, removes 'harness' from 'managed_map_' (which causes 'harness'
+  // to be deleted).
   //
   // Argument 'mu_lock' is a lock held on 'mu_'. It is released temporarily via
   // 'num_ongoing_load_unload_executions_cv_'.
@@ -310,6 +320,9 @@ class BasicManager : public Manager {
   //
   // Upon completion (and regardless of the outcome), signals exit of the
   // execution phase by decrementing 'num_ongoing_load_unload_executions_'.
+  //
+  // If it fails, removes 'harness' from 'managed_map_' (which causes 'harness'
+  // to be deleted).
   Status ExecuteLoadOrUnload(const LoadOrUnloadRequest& request,
                              LoaderHarness* harness);
 
@@ -340,6 +353,12 @@ class BasicManager : public Manager {
   // harness_map_.end(), if the harness is not found.
   ManagedMap::iterator FindHarnessInMap(const ServableId& id)
       EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
+  // Removes the harness associated with 'id' from 'managed_map_' and deletes
+  // the harness.
+  //
+  // If no matching harness is found, DCHECK-fails and logs an error.
+  void DeleteHarness(const ServableId& id) EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Publishes the state on the event bus, if an event bus was part of the
   // options, if not we ignore it.
@@ -444,10 +463,10 @@ class BasicManager : public Manager {
 ////
 
 template <typename T>
-void BasicManager::ManageServableWithAdditionalState(
+Status BasicManager::ManageServableWithAdditionalState(
     ServableData<std::unique_ptr<Loader>> servable,
     std::unique_ptr<T> additional_state) {
-  ManageServableInternal(
+  return ManageServableInternal(
       std::move(servable),
       [this, &additional_state](const ServableId& id,
                                 std::unique_ptr<Loader> loader) {

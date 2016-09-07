@@ -130,12 +130,17 @@ void BenchmarkState::StartServing(const int64 loader_version) {
   std::vector<ServableData<std::unique_ptr<Loader>>> versions;
   versions.push_back({{kServableName, loader_version}, std::move(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName, std::move(versions));
+  test_util::AspiredVersionsManagerTestAccess(manager_.get())
+      .HandlePendingAspiredVersionsRequests();
   // Will load the latest.
-  test_util::AspiredVersionsManagerTestAccess(manager_.get()).RunManageState();
+  test_util::AspiredVersionsManagerTestAccess(manager_.get())
+      .InvokePolicyAndExecuteAction();
   // Will quiesce the previous.
-  test_util::AspiredVersionsManagerTestAccess(manager_.get()).RunManageState();
+  test_util::AspiredVersionsManagerTestAccess(manager_.get())
+      .InvokePolicyAndExecuteAction();
   // Will delete the previous.
-  test_util::AspiredVersionsManagerTestAccess(manager_.get()).RunManageState();
+  test_util::AspiredVersionsManagerTestAccess(manager_.get())
+      .InvokePolicyAndExecuteAction();
   CHECK_EQ(1, manager_->ListAvailableServableIds().size());
 }
 
@@ -318,9 +323,11 @@ static void BM_GetServableHandle(const int iters) {
       }
 
       aspired_versions_callback(servable_name, std::move(versions));
+      test_util::AspiredVersionsManagerTestAccess(manager.get())
+          .HandlePendingAspiredVersionsRequests();
       for (int j = 0; j < kNumServableVersions; ++j) {
         test_util::AspiredVersionsManagerTestAccess(manager.get())
-            .RunManageState();
+            .InvokePolicyAndExecuteAction();
       }
     }
     return manager.release();

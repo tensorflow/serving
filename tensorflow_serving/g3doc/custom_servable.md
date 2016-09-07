@@ -52,6 +52,11 @@ The implementation of `HashmapSourceAdapter` has two parts:
   contains just the file format, and for the purpose of the reference
   implementation just a single simple format is supported.
 
+  Note the call to `Detach()` in the destructor. This call is required to avoid
+  races between tearing down state and any ongoing invocations of the Creator
+  lambda in other threads. (Even though this simple source adapter doesn't have
+  any state, the base class nevertheless enforces that Detach() gets called.)
+
 ## Arranging for `YourServable` objects to be loaded in a manager
 
 Here is how to hook your new `SourceAdapter` for `YourServable` loaders to a

@@ -20,7 +20,6 @@ limitations under the License.
 #include "google/protobuf/any.pb.h"
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/core/platform/logging.h"
-#include "tensorflow_serving/core/availability_helpers.h"
 #include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
@@ -87,7 +86,21 @@ Status ServerCore::AddModelsViaModelConfigList(
     manager_.AddDependency(std::move(source_adapter));
     manager_.AddDependency(std::move(path_source));
   }
-  WaitUntilServablesAvailableForRequests(awaited_models, manager_.get());
+  std::map<ServableId, ServableState::ManagerState> states_reached;
+  const bool all_configured_models_available =
+      servable_state_monitor_->WaitUntilServablesReachState(
+          awaited_models, ServableState::ManagerState::kAvailable,
+          &states_reached);
+  if (!all_configured_models_available) {
+    string message = "Some models did not become available: {";
+    for (const auto& id_and_state : states_reached) {
+      if (id_and_state.second != ServableState::ManagerState::kAvailable) {
+        strings::StrAppend(&message, id_and_state.first.DebugString(), ", ");
+      }
+    }
+    strings::StrAppend(&message, "}");
+    return Status(error::UNKNOWN, message);
+  }
   return Status::OK();
 }
 

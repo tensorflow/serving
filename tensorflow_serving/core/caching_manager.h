@@ -121,11 +121,13 @@ class CachingManager : public Manager {
       const ServableId& servable_id,
       std::unique_ptr<UntypedServableHandle>* handle);
 
-  // Load the servable corresponding to the servable-id. For multiple concurrent
-  // requests for the same servable-id, enforces that exactly one thread
-  // performs the load operation using the wrapped basic-manager. All other
-  // requests block until the load completes and then trivially succeed.
-  Status LoadServable(const ServableId& servable_id)
+  // Transfer the given servable to 'basic_manager_', and ask it to load it. For
+  // multiple concurrent requests for the same servable-id, enforces that
+  // exactly one thread performs the load operation using the wrapped
+  // basic-manager. All other requests block until the load completes and then
+  // trivially succeed.
+  Status LoadServable(
+      std::unique_ptr<ServableData<std::unique_ptr<Loader>>> loader_data)
       LOCKS_EXCLUDED(load_mutex_map_mu_);
 
   // Returns the size of the load_mutex_map_.

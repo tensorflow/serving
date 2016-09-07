@@ -29,6 +29,7 @@ namespace test_util {
 
 class MockStoragePathTarget : public TargetBase<StoragePath> {
  public:
+  ~MockStoragePathTarget() override { Detach(); }
   MOCK_METHOD2(SetAspiredVersions,
                void(const StringPiece, std::vector<ServableData<StoragePath>>));
 };
