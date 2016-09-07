@@ -266,8 +266,15 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
     // if this aspired version is not already present in the map.
     if (std::find(additions.begin(), additions.end(), version.id().version) !=
         additions.end()) {
-      basic_manager_->ManageServableWithAdditionalState(
-          std::move(version), std::unique_ptr<Aspired>(new Aspired{true}));
+      const Status manage_status =
+          basic_manager_->ManageServableWithAdditionalState(
+              std::move(version), std::unique_ptr<Aspired>(new Aspired{true}));
+      DCHECK(manage_status.ok()) << manage_status.error_message();
+      if (!manage_status.ok()) {
+        LOG(ERROR) << "Internal error: Unable to transfer servable "
+                   << version.id().DebugString()
+                   << " to 'basic_manager_': " << manage_status.error_message();
+      }
     }
   }
 }

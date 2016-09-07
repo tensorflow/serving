@@ -144,6 +144,12 @@ TEST_P(BasicManagerTest, ServableHandleLatest) {
   EXPECT_EQ(kNumVersionsPerServable + 1, *handle);
 }
 
+TEST_P(BasicManagerTest, AlreadyManagedError) {
+  const ServableId id = {"banana", 42};
+  TF_ASSERT_OK(basic_manager_->ManageServable(CreateServable(id)));
+  EXPECT_FALSE(basic_manager_->ManageServable(CreateServable(id)).ok());
+}
+
 // Tests the case where the latest version of a servable available is 0.
 TEST_P(BasicManagerTest, ServableHandleLatestVersionIsZero) {
   const ServableId id = {kServableName3, 1};

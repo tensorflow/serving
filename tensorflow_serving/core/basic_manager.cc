@@ -290,7 +290,7 @@ void BasicManager::DeleteHarness(const ServableId& id) {
   managed_map_.erase(it);
 }
 
-void BasicManager::ManageServableInternal(
+Status BasicManager::ManageServableInternal(
     ServableData<std::unique_ptr<Loader>> servable,
     std::function<std::shared_ptr<LoaderHarness>(const ServableId&,
                                                  std::unique_ptr<Loader>)>
@@ -299,9 +299,9 @@ void BasicManager::ManageServableInternal(
 
   const auto iter = BasicManager::FindHarnessInMap(servable.id());
   if (iter != managed_map_.end()) {
-    LOG(INFO) << "This servable is already being managed: "
-              << servable.id().DebugString();
-    return;
+    return errors::FailedPrecondition(
+        "This servable is already being managed: ",
+        servable.id().DebugString());
   }
 
   std::unique_ptr<Loader> loader;
@@ -320,11 +320,13 @@ void BasicManager::ManageServableInternal(
                        harness->status()});
     managed_map_.emplace(servable.id().name, harness);
   }
+
+  return Status::OK();
 }
 
-void BasicManager::ManageServable(
+Status BasicManager::ManageServable(
     ServableData<std::unique_ptr<Loader>> servable) {
-  ManageServableInternal(
+  return ManageServableInternal(
       std::move(servable),
       [this](const ServableId& id, std::unique_ptr<Loader> loader) {
         return std::make_shared<LoaderHarness>(id, std::move(loader),

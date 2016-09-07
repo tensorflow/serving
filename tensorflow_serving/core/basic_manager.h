@@ -142,17 +142,22 @@ class BasicManager : public Manager {
 
   // Starts managing the servable.
   //
-  // If called multiple times with the same servable id, all of them are
-  // accepted, but only the first one is used. We accept the servable even if
-  // called with erroneous ServableData.
-  void ManageServable(ServableData<std::unique_ptr<Loader>> servable);
+  // Returns an error if given a servable that is already being managed.
+  //
+  // If 'servable' is in an error state, this method does *not* return an error.
+  // Instead, the manager accepts the servable, puts it in state kError (with a
+  // notification sent to the event bus), and then immediately stops managing
+  // it. This behavior facilitates uniform handling of errors that occur in
+  // sources (e.g. invalid file path to servable data) and ones that occur in
+  // the manager (e.g. insufficient resources to load servable).
+  Status ManageServable(ServableData<std::unique_ptr<Loader>> servable);
 
   // Similar to the above method, but callers, usually other managers built on
   // top of this one, can associate additional state with the servable.
   // Additional state may be ACL or lifetime metadata for that servable.  The
   // ownership of the state is transferred to this class.
   template <typename T>
-  void ManageServableWithAdditionalState(
+  Status ManageServableWithAdditionalState(
       ServableData<std::unique_ptr<Loader>> servable,
       std::unique_ptr<T> additional_state);
 
@@ -241,10 +246,10 @@ class BasicManager : public Manager {
   // Also accepts a closure to create the harness as a shared_ptr. The harness
   // has a different constructors for creating it with or without
   // additional_state.
-  void ManageServableInternal(ServableData<std::unique_ptr<Loader>> servable,
-                              std::function<std::shared_ptr<LoaderHarness>(
-                                  const ServableId&, std::unique_ptr<Loader>)>
-                                  harness_creator);
+  Status ManageServableInternal(ServableData<std::unique_ptr<Loader>> servable,
+                                std::function<std::shared_ptr<LoaderHarness>(
+                                    const ServableId&, std::unique_ptr<Loader>)>
+                                    harness_creator);
 
   // Obtains the harness associated with the given servable id. Returns an ok
   // status if a corresponding harness was found, else an error status.
@@ -458,10 +463,10 @@ class BasicManager : public Manager {
 ////
 
 template <typename T>
-void BasicManager::ManageServableWithAdditionalState(
+Status BasicManager::ManageServableWithAdditionalState(
     ServableData<std::unique_ptr<Loader>> servable,
     std::unique_ptr<T> additional_state) {
-  ManageServableInternal(
+  return ManageServableInternal(
       std::move(servable),
       [this, &additional_state](const ServableId& id,
                                 std::unique_ptr<Loader> loader) {
