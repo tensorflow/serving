@@ -147,13 +147,11 @@ class BetaMnistServiceStub(object):
   Classify.future = None
 
 def beta_create_MnistService_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
-  import mnist_inference_pb2
-  import mnist_inference_pb2
   request_deserializers = {
-    ('tensorflow.serving.MnistService', 'Classify'): mnist_inference_pb2.MnistRequest.FromString,
+    ('tensorflow.serving.MnistService', 'Classify'): MnistRequest.FromString,
   }
   response_serializers = {
-    ('tensorflow.serving.MnistService', 'Classify'): mnist_inference_pb2.MnistResponse.SerializeToString,
+    ('tensorflow.serving.MnistService', 'Classify'): MnistResponse.SerializeToString,
   }
   method_implementations = {
     ('tensorflow.serving.MnistService', 'Classify'): face_utilities.unary_unary_inline(servicer.Classify),
@@ -162,13 +160,11 @@ def beta_create_MnistService_server(servicer, pool=None, pool_size=None, default
   return beta_implementations.server(method_implementations, options=server_options)
 
 def beta_create_MnistService_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
-  import mnist_inference_pb2
-  import mnist_inference_pb2
   request_serializers = {
-    ('tensorflow.serving.MnistService', 'Classify'): mnist_inference_pb2.MnistRequest.SerializeToString,
+    ('tensorflow.serving.MnistService', 'Classify'): MnistRequest.SerializeToString,
   }
   response_deserializers = {
-    ('tensorflow.serving.MnistService', 'Classify'): mnist_inference_pb2.MnistResponse.FromString,
+    ('tensorflow.serving.MnistService', 'Classify'): MnistResponse.FromString,
   }
   cardinalities = {
     'Classify': cardinality.Cardinality.UNARY_UNARY,
