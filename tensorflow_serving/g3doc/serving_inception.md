@@ -20,7 +20,7 @@ To learn more about TensorFlow Inception model, we recommend
 ## Part 0: Create a Docker image
 
 Please refer to [Using TensorFlow Serving via Docker](docker.md) for details
-of building Tensorflow Serving Docker image.
+about building a TensorFlow Serving Docker image.
 
 ### Run container
 
@@ -33,10 +33,10 @@ $ docker build --pull -t $USER/tensorflow-serving-devel -f tensorflow_serving/to
 $ docker run --name=inception_container -it $USER/tensorflow-serving-devel
 ```
 
-### Clone, configure and build Tensorflow Serving in container
+### Clone, configure, and build TensorFlow Serving in a container
 
-In the running container, we clone, configure and build Tensorflow Serving.
-Then test run [inception_inference.cc](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/inception_inference.cc).
+In the running container, we clone, configure and build TensorFlow Serving.
+Then test run [tensorflow_model_server](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/model_servers/main.cc).
 
 ```shell
 root@c97d8e820ced:/# git clone --recurse-submodules https://github.com/tensorflow/serving
@@ -47,8 +47,8 @@ root@c97d8e820ced:/serving# bazel build -c opt tensorflow_serving/...
 root@c97d8e820ced:/serving# ls
 AUTHORS          LICENSE    RELEASE.md  bazel-bin       bazel-out      bazel-testlogs  tensorflow          zlib.BUILD
 CONTRIBUTING.md  README.md  WORKSPACE   bazel-genfiles  bazel-serving  grpc            tensorflow_serving
-root@c97d8e820ced:/serving# bazel-bin/tensorflow_serving/example/inception_inference
-E tensorflow_serving/example/inception_inference.cc:362] Usage: inception_inference --port=9000 /path/to/exports
+root@c97d8e820ced:/serving# bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server
+Usage: model_server [--port=8500] [--enable_batching] [--model_name=my_name] --model_base_path=/path/to/export
 ```
 
 ### Export Inception model in container
@@ -95,11 +95,11 @@ $ docker run -it $USER/inception_serving
 
 ### Start the server
 
-Run the [gRPC]( http://www.grpc.io/) server in the container.
+Run the [gRPC]( http://www.grpc.io/) `tensorflow_model_server` in the container.
 
 ```shell
 root@f07eec53fd95:/# cd serving
-root@f07eec53fd95:/serving# bazel-bin/tensorflow_serving/example/inception_inference --port=9000 inception-export &> inception_log &
+root@f07eec53fd95:/serving# bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000 --model_name=inception --model_base_path=inception-export &> inception_log &
 [1] 45
 ```
 
@@ -112,16 +112,44 @@ over gRPC for classification into human readable descriptions of the
 
 ```shell
 root@f07eec53fd95:/serving# bazel-bin/tensorflow_serving/example/inception_client --server=localhost:9000 --image=/path/to/my_cat_image.jpg
-scores: 9.41664886475
-scores: 8.14928436279
-scores: 7.6565990448
-scores: 3.85941624641
-scores: 2.82326698303
-classes: "tiger cat"
-classes: "cougar, puma, catamount, mountain lion, painter, panther, Felis concolor"
-classes: "Persian cat"
-classes: "leopard, Panthera pardus"
-classes: "Egyptian cat"
+outputs {
+  key: "classes"
+  value {
+    dtype: DT_STRING
+    tensor_shape {
+      dim {
+        size: 1
+      }
+      dim {
+        size: 5
+      }
+    }
+    string_val: "tiger cat"
+    string_val: "Egyptian cat"
+    string_val: "tabby, tabby cat"
+    string_val: "lynx, catamount"
+    string_val: "Cardigan, Cardigan Welsh corgi"
+  }
+}
+outputs {
+  key: "scores"
+  value {
+    dtype: DT_FLOAT
+    tensor_shape {
+      dim {
+        size: 1
+      }
+      dim {
+        size: 5
+      }
+    }
+    float_val: 9.5486907959
+    float_val: 8.52025032043
+    float_val: 8.05995368958
+    float_val: 4.30645561218
+    float_val: 3.93207240105
+  }
+}
 
 root@f07eec53fd95:/serving# exit
 ```
@@ -261,16 +289,44 @@ We can now query the service at its external address from our local host.
 
 ```shell
 $ bazel-bin/tensorflow_serving/example/inception_client --server=146.148.88.232:9000 --image=/path/to/my_cat_image.jpg
-scores: 9.41664886475
-scores: 8.14928436279
-scores: 7.6565990448
-scores: 3.85941624641
-scores: 2.82326698303
-classes: "tiger cat"
-classes: "cougar, puma, catamount, mountain lion, painter, panther, Felis concolor"
-classes: "Persian cat"
-classes: "leopard, Panthera pardus"
-classes: "Egyptian cat"
+outputs {
+  key: "classes"
+  value {
+    dtype: DT_STRING
+    tensor_shape {
+      dim {
+        size: 1
+      }
+      dim {
+        size: 5
+      }
+    }
+    string_val: "tiger cat"
+    string_val: "Egyptian cat"
+    string_val: "tabby, tabby cat"
+    string_val: "lynx, catamount"
+    string_val: "Cardigan, Cardigan Welsh corgi"
+  }
+}
+outputs {
+  key: "scores"
+  value {
+    dtype: DT_FLOAT
+    tensor_shape {
+      dim {
+        size: 1
+      }
+      dim {
+        size: 5
+      }
+    }
+    float_val: 9.5486907959
+    float_val: 8.52025032043
+    float_val: 8.05995368958
+    float_val: 4.30645561218
+    float_val: 3.93207240105
+  }
+}
 ```
 
 You have successfully deployed Inception model serving as a service in

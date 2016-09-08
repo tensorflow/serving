@@ -19,7 +19,8 @@
 
 The model is from the TensorFlow "MNIST For ML Beginner" tutorial. This program
 simply follows all its training instructions, and uses TensorFlow Serving
-exporter to export the trained model.
+exporter to export the trained model with proper signatures that can be
+loaded by standard tensorflow_model_server.
 
 Usage: mnist_export.py [--training_iteration=x] [--export_version=y] export_dir
 """
@@ -82,9 +83,11 @@ def main(_):
   print 'Exporting trained model to', export_path
   saver = tf.train.Saver(sharded=True)
   model_exporter = exporter.Exporter(saver)
-  signature = exporter.classification_signature(input_tensor=x, scores_tensor=y)
-  model_exporter.init(sess.graph.as_graph_def(),
-                      default_graph_signature=signature)
+  model_exporter.init(
+      sess.graph.as_graph_def(),
+      named_graph_signatures={
+          'inputs': exporter.generic_signature({'images': x}),
+          'outputs': exporter.generic_signature({'scores': y})})
   model_exporter.export(export_path, tf.constant(FLAGS.export_version), sess)
   print 'Done exporting!'
 

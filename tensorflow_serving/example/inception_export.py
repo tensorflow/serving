@@ -15,6 +15,9 @@
 
 #!/usr/bin/env python2.7
 """Export inception model given existing training checkpoints.
+
+The model is exported with proper signatures that can be loaded by standard
+tensorflow_model_server.
 """
 
 import os.path
@@ -106,9 +109,10 @@ def export():
       # Export inference model.
       init_op = tf.group(tf.initialize_all_tables(), name='init_op')
       model_exporter = exporter.Exporter(saver)
-      signature = exporter.classification_signature(
-          input_tensor=jpegs, classes_tensor=classes, scores_tensor=values)
-      model_exporter.init(default_graph_signature=signature, init_op=init_op)
+      model_exporter.init(init_op=init_op, named_graph_signatures={
+          'inputs': exporter.generic_signature({'images': jpegs}),
+          'outputs': exporter.generic_signature({'classes': classes,
+                                                 'scores': values})})
       model_exporter.export(FLAGS.export_dir, tf.constant(global_step), sess)
       print('Successfully exported model to %s' % FLAGS.export_dir)
 
