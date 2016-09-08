@@ -1,14 +1,9 @@
 # Serving a TensorFlow Model
 
 This tutorial shows you how to use TensorFlow Serving components to export a
-trained TensorFlow model and build a server to serve the exported model. The
-server you will build in this tutorial is relatively simple: it serves a single
-static TensorFlow model, it handles inference requests, and it calculates an
-aggregate inference error rate. If you are already familiar with TensorFlow
-Serving, and you want to create a more sophisticated server that handles
-inference requests asynchronously (without blocking client threads), and
-discovers and serves new versions of a TensorFlow model that is being
-dynamically updated, see the
+trained TensorFlow model and use the standard tensorflow_model_server to serve
+it. If you are already familiar with TensorFlow Serving, and you want to know
+more about how the server internals work, see the
 [TensorFlow Serving advanced tutorial](serving_advanced.md).
 
 This tutorial uses the simple Softmax Regression model introduced in the
@@ -24,9 +19,9 @@ The code for this tutorial consists of two parts:
 that trains and exports the model.
 
 * A C++ file
-([mnist_inference.cc](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_inference.cc))
-that loads the exported model and runs a [gRPC](http://www.grpc.io) service to
-serve it.
+[main.cc](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/model_servers/main.cc)
+which is the standard TensorFlow model server that discovers new exported
+models and runs a [gRPC](http://www.grpc.io) service for serving them.
 
 Before getting started, please complete the [prerequisites](setup.md#prerequisites).
 
@@ -48,9 +43,11 @@ export_path = sys.argv[-1]
 print 'Exporting trained model to', export_path
 saver = tf.train.Saver(sharded=True)
 model_exporter = exporter.Exporter(saver)
-signature = exporter.classification_signature(input_tensor=x, scores_tensor=y)
-model_exporter.init(sess.graph.as_graph_def(),
-                    default_graph_signature=signature)
+model_exporter.init(
+    sess.graph.as_graph_def(),
+    named_graph_signatures={
+        'inputs': exporter.generic_signature({'images': x}),
+        'outputs': exporter.generic_signature({'scores': y})})
 model_exporter.export(export_path, tf.constant(FLAGS.export_version), sess)
 ~~~
 
@@ -68,22 +65,25 @@ export only the variables that will be used for inference.
   `export` will serialize the protobuf to the model export so that the
   TensorFlow graph can be properly restored later.
 
-  * `default_graph_signature=signature` specifies a model export **signature**.
+  * `named_graph_signatures=...` specifies a model export **signature**.
   Signature specifies what type of model is being exported, and the input/output
   tensors to bind to when running inference. In this case, you use
-  `exporter.classification_signature` to specify that the model is a
-  classification model:
+  `inputs` and `outputs` as keys for `exporter.generic_signature` as such a
+  signature is supported by the standard `tensorflow_model_server`:
 
-    * `input_tensor=x` specifies the input tensor binding.
+    * `{'images': x}` specifies the input tensor binding.
 
-    * `scores_tensor=y` specifies the scores tensor binding.
+    * `{'scores': y}` specifies the scores tensor binding.
 
-    * Typically, you should also override the `classes_tensor=None` argument to
-    specify class tensor binding. As an example, for a classification model that
-    returns the top 10 suggested videos, the output will consist of both videos
-    (classes) and scores for each video. In this case, however, the model always
-    returns Softmax scores for matching digit 0-9 in order. Therefore,
-    overriding `classes_tensor` is not necessary.
+    * `images` and `scores` are tensor alias names. They can be whatever
+    unique strings you want, and they will become the logical names of tensor
+    `x` and `y` that you refer to for tensor binding when sending prediction
+    requests later. For instance, if `x` refers to the tensor with name
+    'long_tensor_name_foo' and `y` refers to the tensor with name
+    'generated_tensor_name_bar', `exporter.generic_signature` will store
+    tensor logical name to real name mapping ('images' -> 'long_tensor_name_foo'
+    and 'scores' -> 'generated_tensor_name_bar') and allow user to refer to
+    these tensors with their logical names when running inference.
 
 `Exporter.export()` takes the following arguments:
 
@@ -146,151 +146,11 @@ Each version sub-directory contains the following files:
 
 With that, your TensorFlow model is exported and ready to be loaded!
 
-## Load Exported TensorFlow Model
-
-The C++ code for loading the exported TensorFlow model is in the `main()`
-function in mnist_inference.cc, and is simple. The basic code is:
-
-~~~c++
-int main(int argc, char** argv) {
-  ...
-
-  SessionBundleConfig session_bundle_config;
-  ... (ignoring batching for now; see below)
-  std::unique_ptr<SessionBundleFactory> bundle_factory;
-  TF_QCHECK_OK(
-      SessionBundleFactory::Create(session_bundle_config, &bundle_factory));
-  std::unique_ptr<SessionBundle> bundle(new SessionBundle);
-  TF_QCHECK_OK(bundle_factory->CreateSessionBundle(bundle_path, &bundle));
-  ...
-
-  RunServer(FLAGS_port, std::move(bundle));
-
-  return 0;
-}
-~~~
-
-It uses the `SessionBundle` component of TensorFlow Serving.
-`SessionBundleFactory::CreateSessionBundle()` loads an exported TensorFlow model
-at the given path and creates a `SessionBundle` object for running inference
-with the model. Typically, a default `tensorflow::SessionOptions` proto is given
-when loading the model; a custom one can be passed via `SessionBundleConfig` if
-desired.
-
-With a small amount of extra code, you can arrange for the server to batch
-groups of inference requests together into larger tensors, which tends to
-improve throughput, especially on GPUs. To enable batching you simply populate
-the `BatchingParameters` sub-message of the `SessionBundleConfig`, like so:
-
-~~~c++
-int main(int argc, char** argv) {
-  ...
-  BatchingParameters* batching_parameters =
-      session_bundle_config.mutable_batching_parameters();
-  batching_parameters->mutable_thread_pool_name()->set_value(
-      "mnist_service_batch_threads");
-  // Use a very large queue, to avoid rejecting requests.
-  batching_parameters->mutable_max_enqueued_batches()->set_value(1000);
-  ...
-}
-~~~
-
-This example sticks with default tuning parameters for batching; if you want to
-adjust the maximum batch size, timeout threshold or the number of background
-threads used for batched inference, you can do so by setting more values in
-`BatchingParameters`. Note that the (simplified) batching API offered by
-`SessionBundleFactory` requires a client thread to block while awaiting other
-peer threads with which to form a batch -- gRPC promises to adjust the number of
-client threads to keep things flowing smoothly. Lastly, the batcher's timeout
-threshold bounds the amount of time a given request spends in the blocked state,
-so a low request volume does not compromise latency. For more information about
-batching, see the [Batching Guide](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/batching/README.md).
-
-Whether or not we enable batching, we wind up with a `SessionBundle`; let's look
-at its definition in
-[session_bundle.h](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/session_bundle/session_bundle.h):
-
-~~~c++
-struct SessionBundle {
-  std::unique_ptr<tensorflow::Session> session;
-  tensorflow::MetaGraphDef meta_graph_def;
-};
-~~~
-
-`session` is, guess what, a TensorFlow session that has the original graph
-with the needed variables properly restored. In other words, the trained model
-is now held in `session` and is ready for running inference!
-
-All you need to do now is bind inference input and output to the proper tensors
-in the graph and invoke `session->run()`. But how do you know which tensors to
-bind to? As you may have probably guessed, the answer is in the
-`meta_graph_def`.
-
-`tensorflow::MetaGraphDef` is the protobuf de-serialized from the `export.meta`
-file above (see [meta_graph.proto](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/core/protobuf/meta_graph.proto)).
-We add all needed description and metadata of a TensorFlow model export to its
-extensible `collection_def`. In particular, it contains `Signatures` (see
-[manifest.proto](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/session_bundle/manifest.proto))
-that specifies the tensor to use.
-
-~~~proto
-// Signatures of model export.
-message Signatures {
-  // Default signature of the graph.
-  Signature default_signature = 1;
-
-  // Named signatures of the graph.
-  map<string, Signature> named_signatures = 2;
-};
-~~~
-
-Remember how we specified the model signature in `export` above? The
-information eventually gets encoded here:
-
-~~~proto
-message ClassificationSignature {
-  TensorBinding input = 1;
-  TensorBinding classes = 2;
-  TensorBinding scores = 3;
-};
-~~~
-
-`TensorBinding` contains the tensor name that can be used for `session->run()`.
-With that, we can run inference given a `SessionBundle`!
-
-## Bring Up Inference Service
-
-As you can see in `mnist_inference.cc`, `RunServer` in `main` brings up a gRPC
-server that exports a single `Classify()` API. The implementation of the method
-is straightforward, as each inference request is processed in the following
-steps:
-
-  1. Verify the input -- the server expects exactly one MNIST-format image for
-  each inference request.
-
-  2. Transform protobuf input to inference input tensor and create output
-  tensor placeholder.
-
-  3. Run inference. Note that in the `MnistServiceImpl` constructor you use
-  `GetClassificationSignature()` to extract the signature of the model from
-  'meta_graph_def` and verify that it is a classification signature as expected.
-  With the extracted signature, the server can bind the input and output tensors
-  properly and run the session.
-
-~~~c++
-const tensorflow::Status status =
-   bundle_->session->Run({{signature_.input().tensor_name(), input}},
-                         {signature_.scores().tensor_name()}, {},
-                         &outputs);
-~~~
-
-  4. Transform the inference output tensor to protobuf output.
-
-To run it:
+## Load Exported Model With Standard TensorFlow Model Server
 
 ~~~shell
-$>bazel build //tensorflow_serving/example:mnist_inference
-$>bazel-bin/tensorflow_serving/example/mnist_inference --port=9000 /tmp/mnist_model/00000001
+$>bazel build //tensorflow_serving/model_servers:tensorflow_model_server
+$>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000 --model_name=mnist --model_base_path=/tmp/mnist_model/
 ~~~
 
 ## Test The Server
