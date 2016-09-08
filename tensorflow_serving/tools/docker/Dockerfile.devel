@@ -28,8 +28,8 @@ RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
 
 # Set up grpc
 
-RUN pip install enum34 futures six && \
-    pip install --pre protobuf>=3.0.0a3 && \
+RUN pip install enum34 futures mock six && \
+    pip install --pre 'protobuf>=3.0.0a3' && \
     pip install -i https://testpypi.python.org/simple --pre grpcio
 
 # Set up Bazel.
