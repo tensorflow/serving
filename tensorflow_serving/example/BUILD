@@ -25,14 +25,6 @@ filegroup(
     ),
 )
 
-serving_proto_library(
-    name = "mnist_inference_proto",
-    srcs = ["mnist_inference.proto"],
-    has_services = 1,
-    cc_api_version = 2,
-    cc_grpc_version = 1,
-)
-
 py_library(
     name = "mnist_input_data",
     srcs = ["mnist_input_data.py"],
