@@ -1,15 +1,10 @@
-# Serving Dynamically Updated TensorFlow Model with Asynchronous Batching
+# Building Standard TensorFlow Model Server
 
-This tutorial shows you how to use TensorFlow Serving components to build a
-server that dynamically discovers and serves new versions of a trained
-TensorFlow model. You'll also learn how to use TensorFlow Serving's more
-flexible, lower-level batch scheduling API. One advantage of the lower-level API
-is its asynchronous behavior, which allows you to reduce the number of client
-threads and thus use less memory without compromising throughput. The code
-examples in this tutorial focus on the discovery, asynchronous batching, and
-serving logic. If you just want to use TensorFlow Serving to serve a single
-version model, and are fine with synchronous batching (relying on many client
-threads that block), see [TensorFlow Serving basic tutorial](serving_basic.md).
+This tutorial shows you how to use TensorFlow Serving components to build the
+standard TensorFlow model server that dynamically discovers and serves new
+versions of a trained TensorFlow model. If you just want to use the standard
+server to serve your models, see
+[TensorFlow Serving basic tutorial](serving_basic.md).
 
 This tutorial uses the simple Softmax Regression model introduced in the
 TensorFlow tutorial for handwritten image (MNIST data) classification. If you
@@ -24,16 +19,16 @@ The code for this tutorial consists of two parts:
   that trains and exports multiple versions of the model.
 
   * A C++ file
-  [mnist_inference_2.cc](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_inference_2.cc)
-  that discovers new exported models and runs a [gRPC](http://www.grpc.io)
-  service for serving them.
+  [main.cc](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/model_servers/main.cc)
+  which is the standard TensorFlow model server that discovers new exported
+  models and runs a [gRPC](http://www.grpc.io) service for serving them.
 
 This tutorial steps through the following tasks:
 
   1. Train and export a TensorFlow model.
-  2. Manage model versioning with TensorFlow Serving manager.
-  3. Handle request batching with TensorFlow Serving batch scheduler.
-  4. Serve request with TensorFlow Serving manager.
+  2. Manage model versioning with TensorFlow Serving `ServerCore`.
+  3. Configure batching using `SessionBundleSourceAdapterConfig`.
+  4. Serve request with TensorFlow Serving `ServerCore`.
   5. Run and test the service.
 
 Before getting started, please complete the [prerequisites](setup.md#prerequisites).
@@ -73,7 +68,7 @@ $>ls /tmp/mnist_model
 00000001  00000002
 ~~~
 
-## Manager
+## ServerCore
 
 Now imagine v1 and v2 of the model are dynamically generated at runtime, as new
 algorithms are being experimented with, or as the model is trained with a new
@@ -87,38 +82,68 @@ good for minimizing resource usage (e.g. RAM).
 TensorFlow Serving `Manager` does exactly that. It handles the full lifecycle of
 TensorFlow models including loading, serving and unloading them as well as
 version transitions. In this tutorial, you will build your server on top of a
-TensorFlow Serving `Manager` (see `mnist_inference_2.cc`).
+TensorFlow Serving `ServerCore`, which internally wraps an
+`AspiredVersionsManager`.
 
 ~~~c++
 int main(int argc, char** argv) {
   ...
 
-  UniquePtrWithDeps<tensorflow::serving::Manager> manager;
-  tensorflow::Status status = tensorflow::serving::simple_servers::
-      CreateSingleTFModelManagerFromBasePath(export_base_path, &manager);
-
-  ...
-
-  RunServer(FLAGS_port, ready_ids[0].name, std::move(manager));
+  std::unique_ptr<ServerCore> core;
+  TF_CHECK_OK(ServerCore::Create(
+      config, std::bind(CreateSourceAdapter, source_adapter_config,
+                        std::placeholders::_1, std::placeholders::_2),
+      &CreateServableStateMonitor, &LoadDynamicModelConfig, &core));
+  RunServer(port, std::move(core));
 
   return 0;
 }
 ~~~
 
-`CreateSingleTFModelManagerFromBasePath()` internally does the following:
+`ServerCore::Create()` takes four parameters:
 
-  * Instantiate a `FileSystemStoragePathSource` that monitors new files (model
-  export directory) in `export_base_path`.
-  * Instantiate a `SessionBundleSourceAdapter` that creates a new
-  `SessionBundle` for each new model export.
-  * Instantiate a specific implementation of `Manager` called
-  `AspiredVersionsManager` that manages all `SessionBundle` instances created by
+  * `ModelServerConfig` that specifies models to be loaded. Models are declared
+  either through `model_config_list`, which declares a static list of models, or
+  through `dynamic_model_config`, which declares a dynamic list of models that
+  may get updated at runtime.
+  * `SourceAdapterCreator` that creates the `SourceAdapter`, which adapts
+  `StoragePath` (the path where a model version is discovered) to model
+  `Loader` (loads the model version from storage path and provides state
+  transition interfaces to the `Manager`). In this case, `CreateSourceAdapter`
+  creates `SessionBundleSourceAdapter`, which we will explain later.
+  * `ServableStateMonitorCreator` that creates `ServableStateMonitor`, which
+  keeps track for `Servable` (model version) state transition and provides a
+  query interface to the user. In this case, `CreateServableStateMonitor`
+  creates the base `ServableStateMonitor`, which keeps track of servable states
+  in memory. You can extend it to add state tracking capabilities (e.g. persists
+  state change to disk, remote server, etc.)
+  * `DynamicModelConfigLoader` that loads models from `dynamic_model_config`.
+  The standard TensorFlow model server supports only `model_config_list` for
+  now and therefore `LoadDynamicModelConfig` CHECK-fails when called. You can
+  extend it to add dynamic model discovery/loading capabilities (e.g. through
+  RPC, external service, etc.)
+
+`SessionBundle` is a key component of TensorFlow Serving. It represents a
+TensorFlow model loaded from a given path and provides the same `Session::Run`
+interface as TensorFlow to run inference.
+`SessionBundleSourceAdapter` adapts storage path to `Loader<SessionBundle>`
+so that model lifetime can be managed by `Manager`.
+
+With all these, `ServerCore` internally does the following:
+
+  * Instantiates a `FileSystemStoragePathSource` that monitors model export
+  paths declared in `model_config_list`.
+  * Instantiates a `SourceAdapter` using the `SourceAdapterCreator` with the
+  model type declared in `model_config_list` and connects the
+  `FileSystemStoragePathSource` to it. This way, whenever a new model version is
+  discovered under the export path, the `SessionBundleSourceAdapter` adapts it
+  to a `Loader<SessionBundle>`.
+  * Instantiates a specific implementation of `Manager` called
+  `AspiredVersionsManager` that manages all such `Loader` instances created by
   the `SessionBundleSourceAdapter`.
 
 Whenever a new version is available, this `AspiredVersionsManager` always
-unloads the old version and replaces it with the new one. Note that
-`CreateSingleTFModelManagerFromBasePath()` intentionally lacks any config
-parameters, because it is intended for a very first deployment. If you want to
+unloads the old version and replaces it with the new one. If you want to
 start customizing, you are encouraged to understand the components that it
 creates internally, and how to configure them.
 
@@ -140,42 +165,26 @@ Modern hardware accelerators (GPUs, etc.) used to do machine learning inference
 usually achieve best computation efficiency when inference requests are run in
 large batches.
 
-TensorFlow Serving `BatchScheduler` provides such functionality. A specific
-implementation of it -- `BasicBatchScheduler` -- enqueues tasks (requests)
-until either of the following occur:
-
-  * The next task would cause the batch to exceed the size target.
-  * Waiting for more tasks to be added would exceed the timeout.
-
-When either of these occur, the `BasicBatchScheduler` processes the entire
-batch by executing a callback and passing it the current batch of tasks.
-
-Initializing `BasicBatchScheduler` is straightforward and is done in a
-`MnistServiceImpl` constructor. A `BasicBatchScheduler::Options` is given to
-configure the batch scheduler, and a callback is given to be executed when the
-batch is full or timeout exceeds.
-
-The default `BasicBatchScheduler::Options` has batch size set to 32 and
-timeout set to 10 milliseconds. These parameters are typically extremely
-performance critical and should be tuned based on a specific model/scenario in
-production. In this tutorial, you will not bother tuning them.
-
-For each incoming request, instead of immediately processing it, you always
-submit a task, which encapsulates gRPC async call data, to `BatchScheduler`:
+Batching can be turned on by providing proper `SessionBundleSourceAdapterConfig`
+when creating the `SessionBundleSourceAdapter`. In this case we set the
+`BatchingParameters` with pretty much default values. Batching can be fine-tuned
+by setting custom timeout, batch_size, etc. values. For details, please refer
+to `BatchingParameters`.
 
 ~~~c++
-void MnistServiceImpl::Classify(CallData* calldata) {
-  ...
-
-  std::unique_ptr<Task> task(new Task(calldata));
-  tensorflow::Status status = batch_scheduler_->Schedule(std::move(task));
+SessionBundleSourceAdapterConfig source_adapter_config;
+// Batching config
+if (enable_batching) {
+  BatchingParameters* batching_parameters =
+      source_adapter_config.mutable_config()->mutable_batching_parameters();
+  batching_parameters->mutable_thread_pool_name()->set_value(
+      "model_server_batch_threads");
 }
 ~~~
 
-Upon reaching timeout or full batch, the given callback `DoClassifyInBatch()`
-will be executed. `DoClassifyInBatch()`, as we will explain later, merges tasks
-into a single large tensor, and invokes a single `tensorflow::Session::Run()`
-call (which is where the actual efficiency gain on GPUs comes from).
+Upon reaching full batch, inference requests are merged internally into a
+single large request (tensor), and `tensorflow::Session::Run()` is invoked
+(which is where the actual efficiency gain on GPUs comes from).
 
 
 # Serve with Manager
@@ -231,34 +240,12 @@ To put all these into the context of this tutorial:
   * `AspiredVersionsManager` monitors the export stream, and manages lifecycle
   of all SessionBundle` servables dynamically.
 
-`DoClassifyInBatch` then just requests `SessionBundle` from the manager and uses
-it to run inference. Most of the logic and flow is very similar to the logic and
-flow described in the [TensorFlow Serving basic tutorial](serving_basic.md),
-with just a few key changes:
+`TensorflowPredictImpl::Predict` then just:
 
-  * The input tensor now has its first dimension set to variable batch size at
-  runtime, because you are batching multiple inference requests in a single
-  input.
-
-~~~c++
-  Tensor input(tensorflow::DT_FLOAT, {batch_size, kImageDataSize});
-~~~
-
-  * You are calling `GetServableHandle` to request the `SessionBundle` of a
-  version of the model. With `ServableRequest::Latest()` you create a
-  `ServableRequest` that tells the `Manager` to return the latest version of the
-  servable for a given name. You can also specify a version. Note that
-  `SessionBundle` is wrapped in a `ServableHandle`. This is due to the fact
-  that the lifetime of `SessionBundle` is now managed by the `Manager`,
-  therefore a handle/reference is returned instead.
-
-~~~c++
-  auto handle_request =
-      tensorflow::serving::ServableRequest::Latest(servable_name_);
-  tensorflow::serving::ServableHandle<tensorflow::serving::SessionBundle> bundle;
-  const tensorflow::Status lookup_status =
-      manager_->GetServableHandle(handle_request, &bundle);
-~~~
+  * Requests `SessionBundle` from the manager (through ServerCore).
+  * Uses the `generic signatures` to map logical tensor names in `PredictRequest`
+  to real tensor names and bind values to tensors.
+  * Runs inference.
 
 ## Test and Run The Server
 
@@ -268,8 +255,8 @@ server.
 ~~~shell
 $>mkdir /tmp/monitored
 $>cp -r /tmp/mnist_model/00000001 /tmp/monitored
-$>bazel build //tensorflow_serving/example:mnist_inference_2
-$>bazel-bin/tensorflow_serving/example/mnist_inference_2 --port=9000 /tmp/monitored
+$>bazel build //tensorflow_serving/model_servers/tensorflow_model_server
+$>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --enable_batching --port=9000 --model_name=mnist --model_base_path=/tmp/monitored
 ~~~
 
 The server will emit log messages every one second that say

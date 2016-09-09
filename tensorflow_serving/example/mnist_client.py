@@ -15,11 +15,10 @@
 
 #!/usr/bin/env python2.7
 
-"""A client that talks to mnist_inference service.
+"""A client that talks to tensorflow_model_server loaded with mnist model.
 
 The client downloads test images of mnist data set, queries the service with
-such test images to get classification, and calculates the inference error rate.
-Please see mnist_inference.proto for details.
+such test images to get predictions, and calculates the inference error rate.
 
 Typical usage example:
 
@@ -35,7 +34,8 @@ from grpc.beta import implementations
 import numpy
 import tensorflow as tf
 
-from tensorflow_serving.example import mnist_inference_pb2
+from tensorflow_serving.apis import predict_pb2
+from tensorflow_serving.apis import prediction_service_pb2
 from tensorflow_serving.example import mnist_input_data
 
 
@@ -65,7 +65,7 @@ def do_inference(hostport, work_dir, concurrency, num_tests):
   test_data_set = mnist_input_data.read_data_sets(work_dir).test
   host, port = hostport.split(':')
   channel = implementations.insecure_channel(host, int(port))
-  stub = mnist_inference_pb2.beta_create_MnistService_stub(channel)
+  stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
   cv = threading.Condition()
   result = {'active': 0, 'error': 0, 'done': 0}
   def done(result_future, label):
@@ -81,7 +81,7 @@ def do_inference(hostport, work_dir, concurrency, num_tests):
       else:
         sys.stdout.write('.')
         sys.stdout.flush()
-        response = numpy.array(result_future.result().value)
+        response = numpy.array(result_future.result().outputs['scores'])
         prediction = numpy.argmax(response)
         if label != prediction:
           result['error'] += 1
@@ -89,15 +89,16 @@ def do_inference(hostport, work_dir, concurrency, num_tests):
       result['active'] -= 1
       cv.notify()
   for _ in range(num_tests):
-    request = mnist_inference_pb2.MnistRequest()
+    request = predict_pb2.PredictRequest()
+    request.model_spec.name = 'mnist'
     image, label = test_data_set.next_batch(1)
-    for pixel in image[0]:
-      request.image_data.append(pixel.item())
+    request.inputs['images'].CopyFrom(
+        tf.contrib.util.make_tensor_proto(image[0], shape=[1, image[0].size]))
     with cv:
       while result['active'] == concurrency:
         cv.wait()
       result['active'] += 1
-    result_future = stub.Classify.future(request, 5.0)  # 5 seconds
+    result_future = stub.Predict.future(request, 5.0)  # 5 seconds
     result_future.add_done_callback(
         lambda result_future, l=label[0]: done(result_future, l))  # pylint: disable=cell-var-from-loop
   with cv:

@@ -67,7 +67,7 @@ Status LoaderHarness::LoadApproved() {
         " instead of state: ", StateDebugString(State::kLoadRequested));
   }
   state_ = State::kLoadApproved;
-  VLOG(1) << "Approving load for servable version " << id_;
+  LOG(INFO) << "Approving load for servable version " << id_;
 
   return Status::OK();
 }
@@ -82,7 +82,7 @@ Status LoaderHarness::Load(const ResourceAllocation& available_resources) {
           StateDebugString(State::kLoadApproved));
     }
     state_ = State::kLoading;
-    VLOG(1) << "Loading servable version " << id_;
+    LOG(INFO) << "Loading servable version " << id_;
   }
 
   const Status status = [&]() {
@@ -115,7 +115,7 @@ Status LoaderHarness::Load(const ResourceAllocation& available_resources) {
     DCHECK_EQ(State::kLoading, state_);
     if (status.ok()) {
       state_ = State::kReady;
-      VLOG(1) << "Successfully loaded servable version " << id_;
+      LOG(INFO) << "Successfully loaded servable version " << id_;
     } else {
       ErrorInternal(status);
     }
@@ -153,7 +153,7 @@ void LoaderHarness::Unload() {
     mutex_lock l(mu_);
     DCHECK_EQ(state_, State::kQuiesced);
     state_ = State::kUnloading;
-    VLOG(1) << "Unloading servable version " << id_;
+    LOG(INFO) << "Unloading servable version " << id_;
   }
 
   loader_->Unload();
@@ -162,7 +162,7 @@ void LoaderHarness::Unload() {
     mutex_lock l(mu_);
     DCHECK_EQ(state_, State::kUnloading);
     state_ = State::kDisabled;
-    VLOG(1) << "Done unloading servable version " << id_;
+    LOG(INFO) << "Done unloading servable version " << id_;
   }
 }
 
@@ -175,7 +175,7 @@ Status LoaderHarness::StartQuiescing() {
         StateDebugString(State::kUnloadRequested));
   }
   state_ = State::kQuiescing;
-  VLOG(1) << "Quiescing servable version " << id_;
+  LOG(INFO) << "Quiescing servable version " << id_;
   return Status::OK();
 }
 
@@ -183,14 +183,14 @@ void LoaderHarness::DoneQuiescing() {
   mutex_lock l(mu_);
   DCHECK_EQ(state_, State::kQuiescing);
   state_ = State::kQuiesced;
-  VLOG(1) << "Done quiescing servable version " << id_;
+  LOG(INFO) << "Done quiescing servable version " << id_;
 }
 
 void LoaderHarness::ErrorInternal(const Status status) {
   state_ = State::kError;
   status_ = status;
-  VLOG(1) << "Encountered an error for servable version " << id_ << ": "
-          << status_;
+  LOG(INFO) << "Encountered an error for servable version " << id_ << ": "
+            << status_;
 }
 
 void LoaderHarness::Error(const Status status) {
