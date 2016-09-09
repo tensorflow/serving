@@ -91,8 +91,7 @@ def do_inference(hostport, work_dir, concurrency, num_tests):
   for _ in range(num_tests):
     request = mnist_inference_pb2.MnistRequest()
     image, label = test_data_set.next_batch(1)
-    for pixel in image[0]:
-      request.image_data.append(pixel.item())
+    request.image_data.extend(list(image[0].astype(float)))
     with cv:
       while result['active'] == concurrency:
         cv.wait()
