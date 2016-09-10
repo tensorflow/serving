@@ -25,14 +25,6 @@ filegroup(
     ),
 )
 
-serving_proto_library(
-    name = "mnist_inference_proto",
-    srcs = ["mnist_inference.proto"],
-    has_services = 1,
-    cc_api_version = 2,
-    cc_grpc_version = 1,
-)
-
 py_library(
     name = "mnist_input_data",
     srcs = ["mnist_input_data.py"],
@@ -50,71 +42,17 @@ py_binary(
     ],
 )
 
-cc_binary(
-    name = "mnist_inference",
-    srcs = [
-        "mnist_inference.cc",
-    ],
-    linkopts = ["-lm"],
-    deps = [
-        ":mnist_inference_proto",
-        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
-        "//tensorflow_serving/servables/tensorflow:session_bundle_factory",
-        "@grpc//:grpc++",
-        "@org_tensorflow//tensorflow/contrib/session_bundle",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
-    ],
-)
-
-cc_binary(
-    name = "mnist_inference_2",
-    srcs = [
-        "mnist_inference_2.cc",
-    ],
-    linkopts = ["-lm"],
-    deps = [
-        ":mnist_inference_proto",
-        "//tensorflow_serving/batching:basic_batch_scheduler",
-        "//tensorflow_serving/batching:batch_scheduler",
-        "//tensorflow_serving/core:manager",
-        "//tensorflow_serving/core:servable_handle",
-        "//tensorflow_serving/core:servable_id",
-        "//tensorflow_serving/servables/tensorflow:simple_servers",
-        "@grpc//:grpc++",
-        "@org_tensorflow//tensorflow/contrib/session_bundle",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
-    ],
-)
-
 py_binary(
     name = "mnist_client",
     srcs = [
         "mnist_client.py",
-        "mnist_inference_pb2.py",
     ],
     deps = [
         ":mnist_input_data",
+        "//tensorflow_serving/apis:predict_proto_py_pb2",
+        "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
-)
-
-serving_proto_library(
-    name = "inception_inference_proto",
-    srcs = ["inception_inference.proto"],
-    has_services = 1,
-    cc_api_version = 2,
-    cc_grpc_version = 1,
 )
 
 py_binary(
@@ -129,36 +67,14 @@ py_binary(
     ],
 )
 
-cc_binary(
-    name = "inception_inference",
-    srcs = [
-        "inception_inference.cc",
-    ],
-    linkopts = ["-lm"],
-    deps = [
-        ":inception_inference_proto",
-        "//tensorflow_serving/batching:basic_batch_scheduler",
-        "//tensorflow_serving/batching:batch_scheduler",
-        "//tensorflow_serving/core:manager",
-        "//tensorflow_serving/core:servable_handle",
-        "//tensorflow_serving/core:servable_id",
-        "//tensorflow_serving/servables/tensorflow:simple_servers",
-        "@grpc//:grpc++",
-        "@org_tensorflow//tensorflow/contrib/session_bundle",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
-    ],
-)
-
 py_binary(
     name = "inception_client",
     srcs = [
         "inception_client.py",
-        "inception_inference_pb2.py",
     ],
-    deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
+    deps = [
+        "//tensorflow_serving/apis:predict_proto_py_pb2",
+        "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+    ],
 )
