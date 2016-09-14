@@ -35,7 +35,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -54,7 +53,7 @@ cc_library(
     srcs = ["hash.cc"],
     hdrs = ["hash.h"],
     deps = [
-        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
@@ -62,7 +61,7 @@ cc_library(
     name = "observer",
     hdrs = ["observer.h"],
     deps = [
-        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
@@ -94,7 +93,6 @@ cc_library(
     hdrs = ["fast_read_dynamic_ptr.h"],
     deps = [
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -128,7 +126,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -151,7 +148,6 @@ cc_library(
     hdrs = ["periodic_function.h"],
     deps = [
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -182,7 +178,6 @@ cc_library(
     hdrs = ["cleanup.h"],
     deps = [
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 

@@ -34,7 +34,6 @@ cc_library(
     deps = [
         "//tensorflow_serving/util:hash",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -56,7 +55,6 @@ cc_library(
     deps = [
         ":servable_id",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -82,7 +80,6 @@ cc_library(
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/util:any_ptr",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -99,7 +96,6 @@ cc_library(
         "//tensorflow_serving/util:any_ptr",
         "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -274,7 +270,7 @@ cc_library(
     deps = [
         ":loader",
         "//tensorflow_serving/util:any_ptr",
-        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
@@ -392,7 +388,6 @@ cc_library(
         ":servable_id",
         "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
