@@ -89,8 +89,8 @@ class AspiredVersionsManager : public Manager,
     // The number of threads in the thread-pool used to load and unload
     // servables.
     //
-    // If set as 0, we don't use a thread-pool, and the {Load,Unload}Servable()
-    // methods block.
+    // If set as 0, we don't use a thread-pool, and servable loads/unloads are
+    // performed serially in the manager's main work loop.
     uint32 num_load_unload_threads = 0;
 
     // Maximum number of times we retry loading a servable, after the first
