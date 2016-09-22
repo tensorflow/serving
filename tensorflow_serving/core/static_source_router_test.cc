@@ -39,7 +39,7 @@ namespace serving {
 namespace {
 
 TEST(StaticSourceRouterTest, Basic) {
-  const std::vector<string> regexps = {"0th.*", ".*1st"};
+  const std::vector<string> regexps = {"0th", "1st"};
   std::unique_ptr<StaticSourceRouter<StoragePath>> router;
   TF_ASSERT_OK(StaticSourceRouter<string>::Create(regexps, &router));
   std::vector<Source<StoragePath>*> output_ports = router->GetOutputPorts();
