@@ -29,6 +29,7 @@ import time
 
 from grpc import *
 from grpc.beta import implementations
+from grpc.beta import interfaces as beta_interfaces
 from grpc.framework.interfaces.face import face
 import tensorflow as tf
 
@@ -122,7 +123,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     time.sleep(5)
     with self.assertRaises(face.AbortionError) as error:
       self.VerifyPredictRequest(model_server_address)
-    self.assertIs(StatusCode.FAILED_PRECONDITION,
+    self.assertIs(beta_interfaces.StatusCode.FAILED_PRECONDITION,
                   error.exception.code)
     self.assertTrue(error.exception.details.startswith(
         'Expected exactly one signatures proto'))
