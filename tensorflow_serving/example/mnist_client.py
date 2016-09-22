@@ -42,16 +42,88 @@ from tensorflow_serving.example import mnist_input_data
 tf.app.flags.DEFINE_integer('concurrency', 1,
                             'maximum number of concurrent inference requests')
 tf.app.flags.DEFINE_integer('num_tests', 100, 'Number of test images')
-tf.app.flags.DEFINE_string('server', '', 'mnist_inference service host:port')
+tf.app.flags.DEFINE_string('server', '', 'PredictionService host:port')
 tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory. ')
 FLAGS = tf.app.flags.FLAGS
 
 
-def do_inference(hostport, work_dir, concurrency, num_tests):
-  """Tests mnist_inference service with concurrent requests.
+class _ResultCounter(object):
+  """Counter for the prediction results."""
+
+  def __init__(self, num_tests, concurrency):
+    self._num_tests = num_tests
+    self._concurrency = concurrency
+    self._error = 0
+    self._done = 0
+    self._active = 0
+    self._condition = threading.Condition()
+
+  def inc_error(self):
+    with self._condition:
+      self._error += 1
+
+  def inc_done(self):
+    with self._condition:
+      self._done += 1
+      self._condition.notify()
+
+  def dec_active(self):
+    with self._condition:
+      self._active -= 1
+      self._condition.notify()
+
+  def get_error_rate(self):
+    with self._condition:
+      while self._done != self._num_tests:
+        self._condition.wait()
+      return self._error / float(self._num_tests)
+
+  def throttle(self):
+    with self._condition:
+      while self._active == self._concurrency:
+        self._condition.wait()
+      self._active += 1
+
+
+def _create_rpc_callback(label, result_counter):
+  """Creates RPC callback function.
 
   Args:
-    hostport: Host:port address of the mnist_inference service.
+    label: The correct label for the predicted example.
+    result_counter: Counter for the prediction result.
+  Returns:
+    The callback function.
+  """
+  def _callback(result_future):
+    """Callback function.
+
+    Calculates the statistics for the prediction result.
+
+    Args:
+      result_future: Result future of the RPC.
+    """
+    exception = result_future.exception()
+    if exception:
+      result_counter.inc_error()
+      print exception
+    else:
+      sys.stdout.write('.')
+      sys.stdout.flush()
+      response = numpy.array(
+          result_future.result().outputs['scores'].float_val)
+      prediction = numpy.argmax(response)
+      if label != prediction:
+        result_counter.inc_error()
+    result_counter.inc_done()
+    result_counter.dec_active()
+  return _callback
+
+
+def do_inference(hostport, work_dir, concurrency, num_tests):
+  """Tests PredictionService with concurrent requests.
+
+  Args:
+    hostport: Host:port address of the PredictionService.
     work_dir: The full path of working directory for test data set.
     concurrency: Maximum number of concurrent requests.
     num_tests: Number of test images to use.
@@ -66,45 +138,18 @@ def do_inference(hostport, work_dir, concurrency, num_tests):
   host, port = hostport.split(':')
   channel = implementations.insecure_channel(host, int(port))
   stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
-  cv = threading.Condition()
-  result = {'active': 0, 'error': 0, 'done': 0}
-  def done(result_future, label):
-    with cv:
-      # Workaround for gRPC issue https://github.com/grpc/grpc/issues/7133
-      try:
-        exception = result_future.exception()
-      except AttributeError:
-        exception = None
-      if exception:
-        result['error'] += 1
-        print exception
-      else:
-        sys.stdout.write('.')
-        sys.stdout.flush()
-        response = numpy.array(result_future.result().outputs['scores'])
-        prediction = numpy.argmax(response)
-        if label != prediction:
-          result['error'] += 1
-      result['done'] += 1
-      result['active'] -= 1
-      cv.notify()
+  result_counter = _ResultCounter(num_tests, concurrency)
   for _ in range(num_tests):
     request = predict_pb2.PredictRequest()
     request.model_spec.name = 'mnist'
     image, label = test_data_set.next_batch(1)
     request.inputs['images'].CopyFrom(
         tf.contrib.util.make_tensor_proto(image[0], shape=[1, image[0].size]))
-    with cv:
-      while result['active'] == concurrency:
-        cv.wait()
-      result['active'] += 1
+    result_counter.throttle()
     result_future = stub.Predict.future(request, 5.0)  # 5 seconds
     result_future.add_done_callback(
-        lambda result_future, l=label[0]: done(result_future, l))  # pylint: disable=cell-var-from-loop
-  with cv:
-    while result['done'] != num_tests:
-      cv.wait()
-    return result['error'] / float(num_tests)
+        _create_rpc_callback(label[0], result_counter))
+  return result_counter.get_error_rate()
 
 
 def main(_):

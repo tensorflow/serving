@@ -57,7 +57,12 @@ def main(_):
   print 'Training model...'
   mnist = mnist_input_data.read_data_sets(FLAGS.work_dir, one_hot=True)
   sess = tf.InteractiveSession()
-  x = tf.placeholder('float', shape=[None, 784])
+  serialized_tf_example = tf.placeholder(tf.string, name='tf_example')
+  feature_configs = {
+      'x': tf.FixedLenFeature(shape=[784], dtype=tf.float32),
+  }
+  tf_example = tf.parse_example(serialized_tf_example, feature_configs)
+  x = tf_example['x']
   y_ = tf.placeholder('float', shape=[None, 10])
   w = tf.Variable(tf.zeros([784, 10]))
   b = tf.Variable(tf.zeros([10]))
@@ -65,6 +70,10 @@ def main(_):
   y = tf.nn.softmax(tf.matmul(x, w) + b)
   cross_entropy = -tf.reduce_sum(y_ * tf.log(y))
   train_step = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)
+  values, indices = tf.nn.top_k(y, 10)
+  prediction_classes = tf.contrib.lookup.index_to_string(
+      tf.to_int64(indices),
+      mapping=tf.constant([str(i) for i in xrange(10)]))
   for _ in range(FLAGS.training_iteration):
     batch = mnist.train.next_batch(50)
     train_step.run(feed_dict={x: batch[0], y_: batch[1]})
@@ -81,10 +90,16 @@ def main(_):
   # whenever code changes.
   export_path = sys.argv[-1]
   print 'Exporting trained model to', export_path
+  init_op = tf.group(tf.initialize_all_tables(), name='init_op')
   saver = tf.train.Saver(sharded=True)
   model_exporter = exporter.Exporter(saver)
   model_exporter.init(
       sess.graph.as_graph_def(),
+      init_op=init_op,
+      default_graph_signature=exporter.classification_signature(
+          input_tensor=serialized_tf_example,
+          classes_tensor=prediction_classes,
+          scores_tensor=values),
       named_graph_signatures={
           'inputs': exporter.generic_signature({'images': x}),
           'outputs': exporter.generic_signature({'scores': y})})
