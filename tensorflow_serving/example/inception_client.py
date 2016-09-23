@@ -28,12 +28,9 @@ from tensorflow_serving.apis import prediction_service_pb2
 
 
 tf.app.flags.DEFINE_string('server', 'localhost:9000',
-                           'inception_inference service host:port')
+                           'PredictionService host:port')
 tf.app.flags.DEFINE_string('image', '', 'path to image in JPEG format')
 FLAGS = tf.app.flags.FLAGS
-
-
-NUM_CLASSES = 5
 
 
 def main(_):
@@ -42,7 +39,7 @@ def main(_):
   stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
   # Send request
   with open(FLAGS.image, 'rb') as f:
-    # See inception_inference.proto for gRPC request/response details.
+    # See prediction_service.proto for gRPC request/response details.
     data = f.read()
     request = predict_pb2.PredictRequest()
     request.model_spec.name = 'inception'
