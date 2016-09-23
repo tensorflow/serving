@@ -21,25 +21,24 @@ limitations under the License.
 #include <vector>
 
 #include "tensorflow/core/platform/macros.h"
-#include "tensorflow/core/platform/regexp.h"
 #include "tensorflow_serving/core/source_router.h"
 
 namespace tensorflow {
 namespace serving {
 
 // A SourceRouter with N statically-configured output ports. Items are routed to
-// output ports based on regular-expression matching against the servable name.
-// The router is configured with N-1 regular expressions (regexps), with "fall-
-// through" semantics. In particular: The regexps are numbered 0, 1, ..., N-2.
-// Items whose servable name matches regexp 0 are sent to port 0; items that
-// fail to match regexp 0 but do match regexp 1 are sent to port 1; and so on.
-// Items that match none of the regexps are sent to port N-1.
+// output ports based on substring matching against the servable name. The
+// router is configured with N-1 substrings, with "fall-through" semantics. In
+// particular: The substrings are numbered 0, 1, ..., N-2. Items whose servable
+// name matches substring 0 are sent to port 0; items that fail to match
+// substring 0 but do match substring 1 are sent to port 1; and so on. Items
+// that match none of the substrings are sent to port N-1.
 template <typename T>
 class StaticSourceRouter final : public SourceRouter<T> {
  public:
-  // Creates a StaticSourceRouter with 'route_regexps.size() + 1' output ports,
-  // based on cascading regular expression matching as described above.
-  static Status Create(const std::vector<string>& route_regexps,
+  // Creates a StaticSourceRouter with 'route_substrings.size() + 1' output
+  // ports, based on cascading substring matching as described above.
+  static Status Create(const std::vector<string>& route_substrings,
                        std::unique_ptr<StaticSourceRouter<T>>* result);
   ~StaticSourceRouter() override;
 
@@ -52,10 +51,11 @@ class StaticSourceRouter final : public SourceRouter<T> {
             const std::vector<ServableData<T>>& versions) override;
 
  private:
-  explicit StaticSourceRouter(const std::vector<string>& route_regexps);
+  explicit StaticSourceRouter(const std::vector<string>& route_substrings);
 
-  // The regexps of the first N-1 routes (the Nth route is the default route).
-  std::vector<std::unique_ptr<RE2>> routes_except_default_;
+  // The substrings of the first N-1 routes (the Nth route is the default
+  // route).
+  std::vector<string> routes_except_default_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(StaticSourceRouter);
 };
@@ -65,9 +65,9 @@ class StaticSourceRouter final : public SourceRouter<T> {
 
 template <typename T>
 Status StaticSourceRouter<T>::Create(
-    const std::vector<string>& route_regexps,
+    const std::vector<string>& route_substrings,
     std::unique_ptr<StaticSourceRouter<T>>* result) {
-  result->reset(new StaticSourceRouter<T>(route_regexps));
+  result->reset(new StaticSourceRouter<T>(route_substrings));
   return Status::OK();
 }
 
@@ -80,13 +80,13 @@ template <typename T>
 int StaticSourceRouter<T>::Route(const StringPiece servable_name,
                                  const std::vector<ServableData<T>>& versions) {
   for (int i = 0; i < routes_except_default_.size(); ++i) {
-    if (RE2::FullMatch(servable_name.ToString(), *routes_except_default_[i])) {
+    if (servable_name.contains(routes_except_default_[i])) {
       LOG(INFO) << "Routing servable(s) from stream " << servable_name
                 << " to route " << i;
       return i;
     }
   }
-  // None of the regexps matched, so return the "default" Nth route.
+  // None of the substrings matched, so return the "default" Nth route.
   LOG(INFO) << "Routing servable(s) from stream " << servable_name
             << " to default route " << routes_except_default_.size();
   return routes_except_default_.size();
@@ -94,11 +94,8 @@ int StaticSourceRouter<T>::Route(const StringPiece servable_name,
 
 template <typename T>
 StaticSourceRouter<T>::StaticSourceRouter(
-    const std::vector<string>& route_regexps) {
-  for (const string& route_regexp : route_regexps) {
-    routes_except_default_.emplace_back(new RE2(route_regexp));
-  }
-}
+    const std::vector<string>& route_substrings)
+    : routes_except_default_(route_substrings) {}
 
 }  // namespace serving
 }  // namespace tensorflow

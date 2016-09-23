@@ -129,7 +129,7 @@ class EventBus : public std::enable_shared_from_this<EventBus<E>> {
   //   (1) Unsubscribe.
   //   (2) Tear down anything that the callback references.
   std::unique_ptr<Subscription> Subscribe(const Callback& callback)
-      LOCKS_EXCLUDED(mutex_);
+      LOCKS_EXCLUDED(mutex_) TF_MUST_USE_RESULT;
 
   // Publishes an event to all subscribers.
   void Publish(const E& event) LOCKS_EXCLUDED(mutex_);
