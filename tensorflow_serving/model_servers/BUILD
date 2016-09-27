@@ -30,7 +30,7 @@ cc_library(
     srcs = ["server_core.cc"],
     hdrs = ["server_core.h"],
     visibility = [
-        "//tensorflow_serving:internal",
+        "//visibility:public",
     ],
     deps = [
         "//tensorflow_serving/apis:model_proto",
