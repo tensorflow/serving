@@ -199,9 +199,6 @@ cc_library(
     name = "serving_session",
     srcs = ["serving_session.cc"],
     hdrs = ["serving_session.h"],
-    visibility = [
-        "//visibility:public",
-    ],
     deps = [
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
@@ -214,9 +211,6 @@ cc_library(
     name = "predict_impl",
     srcs = ["predict_impl.cc"],
     hdrs = ["predict_impl.h"],
-    visibility = [
-        "//visibility:public",
-    ],
     deps = [
         "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/core:servable_handle",
