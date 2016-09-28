@@ -18,10 +18,9 @@ limitations under the License.
 // ServerCore is independent of any domain specific APIs and independent of
 // platforms.
 //
-// In terms of state, ServerCore bootstraps with an AspiredVersionsManager to
-// support efficient serving. It will soon support (re)loading of
-// ModelServerConfig, from which it (re)creates auxiliary data structures to
-// load model from custom sources.
+// In terms of state, ServerCore is initialized with and retains a static
+// ModelServerConfig, from which it bootstraps an AspiredVersionsManager and
+// auxiliary data structures to support efficient serving.
 //
 // Interfaces built above ServerCore, e.g. RPC service implementations, will
 // remain stateless and will perform all lookups of servables (models) via
@@ -46,11 +45,25 @@ limitations under the License.
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/core/storage_path.h"
+#include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/util/event_bus.h"
 #include "tensorflow_serving/util/unique_ptr_with_deps.h"
 
 namespace tensorflow {
 namespace serving {
+
+// ServerCore tuning parameters.
+struct ServerCoreConfig {
+  // Time interval between file-system polls, in seconds.
+  int32 file_system_poll_wait_seconds = 30;
+  // The number of threads used to load and unload models. If set to 0, then
+  // no thread pool is used and the loads/unloads are performed serially in
+  // the manager thread.
+  int32 num_load_unload_threads = 0;
+  // Maximum number of times we retry loading a model, after the first failure,
+  // before we give up"
+  int32 max_num_load_retries = 5;
+};
 
 namespace test_util {
 class ServerCoreTestAccess;
@@ -64,46 +77,40 @@ class ServerCore {
       SourceAdapter<StoragePath, std::unique_ptr<Loader>>;
 
   using SourceAdapterCreator =
-      std::function<Status(const string& model_type,
+      std::function<Status(const string& platform_type,
                            std::unique_ptr<ModelServerSourceAdapter>* adapter)>;
 
   using ServableStateMonitorCreator =
       std::function<Status(EventBus<ServableState>* event_bus,
                            std::unique_ptr<ServableStateMonitor>* monitor)>;
 
-  using DynamicModelConfigLoader = std::function<Status(
-      const ::google::protobuf::Any& any,
+  using CustomModelConfigLoader = std::function<Status(
+      const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
       Target<std::unique_ptr<Loader>>* target)>;
 
-  // Creates server core and loads the given config.
-  //
-  // The config is allowed to be empty, in which case user should call
-  // ReloadConfig later to actually start the server.
-  //
-  // source_adapter_creator is used, upon each ReloadConfig, to (re)create the
-  // single instance of global source adapter that adapts all Sources to
-  // platform-specific Loaders for the global AspiredVersionsManager.
-  // servable_state_monitor_creator is used once to create the
-  // ServableStateMonitor for the global AspiredVersionsManager.
-  // dynamic_model_config_loader is used, upon each ReloadConfig, to (re)create
-  // Sources defined in dynamic_model_config Any proto and connect them to the
-  // global source adapter.
-  static Status Create(
-      const ModelServerConfig& config,
-      SourceAdapterCreator source_adapter_creator,
-      ServableStateMonitorCreator servable_state_monitor_creator,
-      DynamicModelConfigLoader dynamic_model_config_loader,
-      std::unique_ptr<ServerCore>* core);
-
-  // Updates the server core with all the models/sources per the
+  // Creates a ServerCore instance with all the models and sources per the
   // ModelServerConfig.
   //
-  // For static config given as ModelConfigList, it waits for the models to be
-  // made available for serving before returning from this method.
+  // For models statically configured with ModelConfigList, waits for them
+  // to be made available (or hit an error) for serving before returning.
+  // Returns an error status if any such model fails to load.
+  static Status Create(
+      const ModelServerConfig& config,
+      const SourceAdapterCreator& source_adapter_creator,
+      const ServableStateMonitorCreator& servable_state_monitor_creator,
+      const CustomModelConfigLoader& custom_model_config_loader,
+      const ServerCoreConfig& server_core_config,
+      std::unique_ptr<ServerCore>* core);
+
+  // Updates the server core with all the models and sources per the
+  // ModelServerConfig. Like Create(), waits for all statically configured
+  // servables to be made available before returning, and returns an error if
+  // any such model fails to load.
   //
-  // TODO(b/29012372): Note: this method may be called only when the server
-  // currently contains no models.
-  virtual Status ReloadConfig(const ModelServerConfig& config);
+  // IMPORTANT: It is only legal to call this method more than once if using
+  // ModelConfigList (versus custom model config).
+  virtual Status ReloadConfig(const ModelServerConfig& config)
+      LOCKS_EXCLUDED(config_mu_);
 
   // Returns ServableStateMonitor that can be used to query servable states.
   virtual const ServableStateMonitor* servable_state_monitor() const {
@@ -127,10 +134,10 @@ class ServerCore {
   }
 
  protected:
-  explicit ServerCore(
-      SourceAdapterCreator source_adapter_creator_,
-      ServableStateMonitorCreator servable_state_monitor_creator,
-      DynamicModelConfigLoader dynamic_model_config_loader);
+  ServerCore(const SourceAdapterCreator& source_adapter_creator,
+             const ServableStateMonitorCreator& servable_state_monitor_creator,
+             const CustomModelConfigLoader& custom_model_config_loader,
+             const ServerCoreConfig& server_core_config);
 
  private:
   friend class test_util::ServerCoreTestAccess;
@@ -143,30 +150,43 @@ class ServerCore {
   // Must be run once and only once per ServerCore instance.
   Status Initialize();
 
-  // Creates a platform-specific Loader Source by adapting the underlying
-  // FileSystemStoragePathSource and connects it to the supplied target.
-  Status CreateSourceAdapter(
-      const string& model_type, Target<std::unique_ptr<Loader>>* target,
-      std::unique_ptr<ModelServerSourceAdapter>* adapter);
-
-  // Creates a Source<StoragePath> that monitors a filesystem's base_path for
-  // new directories and connects it to the supplied target.
-  // The servable_name param simply allows this source to create all
-  // AspiredVersions for the target with the same servable_name.
-  Status CreateStoragePathSource(
-      const string& base_path, const string& servable_name,
-      Target<StoragePath>* target,
-      std::unique_ptr<Source<StoragePath>>* path_source);
-
   // Creates a AspiredVersionsManager with the EagerLoadPolicy.
   Status CreateAspiredVersionsManager(
       std::unique_ptr<AspiredVersionsManager>* manager);
 
-  // Adds models through ModelConfigList, and waits for them to be loaded.
-  Status AddModelsViaModelConfigList(const ModelServerConfig& config);
+  // Creates a platform-specific Loader Source and connects it to the supplied
+  // target.
+  Status CreateSourceAdapter(
+      const string& model_platform, Target<std::unique_ptr<Loader>>* target,
+      std::unique_ptr<ModelServerSourceAdapter>* adapter);
 
-  // Adds models through dynamic model config defined in Any proto.
-  Status AddModelsViaDynamicModelConfig(const ModelServerConfig& config);
+  // Creates a FileSystemStoragePathSourceConfig from the ModelConfigList of
+  // 'config'.
+  FileSystemStoragePathSourceConfig CreateStoragePathSourceConfig(
+      const ModelServerConfig& config) const;
+
+  // Waits for all models from the ModelConfigList in 'config_' to be loaded.
+  // Returns an error if any configured model fails to load.
+  Status WaitUntilConfiguredModelsAvailable()
+      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+
+  // Creates a FileSystemStoragePathSource, connects it to the supplied
+  // target, stores the pointer in 'storage_path_source_' and transfers the
+  // ownership to 'manager_'.
+  Status CreateFileSystemStoragePathSource(
+      const FileSystemStoragePathSourceConfig& source_config,
+      Target<StoragePath>* target) EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+
+  // Updates the 'storage_path_source_' config.
+  Status ReloadFileSystemStoragePathSourceConfig(
+      const FileSystemStoragePathSourceConfig& source_config)
+      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+
+  // Adds/reloads models through ModelConfigList of 'config_'.
+  Status AddModelsViaModelConfigList() EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+
+  // Adds/reloads models through custom model config of 'config_'.
+  Status AddModelsViaCustomModelConfig() EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // ************************************************************************
   // Request Processing.
@@ -185,14 +205,28 @@ class ServerCore {
 
   SourceAdapterCreator source_adapter_creator_;
   ServableStateMonitorCreator servable_state_monitor_creator_;
-  DynamicModelConfigLoader dynamic_model_config_loader_;
+  CustomModelConfigLoader custom_model_config_loader_;
+  ServerCoreConfig server_core_config_;
 
   std::shared_ptr<EventBus<ServableState>> servable_event_bus_;
   std::shared_ptr<ServableStateMonitor> servable_state_monitor_;
   UniquePtrWithDeps<AspiredVersionsManager> manager_;
 
-  bool seen_models_ GUARDED_BY(seen_models_mu_) = false;
-  mutable mutex seen_models_mu_;
+  // The most recent config supplied to ReloadConfig().
+  ModelServerConfig config_ GUARDED_BY(config_mu_);
+
+  // Model platform of the source adapter created for ModelConfigList.
+  // Empty if the source adapter is not yet created.
+  string model_platform_ GUARDED_BY(config_mu_);
+
+  // If the configuration uses a file-system source, this is populated with a
+  // pointer to the source (to enable reconfiguration later). The source is
+  // owned by 'manager_'.
+  FileSystemStoragePathSource* storage_path_source_ GUARDED_BY(config_mu_) =
+      nullptr;
+
+  // A mutex for reconfiguration, used by ReloadConfig().
+  mutex config_mu_;
 };
 
 }  // namespace serving

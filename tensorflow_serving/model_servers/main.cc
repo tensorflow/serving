@@ -58,6 +58,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/prediction_service.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
+#include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
@@ -69,6 +70,7 @@ using tensorflow::serving::ModelServerConfig;
 using tensorflow::serving::ServableState;
 using tensorflow::serving::ServableStateMonitor;
 using tensorflow::serving::ServerCore;
+using tensorflow::serving::ServerCoreConfig;
 using tensorflow::serving::SessionBundleSourceAdapter;
 using tensorflow::serving::SessionBundleSourceAdapterConfig;
 using tensorflow::serving::Target;
@@ -88,12 +90,11 @@ using tensorflow::serving::PredictionService;
 
 namespace {
 
-constexpr char kTensorFlowModelType[] = "tensorflow";
-
 tensorflow::Status CreateSourceAdapter(
-    const SessionBundleSourceAdapterConfig& config, const string& model_type,
+    const SessionBundleSourceAdapterConfig& config,
+    const string& model_platform,
     std::unique_ptr<ServerCore::ModelServerSourceAdapter>* adapter) {
-  CHECK(model_type == kTensorFlowModelType)  // Crash ok
+  CHECK(model_platform == kTensorFlowModelPlatform)  // Crash ok
       << "ModelServer supports only TensorFlow model.";
   std::unique_ptr<SessionBundleSourceAdapter> typed_adapter;
   TF_RETURN_IF_ERROR(
@@ -109,11 +110,12 @@ tensorflow::Status CreateServableStateMonitor(
   return tensorflow::Status::OK();
 }
 
-tensorflow::Status LoadDynamicModelConfig(
+tensorflow::Status LoadCustomModelConfig(
     const ::google::protobuf::Any& any,
+    EventBus<ServableState>* servable_event_bus,
     Target<std::unique_ptr<Loader>>* target) {
   CHECK(false)  // Crash ok
-      << "ModelServer does not yet support dynamic model config.";
+      << "ModelServer does not yet support custom model config.";
 }
 
 ModelServerConfig BuildSingleModelConfig(const string& model_name,
@@ -126,7 +128,7 @@ ModelServerConfig BuildSingleModelConfig(const string& model_name,
       config.mutable_model_config_list()->add_config();
   single_model->set_name(model_name);
   single_model->set_base_path(model_base_path);
-  single_model->set_model_type(kTensorFlowModelType);
+  single_model->set_model_platform(kTensorFlowModelPlatform);
   return config;
 }
 
@@ -211,7 +213,8 @@ int main(int argc, char** argv) {
   TF_CHECK_OK(ServerCore::Create(
       config, std::bind(CreateSourceAdapter, source_adapter_config,
                         std::placeholders::_1, std::placeholders::_2),
-      &CreateServableStateMonitor, &LoadDynamicModelConfig, &core));
+      &CreateServableStateMonitor, &LoadCustomModelConfig, ServerCoreConfig(),
+      &core));
   RunServer(port, std::move(core));
 
   return 0;

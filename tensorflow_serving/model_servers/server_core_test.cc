@@ -15,14 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/server_core.h"
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status_test_util.h"
-#include "tensorflow/core/lib/io/path.h"
-#include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
-#include "tensorflow_serving/core/test_util/fake_loader_source_adapter.h"
 #include "tensorflow_serving/model_servers/test_util/server_core_test_util.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
@@ -30,85 +25,107 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-using ::testing::Eq;
+using test_util::ServerCoreTest;
 
-tensorflow::Status CreateSourceAdapter(
-    const string& model_type,
-    std::unique_ptr<ServerCore::ModelServerSourceAdapter>* adapter) {
-  adapter->reset(new test_util::FakeLoaderSourceAdapter);
-  return Status::OK();
-}
-
-tensorflow::Status CreateServableStateMonitor(
-    EventBus<ServableState>* event_bus,
-    std::unique_ptr<ServableStateMonitor>* monitor) {
-  monitor->reset(new ServableStateMonitor(event_bus));
-  return tensorflow::Status::OK();
-}
-
-tensorflow::Status LoadDynamicModelConfig(
-    const ::google::protobuf::Any& any,
-    Target<std::unique_ptr<Loader>>* target) {
-  CHECK(false);
-}
-
-ModelServerConfig CreateModelServerConfig() {
-  ModelServerConfig config;
-  auto model = config.mutable_model_config_list()->add_config();
-  model->set_name("test_model");
-  model->set_base_path(test_util::TestSrcDirPath(
-      "/servables/tensorflow/testdata/half_plus_two"));
-  model->set_model_type("tensorflow");
-  return config;
-}
-
-// TODO(b/29012372): Currently we only support a single config reload.
-// Verify multiple calls result in an error.
-TEST(ServerCoreTest, MultipleLoadConfigs) {
-  // Create with an empty config.
+TEST_F(ServerCoreTest, CreateWaitsTillModelsAvailable) {
   std::unique_ptr<ServerCore> server_core;
-  TF_ASSERT_OK(ServerCore::Create(ModelServerConfig(), &CreateSourceAdapter,
-                                  &CreateServableStateMonitor,
-                                  &LoadDynamicModelConfig, &server_core));
-  // Reload with a populated config.  This is allowed since the previous config
-  // was empty.
-  TF_ASSERT_OK(server_core->ReloadConfig(CreateModelServerConfig()));
-
-  // Second reload fails since the previous config has models.
-  EXPECT_THAT(
-      server_core->ReloadConfig({}).ToString(),
-      ::testing::HasSubstr("Repeated ReloadConfig calls not supported"));
-}
-
-TEST(ServerCoreTest, CreateWaitsTillModelsAvailable) {
-  std::unique_ptr<ServerCore> server_core;
-  TF_ASSERT_OK(ServerCore::Create(
-      CreateModelServerConfig(), &CreateSourceAdapter,
-      &CreateServableStateMonitor, &LoadDynamicModelConfig, &server_core));
+  TF_ASSERT_OK(CreateServerCore(GetTestModelServerConfig(), &server_core));
 
   const std::vector<ServableId> available_servables =
       test_util::ServerCoreTestAccess(server_core.get())
           .ListAvailableServableIds();
   ASSERT_EQ(available_servables.size(), 1);
-  const ServableId expected_id = {"test_model", 123};
+  const ServableId expected_id = {test_util::kTestModelName,
+                                  test_util::kTestModelVersion};
   EXPECT_EQ(available_servables.at(0), expected_id);
 }
 
-TEST(ServerCoreTest, ErroringModel) {
+TEST_F(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
+  // Create a server with no models, initially.
   std::unique_ptr<ServerCore> server_core;
-  const Status status = ServerCore::Create(
-      CreateModelServerConfig(),
-      [](const string& model_type,
-         std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
-             source_adapter) -> Status {
+  TF_ASSERT_OK(CreateServerCore(ModelServerConfig(), &server_core));
+
+  // Reconfigure it to load our test model.
+  TF_ASSERT_OK(server_core->ReloadConfig(GetTestModelServerConfig()));
+
+  const std::vector<ServableId> available_servables =
+      test_util::ServerCoreTestAccess(server_core.get())
+          .ListAvailableServableIds();
+  ASSERT_EQ(available_servables.size(), 1);
+  const ServableId expected_id = {test_util::kTestModelName,
+                                  test_util::kTestModelVersion};
+  EXPECT_EQ(available_servables.at(0), expected_id);
+}
+
+TEST_F(ServerCoreTest, ErroringModel) {
+  std::unique_ptr<ServerCore> server_core;
+  Status status = CreateServerCore(
+      GetTestModelServerConfig(),
+      [](const string& model_platform,
+         std::unique_ptr<ServerCore::ModelServerSourceAdapter>* source_adapter)
+          -> Status {
         source_adapter->reset(
             new ErrorInjectingSourceAdapter<StoragePath,
                                             std::unique_ptr<Loader>>(
                 Status(error::CANCELLED, "")));
         return Status::OK();
       },
-      &CreateServableStateMonitor, &LoadDynamicModelConfig, &server_core);
+      &server_core);
   EXPECT_FALSE(status.ok());
+}
+
+TEST_F(ServerCoreTest, IllegalReconfigurationToCustomConfig) {
+  // Create a ServerCore with ModelConfigList config.
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(GetTestModelServerConfig(), &server_core));
+
+  // Reload with a custom config. This is not allowed since the server was
+  // first configured with TensorFlow model platform.
+  ModelServerConfig config;
+  config.mutable_custom_model_config();
+  EXPECT_THAT(server_core->ReloadConfig(config).ToString(),
+              ::testing::HasSubstr("Cannot transition to requested config"));
+}
+
+TEST_F(ServerCoreTest, IllegalReconfigurationFromCustomConfig) {
+  // Create a ServerCore with custom config.
+  std::unique_ptr<ServerCore> server_core;
+  ModelServerConfig config;
+  config.mutable_custom_model_config();
+  TF_ASSERT_OK(CreateServerCore(config, &server_core));
+
+  // Reload with a ModelConfigList config. This is not allowed, since the
+  // server was first configured with a custom config.
+  EXPECT_THAT(server_core->ReloadConfig(GetTestModelServerConfig()).ToString(),
+              ::testing::HasSubstr("Cannot transition to requested config"));
+}
+
+TEST_F(ServerCoreTest, IllegalConfigModelTypeAndPlatformSet) {
+  // Create a ServerCore with both model_type and model_platform set.
+  std::unique_ptr<ServerCore> server_core;
+  ModelServerConfig config = GetTestModelServerConfig();
+  config.mutable_model_config_list()->mutable_config(0)->set_model_type(
+      ModelType::TENSORFLOW);
+  EXPECT_THAT(CreateServerCore(config, &server_core).ToString(),
+              ::testing::HasSubstr("Illegal setting both"));
+}
+
+TEST_F(ServerCoreTest, DeprecatedModelTypeConfig) {
+  // Create a ServerCore with deprecated config.
+  std::unique_ptr<ServerCore> server_core;
+  ModelServerConfig config = GetTestModelServerConfig();
+  config.mutable_model_config_list()->mutable_config(0)->set_model_platform("");
+  config.mutable_model_config_list()->mutable_config(0)->set_model_type(
+      ModelType::TENSORFLOW);
+  TF_ASSERT_OK(CreateServerCore(config, &server_core));
+
+  const std::vector<ServableId> available_servables =
+      test_util::ServerCoreTestAccess(server_core.get())
+          .ListAvailableServableIds();
+  ASSERT_EQ(available_servables.size(), 1);
+  const ServableId expected_id = {test_util::kTestModelName,
+                                  test_util::kTestModelVersion};
+  EXPECT_EQ(available_servables.at(0), expected_id);
 }
 
 }  // namespace
