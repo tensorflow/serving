@@ -224,6 +224,8 @@ void SimpleLoader<ServableType>::Unload() {
        resource_estimate.resource_quantities()) {
     if (entry.resource().device() == device_types::kMain &&
         entry.resource().kind() == resource_kinds::kRamBytes) {
+      LOG(INFO) << "Calling MallocExtension_ReleaseToSystem() with "
+                << entry.quantity();
       ::tensorflow::port::MallocExtension_ReleaseToSystem(entry.quantity());
     }
   }

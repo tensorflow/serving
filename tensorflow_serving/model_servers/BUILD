@@ -26,13 +26,22 @@ filegroup(
 )
 
 cc_library(
+    name = "model_platform_types",
+    hdrs = ["model_platform_types.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+)
+
+cc_library(
     name = "server_core",
     srcs = ["server_core.cc"],
     hdrs = ["server_core.h"],
     visibility = [
-        "//tensorflow_serving:internal",
+        "//visibility:public",
     ],
     deps = [
+        ":model_platform_types",
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:aspired_versions_manager",
@@ -59,10 +68,8 @@ cc_test(
     ],
     deps = [
         ":server_core",
-        "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:servable_state",
         "//tensorflow_serving/core/test_util:availability_test_util",
-        "//tensorflow_serving/core/test_util:fake_loader_source_adapter",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/model_servers/test_util:server_core_test_util",
         "//tensorflow_serving/test_util",
@@ -88,6 +95,7 @@ cc_binary(
     ],
     visibility = ["//tensorflow_serving:internal"],
     deps = [
+        ":model_platform_types",
         ":server_core",
         "@protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
