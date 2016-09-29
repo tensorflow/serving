@@ -32,8 +32,20 @@ namespace test_util {
 
 class MockServerCore : public ServerCore {
  public:
-  explicit MockServerCore(SourceAdapterCreator source_adapter_creator)
-      : ServerCore(source_adapter_creator) {}
+  explicit MockServerCore(const SourceAdapterCreator& source_adapter_creator)
+      : ServerCore(
+            source_adapter_creator,  // ServerCore::SourceAdapterCreator
+            [](EventBus<ServableState>* event_bus,
+               std::unique_ptr<ServableStateMonitor>* monitor) -> Status {
+              monitor->reset(new ServableStateMonitor(event_bus));
+              return Status::OK();
+            },  // ServerCore::ServableStateMonitorCreator
+            [](const ::google::protobuf::Any& any,
+               EventBus<ServableState>* event_bus,
+               Target<std::unique_ptr<Loader>>* target) -> Status {
+              return Status::OK();
+            },  // ServerCore::CustomModelConfigLoader
+            ServerCoreConfig()) {}
 
   MOCK_CONST_METHOD0(servable_state_monitor, ServableStateMonitor*());
   MOCK_METHOD1(ReloadConfig, Status(const ModelServerConfig&));

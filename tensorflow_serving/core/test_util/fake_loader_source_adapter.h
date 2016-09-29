@@ -45,6 +45,7 @@ class FakeLoaderSourceAdapter final
 
   // Returns a function to create a fake source adapter.
   static std::function<Status(
+      const string& model_platform,
       std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*)>
   GetCreator();
 

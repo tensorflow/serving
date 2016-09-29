@@ -46,8 +46,8 @@ class SessionBundleFactory {
  public:
   // Constants used in the resource estimation heuristic. See the documentation
   // on EstimateResourceRequirements().
-  static constexpr double kResourceEstimateRAMMultiplier = 1.5;
-  static constexpr int kResourceEstimateRAMPadBytes = 10 << 20 /* 10 MB */;
+  static constexpr double kResourceEstimateRAMMultiplier = 1.0;
+  static constexpr int kResourceEstimateRAMPadBytes = 0;
 
   static Status Create(const SessionBundleConfig& config,
                        std::unique_ptr<SessionBundleFactory>* factory);

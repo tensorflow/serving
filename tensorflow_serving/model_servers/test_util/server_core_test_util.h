@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_TEST_UTIL_SERVER_CORE_TEST_UTIL_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_TEST_UTIL_SERVER_CORE_TEST_UTIL_H_
 
+#include <gtest/gtest.h>
 #include "tensorflow_serving/core/servable_id.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 
@@ -34,6 +35,28 @@ class ServerCoreTestAccess {
 
  private:
   ServerCore* const core_;
+};
+
+constexpr char kTestModelName[] = "test_model";
+constexpr int kTestModelVersion = 123;
+
+class ServerCoreTest : public ::testing::Test {
+ protected:
+  // Returns ModelServerConfig that contains test model.
+  ModelServerConfig GetTestModelServerConfig();
+
+  // Returns ServerCoreConfig that uses continuous polling, to speed up testing.
+  ServerCoreConfig GetTestServerCoreConfig();
+
+  // Create a ServerCore object configured to use FakeLoaderSourceAdapter.
+  Status CreateServerCore(const ModelServerConfig& config,
+                          std::unique_ptr<ServerCore>* server_core);
+
+  // Create a ServerCore object with the supplied SourceAdapterCreator.
+  Status CreateServerCore(
+      const ModelServerConfig& config,
+      const ServerCore::SourceAdapterCreator& source_adapter_creator,
+      std::unique_ptr<ServerCore>* server_core);
 };
 
 }  // namespace test_util

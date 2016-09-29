@@ -43,9 +43,11 @@ FakeLoaderSourceAdapter::~FakeLoaderSourceAdapter() {
 }
 
 std::function<Status(
+    const string& model_platform,
     std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*)>
 FakeLoaderSourceAdapter::GetCreator() {
-  return [](std::unique_ptr<tensorflow::serving::SourceAdapter<
+  return [](const string& model_platform,
+            std::unique_ptr<tensorflow::serving::SourceAdapter<
                 StoragePath, std::unique_ptr<Loader>>>* source) {
     source->reset(new FakeLoaderSourceAdapter);
     return Status::OK();
