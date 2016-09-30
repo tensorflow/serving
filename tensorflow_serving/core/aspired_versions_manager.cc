@@ -170,6 +170,7 @@ AspiredVersionsManager::AspiredVersionsManager(
     pf_options.thread_name_prefix = "AspiredVersionsManager_ManageState_Thread";
     manage_state_thread_.reset(new PeriodicFunction(
         [this]() {
+          this->FlushServables();
           this->HandlePendingAspiredVersionsRequests();
           this->InvokePolicyAndExecuteAction();
         },
@@ -341,6 +342,22 @@ void AspiredVersionsManager::PerformAction(
         }
       });
     } break;
+  }
+}
+
+void AspiredVersionsManager::FlushServables() {
+  mutex_lock l(basic_manager_read_modify_write_mu_);
+  for (const string& servable_name :
+       basic_manager_->GetManagedServableNames()) {
+    for (const ServableStateSnapshot<Aspired>& state_snapshot :
+         basic_manager_->GetManagedServableStateSnapshots<Aspired>(
+             servable_name)) {
+      if ((state_snapshot.state == LoaderHarness::State::kDisabled ||
+           state_snapshot.state == LoaderHarness::State::kError) &&
+          !state_snapshot.additional_state->is_aspired) {
+        basic_manager_->StopManagingServable(state_snapshot.id);
+      }
+    }
   }
 }
 

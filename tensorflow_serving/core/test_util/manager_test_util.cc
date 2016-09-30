@@ -23,6 +23,10 @@ AspiredVersionsManagerTestAccess::AspiredVersionsManagerTestAccess(
     AspiredVersionsManager* manager)
     : manager_(manager) {}
 
+void AspiredVersionsManagerTestAccess::FlushServables() {
+  manager_->FlushServables();
+}
+
 void AspiredVersionsManagerTestAccess::HandlePendingAspiredVersionsRequests() {
   manager_->HandlePendingAspiredVersionsRequests();
 }

@@ -29,6 +29,9 @@ class AspiredVersionsManagerTestAccess {
  public:
   explicit AspiredVersionsManagerTestAccess(AspiredVersionsManager* manager);
 
+  // Invokes FlushServables() on the manager.
+  void FlushServables();
+
   // Invokes HandlePendingAspiredVersionsRequests() on the manager.
   void HandlePendingAspiredVersionsRequests();
 

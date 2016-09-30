@@ -318,8 +318,8 @@ Status BasicManager::ManageServableInternal(
   } else {
     PublishOnEventBus({harness->id(), ServableState::ManagerState::kStart,
                        harness->status()});
-    managed_map_.emplace(servable.id().name, harness);
   }
+  managed_map_.emplace(servable.id().name, harness);
 
   return Status::OK();
 }
@@ -332,6 +332,28 @@ Status BasicManager::ManageServable(
         return std::make_shared<LoaderHarness>(id, std::move(loader),
                                                harness_options_);
       });
+}
+
+Status BasicManager::StopManagingServable(const ServableId& id) {
+  mutex_lock l(mu_);
+  const auto it = FindHarnessInMap(id);
+  if (it == managed_map_.end()) {
+    LOG(ERROR) << "Request to delete harness for " << id
+               << ", but no such harness found in managed_map_";
+    return errors::FailedPrecondition("This servable is not being managed: ",
+                                      id.DebugString());
+  }
+  const auto state = it->second->state();
+  if (state != LoaderHarness::State::kError &&
+      state != LoaderHarness::State::kDisabled) {
+    LOG(ERROR) << "Request to delete harness for " << id
+               << ", but it is not in an end state. State: " << state;
+    return errors::FailedPrecondition(
+        "This servable is not in an end state and we cannot stop managing it: ",
+        id.DebugString(), " ", LoaderHarness::StateDebugString(state));
+  }
+  managed_map_.erase(it);
+  return Status::OK();
 }
 
 Status BasicManager::GetHealthyHarness(const ServableId& id,
@@ -410,22 +432,24 @@ std::vector<string> BasicManager::GetManagedServableNames() const {
 Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
   PublishOnEventBus({harness->id(), ServableState::ManagerState::kLoading,
                      harness->status()});
-  const auto load_status = harness->Load(ResourceAllocation());
+  // We save the id and the status of the harness so that we can publish them
+  // after Load(). We can't query harness again after Load() as it may be
+  // deleted by another thread that called StopManagingServable(). We don't hold
+  // the lock while calling Load() as the latter may block.
+  const ServableId id = harness->id();
+  const Status load_status = harness->Load(ResourceAllocation());
+
+  if (!load_status.ok()) {
+    PublishOnEventBus({id, ServableState::ManagerState::kEnd, load_status});
+    return load_status;
+  }
 
   {
     mutex_lock l(mu_);
-
-    if (!load_status.ok()) {
-      PublishOnEventBus({harness->id(), ServableState::ManagerState::kEnd,
-                         harness->status()});
-      DeleteHarness(harness->id());
-      return load_status;
-    }
-
     UpdateServingMap();
-    PublishOnEventBus({harness->id(), ServableState::ManagerState::kAvailable,
-                       harness->status()});
   }
+
+  PublishOnEventBus({id, ServableState::ManagerState::kAvailable, load_status});
   return Status::OK();
 }
 
@@ -448,25 +472,24 @@ void BasicManager::CancelLoadServableRetry(const ServableId& id) {
 }
 
 Status BasicManager::ExecuteUnload(LoaderHarness* harness) {
-  {
+  // We save the id and the status of the harness so that we can publish them
+  // after Unload(). Unload() always succeeds, and hence doesn't affect
+  // harness->status(). We can't query harness again after Unload() as it may be
+  // deleted by another thread that called StopManagingServable(). We don't hold
+  // the lock while calling Unload() as the latter may block.
+  const ServableId id = harness->id();
+  const Status pre_unload_status = [&] {
     // StartQuiescing() would have been already called.
     mutex_lock l(mu_);
-    PublishOnEventBus({harness->id(), ServableState::ManagerState::kUnloading,
-                       harness->status()});
+    PublishOnEventBus(
+        {id, ServableState::ManagerState::kUnloading, harness->status()});
     UpdateServingMap();
     harness->DoneQuiescing();
-  }
+    return harness->status();
+  }();
 
   harness->Unload();
-
-  {
-    mutex_lock l(mu_);
-    auto iter = FindHarnessInMap(harness->id());
-    PublishOnEventBus({iter->second->id(), ServableState::ManagerState::kEnd,
-                       iter->second->status()});
-    // This erase will lead to the LoaderHarness being deleted.
-    managed_map_.erase(iter);
-  }
+  PublishOnEventBus({id, ServableState::ManagerState::kEnd, pre_unload_status});
   return Status::OK();
 }
 
@@ -603,7 +626,6 @@ Status BasicManager::ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock) {
         harness->Error(error);
         PublishOnEventBus({harness->id(), ServableState::ManagerState::kEnd,
                            harness->status()});
-        DeleteHarness(harness->id());
         return error;
       } else {
         // Wait until at least one load/unload request finishes, then retry.

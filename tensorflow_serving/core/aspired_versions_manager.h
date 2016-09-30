@@ -215,6 +215,12 @@ class AspiredVersionsManager : public Manager,
   optional<AspiredVersionPolicy::ServableAction> GetNextAction()
       EXCLUSIVE_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
 
+  // Checks for servables that are not aspired and at some final state and tells
+  // 'basic_manager_' to forget about them. This method is intended to be
+  // invoked periodically, interleaved with InvokePolicyAndExecuteAction() and
+  // HandlePendingAspiredVersionsRequests().
+  void FlushServables() LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_);
+
   // Handles enqueued aspired-versions requests. This method is intended to be
   // invoked periodically, interleaved with InvokePolicyAndExecuteAction().
   void HandlePendingAspiredVersionsRequests()

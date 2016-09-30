@@ -58,6 +58,14 @@ constexpr int kNumVersionsPerServable = 2;
 
 constexpr int kNumThreads = 10;
 
+MATCHER_P(EqualsServableState, servable_state, servable_state.DebugString()) {
+  if (arg == servable_state) {
+    return true;
+  }
+  *result_listener << arg.DebugString();
+  return false;
+}
+
 // Creates a ServableData around a FakeLoader.
 ServableData<std::unique_ptr<Loader>> CreateServable(
     const ServableId& id, const Status load_status = Status::OK()) {
@@ -165,6 +173,59 @@ TEST_P(BasicManagerTest, ServableHandleLatestVersionIsZero) {
   TF_ASSERT_OK(status);
   EXPECT_EQ(1, *handle);
   EXPECT_EQ(id, handle.id());
+}
+
+TEST_P(BasicManagerTest, StopManagingUnknownId) {
+  const ServableId id = {kServableName3, 1};
+  EXPECT_FALSE(basic_manager_->StopManagingServable(id).ok());
+}
+
+TEST_P(BasicManagerTest, StopManagingActiveServable) {
+  const ServableId id = {kServableName3, 1};
+  basic_manager_->ManageServable(CreateServable(id));
+  EXPECT_FALSE(basic_manager_->StopManagingServable(id).ok());
+}
+
+TEST_P(BasicManagerTest, StopManagingDisabledServable) {
+  const ServableId id = {kServableName3, 1};
+  basic_manager_->ManageServable(CreateServable(id));
+  basic_manager_->LoadServable(
+      id, [](const Status& status) { TF_EXPECT_OK(status); });
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
+  basic_manager_->UnloadServable(
+      id, [](const Status& status) { TF_EXPECT_OK(status); });
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
+                                       {ServableState::ManagerState::kEnd});
+  const optional<ServableStateSnapshot<>> snapshot =
+      basic_manager_->GetManagedServableStateSnapshot(id);
+  EXPECT_EQ(LoaderHarness::State::kDisabled, snapshot->state);
+  const ServableState expected_state = {id, ServableState::ManagerState::kEnd,
+                                        Status::OK()};
+  EXPECT_THAT(*servable_state_monitor_.GetState(id),
+              EqualsServableState(expected_state));
+
+  TF_ASSERT_OK(basic_manager_->StopManagingServable(id));
+  EXPECT_FALSE(basic_manager_->GetManagedServableStateSnapshot(id));
+}
+
+TEST_P(BasicManagerTest, DontStopManagingOnError) {
+  const ServableId id = {kServableName, 7};
+  const Status error_status = errors::Internal("An error.");
+  std::unique_ptr<Loader> loader(new FakeLoader(7, error_status));
+  basic_manager_->ManageServable({id, std::move(loader)});
+  basic_manager_->LoadServable(id, [error_status](const Status& status) {
+    EXPECT_EQ(error_status, status);
+  });
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
+                                       {ServableState::ManagerState::kEnd});
+  const optional<ServableStateSnapshot<>> snapshot =
+      basic_manager_->GetManagedServableStateSnapshot(id);
+  EXPECT_EQ(LoaderHarness::State::kError, snapshot->state);
+  const ServableState expected_error_state = {
+      id, ServableState::ManagerState::kEnd, error_status};
+  EXPECT_THAT(*servable_state_monitor_.GetState(id),
+              EqualsServableState(expected_error_state));
 }
 
 TEST_P(BasicManagerTest, ServableHandleSpecificVersion) {
@@ -456,6 +517,7 @@ TEST_P(BasicManagerTest, DestructOnNonServingThread) {
             id, [](const Status& status) { TF_ASSERT_OK(status); });
         WaitUntilServableManagerStateIsOneOf(
             servable_state_monitor_, id, {ServableState::ManagerState::kEnd});
+        basic_manager_->StopManagingServable(id);
         // The servable has been deleted in this thread if there is no
         // thread-pool for load/unload.
         if (num_load_unload_threads_ == 0) {
@@ -527,8 +589,8 @@ TEST_P(BasicManagerTest, MultipleUnloadServables) {
                                        {ServableState::ManagerState::kEnd});
   basic_manager_->UnloadServable(id, [](const Status& status) {
     EXPECT_FALSE(status.ok());
-    EXPECT_EQ(error::NOT_FOUND, status.code());
-    EXPECT_THAT(status.error_message(), HasSubstr("is not being managed"));
+    EXPECT_EQ(error::FAILED_PRECONDITION, status.code());
+    EXPECT_THAT(status.error_message(), HasSubstr("cannot be transitioned"));
   });
 }
 
@@ -550,14 +612,6 @@ TEST_P(BasicManagerTest, UnloadWithoutLoad) {
     EXPECT_THAT(status.error_message(),
                 HasSubstr("cannot be transitioned to unload-requested"));
   });
-}
-
-MATCHER_P(EqualsServableState, servable_state, servable_state.DebugString()) {
-  if (arg == servable_state) {
-    return true;
-  }
-  *result_listener << arg.DebugString();
-  return false;
 }
 
 TEST_P(BasicManagerTest, EventBusErroneousVersion) {
@@ -1038,6 +1092,11 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
       rejected_id, ServableState::ManagerState::kEnd, rejected_status};
   EXPECT_THAT(*servable_state_monitor_.GetState(rejected_id),
               EqualsServableState(expected_error_state));
+
+  // Make sure we're still managing the rejected servable.
+  const optional<ServableStateSnapshot<>> snapshot =
+      basic_manager_->GetManagedServableStateSnapshot(rejected_id);
+  EXPECT_EQ(LoaderHarness::State::kError, snapshot->state);
 }
 
 TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedIfLoadFails) {

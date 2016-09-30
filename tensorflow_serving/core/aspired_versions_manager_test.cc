@@ -124,6 +124,11 @@ class AspiredVersionsManagerTest : public ::testing::TestWithParam<int> {
     }
   }
 
+  void FlushServables() {
+    test_util::AspiredVersionsManagerTestAccess(manager_.get())
+        .FlushServables();
+  }
+
   void HandlePendingAspiredVersionsRequests() {
     test_util::AspiredVersionsManagerTestAccess(manager_.get())
         .HandlePendingAspiredVersionsRequests();
@@ -347,6 +352,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredRemovedFull) {
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
                                        {kServableName, 1},
                                        {ServableState::ManagerState::kEnd});
+  FlushServables();
   const int num_fake_loaders_after = FakeLoader::num_fake_loaders();
   EXPECT_EQ(kNumVersionsPerServable,
             num_fake_loaders_before - num_fake_loaders_after);
@@ -555,6 +561,7 @@ TEST_P(AspiredVersionsManagerTest, DestructOnNonServingThread) {
         WaitUntilServableManagerStateIsOneOf(
             servable_state_monitor_, {kServableName, 0},
             {ServableState::ManagerState::kEnd});
+        FlushServables();
         // The servable has been deleted in this thread if there is no
         // thread-pool for load/unload.
         if (num_load_unload_threads_ == 0) {
@@ -832,6 +839,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   std::unique_ptr<Thread> reaspire_thread(
       Env::Default()->StartThread(ThreadOptions(), "ReaspireThread", [&]() {
         while (!second_load_called.HasBeenNotified()) {
+          FlushServables();
           HandlePendingAspiredVersionsRequests();
           InvokePolicyAndExecuteAction();
           Env::Default()->SleepForMicroseconds(1000 /* 1 ms */);
@@ -845,6 +853,66 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   // bring up the second loader.
   first_loader_handle = nullptr;
   first_unload_called.WaitForNotification();
+  second_load_called.WaitForNotification();
+}
+
+TEST_P(AspiredVersionsManagerTest,
+       UnaspireFailedServableThenImmediatelyReaspire) {
+  // Like UnaspireThenImmediatelyReaspire, but covers the case in which the
+  // servable fails to load the first time it is aspired.
+
+  const ServableId id = {kServableName, 7};
+
+  std::vector<ServableData<std::unique_ptr<Loader>>> first_aspired_versions;
+  test_util::MockLoader* first_loader = new NiceMock<test_util::MockLoader>();
+  first_aspired_versions.push_back({id, std::unique_ptr<Loader>(first_loader)});
+  EXPECT_CALL(*first_loader, Load(_))
+      .WillRepeatedly(Return(Status(error::UNKNOWN, "first load failing")));
+  manager_->GetAspiredVersionsCallback()(kServableName,
+                                         std::move(first_aspired_versions));
+  HandlePendingAspiredVersionsRequests();
+  InvokePolicyAndExecuteAction();
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
+                                       {ServableState::ManagerState::kEnd});
+
+  // Now, we'll un-aspire the servable, and then re-aspire it with a new loader.
+  // The manager should wait until it is able to flush the first loader, then
+  // bring up the second loader.
+
+  std::vector<ServableData<std::unique_ptr<Loader>>> empty_aspired_versions;
+  manager_->GetAspiredVersionsCallback()(kServableName,
+                                         std::move(empty_aspired_versions));
+  HandlePendingAspiredVersionsRequests();
+
+  // Re-aspire the servable with a fresh loader.
+  std::vector<ServableData<std::unique_ptr<Loader>>> second_aspired_versions;
+  test_util::MockLoader* second_loader = new NiceMock<test_util::MockLoader>();
+  second_aspired_versions.push_back(
+      {id, std::unique_ptr<Loader>(second_loader)});
+  Notification second_load_called;
+  EXPECT_CALL(*second_loader, Load(_)).WillOnce(InvokeWithoutArgs([&]() {
+    second_load_called.Notify();
+    return Status::OK();
+  }));
+  manager_->GetAspiredVersionsCallback()(kServableName,
+                                         std::move(second_aspired_versions));
+
+  // Run the manager's background logic in a loop, but sans FlushServables().
+  // Nothing should happen for now because the first loader isn't flushed.
+  std::unique_ptr<Thread> reaspire_thread(
+      Env::Default()->StartThread(ThreadOptions(), "ReaspireThread", [&]() {
+        while (!second_load_called.HasBeenNotified()) {
+          HandlePendingAspiredVersionsRequests();
+          InvokePolicyAndExecuteAction();
+          Env::Default()->SleepForMicroseconds(1000 /* 1 ms */);
+        }
+      }));
+  Env::Default()->SleepForMicroseconds(50 * 1000 /* 50 ms */);
+  EXPECT_FALSE(second_load_called.HasBeenNotified());
+
+  // Flush the first loader. The manager should finally bring up the second
+  // loader.
+  FlushServables();
   second_load_called.WaitForNotification();
 }
 
