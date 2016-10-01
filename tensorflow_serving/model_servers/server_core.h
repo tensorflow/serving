@@ -84,9 +84,14 @@ class ServerCore {
       std::function<Status(EventBus<ServableState>* event_bus,
                            std::unique_ptr<ServableStateMonitor>* monitor)>;
 
+  // A function that's responsible for instantiating and connecting the
+  // necessary custom sources and source adapters to the manager based on a
+  // passed in config (any).
+  // The expected pattern is that ownership of the created sources/source
+  // adapters can be transferred to the manager.
   using CustomModelConfigLoader = std::function<Status(
       const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
-      Target<std::unique_ptr<Loader>>* target)>;
+      UniquePtrWithDeps<AspiredVersionsManager>* manager)>;
 
   // Creates a ServerCore instance with all the models and sources per the
   // ModelServerConfig.

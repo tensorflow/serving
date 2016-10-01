@@ -183,7 +183,7 @@ Status ServerCore::AddModelsViaModelConfigList() {
 
 Status ServerCore::AddModelsViaCustomModelConfig() {
   return custom_model_config_loader_(config_.custom_model_config(),
-                                     servable_event_bus_.get(), manager_.get());
+                                     servable_event_bus_.get(), &manager_);
 }
 
 Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {

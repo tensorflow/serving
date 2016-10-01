@@ -63,6 +63,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
 
+using tensorflow::serving::AspiredVersionsManager;
 using tensorflow::serving::BatchingParameters;
 using tensorflow::serving::EventBus;
 using tensorflow::serving::Loader;
@@ -113,7 +114,7 @@ tensorflow::Status CreateServableStateMonitor(
 tensorflow::Status LoadCustomModelConfig(
     const ::google::protobuf::Any& any,
     EventBus<ServableState>* servable_event_bus,
-    Target<std::unique_ptr<Loader>>* target) {
+    UniquePtrWithDeps<AspiredVersionsManager>* manager) {
   CHECK(false)  // Crash ok
       << "ModelServer does not yet support custom model config.";
 }
