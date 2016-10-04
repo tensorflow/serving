@@ -39,6 +39,7 @@ namespace serving {
 namespace {
 
 using ::testing::_;
+using ::testing::DoAll;
 using ::testing::Invoke;
 using ::testing::InvokeWithoutArgs;
 using ::testing::NiceMock;
@@ -51,6 +52,14 @@ constexpr char kServableName[] = "kServableName";
 constexpr char kServableName2[] = "kServableName2";
 constexpr int kNumVersionsPerServable = 2;
 constexpr int kNumTotalVersions = 4;
+
+// Creates an aspired-versions entry with 'id' and a FakeLoader whose servable
+// is id.version.
+ServableData<std::unique_ptr<Loader>> CreateAspiredVersion(
+    const ServableId& id) {
+  std::unique_ptr<Loader> loader(new FakeLoader(id.version));
+  return CreateServableData(id, std::move(loader));
+}
 
 class AspiredVersionsManagerTest : public ::testing::TestWithParam<int> {
  protected:
@@ -72,14 +81,6 @@ class AspiredVersionsManagerTest : public ::testing::TestWithParam<int> {
     manager_options.load_retry_interval_micros = 0;
     TF_CHECK_OK(
         AspiredVersionsManager::Create(std::move(manager_options), &manager_));
-  }
-
-  // Creates an aspired-versions entry with 'id' and a FakeLoader whose servable
-  // is id.version.
-  ServableData<std::unique_ptr<Loader>> CreateAspiredVersion(
-      const ServableId& id) {
-    std::unique_ptr<Loader> loader(new FakeLoader(id.version));
-    return CreateServableData(id, std::move(loader));
   }
 
   // Creates an aspired-versions entry with 'id' and an error (and no loader).
@@ -914,6 +915,45 @@ TEST_P(AspiredVersionsManagerTest,
   // loader.
   FlushServables();
   second_load_called.WaitForNotification();
+}
+
+class MockAspiredVersionPolicy : public AspiredVersionPolicy {
+ public:
+  MOCK_CONST_METHOD1(GetNextAction,
+                     optional<ServableAction>(
+                         const std::vector<AspiredServableStateSnapshot>&));
+};
+
+TEST(AspiredVersionsManagerTest, CallPolicyWithAllVersions) {
+  std::unique_ptr<AspiredVersionsManager> manager;
+  AspiredVersionsManager::Options manager_options;
+  MockAspiredVersionPolicy* policy = new MockAspiredVersionPolicy;
+  manager_options.aspired_version_policy =
+      std::unique_ptr<AspiredVersionPolicy>(policy);
+  TF_CHECK_OK(
+      AspiredVersionsManager::Create(std::move(manager_options), &manager));
+  std::set<ServableId> servables;
+  std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
+  for (int i = 0; i < kNumVersionsPerServable; ++i) {
+    const ServableId id = {kServableName, i};
+    aspired_versions.push_back(CreateAspiredVersion(id));
+    servables.insert(id);
+  }
+  manager->GetAspiredVersionsCallback()(kServableName,
+                                        std::move(aspired_versions));
+  test_util::AspiredVersionsManagerTestAccess(manager.get())
+      .HandlePendingAspiredVersionsRequests();
+
+  std::vector<AspiredServableStateSnapshot> all_versions;
+  EXPECT_CALL(*policy, GetNextAction(_))
+      .WillOnce(Invoke([&all_versions](
+          const std::vector<AspiredServableStateSnapshot>& snapshots) {
+        all_versions = snapshots;
+        return nullopt;
+      }));
+  test_util::AspiredVersionsManagerTestAccess(manager.get())
+      .InvokePolicyAndExecuteAction();
+  EXPECT_EQ(kNumVersionsPerServable, all_versions.size());
 }
 
 }  // namespace

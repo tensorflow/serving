@@ -302,19 +302,18 @@ bool AspiredVersionsManager::ContainsAnyReaspiredVersions(
 optional<AspiredVersionPolicy::ServableAction>
 AspiredVersionsManager::GetNextAction() {
   std::vector<optional<AspiredVersionPolicy::ServableAction>> actions;
-  std::vector<AspiredServableStateSnapshot> aspired_state_snapshots;
   for (const string& servable_name :
        basic_manager_->GetManagedServableNames()) {
-    aspired_state_snapshots.clear();
+    std::vector<AspiredServableStateSnapshot> aspired_state_snapshots;
     for (const ServableStateSnapshot<Aspired>& state_snapshot :
          basic_manager_->GetManagedServableStateSnapshots<Aspired>(
              servable_name)) {
       aspired_state_snapshots.push_back(
           {state_snapshot.id, state_snapshot.state,
            state_snapshot.additional_state->is_aspired});
-      actions.emplace_back(
-          aspired_version_policy_->GetNextAction(aspired_state_snapshots));
     }
+    actions.emplace_back(
+        aspired_version_policy_->GetNextAction(aspired_state_snapshots));
   }
 
   std::sort(actions.begin(), actions.end(), CompareActions());
