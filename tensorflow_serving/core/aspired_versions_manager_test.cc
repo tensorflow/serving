@@ -928,6 +928,8 @@ TEST(AspiredVersionsManagerTest, CallPolicyWithAllVersions) {
   std::unique_ptr<AspiredVersionsManager> manager;
   AspiredVersionsManager::Options manager_options;
   MockAspiredVersionPolicy* policy = new MockAspiredVersionPolicy;
+  // The state manager thread won't be run automatically.
+  manager_options.manage_state_interval_micros = -1;
   manager_options.aspired_version_policy =
       std::unique_ptr<AspiredVersionPolicy>(policy);
   TF_CHECK_OK(
