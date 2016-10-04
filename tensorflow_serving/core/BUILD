@@ -440,6 +440,7 @@ cc_test(
         ":servable_state_monitor",
         "//tensorflow_serving/core/test_util:availability_test_util",
         "//tensorflow_serving/core/test_util:fake_loader",
+        "//tensorflow_serving/core/test_util:manager_test_util",
         "//tensorflow_serving/core/test_util:mock_loader",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:any_ptr",

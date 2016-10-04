@@ -232,6 +232,14 @@ class AspiredVersionsManager : public Manager,
   void InvokePolicyAndExecuteAction()
       LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_);
 
+  // Sets the number of load/unload threads.
+  //
+  // We immediately block all new load/unload requests while the current
+  // executor is destructed, a new one is created and then swapped with the
+  // current one.
+  void SetNumLoadUnloadThreads(uint32 num_load_unload_threads);
+  uint32 num_load_unload_threads() const;
+
   std::unique_ptr<AspiredVersionPolicy> aspired_version_policy_;
 
   // Aspired-versions requests pending to be processed, keyed by servable name.

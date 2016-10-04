@@ -398,5 +398,14 @@ void AspiredVersionsManager::InvokePolicyAndExecuteAction() {
   PerformAction(*next_action);
 }
 
+void AspiredVersionsManager::SetNumLoadUnloadThreads(
+    const uint32 num_load_unload_threads) {
+  basic_manager_->SetNumLoadUnloadThreads(num_load_unload_threads);
+}
+
+uint32 AspiredVersionsManager::num_load_unload_threads() const {
+  return basic_manager_->num_load_unload_threads();
+}
+
 }  // namespace serving
 }  // namespace tensorflow

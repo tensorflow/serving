@@ -44,6 +44,10 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+namespace test_util {
+class BasicManagerTestAccess;
+}  // namespace test_util
+
 // Helps manage the lifecycle of servables including loading, serving and
 // unloading them. The manager accepts servables in the form of Loaders.
 //
@@ -241,7 +245,10 @@ class BasicManager : public Manager {
   void UnloadServable(const ServableId& id, DoneCallback done_callback);
 
  private:
-  BasicManager(std::unique_ptr<Executor> load_unload_executor,
+  friend class AspiredVersionsManager;
+  friend class test_util::BasicManagerTestAccess;
+
+  BasicManager(Env* env, uint32 num_load_unload_threads,
                std::unique_ptr<ResourceTracker> resource_tracker,
                EventBus<ServableState>* servable_event_bus,
                const LoaderHarness::Options& harness_options);
@@ -342,6 +349,17 @@ class BasicManager : public Manager {
   // are ready to be served.
   void UpdateServingMap() EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
+  // Sets the number of load/unload threads.
+  //
+  // We block all new load/unload requests while the old thread pool is
+  // destructed, a new one is created and then swapped with the old one. Note
+  // that destructing the old thread pool blocks until all threads are done, so
+  // it could block for a long time.
+  void SetNumLoadUnloadThreads(uint32 num_load_unload_threads)
+      LOCKS_EXCLUDED(num_load_unload_threads_mu_);
+  uint32 num_load_unload_threads() const
+      LOCKS_EXCLUDED(num_load_unload_threads_mu_);
+
   struct HashString {
     uint64 operator()(const string& str) const { return Hash64(str); }
   };
@@ -441,8 +459,13 @@ class BasicManager : public Manager {
   // serially, which guarantees that request i’s decision phase can complete
   // before considering request i+1's so there’s no starvation.
 
+  Env* const env_;
+
+  mutable mutex num_load_unload_threads_mu_;
+  uint32 num_load_unload_threads_ GUARDED_BY(num_load_unload_threads_mu_);
   // The executor used for executing load and unload of servables.
-  std::unique_ptr<Executor> load_unload_executor_;
+  std::unique_ptr<Executor> load_unload_executor_
+      GUARDED_BY(num_load_unload_threads_mu_);
 
   // Used to serialize the decision phases of the load/unload requests.
   mutable mutex load_unload_decision_phase_mu_;

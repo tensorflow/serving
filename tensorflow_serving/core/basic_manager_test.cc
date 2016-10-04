@@ -28,6 +28,7 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 #include "tensorflow_serving/core/test_util/fake_loader.h"
+#include "tensorflow_serving/core/test_util/manager_test_util.h"
 #include "tensorflow_serving/core/test_util/mock_loader.h"
 #include "tensorflow_serving/util/any_ptr.h"
 #include "tensorflow_serving/util/event_bus.h"
@@ -788,6 +789,136 @@ TEST_P(BasicManagerTest, InterleavedLoadsAndUnloads) {
       basic_manager_->UnloadServable(
           id, [](const Status& status) { TF_ASSERT_OK(status); });
     });
+  }
+}
+
+class SetNumLoadUnloadThreadsBasicManagerTest : public ::testing::Test {
+ protected:
+  SetNumLoadUnloadThreadsBasicManagerTest() {
+    BasicManager::Options options;
+    options.num_load_unload_threads = 0;
+    options.max_num_load_retries = 10;
+    options.load_retry_interval_micros = 0;
+    TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
+  }
+
+  std::unique_ptr<BasicManager> basic_manager_;
+};
+
+TEST_F(SetNumLoadUnloadThreadsBasicManagerTest, ThreadPoolSwapped) {
+  test_util::BasicManagerTestAccess manager_test_access(basic_manager_.get());
+  manager_test_access.SetNumLoadUnloadThreads(2);
+  EXPECT_EQ(2, manager_test_access.num_load_unload_threads());
+
+  const auto load_done_fn = [&](const Status& status) {
+    TF_ASSERT_OK(status);
+    // Tests whether the threadpools are actually swapped in
+    // SetNumLoadUnloadThreads().
+    static thread_local int per_thread_load_ctr = 0;
+    ++per_thread_load_ctr;
+    EXPECT_EQ(1, per_thread_load_ctr);
+  };
+
+  const ServableId id0 = {kServableName3, 0};
+  basic_manager_->ManageServable(CreateServable(id0));
+  basic_manager_->LoadServable(id0, load_done_fn);
+
+  manager_test_access.SetNumLoadUnloadThreads(0);
+  EXPECT_EQ(0, manager_test_access.num_load_unload_threads());
+
+  const ServableId id1 = {kServableName3, 1};
+  basic_manager_->ManageServable(CreateServable(id1));
+  basic_manager_->LoadServable(id1, load_done_fn);
+
+  // Force the manager to finish before deleting the notifications.
+  basic_manager_.reset();
+}
+
+TEST_F(SetNumLoadUnloadThreadsBasicManagerTest,
+       ThreadPoolsNotAliveSimultaneously) {
+  test_util::BasicManagerTestAccess manager_test_access(basic_manager_.get());
+  manager_test_access.SetNumLoadUnloadThreads(1);
+  EXPECT_EQ(1, manager_test_access.num_load_unload_threads());
+
+  std::set<string> data_race_set;
+  const auto data_race_fn = [&](const Status& status) {
+    // This line will cause a data race if both the loads happen simultaneously
+    // on different threads. This will be caught by the ThreadSanitizer, causing
+    // the test to fail.
+    data_race_set.insert("string");
+  };
+
+  const ServableId id0 = {kServableName3, 0};
+  basic_manager_->ManageServable(CreateServable(id0));
+  Notification notify_for_setting;
+  Notification continue_load;
+  basic_manager_->LoadServable(id0, [&](const Status& status) {
+    notify_for_setting.Notify();
+    continue_load.WaitForNotification();
+    data_race_fn(status);
+  });
+
+  {
+    ThreadPoolExecutor executor(Env::Default(), "SetNumLoadUnloadThreads",
+                                kNumThreads);
+    executor.Schedule([&]() {
+      notify_for_setting.WaitForNotification();
+      manager_test_access.SetNumLoadUnloadThreads(1);
+      EXPECT_EQ(1, manager_test_access.num_load_unload_threads());
+    });
+
+    executor.Schedule([&]() {
+      const ServableId id1 = {kServableName3, 1};
+      basic_manager_->ManageServable(CreateServable(id1));
+      continue_load.Notify();
+      basic_manager_->LoadServable(
+          id1, [&](const Status& status) { data_race_fn(status); });
+    });
+  }
+
+  // Force the manager to finish before deleting the notifications.
+  basic_manager_.reset();
+}
+
+// Tests whether the fast-load scenario works. In the fast-load scenario we try
+// to load a bunch of servables as fast as possible using a lot of threads.
+TEST_F(SetNumLoadUnloadThreadsBasicManagerTest, FastLoad) {
+  test_util::BasicManagerTestAccess manager_test_access(basic_manager_.get());
+  const uint32 prev_num_load_unload_threads =
+      manager_test_access.num_load_unload_threads();
+  manager_test_access.SetNumLoadUnloadThreads(32);
+  EXPECT_EQ(32, manager_test_access.num_load_unload_threads());
+
+  {
+    ThreadPoolExecutor executor(Env::Default(), "FirstThreadPoolLoads",
+                                kNumThreads);
+    for (int i = 0; i < 20; ++i) {
+      executor.Schedule([this, i]() {
+        const ServableId id = {kServableName3, i};
+        basic_manager_->ManageServable(CreateServable(id));
+        basic_manager_->LoadServable(
+            id, [](const Status& status) { TF_ASSERT_OK(status); });
+        // We don't wait for load to be done here because we want to test that
+        // SetNumLoadUnloadThreads() waits properly till all queued loads are
+        // finished.  If a queued load hasn't been finished the corresponding
+        // UnloadServable() will fail.
+      });
+    }
+  }
+
+  manager_test_access.SetNumLoadUnloadThreads(prev_num_load_unload_threads);
+  EXPECT_EQ(prev_num_load_unload_threads,
+            manager_test_access.num_load_unload_threads());
+
+  {
+    ThreadPoolExecutor executor(Env::Default(), "Unloads", kNumThreads);
+    for (int i = 0; i < 20; ++i) {
+      executor.Schedule([this, i]() {
+        const ServableId id = {kServableName3, i};
+        basic_manager_->UnloadServable(
+            id, [](const Status& status) { TF_ASSERT_OK(status); });
+      });
+    }
   }
 }
 

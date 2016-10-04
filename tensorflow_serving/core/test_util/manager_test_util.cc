@@ -35,6 +35,27 @@ void AspiredVersionsManagerTestAccess::InvokePolicyAndExecuteAction() {
   manager_->InvokePolicyAndExecuteAction();
 }
 
+void AspiredVersionsManagerTestAccess::SetNumLoadUnloadThreads(
+    const uint32 num_load_unload_threads) {
+  manager_->SetNumLoadUnloadThreads(num_load_unload_threads);
+}
+
+uint32 AspiredVersionsManagerTestAccess::num_load_unload_threads() const {
+  return manager_->num_load_unload_threads();
+}
+
+BasicManagerTestAccess::BasicManagerTestAccess(BasicManager* manager)
+    : manager_(manager) {}
+
+void BasicManagerTestAccess::SetNumLoadUnloadThreads(
+    const uint32 num_load_unload_threads) {
+  manager_->SetNumLoadUnloadThreads(num_load_unload_threads);
+}
+
+uint32 BasicManagerTestAccess::num_load_unload_threads() const {
+  return manager_->num_load_unload_threads();
+}
+
 CachingManagerTestAccess::CachingManagerTestAccess(CachingManager* manager)
     : manager_(manager) {}
 
