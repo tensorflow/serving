@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "tensorflow_serving/core/eager_load_policy.h"
+#include "tensorflow_serving/core/loader_harness.h"
 
 namespace tensorflow {
 namespace serving {
@@ -27,6 +28,18 @@ optional<AspiredVersionPolicy::ServableAction> EagerLoadPolicy::GetNextAction(
     }
   }
 
+  // Second, check if there are any aspired versions that are not ready. In that
+  // case we can't unload any versions.
+  const bool aspired_not_serving =
+      std::any_of(all_versions.begin(), all_versions.end(),
+                  [](const AspiredServableStateSnapshot& version) {
+                    return version.is_aspired &&
+                           version.state != LoaderHarness::State::kReady;
+                  });
+  if (aspired_not_serving) {
+    return nullopt;
+  }
+
   // If there is no new aspired version, but a not-aspired version, unload the
   // latter.
   for (const auto& version : all_versions) {
@@ -34,7 +47,7 @@ optional<AspiredVersionPolicy::ServableAction> EagerLoadPolicy::GetNextAction(
       return {{Action::kUnload, version.id}};
     }
   }
-  return {};
+  return nullopt;
 }
 
 }  // namespace serving

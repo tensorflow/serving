@@ -40,19 +40,18 @@ TEST(EagerLoadPolicy, LoadsFirstAspired) {
 
 // Test that the first non-aspired version is unloaded when there are none to
 // load.
-TEST(EagerLoadPolicy, UnLoadsFirstNonAspiredWhenNoneToLoad) {
+TEST(EagerLoadPolicy, UnLoadsFirstNonAspiredWhenNoneLoading) {
   std::vector<AspiredServableStateSnapshot> versions;
   versions.push_back({{"test", 1}, LoaderHarness::State::kReady, true});
-  versions.push_back({{"test", 2}, LoaderHarness::State::kLoading, true});
-  versions.push_back({{"test", 3}, LoaderHarness::State::kReady, false});
-  versions.push_back({{"test", 4}, LoaderHarness::State::kDisabled, false});
-  versions.push_back({{"test", 5}, LoaderHarness::State::kReady, false});
+  versions.push_back({{"test", 2}, LoaderHarness::State::kReady, false});
+  versions.push_back({{"test", 3}, LoaderHarness::State::kDisabled, false});
+  versions.push_back({{"test", 4}, LoaderHarness::State::kReady, false});
 
   EagerLoadPolicy policy;
   const auto action = policy.GetNextAction(versions);
   ASSERT_TRUE(action);
   EXPECT_EQ(AspiredVersionPolicy::Action::kUnload, action->action);
-  EXPECT_EQ(3, action->id.version);
+  EXPECT_EQ(2, action->id.version);
 }
 
 // Test that no action is returned (empty optional) when there are no versions
@@ -64,6 +63,48 @@ TEST(EagerLoadPolicy, ReturnsNoActionWhenNone) {
   versions.push_back({{"test", 3}, LoaderHarness::State::kLoading, true});
   versions.push_back({{"test", 4}, LoaderHarness::State::kUnloading, false});
   versions.push_back({{"test", 5}, LoaderHarness::State::kDisabled, false});
+
+  EagerLoadPolicy policy;
+  const auto action = policy.GetNextAction(versions);
+  EXPECT_FALSE(action);
+}
+
+TEST(EagerLoadPolicy, DoesNotUnloadWhenOtherNotReady) {
+  std::vector<AspiredServableStateSnapshot> versions;
+  versions.push_back({{"test", 1}, LoaderHarness::State::kReady, false});
+  versions.push_back({{"test", 2}, LoaderHarness::State::kLoading, true});
+
+  EagerLoadPolicy policy;
+  const auto action = policy.GetNextAction(versions);
+  EXPECT_FALSE(action);
+}
+
+TEST(EagerLoadPolicy, DoesNotUnloadWhenOtherInError) {
+  std::vector<AspiredServableStateSnapshot> versions;
+  versions.push_back({{"test", 1}, LoaderHarness::State::kReady, false});
+  versions.push_back({{"test", 2}, LoaderHarness::State::kError, true});
+
+  EagerLoadPolicy policy;
+  const auto action = policy.GetNextAction(versions);
+  EXPECT_FALSE(action);
+}
+
+TEST(EagerLoadPolicy, LoadingBlocksUnloadEvenIfOtherReady) {
+  std::vector<AspiredServableStateSnapshot> versions;
+  versions.push_back({{"test", 1}, LoaderHarness::State::kReady, false});
+  versions.push_back({{"test", 2}, LoaderHarness::State::kLoading, true});
+  versions.push_back({{"test", 3}, LoaderHarness::State::kReady, true});
+
+  EagerLoadPolicy policy;
+  const auto action = policy.GetNextAction(versions);
+  EXPECT_FALSE(action);
+}
+
+TEST(EagerLoadPolicy, ErrorBlocksUnloadEvenIfOtherReady) {
+  std::vector<AspiredServableStateSnapshot> versions;
+  versions.push_back({{"test", 1}, LoaderHarness::State::kReady, false});
+  versions.push_back({{"test", 2}, LoaderHarness::State::kError, true});
+  versions.push_back({{"test", 3}, LoaderHarness::State::kReady, true});
 
   EagerLoadPolicy policy;
   const auto action = policy.GetNextAction(versions);

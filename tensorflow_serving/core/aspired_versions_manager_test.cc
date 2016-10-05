@@ -254,6 +254,12 @@ TEST_P(AspiredVersionsManagerTest, ListAvailableServableIds) {
   }
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
+
+  manager_->GetAspiredVersionsCallback()(kServableName, {});
+  HandlePendingAspiredVersionsRequests();
+  for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
+    InvokePolicyAndExecuteAction();
+  }
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
                                        {kServableName, 0},
                                        {ServableState::ManagerState::kEnd});
@@ -301,13 +307,18 @@ TEST_P(AspiredVersionsManagerTest, GetAvailableServableHandles) {
   }
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
+
+  manager_->GetAspiredVersionsCallback()(kServableName, {});
+  HandlePendingAspiredVersionsRequests();
+  for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
+    InvokePolicyAndExecuteAction();
+  }
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
                                        {kServableName, 0},
                                        {ServableState::ManagerState::kEnd});
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
                                        {kServableName, 1},
                                        {ServableState::ManagerState::kEnd});
-
   {
     const std::map<ServableId, ServableHandle<int64>> handles_after =
         manager_->GetAvailableServableHandles<int64>();
@@ -771,6 +782,70 @@ TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallyFails) {
                                      errors::Internal("Error on load.")};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(error_state));
+}
+
+// Tests the interaction between AspiredVersionsManager and the EagerLoadPolicy.
+// Specifically, we want to make sure that the manager will not try to unload a
+// serving version that is no longer aspired if the new aspired version was not
+// able to start serving.
+TEST_P(AspiredVersionsManagerTest, AspireErrorDontUnload) {
+  const std::vector<ServableId> expected_before = {{kServableName, 0},
+                                                   {kServableName, 1},
+                                                   {kServableName2, 0},
+                                                   {kServableName2, 1}};
+  EXPECT_THAT(manager_->ListAvailableServableIds(),
+              UnorderedElementsAreArray(expected_before));
+
+  // Set stream kServableName to have servable 7.
+  // This causes 0 & 1 to be set to not aspired and 7 to be loaded, but 7 errors
+  // on load, so never moves to a loaded state.
+  {
+    std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
+    const ServableId id = {kServableName, 7};
+    std::unique_ptr<Loader> loader(
+        new FakeLoader(7, errors::Internal("An error.")));
+    aspired_versions.push_back({id, std::move(loader)});
+    manager_->GetAspiredVersionsCallback()(kServableName,
+                                           std::move(aspired_versions));
+    HandlePendingAspiredVersionsRequests();
+
+    // Will try to load version 7 and fail.
+    InvokePolicyAndExecuteAction();
+    WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
+                                         {ServableState::ManagerState::kEnd});
+  }
+
+  // The same servables as before as we can't unload the current servables after
+  // the failure to load the new one.
+  EXPECT_THAT(manager_->ListAvailableServableIds(),
+              UnorderedElementsAreArray(expected_before));
+
+  // Now successfully loading a new version should allow the older versions to
+  // be unloaded.
+  {
+    std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
+    const ServableId id = {kServableName, 8};
+    std::unique_ptr<Loader> loader(new FakeLoader(8));
+    aspired_versions.push_back({id, std::move(loader)});
+    manager_->GetAspiredVersionsCallback()(kServableName,
+                                           std::move(aspired_versions));
+    HandlePendingAspiredVersionsRequests();
+
+    // Will try to load version 8 and succeed.
+    InvokePolicyAndExecuteAction();
+    WaitUntilServableManagerStateIsOneOf(
+        servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
+
+    // Will unload version 0 and 1.
+    InvokePolicyAndExecuteAction();
+    InvokePolicyAndExecuteAction();
+    WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
+                                         {kServableName, 0},
+                                         {ServableState::ManagerState::kEnd});
+    WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
+                                         {kServableName, 1},
+                                         {ServableState::ManagerState::kEnd});
+  }
 }
 
 TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
