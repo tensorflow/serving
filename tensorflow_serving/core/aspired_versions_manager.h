@@ -42,8 +42,16 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+class AspiredVersionsManager;
+
 namespace internal {
+
 class AspiredVersionsManagerTargetImpl;
+
+Status ConnectSourceWithFastInitialLoad(
+    AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
+    const std::function<Status()>& wait_until_loaded_fn, uint32 num_threads);
+
 }  // namespace internal
 
 namespace test_util {
@@ -170,6 +178,9 @@ class AspiredVersionsManager : public Manager,
  private:
   friend class internal::AspiredVersionsManagerTargetImpl;
   friend class test_util::AspiredVersionsManagerTestAccess;
+  friend Status internal::ConnectSourceWithFastInitialLoad(
+      AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
+      const std::function<Status()>& wait_until_loaded_fn, uint32 num_threads);
 
   AspiredVersionsManager(
       int64 manage_state_interval_micros, Env* env,

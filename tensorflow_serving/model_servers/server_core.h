@@ -159,10 +159,9 @@ class ServerCore {
   Status CreateAspiredVersionsManager(
       std::unique_ptr<AspiredVersionsManager>* manager);
 
-  // Creates a platform-specific Loader Source and connects it to the supplied
-  // target.
+  // Creates a platform-specific Loader Source.
   Status CreateSourceAdapter(
-      const string& model_platform, Target<std::unique_ptr<Loader>>* target,
+      const string& model_platform,
       std::unique_ptr<ModelServerSourceAdapter>* adapter);
 
   // Creates a FileSystemStoragePathSourceConfig from the ModelConfigList of
@@ -175,9 +174,9 @@ class ServerCore {
   Status WaitUntilConfiguredModelsAvailable()
       EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
-  // Creates a FileSystemStoragePathSource, connects it to the supplied
-  // target, stores the pointer in 'storage_path_source_' and transfers the
-  // ownership to 'manager_'.
+  // Creates a FileSystemStoragePathSource, connects it to the supplied target,
+  // stores the pointer in 'storage_path_source_' and transfers the ownership to
+  // 'manager_'.
   Status CreateFileSystemStoragePathSource(
       const FileSystemStoragePathSourceConfig& source_config,
       Target<StoragePath>* target) EXCLUSIVE_LOCKS_REQUIRED(config_mu_);

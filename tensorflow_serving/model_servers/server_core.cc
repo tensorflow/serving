@@ -21,6 +21,7 @@ limitations under the License.
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow_serving/core/eager_load_policy.h"
+#include "tensorflow_serving/core/load_servables_fast.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
@@ -151,15 +152,9 @@ Status ServerCore::AddModelsViaModelConfigList() {
       ValidateAllListedModelsAreOfSamePlatform(config_, &model_platform));
 
   // Create the source adapter if we haven't done so.
-  bool is_first_config = storage_path_source_ == nullptr;
-  ModelServerSourceAdapter* source_adapter = nullptr;
+  const bool is_first_config = storage_path_source_ == nullptr;
   if (is_first_config) {
     model_platform_ = model_platform;
-    std::unique_ptr<ModelServerSourceAdapter> new_source_adapter;
-    TF_RETURN_IF_ERROR(CreateSourceAdapter(model_platform_, manager_.get(),
-                                           &new_source_adapter));
-    source_adapter = new_source_adapter.get();
-    manager_.AddDependency(std::move(new_source_adapter));
   }
 
   // Determine if config transition is legal.
@@ -173,10 +168,21 @@ Status ServerCore::AddModelsViaModelConfigList() {
   const FileSystemStoragePathSourceConfig source_config =
       CreateStoragePathSourceConfig(config_);
   if (is_first_config) {
+    std::unique_ptr<ModelServerSourceAdapter> source_adapter;
+    TF_RETURN_IF_ERROR(CreateSourceAdapter(model_platform_, &source_adapter));
     TF_RETURN_IF_ERROR(
-        CreateFileSystemStoragePathSource(source_config, source_adapter));
+        CreateFileSystemStoragePathSource(source_config, source_adapter.get()));
+    std::vector<ServableRequest> static_servables;
+    for (const auto& model : config_.model_config_list().config()) {
+      static_servables.push_back(ServableRequest::Latest(model.name()));
+    }
+    TF_RETURN_IF_ERROR(ConnectSourceWithFastInitialLoad(
+        manager_.get(), source_adapter.get(), servable_state_monitor_.get(),
+        static_servables));
+    manager_.AddDependency(std::move(source_adapter));
   } else {
     TF_RETURN_IF_ERROR(ReloadFileSystemStoragePathSourceConfig(source_config));
+    TF_RETURN_IF_ERROR(WaitUntilConfiguredModelsAvailable());
   }
   return Status::OK();
 }
@@ -213,7 +219,6 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   switch (config_.config_case()) {
     case ModelServerConfig::kModelConfigList: {
       TF_RETURN_IF_ERROR(AddModelsViaModelConfigList());
-      TF_RETURN_IF_ERROR(WaitUntilConfiguredModelsAvailable());
       break;
     }
     case ModelServerConfig::kCustomModelConfig: {
@@ -231,10 +236,9 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
 }
 
 Status ServerCore::CreateSourceAdapter(
-    const string& model_platform, Target<std::unique_ptr<Loader>>* target,
+    const string& model_platform,
     std::unique_ptr<ModelServerSourceAdapter>* adapter) {
   TF_RETURN_IF_ERROR(source_adapter_creator_(model_platform, adapter));
-  ConnectSourceToTarget(adapter->get(), target);
   return Status::OK();
 }
 

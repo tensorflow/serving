@@ -643,3 +643,17 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
     ],
 )
+
+cc_library(
+    name = "load_servables_fast",
+    srcs = ["load_servables_fast.cc"],
+    hdrs = ["load_servables_fast.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":aspired_versions_manager",
+        ":servable_state_monitor",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
