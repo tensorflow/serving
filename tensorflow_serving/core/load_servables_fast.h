@@ -36,7 +36,7 @@ Status ConnectSourceWithFastInitialLoad(
     AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
     ServableStateMonitor* servable_state_monitor,
     const std::vector<ServableRequest>& initial_servables,
-    uint32 num_threads = 1 * port::NumSchedulableCPUs());
+    uint32 num_threads = 4 * port::NumSchedulableCPUs());
 
 ////
 // Implementation detail. API readers may skip.
