@@ -179,7 +179,7 @@ Status ServerCore::AddModelsViaModelConfigList() {
     }
     TF_RETURN_IF_ERROR(ConnectSourceWithFastInitialLoad(
         manager_.get(), source_adapter.get(), servable_state_monitor_.get(),
-        static_servables));
+        static_servables, server_core_config_.num_initial_load_unload_threads));
     manager_.AddDependency(std::move(source_adapter));
   } else {
     TF_RETURN_IF_ERROR(ReloadFileSystemStoragePathSourceConfig(source_config));

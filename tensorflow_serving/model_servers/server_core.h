@@ -58,10 +58,17 @@ struct ServerCoreConfig {
   uint64 total_model_memory_limit_bytes = ULLONG_MAX;
   // Time interval between file-system polls, in seconds.
   int32 file_system_poll_wait_seconds = 30;
+
   // The number of threads used to load and unload models. If set to 0, then
   // no thread pool is used and the loads/unloads are performed serially in
   // the manager thread.
   int32 num_load_unload_threads = 0;
+
+  // The number of load/unload threads used to load the initial set of models at
+  // server startup. This is set high to load up the initial set of models fast,
+  // after this the server uses num_load_unload_threads.
+  int32 num_initial_load_unload_threads = 4.0 * port::NumSchedulableCPUs();
+
   // Maximum number of times we retry loading a model, after the first failure,
   // before we give up"
   int32 max_num_load_retries = 5;
