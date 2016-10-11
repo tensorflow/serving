@@ -51,6 +51,8 @@ cc_library(
         "//tensorflow_serving/core:source",
         "//tensorflow_serving/core:source_adapter",
         "//tensorflow_serving/core:storage_path",
+        "//tensorflow_serving/resources:resource_tracker",
+        "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto",
         "//tensorflow_serving/util:event_bus",

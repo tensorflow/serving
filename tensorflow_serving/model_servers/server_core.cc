@@ -23,6 +23,7 @@ limitations under the License.
 #include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/core/load_servables_fast.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
+#include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
 
@@ -278,6 +279,9 @@ Status ServerCore::CreateAspiredVersionsManager(
     std::unique_ptr<AspiredVersionsManager>* const manager) {
   std::unique_ptr<AspiredVersionsManager> aspired_versions_manager;
   AspiredVersionsManager::Options manager_options;
+  std::unique_ptr<ResourceTracker> resource_tracker;
+  TF_RETURN_IF_ERROR(CreateResourceTracker(&resource_tracker));
+  manager_options.resource_tracker = std::move(resource_tracker);
   manager_options.servable_event_bus = servable_event_bus_.get();
   manager_options.aspired_version_policy.reset(new EagerLoadPolicy());
   manager_options.num_load_unload_threads =
@@ -285,6 +289,23 @@ Status ServerCore::CreateAspiredVersionsManager(
   manager_options.max_num_load_retries =
       server_core_config_.max_num_load_retries;
   return AspiredVersionsManager::Create(std::move(manager_options), manager);
+}
+
+Status ServerCore::CreateResourceTracker(
+    std::unique_ptr<ResourceTracker>* resource_tracker) {
+  ResourceUtil::Options resource_util_options;
+  resource_util_options.devices[device_types::kMain] = 1;
+  auto resource_util =
+      std::unique_ptr<ResourceUtil>(new ResourceUtil(resource_util_options));
+  ResourceAllocation total_resources;
+  ResourceAllocation::Entry* main_memory_resource =
+      total_resources.add_resource_quantities();
+  main_memory_resource->mutable_resource()->set_device(device_types::kMain);
+  main_memory_resource->mutable_resource()->set_kind(resource_kinds::kRamBytes);
+  main_memory_resource->set_quantity(
+      server_core_config_.total_model_memory_limit_bytes);
+  return ResourceTracker::Create(total_resources, std::move(resource_util),
+                                 resource_tracker);
 }
 
 // ************************************************************************

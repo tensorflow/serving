@@ -54,6 +54,8 @@ namespace serving {
 
 // ServerCore tuning parameters.
 struct ServerCoreConfig {
+  // Total model size limit, in terms of main memory, in bytes.
+  uint64 total_model_memory_limit_bytes = ULLONG_MAX;
   // Time interval between file-system polls, in seconds.
   int32 file_system_poll_wait_seconds = 30;
   // The number of threads used to load and unload models. If set to 0, then
@@ -158,6 +160,10 @@ class ServerCore {
   // Creates a AspiredVersionsManager with the EagerLoadPolicy.
   Status CreateAspiredVersionsManager(
       std::unique_ptr<AspiredVersionsManager>* manager);
+
+  // Creates a ResourceTracker.
+  Status CreateResourceTracker(
+      std::unique_ptr<ResourceTracker>* resource_tracker);
 
   // Creates a platform-specific Loader Source.
   Status CreateSourceAdapter(
