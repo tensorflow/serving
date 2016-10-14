@@ -29,7 +29,20 @@ optional<AspiredVersionPolicy::ServableAction> EagerUnloadPolicy::GetNextAction(
     }
   }
 
-  // Second and only if no action was found earlier, iterate over all
+  // Second, see if there are any not-aspired versions that aren't in an end
+  // state (kDisabled or kError). If so, do nothing for now.
+  const bool not_aspired_not_finished =
+      std::any_of(all_versions.begin(), all_versions.end(),
+                  [](const AspiredServableStateSnapshot& version) {
+                    return !version.is_aspired &&
+                           version.state != LoaderHarness::State::kDisabled &&
+                           version.state != LoaderHarness::State::kError;
+                  });
+  if (not_aspired_not_finished) {
+    return nullopt;
+  }
+
+  // Third and only if no action was found earlier, iterate over all
   // versions and find any in kNew that are aspired. Load the first if any.
   for (const auto& version : all_versions) {
     if (version.state == LoaderHarness::State::kNew && version.is_aspired) {

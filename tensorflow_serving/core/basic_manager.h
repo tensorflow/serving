@@ -44,6 +44,10 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+namespace test_util {
+class BasicManagerTestAccess;
+}  // namespace test_util
+
 // Helps manage the lifecycle of servables including loading, serving and
 // unloading them. The manager accepts servables in the form of Loaders.
 //
@@ -51,8 +55,11 @@ namespace serving {
 // can go on to load the servable after this by calling LoadServable. Loading
 // will also make the servable available to serve. Once you decide to unload it,
 // you can call UnloadServable on it, which will make it unavailable to serve,
-// then unload the servable and delete it. After unload, or after hitting an
-// error, the servable is no longer managed by the manager.
+// then unload the servable.
+//
+// Servables are retained until StopManagingServable() is called. This allows a
+// higher level manager with more information to decide when it's safe to forget
+// about a servable.
 //
 // BasicManager tracks the resources (e.g. RAM) used by loaded servables, and
 // only allows loading new servables that fit within the overall resource pool.
@@ -71,7 +78,8 @@ namespace serving {
 //
 // REQUIRES:
 // 1. Order of method calls -
-//    ManageServable*() -> LoadServable() -> UnloadServable().
+//    ManageServable*() -> LoadServable() -> UnloadServable() ->
+//    StopManagingServable().
 // 2. Do not schedule concurrent load and unloads of the same servable.
 // 3. Do not call load or unload multiple times on the same servable.
 //
@@ -93,6 +101,7 @@ namespace serving {
 // ...
 //
 // TF_CHECK_OK(manager.UnloadServable(id));
+// TF_CHECK_OK(manager.UnmanagerServable(id));
 class BasicManager : public Manager {
  public:
   struct Options {
@@ -160,6 +169,10 @@ class BasicManager : public Manager {
   Status ManageServableWithAdditionalState(
       ServableData<std::unique_ptr<Loader>> servable,
       std::unique_ptr<T> additional_state);
+
+  // Tells the manager to stop managing this servable. Requires that the
+  // servable is currently being managed and that its state is kEnd.
+  Status StopManagingServable(const ServableId& id);
 
   // Returns the names of all the servables managed by this manager. The names
   // will be duplicate-free and not in any particular order.
@@ -232,7 +245,10 @@ class BasicManager : public Manager {
   void UnloadServable(const ServableId& id, DoneCallback done_callback);
 
  private:
-  BasicManager(std::unique_ptr<Executor> load_unload_executor,
+  friend class AspiredVersionsManager;
+  friend class test_util::BasicManagerTestAccess;
+
+  BasicManager(Env* env, uint32 num_load_unload_threads,
                std::unique_ptr<ResourceTracker> resource_tracker,
                EventBus<ServableState>* servable_event_bus,
                const LoaderHarness::Options& harness_options);
@@ -302,9 +318,6 @@ class BasicManager : public Manager {
   // other things, that prevents a subsequent load request from proceeding
   // concurrently.
   //
-  // If it fails, removes 'harness' from 'managed_map_' (which causes 'harness'
-  // to be deleted).
-  //
   // Argument 'mu_lock' is a lock held on 'mu_'. It is released temporarily via
   // 'num_ongoing_load_unload_executions_cv_'.
   Status ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock)
@@ -320,9 +333,6 @@ class BasicManager : public Manager {
   //
   // Upon completion (and regardless of the outcome), signals exit of the
   // execution phase by decrementing 'num_ongoing_load_unload_executions_'.
-  //
-  // If it fails, removes 'harness' from 'managed_map_' (which causes 'harness'
-  // to be deleted).
   Status ExecuteLoadOrUnload(const LoadOrUnloadRequest& request,
                              LoaderHarness* harness);
 
@@ -338,6 +348,17 @@ class BasicManager : public Manager {
   // Updates the serving map by copying servables from the managed map, which
   // are ready to be served.
   void UpdateServingMap() EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
+  // Sets the number of load/unload threads.
+  //
+  // We block all new load/unload requests while the old thread pool is
+  // destructed, a new one is created and then swapped with the old one. Note
+  // that destructing the old thread pool blocks until all threads are done, so
+  // it could block for a long time.
+  void SetNumLoadUnloadThreads(uint32 num_load_unload_threads)
+      LOCKS_EXCLUDED(num_load_unload_threads_mu_);
+  uint32 num_load_unload_threads() const
+      LOCKS_EXCLUDED(num_load_unload_threads_mu_);
 
   struct HashString {
     uint64 operator()(const string& str) const { return Hash64(str); }
@@ -438,8 +459,13 @@ class BasicManager : public Manager {
   // serially, which guarantees that request i’s decision phase can complete
   // before considering request i+1's so there’s no starvation.
 
+  Env* const env_;
+
+  mutable mutex num_load_unload_threads_mu_;
+  uint32 num_load_unload_threads_ GUARDED_BY(num_load_unload_threads_mu_);
   // The executor used for executing load and unload of servables.
-  std::unique_ptr<Executor> load_unload_executor_;
+  std::unique_ptr<Executor> load_unload_executor_
+      GUARDED_BY(num_load_unload_threads_mu_);
 
   // Used to serialize the decision phases of the load/unload requests.
   mutable mutex load_unload_decision_phase_mu_;

@@ -42,7 +42,7 @@ class MockServerCore : public ServerCore {
             },  // ServerCore::ServableStateMonitorCreator
             [](const ::google::protobuf::Any& any,
                EventBus<ServableState>* event_bus,
-               Target<std::unique_ptr<Loader>>* target) -> Status {
+               UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
               return Status::OK();
             },  // ServerCore::CustomModelConfigLoader
             ServerCoreConfig()) {}

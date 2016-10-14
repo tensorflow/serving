@@ -69,6 +69,54 @@ TEST(EagerUnloadPolicy, ReturnsNoActionWhenNone) {
   EXPECT_FALSE(action);
 }
 
+TEST(EagerUnloadPolicy, DoesNotLoadWhenOthersStillUnloading) {
+  std::vector<AspiredServableStateSnapshot> versions;
+  versions.push_back(
+      {{"test", 1}, LoaderHarness::State::kUnloadRequested, false});
+  versions.push_back({{"test", 2}, LoaderHarness::State::kNew, true});
+
+  EagerUnloadPolicy policy;
+  const auto action = policy.GetNextAction(versions);
+  EXPECT_FALSE(action);
+}
+
+TEST(EagerUnloadPolicy, LoadIfUnaspiredIsError) {
+  std::vector<AspiredServableStateSnapshot> versions;
+  versions.push_back({{"test", 1}, LoaderHarness::State::kError, false});
+  versions.push_back({{"test", 2}, LoaderHarness::State::kNew, true});
+
+  EagerUnloadPolicy policy;
+  const auto action = policy.GetNextAction(versions);
+  ASSERT_TRUE(action);
+  EXPECT_EQ(AspiredVersionPolicy::Action::kLoad, action->action);
+  EXPECT_EQ(2, action->id.version);
+}
+
+TEST(EagerUnloadPolicy, ErrorAndUnloadRequestedPreventLoading) {
+  std::vector<AspiredServableStateSnapshot> versions;
+  versions.push_back({{"test", 1}, LoaderHarness::State::kError, false});
+  versions.push_back(
+      {{"test", 2}, LoaderHarness::State::kUnloadRequested, false});
+  versions.push_back({{"test", 3}, LoaderHarness::State::kNew, true});
+
+  EagerUnloadPolicy policy;
+  const auto action = policy.GetNextAction(versions);
+  EXPECT_FALSE(action);
+}
+
+TEST(EagerUnloadPolicy, ErrorAndDisabledAllowLoading) {
+  std::vector<AspiredServableStateSnapshot> versions;
+  versions.push_back({{"test", 1}, LoaderHarness::State::kError, false});
+  versions.push_back({{"test", 2}, LoaderHarness::State::kDisabled, false});
+  versions.push_back({{"test", 3}, LoaderHarness::State::kNew, true});
+
+  EagerUnloadPolicy policy;
+  const auto action = policy.GetNextAction(versions);
+  ASSERT_TRUE(action);
+  EXPECT_EQ(AspiredVersionPolicy::Action::kLoad, action->action);
+  EXPECT_EQ(3, action->id.version);
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

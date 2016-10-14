@@ -170,6 +170,7 @@ AspiredVersionsManager::AspiredVersionsManager(
     pf_options.thread_name_prefix = "AspiredVersionsManager_ManageState_Thread";
     manage_state_thread_.reset(new PeriodicFunction(
         [this]() {
+          this->FlushServables();
           this->HandlePendingAspiredVersionsRequests();
           this->InvokePolicyAndExecuteAction();
         },
@@ -301,19 +302,18 @@ bool AspiredVersionsManager::ContainsAnyReaspiredVersions(
 optional<AspiredVersionPolicy::ServableAction>
 AspiredVersionsManager::GetNextAction() {
   std::vector<optional<AspiredVersionPolicy::ServableAction>> actions;
-  std::vector<AspiredServableStateSnapshot> aspired_state_snapshots;
   for (const string& servable_name :
        basic_manager_->GetManagedServableNames()) {
-    aspired_state_snapshots.clear();
+    std::vector<AspiredServableStateSnapshot> aspired_state_snapshots;
     for (const ServableStateSnapshot<Aspired>& state_snapshot :
          basic_manager_->GetManagedServableStateSnapshots<Aspired>(
              servable_name)) {
       aspired_state_snapshots.push_back(
           {state_snapshot.id, state_snapshot.state,
            state_snapshot.additional_state->is_aspired});
-      actions.emplace_back(
-          aspired_version_policy_->GetNextAction(aspired_state_snapshots));
     }
+    actions.emplace_back(
+        aspired_version_policy_->GetNextAction(aspired_state_snapshots));
   }
 
   std::sort(actions.begin(), actions.end(), CompareActions());
@@ -341,6 +341,22 @@ void AspiredVersionsManager::PerformAction(
         }
       });
     } break;
+  }
+}
+
+void AspiredVersionsManager::FlushServables() {
+  mutex_lock l(basic_manager_read_modify_write_mu_);
+  for (const string& servable_name :
+       basic_manager_->GetManagedServableNames()) {
+    for (const ServableStateSnapshot<Aspired>& state_snapshot :
+         basic_manager_->GetManagedServableStateSnapshots<Aspired>(
+             servable_name)) {
+      if ((state_snapshot.state == LoaderHarness::State::kDisabled ||
+           state_snapshot.state == LoaderHarness::State::kError) &&
+          !state_snapshot.additional_state->is_aspired) {
+        basic_manager_->StopManagingServable(state_snapshot.id);
+      }
+    }
   }
 }
 
@@ -379,6 +395,15 @@ void AspiredVersionsManager::InvokePolicyAndExecuteAction() {
   // NOTE: we could do action validation here.
 
   PerformAction(*next_action);
+}
+
+void AspiredVersionsManager::SetNumLoadUnloadThreads(
+    const uint32 num_load_unload_threads) {
+  basic_manager_->SetNumLoadUnloadThreads(num_load_unload_threads);
+}
+
+uint32 AspiredVersionsManager::num_load_unload_threads() const {
+  return basic_manager_->num_load_unload_threads();
 }
 
 }  // namespace serving

@@ -54,12 +54,21 @@ namespace serving {
 
 // ServerCore tuning parameters.
 struct ServerCoreConfig {
+  // Total model size limit, in terms of main memory, in bytes.
+  uint64 total_model_memory_limit_bytes = ULLONG_MAX;
   // Time interval between file-system polls, in seconds.
   int32 file_system_poll_wait_seconds = 30;
+
   // The number of threads used to load and unload models. If set to 0, then
   // no thread pool is used and the loads/unloads are performed serially in
   // the manager thread.
   int32 num_load_unload_threads = 0;
+
+  // The number of load/unload threads used to load the initial set of models at
+  // server startup. This is set high to load up the initial set of models fast,
+  // after this the server uses num_load_unload_threads.
+  int32 num_initial_load_unload_threads = 4.0 * port::NumSchedulableCPUs();
+
   // Maximum number of times we retry loading a model, after the first failure,
   // before we give up"
   int32 max_num_load_retries = 5;
@@ -84,9 +93,14 @@ class ServerCore {
       std::function<Status(EventBus<ServableState>* event_bus,
                            std::unique_ptr<ServableStateMonitor>* monitor)>;
 
+  // A function that's responsible for instantiating and connecting the
+  // necessary custom sources and source adapters to the manager based on a
+  // passed in config (any).
+  // The expected pattern is that ownership of the created sources/source
+  // adapters can be transferred to the manager.
   using CustomModelConfigLoader = std::function<Status(
       const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
-      Target<std::unique_ptr<Loader>>* target)>;
+      UniquePtrWithDeps<AspiredVersionsManager>* manager)>;
 
   // Creates a ServerCore instance with all the models and sources per the
   // ModelServerConfig.
@@ -154,10 +168,13 @@ class ServerCore {
   Status CreateAspiredVersionsManager(
       std::unique_ptr<AspiredVersionsManager>* manager);
 
-  // Creates a platform-specific Loader Source and connects it to the supplied
-  // target.
+  // Creates a ResourceTracker.
+  Status CreateResourceTracker(
+      std::unique_ptr<ResourceTracker>* resource_tracker);
+
+  // Creates a platform-specific Loader Source.
   Status CreateSourceAdapter(
-      const string& model_platform, Target<std::unique_ptr<Loader>>* target,
+      const string& model_platform,
       std::unique_ptr<ModelServerSourceAdapter>* adapter);
 
   // Creates a FileSystemStoragePathSourceConfig from the ModelConfigList of
@@ -170,9 +187,9 @@ class ServerCore {
   Status WaitUntilConfiguredModelsAvailable()
       EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
-  // Creates a FileSystemStoragePathSource, connects it to the supplied
-  // target, stores the pointer in 'storage_path_source_' and transfers the
-  // ownership to 'manager_'.
+  // Creates a FileSystemStoragePathSource, connects it to the supplied target,
+  // stores the pointer in 'storage_path_source_' and transfers the ownership to
+  // 'manager_'.
   Status CreateFileSystemStoragePathSource(
       const FileSystemStoragePathSourceConfig& source_config,
       Target<StoragePath>* target) EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
