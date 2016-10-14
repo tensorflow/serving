@@ -29,16 +29,38 @@ class AspiredVersionsManagerTestAccess {
  public:
   explicit AspiredVersionsManagerTestAccess(AspiredVersionsManager* manager);
 
+  // Invokes FlushServables() on the manager.
+  void FlushServables();
+
   // Invokes HandlePendingAspiredVersionsRequests() on the manager.
   void HandlePendingAspiredVersionsRequests();
 
   // Invokes InvokePolicyAndExecuteAction() on the manager.
   void InvokePolicyAndExecuteAction();
 
+  void SetNumLoadUnloadThreads(uint32 num_load_unload_threads);
+
+  uint32 num_load_unload_threads() const;
+
  private:
   AspiredVersionsManager* const manager_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(AspiredVersionsManagerTestAccess);
+};
+
+// A test utility that provides access to private BasicManager members.
+class BasicManagerTestAccess {
+ public:
+  explicit BasicManagerTestAccess(BasicManager* manager);
+
+  void SetNumLoadUnloadThreads(uint32 num_load_unload_threads);
+
+  uint32 num_load_unload_threads() const;
+
+ private:
+  BasicManager* const manager_;
+
+  TF_DISALLOW_COPY_AND_ASSIGN(BasicManagerTestAccess);
 };
 
 // A test utility that provides access to private CachingManager members.

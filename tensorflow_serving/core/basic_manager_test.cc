@@ -28,6 +28,7 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 #include "tensorflow_serving/core/test_util/fake_loader.h"
+#include "tensorflow_serving/core/test_util/manager_test_util.h"
 #include "tensorflow_serving/core/test_util/mock_loader.h"
 #include "tensorflow_serving/util/any_ptr.h"
 #include "tensorflow_serving/util/event_bus.h"
@@ -57,6 +58,14 @@ constexpr char kServableName3[] = "kServableName3";
 constexpr int kNumVersionsPerServable = 2;
 
 constexpr int kNumThreads = 10;
+
+MATCHER_P(EqualsServableState, servable_state, servable_state.DebugString()) {
+  if (arg == servable_state) {
+    return true;
+  }
+  *result_listener << arg.DebugString();
+  return false;
+}
 
 // Creates a ServableData around a FakeLoader.
 ServableData<std::unique_ptr<Loader>> CreateServable(
@@ -165,6 +174,59 @@ TEST_P(BasicManagerTest, ServableHandleLatestVersionIsZero) {
   TF_ASSERT_OK(status);
   EXPECT_EQ(1, *handle);
   EXPECT_EQ(id, handle.id());
+}
+
+TEST_P(BasicManagerTest, StopManagingUnknownId) {
+  const ServableId id = {kServableName3, 1};
+  EXPECT_FALSE(basic_manager_->StopManagingServable(id).ok());
+}
+
+TEST_P(BasicManagerTest, StopManagingActiveServable) {
+  const ServableId id = {kServableName3, 1};
+  basic_manager_->ManageServable(CreateServable(id));
+  EXPECT_FALSE(basic_manager_->StopManagingServable(id).ok());
+}
+
+TEST_P(BasicManagerTest, StopManagingDisabledServable) {
+  const ServableId id = {kServableName3, 1};
+  basic_manager_->ManageServable(CreateServable(id));
+  basic_manager_->LoadServable(
+      id, [](const Status& status) { TF_EXPECT_OK(status); });
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
+  basic_manager_->UnloadServable(
+      id, [](const Status& status) { TF_EXPECT_OK(status); });
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
+                                       {ServableState::ManagerState::kEnd});
+  const optional<ServableStateSnapshot<>> snapshot =
+      basic_manager_->GetManagedServableStateSnapshot(id);
+  EXPECT_EQ(LoaderHarness::State::kDisabled, snapshot->state);
+  const ServableState expected_state = {id, ServableState::ManagerState::kEnd,
+                                        Status::OK()};
+  EXPECT_THAT(*servable_state_monitor_.GetState(id),
+              EqualsServableState(expected_state));
+
+  TF_ASSERT_OK(basic_manager_->StopManagingServable(id));
+  EXPECT_FALSE(basic_manager_->GetManagedServableStateSnapshot(id));
+}
+
+TEST_P(BasicManagerTest, DontStopManagingOnError) {
+  const ServableId id = {kServableName, 7};
+  const Status error_status = errors::Internal("An error.");
+  std::unique_ptr<Loader> loader(new FakeLoader(7, error_status));
+  basic_manager_->ManageServable({id, std::move(loader)});
+  basic_manager_->LoadServable(id, [error_status](const Status& status) {
+    EXPECT_EQ(error_status, status);
+  });
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
+                                       {ServableState::ManagerState::kEnd});
+  const optional<ServableStateSnapshot<>> snapshot =
+      basic_manager_->GetManagedServableStateSnapshot(id);
+  EXPECT_EQ(LoaderHarness::State::kError, snapshot->state);
+  const ServableState expected_error_state = {
+      id, ServableState::ManagerState::kEnd, error_status};
+  EXPECT_THAT(*servable_state_monitor_.GetState(id),
+              EqualsServableState(expected_error_state));
 }
 
 TEST_P(BasicManagerTest, ServableHandleSpecificVersion) {
@@ -456,6 +518,7 @@ TEST_P(BasicManagerTest, DestructOnNonServingThread) {
             id, [](const Status& status) { TF_ASSERT_OK(status); });
         WaitUntilServableManagerStateIsOneOf(
             servable_state_monitor_, id, {ServableState::ManagerState::kEnd});
+        basic_manager_->StopManagingServable(id);
         // The servable has been deleted in this thread if there is no
         // thread-pool for load/unload.
         if (num_load_unload_threads_ == 0) {
@@ -527,8 +590,8 @@ TEST_P(BasicManagerTest, MultipleUnloadServables) {
                                        {ServableState::ManagerState::kEnd});
   basic_manager_->UnloadServable(id, [](const Status& status) {
     EXPECT_FALSE(status.ok());
-    EXPECT_EQ(error::NOT_FOUND, status.code());
-    EXPECT_THAT(status.error_message(), HasSubstr("is not being managed"));
+    EXPECT_EQ(error::FAILED_PRECONDITION, status.code());
+    EXPECT_THAT(status.error_message(), HasSubstr("cannot be transitioned"));
   });
 }
 
@@ -550,14 +613,6 @@ TEST_P(BasicManagerTest, UnloadWithoutLoad) {
     EXPECT_THAT(status.error_message(),
                 HasSubstr("cannot be transitioned to unload-requested"));
   });
-}
-
-MATCHER_P(EqualsServableState, servable_state, servable_state.DebugString()) {
-  if (arg == servable_state) {
-    return true;
-  }
-  *result_listener << arg.DebugString();
-  return false;
 }
 
 TEST_P(BasicManagerTest, EventBusErroneousVersion) {
@@ -734,6 +789,136 @@ TEST_P(BasicManagerTest, InterleavedLoadsAndUnloads) {
       basic_manager_->UnloadServable(
           id, [](const Status& status) { TF_ASSERT_OK(status); });
     });
+  }
+}
+
+class SetNumLoadUnloadThreadsBasicManagerTest : public ::testing::Test {
+ protected:
+  SetNumLoadUnloadThreadsBasicManagerTest() {
+    BasicManager::Options options;
+    options.num_load_unload_threads = 0;
+    options.max_num_load_retries = 10;
+    options.load_retry_interval_micros = 0;
+    TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
+  }
+
+  std::unique_ptr<BasicManager> basic_manager_;
+};
+
+TEST_F(SetNumLoadUnloadThreadsBasicManagerTest, ThreadPoolSwapped) {
+  test_util::BasicManagerTestAccess manager_test_access(basic_manager_.get());
+  manager_test_access.SetNumLoadUnloadThreads(2);
+  EXPECT_EQ(2, manager_test_access.num_load_unload_threads());
+
+  const auto load_done_fn = [&](const Status& status) {
+    TF_ASSERT_OK(status);
+    // Tests whether the threadpools are actually swapped in
+    // SetNumLoadUnloadThreads().
+    static thread_local int per_thread_load_ctr = 0;
+    ++per_thread_load_ctr;
+    EXPECT_EQ(1, per_thread_load_ctr);
+  };
+
+  const ServableId id0 = {kServableName3, 0};
+  basic_manager_->ManageServable(CreateServable(id0));
+  basic_manager_->LoadServable(id0, load_done_fn);
+
+  manager_test_access.SetNumLoadUnloadThreads(0);
+  EXPECT_EQ(0, manager_test_access.num_load_unload_threads());
+
+  const ServableId id1 = {kServableName3, 1};
+  basic_manager_->ManageServable(CreateServable(id1));
+  basic_manager_->LoadServable(id1, load_done_fn);
+
+  // Force the manager to finish before deleting the notifications.
+  basic_manager_.reset();
+}
+
+TEST_F(SetNumLoadUnloadThreadsBasicManagerTest,
+       ThreadPoolsNotAliveSimultaneously) {
+  test_util::BasicManagerTestAccess manager_test_access(basic_manager_.get());
+  manager_test_access.SetNumLoadUnloadThreads(1);
+  EXPECT_EQ(1, manager_test_access.num_load_unload_threads());
+
+  std::set<string> data_race_set;
+  const auto data_race_fn = [&](const Status& status) {
+    // This line will cause a data race if both the loads happen simultaneously
+    // on different threads. This will be caught by the ThreadSanitizer, causing
+    // the test to fail.
+    data_race_set.insert("string");
+  };
+
+  const ServableId id0 = {kServableName3, 0};
+  basic_manager_->ManageServable(CreateServable(id0));
+  Notification notify_for_setting;
+  Notification continue_load;
+  basic_manager_->LoadServable(id0, [&](const Status& status) {
+    notify_for_setting.Notify();
+    continue_load.WaitForNotification();
+    data_race_fn(status);
+  });
+
+  {
+    ThreadPoolExecutor executor(Env::Default(), "SetNumLoadUnloadThreads",
+                                kNumThreads);
+    executor.Schedule([&]() {
+      notify_for_setting.WaitForNotification();
+      manager_test_access.SetNumLoadUnloadThreads(1);
+      EXPECT_EQ(1, manager_test_access.num_load_unload_threads());
+    });
+
+    executor.Schedule([&]() {
+      const ServableId id1 = {kServableName3, 1};
+      basic_manager_->ManageServable(CreateServable(id1));
+      continue_load.Notify();
+      basic_manager_->LoadServable(
+          id1, [&](const Status& status) { data_race_fn(status); });
+    });
+  }
+
+  // Force the manager to finish before deleting the notifications.
+  basic_manager_.reset();
+}
+
+// Tests whether the fast-load scenario works. In the fast-load scenario we try
+// to load a bunch of servables as fast as possible using a lot of threads.
+TEST_F(SetNumLoadUnloadThreadsBasicManagerTest, FastLoad) {
+  test_util::BasicManagerTestAccess manager_test_access(basic_manager_.get());
+  const uint32 prev_num_load_unload_threads =
+      manager_test_access.num_load_unload_threads();
+  manager_test_access.SetNumLoadUnloadThreads(32);
+  EXPECT_EQ(32, manager_test_access.num_load_unload_threads());
+
+  {
+    ThreadPoolExecutor executor(Env::Default(), "FirstThreadPoolLoads",
+                                kNumThreads);
+    for (int i = 0; i < 20; ++i) {
+      executor.Schedule([this, i]() {
+        const ServableId id = {kServableName3, i};
+        basic_manager_->ManageServable(CreateServable(id));
+        basic_manager_->LoadServable(
+            id, [](const Status& status) { TF_ASSERT_OK(status); });
+        // We don't wait for load to be done here because we want to test that
+        // SetNumLoadUnloadThreads() waits properly till all queued loads are
+        // finished.  If a queued load hasn't been finished the corresponding
+        // UnloadServable() will fail.
+      });
+    }
+  }
+
+  manager_test_access.SetNumLoadUnloadThreads(prev_num_load_unload_threads);
+  EXPECT_EQ(prev_num_load_unload_threads,
+            manager_test_access.num_load_unload_threads());
+
+  {
+    ThreadPoolExecutor executor(Env::Default(), "Unloads", kNumThreads);
+    for (int i = 0; i < 20; ++i) {
+      executor.Schedule([this, i]() {
+        const ServableId id = {kServableName3, i};
+        basic_manager_->UnloadServable(
+            id, [](const Status& status) { TF_ASSERT_OK(status); });
+      });
+    }
   }
 }
 
@@ -1038,6 +1223,11 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
       rejected_id, ServableState::ManagerState::kEnd, rejected_status};
   EXPECT_THAT(*servable_state_monitor_.GetState(rejected_id),
               EqualsServableState(expected_error_state));
+
+  // Make sure we're still managing the rejected servable.
+  const optional<ServableStateSnapshot<>> snapshot =
+      basic_manager_->GetManagedServableStateSnapshot(rejected_id);
+  EXPECT_EQ(LoaderHarness::State::kError, snapshot->state);
 }
 
 TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedIfLoadFails) {
