@@ -42,6 +42,7 @@ limitations under the License.
 #include <iostream>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "google/protobuf/wrappers.pb.h"
 #include "grpc++/security/server_credentials.h"
@@ -182,21 +183,22 @@ int main(int argc, char** argv) {
   bool enable_batching = false;
   tensorflow::string model_name = "default";
   tensorflow::string model_base_path;
-  const bool parse_result = tensorflow::ParseFlags(
-      &argc, argv, {tensorflow::Flag("port", &port),
-                    tensorflow::Flag("enable_batching", &enable_batching),
-                    tensorflow::Flag("model_name", &model_name),
-                    tensorflow::Flag("model_base_path", &model_base_path)});
+  std::vector<tensorflow::Flag> flag_list = {
+      tensorflow::Flag("port", &port, "port to listen on"),
+      tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
+      tensorflow::Flag("model_name", &model_name, "name of model"),
+      tensorflow::Flag("model_base_path", &model_base_path,
+                       "path to export (required)")};
+  string usage = tensorflow::Flags::Usage(argv[0], flag_list);
+  const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
   if (!parse_result || model_base_path.empty()) {
-    std::cout << "Usage: model_server"
-              << " [--port=8500]"
-              << " [--enable_batching]"
-              << " [--model_name=my_name]"
-              << " --model_base_path=/path/to/export" << std::endl;
+    std::cout << usage;
     return -1;
   }
-
   tensorflow::port::InitMain(argv[0], &argc, &argv);
+  if (argc != 1) {
+    std::cout << "unknown argument: " << argv[1] << "\n" << usage;
+  }
 
   ModelServerConfig config =
       BuildSingleModelConfig(model_name, model_base_path);
