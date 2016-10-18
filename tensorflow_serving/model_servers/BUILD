@@ -63,6 +63,7 @@ cc_library(
 
 cc_test(
     name = "server_core_test",
+    size = "medium",
     srcs = ["server_core_test.cc"],
     data = [
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export",
