@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/test_util/server_core_test_util.h"
 
+#include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/test_util/test_util.h"
@@ -40,6 +41,8 @@ ModelServerConfig ServerCoreTest::GetTestModelServerConfig() {
 ServerCoreConfig ServerCoreTest::GetTestServerCoreConfig() {
   ServerCoreConfig config;
   config.file_system_poll_wait_seconds = 0;
+  config.aspired_version_policy =
+      std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
   return config;
 }
 

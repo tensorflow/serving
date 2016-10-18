@@ -20,7 +20,6 @@ limitations under the License.
 #include "google/protobuf/any.pb.h"
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/core/platform/logging.h"
-#include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/core/load_servables_fast.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/resources/resource_values.h"
@@ -86,12 +85,15 @@ Status ServerCore::Create(
     const SourceAdapterCreator& source_adapter_creator,
     const ServableStateMonitorCreator& servable_state_monitor_creator,
     const CustomModelConfigLoader& custom_model_config_loader,
-    const ServerCoreConfig& server_core_config,
+    ServerCoreConfig server_core_config,
     std::unique_ptr<ServerCore>* server_core) {
-  server_core->reset(
-      new ServerCore(source_adapter_creator, servable_state_monitor_creator,
-                     custom_model_config_loader, server_core_config));
-  TF_RETURN_IF_ERROR((*server_core)->Initialize());
+  std::unique_ptr<AspiredVersionPolicy> aspired_version_policy =
+      std::move(server_core_config.aspired_version_policy);
+  server_core->reset(new ServerCore(
+      source_adapter_creator, servable_state_monitor_creator,
+      custom_model_config_loader, std::move(server_core_config)));
+  TF_RETURN_IF_ERROR(
+      (*server_core)->Initialize(std::move(aspired_version_policy)));
   return (*server_core)->ReloadConfig(config);
 }
 
@@ -103,21 +105,22 @@ ServerCore::ServerCore(
     const SourceAdapterCreator& source_adapter_creator,
     const ServableStateMonitorCreator& servable_state_monitor_creator,
     const CustomModelConfigLoader& custom_model_config_loader,
-    const ServerCoreConfig& server_core_config)
+    ServerCoreConfig server_core_config)
     : source_adapter_creator_(source_adapter_creator),
       servable_state_monitor_creator_(servable_state_monitor_creator),
       custom_model_config_loader_(custom_model_config_loader),
-      server_core_config_(server_core_config),
+      server_core_config_(std::move(server_core_config)),
       servable_event_bus_(EventBus<ServableState>::CreateEventBus()) {}
 
-Status ServerCore::Initialize() {
+Status ServerCore::Initialize(std::unique_ptr<AspiredVersionPolicy> policy) {
   std::unique_ptr<ServableStateMonitor> servable_state_monitor;
   TF_RETURN_IF_ERROR(servable_state_monitor_creator_(servable_event_bus_.get(),
                                                      &servable_state_monitor));
   servable_state_monitor_ = std::move(servable_state_monitor);
 
   std::unique_ptr<AspiredVersionsManager> aspired_versions_manager;
-  TF_RETURN_IF_ERROR(CreateAspiredVersionsManager(&aspired_versions_manager));
+  TF_RETURN_IF_ERROR(CreateAspiredVersionsManager(std::move(policy),
+                                                  &aspired_versions_manager));
   manager_.SetOwned(std::move(aspired_versions_manager));
 
   return Status::OK();
@@ -276,6 +279,7 @@ Status ServerCore::ReloadFileSystemStoragePathSourceConfig(
 }
 
 Status ServerCore::CreateAspiredVersionsManager(
+    std::unique_ptr<AspiredVersionPolicy> aspired_version_policy,
     std::unique_ptr<AspiredVersionsManager>* const manager) {
   std::unique_ptr<AspiredVersionsManager> aspired_versions_manager;
   AspiredVersionsManager::Options manager_options;
@@ -283,7 +287,7 @@ Status ServerCore::CreateAspiredVersionsManager(
   TF_RETURN_IF_ERROR(CreateResourceTracker(&resource_tracker));
   manager_options.resource_tracker = std::move(resource_tracker);
   manager_options.servable_event_bus = servable_event_bus_.get();
-  manager_options.aspired_version_policy.reset(new EagerLoadPolicy());
+  manager_options.aspired_version_policy = std::move(aspired_version_policy);
   manager_options.num_load_unload_threads =
       server_core_config_.num_load_unload_threads;
   manager_options.max_num_load_retries =

@@ -58,6 +58,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 #include "tensorflow_serving/apis/prediction_service.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
+#include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/server_core.h"
@@ -65,7 +66,9 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
 
 using tensorflow::serving::AspiredVersionsManager;
+using tensorflow::serving::AspiredVersionPolicy;
 using tensorflow::serving::BatchingParameters;
+using tensorflow::serving::EagerLoadPolicy;
 using tensorflow::serving::EventBus;
 using tensorflow::serving::Loader;
 using tensorflow::serving::ModelServerConfig;
@@ -212,12 +215,16 @@ int main(int argc, char** argv) {
         "model_server_batch_threads");
   }
 
+  ServerCoreConfig core_config;
+  core_config.aspired_version_policy =
+      std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
+
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(
       config, std::bind(CreateSourceAdapter, source_adapter_config,
                         std::placeholders::_1, std::placeholders::_2),
-      &CreateServableStateMonitor, &LoadCustomModelConfig, ServerCoreConfig(),
-      &core));
+      &CreateServableStateMonitor, &LoadCustomModelConfig,
+      std::move(core_config), &core));
   RunServer(port, std::move(core));
 
   return 0;

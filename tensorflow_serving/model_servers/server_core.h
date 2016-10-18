@@ -59,6 +59,9 @@ struct ServerCoreConfig {
   // Time interval between file-system polls, in seconds.
   int32 file_system_poll_wait_seconds = 30;
 
+  // The AspiredVersionPolicy to use for the manager. Must be non-null.
+  std::unique_ptr<AspiredVersionPolicy> aspired_version_policy;
+
   // The number of threads used to load and unload models. If set to 0, then
   // no thread pool is used and the loads/unloads are performed serially in
   // the manager thread.
@@ -113,8 +116,7 @@ class ServerCore {
       const SourceAdapterCreator& source_adapter_creator,
       const ServableStateMonitorCreator& servable_state_monitor_creator,
       const CustomModelConfigLoader& custom_model_config_loader,
-      const ServerCoreConfig& server_core_config,
-      std::unique_ptr<ServerCore>* core);
+      ServerCoreConfig server_core_config, std::unique_ptr<ServerCore>* core);
 
   // Updates the server core with all the models and sources per the
   // ModelServerConfig. Like Create(), waits for all statically configured
@@ -151,7 +153,7 @@ class ServerCore {
   ServerCore(const SourceAdapterCreator& source_adapter_creator,
              const ServableStateMonitorCreator& servable_state_monitor_creator,
              const CustomModelConfigLoader& custom_model_config_loader,
-             const ServerCoreConfig& server_core_config);
+             ServerCoreConfig server_core_config);
 
  private:
   friend class test_util::ServerCoreTestAccess;
@@ -162,10 +164,12 @@ class ServerCore {
 
   // Initializes server core.
   // Must be run once and only once per ServerCore instance.
-  Status Initialize();
+  Status Initialize(
+      std::unique_ptr<AspiredVersionPolicy> aspired_version_policy);
 
-  // Creates a AspiredVersionsManager with the EagerLoadPolicy.
+  // Creates a AspiredVersionsManager with the specified policy.
   Status CreateAspiredVersionsManager(
+      std::unique_ptr<AspiredVersionPolicy> policy,
       std::unique_ptr<AspiredVersionsManager>* manager);
 
   // Creates a ResourceTracker.
@@ -223,6 +227,8 @@ class ServerCore {
   SourceAdapterCreator source_adapter_creator_;
   ServableStateMonitorCreator servable_state_monitor_creator_;
   CustomModelConfigLoader custom_model_config_loader_;
+
+  // The config passed to the ctor, minus the AspiredVersionPolicy.
   ServerCoreConfig server_core_config_;
 
   std::shared_ptr<EventBus<ServableState>> servable_event_bus_;
