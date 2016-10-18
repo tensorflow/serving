@@ -67,11 +67,10 @@ def export():
     # Input transformation.
     serialized_tf_example = tf.placeholder(tf.string, name='tf_example')
     feature_configs = {
-        'jpeg_encoded': tf.FixedLenFeature(
-            shape=[], dtype=tf.string, default_value=''),
+        'image/encoded': tf.FixedLenFeature(shape=[], dtype=tf.string),
     }
     tf_example = tf.parse_example(serialized_tf_example, feature_configs)
-    jpegs = tf_example['jpeg_encoded']
+    jpegs = tf_example['image/encoded']
     images = tf.map_fn(preprocess_image, jpegs, dtype=tf.float32)
 
     # Run inference.
