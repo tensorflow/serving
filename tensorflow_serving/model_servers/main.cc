@@ -42,6 +42,7 @@ limitations under the License.
 #include <iostream>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "google/protobuf/wrappers.pb.h"
 #include "grpc++/security/server_credentials.h"
@@ -57,6 +58,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 #include "tensorflow_serving/apis/prediction_service.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
+#include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/server_core.h"
@@ -64,7 +66,9 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
 
 using tensorflow::serving::AspiredVersionsManager;
+using tensorflow::serving::AspiredVersionPolicy;
 using tensorflow::serving::BatchingParameters;
+using tensorflow::serving::EagerLoadPolicy;
 using tensorflow::serving::EventBus;
 using tensorflow::serving::Loader;
 using tensorflow::serving::ModelServerConfig;
@@ -182,21 +186,22 @@ int main(int argc, char** argv) {
   bool enable_batching = false;
   tensorflow::string model_name = "default";
   tensorflow::string model_base_path;
-  const bool parse_result = tensorflow::ParseFlags(
-      &argc, argv, {tensorflow::Flag("port", &port),
-                    tensorflow::Flag("enable_batching", &enable_batching),
-                    tensorflow::Flag("model_name", &model_name),
-                    tensorflow::Flag("model_base_path", &model_base_path)});
+  std::vector<tensorflow::Flag> flag_list = {
+      tensorflow::Flag("port", &port, "port to listen on"),
+      tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
+      tensorflow::Flag("model_name", &model_name, "name of model"),
+      tensorflow::Flag("model_base_path", &model_base_path,
+                       "path to export (required)")};
+  string usage = tensorflow::Flags::Usage(argv[0], flag_list);
+  const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
   if (!parse_result || model_base_path.empty()) {
-    std::cout << "Usage: model_server"
-              << " [--port=8500]"
-              << " [--enable_batching]"
-              << " [--model_name=my_name]"
-              << " --model_base_path=/path/to/export" << std::endl;
+    std::cout << usage;
     return -1;
   }
-
   tensorflow::port::InitMain(argv[0], &argc, &argv);
+  if (argc != 1) {
+    std::cout << "unknown argument: " << argv[1] << "\n" << usage;
+  }
 
   ModelServerConfig config =
       BuildSingleModelConfig(model_name, model_base_path);
@@ -210,12 +215,16 @@ int main(int argc, char** argv) {
         "model_server_batch_threads");
   }
 
+  ServerCoreConfig core_config;
+  core_config.aspired_version_policy =
+      std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
+
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(
       config, std::bind(CreateSourceAdapter, source_adapter_config,
                         std::placeholders::_1, std::placeholders::_2),
-      &CreateServableStateMonitor, &LoadCustomModelConfig, ServerCoreConfig(),
-      &core));
+      &CreateServableStateMonitor, &LoadCustomModelConfig,
+      std::move(core_config), &core));
   RunServer(port, std::move(core));
 
   return 0;

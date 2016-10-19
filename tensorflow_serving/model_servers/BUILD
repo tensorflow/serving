@@ -45,7 +45,6 @@ cc_library(
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:aspired_versions_manager",
-        "//tensorflow_serving/core:eager_load_policy",
         "//tensorflow_serving/core:load_servables_fast",
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/core:source",
@@ -64,6 +63,7 @@ cc_library(
 
 cc_test(
     name = "server_core_test",
+    size = "medium",
     srcs = ["server_core_test.cc"],
     data = [
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export",
@@ -104,6 +104,7 @@ cc_binary(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
         "//tensorflow_serving/apis:prediction_service_proto",
+        "//tensorflow_serving/core:eager_load_policy",
         "//tensorflow_serving/core:servable_state_monitor",
         "@grpc//:grpc++",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
