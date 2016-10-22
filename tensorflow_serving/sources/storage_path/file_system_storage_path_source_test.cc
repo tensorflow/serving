@@ -171,6 +171,39 @@ TEST(FileSystemStoragePathSourceTest, MultipleVersions) {
                    .PollFileSystemAndInvokeCallback());
 }
 
+TEST(FileSystemStoragePathSourceTest, MultipleVersionsAtTheSameTime) {
+  const string base_path = io::JoinPath(testing::TmpDir(), "MultipleVersionsAtTheSameTime");
+  TF_ASSERT_OK(Env::Default()->CreateDir(base_path));
+  TF_ASSERT_OK(Env::Default()->CreateDir(
+      io::JoinPath(base_path, "non_numerical_child")));
+  TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path, "42")));
+  TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path, "17")));
+
+  string all_version_policy = std::to_string(FileSystemStoragePathSourceConfig::ALL_VERSIONS);
+  auto config = test_util::CreateProto<FileSystemStoragePathSourceConfig>(
+      strings::Printf("servables: { "
+                      "  version_policy: ALL_VERSIONS "
+                      "  servable_name: 'test_servable_name' "
+                      "  base_path: '%s' "
+                      "} "
+                      // Disable the polling thread.
+                      "file_system_poll_wait_seconds: -1 ",
+                      base_path.c_str()));
+  std::unique_ptr<FileSystemStoragePathSource> source;
+  TF_ASSERT_OK(FileSystemStoragePathSource::Create(config, &source));
+  std::unique_ptr<test_util::MockStoragePathTarget> target(
+      new StrictMock<test_util::MockStoragePathTarget>);
+  ConnectSourceToTarget(source.get(), target.get());
+
+  EXPECT_CALL(*target, SetAspiredVersions(Eq("test_servable_name"),
+                                           ElementsAre(
+                                           ServableData<StoragePath>({"test_servable_name", 17}, io::JoinPath(base_path, "17")),
+                                           ServableData<StoragePath>({"test_servable_name", 42}, io::JoinPath(base_path, "42")))));
+
+  TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
+                   .PollFileSystemAndInvokeCallback());
+}
+
 TEST(FileSystemStoragePathSourceTest, MultipleServables) {
   FileSystemStoragePathSourceConfig config;
   config.set_fail_if_zero_versions_at_startup(false);
