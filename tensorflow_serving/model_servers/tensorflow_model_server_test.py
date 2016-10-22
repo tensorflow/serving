@@ -68,13 +68,14 @@ class TensorflowModelServerTest(tf.test.TestCase):
     if self.server_proc is not None:
       self.server_proc.terminate()
 
-  def RunServer(self, port, model_name, model_path):
+  def RunServer(self, port, model_name, model_path, file_system_polling_interval):
     """Run tensorflow_model_server using test config."""
     print 'Starting test server...'
     command = os.path.join(self.binary_dir, 'tensorflow_model_server')
     command += ' --port=' + str(port)
     command += ' --model_name=' + model_name
     command += ' --model_base_path=' + model_path
+    command += ' --file_system_polling_interval=' + file_system_polling_interval
     command += ' --alsologtostderr'
     print command
     self.server_proc = subprocess.Popen(shlex.split(command))
@@ -109,7 +110,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(
         PickUnusedPort(), 'default',
-        os.path.join(self.testdata_dir, 'half_plus_two'))
+        os.path.join(self.testdata_dir, 'half_plus_two'), 1)
     time.sleep(5)
     self.VerifyPredictRequest(model_server_address)
     self.VerifyPredictRequest(model_server_address, specify_output=False)
@@ -119,7 +120,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(
         PickUnusedPort(), 'default',
-        os.path.join(self.testdata_dir, 'bad_half_plus_two'))
+        os.path.join(self.testdata_dir, 'bad_half_plus_two'), 1)
     time.sleep(5)
     with self.assertRaises(face.AbortionError) as error:
       self.VerifyPredictRequest(model_server_address)
