@@ -30,7 +30,7 @@ following steps:
 
 ### gRPC
 
-Our tutorials use [gRPC](http://www.grpc.io) (0.13 or higher) as our RPC
+Our tutorials use [gRPC](http://www.grpc.io) (1.0.0 or higher) as our RPC
 framework. You can find the installation instructions
 [here](https://github.com/grpc/grpc/tree/master/src/python/grpcio).
 

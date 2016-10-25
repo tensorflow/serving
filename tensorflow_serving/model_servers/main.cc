@@ -32,7 +32,11 @@ limitations under the License.
 //
 // To serve a single model, run with:
 //     $path_to_binary/tensorflow_model_server \
-//     --model_base_path=[/tmp/my_model | gs://gcs_address] \
+//     --model_base_path=[/tmp/my_model | gs://gcs_address]
+// IMPORTANT: Be sure the base path excludes the version directory. For
+// example for a model at /tmp/my_model/123, where 123 is the version, the base
+// path is /tmp/my_model.
+//
 // To specify model name (default "default"): --model_name=my_name
 // To specify port (default 8500): --port=my_port
 // To enable batching (default disabled): --enable_batching
