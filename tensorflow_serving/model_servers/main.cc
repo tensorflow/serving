@@ -189,11 +189,16 @@ int main(int argc, char** argv) {
   tensorflow::int32 port = 8500;
   bool enable_batching = false;
   tensorflow::string model_name = "default";
+  tensorflow::int32 file_system_poll_wait_seconds = 1;
   tensorflow::string model_base_path;
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &port, "port to listen on"),
       tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
       tensorflow::Flag("model_name", &model_name, "name of model"),
+      tensorflow::Flag("file_system_poll_wait_seconds",
+                       &file_system_poll_wait_seconds,
+                       "interval in seconds between each poll of the file "
+                       "system for new model version"),
       tensorflow::Flag("model_base_path", &model_base_path,
                        "path to export (required)")};
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
@@ -222,6 +227,7 @@ int main(int argc, char** argv) {
   ServerCoreConfig core_config;
   core_config.aspired_version_policy =
       std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
+  core_config.file_system_poll_wait_seconds = file_system_poll_wait_seconds;
 
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(
