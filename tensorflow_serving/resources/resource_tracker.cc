@@ -45,7 +45,6 @@ Status ResourceTracker::ReserveResources(const Loader& servable,
   ResourceAllocation servable_resources;
   TF_RETURN_IF_ERROR(servable.EstimateResources(&servable_resources));
   TF_RETURN_IF_ERROR(util_->VerifyValidity(servable_resources));
-  servable_resources = util_->Normalize(servable_resources);
 
   ResourceAllocation conservative_proposed_used_resources =
       util_->Overbind(used_resources_);
@@ -54,7 +53,6 @@ Status ResourceTracker::ReserveResources(const Loader& servable,
   if (util_->LessThanOrEqual(conservative_proposed_used_resources,
                              total_resources_)) {
     util_->Add(servable_resources, &used_resources_);
-    DCHECK(util_->IsNormalized(used_resources_));
     *success = true;
   } else {
     LOG(INFO) << "Insufficient resources to load servable "
@@ -76,10 +74,8 @@ Status ResourceTracker::RecomputeUsedResources(
     ResourceAllocation servable_resources;
     TF_RETURN_IF_ERROR(servable->EstimateResources(&servable_resources));
     TF_RETURN_IF_ERROR(util_->VerifyValidity(servable_resources));
-    servable_resources = util_->Normalize(servable_resources);
     util_->Add(servable_resources, &used_resources_);
   }
-  DCHECK(util_->IsNormalized(used_resources_));
   return Status::OK();
 }
 

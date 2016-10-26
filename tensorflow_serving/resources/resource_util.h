@@ -61,8 +61,6 @@ class ResourceUtil {
   // Determines whether 'allocation' is bound, defined as follows:
   //  1. An individual entry is bound iff a device_instance is supplied.
   //  2. An allocation is bound iff every entry is bound.
-  //
-  // Assumes the input is normalized.
   bool IsBound(const ResourceAllocation& allocation) const;
 
   // Adds 'to_add' to 'base'.
@@ -71,16 +69,12 @@ class ResourceUtil {
   // {(GPU/<no_instance>/RAM/8)} to {(GPU/instance_0/RAM/16),
   // (GPU/<no_instance>/RAM/4)} yields {(GPU/instance_0/RAM/16),
   // (GPU/<no_instance>/RAM/12)}.
-  //
-  // Assumes the inputs are normalized, and produces normalized output.
   void Add(const ResourceAllocation& to_add, ResourceAllocation* base) const;
 
   // Attempts to subtract 'to_subtract' from 'base'. Like Add(), keeps bound and
   // unbound entries separate. Returns true and mutates 'base' iff the
   // subtraction is legal, i.e. no negative quantities (which cannot be
   // represented) are produced.
-  //
-  // Assumes the inputs are normalized, and produces normalized output.
   bool Subtract(const ResourceAllocation& to_subtract,
                 ResourceAllocation* base) const;
 
@@ -92,8 +86,6 @@ class ResourceUtil {
   //     the unbound quantity in 'lhs' is <= the quantity in 'rhs' bound to I.
   //
   // IMPORTANT: Assumes 'rhs' is bound; has undefined behavior otherwise.
-  //
-  // Assumes the inputs are normalized.
   bool LessThanOrEqual(const ResourceAllocation& lhs,
                        const ResourceAllocation& rhs) const;
 
@@ -108,11 +100,31 @@ class ResourceUtil {
   // This operation is useful for reasoning about monotonicity and availability
   // of resources, not as a means to permanently bind resources to devices
   // (because it binds resources redundantly to all device instances).
-  //
-  // Assumes the inputs are normalized, and produces normalized output.
   ResourceAllocation Overbind(const ResourceAllocation& allocation) const;
 
  private:
+  // Like IsBound(), but assumes the input is normalized.
+  bool IsBoundNormalized(const ResourceAllocation& allocation) const;
+
+  // Like Add(), but assumes the input is normalized and produces normalized
+  // output.
+  void AddNormalized(const ResourceAllocation& to_add,
+                     ResourceAllocation* base) const;
+
+  // Like Subtract(), but assumes the input is normalized and produces
+  // normalized output.
+  bool SubtractNormalized(const ResourceAllocation& to_subtract,
+                          ResourceAllocation* base) const;
+
+  // Like LessThanOrEqual(), but assumes the input is normalized.
+  bool LessThanOrEqualNormalized(const ResourceAllocation& lhs,
+                                 const ResourceAllocation& rhs) const;
+
+  // Like Overbind(), but assumes the input is normalized and produces
+  // normalized output.
+  ResourceAllocation OverbindNormalized(
+      const ResourceAllocation& allocation) const;
+
   const std::map<string, uint32> devices_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(ResourceUtil);
