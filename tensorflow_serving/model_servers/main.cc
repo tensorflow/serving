@@ -73,6 +73,9 @@ using tensorflow::serving::AspiredVersionPolicy;
 using tensorflow::serving::BatchingParameters;
 using tensorflow::serving::EagerLoadPolicy;
 using tensorflow::serving::EventBus;
+using tensorflow::serving::FileSystemStoragePathSourceConfig;
+using tensorflow::serving::FileSystemStoragePathSourceConfig_VersionPolicy;
+using tensorflow::serving::FileSystemStoragePathSourceConfig_VersionPolicy_Name;
 using tensorflow::serving::Loader;
 using tensorflow::serving::ModelServerConfig;
 using tensorflow::serving::ServableState;
@@ -122,16 +125,19 @@ tensorflow::Status LoadCustomModelConfig(
 }
 
 ModelServerConfig BuildSingleModelConfig(const string& model_name,
-                                         const string& model_base_path) {
+                                         const string& model_base_path,
+                                         const FileSystemStoragePathSourceConfig_VersionPolicy& model_version_policy) {
   ModelServerConfig config;
   LOG(INFO) << "Building single TensorFlow model file config: "
             << " model_name: " << model_name
-            << " model_base_path: " << model_base_path;
+            << " model_base_path: " << model_base_path
+            << " model_version_policy: " << model_version_policy;
   tensorflow::serving::ModelConfig* single_model =
       config.mutable_model_config_list()->add_config();
   single_model->set_name(model_name);
   single_model->set_base_path(model_base_path);
   single_model->set_model_platform(kTensorFlowModelPlatform);
+  single_model->set_version_policy(model_version_policy);
   return config;
 }
 
@@ -188,10 +194,18 @@ int main(int argc, char** argv) {
   tensorflow::string model_name = "default";
   tensorflow::int32 file_system_poll_wait_seconds = 1;
   tensorflow::string model_base_path;
+  tensorflow::string model_version_policy = FileSystemStoragePathSourceConfig_VersionPolicy_Name(
+    FileSystemStoragePathSourceConfig::LATEST_VERSION);
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &port, "port to listen on"),
       tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
       tensorflow::Flag("model_name", &model_name, "name of model"),
+      tensorflow::Flag("model_version_policy", &model_version_policy,
+                        "The version policy which determines "
+                        "the number of model versions to be served at the same time. "
+                        "The default value is LATEST_VERSION, which will serve only the latest version. "
+                        "See file_system_storage_path_source.proto for the list of "
+                        "possible VersionPolicy."),
       tensorflow::Flag("file_system_poll_wait_seconds",
                        &file_system_poll_wait_seconds,
                        "interval in seconds between each poll of the file "
@@ -209,11 +223,18 @@ int main(int argc, char** argv) {
     std::cout << "unknown argument: " << argv[1] << "\n" << usage;
   }
 
+  FileSystemStoragePathSourceConfig_VersionPolicy parsed_version_policy;
+  bool valid_policy = FileSystemStoragePathSourceConfig_VersionPolicy_Parse(
+    model_version_policy, &parsed_version_policy);
+  CHECK(valid_policy) << "Invalid model_version_policy input argument: " << model_version_policy
+    << "\n" << usage;
+
+
   // For ServerCore Options, we leave servable_state_monitor_creator unspecified
   // so the default servable_state_monitor_creator will be used.
   ServerCore::Options options;
   options.model_server_config =
-      BuildSingleModelConfig(model_name, model_base_path);
+      BuildSingleModelConfig(model_name, model_base_path, parsed_version_policy);
 
   SessionBundleSourceAdapterConfig source_adapter_config;
   // Batching config

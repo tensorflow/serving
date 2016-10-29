@@ -28,5 +28,6 @@ serving_proto_library(
     cc_api_version = 2,
     deps = [
         "@protobuf//:cc_wkt_protos",
+        "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto",
     ],
 )
