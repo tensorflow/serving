@@ -29,7 +29,9 @@ LoaderHarness::LoaderHarness(const ServableId& id,
     : id_(id),
       loader_(std::move(loader)),
       additional_state_(nullptr),
-      options_(options) {}
+      options_(options) {
+  VLOG(1) << "Starting to manage servable version " << id_;
+}
 
 LoaderHarness::~LoaderHarness() {
   mutex_lock l(mu_);
@@ -54,6 +56,8 @@ Status LoaderHarness::LoadRequested() {
         StateDebugString(State::kNew));
   }
   state_ = State::kLoadRequested;
+  VLOG(1) << "Load requested for servable version " << id_;
+
   return Status::OK();
 }
 
