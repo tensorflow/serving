@@ -179,6 +179,33 @@ bool ResourceUtil::IsNormalized(const ResourceAllocation& allocation) const {
 }
 
 bool ResourceUtil::IsBound(const ResourceAllocation& allocation) const {
+  return IsBoundNormalized(Normalize(allocation));
+}
+
+void ResourceUtil::Add(const ResourceAllocation& to_add,
+                       ResourceAllocation* base) const {
+  *base = Normalize(*base);
+  return AddNormalized(Normalize(to_add), base);
+}
+
+bool ResourceUtil::Subtract(const ResourceAllocation& to_subtract,
+                            ResourceAllocation* base) const {
+  *base = Normalize(*base);
+  return SubtractNormalized(Normalize(to_subtract), base);
+}
+
+bool ResourceUtil::LessThanOrEqual(const ResourceAllocation& lhs,
+                                   const ResourceAllocation& rhs) const {
+  return LessThanOrEqualNormalized(Normalize(lhs), Normalize(rhs));
+}
+
+ResourceAllocation ResourceUtil::Overbind(
+    const ResourceAllocation& allocation) const {
+  return OverbindNormalized(Normalize(allocation));
+}
+
+bool ResourceUtil::IsBoundNormalized(
+    const ResourceAllocation& allocation) const {
   DCHECK(IsNormalized(allocation));
   for (const auto& entry : allocation.resource_quantities()) {
     if (!entry.resource().has_device_instance()) {
@@ -188,8 +215,8 @@ bool ResourceUtil::IsBound(const ResourceAllocation& allocation) const {
   return true;
 }
 
-void ResourceUtil::Add(const ResourceAllocation& to_add,
-                       ResourceAllocation* base) const {
+void ResourceUtil::AddNormalized(const ResourceAllocation& to_add,
+                                 ResourceAllocation* base) const {
   DCHECK(IsNormalized(to_add));
   DCHECK(IsNormalized(*base));
   for (const ResourceAllocation::Entry& to_add_entry :
@@ -201,8 +228,8 @@ void ResourceUtil::Add(const ResourceAllocation& to_add,
   DCHECK(IsNormalized(*base));
 }
 
-bool ResourceUtil::Subtract(const ResourceAllocation& to_subtract,
-                            ResourceAllocation* base) const {
+bool ResourceUtil::SubtractNormalized(const ResourceAllocation& to_subtract,
+                                      ResourceAllocation* base) const {
   DCHECK(IsNormalized(to_subtract));
   DCHECK(IsNormalized(*base));
   // We buffer the mutations to 'base' so that if we bail out due to a negative
@@ -233,8 +260,8 @@ bool ResourceUtil::Subtract(const ResourceAllocation& to_subtract,
   return true;
 }
 
-bool ResourceUtil::LessThanOrEqual(const ResourceAllocation& lhs,
-                                   const ResourceAllocation& rhs) const {
+bool ResourceUtil::LessThanOrEqualNormalized(
+    const ResourceAllocation& lhs, const ResourceAllocation& rhs) const {
   const Status validity = VerifyValidity(lhs);
   DCHECK_EQ(Status::OK(), validity);
   if (!validity.ok()) {
@@ -282,7 +309,7 @@ bool ResourceUtil::LessThanOrEqual(const ResourceAllocation& lhs,
   return true;
 }
 
-ResourceAllocation ResourceUtil::Overbind(
+ResourceAllocation ResourceUtil::OverbindNormalized(
     const ResourceAllocation& allocation) const {
   const Status validity = VerifyValidity(allocation);
   DCHECK_EQ(Status::OK(), validity);

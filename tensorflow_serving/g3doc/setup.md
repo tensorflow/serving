@@ -7,7 +7,7 @@ To compile and use TensorFlow Serving, you need to set up some prerequisites.
 ### Bazel
 
 TensorFlow Serving requires Bazel 0.3.1 or higher. You can find the Bazel
-installation instructions [here](http://bazel.io/docs/install.html).
+installation instructions [here](http://bazel.build/docs/install.html).
 
 If you have the prerequisites for Bazel, those instructions consist of the
 following steps:

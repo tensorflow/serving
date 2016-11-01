@@ -195,7 +195,10 @@ int main(int argc, char** argv) {
       tensorflow::Flag("port", &port, "port to listen on"),
       tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
       tensorflow::Flag("model_name", &model_name, "name of model"),
-      tensorflow::Flag("file_system_poll_wait_seconds", &file_system_poll_wait_seconds, "interval in seconds between each poll of the file system for new model version"),
+      tensorflow::Flag("file_system_poll_wait_seconds",
+                       &file_system_poll_wait_seconds,
+                       "interval in seconds between each poll of the file "
+                       "system for new model version"),
       tensorflow::Flag("model_base_path", &model_base_path,
                        "path to export (required)")};
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
