@@ -42,6 +42,7 @@ To install TensorFlow Serving dependencies, execute the following:
 sudo apt-get update && sudo apt-get install -y \
         build-essential \
         curl \
+        libcurl3-dev \
         git \
         libfreetype6-dev \
         libpng12-dev \
