@@ -360,15 +360,11 @@ class BasicManager : public Manager {
   uint32 num_load_unload_threads() const
       LOCKS_EXCLUDED(num_load_unload_threads_mu_);
 
-  struct HashString {
-    uint64 operator()(const string& str) const { return Hash64(str); }
-  };
   // Keys are the servable names.
   // Values are the harnesses for each servable version. The values when
   // fetched, are unordered.
   using ManagedMap =
-      std::unordered_multimap<string, std::shared_ptr<LoaderHarness>,
-                              HashString>;
+      std::unordered_multimap<string, std::shared_ptr<LoaderHarness>>;
 
   // Fetches the harness with this id from the harness_map_. Returns
   // harness_map_.end(), if the harness is not found.

@@ -2,10 +2,7 @@ package(
     default_visibility = [
         "//tensorflow_serving:internal",
     ],
-    features = [
-        "-layering_check",
-        "-parse_headers",
-    ],
+    features = ["-layering_check"],
 )
 
 licenses(["notice"])  # Apache 2.0
@@ -47,6 +44,7 @@ cc_library(
     name = "resource_util",
     srcs = ["resource_util.cc"],
     hdrs = ["resource_util.h"],
+    visibility = ["//visibility:public"],
     deps = [
         ":resources_proto",
         "@org_tensorflow//tensorflow/core:lib",
