@@ -56,19 +56,22 @@ Status ServerCoreTest::CreateServerCore(
     const ModelServerConfig& config,
     const ServerCore::SourceAdapterCreator& source_adapter_creator,
     std::unique_ptr<ServerCore>* server_core) {
-  return ServerCore::Create(
-      config, source_adapter_creator,  // ServerCore::SourceAdapterCreator
-      [](EventBus<ServableState>* event_bus,
-         std::unique_ptr<ServableStateMonitor>* monitor) -> Status {
-        monitor->reset(new ServableStateMonitor(event_bus));
-        return Status::OK();
-      },  // ServerCore::ServableStateMonitor
-      [](const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
-         UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
-        return Status::OK();
-      },  // ServerCore::CustomModelConfigLoader
-      GetTestServerCoreConfig(),
-      server_core);
+  ServerCore::Options options;
+  options.model_server_config = config;
+  options.source_adapter_creator = source_adapter_creator;
+  options.servable_state_monitor_creator = [](
+      EventBus<ServableState>* event_bus,
+      std::unique_ptr<ServableStateMonitor>* monitor) -> Status {
+    monitor->reset(new ServableStateMonitor(event_bus));
+    return Status::OK();
+  };
+  options.custom_model_config_loader = [](
+      const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
+      UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
+    return Status::OK();
+  };
+  options.server_core_config = GetTestServerCoreConfig();
+  return ServerCore::Create(std::move(options), server_core);
 }
 
 }  // namespace test_util
