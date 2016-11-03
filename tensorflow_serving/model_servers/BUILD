@@ -54,7 +54,6 @@ cc_library(
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:unique_ptr_with_deps",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf//:cc_wkt_protos",
     ],
 )
 

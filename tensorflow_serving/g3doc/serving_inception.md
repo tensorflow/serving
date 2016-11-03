@@ -216,13 +216,13 @@ Next we push the image to the Registry,
 $ gcloud docker push gcr.io/tensorflow-serving/inception
 ```
 
-### Create Kubernetes Replication Controller and Service
+### Create Kubernetes Deployment and Service
 
-The deployment consists of multiple replicas of `inception_inference` server
+The deployment consists of 3 replicas of `inception_inference` server
 controlled by a
-[Kubernetes Replication Controller](https://cloud.google.com/container-engine/docs/replicationcontrollers/operations).
+[Kubernetes Deployment](http://kubernetes.io/docs/user-guide/deployments/).
 The replicas are exposed externally by a
-[Kubernetes Service](https://cloud.google.com/container-engine/docs/services/operations)
+[Kubernetes Service](http://kubernetes.io/docs/user-guide/services/)
 along with an
 [External Load Balancer](http://kubernetes.io/docs/user-guide/load-balancer/).
 
@@ -231,64 +231,64 @@ We create them using the example Kubernetes config
 
 ```shell
 $ kubectl create -f tensorflow_serving/example/inception_k8s.json
-replicationcontroller "inception-controller" created
+deployment "inception-deployment" created
 service "inception-service" created
 ```
 
-To view status of the replication controller and pods:
+To view status of the deployment and pods:
 
 ```shell
-$ kubectl get rc
-CONTROLLER             CONTAINER(S)          IMAGE(S)                              SELECTOR               REPLICAS   AGE
-inception-controller   inception-container   gcr.io/tensorflow-serving/inception   worker=inception-pod   3          20s
+$ kc get deployments
+NAME                    DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+inception-deployment    3         3         3            3           5s
 ```
 
 ```shell
-$ kubectl get pod
+$ kubectl get pods
 NAME                         READY     STATUS    RESTARTS   AGE
-inception-controller-bbcbc   1/1       Running   0          1m
-inception-controller-cj6l2   1/1       Running   0          1m
-inception-controller-t1uep   1/1       Running   0          1m
+inception-deployment-bbcbc   1/1       Running   0          10s
+inception-deployment-cj6l2   1/1       Running   0          10s
+inception-deployment-t1uep   1/1       Running   0          10s
 ```
 
 To view status of the service:
 
 ```shell
-$ kubectl get svc
-NAME                CLUSTER_IP      EXTERNAL_IP      PORT(S)    SELECTOR               AGE
-inception-service   10.15.242.244   146.148.88.232   9000/TCP   worker=inception-pod   3m
-kubernetes          10.15.240.1     <none>           443/TCP    <none>                 1h
+$ kubectl get services
+NAME                    CLUSTER-IP       EXTERNAL-IP       PORT(S)     AGE
+inception-service       10.239.240.227   104.155.184.157   9000/TCP    1m
 ```
+
+It can take a while for everything to be up and running.
 
 ```shell
-$ kubectl describe svc inception-service
-Name:     inception-service
-Namespace:    default
-Labels:     <none>
-Selector:   worker=inception-pod
-Type:     LoadBalancer
-IP:     10.15.242.244
-LoadBalancer Ingress: 146.148.88.232
-Port:     <unnamed> 9000/TCP
-NodePort:   <unnamed> 32006/TCP
-Endpoints:    10.12.2.4:9000,10.12.4.4:9000,10.12.4.5:9000
-Session Affinity: None
+$ kubectl describe service inception-service
+Name:			inception-service
+Namespace:		default
+Labels:			run=inception-service
+Selector:		run=inception-service
+Type:			LoadBalancer
+IP:			10.239.240.227
+LoadBalancer Ingress:	104.155.184.157
+Port:			<unset>	9000/TCP
+NodePort:		<unset>	30334/TCP
+Endpoints:		<none>
+Session Affinity:	None
 Events:
-  FirstSeen LastSeen  Count From      SubobjectPath Reason      Message
-  ───────── ────────  ───── ────      ───────────── ──────      ───────
-  4m    3m    2 {service-controller }     CreatingLoadBalancer  Creating load balancer
-  3m    2m    2 {service-controller }     CreatedLoadBalancer   Created load balancer
+  FirstSeen	LastSeen	Count	From			SubobjectPath	Type		Reason		Message
+  ---------	--------	-----	----			-------------	--------	------		-------
+  1m		1m		1	{service-controller }			Normal		CreatingLoadBalancer	Creating load balancer
+  1m		1m		1	{service-controller }			Normal		CreatedLoadBalancer	Created load balancer
 ```
 
-It can take a while for everything to be up and running. The service external
-IP address is listed next to LoadBalancer Ingress.
+The service external IP address is listed next to LoadBalancer Ingress.
 
 ### Query the model
 
 We can now query the service at its external address from our local host.
 
 ```shell
-$ bazel-bin/tensorflow_serving/example/inception_client --server=146.148.88.232:9000 --image=/path/to/my_cat_image.jpg
+$ bazel-bin/tensorflow_serving/example/inception_client --server=104.155.184.157:9000 --image=/path/to/my_cat_image.jpg
 outputs {
   key: "classes"
   value {
