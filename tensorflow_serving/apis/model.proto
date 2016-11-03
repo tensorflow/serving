@@ -15,4 +15,8 @@ message ModelSpec {
   // co-trained and/or have inter-dependencies on the versions used at inference
   // time.
   google.protobuf.Int64Value version = 2;
+
+  // A named signature to evaluate. If unspecified, the default signature will
+  // be used. Note that only MultiInference will initially support this.
+  string signature_name = 3;
 }

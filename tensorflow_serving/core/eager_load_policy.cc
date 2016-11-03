@@ -24,6 +24,7 @@ optional<AspiredVersionPolicy::ServableAction> EagerLoadPolicy::GetNextAction(
   // If there is a new aspired version, load it.
   for (const auto& version : all_versions) {
     if (version.is_aspired && version.state == LoaderHarness::State::kNew) {
+      VLOG(1) << "EagerLoadPolicy requesting to load servable " << version.id;
       return {{Action::kLoad, version.id}};
     }
   }
@@ -37,6 +38,7 @@ optional<AspiredVersionPolicy::ServableAction> EagerLoadPolicy::GetNextAction(
                            version.state != LoaderHarness::State::kReady;
                   });
   if (aspired_not_serving) {
+    VLOG(1) << "EagerLoadPolicy requesting no-op";
     return nullopt;
   }
 
@@ -44,6 +46,7 @@ optional<AspiredVersionPolicy::ServableAction> EagerLoadPolicy::GetNextAction(
   // latter.
   for (const auto& version : all_versions) {
     if (!version.is_aspired && version.state == LoaderHarness::State::kReady) {
+      VLOG(1) << "EagerLoadPolicy requesting to unload servable " << version.id;
       return {{Action::kUnload, version.id}};
     }
   }

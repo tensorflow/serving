@@ -212,7 +212,8 @@ int main(int argc, char** argv) {
     std::cout << "unknown argument: " << argv[1] << "\n" << usage;
   }
 
-  ModelServerConfig config =
+  ServerCore::Options options;
+  options.model_server_config =
       BuildSingleModelConfig(model_name, model_base_path);
 
   SessionBundleSourceAdapterConfig source_adapter_config;
@@ -223,18 +224,22 @@ int main(int argc, char** argv) {
     batching_parameters->mutable_thread_pool_name()->set_value(
         "model_server_batch_threads");
   }
+  options.source_adapter_creator = [source_adapter_config](
+      const string& model_platform,
+      std::unique_ptr<ServerCore::ModelServerSourceAdapter>* adapter) {
+    return CreateSourceAdapter(source_adapter_config, model_platform, adapter);
+  };
 
-  ServerCoreConfig core_config;
-  core_config.aspired_version_policy =
+  options.servable_state_monitor_creator = &CreateServableStateMonitor;
+  options.custom_model_config_loader = &LoadCustomModelConfig;
+
+  options.server_core_config.aspired_version_policy =
       std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
-  core_config.file_system_poll_wait_seconds = file_system_poll_wait_seconds;
+  options.server_core_config.file_system_poll_wait_seconds =
+      file_system_poll_wait_seconds;
 
   std::unique_ptr<ServerCore> core;
-  TF_CHECK_OK(ServerCore::Create(
-      config, std::bind(CreateSourceAdapter, source_adapter_config,
-                        std::placeholders::_1, std::placeholders::_2),
-      &CreateServableStateMonitor, &LoadCustomModelConfig,
-      std::move(core_config), &core));
+  TF_CHECK_OK(ServerCore::Create(std::move(options), &core));
   RunServer(port, std::move(core));
 
   return 0;
