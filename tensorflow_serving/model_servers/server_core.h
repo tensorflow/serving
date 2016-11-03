@@ -83,8 +83,6 @@ class ServerCoreTestAccess;
 
 class ServerCore {
  public:
-  virtual ~ServerCore() = default;
-
   using ModelServerSourceAdapter =
       SourceAdapter<StoragePath, std::unique_ptr<Loader>>;
 
@@ -105,18 +103,35 @@ class ServerCore {
       const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
       UniquePtrWithDeps<AspiredVersionsManager>* manager)>;
 
+  struct Options {
+    // ModelServer configuration.
+    ModelServerConfig model_server_config;
+
+    // ServerCore tuning parameters.
+    // TODO(b/32336469): move the fields in ServerCoreConfig into this struct.
+    ServerCoreConfig server_core_config;
+
+    // A function for creating ModelServerSourceAdapter based on the
+    // 'platform_type'.
+    SourceAdapterCreator source_adapter_creator;
+
+    // A function for creating ServableStateMonitor.
+    ServableStateMonitorCreator servable_state_monitor_creator;
+
+    // A function for instantiating and connecting custom sources and source
+    // adapters to the manager.
+    CustomModelConfigLoader custom_model_config_loader;
+  };
+
+  virtual ~ServerCore() = default;
+
   // Creates a ServerCore instance with all the models and sources per the
   // ModelServerConfig.
   //
   // For models statically configured with ModelConfigList, waits for them
   // to be made available (or hit an error) for serving before returning.
   // Returns an error status if any such model fails to load.
-  static Status Create(
-      const ModelServerConfig& config,
-      const SourceAdapterCreator& source_adapter_creator,
-      const ServableStateMonitorCreator& servable_state_monitor_creator,
-      const CustomModelConfigLoader& custom_model_config_loader,
-      ServerCoreConfig server_core_config, std::unique_ptr<ServerCore>* core);
+  static Status Create(Options options, std::unique_ptr<ServerCore>* core);
 
   // Updates the server core with all the models and sources per the
   // ModelServerConfig. Like Create(), waits for all statically configured

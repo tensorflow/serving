@@ -311,6 +311,8 @@ Status BasicManager::ManageServableInternal(
     std::function<std::shared_ptr<LoaderHarness>(const ServableId&,
                                                  std::unique_ptr<Loader>)>
         harness_creator) {
+  VLOG(1) << "Request to start managing servable " << servable.id();
+
   mutex_lock l(mu_);
 
   const auto iter = BasicManager::FindHarnessInMap(servable.id());
@@ -351,6 +353,7 @@ Status BasicManager::ManageServable(
 }
 
 Status BasicManager::StopManagingServable(const ServableId& id) {
+  VLOG(1) << "Request to stop managing servable " << id;
   mutex_lock l(mu_);
   const auto it = FindHarnessInMap(id);
   if (it == managed_map_.end()) {
@@ -471,6 +474,7 @@ Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
 
 void BasicManager::LoadServable(const ServableId& id,
                                 const DoneCallback done_callback) {
+  VLOG(1) << "Request to load servable " << id;
   LoadOrUnloadRequest request;
   request.kind = LoadOrUnloadRequest::Kind::kLoad;
   request.servable_id = id;
@@ -511,6 +515,7 @@ Status BasicManager::ExecuteUnload(LoaderHarness* harness) {
 
 void BasicManager::UnloadServable(const ServableId& id,
                                   const DoneCallback done_callback) {
+  VLOG(1) << "Request to unload servable " << id;
   LoadOrUnloadRequest request;
   request.kind = LoadOrUnloadRequest::Kind::kUnload;
   request.servable_id = id;

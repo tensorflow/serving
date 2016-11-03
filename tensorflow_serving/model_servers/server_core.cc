@@ -80,21 +80,19 @@ Status ValidateAllListedModelsAreOfSamePlatform(const ModelServerConfig& config,
 // Public Methods.
 // ************************************************************************
 
-Status ServerCore::Create(
-    const ModelServerConfig& config,
-    const SourceAdapterCreator& source_adapter_creator,
-    const ServableStateMonitorCreator& servable_state_monitor_creator,
-    const CustomModelConfigLoader& custom_model_config_loader,
-    ServerCoreConfig server_core_config,
-    std::unique_ptr<ServerCore>* server_core) {
+Status ServerCore::Create(Options options,
+                          std::unique_ptr<ServerCore>* server_core) {
+  // We need to move the aspired_version_policy first because we will move the
+  // server_core_config (which contains aspired_version_policy) below.
   std::unique_ptr<AspiredVersionPolicy> aspired_version_policy =
-      std::move(server_core_config.aspired_version_policy);
-  server_core->reset(new ServerCore(
-      source_adapter_creator, servable_state_monitor_creator,
-      custom_model_config_loader, std::move(server_core_config)));
+      std::move(options.server_core_config.aspired_version_policy);
+  server_core->reset(new ServerCore(options.source_adapter_creator,
+                                    options.servable_state_monitor_creator,
+                                    options.custom_model_config_loader,
+                                    std::move(options.server_core_config)));
   TF_RETURN_IF_ERROR(
       (*server_core)->Initialize(std::move(aspired_version_policy)));
-  return (*server_core)->ReloadConfig(config);
+  return (*server_core)->ReloadConfig(options.model_server_config);
 }
 
 // ************************************************************************
