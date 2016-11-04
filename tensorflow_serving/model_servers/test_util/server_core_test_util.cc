@@ -38,14 +38,6 @@ ModelServerConfig ServerCoreTest::GetTestModelServerConfig() {
   return config;
 }
 
-ServerCoreConfig ServerCoreTest::GetTestServerCoreConfig() {
-  ServerCoreConfig config;
-  config.file_system_poll_wait_seconds = 0;
-  config.aspired_version_policy =
-      std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
-  return config;
-}
-
 Status ServerCoreTest::CreateServerCore(
     const ModelServerConfig& config, std::unique_ptr<ServerCore>* server_core) {
   return CreateServerCore(
@@ -56,21 +48,26 @@ Status ServerCoreTest::CreateServerCore(
     const ModelServerConfig& config,
     const ServerCore::SourceAdapterCreator& source_adapter_creator,
     std::unique_ptr<ServerCore>* server_core) {
+  // For ServerCore Options, we leave servable_state_monitor_creator unspecified
+  // so the default servable_state_monitor_creator will be used.
   ServerCore::Options options;
   options.model_server_config = config;
   options.source_adapter_creator = source_adapter_creator;
-  options.servable_state_monitor_creator = [](
-      EventBus<ServableState>* event_bus,
-      std::unique_ptr<ServableStateMonitor>* monitor) -> Status {
-    monitor->reset(new ServableStateMonitor(event_bus));
-    return Status::OK();
-  };
   options.custom_model_config_loader = [](
       const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
       UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
     return Status::OK();
   };
-  options.server_core_config = GetTestServerCoreConfig();
+  return CreateServerCore(std::move(options), server_core);
+}
+
+Status ServerCoreTest::CreateServerCore(
+    ServerCore::Options options, std::unique_ptr<ServerCore>* server_core) {
+  options.file_system_poll_wait_seconds = 0;
+  if (options.aspired_version_policy == nullptr) {
+    options.aspired_version_policy =
+        std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
+  }
   return ServerCore::Create(std::move(options), server_core);
 }
 

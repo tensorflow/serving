@@ -45,9 +45,6 @@ class ServerCoreTest : public ::testing::Test {
   // Returns ModelServerConfig that contains test model.
   ModelServerConfig GetTestModelServerConfig();
 
-  // Returns ServerCoreConfig that uses continuous polling, to speed up testing.
-  ServerCoreConfig GetTestServerCoreConfig();
-
   // Create a ServerCore object configured to use FakeLoaderSourceAdapter.
   Status CreateServerCore(const ModelServerConfig& config,
                           std::unique_ptr<ServerCore>* server_core);
@@ -57,6 +54,11 @@ class ServerCoreTest : public ::testing::Test {
       const ModelServerConfig& config,
       const ServerCore::SourceAdapterCreator& source_adapter_creator,
       std::unique_ptr<ServerCore>* server_core);
+
+  // Create a ServerCore object with the supplied options. The ServerCore uses
+  // continuous polling to speed up testing.
+  Status CreateServerCore(ServerCore::Options options,
+                          std::unique_ptr<ServerCore>* server_core);
 };
 
 }  // namespace test_util

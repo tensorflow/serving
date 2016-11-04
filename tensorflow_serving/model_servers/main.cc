@@ -63,7 +63,6 @@ limitations under the License.
 #include "tensorflow_serving/apis/prediction_service.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/core/eager_load_policy.h"
-#include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
@@ -77,9 +76,7 @@ using tensorflow::serving::EventBus;
 using tensorflow::serving::Loader;
 using tensorflow::serving::ModelServerConfig;
 using tensorflow::serving::ServableState;
-using tensorflow::serving::ServableStateMonitor;
 using tensorflow::serving::ServerCore;
-using tensorflow::serving::ServerCoreConfig;
 using tensorflow::serving::SessionBundleSourceAdapter;
 using tensorflow::serving::SessionBundleSourceAdapterConfig;
 using tensorflow::serving::Target;
@@ -109,13 +106,6 @@ tensorflow::Status CreateSourceAdapter(
   TF_RETURN_IF_ERROR(
       SessionBundleSourceAdapter::Create(config, &typed_adapter));
   *adapter = std::move(typed_adapter);
-  return tensorflow::Status::OK();
-}
-
-tensorflow::Status CreateServableStateMonitor(
-    EventBus<ServableState>* event_bus,
-    std::unique_ptr<ServableStateMonitor>* monitor) {
-  monitor->reset(new ServableStateMonitor(event_bus));
   return tensorflow::Status::OK();
 }
 
@@ -212,6 +202,8 @@ int main(int argc, char** argv) {
     std::cout << "unknown argument: " << argv[1] << "\n" << usage;
   }
 
+  // For ServerCore Options, we leave servable_state_monitor_creator unspecified
+  // so the default servable_state_monitor_creator will be used.
   ServerCore::Options options;
   options.model_server_config =
       BuildSingleModelConfig(model_name, model_base_path);
@@ -230,13 +222,11 @@ int main(int argc, char** argv) {
     return CreateSourceAdapter(source_adapter_config, model_platform, adapter);
   };
 
-  options.servable_state_monitor_creator = &CreateServableStateMonitor;
   options.custom_model_config_loader = &LoadCustomModelConfig;
 
-  options.server_core_config.aspired_version_policy =
+  options.aspired_version_policy =
       std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
-  options.server_core_config.file_system_poll_wait_seconds =
-      file_system_poll_wait_seconds;
+  options.file_system_poll_wait_seconds = file_system_poll_wait_seconds;
 
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(std::move(options), &core));
