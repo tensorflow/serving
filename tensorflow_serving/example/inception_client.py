@@ -46,7 +46,7 @@ def main(_):
     request.inputs['images'].CopyFrom(
         tf.contrib.util.make_tensor_proto(data, shape=[1]))
     result = stub.Predict(request, 10.0)  # 10 secs timeout
-    print result
+    print(result)
 
 
 if __name__ == '__main__':
