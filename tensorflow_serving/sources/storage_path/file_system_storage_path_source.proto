@@ -4,6 +4,16 @@ package tensorflow.serving;
 
 // Config proto for FileSystemStoragePathSource.
 message FileSystemStoragePathSourceConfig {
+  // The policy to define how many versions of the servable should be
+  // served at the same time.
+  enum VersionPolicy {
+    // Only serve the latest version that exists in the base path.
+    // This is the default behavior.
+    LATEST_VERSION = 0;
+    // Serves all the versions that exist in the base path.
+    ALL_VERSIONS = 1;
+  }
+
   // A servable name and base path to look for versions of the servable.
   message ServableToMonitor {
     // The servable name to supply in aspired-versions callback calls. Child
@@ -12,6 +22,10 @@ message FileSystemStoragePathSourceConfig {
 
     // The path to monitor, i.e. look for child paths of the form base_path/123.
     string base_path = 2;
+
+    // The policy to determines the number of versions of the servable to be
+    // served at the same time.
+    VersionPolicy version_policy = 3;
   };
 
   // The servables to monitor for new versions, and aspire.
