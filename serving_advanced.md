@@ -142,8 +142,8 @@ With all these, `ServerCore` internally does the following:
   `AspiredVersionsManager` that manages all such `Loader` instances created by
   the `SessionBundleSourceAdapter`.
 
-Whenever a new version is available, this `AspiredVersionsManager` always
-unloads the old version and replaces it with the new one. If you want to
+Whenever a new version is available, this `AspiredVersionsManager` loads the new
+version, and under its default behavior unloads the old one. If you want to
 start customizing, you are encouraged to understand the components that it
 creates internally, and how to configure them.
 
