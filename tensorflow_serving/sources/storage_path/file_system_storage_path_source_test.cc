@@ -179,7 +179,6 @@ TEST(FileSystemStoragePathSourceTest, MultipleVersionsAtTheSameTime) {
   TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path, "42")));
   TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path, "17")));
 
-  string all_version_policy = std::to_string(FileSystemStoragePathSourceConfig::ALL_VERSIONS);
   auto config = test_util::CreateProto<FileSystemStoragePathSourceConfig>(
       strings::Printf("servables: { "
                       "  version_policy: ALL_VERSIONS "
