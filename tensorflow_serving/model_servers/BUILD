@@ -69,6 +69,8 @@ cc_test(
     ],
     deps = [
         ":server_core",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/core:servable_state",
         "//tensorflow_serving/core/test_util:availability_test_util",
         "//tensorflow_serving/core/test_util:test_main",

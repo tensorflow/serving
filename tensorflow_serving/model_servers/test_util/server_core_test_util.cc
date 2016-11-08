@@ -24,10 +24,6 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-std::vector<ServableId> ServerCoreTestAccess::ListAvailableServableIds() const {
-  return core_->ListAvailableServableIds();
-}
-
 ModelServerConfig ServerCoreTest::GetTestModelServerConfig() {
   ModelServerConfig config;
   auto model = config.mutable_model_config_list()->add_config();

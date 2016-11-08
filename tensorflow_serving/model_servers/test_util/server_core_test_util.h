@@ -24,19 +24,6 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-// A test utility that provides access to private ServerCore members.
-class ServerCoreTestAccess {
- public:
-  explicit ServerCoreTestAccess(ServerCore* core) : core_(core) {}
-
-  // Returns the list of available servable-ids from the manager in server
-  // core.
-  std::vector<ServableId> ListAvailableServableIds() const;
-
- private:
-  ServerCore* const core_;
-};
-
 constexpr char kTestModelName[] = "test_model";
 constexpr int kTestModelVersion = 123;
 

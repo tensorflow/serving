@@ -348,13 +348,5 @@ Status ServerCore::ServableRequestFromModelSpec(
   return Status::OK();
 }
 
-// ************************************************************************
-// Test Access.
-// ************************************************************************
-
-std::vector<ServableId> ServerCore::ListAvailableServableIds() const {
-  return manager_->ListAvailableServableIds();
-}
-
 }  //  namespace serving
 }  //  namespace tensorflow

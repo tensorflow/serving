@@ -57,7 +57,7 @@ namespace test_util {
 class ServerCoreTestAccess;
 }  // namespace test_util
 
-class ServerCore {
+class ServerCore : public Manager {
  public:
   using ModelServerSourceAdapter =
       SourceAdapter<StoragePath, std::unique_ptr<Loader>>;
@@ -131,6 +131,10 @@ class ServerCore {
   // Returns an error status if any such model fails to load.
   static Status Create(Options options, std::unique_ptr<ServerCore>* core);
 
+  std::vector<ServableId> ListAvailableServableIds() const override {
+    return manager_->ListAvailableServableIds();
+  }
+
   // Updates the server core with all the models and sources per the
   // ModelServerConfig. Like Create(), waits for all statically configured
   // servables to be made available before returning, and returns an error if
@@ -158,8 +162,7 @@ class ServerCore {
                            ServableHandle<T>* const handle) {
     ServableRequest servable_request;
     ServableRequestFromModelSpec(model_spec, &servable_request);
-    TF_RETURN_IF_ERROR(manager_->GetServableHandle(servable_request, handle));
-    return Status::OK();
+    return manager_->GetServableHandle(servable_request, handle);
   }
 
  protected:
@@ -227,12 +230,16 @@ class ServerCore {
   Status ServableRequestFromModelSpec(const ModelSpec& model_spec,
                                       ServableRequest* servable_request) const;
 
-  // ************************************************************************
-  // Test Access.
-  // ************************************************************************
+  Status GetUntypedServableHandle(
+      const ServableRequest& request,
+      std::unique_ptr<UntypedServableHandle>* untyped_handle) override {
+    return manager_->GetUntypedServableHandle(request, untyped_handle);
+  }
 
-  // Lists available servable ids from the wrapped aspired-versions-manager.
-  std::vector<ServableId> ListAvailableServableIds() const;
+  std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
+  GetAvailableUntypedServableHandles() const override {
+    return manager_->GetAvailableUntypedServableHandles();
+  }
 
   // The options passed to the ctor, minus the AspiredVersionPolicy.
   Options options_;
