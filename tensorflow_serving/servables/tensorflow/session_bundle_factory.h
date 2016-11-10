@@ -46,7 +46,7 @@ class SessionBundleFactory {
  public:
   // Constants used in the resource estimation heuristic. See the documentation
   // on EstimateResourceRequirements().
-  static constexpr double kResourceEstimateRAMMultiplier = 1.0;
+  static constexpr double kResourceEstimateRAMMultiplier = 1.2;
   static constexpr int kResourceEstimateRAMPadBytes = 0;
 
   static Status Create(const SessionBundleConfig& config,
@@ -60,7 +60,7 @@ class SessionBundleFactory {
   // export path.
   //
   // Uses the following crude heuristic, for now: estimated main-memory RAM =
-  // (combined size of variable file(s)) * kResourceEstimateRAMMultiplier +
+  // (combined size of all exported file(s)) * kResourceEstimateRAMMultiplier +
   // kResourceEstimateRAMPadBytes.
   // TODO(b/27694447): Improve the heuristic. At a minimum, account for GPU RAM.
   Status EstimateResourceRequirement(const string& path,

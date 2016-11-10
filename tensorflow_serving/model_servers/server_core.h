@@ -29,6 +29,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_SERVER_CORE_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_SERVER_CORE_H_
 
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
@@ -52,36 +53,11 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// ServerCore tuning parameters.
-struct ServerCoreConfig {
-  // Total model size limit, in terms of main memory, in bytes.
-  uint64 total_model_memory_limit_bytes = ULLONG_MAX;
-  // Time interval between file-system polls, in seconds.
-  int32 file_system_poll_wait_seconds = 30;
-
-  // The AspiredVersionPolicy to use for the manager. Must be non-null.
-  std::unique_ptr<AspiredVersionPolicy> aspired_version_policy;
-
-  // The number of threads used to load and unload models. If set to 0, then
-  // no thread pool is used and the loads/unloads are performed serially in
-  // the manager thread.
-  int32 num_load_unload_threads = 0;
-
-  // The number of load/unload threads used to load the initial set of models at
-  // server startup. This is set high to load up the initial set of models fast,
-  // after this the server uses num_load_unload_threads.
-  int32 num_initial_load_unload_threads = 4.0 * port::NumSchedulableCPUs();
-
-  // Maximum number of times we retry loading a model, after the first failure,
-  // before we give up"
-  int32 max_num_load_retries = 5;
-};
-
 namespace test_util {
 class ServerCoreTestAccess;
 }  // namespace test_util
 
-class ServerCore {
+class ServerCore : public Manager {
  public:
   using ModelServerSourceAdapter =
       SourceAdapter<StoragePath, std::unique_ptr<Loader>>;
@@ -107,15 +83,37 @@ class ServerCore {
     // ModelServer configuration.
     ModelServerConfig model_server_config;
 
-    // ServerCore tuning parameters.
-    // TODO(b/32336469): move the fields in ServerCoreConfig into this struct.
-    ServerCoreConfig server_core_config;
+    // The AspiredVersionPolicy to use for the manager. Must be non-null.
+    std::unique_ptr<AspiredVersionPolicy> aspired_version_policy;
+
+    // The number of threads used to load and unload models. If set to 0, then
+    // no thread pool is used and the loads/unloads are performed serially in
+    // the manager thread.
+    int32 num_load_unload_threads = 0;
+
+    // The number of load/unload threads used to load the initial set of models
+    // at server startup. This is set high to load up the initial set of models
+    // fast, after this the server uses num_load_unload_threads.
+    int32 num_initial_load_unload_threads = 4.0 * port::NumSchedulableCPUs();
+
+    // Total model size limit, in terms of main memory, in bytes.
+    uint64 total_model_memory_limit_bytes = std::numeric_limits<uint64>::max();
+
+    // Maximum number of times we retry loading a model, after the first
+    // failure, before we give up.
+    int32 max_num_load_retries = 5;
+
+    // Time interval between file-system polls, in seconds.
+    int32 file_system_poll_wait_seconds = 30;
 
     // A function for creating ModelServerSourceAdapter based on the
     // 'platform_type'.
+    // If not specified, a default creator that creates
+    // SessionBundleSourceAdapter for TensorFlow will be used.
     SourceAdapterCreator source_adapter_creator;
 
-    // A function for creating ServableStateMonitor.
+    // A function for creating ServableStateMonitor. If not specified, a default
+    // creator that creates ServableStateMonitor will be used.
     ServableStateMonitorCreator servable_state_monitor_creator;
 
     // A function for instantiating and connecting custom sources and source
@@ -132,6 +130,10 @@ class ServerCore {
   // to be made available (or hit an error) for serving before returning.
   // Returns an error status if any such model fails to load.
   static Status Create(Options options, std::unique_ptr<ServerCore>* core);
+
+  std::vector<ServableId> ListAvailableServableIds() const override {
+    return manager_->ListAvailableServableIds();
+  }
 
   // Updates the server core with all the models and sources per the
   // ModelServerConfig. Like Create(), waits for all statically configured
@@ -160,15 +162,11 @@ class ServerCore {
                            ServableHandle<T>* const handle) {
     ServableRequest servable_request;
     ServableRequestFromModelSpec(model_spec, &servable_request);
-    TF_RETURN_IF_ERROR(manager_->GetServableHandle(servable_request, handle));
-    return Status::OK();
+    return manager_->GetServableHandle(servable_request, handle);
   }
 
  protected:
-  ServerCore(const SourceAdapterCreator& source_adapter_creator,
-             const ServableStateMonitorCreator& servable_state_monitor_creator,
-             const CustomModelConfigLoader& custom_model_config_loader,
-             ServerCoreConfig server_core_config);
+  explicit ServerCore(Options options);
 
  private:
   friend class test_util::ServerCoreTestAccess;
@@ -232,19 +230,19 @@ class ServerCore {
   Status ServableRequestFromModelSpec(const ModelSpec& model_spec,
                                       ServableRequest* servable_request) const;
 
-  // ************************************************************************
-  // Test Access.
-  // ************************************************************************
+  Status GetUntypedServableHandle(
+      const ServableRequest& request,
+      std::unique_ptr<UntypedServableHandle>* untyped_handle) override {
+    return manager_->GetUntypedServableHandle(request, untyped_handle);
+  }
 
-  // Lists available servable ids from the wrapped aspired-versions-manager.
-  std::vector<ServableId> ListAvailableServableIds() const;
+  std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
+  GetAvailableUntypedServableHandles() const override {
+    return manager_->GetAvailableUntypedServableHandles();
+  }
 
-  SourceAdapterCreator source_adapter_creator_;
-  ServableStateMonitorCreator servable_state_monitor_creator_;
-  CustomModelConfigLoader custom_model_config_loader_;
-
-  // The config passed to the ctor, minus the AspiredVersionPolicy.
-  ServerCoreConfig server_core_config_;
+  // The options passed to the ctor, minus the AspiredVersionPolicy.
+  Options options_;
 
   std::shared_ptr<EventBus<ServableState>> servable_event_bus_;
   std::shared_ptr<ServableStateMonitor> servable_state_monitor_;

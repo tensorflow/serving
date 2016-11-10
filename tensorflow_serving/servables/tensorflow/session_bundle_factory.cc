@@ -37,6 +37,37 @@ SessionOptions GetSessionOptions(const SessionBundleConfig& config) {
   return options;
 }
 
+// Returns all the descendants, both directories and files, recursively under
+// 'dirname'. The paths returned are all prefixed with 'dirname'.
+Status GetAllDescendants(const string& dirname,
+                         std::vector<string>* const descendants) {
+  Env* const env = Env::Default();
+  descendants->clear();
+  // Make sure that dirname exists;
+  TF_RETURN_IF_ERROR(env->FileExists(dirname));
+  std::deque<string> dir_q;      // Queue for the BFS
+  std::vector<string> dir_list;  // List of all dirs discovered
+  dir_q.push_back(dirname);
+  Status ret;  // Status to be returned.
+  // Do a BFS on the directory to discover all immediate children.
+  while (!dir_q.empty()) {
+    string dir = dir_q.front();
+    dir_q.pop_front();
+    std::vector<string> children;
+    // GetChildren might fail if we don't have appropriate permissions.
+    TF_RETURN_IF_ERROR(env->GetChildren(dir, &children));
+    for (const string& child : children) {
+      const string child_path = io::JoinPath(dir, child);
+      descendants->push_back(child_path);
+      // If the child is a directory add it to the queue.
+      if (env->IsDirectory(child_path).ok()) {
+        dir_q.push_back(child_path);
+      }
+    }
+  }
+  return Status::OK();
+}
+
 }  // namespace
 
 constexpr double SessionBundleFactory::kResourceEstimateRAMMultiplier;
@@ -80,25 +111,21 @@ Status SessionBundleFactory::Create(
 
 Status SessionBundleFactory::EstimateResourceRequirement(
     const string& path, ResourceAllocation* estimate) const {
-  const char kVariablesFilenameRegexp[] = "export(-[0-9]+-of-[0-9]+)?";
-  if (!Env::Default()->FileExists(path)) {
+  if (!Env::Default()->FileExists(path).ok()) {
     return errors::NotFound("Nonexistent export path: ", path);
   }
-
-  uint64 total_variable_file_size = 0;
-  std::vector<string> files;
-  TF_RETURN_IF_ERROR(Env::Default()->GetChildren(path, &files));
-  for (const string& file : files) {
-    if (!RE2::FullMatch(file, kVariablesFilenameRegexp)) {
-      continue;
+  std::vector<string> descendants;
+  TF_RETURN_IF_ERROR(GetAllDescendants(path, &descendants));
+  uint64 total_file_size = 0;
+  for (const string& descendant : descendants) {
+    if (!(Env::Default()->IsDirectory(descendant).ok())) {
+      uint64 file_size;
+      TF_RETURN_IF_ERROR(Env::Default()->GetFileSize(descendant, &file_size));
+      total_file_size += file_size;
     }
-    const string file_path = io::JoinPath(path, file);
-    uint64 file_size;
-    TF_RETURN_IF_ERROR(Env::Default()->GetFileSize(file_path, &file_size));
-    total_variable_file_size += file_size;
   }
   const uint64 ram_requirement =
-      total_variable_file_size * kResourceEstimateRAMMultiplier +
+      total_file_size * kResourceEstimateRAMMultiplier +
       kResourceEstimateRAMPadBytes;
 
   ResourceAllocation::Entry* ram_entry = estimate->add_resource_quantities();

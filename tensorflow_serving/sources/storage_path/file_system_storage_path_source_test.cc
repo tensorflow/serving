@@ -172,7 +172,8 @@ TEST(FileSystemStoragePathSourceTest, MultipleVersions) {
 }
 
 TEST(FileSystemStoragePathSourceTest, MultipleVersionsAtTheSameTime) {
-  const string base_path = io::JoinPath(testing::TmpDir(), "MultipleVersionsAtTheSameTime");
+  const string base_path =
+      io::JoinPath(testing::TmpDir(), "MultipleVersionsAtTheSameTime");
   TF_ASSERT_OK(Env::Default()->CreateDir(base_path));
   TF_ASSERT_OK(Env::Default()->CreateDir(
       io::JoinPath(base_path, "non_numerical_child")));
@@ -194,10 +195,15 @@ TEST(FileSystemStoragePathSourceTest, MultipleVersionsAtTheSameTime) {
       new StrictMock<test_util::MockStoragePathTarget>);
   ConnectSourceToTarget(source.get(), target.get());
 
-  EXPECT_CALL(*target, SetAspiredVersions(Eq("test_servable_name"),
-                                           ElementsAre(
-                                           ServableData<StoragePath>({"test_servable_name", 17}, io::JoinPath(base_path, "17")),
-                                           ServableData<StoragePath>({"test_servable_name", 42}, io::JoinPath(base_path, "42")))));
+  EXPECT_CALL(
+      *target,
+      SetAspiredVersions(
+          Eq("test_servable_name"),
+          ElementsAre(
+              ServableData<StoragePath>({"test_servable_name", 17},
+                                        io::JoinPath(base_path, "17")),
+              ServableData<StoragePath>({"test_servable_name", 42},
+                                        io::JoinPath(base_path, "42")))));
 
   TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
                    .PollFileSystemAndInvokeCallback());

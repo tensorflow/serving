@@ -23,6 +23,8 @@ limitations under the License.
 #include "tensorflow_serving/core/load_servables_fast.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/resources/resource_values.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.proto.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
 
@@ -82,14 +84,37 @@ Status ValidateAllListedModelsAreOfSamePlatform(const ModelServerConfig& config,
 
 Status ServerCore::Create(Options options,
                           std::unique_ptr<ServerCore>* server_core) {
+  if (options.source_adapter_creator == nullptr) {
+    options.source_adapter_creator = [](
+        const string& model_platform,
+        std::unique_ptr<ServerCore::ModelServerSourceAdapter>* adapter) {
+      SessionBundleSourceAdapterConfig source_adapter_config;
+      if (model_platform != kTensorFlowModelPlatform) {
+        return errors::InvalidArgument(
+            "ModelServer supports only TensorFlow model.");
+      }
+      std::unique_ptr<SessionBundleSourceAdapter> typed_adapter;
+      TF_RETURN_IF_ERROR(SessionBundleSourceAdapter::Create(
+          source_adapter_config, &typed_adapter));
+      *adapter = std::move(typed_adapter);
+      return Status::OK();
+    };
+  }
+
+  if (options.servable_state_monitor_creator == nullptr) {
+    options.servable_state_monitor_creator = [](
+        EventBus<ServableState>* event_bus,
+        std::unique_ptr<ServableStateMonitor>* monitor) {
+      monitor->reset(new ServableStateMonitor(event_bus));
+      return Status::OK();
+    };
+  }
+
   // We need to move the aspired_version_policy first because we will move the
   // server_core_config (which contains aspired_version_policy) below.
   std::unique_ptr<AspiredVersionPolicy> aspired_version_policy =
-      std::move(options.server_core_config.aspired_version_policy);
-  server_core->reset(new ServerCore(options.source_adapter_creator,
-                                    options.servable_state_monitor_creator,
-                                    options.custom_model_config_loader,
-                                    std::move(options.server_core_config)));
+      std::move(options.aspired_version_policy);
+  server_core->reset(new ServerCore(std::move(options)));
   TF_RETURN_IF_ERROR(
       (*server_core)->Initialize(std::move(aspired_version_policy)));
   return (*server_core)->ReloadConfig(options.model_server_config);
@@ -99,21 +124,14 @@ Status ServerCore::Create(Options options,
 // Server Setup and Initialization.
 // ************************************************************************
 
-ServerCore::ServerCore(
-    const SourceAdapterCreator& source_adapter_creator,
-    const ServableStateMonitorCreator& servable_state_monitor_creator,
-    const CustomModelConfigLoader& custom_model_config_loader,
-    ServerCoreConfig server_core_config)
-    : source_adapter_creator_(source_adapter_creator),
-      servable_state_monitor_creator_(servable_state_monitor_creator),
-      custom_model_config_loader_(custom_model_config_loader),
-      server_core_config_(std::move(server_core_config)),
+ServerCore::ServerCore(Options options)
+    : options_(std::move(options)),
       servable_event_bus_(EventBus<ServableState>::CreateEventBus()) {}
 
 Status ServerCore::Initialize(std::unique_ptr<AspiredVersionPolicy> policy) {
   std::unique_ptr<ServableStateMonitor> servable_state_monitor;
-  TF_RETURN_IF_ERROR(servable_state_monitor_creator_(servable_event_bus_.get(),
-                                                     &servable_state_monitor));
+  TF_RETURN_IF_ERROR(options_.servable_state_monitor_creator(
+      servable_event_bus_.get(), &servable_state_monitor));
   servable_state_monitor_ = std::move(servable_state_monitor);
 
   std::unique_ptr<AspiredVersionsManager> aspired_versions_manager;
@@ -180,7 +198,7 @@ Status ServerCore::AddModelsViaModelConfigList() {
     }
     TF_RETURN_IF_ERROR(ConnectSourceWithFastInitialLoad(
         manager_.get(), source_adapter.get(), servable_state_monitor_.get(),
-        static_servables, server_core_config_.num_initial_load_unload_threads));
+        static_servables, options_.num_initial_load_unload_threads));
     manager_.AddDependency(std::move(source_adapter));
   } else {
     TF_RETURN_IF_ERROR(ReloadFileSystemStoragePathSourceConfig(source_config));
@@ -190,8 +208,13 @@ Status ServerCore::AddModelsViaModelConfigList() {
 }
 
 Status ServerCore::AddModelsViaCustomModelConfig() {
-  return custom_model_config_loader_(config_.custom_model_config(),
-                                     servable_event_bus_.get(), &manager_);
+  if (options_.custom_model_config_loader == nullptr) {
+    return errors::InvalidArgument(
+        "Missing custom_model_config_loader in ServerCore Options");
+  }
+
+  return options_.custom_model_config_loader(
+      config_.custom_model_config(), servable_event_bus_.get(), &manager_);
 }
 
 Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
@@ -240,7 +263,7 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
 Status ServerCore::CreateSourceAdapter(
     const string& model_platform,
     std::unique_ptr<ModelServerSourceAdapter>* adapter) {
-  TF_RETURN_IF_ERROR(source_adapter_creator_(model_platform, adapter));
+  TF_RETURN_IF_ERROR(options_.source_adapter_creator(model_platform, adapter));
   return Status::OK();
 }
 
@@ -248,7 +271,7 @@ FileSystemStoragePathSourceConfig ServerCore::CreateStoragePathSourceConfig(
     const ModelServerConfig& config) const {
   FileSystemStoragePathSourceConfig source_config;
   source_config.set_file_system_poll_wait_seconds(
-      server_core_config_.file_system_poll_wait_seconds);
+      options_.file_system_poll_wait_seconds);
   for (const auto& model : config.model_config_list().config()) {
     LOG(INFO) << " (Re-)adding model: " << model.name();
     FileSystemStoragePathSourceConfig::ServableToMonitor* servable =
@@ -286,10 +309,8 @@ Status ServerCore::CreateAspiredVersionsManager(
   manager_options.resource_tracker = std::move(resource_tracker);
   manager_options.servable_event_bus = servable_event_bus_.get();
   manager_options.aspired_version_policy = std::move(aspired_version_policy);
-  manager_options.num_load_unload_threads =
-      server_core_config_.num_load_unload_threads;
-  manager_options.max_num_load_retries =
-      server_core_config_.max_num_load_retries;
+  manager_options.num_load_unload_threads = options_.num_load_unload_threads;
+  manager_options.max_num_load_retries = options_.max_num_load_retries;
   return AspiredVersionsManager::Create(std::move(manager_options), manager);
 }
 
@@ -304,8 +325,7 @@ Status ServerCore::CreateResourceTracker(
       total_resources.add_resource_quantities();
   main_memory_resource->mutable_resource()->set_device(device_types::kMain);
   main_memory_resource->mutable_resource()->set_kind(resource_kinds::kRamBytes);
-  main_memory_resource->set_quantity(
-      server_core_config_.total_model_memory_limit_bytes);
+  main_memory_resource->set_quantity(options_.total_model_memory_limit_bytes);
   return ResourceTracker::Create(total_resources, std::move(resource_util),
                                  resource_tracker);
 }
@@ -326,14 +346,6 @@ Status ServerCore::ServableRequestFromModelSpec(
     *servable_request = ServableRequest::Latest(model_spec.name());
   }
   return Status::OK();
-}
-
-// ************************************************************************
-// Test Access.
-// ************************************************************************
-
-std::vector<ServableId> ServerCore::ListAvailableServableIds() const {
-  return manager_->ListAvailableServableIds();
 }
 
 }  //  namespace serving

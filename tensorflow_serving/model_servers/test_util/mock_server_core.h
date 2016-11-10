@@ -32,20 +32,26 @@ namespace test_util {
 
 class MockServerCore : public ServerCore {
  public:
+  static Options GetOptions(
+      const SourceAdapterCreator& source_adapter_creator) {
+    Options options;
+    options.source_adapter_creator = source_adapter_creator;
+    options.servable_state_monitor_creator = [](
+        EventBus<ServableState>* event_bus,
+        std::unique_ptr<ServableStateMonitor>* monitor) -> Status {
+      monitor->reset(new ServableStateMonitor(event_bus));
+      return Status::OK();
+    };
+    options.custom_model_config_loader = [](
+        const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
+        UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
+      return Status::OK();
+    };
+    return options;
+  }
+
   explicit MockServerCore(const SourceAdapterCreator& source_adapter_creator)
-      : ServerCore(
-            source_adapter_creator,  // ServerCore::SourceAdapterCreator
-            [](EventBus<ServableState>* event_bus,
-               std::unique_ptr<ServableStateMonitor>* monitor) -> Status {
-              monitor->reset(new ServableStateMonitor(event_bus));
-              return Status::OK();
-            },  // ServerCore::ServableStateMonitorCreator
-            [](const ::google::protobuf::Any& any,
-               EventBus<ServableState>* event_bus,
-               UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
-              return Status::OK();
-            },  // ServerCore::CustomModelConfigLoader
-            ServerCoreConfig()) {}
+      : ServerCore(GetOptions(source_adapter_creator)) {}
 
   MOCK_CONST_METHOD0(servable_state_monitor, ServableStateMonitor*());
   MOCK_METHOD1(ReloadConfig, Status(const ModelServerConfig&));
