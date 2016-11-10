@@ -81,7 +81,7 @@ Status SessionBundleFactory::Create(
 Status SessionBundleFactory::EstimateResourceRequirement(
     const string& path, ResourceAllocation* estimate) const {
   const char kVariablesFilenameRegexp[] = "export(-[0-9]+-of-[0-9]+)?";
-  if (!Env::Default()->FileExists(path)) {
+  if (!Env::Default()->FileExists(path).ok()) {
     return errors::NotFound("Nonexistent export path: ", path);
   }
 

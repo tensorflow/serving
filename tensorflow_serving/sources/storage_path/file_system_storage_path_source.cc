@@ -162,7 +162,7 @@ Status PollFileSystemForServable(
   // we don't emit an empty aspired-versions list for a non-existent (or
   // transiently unavailable) base-path. (On some platforms, GetChildren()
   // returns an empty list instead of erring if the base path isn't found.)
-  if (!Env::Default()->FileExists(servable.base_path())) {
+  if (!Env::Default()->FileExists(servable.base_path()).ok()) {
     return errors::InvalidArgument("Could not find base path ",
                                    servable.base_path(), " for servable ",
                                    servable.servable_name());
