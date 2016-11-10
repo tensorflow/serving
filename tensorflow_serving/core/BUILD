@@ -654,3 +654,24 @@ cc_library(
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
+
+cc_library(
+    name = "log_collector",
+    srcs = ["log_collector.cc"],
+    hdrs = ["log_collector.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "log_collector_test",
+    srcs = ["log_collector_test.cc"],
+    deps = [
+        ":log_collector",
+        "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
