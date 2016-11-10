@@ -101,7 +101,6 @@ cc_binary(
         ":model_platform_types",
         ":server_core",
         "@protobuf//:cc_wkt_protos",
-        "//net/grpc",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
         "//tensorflow_serving/apis:prediction_service_proto",
