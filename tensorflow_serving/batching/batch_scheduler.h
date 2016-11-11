@@ -85,6 +85,10 @@ class Batch {
   // Dies if the batch is closed.
   void AddTask(std::unique_ptr<TaskType> task);
 
+  // Removes the most recently added task. Returns nullptr if the batch is
+  // empty.
+  std::unique_ptr<TaskType> RemoveTask();
+
   // Returns the number of tasks in the batch.
   int num_tasks() const;
 
@@ -191,6 +195,19 @@ void Batch<TaskType>::AddTask(std::unique_ptr<TaskType> task) {
     mutex_lock l(mu_);
     size_ += task->size();
     tasks_.push_back(std::move(task));
+  }
+}
+
+template <typename TaskType>
+std::unique_ptr<TaskType> Batch<TaskType>::RemoveTask() {
+  {
+    mutex_lock l(mu_);
+    if (tasks_.empty()) {
+      return nullptr;
+    }
+    std::unique_ptr<TaskType> task = std::move(tasks_.back());
+    tasks_.pop_back();
+    return task;
   }
 }
 

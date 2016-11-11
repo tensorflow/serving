@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/batch_scheduler.h"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/macros.h"
@@ -72,6 +73,10 @@ TEST(BatchTest, Basic) {
   EXPECT_EQ(task0->size() + task1->size(), batch.size());
   EXPECT_EQ(task0->size(), batch.task(0).size());
   EXPECT_EQ(task1->size(), batch.task(1).size());
+
+  EXPECT_EQ(7, batch.RemoveTask()->size());
+  EXPECT_EQ(3, batch.RemoveTask()->size());
+  EXPECT_TRUE(batch.empty());
 }
 
 TEST(BatchTest, WaitUntilClosed) {
