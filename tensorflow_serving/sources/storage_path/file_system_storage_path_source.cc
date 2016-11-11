@@ -76,33 +76,34 @@ std::set<string> GetDeletedServables(
   return deleted_servables;
 }
 
-//Add a new ServableData for the model version to the the vector of versions to aspire
+// Adds a new ServableData for the model version to the vector of versions to
+// aspire.
 void AspireVersion(
     const FileSystemStoragePathSourceConfig::ServableToMonitor& servable,
-    const string& version_relative_path,
-    const int version_number,
+    const string& version_relative_path, const int version_number,
     std::vector<ServableData<StoragePath>>* versions) {
-    const ServableId servable_id = {servable.servable_name(), version_number};
-    const string full_path =
-        io::JoinPath(servable.base_path(), version_relative_path);
-    versions->emplace_back(ServableData<StoragePath>(servable_id, full_path));
+  const ServableId servable_id = {servable.servable_name(), version_number};
+  const string full_path =
+      io::JoinPath(servable.base_path(), version_relative_path);
+  versions->emplace_back(ServableData<StoragePath>(servable_id, full_path));
 }
 
-// Attempts to parse the version path as integer, upon success writes the result to 'version_number' and returns true.
-// Otherwise returns false when fail to parse the version path.
-bool ParseVersionNumber(const string& version_path, int64 *version_number) {
+// Converts the string version path to an integer.
+// Returns false if the input is invalid.
+bool ParseVersionNumber(const string& version_path, int64* version_number) {
   return strings::safe_strto64(version_path.c_str(), version_number);
 }
 
-// Update the servable data to include
-// all the model versions found in the base path as aspired versions.
-// The argument 'children' represents a list of base-path children from the file system.
-// Returns true if one or more valid servable version paths are found, otherwise returns false.
+// Update the servable data to include all the model versions found in the base
+// path as aspired versions.
+// The argument 'children' represents a list of base-path children from the file
+// system.
+// Returns true if one or more valid servable version paths are found, otherwise
+// returns false.
 bool AspireAllVersions(
     const FileSystemStoragePathSourceConfig::ServableToMonitor& servable,
-    const std::vector<string>& children,   // represents a list of base-path children from the file system.
+    const std::vector<string>& children,
     std::vector<ServableData<StoragePath>>* versions) {
-
   bool at_least_one_version_found = false;
   for (const string& child : children) {
     // Identify all the versions, among children that can be interpreted as
@@ -118,16 +119,16 @@ bool AspireAllVersions(
   return at_least_one_version_found;
 }
 
-// Update the servable data to include
-// the latest version found in the base path as aspired version.
-// The argument 'children' represents a list of base-path children from the file system.
-// Returns true if valid servable path is found, otherwise returns false.
+// Update the servable data to include the latest version found in the base path
+// as aspired version.
+// The argument 'children' represents a list of base-path children from the file
+// system.
+// Returns true if a valid servable path is found, otherwise returns false.
 bool AspireLatestVersion(
     const FileSystemStoragePathSourceConfig::ServableToMonitor& servable,
     const std::vector<string>& children,
     std::vector<ServableData<StoragePath>>* versions) {
-
-  // Identify the latest version, among children that can be interpreted as
+  // Identify the latest version among children that can be interpreted as
   // version numbers.
   int latest_version_child_index;
   int64 latest_version_number;
@@ -138,7 +139,7 @@ bool AspireLatestVersion(
       continue;
     }
 
-    // Check if this is the largest version number
+    // Check if this is the largest version number.
     if (!at_least_one_version_found || latest_version_number < version_number) {
       latest_version_child_index = i;
       latest_version_number = version_number;
@@ -148,7 +149,8 @@ bool AspireLatestVersion(
 
   // Emit the latest aspired version.
   if (at_least_one_version_found) {
-    AspireVersion(servable, children[latest_version_child_index], latest_version_number, versions);
+    AspireVersion(servable, children[latest_version_child_index],
+                  latest_version_number, versions);
   }
 
   return at_least_one_version_found;
@@ -162,7 +164,7 @@ Status PollFileSystemForServable(
   // we don't emit an empty aspired-versions list for a non-existent (or
   // transiently unavailable) base-path. (On some platforms, GetChildren()
   // returns an empty list instead of erring if the base path isn't found.)
-  if (!Env::Default()->FileExists(servable.base_path())) {
+  if (!Env::Default()->FileExists(servable.base_path()).ok()) {
     return errors::InvalidArgument("Could not find base path ",
                                    servable.base_path(), " for servable ",
                                    servable.servable_name());
@@ -186,11 +188,16 @@ Status PollFileSystemForServable(
   bool at_least_one_version_found = false;
   switch (servable.version_policy()) {
     case FileSystemStoragePathSourceConfig::LATEST_VERSION:
-      at_least_one_version_found = AspireLatestVersion(servable, children, versions);
+      at_least_one_version_found =
+          AspireLatestVersion(servable, children, versions);
       break;
     case FileSystemStoragePathSourceConfig::ALL_VERSIONS:
-      at_least_one_version_found = AspireAllVersions(servable, children, versions);
+      at_least_one_version_found =
+          AspireAllVersions(servable, children, versions);
       break;
+    default:
+      return errors::Internal("Unhandled servable version_policy: ",
+                              servable.version_policy());
   }
 
   if (!at_least_one_version_found) {

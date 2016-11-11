@@ -38,7 +38,6 @@ optional<AspiredVersionPolicy::ServableAction> EagerLoadPolicy::GetNextAction(
                            version.state != LoaderHarness::State::kReady;
                   });
   if (aspired_not_serving) {
-    VLOG(1) << "EagerLoadPolicy requesting no-op";
     return nullopt;
   }
 

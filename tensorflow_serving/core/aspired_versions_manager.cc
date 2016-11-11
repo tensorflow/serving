@@ -334,8 +334,9 @@ AspiredVersionsManager::GetNextAction() {
   std::sort(actions.begin(), actions.end(), CompareActions());
   const optional<AspiredVersionPolicy::ServableAction> next_action =
       !actions.empty() ? actions[0] : nullopt;
-  VLOG(1) << "Taking action: "
-          << (next_action ? next_action->DebugString() : "<no action>");
+  if (next_action) {
+    VLOG(1) << "Taking action: " << next_action->DebugString();
+  }
   return next_action;
 }
 

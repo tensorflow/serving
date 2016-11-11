@@ -130,9 +130,9 @@ TEST_F(SessionBundleFactoryTest, EstimateResourceRequirementWithBadExport) {
 }
 
 TEST_F(SessionBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
-  const uint64 kVariableFileSize = 169;
+  const double kTotalFileSize = 13392.5;
   const uint64 expected_ram_requirement =
-      kVariableFileSize * SessionBundleFactory::kResourceEstimateRAMMultiplier +
+      kTotalFileSize * SessionBundleFactory::kResourceEstimateRAMMultiplier +
       SessionBundleFactory::kResourceEstimateRAMPadBytes;
   ResourceAllocation want;
   ResourceAllocation::Entry* ram_entry = want.add_resource_quantities();
