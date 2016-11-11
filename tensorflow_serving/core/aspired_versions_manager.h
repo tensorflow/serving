@@ -178,6 +178,7 @@ class AspiredVersionsManager : public Manager,
  private:
   friend class internal::AspiredVersionsManagerTargetImpl;
   friend class test_util::AspiredVersionsManagerTestAccess;
+  friend class ServerCore;
   friend Status internal::ConnectSourceWithFastInitialLoad(
       AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
       const std::function<Status()>& wait_until_loaded_fn, uint32 num_threads);

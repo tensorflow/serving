@@ -41,7 +41,6 @@ optional<AspiredVersionPolicy::ServableAction> EagerUnloadPolicy::GetNextAction(
                            version.state != LoaderHarness::State::kError;
                   });
   if (not_aspired_not_finished) {
-    VLOG(1) << "EagerUnloadPolicy requesting no-op";
     return nullopt;
   }
 

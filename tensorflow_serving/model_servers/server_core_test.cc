@@ -16,6 +16,8 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/server_core.h"
 
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow_serving/apis/model.pb.h"
+#include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 #include "tensorflow_serving/model_servers/test_util/server_core_test_util.h"
@@ -32,12 +34,19 @@ TEST_F(ServerCoreTest, CreateWaitsTillModelsAvailable) {
   TF_ASSERT_OK(CreateServerCore(GetTestModelServerConfig(), &server_core));
 
   const std::vector<ServableId> available_servables =
-      test_util::ServerCoreTestAccess(server_core.get())
-          .ListAvailableServableIds();
+      server_core->ListAvailableServableIds();
   ASSERT_EQ(available_servables.size(), 1);
   const ServableId expected_id = {test_util::kTestModelName,
                                   test_util::kTestModelVersion};
   EXPECT_EQ(available_servables.at(0), expected_id);
+
+  ModelSpec model_spec;
+  model_spec.set_name(test_util::kTestModelName);
+  model_spec.mutable_version()->set_value(test_util::kTestModelVersion);
+  ServableHandle<string> servable_handle;
+  TF_ASSERT_OK(
+      server_core->GetServableHandle<string>(model_spec, &servable_handle));
+  EXPECT_EQ(servable_handle.id(), expected_id);
 }
 
 TEST_F(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
@@ -49,8 +58,7 @@ TEST_F(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
   TF_ASSERT_OK(server_core->ReloadConfig(GetTestModelServerConfig()));
 
   const std::vector<ServableId> available_servables =
-      test_util::ServerCoreTestAccess(server_core.get())
-          .ListAvailableServableIds();
+      server_core->ListAvailableServableIds();
   ASSERT_EQ(available_servables.size(), 1);
   const ServableId expected_id = {test_util::kTestModelName,
                                   test_util::kTestModelVersion};
@@ -120,8 +128,7 @@ TEST_F(ServerCoreTest, DeprecatedModelTypeConfig) {
   TF_ASSERT_OK(CreateServerCore(config, &server_core));
 
   const std::vector<ServableId> available_servables =
-      test_util::ServerCoreTestAccess(server_core.get())
-          .ListAvailableServableIds();
+      server_core->ListAvailableServableIds();
   ASSERT_EQ(available_servables.size(), 1);
   const ServableId expected_id = {test_util::kTestModelName,
                                   test_util::kTestModelVersion};

@@ -24,19 +24,6 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-// A test utility that provides access to private ServerCore members.
-class ServerCoreTestAccess {
- public:
-  explicit ServerCoreTestAccess(ServerCore* core) : core_(core) {}
-
-  // Returns the list of available servable-ids from the manager in server
-  // core.
-  std::vector<ServableId> ListAvailableServableIds() const;
-
- private:
-  ServerCore* const core_;
-};
-
 constexpr char kTestModelName[] = "test_model";
 constexpr int kTestModelVersion = 123;
 
@@ -44,9 +31,6 @@ class ServerCoreTest : public ::testing::Test {
  protected:
   // Returns ModelServerConfig that contains test model.
   ModelServerConfig GetTestModelServerConfig();
-
-  // Returns ServerCoreConfig that uses continuous polling, to speed up testing.
-  ServerCoreConfig GetTestServerCoreConfig();
 
   // Create a ServerCore object configured to use FakeLoaderSourceAdapter.
   Status CreateServerCore(const ModelServerConfig& config,
@@ -57,6 +41,11 @@ class ServerCoreTest : public ::testing::Test {
       const ModelServerConfig& config,
       const ServerCore::SourceAdapterCreator& source_adapter_creator,
       std::unique_ptr<ServerCore>* server_core);
+
+  // Create a ServerCore object with the supplied options. The ServerCore uses
+  // continuous polling to speed up testing.
+  Status CreateServerCore(ServerCore::Options options,
+                          std::unique_ptr<ServerCore>* server_core);
 };
 
 }  // namespace test_util
