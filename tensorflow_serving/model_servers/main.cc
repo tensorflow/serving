@@ -106,7 +106,7 @@ tensorflow::Status CreateSourceAdapter(
   const ::tensorflow::Status status =
       SessionBundleSourceAdapter::Create(config, &typed_adapter);
   if (!status.ok()) {
-    VLOG(1) << "Error creating source adapter: " << status;
+    VLOG(1) << "Error creating source adapter: " << status.error_message();
     return status;
   }
   *adapter = std::move(typed_adapter);
@@ -158,7 +158,7 @@ class PredictionServiceImpl final : public PredictionService::Service {
     const grpc::Status status = ToGRPCStatus(
         TensorflowPredictImpl::Predict(core_.get(), *request, response));
     if (!status.ok()) {
-      VLOG(1) << "Predict failed: " << status;
+      VLOG(1) << "Predict failed: " << status.error_message();
     }
     return status;
   }
