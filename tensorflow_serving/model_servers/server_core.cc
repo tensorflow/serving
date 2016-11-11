@@ -130,8 +130,13 @@ ServerCore::ServerCore(Options options)
 
 Status ServerCore::Initialize(std::unique_ptr<AspiredVersionPolicy> policy) {
   std::unique_ptr<ServableStateMonitor> servable_state_monitor;
-  TF_RETURN_IF_ERROR(options_.servable_state_monitor_creator(
-      servable_event_bus_.get(), &servable_state_monitor));
+  const tensorflow::Status status = options_.servable_state_monitor_creator(
+      servable_event_bus_.get(), &servable_state_monitor);
+  if (!status.ok()) {
+    VLOG(1) << "Servable state monitor creation failed: " << status;
+    return status;
+  }
+
   servable_state_monitor_ = std::move(servable_state_monitor);
 
   std::unique_ptr<AspiredVersionsManager> aspired_versions_manager;
@@ -196,9 +201,14 @@ Status ServerCore::AddModelsViaModelConfigList() {
     for (const auto& model : config_.model_config_list().config()) {
       static_servables.push_back(ServableRequest::Latest(model.name()));
     }
-    TF_RETURN_IF_ERROR(ConnectSourceWithFastInitialLoad(
+    const tensorflow::Status status = ConnectSourceWithFastInitialLoad(
         manager_.get(), source_adapter.get(), servable_state_monitor_.get(),
-        static_servables, options_.num_initial_load_unload_threads));
+        static_servables, options_.num_initial_load_unload_threads);
+    if (!status.ok()) {
+      VLOG(1) << "Unable to ConnectSourceWithFastInitialLoad due to: "
+              << status;
+      return status;
+    }
     manager_.AddDependency(std::move(source_adapter));
   } else {
     TF_RETURN_IF_ERROR(ReloadFileSystemStoragePathSourceConfig(source_config));
@@ -263,8 +273,12 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
 Status ServerCore::CreateSourceAdapter(
     const string& model_platform,
     std::unique_ptr<ModelServerSourceAdapter>* adapter) {
-  TF_RETURN_IF_ERROR(options_.source_adapter_creator(model_platform, adapter));
-  return Status::OK();
+  const tensorflow::Status status =
+      options_.source_adapter_creator(model_platform, adapter);
+  if (!status.ok()) {
+    VLOG(1) << "Source adapter creation failed: " << status;
+  }
+  return status;
 }
 
 FileSystemStoragePathSourceConfig ServerCore::CreateStoragePathSourceConfig(
@@ -286,8 +300,13 @@ Status ServerCore::CreateFileSystemStoragePathSource(
     const FileSystemStoragePathSourceConfig& source_config,
     Target<StoragePath>* target) {
   std::unique_ptr<FileSystemStoragePathSource> storage_path_source;
-  TF_RETURN_IF_ERROR(
-      FileSystemStoragePathSource::Create(source_config, &storage_path_source));
+  const tensorflow::Status status =
+      FileSystemStoragePathSource::Create(source_config, &storage_path_source);
+  if (!status.ok()) {
+    VLOG(1) << "Unable to create FileSystemStoragePathSource due to: "
+            << status;
+    return status;
+  }
   ConnectSourceToTarget(storage_path_source.get(), target);
   storage_path_source_ = storage_path_source.get();
   manager_.AddDependency(std::move(storage_path_source));
@@ -296,7 +315,13 @@ Status ServerCore::CreateFileSystemStoragePathSource(
 
 Status ServerCore::ReloadFileSystemStoragePathSourceConfig(
     const FileSystemStoragePathSourceConfig& source_config) {
-  return storage_path_source_->UpdateConfig(source_config);
+  const tensorflow::Status status =
+      storage_path_source_->UpdateConfig(source_config);
+  if (!status.ok()) {
+    VLOG(1) << "Unable to ReloadFileSystemStoragePathSourceConfig due to: "
+            << status;
+  }
+  return status;
 }
 
 Status ServerCore::CreateAspiredVersionsManager(
@@ -311,7 +336,12 @@ Status ServerCore::CreateAspiredVersionsManager(
   manager_options.aspired_version_policy = std::move(aspired_version_policy);
   manager_options.num_load_unload_threads = options_.num_load_unload_threads;
   manager_options.max_num_load_retries = options_.max_num_load_retries;
-  return AspiredVersionsManager::Create(std::move(manager_options), manager);
+  const tensorflow::Status status =
+      AspiredVersionsManager::Create(std::move(manager_options), manager);
+  if (!status.ok()) {
+    VLOG(1) << "Unable to CreateAspiredVersionsManager due to: " << status;
+  }
+  return status;
 }
 
 Status ServerCore::CreateResourceTracker(
@@ -326,8 +356,12 @@ Status ServerCore::CreateResourceTracker(
   main_memory_resource->mutable_resource()->set_device(device_types::kMain);
   main_memory_resource->mutable_resource()->set_kind(resource_kinds::kRamBytes);
   main_memory_resource->set_quantity(options_.total_model_memory_limit_bytes);
-  return ResourceTracker::Create(total_resources, std::move(resource_util),
-                                 resource_tracker);
+  const tensorflow::Status status = ResourceTracker::Create(
+      total_resources, std::move(resource_util), resource_tracker);
+  if (!status.ok()) {
+    VLOG(1) << "Unable to CreateResourceTracker due to: " << status;
+  }
+  return status;
 }
 
 // ************************************************************************

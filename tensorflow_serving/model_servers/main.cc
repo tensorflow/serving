@@ -103,8 +103,12 @@ tensorflow::Status CreateSourceAdapter(
   CHECK(model_platform == kTensorFlowModelPlatform)  // Crash ok
       << "ModelServer supports only TensorFlow model.";
   std::unique_ptr<SessionBundleSourceAdapter> typed_adapter;
-  TF_RETURN_IF_ERROR(
-      SessionBundleSourceAdapter::Create(config, &typed_adapter));
+  const ::tensorflow::Status status =
+      SessionBundleSourceAdapter::Create(config, &typed_adapter);
+  if (!status.ok()) {
+    VLOG(1) << "Error creating source adapter: " << status;
+    return status;
+  }
   *adapter = std::move(typed_adapter);
   return tensorflow::Status::OK();
 }
@@ -135,7 +139,6 @@ grpc::Status ToGRPCStatus(const tensorflow::Status& status) {
   const int kErrorMessageLimit = 1024;
   string error_message;
   if (status.error_message().length() > kErrorMessageLimit) {
-    LOG(ERROR) << "Truncating error: " << status.error_message();
     error_message =
         status.error_message().substr(0, kErrorMessageLimit) + "...TRUNCATED";
   } else {
@@ -152,8 +155,12 @@ class PredictionServiceImpl final : public PredictionService::Service {
 
   grpc::Status Predict(ServerContext* context, const PredictRequest* request,
                        PredictResponse* response) override {
-    return ToGRPCStatus(
+    const grpc::Status status = ToGRPCStatus(
         TensorflowPredictImpl::Predict(core_.get(), *request, response));
+    if (!status.ok()) {
+      VLOG(1) << "Predict failed: " << status;
+    }
+    return status;
   }
 
  private:
