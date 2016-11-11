@@ -16,7 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/server_core.h"
 
 #include "tensorflow/core/lib/core/status_test_util.h"
-#include "tensorflow_serving/apis/model.proto.h"
+#include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
