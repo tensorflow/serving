@@ -369,7 +369,8 @@ void AspiredVersionsManager::FlushServables() {
     for (const ServableStateSnapshot<Aspired>& state_snapshot :
          basic_manager_->GetManagedServableStateSnapshots<Aspired>(
              servable_name)) {
-      if ((state_snapshot.state == LoaderHarness::State::kDisabled ||
+      if ((state_snapshot.state == LoaderHarness::State::kNew ||
+           state_snapshot.state == LoaderHarness::State::kDisabled ||
            state_snapshot.state == LoaderHarness::State::kError) &&
           !state_snapshot.additional_state->is_aspired) {
         basic_manager_->StopManagingServable(state_snapshot.id);

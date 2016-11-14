@@ -38,6 +38,66 @@ serving_proto_library(
 )
 
 cc_library(
+    name = "bundle_factory_util",
+    srcs = ["bundle_factory_util.cc"],
+    hdrs = ["bundle_factory_util.h"],
+    deps = [
+        ":serving_session",
+        ":session_bundle_config_proto",
+        "//tensorflow_serving/batching:batch_scheduler",
+        "//tensorflow_serving/batching:batching_session",
+        "//tensorflow_serving/batching:shared_batch_scheduler",
+        "//tensorflow_serving/resources:resource_values",
+        "//tensorflow_serving/resources:resources_proto",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@protobuf//:cc_wkt_protos",
+    ],
+)
+
+cc_library(
+    name = "bundle_factory_test_util",
+    testonly = 1,
+    srcs = ["bundle_factory_test_util.cc"],
+    hdrs = ["bundle_factory_test_util.h"],
+    deps = [
+        "//tensorflow_serving/resources:resource_values",
+        "//tensorflow_serving/resources:resources_proto",
+        "//tensorflow_serving/test_util",
+        "//testing/base/public:gunit_for_library",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
+    ],
+)
+
+cc_test(
+    name = "bundle_factory_util_test",
+    size = "medium",
+    srcs = ["bundle_factory_util_test.cc"],
+    data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
+    deps = [
+        ":bundle_factory_test_util",
+        ":bundle_factory_util",
+        ":session_bundle_config_proto",
+        "//tensorflow_serving/batching:batching_session",
+        "//tensorflow_serving/batching:shared_batch_scheduler",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/resources:resources_proto",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
+        "@protobuf//:cc_wkt_protos",
+    ],
+)
+
+cc_library(
     name = "session_bundle_factory",
     srcs = ["session_bundle_factory.cc"],
     hdrs = ["session_bundle_factory.h"],
@@ -45,17 +105,16 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        ":serving_session",
+        ":bundle_factory_util",
         ":session_bundle_config_proto",
         "//tensorflow_serving/batching:batching_session",
         "//tensorflow_serving/batching:shared_batch_scheduler",
-        "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/resources:resources_proto",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
-        "@protobuf//:cc_wkt_protos",
     ],
 )
 
@@ -65,17 +124,17 @@ cc_test(
     srcs = ["session_bundle_factory_test.cc"],
     data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
     deps = [
+        ":bundle_factory_test_util",
         ":session_bundle_config_proto",
         ":session_bundle_factory",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/resources:resource_values",
+        "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
-        "@org_tensorflow//tensorflow/core:testlib",
         "@protobuf//:cc_wkt_protos",
     ],
 )

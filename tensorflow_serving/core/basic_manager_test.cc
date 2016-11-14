@@ -184,6 +184,10 @@ TEST_P(BasicManagerTest, StopManagingUnknownId) {
 TEST_P(BasicManagerTest, StopManagingActiveServable) {
   const ServableId id = {kServableName3, 1};
   basic_manager_->ManageServable(CreateServable(id));
+  basic_manager_->LoadServable(
+      id, [](const Status& status) { TF_EXPECT_OK(status); });
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
   EXPECT_FALSE(basic_manager_->StopManagingServable(id).ok());
 }
 
