@@ -4,6 +4,7 @@ package tensorflow.serving;
 option cc_enable_arenas = true;
 
 import "google/protobuf/any.proto";
+import "tensorflow_serving/sources/storage_path/file_system_storage_path_source.proto";
 
 // The type of model.
 // TODO(b/31336131): DEPRECATED.
@@ -29,6 +30,10 @@ message ModelConfig {
 
   // Type of model (e.g. "tensorflow").
   string model_platform = 4;
+
+  // Version policy for the model indicating how many versions of the model to be served at the same time.
+  // The default option is to serve only the latest version of the model.
+  FileSystemStoragePathSourceConfig.VersionPolicy version_policy = 5;
 }
 
 // Static list of models to be loaded for serving.
