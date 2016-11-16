@@ -116,17 +116,8 @@ commonly used options:
   * `SourceAdapterCreator` that creates the `SourceAdapter`, which adapts
   `StoragePath` (the path where a model version is discovered) to model
   `Loader` (loads the model version from storage path and provides state
-  transition interfaces to the `Manager`). In this case, `CreateSourceAdapter`
-  creates `SessionBundleSourceAdapter`, which we will explain later.
-  * `ServableStateMonitorCreator` that creates `ServableStateMonitor`, which
-  keeps track for `Servable` (model version) state transition and provides a
-  query interface to the user. In this case, `CreateServableStateMonitor`
-  creates the base `ServableStateMonitor`, which keeps track of servable states
-  in memory. You can extend it to add state tracking capabilities (e.g. persists
-  state change to disk, remote server, etc.)
-  * `CustomModelConfigLoader` that instantiates and connects the necessary
-  custom sources and source adapters to the manager based on a passed in config
-  (any).
+  transition interfaces to the `Manager`). If not specified, a
+  `SessionBundleSourceAdapter` will be created, which we will explain later.
 
 `SessionBundle` is a key component of TensorFlow Serving. It represents a
 TensorFlow model loaded from a given path and provides the same `Session::Run`
@@ -145,8 +136,8 @@ With all these, `ServerCore` internally does the following:
   to a `Loader<SessionBundle>`.
   * Instantiates a specific implementation of `Manager` called
   `AspiredVersionsManager` that manages all such `Loader` instances created by
-  the `SessionBundleSourceAdapter`. `ServerCore` exports `Manager` interface by
-  forwarding the calls to `AspiredVersionsManager`.
+  the `SessionBundleSourceAdapter`. `ServerCore` exports the `Manager` interface
+  by delegating the calls to `AspiredVersionsManager`.
 
 Whenever a new version is available, this `AspiredVersionsManager` loads the new
 version, and under its default behavior unloads the old one. If you want to
@@ -161,8 +152,8 @@ that monitors cloud storage instead of local storage, or you could build a
 version policy plugin that does version transition in a different way -- in
 fact, you could even build a custom model plugin that serves non-TensorFlow
 models. These topics are out of scope for this tutorial. However, you can refer
-to the [custom source](custom_source.md) and
-[custom servable](custom_servable.md) tutorials for more information.
+to the [custom source](custom_source.md) and [custom servable]
+(custom_servable.md) tutorials for more information.
 
 ## Batching
 
