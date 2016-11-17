@@ -79,8 +79,5 @@ serving_proto_library(
 py_library(
     name = "prediction_service_proto_py_pb2",
     srcs = ["prediction_service_pb2.py"],
-    deps = [
-        ":predict_proto_py_pb2",
-        "//third_party/py/grpc/google",
-    ],
+    deps = [":predict_proto_py_pb2"],
 )

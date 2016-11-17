@@ -30,7 +30,7 @@ import threading
 
 # This is a placeholder for a Google-internal import.
 
-from grpc.google.beta import implementations
+from grpc.beta import implementations
 import numpy
 import tensorflow as tf
 

@@ -19,7 +19,7 @@
 
 # This is a placeholder for a Google-internal import.
 
-from grpc.google.beta import implementations
+from grpc.beta import implementations
 import tensorflow as tf
 
 from tensorflow.core.framework import types_pb2
