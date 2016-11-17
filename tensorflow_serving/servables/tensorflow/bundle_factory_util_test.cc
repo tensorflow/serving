@@ -29,6 +29,7 @@ limitations under the License.
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/public/session_options.h"
+#include "tensorflow/core/public/version.h"
 #include "tensorflow_serving/batching/batching_session.h"
 #include "tensorflow_serving/batching/shared_batch_scheduler.h"
 #include "tensorflow_serving/resources/resources.pb.h"
@@ -121,7 +122,12 @@ TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithBadExport) {
 }
 
 TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithGoodExport) {
-  const double kTotalFileSize = 13392.5;
+  // The length of the file's version strings might change, so we don't
+  // hardcode their size.  They are 4 bytes for tags & size, plus the actual
+  // length of the strings.
+  const double kVersionSize =
+      4 + strlen(TF_VERSION_STRING) + strlen(tf_git_version());
+  const double kTotalFileSize = 13392.5 + kVersionSize;
   ResourceAllocation expected = GetExpectedResourceEstimate(kTotalFileSize);
 
   ResourceAllocation actual;
