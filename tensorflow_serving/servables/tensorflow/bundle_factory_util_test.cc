@@ -35,6 +35,7 @@ limitations under the License.
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
+#include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -43,9 +44,15 @@ namespace {
 using test_util::EqualsProto;
 using Batcher = SharedBatchScheduler<BatchingSessionTask>;
 
-class BundleFactoryUtilTest : public test_util::BundleFactoryTest {
- public:
+class BundleFactoryUtilTest : public ::testing::Test {
+ protected:
+  BundleFactoryUtilTest()
+      : export_dir_(test_util::GetTestSessionBundleExportPath()) {}
+
   virtual ~BundleFactoryUtilTest() = default;
+
+  // Test data path, to be initialized to point at an export of half-plus-two.
+  const string export_dir_;
 };
 
 TEST_F(BundleFactoryUtilTest, GetSessionOptions) {
@@ -74,15 +81,19 @@ TEST_F(BundleFactoryUtilTest, GetRunOptions) {
 
 TEST_F(BundleFactoryUtilTest, WrapSession) {
   // Create a SessionBundle and wrap the session.
+  // TODO(b/32248363): use SavedModelBundle instead of SessionBundle when we
+  // switch the Model Server to use Saved Model.
   SessionBundle bundle;
   TF_ASSERT_OK(LoadSessionBundleFromPathUsingRunOptions(
       SessionOptions(), RunOptions(), export_dir_, &bundle));
   TF_ASSERT_OK(WrapSession(&bundle.session));
-  TestSingleRequest(bundle.session.get());
+  test_util::TestSingleRequest(bundle.session.get());
 }
 
 TEST_F(BundleFactoryUtilTest, WrapSessionForBatching) {
   // Create a SessionBundle.
+  // TODO(b/32248363): use SavedModelBundle instead of SessionBundle when we
+  // switch the Model Server to use Saved Model.
   SessionBundle bundle;
   TF_ASSERT_OK(LoadSessionBundleFromPathUsingRunOptions(
       SessionOptions(), RunOptions(), export_dir_, &bundle));
@@ -100,7 +111,7 @@ TEST_F(BundleFactoryUtilTest, WrapSessionForBatching) {
       WrapSessionForBatching(batching_params, batcher, &bundle.session));
 
   // Run multiple requests concurrently. They should be executed as 5 batches.
-  TestMultipleRequests(10, bundle.session.get());
+  test_util::TestMultipleRequests(10, bundle.session.get());
 }
 
 TEST_F(BundleFactoryUtilTest, BatchingConfigError) {
@@ -128,7 +139,8 @@ TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithGoodExport) {
   const double kVersionSize =
       4 + strlen(TF_VERSION_STRING) + strlen(tf_git_version());
   const double kTotalFileSize = 13392.5 + kVersionSize;
-  ResourceAllocation expected = GetExpectedResourceEstimate(kTotalFileSize);
+  ResourceAllocation expected =
+      test_util::GetExpectedResourceEstimate(kTotalFileSize);
 
   ResourceAllocation actual;
   TF_ASSERT_OK(EstimateResourceFromPath(export_dir_, &actual));

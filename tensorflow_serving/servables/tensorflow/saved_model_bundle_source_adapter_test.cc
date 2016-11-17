@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.h"
 
 #include <memory>
 #include <string>
@@ -22,7 +22,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
+#include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow_serving/core/loader.h"
@@ -40,22 +40,17 @@ namespace {
 
 using test_util::EqualsProto;
 
-class SessionBundleSourceAdapterTest : public ::testing::Test {
+class SavedModelBundleSourceAdapterTest : public ::testing::Test {
  protected:
-  SessionBundleSourceAdapterTest()
-      : export_dir_(test_util::GetTestSessionBundleExportPath()) {}
-
-  // Test data path, to be initialized to point at an export of half-plus-two.
-  const string export_dir_;
-
-  void TestSessionBundleSourceAdapter(
-      const SessionBundleSourceAdapterConfig& config) const {
+  void TestSavedModelBundleSourceAdapter(
+      const SessionBundleSourceAdapterConfig& config,
+      const string& export_dir) const {
     std::unique_ptr<Loader> loader;
     {
-      std::unique_ptr<SessionBundleSourceAdapter> adapter;
-      TF_CHECK_OK(SessionBundleSourceAdapter::Create(config, &adapter));
+      std::unique_ptr<SavedModelBundleSourceAdapter> adapter;
+      TF_CHECK_OK(SavedModelBundleSourceAdapter::Create(config, &adapter));
       ServableData<std::unique_ptr<Loader>> loader_data =
-          test_util::RunSourceAdapter(export_dir_, adapter.get());
+          test_util::RunSourceAdapter(export_dir, adapter.get());
       TF_ASSERT_OK(loader_data.status());
       loader = loader_data.ConsumeDataOrDie();
 
@@ -74,16 +69,22 @@ class SessionBundleSourceAdapterTest : public ::testing::Test {
 
     TF_ASSERT_OK(loader->Load(ResourceAllocation()));
 
-    const SessionBundle* bundle = loader->servable().get<SessionBundle>();
+    const SavedModelBundle* bundle = loader->servable().get<SavedModelBundle>();
     test_util::TestSingleRequest(bundle->session.get());
 
     loader->Unload();
   }
 };
 
-TEST_F(SessionBundleSourceAdapterTest, Basic) {
+TEST_F(SavedModelBundleSourceAdapterTest, Basic) {
   const SessionBundleSourceAdapterConfig config;
-  TestSessionBundleSourceAdapter(config);
+  TestSavedModelBundleSourceAdapter(config, test_util::GetTestSavedModelPath());
+}
+
+TEST_F(SavedModelBundleSourceAdapterTest, BackwardCompatibility) {
+  const SessionBundleSourceAdapterConfig config;
+  TestSavedModelBundleSourceAdapter(
+      config, test_util::GetTestSessionBundleExportPath());
 }
 
 }  // namespace

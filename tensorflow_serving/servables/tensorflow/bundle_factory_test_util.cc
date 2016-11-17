@@ -19,14 +19,34 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/test.h"
 #include "tensorflow_serving/resources/resource_values.h"
+#include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-void BundleFactoryTest::TestSingleRequest(Session* session) const {
+namespace {
+
+const char kTestSavedModelPath[] =
+    "cc/saved_model/testdata/half_plus_two_sharded";
+const char kTestSessionBundleExportPath[] =
+    "session_bundle/example/half_plus_two/00000123";
+
+}  // namespace
+
+string GetTestSavedModelPath() {
+  return io::JoinPath(testing::TensorFlowSrcRoot(), kTestSavedModelPath);
+}
+
+string GetTestSessionBundleExportPath() {
+  return test_util::ContribTestSrcDirPath(kTestSessionBundleExportPath);
+}
+
+void TestSingleRequest(Session* session) {
   Tensor input = test::AsTensor<float>({100.0f, 42.0f}, {2});
   // half plus two: output should be input / 2 + 2.
   Tensor expected_output =
@@ -47,19 +67,17 @@ void BundleFactoryTest::TestSingleRequest(Session* session) const {
   test::ExpectTensorEqual<float>(expected_output, single_output);
 }
 
-void BundleFactoryTest::TestMultipleRequests(int num_requests,
-                                             Session* session) const {
+void TestMultipleRequests(int num_requests, Session* session) {
   std::vector<std::unique_ptr<Thread>> request_threads;
   for (int i = 0; i < num_requests; ++i) {
     request_threads.push_back(
         std::unique_ptr<Thread>(Env::Default()->StartThread(
             ThreadOptions(), strings::StrCat("thread_", i),
-            [this, session] { this->TestSingleRequest(session); })));
+            [session] { TestSingleRequest(session); })));
   }
 }
 
-ResourceAllocation BundleFactoryTest::GetExpectedResourceEstimate(
-    double total_file_size) const {
+ResourceAllocation GetExpectedResourceEstimate(double total_file_size) {
   // kResourceEstimateRAMMultiplier and kResourceEstimateRAMPadBytes should
   // match the constants defined in bundle_factory_util.cc.
   const double kResourceEstimateRAMMultiplier = 1.2;
@@ -80,4 +98,3 @@ ResourceAllocation BundleFactoryTest::GetExpectedResourceEstimate(
 }  // namespace test_util
 }  // namespace serving
 }  // namespace tensorflow
-

@@ -20,7 +20,7 @@
 
 # This is a placeholder for a Google-internal import.
 
-from grpc.beta import implementations
+from grpc.google.beta import implementations
 import tensorflow as tf
 
 from tensorflow_serving.apis import predict_pb2

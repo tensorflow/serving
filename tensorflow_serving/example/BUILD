@@ -48,6 +48,7 @@ py_binary(
         ":mnist_input_data",
         "//tensorflow_serving/apis:predict_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        "//third_party/py/grpc/google",
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )
@@ -72,6 +73,7 @@ py_binary(
     deps = [
         "//tensorflow_serving/apis:predict_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        "//third_party/py/grpc/google",
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )

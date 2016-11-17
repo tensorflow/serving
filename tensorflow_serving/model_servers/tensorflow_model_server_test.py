@@ -27,10 +27,10 @@ import time
 
 # This is a placeholder for a Google-internal import.
 
-from grpc import *
-from grpc.beta import implementations
-from grpc.beta import interfaces as beta_interfaces
-from grpc.framework.interfaces.face import face
+from grpc.google import *
+from grpc.google.beta import implementations
+from grpc.google.beta import interfaces as beta_interfaces
+from grpc.google.framework.interfaces.face import face
 import tensorflow as tf
 
 from tensorflow.core.framework import types_pb2

@@ -19,37 +19,28 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/resources/resources.pb.h"
-#include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-// Base class of tests related to bundle factories. It contains functions to
-// run requests for a half plus model and estimate its resource usage.
-class BundleFactoryTest : public ::testing::Test {
- public:
-  virtual ~BundleFactoryTest() = default;
+// Returns the path of the Saved Model (the pb version) for the half plus two
+// model.
+string GetTestSavedModelPath();
 
- protected:
-  BundleFactoryTest()
-      : export_dir_(test_util::ContribTestSrcDirPath(
-            "session_bundle/example/half_plus_two/00000123")) {}
+// Returns the Session Bundle export path for the half plus two model.
+string GetTestSessionBundleExportPath();
 
-  // Test that a Session handles a single request for the half plus two
-  // model properly. The request has size=2, for batching purposes.
-  void TestSingleRequest(Session* session) const;
+// Test that a Session handles a single request for the half plus two
+// model properly. The request has size=2, for batching purposes.
+void TestSingleRequest(Session* session);
 
-  // Test that a Session handles multiple concurrent requests for the half plus
-  // two model properly. The request has size=2, for batching purposes.
-  void TestMultipleRequests(int num_requests, Session* session) const;
+// Test that a Session handles multiple concurrent requests for the half plus
+// two model properly. The request has size=2, for batching purposes.
+void TestMultipleRequests(int num_requests, Session* session);
 
-  // Returns the expected resource estimate for the given total file size.
-  ResourceAllocation GetExpectedResourceEstimate(double total_file_size) const;
-
-  // Test data path, to be initialized to point at an export of half-plus-two.
-  const string export_dir_;
-};
+// Returns the expected resource estimate for the given total file size.
+ResourceAllocation GetExpectedResourceEstimate(double total_file_size);
 
 }  // namespace test_util
 }  // namespace serving

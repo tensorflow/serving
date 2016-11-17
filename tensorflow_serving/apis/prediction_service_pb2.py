@@ -43,10 +43,10 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 DESCRIPTOR.has_options = True
 DESCRIPTOR._options = _descriptor._ParseOptions(descriptor_pb2.FileOptions(),
                                                 _b('\370\001\001'))
-from grpc.beta import implementations as beta_implementations
-from grpc.beta import interfaces as beta_interfaces
-from grpc.framework.common import cardinality
-from grpc.framework.interfaces.face import utilities as face_utilities
+from grpc.google.beta import implementations as beta_implementations
+from grpc.google.beta import interfaces as beta_interfaces
+from grpc.google.framework.common import cardinality
+from grpc.google.framework.interfaces.face import utilities as face_utilities
 
 
 class BetaPredictionServiceServicer(object):
