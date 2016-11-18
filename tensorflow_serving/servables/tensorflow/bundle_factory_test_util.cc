@@ -19,9 +19,7 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
-#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/env.h"
-#include "tensorflow/core/platform/test.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
@@ -39,7 +37,7 @@ const char kTestSessionBundleExportPath[] =
 }  // namespace
 
 string GetTestSavedModelPath() {
-  return io::JoinPath(testing::TensorFlowSrcRoot(), kTestSavedModelPath);
+  return test_util::TensorflowTestSrcDirPath(kTestSavedModelPath);
 }
 
 string GetTestSessionBundleExportPath() {

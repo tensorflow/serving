@@ -90,7 +90,6 @@ cc_library(
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/test_util",
-        "//testing/base/public:gunit_for_library",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -106,7 +105,6 @@ cc_library(
     deps = [
         ":bundle_factory_test_util",
         ":session_bundle_config_proto",
-        "//external:gtest",
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/core:core_cpu",
