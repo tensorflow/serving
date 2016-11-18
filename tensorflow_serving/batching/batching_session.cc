@@ -128,6 +128,8 @@ Status BatchingSession::Run(
         "BatchingSession does not support target nodes");
   }
 
+  outputs->clear();
+
   Notification done;
   Status status;
   auto task = std::unique_ptr<BatchingSessionTask>(new BatchingSessionTask);
