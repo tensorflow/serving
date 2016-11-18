@@ -363,12 +363,14 @@ Status BasicManager::StopManagingServable(const ServableId& id) {
                                       id.DebugString());
   }
   const auto state = it->second->state();
-  if (state != LoaderHarness::State::kError &&
+  if (state != LoaderHarness::State::kNew &&
+      state != LoaderHarness::State::kError &&
       state != LoaderHarness::State::kDisabled) {
     LOG(ERROR) << "Request to delete harness for " << id
-               << ", but it is not in an end state. State: " << state;
+               << ", but it is not in a new or end state. State: " << state;
     return errors::FailedPrecondition(
-        "This servable is not in an end state and we cannot stop managing it: ",
+        "This servable is not in a new or end state and we cannot stop "
+        "managing it: ",
         id.DebugString(), " ", LoaderHarness::StateDebugString(state));
   }
   managed_map_.erase(it);

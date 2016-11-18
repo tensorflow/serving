@@ -34,6 +34,10 @@ template <typename T>
 T CreateProto(const string& textual_proto);
 
 // Return an absolute runfiles srcdir given a path relative to
+// tensorflow.
+string TensorflowTestSrcDirPath(const string& relative_path);
+
+// Return an absolute runfiles srcdir given a path relative to
 // tensorflow/contrib.
 string ContribTestSrcDirPath(const string& relative_path);
 

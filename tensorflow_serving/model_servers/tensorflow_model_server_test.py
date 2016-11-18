@@ -27,7 +27,6 @@ import time
 
 # This is a placeholder for a Google-internal import.
 
-from grpc import *
 from grpc.beta import implementations
 from grpc.beta import interfaces as beta_interfaces
 from grpc.framework.interfaces.face import face

@@ -992,6 +992,56 @@ TEST_P(AspiredVersionsManagerTest,
   second_load_called.WaitForNotification();
 }
 
+TEST_P(AspiredVersionsManagerTest, UnaspireNewServableThenImmediatelyReaspire) {
+  // Like UnaspireThenImmediatelyReaspire, but covers the case in which the
+  // servable is in state kNew when it gets unaspired.
+  // (Regression test for b/27766674.)
+
+  const ServableId id = {kServableName, 7};
+
+  std::vector<ServableData<std::unique_ptr<Loader>>> first_aspired_versions;
+  test_util::MockLoader* first_loader = new NiceMock<test_util::MockLoader>();
+  EXPECT_CALL(*first_loader, Load(_)).Times(0);
+  first_aspired_versions.push_back({id, std::unique_ptr<Loader>(first_loader)});
+  manager_->GetAspiredVersionsCallback()(kServableName,
+                                         std::move(first_aspired_versions));
+  HandlePendingAspiredVersionsRequests();
+  // (We *don't* call InvokePolicyAndExecuteAction(), thus causing the servable
+  // to remain in state kNew.)
+
+  // Now, we'll un-aspire the servable, and then re-aspire it with a new loader.
+  // The manager should get rid of the first loader, then bring up the second
+  // one.
+
+  std::vector<ServableData<std::unique_ptr<Loader>>> empty_aspired_versions;
+  manager_->GetAspiredVersionsCallback()(kServableName,
+                                         std::move(empty_aspired_versions));
+  HandlePendingAspiredVersionsRequests();
+
+  // Re-aspire the servable with a fresh loader.
+  std::vector<ServableData<std::unique_ptr<Loader>>> second_aspired_versions;
+  test_util::MockLoader* second_loader = new NiceMock<test_util::MockLoader>();
+  second_aspired_versions.push_back(
+      {id, std::unique_ptr<Loader>(second_loader)});
+  Notification second_load_called;
+  EXPECT_CALL(*second_loader, Load(_)).WillOnce(InvokeWithoutArgs([&]() {
+    second_load_called.Notify();
+    return Status::OK();
+  }));
+  manager_->GetAspiredVersionsCallback()(kServableName,
+                                         std::move(second_aspired_versions));
+  // The first HandlePendingAspiredVersionsRequests() call will do nothing,
+  // because the first loader remains in the manager (with state kNew).
+  HandlePendingAspiredVersionsRequests();
+  // FlushServables() should remove the first loader, thus clearing the way for
+  // a subsequent HandlePendingAspiredVersionsRequests() call to accept the
+  // second loader.
+  FlushServables();
+  HandlePendingAspiredVersionsRequests();
+  InvokePolicyAndExecuteAction();
+  second_load_called.WaitForNotification();
+}
+
 class MockAspiredVersionPolicy : public AspiredVersionPolicy {
  public:
   MOCK_CONST_METHOD1(GetNextAction,
