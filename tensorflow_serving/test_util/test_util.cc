@@ -23,10 +23,15 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-string ContribTestSrcDirPath(const string& relative_path) {
+string TensorflowTestSrcDirPath(const string& relative_path) {
   const string base_path = tensorflow::io::JoinPath(  //
       getenv("TEST_SRCDIR"),                              //
-      "tf_serving/external/org_tensorflow/tensorflow/contrib/");
+      "tf_serving/external/org_tensorflow/tensorflow/");
+  return tensorflow::io::JoinPath(base_path, relative_path);
+}
+
+string ContribTestSrcDirPath(const string& relative_path) {
+  const string base_path = TensorflowTestSrcDirPath("contrib/");
   return tensorflow::io::JoinPath(base_path, relative_path);
 }
 
