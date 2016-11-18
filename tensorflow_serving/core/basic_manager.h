@@ -171,7 +171,8 @@ class BasicManager : public Manager {
       std::unique_ptr<T> additional_state);
 
   // Tells the manager to stop managing this servable. Requires that the
-  // servable is currently being managed and that its state is kEnd.
+  // servable is currently being managed and that its state is one of {kNew,
+  // kError, kDisabled}.
   Status StopManagingServable(const ServableId& id);
 
   // Returns the names of all the servables managed by this manager. The names

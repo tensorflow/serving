@@ -13,8 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/servables/tensorflow/session_bundle_factory.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
 
+#include "tensorflow/cc/saved_model/tag_constants.h"
+#include "tensorflow/contrib/session_bundle/bundle_shim.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/public/session_options.h"
@@ -23,29 +25,29 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status SessionBundleFactory::Create(
+Status SavedModelBundleFactory::Create(
     const SessionBundleConfig& config,
-    std::unique_ptr<SessionBundleFactory>* factory) {
+    std::unique_ptr<SavedModelBundleFactory>* factory) {
   std::shared_ptr<Batcher> batcher;
   if (config.has_batching_parameters()) {
     TF_RETURN_IF_ERROR(
         CreateBatchScheduler(config.batching_parameters(), &batcher));
   }
-  factory->reset(new SessionBundleFactory(config, batcher));
+  factory->reset(new SavedModelBundleFactory(config, batcher));
   return Status::OK();
 }
 
-Status SessionBundleFactory::EstimateResourceRequirement(
+Status SavedModelBundleFactory::EstimateResourceRequirement(
     const string& path, ResourceAllocation* estimate) const {
   return EstimateResourceFromPath(path, estimate);
 }
 
-Status SessionBundleFactory::CreateSessionBundle(
-    const string& path, std::unique_ptr<SessionBundle>* bundle) {
-  bundle->reset(new SessionBundle);
-  TF_RETURN_IF_ERROR(LoadSessionBundleFromPathUsingRunOptions(
-      GetSessionOptions(config_), GetRunOptions(config_), path, bundle->get()));
-
+Status SavedModelBundleFactory::CreateSavedModelBundle(
+    const string& path, std::unique_ptr<SavedModelBundle>* bundle) {
+  bundle->reset(new SavedModelBundle);
+  TF_RETURN_IF_ERROR(LoadSessionBundleOrSavedModelBundle(
+      GetSessionOptions(config_), GetRunOptions(config_), path,
+      {kSavedModelTagServe}, bundle->get()));
   if (config_.has_batching_parameters()) {
     LOG(INFO) << "Wrapping session to perform batch processing";
     if (batch_scheduler_ == nullptr) {
@@ -57,7 +59,7 @@ Status SessionBundleFactory::CreateSessionBundle(
   return WrapSession(&(*bundle)->session);
 }
 
-SessionBundleFactory::SessionBundleFactory(
+SavedModelBundleFactory::SavedModelBundleFactory(
     const SessionBundleConfig& config, std::shared_ptr<Batcher> batch_scheduler)
     : config_(config), batch_scheduler_(batch_scheduler) {}
 

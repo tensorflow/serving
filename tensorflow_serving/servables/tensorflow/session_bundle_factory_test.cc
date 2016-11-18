@@ -24,12 +24,11 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/contrib/session_bundle/session_bundle.h"
-#include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
-#include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/public/session.h"
-#include "tensorflow_serving/resources/resource_values.h"
+#include "tensorflow/core/public/version.h"
+#include "tensorflow_serving/servables/tensorflow/bundle_factory_test.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
@@ -39,156 +38,44 @@ namespace {
 
 using test_util::EqualsProto;
 
-class SessionBundleFactoryTest : public ::testing::Test {
- protected:
+class SessionBundleFactoryTest : public test_util::BundleFactoryTest {
+ public:
   SessionBundleFactoryTest()
-      : export_dir_(test_util::ContribTestSrcDirPath(
-            "session_bundle/example/half_plus_two/00000123")) {}
+      : test_util::BundleFactoryTest(
+            test_util::GetTestSessionBundleExportPath()) {}
 
-  // Test data path, to be initialized to point at an export of half-plus-two.
-  const string export_dir_;
+  virtual ~SessionBundleFactoryTest() = default;
 
-  // Test that a SessionBundle handles a single request for the half plus two
-  // model properly. The request has size=2, for batching purposes.
-  void TestSingleRequest(SessionBundle* bundle) {
-    Tensor input = test::AsTensor<float>({100.0f, 42.0f}, {2});
-    // half plus two: output should be input / 2 + 2.
-    Tensor expected_output =
-        test::AsTensor<float>({100.0f / 2 + 2, 42.0f / 2 + 2}, {2});
-
-    // Note that "x" and "y" are the actual names of the nodes in the graph.
-    // The saved manifest binds these to "input" and "output" respectively, but
-    // these tests are focused on the raw underlying session without bindings.
-    const std::vector<std::pair<string, Tensor>> inputs = {{"x", input}};
-    const std::vector<string> output_names = {"y"};
-    const std::vector<string> empty_targets;
-    std::vector<Tensor> outputs;
-
-    TF_ASSERT_OK(
-        bundle->session->Run(inputs, output_names, empty_targets, &outputs));
-
-    ASSERT_EQ(1, outputs.size());
-    const auto& single_output = outputs.at(0);
-    test::ExpectTensorEqual<float>(expected_output, single_output);
+ private:
+  Status CreateSession(const SessionBundleConfig& config,
+                       std::unique_ptr<Session>* session) const override {
+    std::unique_ptr<SessionBundleFactory> factory;
+    TF_RETURN_IF_ERROR(SessionBundleFactory::Create(config, &factory));
+    std::unique_ptr<SessionBundle> bundle;
+    TF_RETURN_IF_ERROR(factory->CreateSessionBundle(export_dir_, &bundle));
+    *session = std::move(bundle->session);
+    return Status::OK();
   }
 };
 
-TEST_F(SessionBundleFactoryTest, Basic) {
-  const SessionBundleConfig config;
-  std::unique_ptr<SessionBundleFactory> factory;
-  TF_ASSERT_OK(SessionBundleFactory::Create(config, &factory));
-  std::unique_ptr<SessionBundle> bundle;
-  TF_ASSERT_OK(factory->CreateSessionBundle(export_dir_, &bundle));
-  TestSingleRequest(bundle.get());
-}
+TEST_F(SessionBundleFactoryTest, Basic) { TestBasic(); }
 
-TEST_F(SessionBundleFactoryTest, Batching) {
-  SessionBundleConfig config;
-  BatchingParameters* batching_params = config.mutable_batching_parameters();
-  batching_params->mutable_max_batch_size()->set_value(2);
-  batching_params->mutable_max_enqueued_batches()->set_value(INT_MAX);
-  std::unique_ptr<SessionBundleFactory> factory;
-  TF_ASSERT_OK(SessionBundleFactory::Create(config, &factory));
-  std::unique_ptr<SessionBundle> bundle;
-  TF_ASSERT_OK(factory->CreateSessionBundle(export_dir_, &bundle));
-  SessionBundle* bundle_raw = bundle.get();
-
-  // Run multiple requests concurrently. They should be executed as
-  // 'kNumRequestsToTest/2' batches.
-  {
-    const int kNumRequestsToTest = 10;
-    std::vector<std::unique_ptr<Thread>> request_threads;
-    for (int i = 0; i < kNumRequestsToTest; ++i) {
-      request_threads.push_back(
-          std::unique_ptr<Thread>(Env::Default()->StartThread(
-              ThreadOptions(), strings::StrCat("thread_", i),
-              [this, bundle_raw] { this->TestSingleRequest(bundle_raw); })));
-    }
-  }
-}
-
-TEST_F(SessionBundleFactoryTest, BatchingConfigError) {
-  SessionBundleConfig config;
-  BatchingParameters* batching_params = config.mutable_batching_parameters();
-  batching_params->mutable_max_batch_size()->set_value(2);
-  // The last entry in 'allowed_batch_sizes' is supposed to equal
-  // 'max_batch_size'. Let's violate that constraint and ensure we get an error.
-  batching_params->add_allowed_batch_sizes(1);
-  batching_params->add_allowed_batch_sizes(3);
-  std::unique_ptr<SessionBundleFactory> factory;
-  EXPECT_FALSE(SessionBundleFactory::Create(config, &factory).ok());
-}
-
-TEST_F(SessionBundleFactoryTest, EstimateResourceRequirementWithBadExport) {
-  const SessionBundleConfig config;
-  std::unique_ptr<SessionBundleFactory> factory;
-  TF_ASSERT_OK(SessionBundleFactory::Create(config, &factory));
-  ResourceAllocation resource_requirement;
-  const Status status = factory->EstimateResourceRequirement(
-      "/a/bogus/export/dir", &resource_requirement);
-  EXPECT_FALSE(status.ok());
-}
+TEST_F(SessionBundleFactoryTest, Batching) { TestBatching(); }
 
 TEST_F(SessionBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
-  const double kTotalFileSize = 13392.5;
-  const uint64 expected_ram_requirement =
-      kTotalFileSize * SessionBundleFactory::kResourceEstimateRAMMultiplier +
-      SessionBundleFactory::kResourceEstimateRAMPadBytes;
-  ResourceAllocation want;
-  ResourceAllocation::Entry* ram_entry = want.add_resource_quantities();
-  Resource* ram_resource = ram_entry->mutable_resource();
-  ram_resource->set_device(device_types::kMain);
-  ram_resource->set_kind(resource_kinds::kRamBytes);
-  ram_entry->set_quantity(expected_ram_requirement);
-
-  const SessionBundleConfig config;
-  std::unique_ptr<SessionBundleFactory> factory;
-  TF_ASSERT_OK(SessionBundleFactory::Create(config, &factory));
-  ResourceAllocation got;
-  TF_ASSERT_OK(factory->EstimateResourceRequirement(export_dir_, &got));
-
-  EXPECT_THAT(got, EqualsProto(want));
+  // The length of the file's version strings might change, so we don't
+  // hardcode their size.  They are 4 bytes for tags & size, plus the actual
+  // length of the strings.
+  const double kVersionSize =
+      4 + strlen(TF_VERSION_STRING) + strlen(tf_git_version());
+  const double kTotalFileSize = 13392.5 + kVersionSize;
+  TestEstimateResourceRequirementWithGoodExport<SessionBundleFactory>(
+      kTotalFileSize);
 }
 
-TEST_F(SessionBundleFactoryTest, RunOptions) {
-  SessionBundleConfig config;
+TEST_F(SessionBundleFactoryTest, RunOptions) { TestRunOptions(); }
 
-  // Configure the session-config with two threadpools. The first is setup with
-  // default settings. The second is explicitly setup with 1 thread.
-  config.mutable_session_config()->add_session_inter_op_thread_pool();
-  config.mutable_session_config()
-      ->add_session_inter_op_thread_pool()
-      ->set_num_threads(1);
-
-  // Set the threadpool index to use for session-run calls to 1.
-  config.mutable_session_run_load_threadpool_index()->set_value(1);
-
-  std::unique_ptr<SessionBundleFactory> factory;
-  TF_ASSERT_OK(SessionBundleFactory::Create(config, &factory));
-
-  // Since the session_run_load_threadpool_index in the config is set, the
-  // session-bundle should be loaded successfully from path with RunOptions.
-  std::unique_ptr<SessionBundle> bundle;
-  TF_ASSERT_OK(factory->CreateSessionBundle(export_dir_, &bundle));
-
-  TestSingleRequest(bundle.get());
-}
-
-TEST_F(SessionBundleFactoryTest, RunOptionsError) {
-  // Session bundle config with the default global threadpool.
-  SessionBundleConfig config;
-
-  // Invalid threadpool index to use for session-run calls.
-  config.mutable_session_run_load_threadpool_index()->set_value(100);
-
-  std::unique_ptr<SessionBundleFactory> factory;
-  TF_ASSERT_OK(SessionBundleFactory::Create(config, &factory));
-
-  // Since RunOptions used in the session run calls refers to an invalid
-  // threadpool index, load session bundle from path should fail.
-  std::unique_ptr<SessionBundle> bundle;
-  EXPECT_FALSE(factory->CreateSessionBundle(export_dir_, &bundle).ok());
-}
+TEST_F(SessionBundleFactoryTest, RunOptionsError) { TestRunOptionsError(); }
 
 }  // namespace
 }  // namespace serving

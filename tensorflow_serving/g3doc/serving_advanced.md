@@ -89,18 +89,25 @@ TensorFlow Serving `ServerCore`, which internally wraps an
 int main(int argc, char** argv) {
   ...
 
+  ServerCore::Options options;
+  options.model_server_config = model_server_config;
+  options.source_adaptor_creator = [source_adapter_config](
+      const string& platform_type,
+      std::unique_ptr<ModelServerSourceAdapter>* adapter) {
+    return CreateSourceAdapter(source_adapter_config, platform_type, adapter);
+  };
+  options.servable_state_monitor_creator = &CreateServableStateMonitor;
+  options.custom_model_config_loader = &LoadCustomModelConfig;
   std::unique_ptr<ServerCore> core;
-  TF_CHECK_OK(ServerCore::Create(
-      config, std::bind(CreateSourceAdapter, source_adapter_config,
-                        std::placeholders::_1, std::placeholders::_2),
-      &CreateServableStateMonitor, &LoadDynamicModelConfig, &core));
+  TF_CHECK_OK(ServerCore::Create(options, &core));
   RunServer(port, std::move(core));
 
   return 0;
 }
 ~~~
 
-`ServerCore::Create()` takes four parameters:
+`ServerCore::Create()` takes a ServerCore::Options parameter. Here are a few
+commonly used options:
 
   * `ModelServerConfig` that specifies models to be loaded. Models are declared
   either through `model_config_list`, which declares a static list of models, or
@@ -109,19 +116,8 @@ int main(int argc, char** argv) {
   * `SourceAdapterCreator` that creates the `SourceAdapter`, which adapts
   `StoragePath` (the path where a model version is discovered) to model
   `Loader` (loads the model version from storage path and provides state
-  transition interfaces to the `Manager`). In this case, `CreateSourceAdapter`
-  creates `SessionBundleSourceAdapter`, which we will explain later.
-  * `ServableStateMonitorCreator` that creates `ServableStateMonitor`, which
-  keeps track for `Servable` (model version) state transition and provides a
-  query interface to the user. In this case, `CreateServableStateMonitor`
-  creates the base `ServableStateMonitor`, which keeps track of servable states
-  in memory. You can extend it to add state tracking capabilities (e.g. persists
-  state change to disk, remote server, etc.)
-  * `DynamicModelConfigLoader` that loads models from `dynamic_model_config`.
-  The standard TensorFlow model server supports only `model_config_list` for
-  now and therefore `LoadDynamicModelConfig` CHECK-fails when called. You can
-  extend it to add dynamic model discovery/loading capabilities (e.g. through
-  RPC, external service, etc.)
+  transition interfaces to the `Manager`). If not specified, a
+  `SessionBundleSourceAdapter` will be created, which we will explain later.
 
 `SessionBundle` is a key component of TensorFlow Serving. It represents a
 TensorFlow model loaded from a given path and provides the same `Session::Run`
@@ -140,7 +136,8 @@ With all these, `ServerCore` internally does the following:
   to a `Loader<SessionBundle>`.
   * Instantiates a specific implementation of `Manager` called
   `AspiredVersionsManager` that manages all such `Loader` instances created by
-  the `SessionBundleSourceAdapter`.
+  the `SessionBundleSourceAdapter`. `ServerCore` exports the `Manager` interface
+  by delegating the calls to `AspiredVersionsManager`.
 
 Whenever a new version is available, this `AspiredVersionsManager` loads the new
 version, and under its default behavior unloads the old one. If you want to
@@ -149,14 +146,14 @@ creates internally, and how to configure them.
 
 It is worth mentioning that TensorFlow Serving is designed from scratch to be
 very flexible and extensible. You can build various plugins to customize system
-behavior, while taking advantage of generic core components like
-`AspiredVersionsManager`. For example, you could build a data source plugin that
-monitors cloud storage instead of local storage, or you could build a version
-policy plugin that does version transition in a different way -- in fact, you
-could even build a custom model plugin that serves non-TensorFlow models. These
-topics are out of scope for this tutorial. However, you can refer to the
-[custom source](custom_source.md) and [custom servable](custom_servable.md)
-tutorials for more information.
+behavior, while taking advantage of generic core components like `ServerCore`
+and `AspiredVersionsManager`. For example, you could build a data source plugin
+that monitors cloud storage instead of local storage, or you could build a
+version policy plugin that does version transition in a different way -- in
+fact, you could even build a custom model plugin that serves non-TensorFlow
+models. These topics are out of scope for this tutorial. However, you can refer
+to the [custom source](custom_source.md) and [custom servable]
+(custom_servable.md) tutorials for more information.
 
 ## Batching
 
