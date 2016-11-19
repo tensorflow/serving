@@ -384,3 +384,25 @@ cc_library(
         "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
 )
+
+cc_test(
+    name = "predict_impl_test",
+    size = "medium",
+    srcs = ["predict_impl_test.cc"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
+        "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
+    ],
+    deps = [
+        ":predict_impl",
+        "//tensorflow_serving/core:eager_load_policy",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/model_servers:model_platform_types",
+        "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/resources:resources_proto",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:test",
+    ],
+)

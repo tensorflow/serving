@@ -161,9 +161,13 @@ class ServerCore : public Manager {
   Status GetServableHandle(const ModelSpec& model_spec,
                            ServableHandle<T>* const handle) {
     ServableRequest servable_request;
-    ServableRequestFromModelSpec(model_spec, &servable_request);
-    const tensorflow::Status status =
-        manager_->GetServableHandle(servable_request, handle);
+    tensorflow::Status status =
+        ServableRequestFromModelSpec(model_spec, &servable_request);
+    if (!status.ok()) {
+      VLOG(1) << "Unable to get servable handle due to: " << status;
+      return status;
+    }
+    status = manager_->GetServableHandle(servable_request, handle);
     if (!status.ok()) {
       VLOG(1) << "Unable to get servable handle due to: " << status;
       return status;
