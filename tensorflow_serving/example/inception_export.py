@@ -20,6 +20,8 @@ The model is exported with proper signatures that can be loaded by standard
 tensorflow_model_server.
 """
 
+from __future__ import print_function
+
 import os.path
 
 # This is a placeholder for a Google-internal import.
@@ -108,7 +110,7 @@ def export():
         print('Successfully loaded model from %s at step=%s.' %
               (ckpt.model_checkpoint_path, global_step))
       else:
-        print 'No checkpoint file found at %s' % FLAGS.checkpoint_dir
+        print('No checkpoint file found at %s' % FLAGS.checkpoint_dir)
         return
 
       # Export inference model.
@@ -129,7 +131,7 @@ def export():
           default_graph_signature=classification_signature,
           named_graph_signatures=named_graph_signature)
       model_exporter.export(FLAGS.export_dir, tf.constant(global_step), sess)
-      print 'Successfully exported model to %s' % FLAGS.export_dir
+      print('Successfully exported model to %s' % FLAGS.export_dir)
 
 
 def preprocess_image(image_buffer):

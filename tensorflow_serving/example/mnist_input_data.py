@@ -17,6 +17,8 @@
 
 """Functions for downloading and reading MNIST data."""
 
+from __future__ import print_function
+
 import gzip
 import os
 
@@ -39,7 +41,7 @@ def maybe_download(filename, work_directory):
   if not os.path.exists(filepath):
     filepath, _ = urllib.request.urlretrieve(SOURCE_URL + filename, filepath)
     statinfo = os.stat(filepath)
-    print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
+    print('Successfully downloaded %s %d bytes.' % (filename, statinfo.st_size))
   return filepath
 
 
@@ -50,7 +52,7 @@ def _read32(bytestream):
 
 def extract_images(filename):
   """Extract the images into a 4D uint8 numpy array [index, y, x, depth]."""
-  print('Extracting', filename)
+  print('Extracting %s' % filename)
   with gzip.open(filename) as bytestream:
     magic = _read32(bytestream)
     if magic != 2051:
@@ -77,7 +79,7 @@ def dense_to_one_hot(labels_dense, num_classes=10):
 
 def extract_labels(filename, one_hot=False):
   """Extract the labels into a 1D uint8 numpy array [index]."""
-  print('Extracting', filename)
+  print('Extracting %s' % filename)
   with gzip.open(filename) as bytestream:
     magic = _read32(bytestream)
     if magic != 2049:
@@ -144,8 +146,9 @@ class DataSet(object):
         fake_label = [1] + [0] * 9
       else:
         fake_label = 0
-      return [fake_image for _ in xrange(batch_size)], [
-          fake_label for _ in xrange(batch_size)]
+      return [fake_image for _ in range(batch_size)], [
+          fake_label for _ in range(batch_size)
+      ]
     start = self._index_in_epoch
     self._index_in_epoch += batch_size
     if self._index_in_epoch > self._num_examples:

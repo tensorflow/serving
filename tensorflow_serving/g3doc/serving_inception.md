@@ -227,10 +227,10 @@ along with an
 [External Load Balancer](http://kubernetes.io/docs/user-guide/load-balancer/).
 
 We create them using the example Kubernetes config
-[inception_k8s.json](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/inception_k8s.json).
+[inception_k8s.yaml](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/inception_k8s.yaml).
 
 ```shell
-$ kubectl create -f tensorflow_serving/example/inception_k8s.json
+$ kubectl create -f tensorflow_serving/example/inception_k8s.yaml
 deployment "inception-deployment" created
 service "inception-service" created
 ```
