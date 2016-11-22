@@ -96,20 +96,24 @@ namespace internal {
 // A SourceAdapter that passes through data unchanged. Used to implement the
 // output ports.
 template <typename T>
-class IdentitySourceAdapter final : public UnarySourceAdapter<T, T> {
+class IdentitySourceAdapter final : public SourceAdapter<T, T> {
  public:
   IdentitySourceAdapter() = default;
   ~IdentitySourceAdapter() override { TargetBase<T>::Detach(); }
 
- protected:
-  Status Convert(const T& data, T* converted_data) override {
-    *converted_data = data;
-    return Status::OK();
-  }
-
  private:
+  std::vector<ServableData<T>> Adapt(
+      const StringPiece servable_name,
+      std::vector<ServableData<T>> versions) final;
+
   TF_DISALLOW_COPY_AND_ASSIGN(IdentitySourceAdapter);
 };
+
+template <typename T>
+std::vector<ServableData<T>> IdentitySourceAdapter<T>::Adapt(
+    const StringPiece servable_name, std::vector<ServableData<T>> versions) {
+  return versions;
+}
 
 }  // namespace internal
 
