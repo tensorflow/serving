@@ -23,6 +23,7 @@ limitations under the License.
 #include "tensorflow_serving/core/load_servables_fast.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/resources/resource_values.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
@@ -85,7 +86,7 @@ Status ValidateAllListedModelsAreOfSamePlatform(const ModelServerConfig& config,
 Status ServerCore::Create(Options options,
                           std::unique_ptr<ServerCore>* server_core) {
   if (options.source_adapter_creator == nullptr) {
-    options.source_adapter_creator = [](
+    options.source_adapter_creator = [&options](
         const string& model_platform,
         std::unique_ptr<ServerCore::ModelServerSourceAdapter>* adapter) {
       SessionBundleSourceAdapterConfig source_adapter_config;
@@ -93,10 +94,17 @@ Status ServerCore::Create(Options options,
         return errors::InvalidArgument(
             "ModelServer supports only TensorFlow model.");
       }
-      std::unique_ptr<SessionBundleSourceAdapter> typed_adapter;
-      TF_RETURN_IF_ERROR(SessionBundleSourceAdapter::Create(
-          source_adapter_config, &typed_adapter));
-      *adapter = std::move(typed_adapter);
+      if (options.use_saved_model) {
+        std::unique_ptr<SavedModelBundleSourceAdapter> typed_adapter;
+        TF_RETURN_IF_ERROR(SavedModelBundleSourceAdapter::Create(
+            source_adapter_config, &typed_adapter));
+        *adapter = std::move(typed_adapter);
+      } else {
+        std::unique_ptr<SessionBundleSourceAdapter> typed_adapter;
+        TF_RETURN_IF_ERROR(SessionBundleSourceAdapter::Create(
+            source_adapter_config, &typed_adapter));
+        *adapter = std::move(typed_adapter);
+      }
       return Status::OK();
     };
   }

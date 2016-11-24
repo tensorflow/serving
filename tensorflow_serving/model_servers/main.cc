@@ -66,6 +66,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
 
 using tensorflow::serving::AspiredVersionsManager;
@@ -80,6 +81,7 @@ using tensorflow::serving::Loader;
 using tensorflow::serving::ModelServerConfig;
 using tensorflow::serving::ServableState;
 using tensorflow::serving::ServerCore;
+using tensorflow::serving::SavedModelBundleSourceAdapter;
 using tensorflow::serving::SessionBundleSourceAdapter;
 using tensorflow::serving::SessionBundleSourceAdapterConfig;
 using tensorflow::serving::Target;
@@ -101,18 +103,29 @@ namespace {
 
 tensorflow::Status CreateSourceAdapter(
     const SessionBundleSourceAdapterConfig& config,
-    const string& model_platform,
+    const string& model_platform, bool use_saved_model,
     std::unique_ptr<ServerCore::ModelServerSourceAdapter>* adapter) {
   CHECK(model_platform == kTensorFlowModelPlatform)  // Crash ok
       << "ModelServer supports only TensorFlow model.";
-  std::unique_ptr<SessionBundleSourceAdapter> typed_adapter;
-  const ::tensorflow::Status status =
-      SessionBundleSourceAdapter::Create(config, &typed_adapter);
-  if (!status.ok()) {
-    VLOG(1) << "Error creating source adapter: " << status.error_message();
-    return status;
+  if (use_saved_model) {
+    std::unique_ptr<SavedModelBundleSourceAdapter> typed_adapter;
+    const ::tensorflow::Status status =
+        SavedModelBundleSourceAdapter::Create(config, &typed_adapter);
+    if (!status.ok()) {
+      VLOG(1) << "Error creating source adapter: " << status.error_message();
+      return status;
+    }
+    *adapter = std::move(typed_adapter);
+  } else {
+    std::unique_ptr<SessionBundleSourceAdapter> typed_adapter;
+    const ::tensorflow::Status status =
+        SessionBundleSourceAdapter::Create(config, &typed_adapter);
+    if (!status.ok()) {
+      VLOG(1) << "Error creating source adapter: " << status.error_message();
+      return status;
+    }
+    *adapter = std::move(typed_adapter);
   }
-  *adapter = std::move(typed_adapter);
   return tensorflow::Status::OK();
 }
 
@@ -195,6 +208,7 @@ int main(int argc, char** argv) {
   tensorflow::string model_name = "default";
   tensorflow::int32 file_system_poll_wait_seconds = 1;
   tensorflow::string model_base_path;
+  bool use_saved_model = false;
   tensorflow::string model_version_policy =
       FileSystemStoragePathSourceConfig_VersionPolicy_Name(
           FileSystemStoragePathSourceConfig::LATEST_VERSION);
@@ -214,7 +228,12 @@ int main(int argc, char** argv) {
                        "interval in seconds between each poll of the file "
                        "system for new model version"),
       tensorflow::Flag("model_base_path", &model_base_path,
-                       "path to export (required)")};
+                       "path to export (required)"),
+      tensorflow::Flag("use_saved_model", &use_saved_model,
+                       "If true, use SavedModel in the server; otherwise, use "
+                       "SessionBundle. It is used by tensorflow serving team "
+                       "to control the rollout of SavedModel and is not "
+                       "expected to be set by users directly.")};
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
   if (!parse_result || model_base_path.empty()) {
@@ -248,10 +267,13 @@ int main(int argc, char** argv) {
     batching_parameters->mutable_thread_pool_name()->set_value(
         "model_server_batch_threads");
   }
-  options.source_adapter_creator = [source_adapter_config](
+
+  options.use_saved_model = use_saved_model;
+  options.source_adapter_creator = [source_adapter_config, use_saved_model](
       const string& model_platform,
       std::unique_ptr<ServerCore::ModelServerSourceAdapter>* adapter) {
-    return CreateSourceAdapter(source_adapter_config, model_platform, adapter);
+    return CreateSourceAdapter(source_adapter_config, model_platform,
+                               use_saved_model, adapter);
   };
 
   options.custom_model_config_loader = &LoadCustomModelConfig;

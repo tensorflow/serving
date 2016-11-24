@@ -109,8 +109,20 @@ class ServerCore : public Manager {
     // A function for creating ModelServerSourceAdapter based on the
     // 'platform_type'.
     // If not specified, a default creator that creates
-    // SessionBundleSourceAdapter for TensorFlow will be used.
+    // SessionBundleSourceAdapter or SavedModelBundleSourceAdapter for
+    // TensorFlow will be used, depending on use_saved_model.
     SourceAdapterCreator source_adapter_creator;
+
+    // Whether to use SavedModelBundle or SessionBundle. If
+    // source_adapter_creator is not specified, SavedModelBundleSourceAdapter
+    // will be created when this option is true and SessionBundleSourceAdapter
+    // will be created when it is false. If source_adapter_creator is specified,
+    // the creator will be used and this option will be ignored.
+    // This option is used by tensorflow serving team to control the rollout of
+    // SavedModelBundle and is not expected to be set by users directly.
+    // It should always be set to false (except for tests) until
+    // SavedModelBundle is supported by the service API implementation.
+    bool use_saved_model = false;
 
     // A function for creating ServableStateMonitor. If not specified, a default
     // creator that creates ServableStateMonitor will be used.
