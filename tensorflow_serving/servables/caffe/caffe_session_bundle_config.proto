@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+// include TFS session_bundle_config for batching paramaters
+import "tensorflow_serving/servables/tensorflow/session_bundle_config.proto";
+import "tensorflow/core/framework/tensor_shape.proto";
+
+package tensorflow.serving;
+
+// Configuration parameters for a Caffe SessionBundle, with optional batching.
+// Note; Caffe doesn't have the concept of a session bungle (potentially a
+// collection of graphs) but we use the same terminology.
+message CaffeSessionBundleConfig {
+  // Force Caffe to execute in CPU-only mode
+  bool force_cpu_only = 1;
+
+  // Force Caffe to use a particular GPU, if any.
+  int32 force_gpu_id = 2;
+
+  // enable python layers for this session bundle. Only has an effect
+  // when caffe is configured with python layers.
+  bool enable_py_caffe = 4;
+
+  // Append the python module search paths. Only has an effect when
+  // caffe is configured with python layers.
+  repeated string python_path = 5;
+
+  // Initial shape; if set, a loaded network will have its input blob
+  // reshaped before the first request. If the network has more than one
+  // input, this will cause an error.
+  TensorShapeProto initial_shape = 6;
+
+  // same as initial_shape but for specific blobs in the network. Useful for
+  // exotic network architectures with multiple inputs.
+  map<string, TensorShapeProto> named_initial_shapes = 7;
+
+  // If set, each emitted session is wrapped with a layer that schedules Run()
+  // calls in batches. The batching layer is transparent to the client
+  // (implements the tensorflow::Session API).
+  //
+  // IMPORTANT: With batching enabled, client threads will spend most of their
+  // time blocked on Session::Run() calls, waiting for enough peer threads to
+  // also call Session::Run() such that a large batch can be formed. For good
+  // throughput, we recommend setting the number of client threads equal to
+  // roughly twice the maximum batch size ('max_batch_size' below).
+  //
+  // The batching layer uses a SharedBatchScheduler to coordinate batching
+  // across multiple session servables emitted by this source adapter. A
+  // BatchSchedulerRetrier is added on top of each batching session.
+  BatchingParameters batching_parameters = 3;
+}

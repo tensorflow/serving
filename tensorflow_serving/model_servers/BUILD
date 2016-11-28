@@ -85,29 +85,65 @@ SUPPORTED_TENSORFLOW_OPS = [
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
 ]
 
-TENSORFLOW_DEPS = [
-    "@org_tensorflow//tensorflow/core:tensorflow",
-    "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter",
-    "//tensorflow_serving/servables/tensorflow:predict_impl",
+cc_library(
+    name = "model_platform_tensorflow",
+    hdrs = ["model_platform_tensorflow.h"],
+    deps = [
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter",
+        "//tensorflow_serving/servables/tensorflow:predict_impl"
+    ] + SUPPORTED_TENSORFLOW_OPS,
+    defines = ["USE_TENSORFLOW"],
+    visibility = [
+        "//visibility:public",
+    ],
+)
+
+cc_library(
+    name = "model_platform_caffe",
+    hdrs = ["model_platform_caffe.h"],
+    deps = [
+        "//tensorflow_serving/servables/caffe:predict_impl",
+        "//tensorflow_serving/servables/caffe:caffe_source_adapter",
+        "//tensorflow_serving/servables/caffe:caffe_source_adapter_proto",
+    ],
+    defines = ["USE_CAFFE"],
+    visibility = [
+        "//visibility:public",
+    ],
+)
+
+SERVER_DEPS = [
+    ":model_platform_types",
+    ":server_core",
+    "@protobuf//:cc_wkt_protos",
+    "@org_tensorflow//tensorflow/core:lib",
+    "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
+    "//tensorflow_serving/apis:prediction_service_proto",
+    "//tensorflow_serving/config:model_server_config_proto",
+    "//tensorflow_serving/core:eager_load_policy",
+    "@grpc//:grpc++",
 ]
 
+# tensorflow-only model server
 cc_binary(
     name = "tensorflow_model_server",
-    srcs = [
-        "main.cc",
-    ],
+    srcs = ["main.cc"],
     visibility = ["//tensorflow_serving:internal"],
-    deps = [
-        ":model_platform_types",
-        ":server_core",
-        "@protobuf//:cc_wkt_protos",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
-        "//tensorflow_serving/apis:prediction_service_proto",
-        "//tensorflow_serving/config:model_server_config_proto",
-        "//tensorflow_serving/core:eager_load_policy",
-        "@grpc//:grpc++",
-    ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
+    deps = SERVER_DEPS + [
+        ":model_platform_tensorflow"
+    ]
+)
+
+# generic caffe + tensorflow model server
+cc_binary(
+    name = "model_server",
+    srcs = ["main.cc"],
+    visibility = ["//tensorflow_serving:internal"],
+    deps = SERVER_DEPS + [
+        ":model_platform_tensorflow",
+        ":model_platform_caffe"
+    ]
 )
 
 py_test(
