@@ -13,6 +13,10 @@ bool IsPyCaffeAvailable();
 // wrapper module.
 tensorflow::Status EnsurePyCaffeInitialized();
 
+// frees all memory allocated by the Python interpreter. 
+// errors during finalization are ignored.
+tensorflow::Status FinalizePyCaffe();
+
 // Ensure the given path is included in the python
 // module search path (sys.path)
 tensorflow::Status EnsurePyCaffeSystemPath(const string& path);

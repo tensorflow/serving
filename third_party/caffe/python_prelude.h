@@ -3,7 +3,9 @@
 
 extern "C" {
   void Py_Initialize();
+  void Py_InitializeEx(int initsigs);
   void Py_Finalize();
+  int  Py_IsInitialized();
 
   const char* Py_GetVersion();
   char* Py_GetPath();
