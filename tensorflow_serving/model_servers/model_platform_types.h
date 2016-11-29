@@ -16,7 +16,25 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
 
+// individual model platforms should derive from ModelPlatform
+struct ModelPlatform {};
+
+// ModelPlatformTraits should be specialized on a per model-platform basis
+template <typename>
+struct ModelPlatformTraits {
+  static constexpr bool defined = false;
+  static const char* name() { return "undefined"; }
+  static void GlobalInit(int argc, char** argv) {}
+};
+
+// TODO(): merge in to ModelPlatformTraits<TensorFlow>?
 constexpr char kTensorFlowModelPlatform[] = "tensorflow";
 constexpr char kOtherModelPlatform[] = "other";
+
+// TensorFlow model platform
+struct TensorFlow : ModelPlatform {};
+
+// Caffe model platform
+struct Caffe : ModelPlatform {};
 
 #endif  // TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_

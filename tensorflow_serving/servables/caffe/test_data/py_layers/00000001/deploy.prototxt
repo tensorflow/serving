@@ -1,0 +1,14 @@
+name: 'pythonnet'
+force_backward: true
+
+input: 'data'
+input_shape { dim: 10 dim: 9 dim: 8 }
+
+layer { type: 'Python' name: 'one' bottom: 'data' top: 'one'
+  python_param { module: 'test_python_layer' layer: 'TimesTenLayer' } }
+
+layer { type: 'Python' name: 'two' bottom: 'one' top: 'two'
+  python_param { module: 'test_python_layer' layer: 'TimesTenLayer' } }
+
+layer { type: 'Python' name: 'three' bottom: 'two' top: 'three'
+  python_param { module: 'test_python_layer' layer: 'TimesTenLayer' } }
