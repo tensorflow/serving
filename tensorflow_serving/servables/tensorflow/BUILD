@@ -184,8 +184,8 @@ cc_test(
     size = "medium",
     srcs = ["saved_model_bundle_factory_test.cc"],
     data = [
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
         "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
+        "@org_tensorflow//tensorflow/python/saved_model/example:saved_model_half_plus_two_data",
     ],
     deps = [
         ":bundle_factory_test",
@@ -276,8 +276,8 @@ cc_test(
     size = "medium",
     srcs = ["saved_model_bundle_source_adapter_test.cc"],
     data = [
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
         "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
+        "@org_tensorflow//tensorflow/python/saved_model/example:saved_model_half_plus_two_data",
     ],
     # Link in all registered kernels.
     linkstatic = 1,

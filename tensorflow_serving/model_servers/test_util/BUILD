@@ -48,7 +48,7 @@ cc_library(
     data = [
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
-        "@org_tensorflow//tensorflow/python/saved_model/example:versioned_saved_model_half_plus_two_data",
+        "@org_tensorflow//tensorflow/python/saved_model/example:saved_model_half_plus_two_data",
     ],
     visibility = [
         "//visibility:public",
