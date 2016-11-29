@@ -25,6 +25,8 @@ Typical usage example:
     mnist_client.py --num_tests=100 --server=localhost:9000
 """
 
+from __future__ import print_function
+
 import sys
 import threading
 

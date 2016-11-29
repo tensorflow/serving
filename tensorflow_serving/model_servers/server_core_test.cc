@@ -29,7 +29,7 @@ namespace {
 
 using test_util::ServerCoreTest;
 
-TEST_F(ServerCoreTest, CreateWaitsTillModelsAvailable) {
+TEST_P(ServerCoreTest, CreateWaitsTillModelsAvailable) {
   std::unique_ptr<ServerCore> server_core;
   TF_ASSERT_OK(CreateServerCore(GetTestModelServerConfig(), &server_core));
 
@@ -49,7 +49,7 @@ TEST_F(ServerCoreTest, CreateWaitsTillModelsAvailable) {
   EXPECT_EQ(servable_handle.id(), expected_id);
 }
 
-TEST_F(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
+TEST_P(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
   // Create a server with no models, initially.
   std::unique_ptr<ServerCore> server_core;
   TF_ASSERT_OK(CreateServerCore(ModelServerConfig(), &server_core));
@@ -65,7 +65,7 @@ TEST_F(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
   EXPECT_EQ(available_servables.at(0), expected_id);
 }
 
-TEST_F(ServerCoreTest, ErroringModel) {
+TEST_P(ServerCoreTest, ErroringModel) {
   std::unique_ptr<ServerCore> server_core;
   Status status = CreateServerCore(
       GetTestModelServerConfig(),
@@ -82,7 +82,7 @@ TEST_F(ServerCoreTest, ErroringModel) {
   EXPECT_FALSE(status.ok());
 }
 
-TEST_F(ServerCoreTest, IllegalReconfigurationToCustomConfig) {
+TEST_P(ServerCoreTest, IllegalReconfigurationToCustomConfig) {
   // Create a ServerCore with ModelConfigList config.
   std::unique_ptr<ServerCore> server_core;
   TF_ASSERT_OK(CreateServerCore(GetTestModelServerConfig(), &server_core));
@@ -95,7 +95,7 @@ TEST_F(ServerCoreTest, IllegalReconfigurationToCustomConfig) {
               ::testing::HasSubstr("Cannot transition to requested config"));
 }
 
-TEST_F(ServerCoreTest, IllegalReconfigurationFromCustomConfig) {
+TEST_P(ServerCoreTest, IllegalReconfigurationFromCustomConfig) {
   // Create a ServerCore with custom config.
   std::unique_ptr<ServerCore> server_core;
   ModelServerConfig config;
@@ -108,7 +108,7 @@ TEST_F(ServerCoreTest, IllegalReconfigurationFromCustomConfig) {
               ::testing::HasSubstr("Cannot transition to requested config"));
 }
 
-TEST_F(ServerCoreTest, IllegalConfigModelTypeAndPlatformSet) {
+TEST_P(ServerCoreTest, IllegalConfigModelTypeAndPlatformSet) {
   // Create a ServerCore with both model_type and model_platform set.
   std::unique_ptr<ServerCore> server_core;
   ModelServerConfig config = GetTestModelServerConfig();
@@ -118,7 +118,7 @@ TEST_F(ServerCoreTest, IllegalConfigModelTypeAndPlatformSet) {
               ::testing::HasSubstr("Illegal setting both"));
 }
 
-TEST_F(ServerCoreTest, DeprecatedModelTypeConfig) {
+TEST_P(ServerCoreTest, DeprecatedModelTypeConfig) {
   // Create a ServerCore with deprecated config.
   std::unique_ptr<ServerCore> server_core;
   ModelServerConfig config = GetTestModelServerConfig();
@@ -134,6 +134,10 @@ TEST_F(ServerCoreTest, DeprecatedModelTypeConfig) {
                                   test_util::kTestModelVersion};
   EXPECT_EQ(available_servables.at(0), expected_id);
 }
+
+INSTANTIATE_TEST_CASE_P(
+    TestType, ServerCoreTest,
+    ::testing::Range(0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)));
 
 }  // namespace
 }  // namespace serving

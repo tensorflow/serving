@@ -20,6 +20,8 @@ The model is exported with proper signatures that can be loaded by standard
 tensorflow_model_server.
 """
 
+from __future__ import print_function
+
 import os.path
 
 # This is a placeholder for a Google-internal import.

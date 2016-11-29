@@ -31,7 +31,8 @@ message ModelConfig {
   // Type of model (e.g. "tensorflow").
   string model_platform = 4;
 
-  // Version policy for the model indicating how many versions of the model to be served at the same time.
+  // Version policy for the model indicating how many versions of the model to
+  // be served at the same time.
   // The default option is to serve only the latest version of the model.
   FileSystemStoragePathSourceConfig.VersionPolicy version_policy = 5;
 }

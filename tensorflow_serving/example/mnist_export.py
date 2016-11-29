@@ -25,6 +25,8 @@ loaded by standard tensorflow_model_server.
 Usage: mnist_export.py [--training_iteration=x] [--export_version=y] export_dir
 """
 
+from __future__ import print_function
+
 import sys
 
 # This is a placeholder for a Google-internal import.

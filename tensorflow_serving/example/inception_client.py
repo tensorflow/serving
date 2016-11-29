@@ -18,6 +18,8 @@
 """Send JPEG image to tensorflow_model_server loaded with inception model.
 """
 
+from __future__ import print_function
+
 # This is a placeholder for a Google-internal import.
 
 from grpc.beta import implementations
