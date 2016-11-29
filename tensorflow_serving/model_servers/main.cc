@@ -85,7 +85,7 @@ using tensorflow::serving::SavedModelBundleSourceAdapter;
 using tensorflow::serving::SessionBundleSourceAdapter;
 using tensorflow::serving::SessionBundleSourceAdapterConfig;
 using tensorflow::serving::Target;
-using tensorflow::serving::TensorflowPredictImpl;
+using tensorflow::serving::TensorflowPredictor;
 using tensorflow::serving::UniquePtrWithDeps;
 using tensorflow::string;
 
@@ -170,13 +170,15 @@ grpc::Status ToGRPCStatus(const tensorflow::Status& status) {
 
 class PredictionServiceImpl final : public PredictionService::Service {
  public:
-  explicit PredictionServiceImpl(std::unique_ptr<ServerCore> core)
-      : core_(std::move(core)) {}
+  explicit PredictionServiceImpl(std::unique_ptr<ServerCore> core,
+                                 bool use_saved_model)
+      : core_(std::move(core)),
+        predictor_(new TensorflowPredictor(use_saved_model)) {}
 
   grpc::Status Predict(ServerContext* context, const PredictRequest* request,
                        PredictResponse* response) override {
-    const grpc::Status status = ToGRPCStatus(
-        TensorflowPredictImpl::Predict(core_.get(), *request, response));
+    const grpc::Status status =
+        ToGRPCStatus(predictor_->Predict(core_.get(), *request, response));
     if (!status.ok()) {
       VLOG(1) << "Predict failed: " << status.error_message();
     }
@@ -185,12 +187,14 @@ class PredictionServiceImpl final : public PredictionService::Service {
 
  private:
   std::unique_ptr<ServerCore> core_;
+  std::unique_ptr<TensorflowPredictor> predictor_;
 };
 
-void RunServer(int port, std::unique_ptr<ServerCore> core) {
+void RunServer(int port, std::unique_ptr<ServerCore> core,
+               bool use_saved_model) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
-  PredictionServiceImpl service(std::move(core));
+  PredictionServiceImpl service(std::move(core), use_saved_model);
   ServerBuilder builder;
   std::shared_ptr<grpc::ServerCredentials> creds = InsecureServerCredentials();
   builder.AddListeningPort(server_address, creds);
@@ -284,7 +288,7 @@ int main(int argc, char** argv) {
 
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(std::move(options), &core));
-  RunServer(port, std::move(core));
+  RunServer(port, std::move(core), use_saved_model);
 
   return 0;
 }

@@ -24,11 +24,19 @@ namespace tensorflow {
 namespace serving {
 
 // Utility methods for implementation of PredictionService::Predict.
-// TODO(30682232): add unit test for TensorflowPredictImpl.
-class TensorflowPredictImpl {
+class TensorflowPredictor {
  public:
-  static Status Predict(ServerCore* core, const PredictRequest& request,
-                        PredictResponse* response);
+  explicit TensorflowPredictor(bool use_saved_model)
+      : use_saved_model_(use_saved_model) {}
+
+  Status Predict(ServerCore* core, const PredictRequest& request,
+                 PredictResponse* response);
+
+ private:
+  // If use_saved_model_ is true, a SavedModelBundle handle will be retrieved
+  // from the ServerCore and the new SavedModel SignatureDef format will be
+  // used.
+  bool use_saved_model_;
 };
 
 }  // namespace serving

@@ -30,23 +30,36 @@ namespace {
 constexpr char kTestModelName[] = "test_model";
 constexpr int kTestModelVersion = 123;
 
-class PredictImplTest : public ::testing::Test {
+const char kInputTensorKey[] = "x";
+const char kOutputTensorKey[] = "y";
+
+// Parameter is 'bool use_saved_model'.
+class PredictImplTest : public ::testing::TestWithParam<bool> {
  public:
   static void SetUpTestCase() {
     TF_ASSERT_OK(CreateServerCore(
-        "/servables/tensorflow/testdata/half_plus_two", &server_core_));
+        "/servables/tensorflow/testdata/half_plus_two", false, &server_core_));
     TF_ASSERT_OK(
         CreateServerCore("/servables/tensorflow/testdata/bad_half_plus_two",
-                         &server_core_bad_model_));
+                         false, &server_core_bad_model_));
+
+    TF_ASSERT_OK(
+        CreateServerCore("/servables/tensorflow/testdata/half_plus_two", true,
+                         &saved_model_server_core_));
+    TF_ASSERT_OK(
+        CreateServerCore("/servables/tensorflow/testdata/bad_half_plus_two",
+                         true, &saved_model_server_core_bad_model_));
   }
 
   static void TearDownTestCase() {
     server_core_.reset();
     server_core_bad_model_.reset();
+    saved_model_server_core_.reset();
+    saved_model_server_core_bad_model_.reset();
   }
 
  protected:
-  static Status CreateServerCore(const string& model_path,
+  static Status CreateServerCore(const string& model_path, bool use_saved_model,
                                  std::unique_ptr<ServerCore>* server_core) {
     // For ServerCore Options, we leave servable_state_monitor_creator
     // unspecified so the default servable_state_monitor_creator will be used.
@@ -58,61 +71,75 @@ class PredictImplTest : public ::testing::Test {
     model_config->set_base_path(test_util::TestSrcDirPath(model_path));
     model_config->set_model_platform(kTensorFlowModelPlatform);
     options.model_server_config = config;
-
+    options.use_saved_model = use_saved_model;
     options.aspired_version_policy =
         std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
     return ServerCore::Create(std::move(options), server_core);
   }
 
+  ServerCore* GetServerCore() {
+    if (GetParam()) {
+      return saved_model_server_core_.get();
+    }
+    return server_core_.get();
+  }
+
+  ServerCore* GetServerCoreWithBadModel() {
+    if (GetParam()) {
+      return saved_model_server_core_bad_model_.get();
+    }
+    return server_core_bad_model_.get();
+  }
+
+ private:
   static std::unique_ptr<ServerCore> server_core_;
   static std::unique_ptr<ServerCore> server_core_bad_model_;
+  static std::unique_ptr<ServerCore> saved_model_server_core_;
+  static std::unique_ptr<ServerCore> saved_model_server_core_bad_model_;
 };
 
 std::unique_ptr<ServerCore> PredictImplTest::server_core_;
 std::unique_ptr<ServerCore> PredictImplTest::server_core_bad_model_;
+std::unique_ptr<ServerCore> PredictImplTest::saved_model_server_core_;
+std::unique_ptr<ServerCore> PredictImplTest::saved_model_server_core_bad_model_;
 
-TEST_F(PredictImplTest, MissingOrEmptyModelSpec) {
+TEST_P(PredictImplTest, MissingOrEmptyModelSpec) {
   PredictRequest request;
   PredictResponse response;
 
   // Empty request is invalid.
-  EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
-      TensorflowPredictImpl::Predict(server_core_.get(), request, &response)
-          .code());
+  TensorflowPredictor predictor(GetParam());
+  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+            predictor.Predict(GetServerCore(), request, &response).code());
 
   ModelSpec* model_spec = request.mutable_model_spec();
   model_spec->clear_name();
 
   // Model name is not specified.
-  EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
-      TensorflowPredictImpl::Predict(server_core_.get(), request, &response)
-          .code());
+  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+            predictor.Predict(GetServerCore(), request, &response).code());
 
   // Model name is wrong, not found.
   model_spec->set_name("test");
-  EXPECT_EQ(
-      tensorflow::error::NOT_FOUND,
-      TensorflowPredictImpl::Predict(server_core_.get(), request, &response)
-          .code());
+  EXPECT_EQ(tensorflow::error::NOT_FOUND,
+            predictor.Predict(GetServerCore(), request, &response).code());
 }
 
-TEST_F(PredictImplTest, EmptyInputList) {
+TEST_P(PredictImplTest, EmptyInputList) {
   PredictRequest request;
   PredictResponse response;
 
   ModelSpec* model_spec = request.mutable_model_spec();
   model_spec->set_name(kTestModelName);
   model_spec->mutable_version()->set_value(kTestModelVersion);
+
+  TensorflowPredictor predictor(GetParam());
   // The input is empty.
-  EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
-      TensorflowPredictImpl::Predict(server_core_.get(), request, &response)
-          .code());
+  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+            predictor.Predict(GetServerCore(), request, &response).code());
 }
 
-TEST_F(PredictImplTest, InputTensorsDontMatchModelSpecInputs) {
+TEST_P(PredictImplTest, InputTensorsDontMatchModelSpecInputs) {
   PredictRequest request;
   PredictResponse response;
 
@@ -125,58 +152,43 @@ TEST_F(PredictImplTest, InputTensorsDontMatchModelSpecInputs) {
   tensor_proto.set_dtype(tensorflow::DT_STRING);
   tensor_proto.mutable_tensor_shape()->add_dim()->set_size(1);
 
+  TensorflowPredictor predictor(GetParam());
   auto inputs = request.mutable_inputs();
   (*inputs)["key"] = tensor_proto;
-  EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
-      TensorflowPredictImpl::Predict(server_core_.get(), request, &response)
-          .code());
+  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+            predictor.Predict(GetServerCore(), request, &response).code());
 }
 
-TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
+TEST_P(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
   PredictRequest request;
   PredictResponse response;
 
   ModelSpec* model_spec = request.mutable_model_spec();
   model_spec->set_name(kTestModelName);
   model_spec->mutable_version()->set_value(kTestModelVersion);
-
-  ServableHandle<SessionBundle> bundle;
-  TF_ASSERT_OK(server_core_->GetServableHandle(request.model_spec(), &bundle));
-  Signature signature;
-  TF_ASSERT_OK(GetNamedSignature("inputs", bundle->meta_graph_def, &signature));
 
   TensorProto tensor_proto;
   tensor_proto.add_float_val(2.0);
   tensor_proto.set_dtype(tensorflow::DT_FLOAT);
-
-  for (const auto& input : signature.generic_signature().map()) {
-    (*request.mutable_inputs())[input.first] = tensor_proto;
-  }
-
+  (*request.mutable_inputs())[kInputTensorKey] = tensor_proto;
   request.add_output_filter("output_filter");
 
+  TensorflowPredictor predictor(GetParam());
   // Output filter like this doesn't exist.
-  EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
-      TensorflowPredictImpl::Predict(server_core_.get(), request, &response)
-          .code());
+  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+            predictor.Predict(GetServerCore(), request, &response).code());
 
   request.clear_output_filter();
-  request.add_output_filter("y");
-  EXPECT_TRUE(
-      TensorflowPredictImpl::Predict(server_core_.get(), request, &response)
-          .ok());
-  request.add_output_filter("y");
+  request.add_output_filter(kOutputTensorKey);
+  TF_EXPECT_OK(predictor.Predict(GetServerCore(), request, &response));
+  request.add_output_filter(kOutputTensorKey);
 
   // Duplicate output filter specified.
-  EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
-      TensorflowPredictImpl::Predict(server_core_.get(), request, &response)
-          .code());
+  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+            predictor.Predict(GetServerCore(), request, &response).code());
 }
 
-TEST_F(PredictImplTest, InputTensorsHaveWrongType) {
+TEST_P(PredictImplTest, InputTensorsHaveWrongType) {
   PredictRequest request;
   PredictResponse response;
 
@@ -184,28 +196,20 @@ TEST_F(PredictImplTest, InputTensorsHaveWrongType) {
   model_spec->set_name(kTestModelName);
   model_spec->mutable_version()->set_value(kTestModelVersion);
 
-  ServableHandle<SessionBundle> bundle;
-  TF_ASSERT_OK(server_core_->GetServableHandle(request.model_spec(), &bundle));
-
   TensorProto tensor_proto;
   tensor_proto.add_string_val("any_key");
   tensor_proto.set_dtype(tensorflow::DT_STRING);
   tensor_proto.mutable_tensor_shape()->add_dim()->set_size(1);
+  (*request.mutable_inputs())[kInputTensorKey] = tensor_proto;
+  request.add_output_filter(kOutputTensorKey);
 
-  Signature signature;
-  TF_ASSERT_OK(GetNamedSignature("inputs", bundle->meta_graph_def, &signature));
-  for (const auto& input : signature.generic_signature().map()) {
-    (*request.mutable_inputs())[input.first] = tensor_proto;
-  }
-  request.add_output_filter("y");
+  TensorflowPredictor predictor(GetParam());
   // Input tensors are all wrong.
-  EXPECT_EQ(
-      tensorflow::error::INTERNAL,
-      TensorflowPredictImpl::Predict(server_core_.get(), request, &response)
-          .code());
+  EXPECT_EQ(tensorflow::error::INTERNAL,
+            predictor.Predict(GetServerCore(), request, &response).code());
 }
 
-TEST_F(PredictImplTest, ModelMissingSignatures) {
+TEST_P(PredictImplTest, ModelMissingSignatures) {
   PredictRequest request;
   PredictResponse response;
 
@@ -214,13 +218,13 @@ TEST_F(PredictImplTest, ModelMissingSignatures) {
   model_spec->mutable_version()->set_value(kTestModelVersion);
 
   // Model is missing signatures.
+  TensorflowPredictor predictor(GetParam());
   EXPECT_EQ(tensorflow::error::FAILED_PRECONDITION,
-            TensorflowPredictImpl::Predict(server_core_bad_model_.get(),
-                                           request, &response)
+            predictor.Predict(GetServerCoreWithBadModel(), request, &response)
                 .code());
 }
 
-TEST_F(PredictImplTest, PredictionSuccess) {
+TEST_P(PredictImplTest, PredictionSuccess) {
   PredictRequest request;
   PredictResponse response;
 
@@ -228,30 +232,24 @@ TEST_F(PredictImplTest, PredictionSuccess) {
   model_spec->set_name(kTestModelName);
   model_spec->mutable_version()->set_value(kTestModelVersion);
 
-  ServableHandle<SessionBundle> bundle;
-  TF_ASSERT_OK(server_core_->GetServableHandle(request.model_spec(), &bundle));
-  Signature signature;
-  TF_ASSERT_OK(GetNamedSignature("inputs", bundle->meta_graph_def, &signature));
-
   TensorProto tensor_proto;
   tensor_proto.add_float_val(2.0);
   tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  (*request.mutable_inputs())[kInputTensorKey] = tensor_proto;
 
-  for (const auto& input : signature.generic_signature().map()) {
-    (*request.mutable_inputs())[input.first] = tensor_proto;
-  }
-
-  EXPECT_TRUE(
-      TensorflowPredictImpl::Predict(server_core_.get(), request, &response)
-          .ok());
+  TensorflowPredictor predictor(GetParam());
+  TF_EXPECT_OK(predictor.Predict(GetServerCore(), request, &response));
   TensorProto output_tensor_proto;
   output_tensor_proto.add_float_val(3);
   output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
   output_tensor_proto.mutable_tensor_shape();
   PredictResponse test_response;
-  (*test_response.mutable_outputs())["y"] = output_tensor_proto;
+  (*test_response.mutable_outputs())[kOutputTensorKey] = output_tensor_proto;
   EXPECT_THAT(test_response, test_util::EqualsProto(response));
 }
+
+// Test all ClassifierTest test cases with both SessionBundle and SavedModel.
+INSTANTIATE_TEST_CASE_P(UseSavedModel, PredictImplTest, ::testing::Bool());
 
 }  // namespace
 }  // namespace serving
