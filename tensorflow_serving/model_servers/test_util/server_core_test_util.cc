@@ -55,6 +55,9 @@ Status ServerCoreTest::CreateServerCore(
   ServerCore::Options options;
   options.model_server_config = config;
   options.source_adapter_creator = source_adapter_creator;
+  // Reduce the number of initial load thread to be num_load_unload_threads to
+  // avoid timing out in tests.
+  options.num_initial_load_unload_threads = options.num_load_unload_threads;
   options.custom_model_config_loader = [](
       const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
       UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
@@ -66,6 +69,9 @@ Status ServerCoreTest::CreateServerCore(
 Status ServerCoreTest::CreateServerCore(
     ServerCore::Options options, std::unique_ptr<ServerCore>* server_core) {
   options.file_system_poll_wait_seconds = 0;
+  // Reduce the number of initial load thread to be num_load_unload_threads to
+  // avoid timing out in tests.
+  options.num_initial_load_unload_threads = options.num_load_unload_threads;
   if (options.aspired_version_policy == nullptr) {
     options.aspired_version_policy =
         std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);

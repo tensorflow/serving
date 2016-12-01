@@ -61,19 +61,22 @@ class PredictImplTest : public ::testing::TestWithParam<bool> {
  protected:
   static Status CreateServerCore(const string& model_path, bool use_saved_model,
                                  std::unique_ptr<ServerCore>* server_core) {
-    // For ServerCore Options, we leave servable_state_monitor_creator
-    // unspecified so the default servable_state_monitor_creator will be used.
-    ServerCore::Options options;
-
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);
     model_config->set_base_path(test_util::TestSrcDirPath(model_path));
     model_config->set_model_platform(kTensorFlowModelPlatform);
+
+    // For ServerCore Options, we leave servable_state_monitor_creator
+    // unspecified so the default servable_state_monitor_creator will be used.
+    ServerCore::Options options;
     options.model_server_config = config;
     options.use_saved_model = use_saved_model;
     options.aspired_version_policy =
         std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
+    // Reduce the number of initial load thread to be num_load_unload_threads to
+    // avoid timing out in tests.
+    options.num_initial_load_unload_threads = options.num_load_unload_threads;
     return ServerCore::Create(std::move(options), server_core);
   }
 

@@ -67,13 +67,14 @@ class TensorflowModelServerTest(tf.test.TestCase):
     if self.server_proc is not None:
       self.server_proc.terminate()
 
-  def RunServer(self, port, model_name, model_path):
+  def RunServer(self, port, model_name, model_path, use_saved_model):
     """Run tensorflow_model_server using test config."""
     print 'Starting test server...'
     command = os.path.join(self.binary_dir, 'tensorflow_model_server')
     command += ' --port=' + str(port)
     command += ' --model_name=' + model_name
     command += ' --model_base_path=' + model_path
+    command += ' --use_saved_model=' + str(use_saved_model).lower()
     command += ' --alsologtostderr'
     print command
     self.server_proc = subprocess.Popen(shlex.split(command))
@@ -103,29 +104,66 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.assertEquals(1, len(result.outputs['y'].float_val))
     self.assertEquals(3.0, result.outputs['y'].float_val[0])
 
-  def testPredict(self):
-    """Test PredictionService.Predict implementation."""
+  def _GetSavedModelBundlePath(self):
+    """Returns a path to a model in SavedModel format."""
+    return os.path.join(os.environ['TEST_SRCDIR'],
+                        'tf_serving/external/org_tensorflow/tensorflow/',
+                        'python/saved_model/example/saved_model_half_plus_two')
+
+  def _GetSessionBundlePath(self):
+    """Returns a path to a model in SessionBundle format."""
+    return os.path.join(self.testdata_dir, 'half_plus_two')
+
+  def _TestPredict(self, model_path, use_saved_model):
+    """Helper method to test prediction.
+
+    Args:
+      model_path:      Path to the model on disk.
+      use_saved_model: Whether the model server should use SavedModel.
+    """
     atexit.register(self.TerminateProcs)
-    model_server_address = self.RunServer(
-        PickUnusedPort(), 'default',
-        os.path.join(self.testdata_dir, 'half_plus_two'))
+    model_server_address = self.RunServer(PickUnusedPort(), 'default',
+                                          model_path, use_saved_model)
     time.sleep(5)
     self.VerifyPredictRequest(model_server_address)
     self.VerifyPredictRequest(model_server_address, specify_output=False)
 
-  def testBadModel(self):
-    """Test PredictionService.Predict against a bad model export."""
+  def testPredictSessionBundle(self):
+    """Test PredictionService.Predict implementation with SessionBundle."""
+    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=False)
+
+  def testPredictSavedModel(self):
+    """Test PredictionService.Predict implementation with SavedModel."""
+    self._TestPredict(self._GetSavedModelBundlePath(), use_saved_model=True)
+
+  def testPredictUpconvertedSavedModel(self):
+    """Test PredictionService.Predict implementation.
+
+    Using a SessionBundle converted to a SavedModel.
+    """
+    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=True)
+
+  def _TestBadModel(self, use_saved_model):
+    """Helper method to test against a bad model export."""
     atexit.register(self.TerminateProcs)
+    # Both SessionBundle and SavedModel use the same bad model path, but in the
+    # case of SavedModel, the export will get up-converted to a SavedModel.
     model_server_address = self.RunServer(
         PickUnusedPort(), 'default',
-        os.path.join(self.testdata_dir, 'bad_half_plus_two'))
+        os.path.join(self.testdata_dir, 'bad_half_plus_two'), use_saved_model)
     time.sleep(5)
     with self.assertRaises(face.AbortionError) as error:
       self.VerifyPredictRequest(model_server_address)
     self.assertIs(beta_interfaces.StatusCode.FAILED_PRECONDITION,
                   error.exception.code)
-    self.assertTrue(error.exception.details.startswith(
-        'Expected exactly one signatures proto'))
+
+  def _TestBadModelUpconvertedSavedModel(self):
+    """Test Predict against a bad upconverted SavedModel model export."""
+    self._TestBadModel(use_saved_model=True)
+
+  def _TestBadModelSessionBundle(self):
+    """Test Predict against a bad SessionBundle model export."""
+    self._TestBadModel(use_saved_model=False)
 
 
 if __name__ == '__main__':

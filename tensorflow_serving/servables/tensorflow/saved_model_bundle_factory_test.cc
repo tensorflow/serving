@@ -67,7 +67,7 @@ TEST_F(SavedModelBundleFactoryTest, Basic) { TestBasic(); }
 TEST_F(SavedModelBundleFactoryTest, Batching) { TestBatching(); }
 
 TEST_F(SavedModelBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
-  const double kTotalFileSize = 7603;
+  const double kTotalFileSize = 7592;
   TestEstimateResourceRequirementWithGoodExport<SavedModelBundleFactory>(
       kTotalFileSize);
 }
