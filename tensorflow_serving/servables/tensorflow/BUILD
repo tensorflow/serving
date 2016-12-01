@@ -90,6 +90,7 @@ cc_library(
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -142,6 +143,7 @@ cc_test(
     data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
     deps = [
         ":bundle_factory_test",
+        ":bundle_factory_test_util",
         ":session_bundle_config_proto",
         ":session_bundle_factory",
         "//tensorflow_serving/core/test_util:test_main",
@@ -189,6 +191,7 @@ cc_test(
     ],
     deps = [
         ":bundle_factory_test",
+        ":bundle_factory_test_util",
         ":saved_model_bundle_factory",
         ":session_bundle_config_proto",
         "//tensorflow_serving/core/test_util:test_main",
