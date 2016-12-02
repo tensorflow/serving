@@ -94,12 +94,17 @@ class AspiredVersionsManager : public Manager,
     // The AspiredVersionPolicy to use for the manager. Must be non-null.
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy;
 
-    // The number of threads in the thread-pool used to load and unload
-    // servables.
+    // The number of threads in the thread-pool used to load servables.
     //
-    // If set as 0, we don't use a thread-pool, and servable loads/unloads are
+    // If set as 0, we don't use a thread-pool, and servable loads are performed
+    // serially in the manager's main work loop.
+    uint32 num_load_threads = 0;
+
+    // The number of threads in the thread-pool used to unload servables.
+    //
+    // If set as 0, we don't use a thread-pool, and servable unloads are
     // performed serially in the manager's main work loop.
-    uint32 num_load_unload_threads = 0;
+    uint32 num_unload_threads = 0;
 
     // Maximum number of times we retry loading a servable, after the first
     // failure, before we give up.
@@ -244,13 +249,12 @@ class AspiredVersionsManager : public Manager,
   void InvokePolicyAndExecuteAction()
       LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_);
 
-  // Sets the number of load/unload threads.
+  // Sets the number of load threads.
   //
-  // We immediately block all new load/unload requests while the current
-  // executor is destructed, a new one is created and then swapped with the
-  // current one.
-  void SetNumLoadUnloadThreads(uint32 num_load_unload_threads);
-  uint32 num_load_unload_threads() const;
+  // We immediately block all new load requests while the current executor is
+  // destructed, a new one is created and then swapped with the current one.
+  void SetNumLoadThreads(uint32 num_load_threads);
+  uint32 num_load_threads() const;
 
   std::unique_ptr<AspiredVersionPolicy> aspired_version_policy_;
 
