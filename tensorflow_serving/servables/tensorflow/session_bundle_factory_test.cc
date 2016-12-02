@@ -29,6 +29,7 @@ limitations under the License.
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/public/version.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test.h"
+#include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
@@ -63,12 +64,8 @@ TEST_F(SessionBundleFactoryTest, Basic) { TestBasic(); }
 TEST_F(SessionBundleFactoryTest, Batching) { TestBatching(); }
 
 TEST_F(SessionBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
-  // The length of the file's version strings might change, so we don't
-  // hardcode their size.  They are 4 bytes for tags & size, plus the actual
-  // length of the strings.
-  const double kVersionSize =
-      4 + strlen(TF_VERSION_STRING) + strlen(tf_git_version());
-  const double kTotalFileSize = 13392.5 + kVersionSize;
+  const double kTotalFileSize =
+      test_util::GetTotalFileSize(test_util::GetTestSessionBundleExportFiles());
   TestEstimateResourceRequirementWithGoodExport<SessionBundleFactory>(
       kTotalFileSize);
 }

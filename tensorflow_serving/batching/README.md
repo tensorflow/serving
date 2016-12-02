@@ -91,30 +91,59 @@ invoked on a separate thread to process the batch. A good illustration of how
 to use this API is found in the implementation of `BatchingSession` in
 `batching_session.cc`.
 
-The parameters that govern `BasicBatchScheduler` are:
+## Batch Scheduling Parameters and Tuning
 
-* `max_batch_size`: The maximum size of any batch. The largest value supported
-by the hardware should be used; it will likely be model-dependent.
+The parameters that govern batch scheduling (e.g. in
+`BasicBatchScheduler::Options`) are:
 
-* `batch_timeout_micros`: A way to bound request latency. The scheduler will
-avoid delaying a task too long by processing an underfull batch, if needed.
-(See `basic_batch_scheduler.h` for the exact latency contract.) A value slightly
-above zero, e.g. 1 millisecond, tends to smooth out batch sizes when the request
-rate is low, thus keeping tail latency low while still maintaining high
-throughput. The best value to use is of course a function of your workload and
-system.
+* `max_batch_size`: The maximum size of any batch. This parameter governs the
+throughput/latency tradeoff, and also avoids having batches that are so large
+they exceed some resource constraint (e.g. GPU memory to hold a batch's data).
 
-* `num_batch_threads`: The number of threads used to process batches.
+* `batch_timeout_micros`: The maximum amount of time to wait before executing a
+batch (even if it hasn't reached `max_batch_size`). Used to rein in tail
+latency. (See `basic_batch_scheduler.h` for the exact latency contract.)
 
-* `max_enqueued_batches`: The number of batches worth of tasks the scheduler is
-willing to enqueue. For online serving with bounded latency (and the option to
-route request to other server instances), you may want to set this equal to
-`num_batch_threads`. For bulk processing jobs and throughput-oriented
-benchmarks, you may want to set it much higher.
+* `num_batch_threads`: The degree of parallelism, i.e. the maximum number of
+batches processed concurrently.
 
-(If you need to limit the possible batch sizes, as in `BatchingSession`'s
-`allowed_batch_sizes` parameter, you can have your callback code pad the
-batches.)
+* `max_enqueued_batches`: The number of batches worth of tasks that can be
+enqueued to the scheduler. Used to bound queueing delay, by turning away
+requests that would take a long time to get to, rather than building up a large
+backlog.
+
+### Recommended Approach to Choosing Scheduling Parameters
+
+Here is one way to choose values for the aforementioned parameters:
+
+1. Set `num_batch_threads` to the number of CPU cores.
+
+2. Temporarily set `batch_timeout_micros` and `max_enqueued_batches` to infinity
+while you tune `max_batch_size` to achieve the desired balance between
+throughput and average latency. The best value is typically in the hundreds or
+thousands, and depends on your model, system and environment, as well as your
+throughput and latency goals.
+
+3. For online serving, tune `batch_timeout_micros` to rein in tail latency. The
+idea is that batches normally get filled to `max_batch_size`, but occasionally
+when there is a lapse in incoming requests, to avoid introducing a latency spike
+it makes sense to process whatever's in the queue even if it represents an
+underfull batch. The best value for `batch_timeout_micros` is typically a few
+milliseconds, and depends on your context and goals. Zero is a value to
+consider; it works well for some workloads. (For bulk processing jobs, choose a
+large value, perhaps a few seconds, to ensure good throughput but not wait too
+long for the final (and likely underfull) batch.)
+
+4. For online serving, depending on the policy used to (re-)route requests to
+server instances, consider setting `max_enqueued_batches` equal to
+`num_batch_threads` to minimize queueing delay at a given server while keeping
+it busy. (For bulk processing jobs, set `max_enqueued_batches` to a generous
+value, but low enough to avoid out-of-memory crashes.)
+
+5. If you need to constrain the set of possible batch sizes (e.g. just 100, 200
+or 400, rather than any value between 1 and 400): If you are using
+`BatchingSession` you can set the `allowed_batch_sizes` parameter. Otherwise,
+you can arrange for your callback code to pad the batches with dummy elements.
 
 ## Servers with Multiple Models, Model Versions or Subtasks
 
