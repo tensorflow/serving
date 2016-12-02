@@ -27,7 +27,23 @@ namespace test_util {
 constexpr char kTestModelName[] = "test_model";
 constexpr int kTestModelVersion = 123;
 
-class ServerCoreTest : public ::testing::Test {
+// ServerCoreTest is parameterized based on the TestType enum defined below.
+// TODO(b/32248363): remove the parameter and TestType after we switch Model
+// Server to Saved Model.
+class ServerCoreTest : public ::testing::TestWithParam<int> {
+ public:
+  // The parameter of this test.
+  enum TestType {
+    // SessionBundle is used on export.
+    SESSION_BUNDLE,
+    // SavedModelBundle is used on export.
+    SAVED_MODEL_BACKWARD_COMPATIBILITY,
+    // SavedModelBundle is used on native Saved Model.
+    SAVED_MODEL,
+    // This should always be the last value.
+    NUM_TEST_TYPES,
+  };
+
  protected:
   // Returns ModelServerConfig that contains test model.
   ModelServerConfig GetTestModelServerConfig();
@@ -46,9 +62,13 @@ class ServerCoreTest : public ::testing::Test {
   // continuous polling to speed up testing.
   Status CreateServerCore(ServerCore::Options options,
                           std::unique_ptr<ServerCore>* server_core);
+
+  // Returns test type. This is the parameter of this test.
+  TestType GetTestType() { return static_cast<TestType>(GetParam()); }
 };
 
 }  // namespace test_util
 }  // namespace serving
 }  // namespace tensorflow
+
 #endif  // TENSORFLOW_SERVING_MODEL_SERVERS_TEST_UTIL_SERVER_CORE_TEST_UTIL_H_

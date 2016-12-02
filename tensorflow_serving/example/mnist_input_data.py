@@ -17,6 +17,8 @@
 
 """Functions for downloading and reading MNIST data."""
 
+from __future__ import print_function
+
 import gzip
 import os
 
@@ -145,7 +147,8 @@ class DataSet(object):
       else:
         fake_label = 0
       return [fake_image for _ in range(batch_size)], [
-          fake_label for _ in range(batch_size)]
+          fake_label for _ in range(batch_size)
+      ]
     start = self._index_in_epoch
     self._index_in_epoch += batch_size
     if self._index_in_epoch > self._num_examples:

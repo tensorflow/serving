@@ -90,6 +90,7 @@ cc_library(
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -142,6 +143,7 @@ cc_test(
     data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
     deps = [
         ":bundle_factory_test",
+        ":bundle_factory_test_util",
         ":session_bundle_config_proto",
         ":session_bundle_factory",
         "//tensorflow_serving/core/test_util:test_main",
@@ -184,11 +186,12 @@ cc_test(
     size = "medium",
     srcs = ["saved_model_bundle_factory_test.cc"],
     data = [
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
         "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
+        "@org_tensorflow//tensorflow/python/saved_model/example:saved_model_half_plus_two_data",
     ],
     deps = [
         ":bundle_factory_test",
+        ":bundle_factory_test_util",
         ":saved_model_bundle_factory",
         ":session_bundle_config_proto",
         "//tensorflow_serving/core/test_util:test_main",
@@ -276,8 +279,8 @@ cc_test(
     size = "medium",
     srcs = ["saved_model_bundle_source_adapter_test.cc"],
     data = [
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
         "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
+        "@org_tensorflow//tensorflow/python/saved_model/example:saved_model_half_plus_two_data",
     ],
     # Link in all registered kernels.
     linkstatic = 1,
@@ -379,8 +382,33 @@ cc_library(
         "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/model_servers:server_core",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
+    ],
+)
+
+cc_test(
+    name = "predict_impl_test",
+    size = "medium",
+    srcs = ["predict_impl_test.cc"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
+        "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
+    ],
+    deps = [
+        ":predict_impl",
+        "//tensorflow_serving/core:eager_load_policy",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/model_servers:model_platform_types",
+        "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/resources:resources_proto",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:test",
     ],
 )

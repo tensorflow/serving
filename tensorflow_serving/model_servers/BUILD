@@ -48,6 +48,7 @@ cc_library(
         "//tensorflow_serving/core:source_adapter",
         "//tensorflow_serving/core:storage_path",
         "//tensorflow_serving/resources:resource_values",
+        "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
         "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter",
         "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_proto",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
@@ -63,10 +64,6 @@ cc_test(
     name = "server_core_test",
     size = "medium",
     srcs = ["server_core_test.cc"],
-    data = [
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
-    ],
     deps = [
         ":server_core",
         "//tensorflow_serving/apis:model_proto",
@@ -87,6 +84,7 @@ SUPPORTED_TENSORFLOW_OPS = [
 
 TENSORFLOW_DEPS = [
     "@org_tensorflow//tensorflow/core:tensorflow",
+    "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
     "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter",
     "//tensorflow_serving/servables/tensorflow:predict_impl",
 ]
@@ -120,6 +118,7 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
+        "@org_tensorflow//tensorflow/python/saved_model/example:saved_model_half_plus_two_data",
     ],
     tags = [
         "local",

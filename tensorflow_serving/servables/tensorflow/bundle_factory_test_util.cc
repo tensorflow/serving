@@ -15,10 +15,12 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
 
+#include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/test_util/test_util.h"
@@ -30,7 +32,7 @@ namespace test_util {
 namespace {
 
 const char kTestSavedModelPath[] =
-    "cc/saved_model/testdata/half_plus_two_sharded";
+    "python/saved_model/example/saved_model_half_plus_two/00000123";
 const char kTestSessionBundleExportPath[] =
     "session_bundle/example/half_plus_two/00000123";
 
@@ -42,6 +44,34 @@ string GetTestSavedModelPath() {
 
 string GetTestSessionBundleExportPath() {
   return test_util::ContribTestSrcDirPath(kTestSessionBundleExportPath);
+}
+
+std::vector<string> GetTestSavedModelFiles() {
+  const string dir = GetTestSavedModelPath();
+  return {tensorflow::io::JoinPath(dir, kSavedModelAssetsDirectory, "foo.txt"),
+          tensorflow::io::JoinPath(dir, kSavedModelFilenamePb),
+          tensorflow::io::JoinPath(dir, kSavedModelVariablesFilename,
+                                   "variables.data-00000-of-00001"),
+          tensorflow::io::JoinPath(dir, kSavedModelVariablesFilename,
+                                   "variables.index")};
+}
+
+std::vector<string> GetTestSessionBundleExportFiles() {
+  const string dir = GetTestSessionBundleExportPath();
+  return {tensorflow::io::JoinPath(dir, "export.meta"),
+          tensorflow::io::JoinPath(dir, "export-00000-of-00001")};
+}
+
+uint64 GetTotalFileSize(const std::vector<string>& files) {
+  uint64 total_file_size = 0;
+  for (const string& file : files) {
+    if (!(Env::Default()->IsDirectory(file).ok())) {
+      uint64 file_size;
+      TF_CHECK_OK(Env::Default()->GetFileSize(file, &file_size));
+      total_file_size += file_size;
+    }
+  }
+  return total_file_size;
 }
 
 void TestSingleRequest(Session* session) {
