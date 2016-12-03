@@ -675,3 +675,27 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
     ],
 )
+
+load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+
+serving_proto_library(
+    name = "logging_proto",
+    srcs = ["logging.proto"],
+    cc_api_version = 2,
+    deps = [
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/config:logging_config_proto",
+    ],
+)
+
+cc_library(
+    name = "request_logger",
+    srcs = ["request_logger.cc"],
+    hdrs = ["request_logger.h"],
+    deps = [
+        ":log_collector",
+        ":logging_proto",
+        "//tensorflow_serving/config:logging_config_proto",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)

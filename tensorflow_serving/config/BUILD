@@ -31,3 +31,11 @@ serving_proto_library(
         "@protobuf//:cc_wkt_protos",
     ],
 )
+
+serving_proto_library(
+    name = "logging_config_proto",
+    srcs = ["logging_config.proto"],
+    cc_api_version = 2,
+    deps = [
+    ],
+)
