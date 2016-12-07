@@ -32,7 +32,7 @@ namespace {
 using Batcher = SharedBatchScheduler<BatchingSessionTask>;
 
 // Constants used in the resource estimation heuristic. See the documentation
-// on EstimateResourceRequirements().
+// on EstimateResourceFromPath().
 constexpr double kResourceEstimateRAMMultiplier = 1.2;
 constexpr int kResourceEstimateRAMPadBytes = 0;
 
