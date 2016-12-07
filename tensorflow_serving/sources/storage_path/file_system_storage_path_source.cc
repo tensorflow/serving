@@ -80,7 +80,7 @@ std::set<string> GetDeletedServables(
 // aspire.
 void AspireVersion(
     const FileSystemStoragePathSourceConfig::ServableToMonitor& servable,
-    const string& version_relative_path, const int version_number,
+    const string& version_relative_path, const int64 version_number,
     std::vector<ServableData<StoragePath>>* versions) {
   const ServableId servable_id = {servable.servable_name(), version_number};
   const string full_path =
