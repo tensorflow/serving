@@ -1,7 +1,6 @@
 # Description: Tensorflow Serving utils.
 
 package(
-    default_hdrs_check = "loose",
     default_visibility = [
         "//tensorflow_serving:internal",
     ],
