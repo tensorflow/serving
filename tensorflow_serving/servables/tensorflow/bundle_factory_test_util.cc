@@ -74,6 +74,17 @@ uint64 GetTotalFileSize(const std::vector<string>& files) {
   return total_file_size;
 }
 
+SignatureDef GetTestSessionSignature() {
+  SignatureDef signature;
+  TensorInfo input;
+  input.set_name("x:0");
+  (*signature.mutable_inputs())["x"] = input;
+  TensorInfo output;
+  output.set_name("y:0");
+  (*signature.mutable_outputs())["y"] = output;
+  return signature;
+}
+
 void TestSingleRequest(Session* session) {
   Tensor input = test::AsTensor<float>({100.0f, 42.0f}, {2});
   // half plus two: output should be input / 2 + 2.
@@ -83,8 +94,8 @@ void TestSingleRequest(Session* session) {
   // Note that "x" and "y" are the actual names of the nodes in the graph.
   // The saved manifest binds these to "input" and "output" respectively, but
   // these tests are focused on the raw underlying session without bindings.
-  const std::vector<std::pair<string, Tensor>> inputs = {{"x", input}};
-  const std::vector<string> output_names = {"y"};
+  const std::vector<std::pair<string, Tensor>> inputs = {{"x:0", input}};
+  const std::vector<string> output_names = {"y:0"};
   const std::vector<string> empty_targets;
   std::vector<Tensor> outputs;
 

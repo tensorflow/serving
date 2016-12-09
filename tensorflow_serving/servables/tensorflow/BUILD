@@ -129,6 +129,7 @@ cc_library(
         "//tensorflow_serving/batching:shared_batch_scheduler",
         "//tensorflow_serving/resources:resources_proto",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:bundle_shim",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",

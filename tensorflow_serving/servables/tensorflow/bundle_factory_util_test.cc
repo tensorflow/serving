@@ -107,8 +107,9 @@ TEST_F(BundleFactoryUtilTest, WrapSessionForBatching) {
   TF_ASSERT_OK(CreateBatchScheduler(batching_params, &batcher));
 
   // Wrap the session.
-  TF_ASSERT_OK(
-      WrapSessionForBatching(batching_params, batcher, &bundle.session));
+  TF_ASSERT_OK(WrapSessionForBatching(batching_params, batcher,
+                                      {test_util::GetTestSessionSignature()},
+                                      &bundle.session));
 
   // Run multiple requests concurrently. They should be executed as 5 batches.
   test_util::TestMultipleRequests(10, bundle.session.get());
