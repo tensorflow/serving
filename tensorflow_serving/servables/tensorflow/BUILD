@@ -49,6 +49,7 @@ cc_library(
         "//tensorflow_serving/batching:shared_batch_scheduler",
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/resources:resources_proto",
+        "//tensorflow_serving/util:file_probing_env",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
