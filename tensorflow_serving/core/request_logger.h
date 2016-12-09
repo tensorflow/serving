@@ -16,6 +16,8 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_CORE_REQUEST_LOGGER_H_
 #define TENSORFLOW_SERVING_CORE_REQUEST_LOGGER_H_
 
+#include <random>
+
 #include "google/protobuf/message.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/config/logging_config.pb.h"
