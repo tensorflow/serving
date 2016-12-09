@@ -32,12 +32,11 @@ Status ConnectSourceWithFastInitialLoad(
     AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
     const std::function<Status()>& wait_until_loaded_fn,
     const uint32 num_threads) {
-  const uint32 prev_num_load_unload_threads =
-      manager->num_load_unload_threads();
-  manager->SetNumLoadUnloadThreads(num_threads);
+  const uint32 prev_num_load_threads = manager->num_load_threads();
+  manager->SetNumLoadThreads(num_threads);
   ConnectSourceToTarget(source, manager);
   const Status status = wait_until_loaded_fn();
-  manager->SetNumLoadUnloadThreads(prev_num_load_unload_threads);
+  manager->SetNumLoadThreads(prev_num_load_threads);
   return status;
 }
 

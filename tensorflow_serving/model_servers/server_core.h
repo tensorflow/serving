@@ -86,15 +86,18 @@ class ServerCore : public Manager {
     // The AspiredVersionPolicy to use for the manager. Must be non-null.
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy;
 
-    // The number of threads used to load and unload models. If set to 0, then
-    // no thread pool is used and the loads/unloads are performed serially in
-    // the manager thread.
-    int32 num_load_unload_threads = 0;
+    // The number of threads used to load models. If set to 0, then no thread
+    // pool is used and loads are performed serially in the manager thread.
+    int32 num_load_threads = 0;
 
-    // The number of load/unload threads used to load the initial set of models
-    // at server startup. This is set high to load up the initial set of models
-    // fast, after this the server uses num_load_unload_threads.
-    int32 num_initial_load_unload_threads = 4.0 * port::NumSchedulableCPUs();
+    // The number of load threads used to load the initial set of models at
+    // server startup. This is set high to load up the initial set of models
+    // fast, after this the server uses num_load_threads.
+    int32 num_initial_load_threads = 4.0 * port::NumSchedulableCPUs();
+
+    // The number of threads used to unload models. If set to 0, then no thread
+    // pool is used and unloads are performed serially in the manager thread.
+    int32 num_unload_threads = 0;
 
     // Total model size limit, in terms of main memory, in bytes.
     uint64 total_model_memory_limit_bytes = std::numeric_limits<uint64>::max();
