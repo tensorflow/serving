@@ -39,20 +39,16 @@ namespace serving {
 
 namespace {
 
-std::unique_ptr<Executor> CreateLoadUnloadExecutor(
-    Env* const env, const uint32 num_load_unload_threads) {
-  std::unique_ptr<Executor> load_unload_executor;
-  if (num_load_unload_threads == 0) {
-    LOG(INFO) << "Creating InlineExecutor for BasicManager.";
-    load_unload_executor.reset(new InlineExecutor());
+std::unique_ptr<Executor> CreateExecutor(Env* const env,
+                                         const uint32 num_threads,
+                                         const string& threadpool_name) {
+  std::unique_ptr<Executor> executor;
+  if (num_threads == 0) {
+    executor.reset(new InlineExecutor());
   } else {
-    LOG(INFO) << "Creating ThreadPoolExecutor for BasicManager with "
-                 "num_load_unload_threads: "
-              << num_load_unload_threads;
-    load_unload_executor.reset(new ThreadPoolExecutor(
-        env, "BasicManager_LoadUnload_ThreadPool", num_load_unload_threads));
+    executor.reset(new ThreadPoolExecutor(env, threadpool_name, num_threads));
   }
-  return load_unload_executor;
+  return executor;
 }
 
 }  // namespace
@@ -209,34 +205,40 @@ Status BasicManager::Create(Options options,
   harness_options.max_num_load_retries = options.max_num_load_retries;
   harness_options.load_retry_interval_micros =
       options.load_retry_interval_micros;
-  manager->reset(new BasicManager(options.env, options.num_load_unload_threads,
+  manager->reset(new BasicManager(options.env, options.num_load_threads,
+                                  options.num_unload_threads,
                                   std::move(options.resource_tracker),
                                   options.servable_event_bus, harness_options));
   return Status::OK();
 }
 
-BasicManager::BasicManager(Env* const env, const uint32 num_load_unload_threads,
+BasicManager::BasicManager(Env* const env, const uint32 num_load_threads,
+                           const uint32 num_unload_threads,
                            std::unique_ptr<ResourceTracker> resource_tracker,
                            EventBus<ServableState>* servable_event_bus,
                            const LoaderHarness::Options& harness_options)
     : harness_options_(harness_options),
       servable_event_bus_(servable_event_bus),
       env_(env),
-      num_load_unload_threads_(num_load_unload_threads) {
+      num_load_threads_(num_load_threads) {
   {
-    mutex_lock l(num_load_unload_threads_mu_);
-    load_unload_executor_ =
-        CreateLoadUnloadExecutor(env_, num_load_unload_threads_);
+    mutex_lock l(num_load_threads_mu_);
+    load_executor_ =
+        CreateExecutor(env_, num_load_threads, "BasicManager_Load_ThreadPool");
   }
+  unload_executor_ = CreateExecutor(env_, num_unload_threads,
+                                    "BasicManager_Unload_ThreadPool");
   resource_tracker_ = std::move(resource_tracker);
 }
 
 BasicManager::~BasicManager() {
+  // Reset the executors first to finish all pending loads/unloads.
   {
-    mutex_lock l(num_load_unload_threads_mu_);
-    // Reset the executor first to finish all pending loads/unloads.
-    load_unload_executor_.reset();
+    mutex_lock l(num_load_threads_mu_);
+    load_executor_.reset();
   }
+  unload_executor_.reset();
+
   UnloadAllServables();
 }
 
@@ -546,20 +548,19 @@ Status BasicManager::ExecuteLoadOrUnload(const LoadOrUnloadRequest& request,
   return execution_status;
 }
 
-void BasicManager::SetNumLoadUnloadThreads(
-    const uint32 num_load_unload_threads) {
-  mutex_lock l(num_load_unload_threads_mu_);
+void BasicManager::SetNumLoadThreads(const uint32 num_load_threads) {
+  mutex_lock l(num_load_threads_mu_);
 
-  load_unload_executor_.reset();
-  num_load_unload_threads_ = num_load_unload_threads;
-  load_unload_executor_ =
-      CreateLoadUnloadExecutor(env_, num_load_unload_threads_);
+  load_executor_.reset();
+  num_load_threads_ = num_load_threads;
+  load_executor_ =
+      CreateExecutor(env_, num_load_threads_, "BasicManager_Load_ThreadPool");
 }
 
-uint32 BasicManager::num_load_unload_threads() const {
-  mutex_lock l(num_load_unload_threads_mu_);
+uint32 BasicManager::num_load_threads() const {
+  mutex_lock l(num_load_threads_mu_);
 
-  return num_load_unload_threads_;
+  return num_load_threads_;
 }
 
 void BasicManager::LoadOrUnloadServable(const LoadOrUnloadRequest& request,
@@ -584,11 +585,21 @@ void BasicManager::LoadOrUnloadServable(const LoadOrUnloadRequest& request,
     done_callback(status);
     return;
   }
-  {
-    mutex_lock l(num_load_unload_threads_mu_);
-    load_unload_executor_->Schedule([this, request, done_callback]() {
-      HandleLoadOrUnloadRequest(request, done_callback);
-    });
+
+  switch (request.kind) {
+    case LoadOrUnloadRequest::Kind::kLoad: {
+      mutex_lock l(num_load_threads_mu_);
+      load_executor_->Schedule([this, request, done_callback]() {
+        HandleLoadOrUnloadRequest(request, done_callback);
+      });
+      break;
+    }
+    case LoadOrUnloadRequest::Kind::kUnload: {
+      unload_executor_->Schedule([this, request, done_callback]() {
+        HandleLoadOrUnloadRequest(request, done_callback);
+      });
+      break;
+    }
   }
 }
 

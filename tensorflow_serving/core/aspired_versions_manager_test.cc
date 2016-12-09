@@ -61,16 +61,22 @@ ServableData<std::unique_ptr<Loader>> CreateAspiredVersion(
   return CreateServableData(id, std::move(loader));
 }
 
-class AspiredVersionsManagerTest : public ::testing::TestWithParam<int> {
+// We parameterize this test with the number of load & unload threads. (Zero
+// means use an in-line executor instead of a thread pool.)
+struct ThreadPoolSizes {
+  uint64 num_load_threads;
+  uint64 num_unload_threads;
+};
+class AspiredVersionsManagerTest
+    : public ::testing::TestWithParam<ThreadPoolSizes> {
  protected:
   AspiredVersionsManagerTest()
       : servable_event_bus_(EventBus<ServableState>::CreateEventBus()),
-        servable_state_monitor_(servable_event_bus_.get()) {
+        servable_state_monitor_(servable_event_bus_.get()),
+        thread_pool_sizes_(GetParam()) {
     AspiredVersionsManager::Options manager_options;
-    // We parameterize this test to either run with or without a
-    // thread-pool.
-    num_load_unload_threads_ = GetParam();
-    manager_options.num_load_unload_threads = num_load_unload_threads_;
+    manager_options.num_load_threads = thread_pool_sizes_.num_load_threads;
+    manager_options.num_unload_threads = thread_pool_sizes_.num_unload_threads;
     // The state manager thread won't be run automatically.
     manager_options.manage_state_interval_micros = -1;
     manager_options.env = Env::Default();
@@ -142,13 +148,18 @@ class AspiredVersionsManagerTest : public ::testing::TestWithParam<int> {
 
   std::shared_ptr<EventBus<ServableState>> servable_event_bus_;
   ServableStateMonitor servable_state_monitor_;
-  uint32 num_load_unload_threads_;
+  ThreadPoolSizes thread_pool_sizes_;
   uint32 max_num_load_retries_;
   std::unique_ptr<AspiredVersionsManager> manager_;
 };
 
-INSTANTIATE_TEST_CASE_P(WithOrWithoutThreadPool, AspiredVersionsManagerTest,
-                        ::testing::Values(0 /* WithoutThreadPool */, 4));
+INSTANTIATE_TEST_CASE_P(
+    WithOrWithoutThreadPools, AspiredVersionsManagerTest,
+    ::testing::Values(
+        ThreadPoolSizes{0, 0} /* without load or unload threadpools */,
+        ThreadPoolSizes{2, 0} /* with just a load threadpool */,
+        ThreadPoolSizes{0, 2} /* with just an unload threadpool */,
+        ThreadPoolSizes{4, 4} /* with load and unload threadpools */));
 
 TEST_P(AspiredVersionsManagerTest, ServableHandleNotFoundMissingLoaderName) {
   ServableHandle<int64> handle;
@@ -575,8 +586,8 @@ TEST_P(AspiredVersionsManagerTest, DestructOnNonServingThread) {
             {ServableState::ManagerState::kEnd});
         FlushServables();
         // The servable has been deleted in this thread if there is no
-        // thread-pool for load/unload.
-        if (num_load_unload_threads_ == 0) {
+        // thread-pool for unload.
+        if (thread_pool_sizes_.num_unload_threads == 0) {
           EXPECT_TRUE(FakeLoader::was_deleted_in_this_thread());
         }
         done_unload_servable.Notify();

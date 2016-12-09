@@ -74,9 +74,9 @@ class PredictImplTest : public ::testing::TestWithParam<bool> {
     options.use_saved_model = use_saved_model;
     options.aspired_version_policy =
         std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
-    // Reduce the number of initial load thread to be num_load_unload_threads to
-    // avoid timing out in tests.
-    options.num_initial_load_unload_threads = options.num_load_unload_threads;
+    // Reduce the number of initial load threads to be num_load_threads to avoid
+    // timing out in tests.
+    options.num_initial_load_threads = options.num_load_threads;
     return ServerCore::Create(std::move(options), server_core);
   }
 
