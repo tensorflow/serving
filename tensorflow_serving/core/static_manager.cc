@@ -21,7 +21,8 @@ namespace serving {
 StaticManagerBuilder::StaticManagerBuilder() {
   BasicManager::Options basic_manager_options;
   // We don't want multithreading.
-  basic_manager_options.num_load_unload_threads = 0;
+  basic_manager_options.num_load_threads = 0;
+  basic_manager_options.num_unload_threads = 0;
   const Status basic_manager_status =
       BasicManager::Create(std::move(basic_manager_options), &basic_manager_);
   if (!basic_manager_status.ok()) {

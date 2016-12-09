@@ -254,3 +254,12 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
     ],
 )
+
+cc_library(
+    name = "file_probing_env",
+    srcs = ["file_probing_env.cc"],
+    hdrs = ["file_probing_env.h"],
+    deps = [
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)

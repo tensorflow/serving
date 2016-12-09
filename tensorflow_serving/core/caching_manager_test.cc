@@ -138,7 +138,13 @@ constexpr char kServableName2[] = "kServableName2";
 
 constexpr int kNumThreads = 10;
 
-class CachingManagerTest : public ::testing::TestWithParam<int> {
+// We parameterize this test with the number of load & unload threads. (Zero
+// means use an in-line executor instead of a thread pool.)
+struct ThreadPoolSizes {
+  uint64 num_load_threads;
+  uint64 num_unload_threads;
+};
+class CachingManagerTest : public ::testing::TestWithParam<ThreadPoolSizes> {
  protected:
   CachingManagerTest()
       : servable_event_bus_(EventBus<ServableState>::CreateEventBus()),
@@ -146,7 +152,8 @@ class CachingManagerTest : public ::testing::TestWithParam<int> {
     CachingManager::Options options;
     options.env = Env::Default();
     options.servable_event_bus = servable_event_bus_.get();
-    options.num_load_unload_threads = GetParam();
+    options.num_load_threads = GetParam().num_load_threads;
+    options.num_unload_threads = GetParam().num_unload_threads;
     options.max_num_load_retries = 1;
     options.load_retry_interval_micros = 0;
 
@@ -165,7 +172,8 @@ class CachingManagerTest : public ::testing::TestWithParam<int> {
     CachingManager::Options options;
     options.env = Env::Default();
     options.servable_event_bus = servable_event_bus_.get();
-    options.num_load_unload_threads = GetParam();
+    options.num_load_threads = GetParam().num_load_threads;
+    options.num_unload_threads = GetParam().num_unload_threads;
     options.max_num_load_retries = 1;
     options.load_retry_interval_micros = 0;
 
@@ -191,8 +199,11 @@ class CachingManagerTest : public ::testing::TestWithParam<int> {
   StringLoaderFactory* string_loader_factory_;
 };
 
-INSTANTIATE_TEST_CASE_P(WithOrWithoutThreadPool, CachingManagerTest,
-                        ::testing::Values(0 /* WithoutThreadPool */, 4));
+INSTANTIATE_TEST_CASE_P(
+    WithOrWithoutThreadPools, CachingManagerTest,
+    ::testing::Values(
+        ThreadPoolSizes{0, 0} /* without load or unload threadpools */,
+        ThreadPoolSizes{4, 4} /* with load and unload threadpools */));
 
 ///////////////////////////////////////////////////////////////////////////////
 // Servable handles.

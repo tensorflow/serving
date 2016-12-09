@@ -74,15 +74,21 @@ ServableData<std::unique_ptr<Loader>> CreateServable(
   return CreateServableData(id, std::move(loader));
 }
 
-// We parameterize this test to either run with or without a thread-pool.
-class BasicManagerTest : public ::testing::TestWithParam<int> {
+// We parameterize this test with the number of load & unload threads. (Zero
+// means use an in-line executor instead of a thread pool.)
+struct ThreadPoolSizes {
+  uint64 num_load_threads;
+  uint64 num_unload_threads;
+};
+class BasicManagerTest : public ::testing::TestWithParam<ThreadPoolSizes> {
  protected:
   BasicManagerTest()
-      : num_load_unload_threads_(GetParam()),
+      : thread_pool_sizes_(GetParam()),
         servable_event_bus_(EventBus<ServableState>::CreateEventBus()),
         servable_state_monitor_(servable_event_bus_.get()) {
     BasicManager::Options options;
-    options.num_load_unload_threads = num_load_unload_threads_;
+    options.num_load_threads = thread_pool_sizes_.num_load_threads;
+    options.num_unload_threads = thread_pool_sizes_.num_unload_threads;
     options.servable_event_bus = servable_event_bus_.get();
     options.max_num_load_retries = 10;
     options.load_retry_interval_micros = 0;
@@ -109,15 +115,19 @@ class BasicManagerTest : public ::testing::TestWithParam<int> {
     }
   }
 
-  int num_load_unload_threads_;
+  ThreadPoolSizes thread_pool_sizes_;
   std::shared_ptr<EventBus<ServableState>> servable_event_bus_;
   ServableStateMonitor servable_state_monitor_;
   std::unique_ptr<BasicManager> basic_manager_;
 };
 
-INSTANTIATE_TEST_CASE_P(WithOrWithoutThreadPool, BasicManagerTest,
-                        ::testing::Values(0 /* WithoutThreadPool */,
-                                          kNumThreads));
+INSTANTIATE_TEST_CASE_P(
+    WithOrWithoutThreadPools, BasicManagerTest,
+    ::testing::Values(
+        ThreadPoolSizes{0, 0} /* without load or unload threadpools */,
+        ThreadPoolSizes{2, 0} /* with just a load threadpool */,
+        ThreadPoolSizes{0, 2} /* with just an unload threadpool */,
+        ThreadPoolSizes{4, 4} /* with load and unload threadpools */));
 
 TEST_P(BasicManagerTest, ServableHandleNotFoundMissingLoaderName) {
   ServableHandle<int64> handle;
@@ -525,7 +535,7 @@ TEST_P(BasicManagerTest, DestructOnNonServingThread) {
         basic_manager_->StopManagingServable(id);
         // The servable has been deleted in this thread if there is no
         // thread-pool for load/unload.
-        if (num_load_unload_threads_ == 0) {
+        if (thread_pool_sizes_.num_load_threads == 0) {
           EXPECT_TRUE(FakeLoader::was_deleted_in_this_thread());
         }
         done_unload_servable.Notify();
@@ -725,7 +735,7 @@ TEST_P(BasicManagerTest, EventBusServableLifecycle) {
 TEST_P(BasicManagerTest, NoEventBus) {
   BasicManager::Options options;
   // Single threaded execution.
-  options.num_load_unload_threads = 0;
+  options.num_load_threads = 0;
   // No event bus.
   options.servable_event_bus = nullptr;
   std::unique_ptr<BasicManager> manager;
@@ -796,11 +806,11 @@ TEST_P(BasicManagerTest, InterleavedLoadsAndUnloads) {
   }
 }
 
-class SetNumLoadUnloadThreadsBasicManagerTest : public ::testing::Test {
+class SetNumLoadThreadsBasicManagerTest : public ::testing::Test {
  protected:
-  SetNumLoadUnloadThreadsBasicManagerTest() {
+  SetNumLoadThreadsBasicManagerTest() {
     BasicManager::Options options;
-    options.num_load_unload_threads = 0;
+    options.num_load_threads = 0;
     options.max_num_load_retries = 10;
     options.load_retry_interval_micros = 0;
     TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
@@ -809,15 +819,15 @@ class SetNumLoadUnloadThreadsBasicManagerTest : public ::testing::Test {
   std::unique_ptr<BasicManager> basic_manager_;
 };
 
-TEST_F(SetNumLoadUnloadThreadsBasicManagerTest, ThreadPoolSwapped) {
+TEST_F(SetNumLoadThreadsBasicManagerTest, ThreadPoolSwapped) {
   test_util::BasicManagerTestAccess manager_test_access(basic_manager_.get());
-  manager_test_access.SetNumLoadUnloadThreads(2);
-  EXPECT_EQ(2, manager_test_access.num_load_unload_threads());
+  manager_test_access.SetNumLoadThreads(2);
+  EXPECT_EQ(2, manager_test_access.num_load_threads());
 
   const auto load_done_fn = [&](const Status& status) {
     TF_ASSERT_OK(status);
     // Tests whether the threadpools are actually swapped in
-    // SetNumLoadUnloadThreads().
+    // SetNumLoadThreads().
     static thread_local int per_thread_load_ctr = 0;
     ++per_thread_load_ctr;
     EXPECT_EQ(1, per_thread_load_ctr);
@@ -827,8 +837,8 @@ TEST_F(SetNumLoadUnloadThreadsBasicManagerTest, ThreadPoolSwapped) {
   basic_manager_->ManageServable(CreateServable(id0));
   basic_manager_->LoadServable(id0, load_done_fn);
 
-  manager_test_access.SetNumLoadUnloadThreads(0);
-  EXPECT_EQ(0, manager_test_access.num_load_unload_threads());
+  manager_test_access.SetNumLoadThreads(0);
+  EXPECT_EQ(0, manager_test_access.num_load_threads());
 
   const ServableId id1 = {kServableName3, 1};
   basic_manager_->ManageServable(CreateServable(id1));
@@ -838,11 +848,10 @@ TEST_F(SetNumLoadUnloadThreadsBasicManagerTest, ThreadPoolSwapped) {
   basic_manager_.reset();
 }
 
-TEST_F(SetNumLoadUnloadThreadsBasicManagerTest,
-       ThreadPoolsNotAliveSimultaneously) {
+TEST_F(SetNumLoadThreadsBasicManagerTest, ThreadPoolsNotAliveSimultaneously) {
   test_util::BasicManagerTestAccess manager_test_access(basic_manager_.get());
-  manager_test_access.SetNumLoadUnloadThreads(1);
-  EXPECT_EQ(1, manager_test_access.num_load_unload_threads());
+  manager_test_access.SetNumLoadThreads(1);
+  EXPECT_EQ(1, manager_test_access.num_load_threads());
 
   std::set<string> data_race_set;
   const auto data_race_fn = [&](const Status& status) {
@@ -863,12 +872,12 @@ TEST_F(SetNumLoadUnloadThreadsBasicManagerTest,
   });
 
   {
-    ThreadPoolExecutor executor(Env::Default(), "SetNumLoadUnloadThreads",
+    ThreadPoolExecutor executor(Env::Default(), "SetNumLoadThreads",
                                 kNumThreads);
     executor.Schedule([&]() {
       notify_for_setting.WaitForNotification();
-      manager_test_access.SetNumLoadUnloadThreads(1);
-      EXPECT_EQ(1, manager_test_access.num_load_unload_threads());
+      manager_test_access.SetNumLoadThreads(1);
+      EXPECT_EQ(1, manager_test_access.num_load_threads());
     });
 
     executor.Schedule([&]() {
@@ -886,12 +895,11 @@ TEST_F(SetNumLoadUnloadThreadsBasicManagerTest,
 
 // Tests whether the fast-load scenario works. In the fast-load scenario we try
 // to load a bunch of servables as fast as possible using a lot of threads.
-TEST_F(SetNumLoadUnloadThreadsBasicManagerTest, FastLoad) {
+TEST_F(SetNumLoadThreadsBasicManagerTest, FastLoad) {
   test_util::BasicManagerTestAccess manager_test_access(basic_manager_.get());
-  const uint32 prev_num_load_unload_threads =
-      manager_test_access.num_load_unload_threads();
-  manager_test_access.SetNumLoadUnloadThreads(32);
-  EXPECT_EQ(32, manager_test_access.num_load_unload_threads());
+  const uint32 prev_num_load_threads = manager_test_access.num_load_threads();
+  manager_test_access.SetNumLoadThreads(32);
+  EXPECT_EQ(32, manager_test_access.num_load_threads());
 
   {
     ThreadPoolExecutor executor(Env::Default(), "FirstThreadPoolLoads",
@@ -903,16 +911,15 @@ TEST_F(SetNumLoadUnloadThreadsBasicManagerTest, FastLoad) {
         basic_manager_->LoadServable(
             id, [](const Status& status) { TF_ASSERT_OK(status); });
         // We don't wait for load to be done here because we want to test that
-        // SetNumLoadUnloadThreads() waits properly till all queued loads are
+        // SetNumLoadThreads() waits properly till all queued loads are
         // finished.  If a queued load hasn't been finished the corresponding
         // UnloadServable() will fail.
       });
     }
   }
 
-  manager_test_access.SetNumLoadUnloadThreads(prev_num_load_unload_threads);
-  EXPECT_EQ(prev_num_load_unload_threads,
-            manager_test_access.num_load_unload_threads());
+  manager_test_access.SetNumLoadThreads(prev_num_load_threads);
+  EXPECT_EQ(prev_num_load_threads, manager_test_access.num_load_threads());
 
   {
     ThreadPoolExecutor executor(Env::Default(), "Unloads", kNumThreads);
@@ -1124,8 +1131,9 @@ class ResourceConstrainedBasicManagerTest : public ::testing::Test {
     // Seed the manager with ten resource units.
     options.resource_tracker = CreateSimpleResourceTracker(10);
     options.servable_event_bus = servable_event_bus_.get();
-    // Allow up to two load/unload requests to be processed concurrently.
-    options.num_load_unload_threads = 2;
+    // Allow up to two loads and two unloads to be processed concurrently.
+    options.num_load_threads = 2;
+    options.num_unload_threads = 2;
     // We don't want retries.
     options.max_num_load_retries = 0;
     TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
