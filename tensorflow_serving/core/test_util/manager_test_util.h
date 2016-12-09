@@ -38,9 +38,9 @@ class AspiredVersionsManagerTestAccess {
   // Invokes InvokePolicyAndExecuteAction() on the manager.
   void InvokePolicyAndExecuteAction();
 
-  void SetNumLoadUnloadThreads(uint32 num_load_unload_threads);
+  void SetNumLoadThreads(uint32 num_load_threads);
 
-  uint32 num_load_unload_threads() const;
+  uint32 num_load_threads() const;
 
  private:
   AspiredVersionsManager* const manager_;
@@ -53,9 +53,9 @@ class BasicManagerTestAccess {
  public:
   explicit BasicManagerTestAccess(BasicManager* manager);
 
-  void SetNumLoadUnloadThreads(uint32 num_load_unload_threads);
+  void SetNumLoadThreads(uint32 num_load_threads);
 
-  uint32 num_load_unload_threads() const;
+  uint32 num_load_threads() const;
 
  private:
   BasicManager* const manager_;

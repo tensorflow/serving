@@ -58,6 +58,7 @@ limitations under the License.
 #include "grpc/grpc.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/init_main.h"
+#include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/util/command_line_flags.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 #include "tensorflow_serving/apis/prediction_service.pb.h"
@@ -199,6 +200,7 @@ void RunServer(int port, std::unique_ptr<ServerCore> core,
   std::shared_ptr<grpc::ServerCredentials> creds = InsecureServerCredentials();
   builder.AddListeningPort(server_address, creds);
   builder.RegisterService(&service);
+  builder.SetMaxMessageSize(tensorflow::kint32max);
   std::unique_ptr<Server> server(builder.BuildAndStart());
   LOG(INFO) << "Running ModelServer at " << server_address << " ...";
   server->Wait();

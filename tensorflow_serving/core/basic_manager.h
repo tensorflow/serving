@@ -101,7 +101,7 @@ class BasicManagerTestAccess;
 // ...
 //
 // TF_CHECK_OK(manager.UnloadServable(id));
-// TF_CHECK_OK(manager.UnmanagerServable(id));
+// TF_CHECK_OK(manager.StopManagingServable(id));
 class BasicManager : public Manager {
  public:
   struct Options {
@@ -109,12 +109,15 @@ class BasicManager : public Manager {
     // If left as nullptr, we do not validate servable resource usage.
     std::unique_ptr<ResourceTracker> resource_tracker;
 
-    // The number of threads in the thread-pool used to load and unload
-    // servables.
+    // The number of threads in the thread-pool used to load servables.
     //
-    // If set as 0, we don't use a thread-pool, and the {Load,Unload}Servable()
-    // methods block.
-    uint32 num_load_unload_threads = 0;
+    // If set as 0, we don't use a thread-pool, and LoadServable() blocks.
+    uint32 num_load_threads = 0;
+
+    // The number of threads in the thread-pool used to unload servables.
+    //
+    // If set as 0, we don't use a thread-pool, and UnloadServable() blocks.
+    uint32 num_unload_threads = 0;
 
     // EventBus to publish servable state changes. This is optional, if unset,
     // we don't publish.
@@ -239,9 +242,9 @@ class BasicManager : public Manager {
   // kQuiescing state, schedules the unload and returns, otherwise it completes
   // the unload before returning.
   //
-  // REQUIRES: This manager should have been managing this servable already, for
-  // it to be unloaded, else calls 'done_callback' with an error status. Do not
-  // call this multiple times on the same servable. Only one of those will
+  // REQUIRES: This manager should have loaded and made this servable available,
+  // for it to be unloaded, else calls 'done_callback' with an error status. Do
+  // not call this multiple times on the same servable. Only one of those will
   // succeed and the rest will fail with an error status.
   void UnloadServable(const ServableId& id, DoneCallback done_callback);
 
@@ -249,7 +252,7 @@ class BasicManager : public Manager {
   friend class AspiredVersionsManager;
   friend class test_util::BasicManagerTestAccess;
 
-  BasicManager(Env* env, uint32 num_load_unload_threads,
+  BasicManager(Env* env, uint32 num_load_threads, uint32 num_unload_threads,
                std::unique_ptr<ResourceTracker> resource_tracker,
                EventBus<ServableState>* servable_event_bus,
                const LoaderHarness::Options& harness_options);
@@ -350,16 +353,15 @@ class BasicManager : public Manager {
   // are ready to be served.
   void UpdateServingMap() EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
-  // Sets the number of load/unload threads.
+  // Sets the number of load threads.
   //
-  // We block all new load/unload requests while the old thread pool is
-  // destructed, a new one is created and then swapped with the old one. Note
-  // that destructing the old thread pool blocks until all threads are done, so
-  // it could block for a long time.
-  void SetNumLoadUnloadThreads(uint32 num_load_unload_threads)
-      LOCKS_EXCLUDED(num_load_unload_threads_mu_);
-  uint32 num_load_unload_threads() const
-      LOCKS_EXCLUDED(num_load_unload_threads_mu_);
+  // We block all new load requests while the old thread pool is destructed, a
+  // new one is created and then swapped with the old one. Note that destructing
+  // the old thread pool blocks until all threads are done, so it could block
+  // for a long time.
+  void SetNumLoadThreads(uint32 num_load_threads)
+      LOCKS_EXCLUDED(num_load_threads_mu_);
+  uint32 num_load_threads() const LOCKS_EXCLUDED(num_load_threads_mu_);
 
   // Keys are the servable names.
   // Values are the harnesses for each servable version. The values when
@@ -458,11 +460,16 @@ class BasicManager : public Manager {
 
   Env* const env_;
 
-  mutable mutex num_load_unload_threads_mu_;
-  uint32 num_load_unload_threads_ GUARDED_BY(num_load_unload_threads_mu_);
-  // The executor used for executing load and unload of servables.
-  std::unique_ptr<Executor> load_unload_executor_
-      GUARDED_BY(num_load_unload_threads_mu_);
+  // The number of load threads and the associated executor. They can be changed
+  // after instantiation of the manager via SetNumLoadThreads().
+  mutable mutex num_load_threads_mu_;
+  uint32 num_load_threads_ GUARDED_BY(num_load_threads_mu_);
+  // The executor used for executing loads of servables.
+  std::unique_ptr<Executor> load_executor_ GUARDED_BY(num_load_threads_mu_);
+
+  // The executor used for executing unloads of servables. (Unlike for loads,
+  // the unload executor is fixed for the lifetime of the manager.)
+  std::unique_ptr<Executor> unload_executor_;
 
   // Used to serialize the decision phases of the load/unload requests.
   mutable mutex load_unload_decision_phase_mu_;
