@@ -31,7 +31,7 @@ ModelServerConfig ServerCoreTest::GetTestModelServerConfig() {
   model->set_name(kTestModelName);
   if (GetTestType() == SAVED_MODEL) {
     model->set_base_path(test_util::TensorflowTestSrcDirPath(
-        "/python/saved_model/example/saved_model_half_plus_two"));
+        "/cc/saved_model/testdata/half_plus_two"));
   } else {
     model->set_base_path(test_util::TestSrcDirPath(
         "/servables/tensorflow/testdata/half_plus_two"));

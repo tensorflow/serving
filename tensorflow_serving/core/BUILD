@@ -663,6 +663,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "//tensorflow_serving/config:log_collector_config_proto",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

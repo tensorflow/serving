@@ -70,7 +70,7 @@ std::unique_ptr<Session> CreateHalfPlusTwoSession() {
   tensorflow::SessionOptions session_options;
   tensorflow::RunOptions run_options;
   const string export_dir = test_util::TensorflowTestSrcDirPath(
-      "python/saved_model/example/saved_model_half_plus_two/00000123");
+      "cc/saved_model/testdata/half_plus_two/00000123");
   SavedModelBundle bundle;
   TF_CHECK_OK(LoadSavedModel(session_options, run_options, export_dir,
                              {kSavedModelTagServe}, &bundle));

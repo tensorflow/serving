@@ -32,9 +32,9 @@ namespace test_util {
 namespace {
 
 const char kTestSavedModelPath[] =
-    "python/saved_model/example/saved_model_half_plus_two/00000123";
+    "cc/saved_model/testdata/half_plus_two/00000123";
 const char kTestSessionBundleExportPath[] =
-    "session_bundle/example/half_plus_two/00000123";
+    "session_bundle/testdata/half_plus_two/00000123";
 
 }  // namespace
 

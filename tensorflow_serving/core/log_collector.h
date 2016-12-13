@@ -22,6 +22,7 @@ limitations under the License.
 
 #include "google/protobuf/message.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow_serving/config/log_collector_config.pb.h"
 
 namespace tensorflow {
 namespace serving {
@@ -35,13 +36,13 @@ class LogCollector {
  public:
   virtual ~LogCollector() = default;
 
-  // Creates a log-collector for a given 'logname_prefix' and 'id'. The
-  // 'logname_prefix' should be of the form '/type/<real_logname_prefix>', so
-  // that the factory registered for the type can then be used to create the
-  // log-collector. The 'id' argument helps in disambiguating logs from
-  // replicated servers (processes), so it could be a combination of
+  // Creates a log-collector for a given 'log_collector_config' and 'id'. The
+  // factory registered for the type, mentioned in the config, can then be used
+  // to create the log-collector. The 'id' argument helps in disambiguating logs
+  // from replicated servers (processes), so it could be a combination of
   // task-id and replica-id or process-id and timestamp, etc.
-  static Status Create(const string& logname_prefix, const uint32 id,
+  static Status Create(const LogCollectorConfig& log_collector_config,
+                       const uint32 id,
                        std::unique_ptr<LogCollector>* log_collector);
 
   using Factory = std::function<decltype(Create)>;
@@ -58,7 +59,31 @@ class LogCollector {
   virtual Status Flush() = 0;
 };
 
+namespace register_log_collector {
+
+struct RegisterFactory {
+  RegisterFactory(const string& type, const LogCollector::Factory& factory) {
+    // This check happens during global object construction time, even before
+    // control reaches main(), so we are ok with the crash.
+    TF_CHECK_OK(LogCollector::RegisterFactory(type, factory));  // Crash ok.
+  }
+};
+
+}  // namespace register_log_collector
+
 }  // namespace serving
 }  // namespace tensorflow
+
+#define REGISTER_LOG_COLLECTOR_UNIQ_HELPER(ctr, type, factory) \
+  REGISTER_LOG_COLLECTOR_UNIQ(ctr, type, factory)
+#define REGISTER_LOG_COLLECTOR_UNIQ(ctr, type, factory)                   \
+  static ::tensorflow::serving::register_log_collector::RegisterFactory   \
+      register_lgc##ctr TF_ATTRIBUTE_UNUSED =                             \
+          ::tensorflow::serving::register_log_collector::RegisterFactory( \
+              type, factory)
+
+// Registers a LogCollector factory implementation for a type.
+#define REGISTER_LOG_COLLECTOR(type, factory) \
+  REGISTER_LOG_COLLECTOR_UNIQ_HELPER(__COUNTER__, type, factory)
 
 #endif  // TENSORFLOW_SERVING_CORE_LOG_COLLECTOR_H_

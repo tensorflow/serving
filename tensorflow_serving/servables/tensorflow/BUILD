@@ -61,7 +61,7 @@ cc_test(
     name = "bundle_factory_util_test",
     size = "medium",
     srcs = ["bundle_factory_util_test.cc"],
-    data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
+    data = ["@org_tensorflow//tensorflow/contrib/session_bundle:session_bundle_half_plus_two"],
     deps = [
         ":bundle_factory_test_util",
         ":bundle_factory_util",
@@ -142,7 +142,7 @@ cc_test(
     name = "session_bundle_factory_test",
     size = "medium",
     srcs = ["session_bundle_factory_test.cc"],
-    data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
+    data = ["@org_tensorflow//tensorflow/contrib/session_bundle:session_bundle_half_plus_two"],
     deps = [
         ":bundle_factory_test",
         ":bundle_factory_test_util",
@@ -188,8 +188,8 @@ cc_test(
     size = "medium",
     srcs = ["saved_model_bundle_factory_test.cc"],
     data = [
-        "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
-        "@org_tensorflow//tensorflow/python/saved_model/example:saved_model_half_plus_two_data",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:session_bundle_half_plus_two",
     ],
     deps = [
         ":bundle_factory_test",
@@ -233,7 +233,7 @@ cc_test(
     name = "session_bundle_source_adapter_test",
     size = "medium",
     srcs = ["session_bundle_source_adapter_test.cc"],
-    data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
+    data = ["@org_tensorflow//tensorflow/contrib/session_bundle:session_bundle_half_plus_two"],
     # Link in all registered kernels.
     linkstatic = 1,
     deps = [
@@ -281,8 +281,8 @@ cc_test(
     size = "medium",
     srcs = ["saved_model_bundle_source_adapter_test.cc"],
     data = [
-        "@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two",
-        "@org_tensorflow//tensorflow/python/saved_model/example:saved_model_half_plus_two_data",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:session_bundle_half_plus_two",
     ],
     # Link in all registered kernels.
     linkstatic = 1,
@@ -345,7 +345,7 @@ cc_library(
 cc_test(
     name = "simple_servers_test",
     srcs = ["simple_servers_test.cc"],
-    data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
+    data = ["@org_tensorflow//tensorflow/contrib/session_bundle:session_bundle_half_plus_two"],
     # Link in all registered kernels.
     linkstatic = 1,
     deps = [
@@ -400,7 +400,8 @@ cc_test(
     data = [
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
     ],
     deps = [

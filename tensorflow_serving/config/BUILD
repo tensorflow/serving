@@ -33,6 +33,14 @@ serving_proto_library(
 )
 
 serving_proto_library(
+    name = "log_collector_config_proto",
+    srcs = ["log_collector_config.proto"],
+    cc_api_version = 2,
+    deps = [
+    ],
+)
+
+serving_proto_library(
     name = "logging_config_proto",
     srcs = ["logging_config.proto"],
     cc_api_version = 2,

@@ -246,9 +246,44 @@ TEST_P(PredictImplTest, PredictionSuccess) {
   output_tensor_proto.add_float_val(3);
   output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
   output_tensor_proto.mutable_tensor_shape();
-  PredictResponse test_response;
-  (*test_response.mutable_outputs())[kOutputTensorKey] = output_tensor_proto;
-  EXPECT_THAT(test_response, test_util::EqualsProto(response));
+  PredictResponse expected_response;
+  (*expected_response.mutable_outputs())[kOutputTensorKey] =
+      output_tensor_proto;
+  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
+}
+
+// Test querying a model with a named regression signature (not default). This
+// will work with SavedModel but not supported in the legacy SessionBundle.
+TEST_P(PredictImplTest, PredictionWithNamedRegressionSignature) {
+  PredictRequest request;
+  PredictResponse response;
+
+  ModelSpec* model_spec = request.mutable_model_spec();
+  model_spec->set_name(kTestModelName);
+  model_spec->mutable_version()->set_value(kTestModelVersion);
+  model_spec->set_signature_name("regress");
+
+  TensorProto tensor_proto;
+  tensor_proto.add_float_val(2.0);
+  tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  (*request.mutable_inputs())["Placeholder:0"] = tensor_proto;
+
+  TensorflowPredictor predictor(GetParam());
+  // This request is expected to work with SavedModel, but not SessionBundle.
+  if (GetParam()) {
+    TF_ASSERT_OK(predictor.Predict(GetServerCore(), request, &response));
+  } else {
+    ASSERT_EQ(tensorflow::error::INVALID_ARGUMENT,
+              predictor.Predict(GetServerCore(), request, &response).code());
+    return;
+  }
+  TensorProto output_tensor_proto;
+  output_tensor_proto.add_float_val(3);
+  output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  output_tensor_proto.mutable_tensor_shape();
+  PredictResponse expected_response;
+  (*expected_response.mutable_outputs())["Add:0"] = output_tensor_proto;
+  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 
 // Test all ClassifierTest test cases with both SessionBundle and SavedModel.

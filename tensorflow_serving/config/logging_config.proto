@@ -3,6 +3,8 @@ syntax = "proto3";
 package tensorflow.serving;
 option cc_enable_arenas = true;
 
+import "tensorflow_serving/config/log_collector_config.proto";
+
 message SamplingConfig {
   // Requests will be logged uniformly at random with this probability. Valid
   // range: [0, 1.0].
@@ -11,11 +13,6 @@ message SamplingConfig {
 
 // Configuration for logging query/responses.
 message LoggingConfig {
-  // Identifies the type of the LogCollector we will use to collect these logs.
-  string type = 1;
-
-  // The prefix to use for the filenames of the logs.
-  string filename_prefix = 2;
-
-  SamplingConfig sampling_config = 3;
+  LogCollectorConfig log_collector_config = 1;
+  SamplingConfig sampling_config = 2;
 }

@@ -26,14 +26,6 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-bool ParseLognamePrefix(StringPiece remaining, StringPiece* type) {
-  return strings::Scanner(remaining)
-      .OneLiteral("/")
-      .RestartCapture()
-      .ScanUntil('/')
-      .GetResult(&remaining, type);
-}
-
 // This class is thread-safe.
 class Registry {
  public:
@@ -64,30 +56,27 @@ class Registry {
       GUARDED_BY(mu_);
 };
 
-auto* registry_ = new Registry();
+Registry* GetRegistry() {
+  static auto* registry = new Registry();
+  return registry;
+}
 
 }  // namespace
 
 Status LogCollector::RegisterFactory(const string& type,
                                      const Factory& factory) {
-  return registry_->Register(type, factory);
+  return GetRegistry()->Register(type, factory);
 }
 
 Status LogCollector::Create(
-    const string& logname_prefix, const uint32 id,
+    const LogCollectorConfig& config, const uint32 id,
     std::unique_ptr<LogCollector>* const log_collector) {
-  StringPiece remaining(logname_prefix);
-  StringPiece type;
-  if (!ParseLognamePrefix(remaining, &type)) {
-    return errors::InvalidArgument("Invalid logname_prefix: ", logname_prefix);
-  }
-
-  auto* factory = registry_->Lookup(type.ToString());
+  auto* factory = GetRegistry()->Lookup(config.type());
   if (factory == nullptr) {
     return errors::NotFound("Cannot find LogCollector::Factory for type: ",
-                            type);
+                            config.type());
   }
-  return (*factory)(remaining.ToString(), id, log_collector);
+  return (*factory)(config, id, log_collector);
 }
 
 }  // namespace serving

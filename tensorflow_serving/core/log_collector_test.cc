@@ -18,6 +18,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/error_codes.pb.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow_serving/config/log_collector_config.pb.h"
 
 namespace tensorflow {
 namespace serving {
@@ -29,34 +30,43 @@ class FakeLogCollector : public LogCollector {
   Status Flush() override { return Status::OK(); }
 };
 
+LogCollectorConfig CreateConfig(const string& type,
+                                const string& filename_prefix) {
+  LogCollectorConfig config;
+  config.set_type(type);
+  config.set_filename_prefix(filename_prefix);
+  return config;
+}
+
 TEST(LogCollectorTest, NotRegistered) {
   std::unique_ptr<LogCollector> log_collector;
-  const auto status =
-      LogCollector::Create("/notregistered/logname_prefix", 0, &log_collector);
+  const auto status = LogCollector::Create(
+      CreateConfig("notregistered", "filename_prefix"), 0, &log_collector);
   EXPECT_EQ(status.code(), error::NOT_FOUND);
 }
 
 TEST(LogCollectorTest, Registration) {
   TF_ASSERT_OK(LogCollector::RegisterFactory(
-      "registered", [](const string& logname_prefix, const uint32 id,
+      "registered", [](const LogCollectorConfig& config, const uint32 id,
                        std::unique_ptr<LogCollector>* log_collector) {
         *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
         return Status::OK();
       }));
   std::unique_ptr<LogCollector> log_collector;
-  TF_ASSERT_OK(
-      LogCollector::Create("/registered/logname_prefix", 0, &log_collector));
+  TF_ASSERT_OK(LogCollector::Create(
+      CreateConfig("registered", "filename_prefix"), 0, &log_collector));
 }
 
+auto duplicate_factory = [](const LogCollectorConfig& config, const uint32 id,
+                            std::unique_ptr<LogCollector>* log_collector) {
+  *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
+  return Status::OK();
+};
+REGISTER_LOG_COLLECTOR("duplicate", duplicate_factory);
+
 TEST(LogCollectorTest, DuplicateRegistration) {
-  TF_ASSERT_OK(LogCollector::RegisterFactory(
-      "duplicate", [](const string& logname_prefix, const uint32 id,
-                      std::unique_ptr<LogCollector>* log_collector) {
-        *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
-        return Status::OK();
-      }));
   const auto status = LogCollector::RegisterFactory(
-      "duplicate", [](const string& logname_prefix, const uint32 id,
+      "duplicate", [](const LogCollectorConfig& config, const uint32 id,
                       std::unique_ptr<LogCollector>* log_collector) {
         *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
         return Status::OK();
@@ -64,19 +74,20 @@ TEST(LogCollectorTest, DuplicateRegistration) {
   EXPECT_EQ(status.code(), error::ALREADY_EXISTS);
 }
 
+auto creation_factory = [](const LogCollectorConfig& config, const uint32 id,
+                           std::unique_ptr<LogCollector>* log_collector) {
+  *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
+  return Status::OK();
+};
+REGISTER_LOG_COLLECTOR("creation", creation_factory);
+
 TEST(LogCollectorTest, Creation) {
-  TF_ASSERT_OK(LogCollector::RegisterFactory(
-      "creation", [](const string& logname_prefix, const uint32 id,
-                     std::unique_ptr<LogCollector>* log_collector) {
-        *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
-        return Status::OK();
-      }));
   std::unique_ptr<LogCollector> log_collector0;
-  TF_ASSERT_OK(
-      LogCollector::Create("/creation/logname_prefix", 0, &log_collector0));
+  TF_ASSERT_OK(LogCollector::Create(CreateConfig("creation", "filename_prefix"),
+                                    0, &log_collector0));
   std::unique_ptr<LogCollector> log_collector1;
-  TF_ASSERT_OK(
-      LogCollector::Create("/creation/logname_prefix", 0, &log_collector1));
+  TF_ASSERT_OK(LogCollector::Create(CreateConfig("creation", "filename_prefix"),
+                                    0, &log_collector1));
   EXPECT_NE(log_collector0.get(), log_collector1.get());
 }
 

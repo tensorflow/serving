@@ -164,7 +164,7 @@ cc_test(
         "batching_session_test.cc",
     ],
     data = [
-        "@org_tensorflow//tensorflow/python/saved_model/example:saved_model_half_plus_two_data",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
     deps = [
         ":batching_session",
