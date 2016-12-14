@@ -45,5 +45,6 @@ serving_proto_library(
     srcs = ["logging_config.proto"],
     cc_api_version = 2,
     deps = [
+        ":log_collector_config_proto",
     ],
 )
