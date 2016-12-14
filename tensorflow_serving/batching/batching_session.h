@@ -160,26 +160,6 @@ Status CreateBasicBatchingSession(
     std::unique_ptr<Session>* batching_session);
 
 //////////
-// DEPRECATED. New code should not use the following.
-//
-// Backward-compatibility layer for old API. This layer interprets the signature
-// of the first Run() call as the one and only batching signature.
-// TODO(b/33476643): Remove after migrating all clients.
-Status CreateBatchingSession(
-    const BatchingSessionOptions& options,
-    BatchingSessionSchedulerCreator batch_scheduler_creator,
-    std::unique_ptr<Session> session,
-    std::unique_ptr<Session>* batching_session);
-Status CreateBasicBatchingSession(
-    const typename BasicBatchScheduler<BatchingSessionTask>::Options&
-        schedule_options,
-    const BatchingSessionOptions& batching_session_options,
-    std::unique_ptr<Session> session,
-    std::unique_ptr<Session>* batching_session);
-//
-//////////
-
-//////////
 // Implementation details follow. API users need not read.
 
 struct BatchingSessionTask : public BatchTask {

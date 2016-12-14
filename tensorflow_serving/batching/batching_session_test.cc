@@ -392,31 +392,6 @@ TEST(BatchingSessionTest, MultipleSignatures) {
   EXPECT_EQ(0, schedulers[1]->NumEnqueuedTasks());
 }
 
-// Test the backward compatibility layer.
-// TODO(b/33476643): Remove.
-TEST(BatchingSessionTest, BackwardCompatibilityLayer) {
-  BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
-  schedule_options.max_batch_size = 4;  // fits two 2-unit tasks
-  schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
-  schedule_options.num_batch_threads = 1;
-  std::unique_ptr<Session> batching_session;
-  BatchingSessionOptions batching_session_options;
-  TF_ASSERT_OK(CreateBasicBatchingSession(
-      schedule_options, batching_session_options, CreateHalfPlusTwoSession(),
-      &batching_session));
-
-  // Asynchronously send two requests whose total size is 4. The two requests in
-  // conjunction should trigger a batch to be processed.
-  std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
-      ThreadOptions(), "first_request_thread", [&batching_session] {
-        TestSingleRequest(100.0f, 42.0f, batching_session.get());
-      }));
-  std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
-      ThreadOptions(), "second_request_thread", [&batching_session] {
-        TestSingleRequest(71.5f, 18.3f, batching_session.get());
-      }));
-}
-
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow
