@@ -116,9 +116,10 @@ py_test(
         ":tensorflow_model_server",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
-        "@org_tensorflow//tensorflow/python/saved_model/example:saved_model_half_plus_two_data",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
     tags = [
         "local",

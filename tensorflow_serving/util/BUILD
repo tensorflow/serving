@@ -18,6 +18,7 @@ filegroup(
         exclude = [
             "**/METADATA",
             "**/OWNERS",
+            "**/google_*",
         ],
     ),
 )
@@ -39,6 +40,21 @@ cc_library(
     name = "any_ptr",
     hdrs = ["any_ptr.h"],
     visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "class_registration",
+    hdrs = [
+        "class_registration.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":class_registration_util",
+        "@org_tensorflow//tensorflow/core",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@protobuf//:cc_wkt_protos",
+    ],
 )
 
 ###############################################################################
@@ -252,5 +268,50 @@ cc_test(
     deps = [
         ":unique_ptr_with_deps",
         "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
+
+cc_library(
+    name = "file_probing_env",
+    srcs = ["file_probing_env.cc"],
+    hdrs = ["file_probing_env.h"],
+    deps = [
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
+    name = "class_registration_util",
+    srcs = ["class_registration_util.cc"],
+    hdrs = ["class_registration_util.h"],
+    deps = [
+        "@org_tensorflow//tensorflow/core",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@protobuf//:cc_wkt_protos",
+    ],
+)
+
+cc_test(
+    name = "class_registration_test",
+    srcs = [
+        "class_registration_test.cc",
+    ],
+    deps = [
+        ":class_registration",
+        ":class_registration_test_proto",
+        "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
+
+load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+
+serving_proto_library(
+    name = "class_registration_test_proto",
+    testonly = 1,
+    srcs = ["class_registration_test.proto"],
+    cc_api_version = 2,
+    deps = [
+        "@protobuf//:cc_wkt_protos",
     ],
 )

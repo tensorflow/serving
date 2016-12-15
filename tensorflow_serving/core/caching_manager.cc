@@ -35,8 +35,8 @@ Status CachingManager::Create(
   // Set up basic manager options from the caching manager options.
   BasicManager::Options basic_manager_options;
   basic_manager_options.resource_tracker = std::move(options.resource_tracker);
-  basic_manager_options.num_load_unload_threads =
-      options.num_load_unload_threads;
+  basic_manager_options.num_load_threads = options.num_load_threads;
+  basic_manager_options.num_unload_threads = options.num_unload_threads;
   basic_manager_options.max_num_load_retries = options.max_num_load_retries;
   basic_manager_options.load_retry_interval_micros =
       options.load_retry_interval_micros;

@@ -106,9 +106,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def _GetSavedModelBundlePath(self):
     """Returns a path to a model in SavedModel format."""
-    return os.path.join(os.environ['TEST_SRCDIR'],
-                        'tf_serving/external/org_tensorflow/tensorflow/',
-                        'python/saved_model/example/saved_model_half_plus_two')
+    return os.path.join(os.environ['TEST_SRCDIR'], 'tf_serving/external/org_tensorflow/tensorflow/',
+                        'cc/saved_model/testdata/half_plus_two')
 
   def _GetSessionBundlePath(self):
     """Returns a path to a model in SessionBundle format."""

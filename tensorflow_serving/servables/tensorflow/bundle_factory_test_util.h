@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_BUNDLE_FACTORY_TEST_UTIL_H_
 
 #include <gtest/gtest.h>
+#include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 
@@ -41,6 +42,9 @@ std::vector<string> GetTestSessionBundleExportFiles();
 
 // Returns the total size of the given files. Requires the files to exist.
 uint64 GetTotalFileSize(const std::vector<string>& files);
+
+// Returns a signature for the half plus two model.
+SignatureDef GetTestSessionSignature();
 
 // Test that a Session handles a single request for the half plus two
 // model properly. The request has size=2, for batching purposes.

@@ -134,10 +134,13 @@ Status PreProcessPrediction(const SignatureDef& signature,
                             std::vector<std::pair<string, Tensor>>* inputs,
                             std::vector<string>* output_tensor_names,
                             std::vector<string>* output_tensor_aliases) {
-  if (signature.method_name() != kPredictMethodName) {
+  if (signature.method_name() != kPredictMethodName &&
+      signature.method_name() != kClassifyMethodName &&
+      signature.method_name() != kRegressMethodName) {
     return errors::Internal(strings::StrCat(
-        "Expected prediction signature method_name to be ", kPredictMethodName,
-        ". Was: ", signature.method_name()));
+        "Expected prediction signature method_name to be one of {",
+        kPredictMethodName, ", ", kClassifyMethodName, ", ", kRegressMethodName,
+        "}. Was: ", signature.method_name()));
   }
   if (signature.inputs().empty()) {
     return errors::Internal(strings::StrCat(
@@ -155,18 +158,24 @@ Status PreProcessPrediction(const SignatureDef& signature,
   }
   for (auto& input : request.inputs()) {
     const string& alias = input.first;
-    auto iter = signature.inputs().find(alias);
-    if (iter == signature.inputs().end()) {
-      return tensorflow::Status(
-          tensorflow::error::INVALID_ARGUMENT,
-          "input tensor alias not found in signature: " + alias);
+    // When using a Prediction signature, tensors are aliased and the name is
+    // retrieved from the Tensor value, otherwise the alias (key) is the name.
+    string tensor_name = alias;
+    if (signature.method_name() == kPredictMethodName) {
+      auto iter = signature.inputs().find(alias);
+      if (iter == signature.inputs().end()) {
+        return tensorflow::Status(
+            tensorflow::error::INVALID_ARGUMENT,
+            "input tensor alias not found in signature: " + alias);
+      }
+      tensor_name = iter->second.name();
     }
     Tensor tensor;
     if (!tensor.FromProto(input.second)) {
       return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
                                 "tensor parsing error: " + alias);
     }
-    inputs->emplace_back(std::make_pair(iter->second.name(), tensor));
+    inputs->emplace_back(std::make_pair(tensor_name, tensor));
   }
 
   // Prepare run target.
@@ -193,7 +202,13 @@ Status PreProcessPrediction(const SignatureDef& signature,
   if (output_tensor_names->empty()) {
     for (auto& iter : signature.outputs()) {
       output_tensor_names->emplace_back(iter.second.name());
-      output_tensor_aliases->emplace_back(iter.first);
+      // When using a Prediction signature, the tensor output alias is the key
+      // in the map, otherwise we don't use aliases and just go by actual tensor
+      // names.
+      const string alias = signature.method_name() == kPredictMethodName
+                               ? iter.first
+                               : iter.second.name();
+      output_tensor_aliases->emplace_back(alias);
     }
   }
   return Status::OK();
@@ -222,8 +237,11 @@ Status SavedModelPredict(ServerCore* core, const PredictRequest& request,
   // Validate signatures.
   ServableHandle<SavedModelBundle> bundle;
   TF_RETURN_IF_ERROR(core->GetServableHandle(request.model_spec(), &bundle));
-  auto iter = bundle->meta_graph_def.signature_def().find(
-      kDefaultServingSignatureDefKey);
+
+  const string signature_name = request.model_spec().signature_name().empty()
+                                    ? kDefaultServingSignatureDefKey
+                                    : request.model_spec().signature_name();
+  auto iter = bundle->meta_graph_def.signature_def().find(signature_name);
   if (iter == bundle->meta_graph_def.signature_def().end()) {
     return errors::FailedPrecondition(
         "Default serving signature key not found.");

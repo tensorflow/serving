@@ -32,15 +32,14 @@ namespace {
 using Batcher = SharedBatchScheduler<BatchingSessionTask>;
 
 // Constants used in the resource estimation heuristic. See the documentation
-// on EstimateResourceRequirements().
+// on EstimateResourceFromPath().
 constexpr double kResourceEstimateRAMMultiplier = 1.2;
 constexpr int kResourceEstimateRAMPadBytes = 0;
 
 // Returns all the descendants, both directories and files, recursively under
 // 'dirname'. The paths returned are all prefixed with 'dirname'.
-Status GetAllDescendants(const string& dirname,
+Status GetAllDescendants(const string& dirname, FileProbingEnv* env,
                          std::vector<string>* const descendants) {
-  Env* const env = Env::Default();
   descendants->clear();
   // Make sure that dirname exists;
   TF_RETURN_IF_ERROR(env->FileExists(dirname));
@@ -114,16 +113,23 @@ Status CreateBatchScheduler(const BatchingParameters& batching_config,
 
 Status EstimateResourceFromPath(const string& path,
                                 ResourceAllocation* estimate) {
-  if (!Env::Default()->FileExists(path).ok()) {
-    return errors::NotFound("Nonexistent export path: ", path);
+  TensorflowFileProbingEnv env(Env::Default());
+  return EstimateResourceFromPath(path, &env, estimate);
+}
+
+Status EstimateResourceFromPath(const string& path, FileProbingEnv* env,
+                                ResourceAllocation* estimate) {
+  if (env == nullptr) {
+    return errors::Internal("FileProbingEnv not set");
   }
+
   std::vector<string> descendants;
-  TF_RETURN_IF_ERROR(GetAllDescendants(path, &descendants));
+  TF_RETURN_IF_ERROR(GetAllDescendants(path, env, &descendants));
   uint64 total_file_size = 0;
   for (const string& descendant : descendants) {
-    if (!(Env::Default()->IsDirectory(descendant).ok())) {
+    if (!(env->IsDirectory(descendant).ok())) {
       uint64 file_size;
-      TF_RETURN_IF_ERROR(Env::Default()->GetFileSize(descendant, &file_size));
+      TF_RETURN_IF_ERROR(env->GetFileSize(descendant, &file_size));
       total_file_size += file_size;
     }
   }
@@ -142,6 +148,7 @@ Status EstimateResourceFromPath(const string& path,
 
 Status WrapSessionForBatching(const BatchingParameters& batching_config,
                               std::shared_ptr<Batcher> batch_scheduler,
+                              const std::vector<SignatureDef>& signatures,
                               std::unique_ptr<Session>* session) {
   LOG(INFO) << "Wrapping session to perform batch processing";
 
@@ -178,7 +185,17 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
         queue_options, process_batch_callback, queue));
     return Status::OK();
   };
-  return CreateBatchingSession(batching_session_options, create_queue,
+  std::vector<SignatureWithBatchingSessionSchedulerCreator>
+      signatures_with_scheduler_creators;
+  for (const SignatureDef& signature : signatures) {
+    const TensorSignature tensor_signature =
+        TensorSignatureFromSignatureDef(signature);
+    signatures_with_scheduler_creators.push_back(
+        {tensor_signature, create_queue});
+  }
+
+  return CreateBatchingSession(batching_session_options,
+                               signatures_with_scheduler_creators,
                                std::move(*session), session);
 }
 

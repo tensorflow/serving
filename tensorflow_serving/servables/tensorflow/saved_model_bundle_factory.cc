@@ -25,6 +25,20 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+namespace {
+
+// Extracts the signatures from 'bundle'.
+std::vector<SignatureDef> GetSignatureDefs(const SavedModelBundle& bundle) {
+  std::vector<SignatureDef> signature_defs;
+  for (const auto& entry : bundle.meta_graph_def.signature_def()) {
+    const SignatureDef& signature_def = entry.second;
+    signature_defs.push_back(signature_def);
+  }
+  return signature_defs;
+}
+
+}  // namespace
+
 Status SavedModelBundleFactory::Create(
     const SessionBundleConfig& config,
     std::unique_ptr<SavedModelBundleFactory>* factory) {
@@ -53,8 +67,13 @@ Status SavedModelBundleFactory::CreateSavedModelBundle(
     if (batch_scheduler_ == nullptr) {
       return errors::Internal("batch_scheduler_ not set");
     }
+    // Enable batching of requests to any one signature_def in the SavedModel.
+    // Note that in the future, the plan is to enable explicit configuration of
+    // the one or many SignatureDefs to enable.
+    const std::vector<SignatureDef> signatures = GetSignatureDefs(**bundle);
     return WrapSessionForBatching(config_.batching_parameters(),
-                                  batch_scheduler_, &(*bundle)->session);
+                                  batch_scheduler_, signatures,
+                                  &(*bundle)->session);
   }
   return WrapSession(&(*bundle)->session);
 }

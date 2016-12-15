@@ -49,7 +49,8 @@ py_binary(
 # Note: re-generate these files with :export_half_plus_two whenever model
 # changes.
 exports_files([
-    "half_plus_two/00000123/export",
+    "half_plus_two/00000123/export.data-00000-of-00001",
+    "half_plus_two/00000123/export.index",
     "half_plus_two/00000123/export.meta",
     "bad_half_plus_two/00000123/export",
     "bad_half_plus_two/00000123/export.meta",
