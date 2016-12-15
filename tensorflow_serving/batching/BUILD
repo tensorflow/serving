@@ -150,6 +150,7 @@ cc_library(
         ":batch_scheduler",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/util:cleanup",
+        "//tensorflow_serving/util:hash",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -162,12 +163,16 @@ cc_test(
     srcs = [
         "batching_session_test.cc",
     ],
-    data = ["@org_tensorflow//tensorflow/contrib/session_bundle/example:half_plus_two"],
+    data = [
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
     deps = [
         ":batching_session",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",

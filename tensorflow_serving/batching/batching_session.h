@@ -26,6 +26,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/batching/basic_batch_scheduler.h"
 #include "tensorflow_serving/batching/batch_scheduler.h"
@@ -36,6 +37,44 @@ namespace serving {
 // The batch scheduler task type used for batching sessions, for use in batch
 // scheduler template parameters, e.g. BasicBatchScheduler<BatchingSessionTask>.
 struct BatchingSessionTask;
+
+// A function to construct a batch scheduler for BatchingSessionTasks from a
+// process-batch callback.
+using BatchingSessionSchedulerCreator = std::function<Status(
+    std::function<void(std::unique_ptr<Batch<BatchingSessionTask>>)>,
+    std::unique_ptr<BatchScheduler<BatchingSessionTask>>*)>;
+
+// The signature associated with a Session::Run() call, in terms of input and
+// output tensor names (with the order in which the tensors are listed factored
+// out). (Note that 'target_node_names' are not supported in batching sessions.)
+struct TensorSignature {
+  std::set<string> input_tensors;
+  std::set<string> output_tensors;
+};
+
+// Constructs a TensorSignature for a given SignatureDef.
+TensorSignature TensorSignatureFromSignatureDef(
+    const SignatureDef& signature_def);
+
+// Constructs a TensorSignature for a given set of SignatureDefs. The resulting
+// TensorSignature represents the Session::Run() arguments that would be used
+// when issuing a single Run() call that exercises the signature defs jointly.
+//
+// For example, say there's a graph that takes 'input' and transforms it into
+// 'predicted_label' and 'confidence_score'. Suppose SignatureDef 1 requests
+// only 'predicted_label' as output, and SignatureDef 2 requests only
+// 'confidence_score'. A joint TensorSignature would feed 'input' and receive
+// both 'predicted_label' and 'confidence_score' as output, in a single Run()
+// invocation.
+TensorSignature TensorSignatureFromSignatureDefs(
+    const std::vector<SignatureDef>& signature_defs);
+
+// A signature paired with a lambda to create a batch scheduler for Run() calls
+// matching the signature.
+struct SignatureWithBatchingSessionSchedulerCreator {
+  TensorSignature signature;
+  BatchingSessionSchedulerCreator scheduler_creator;
+};
 
 // Options for batching tensorflow Sessions; see the Create*() functions below.
 struct BatchingSessionOptions {
@@ -63,26 +102,28 @@ struct BatchingSessionOptions {
 };
 
 // Wraps a session in a new session that automatically batches Run() calls.
-// In addition to a session to wrap, takes a function that constructs a batch
-// scheduler given a process-batch callback.
+// Uses one batcher for each distinct Run() signature supported. In addition to
+// a session to wrap, takes a list of signature/BatchingSessionSchedulerCreator
+// pairs. (The number of supported signatures is typically small, and often just
+// a single one.)
 //
-// The wrapped session only supports Run(), with the following restrictions:
-//  - 'target_node_names' must be empty
-//  - 'inputs' must not be empty
-//  - all calls supply the same input tensor names in 'inputs'
-//  - all calls supply the same output tensor names in 'output_tensor_names'
+// The wrapped session only batches Run() calls that conform to one of the
+// specified signatures and leave 'target_node_names' empty. Other Run() calls
+// are executed in-line without batching, and may harm performance. (Extra-
+// signature Run() support is intended primarily for debugging and diagnostics.)
 //
-// It is assumed that the outermost (0th) dimension of each input and output
-// tensor is the batch-size dimension. All input tensors must have the same 0th-
-// dimension size B; the produced output tensors are also assumed to have 0th-
-// dimension size B.
+// For batched calls, it is assumed that the outermost (0th) dimension of each
+// input and output tensor is the batch-size dimension. All input tensors must
+// have the same 0th-dimension size B; the produced output tensors are also
+// assumed to have 0th-dimension size B.
 //
 // IMPORTANT: Each call to Session::Run() is synchronous, and blocks waiting for
-// other Run() calls to merge with to form a large batch. Consequently, to
-// achieve good throughput we recommend setting the number of client threads
-// that call Session::Run() equal to about twice the maximum batch size.
+// other Run() calls with the same signature to merge with to form a large
+// batch. Consequently, to achieve good throughput we recommend setting the
+// number of client threads that call Session::Run() equal to about twice the
+// sum over all signatures of the maximum batch size.
 //
-// Example usage:
+// Example usage, for the common case of a single signature:
 //
 // BatchingSessionOptions options = ...;
 // auto scheduler_creator = [schedule_options, retry_options](
@@ -99,25 +140,23 @@ struct BatchingSessionOptions {
 //   return Status::OK();
 // };
 // std::unique_ptr<Session> batching_session;
-// TF_CHECK_OK(CreateBatchingSession(options, scheduler_creator,
+// TF_CHECK_OK(CreateBatchingSession(options, {{signature, scheduler_creator}},
 //     std::move(session), &batching_session));
 //
 Status CreateBatchingSession(
     const BatchingSessionOptions& options,
-    std::function<
-        Status(std::function<void(std::unique_ptr<Batch<BatchingSessionTask>>)>,
-               std::unique_ptr<BatchScheduler<BatchingSessionTask>>*)>
-        batch_scheduler_creator,
+    const std::vector<SignatureWithBatchingSessionSchedulerCreator>&
+        signatures_with_scheduler_creators,
     std::unique_ptr<Session> session,
     std::unique_ptr<Session>* batching_session);
 
 // A convenience for using CreateBatchingSession() to create a
-// BasicBatchScheduler.
+// BasicBatchScheduler for a single signature.
 Status CreateBasicBatchingSession(
     const typename BasicBatchScheduler<BatchingSessionTask>::Options&
         schedule_options,
     const BatchingSessionOptions& batching_session_options,
-    std::unique_ptr<Session> session,
+    const TensorSignature& signature, std::unique_ptr<Session> session,
     std::unique_ptr<Session>* batching_session);
 
 //////////

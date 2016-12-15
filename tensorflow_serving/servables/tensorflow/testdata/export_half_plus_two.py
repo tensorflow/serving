@@ -45,7 +45,8 @@ def Export():
     export = exporter.Exporter(tf.train.Saver())
     export.init(named_graph_signatures={
         "inputs": exporter.generic_signature({"x": x}),
-        "outputs": exporter.generic_signature({"y": y})
+        "outputs": exporter.generic_signature({"y": y}),
+        "regress": exporter.regression_signature(x, y)
     })
     export.export(export_path, tf.constant(123), sess)
 

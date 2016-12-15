@@ -211,7 +211,7 @@ Status ServerCore::AddModelsViaModelConfigList() {
     }
     const tensorflow::Status status = ConnectSourceWithFastInitialLoad(
         manager_.get(), source_adapter.get(), servable_state_monitor_.get(),
-        static_servables, options_.num_initial_load_unload_threads);
+        static_servables, options_.num_initial_load_threads);
     if (!status.ok()) {
       VLOG(1) << "Unable to ConnectSourceWithFastInitialLoad due to: "
               << status;
@@ -343,7 +343,8 @@ Status ServerCore::CreateAspiredVersionsManager(
   manager_options.resource_tracker = std::move(resource_tracker);
   manager_options.servable_event_bus = servable_event_bus_.get();
   manager_options.aspired_version_policy = std::move(aspired_version_policy);
-  manager_options.num_load_unload_threads = options_.num_load_unload_threads;
+  manager_options.num_load_threads = options_.num_load_threads;
+  manager_options.num_unload_threads = options_.num_unload_threads;
   manager_options.max_num_load_retries = options_.max_num_load_retries;
   const tensorflow::Status status =
       AspiredVersionsManager::Create(std::move(manager_options), manager);

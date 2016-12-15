@@ -1,0 +1,19 @@
+// Proto messages used by class_registration_test.cc.
+
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+
+package tensorflow.serving;
+
+message Config1 {
+  string string_field = 1;
+}
+
+message Config2 {
+  string string_field = 1;
+}
+
+message MessageWithAny {
+  google.protobuf.Any any_field = 1;
+}

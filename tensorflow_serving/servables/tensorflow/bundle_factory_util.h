@@ -24,6 +24,7 @@ limitations under the License.
 #include "tensorflow_serving/batching/shared_batch_scheduler.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
+#include "tensorflow_serving/util/file_probing_env.h"
 
 namespace tensorflow {
 namespace serving {
@@ -45,7 +46,8 @@ Status CreateBatchScheduler(
         batch_scheduler);
 
 // Estimates the resources a session bundle or saved model bundle will use once
-// loaded, from its export or saved model path.
+// loaded, from its export or saved model path. tensorflow::Env::Default() will
+// be used to access the file system.
 //
 // Uses the following crude heuristic, for now: estimated main-memory RAM =
 // (combined size of all exported file(s)) * kResourceEstimateRAMMultiplier +
@@ -54,10 +56,20 @@ Status CreateBatchScheduler(
 Status EstimateResourceFromPath(const string& path,
                                 ResourceAllocation* estimate);
 
-// Wraps a session in a new session that automatically batches Run() calls.
+// Similar to the above function, but also supplies a FileProbingEnv to use in
+// lieu of tensorflow::Env::Default().
+Status EstimateResourceFromPath(const string& path, FileProbingEnv* env,
+                                ResourceAllocation* estimate);
+
+// Wraps a session in a new session that automatically batches Run() calls, for
+// the given signatures.
+// TODO(b/33233998): Support batching for Run() calls that use a combination of
+// signatures -- i.e. sometimes construct a single TensorSignature for a set of
+// SignatureDefs (usually just two of them) -- based on some config.
 Status WrapSessionForBatching(
     const BatchingParameters& batching_config,
     std::shared_ptr<SharedBatchScheduler<BatchingSessionTask>> batch_scheduler,
+    const std::vector<SignatureDef>& signatures,
     std::unique_ptr<Session>* session);
 
 // Wraps a session in a new session that only supports Run() without batching.
