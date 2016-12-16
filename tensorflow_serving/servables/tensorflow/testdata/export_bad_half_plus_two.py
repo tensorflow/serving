@@ -36,7 +36,7 @@ def Export():
     # Calculate, y = a*x + b
     # here we use a placeholder 'x' which is fed at inference time.
     x = tf.placeholder(tf.float32)
-    y = tf.add(tf.mul(a, x), b)
+    y = tf.add(tf.multiply(a, x), b)
 
     # Export the model without signatures.
     # Note that the model is intentionally exported without using exporter,
