@@ -65,9 +65,20 @@ cc_library(
     hdrs = ["fake_loader_source_adapter.h"],
     visibility = ["//visibility:public"],
     deps = [
+        ":fake_loader_source_adapter_proto",
         "//tensorflow_serving/core:simple_loader",
         "//tensorflow_serving/core:storage_path",
     ],
+)
+
+load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+
+serving_proto_library(
+    name = "fake_loader_source_adapter_proto",
+    testonly = 1,
+    srcs = ["fake_loader_source_adapter.proto"],
+    cc_api_version = 2,
+    visibility = ["//visibility:public"],
 )
 
 cc_library(

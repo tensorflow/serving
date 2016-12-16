@@ -145,9 +145,12 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":loader",
         ":servable_data",
         ":source",
+        ":storage_path",
         ":target",
+        "//tensorflow_serving/util:class_registration",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

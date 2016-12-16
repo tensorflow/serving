@@ -25,9 +25,12 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/servable_data.h"
 #include "tensorflow_serving/core/source.h"
+#include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/core/target.h"
+#include "tensorflow_serving/util/class_registration.h"
 
 namespace tensorflow {
 namespace serving {
@@ -81,6 +84,16 @@ class SourceAdapter : public TargetBase<InputType>, public Source<OutputType> {
   // to propagate aspired versions?
   Notification outgoing_callback_set_;
 };
+
+// Define a SourceAdapter registry for the common case of adapting from a
+// storage path to a loader.
+using StoragePathSourceAdapter =
+    SourceAdapter<StoragePath, std::unique_ptr<Loader>>;
+DEFINE_CLASS_REGISTRY(StoragePathSourceAdapterRegistry,
+                      StoragePathSourceAdapter);
+#define REGISTER_STORAGE_PATH_SOURCE_ADAPTER(ClassCreator, ConfigProto)      \
+  REGISTER_CLASS(StoragePathSourceAdapterRegistry, StoragePathSourceAdapter, \
+                 ClassCreator, ConfigProto);
 
 // A source adapter that converts InputType instances to OutputType instances
 // one at a time (i.e. there is no interaction among members of a given aspired-

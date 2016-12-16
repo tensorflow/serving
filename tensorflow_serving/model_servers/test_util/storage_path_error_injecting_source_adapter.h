@@ -13,15 +13,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
-#define TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
+#ifndef TENSORFLOW_SERVING_MODEL_SERVERS_TEST_UTIL_STORAGE_PATH_ERROR_INJECTING_SOURCE_ADAPTER_H_
+#define TENSORFLOW_SERVING_MODEL_SERVERS_TEST_UTIL_STORAGE_PATH_ERROR_INJECTING_SOURCE_ADAPTER_H_
+
+#include "tensorflow_serving/core/source_adapter.h"
 
 namespace tensorflow {
 namespace serving {
+namespace test_util {
 
-constexpr char kTensorFlowModelPlatform[] = "tensorflow";
+// An ErrorInjectingSourceAdapter<StoragePath, std::unique_ptr<Loader>> (see
+// source_adapter.h) registered in StoragePathSourceAdapterRegistry and keyed on
+// StoragePathErrorInjectingSourceAdapterConfig.
+using StoragePathErrorInjectingSourceAdapter =
+    ErrorInjectingSourceAdapter<StoragePath, std::unique_ptr<Loader>>;
 
+}  // namespace test_util
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
+#endif  // TENSORFLOW_SERVING_MODEL_SERVERS_TEST_UTIL_STORAGE_PATH_ERROR_INJECTING_SOURCE_ADAPTER_H_

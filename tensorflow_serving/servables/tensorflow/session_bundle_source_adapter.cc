@@ -71,5 +71,22 @@ SessionBundleSourceAdapter::GetCreator(
   };
 }
 
+// Register the source adapter.
+class SessionBundleSourceAdapterCreator {
+ public:
+  static Status Create(
+      const SessionBundleSourceAdapterConfig& config,
+      std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
+          adapter) {
+    std::unique_ptr<SessionBundleFactory> bundle_factory;
+    TF_RETURN_IF_ERROR(
+        SessionBundleFactory::Create(config.config(), &bundle_factory));
+    adapter->reset(new SessionBundleSourceAdapter(std::move(bundle_factory)));
+    return Status::OK();
+  }
+};
+REGISTER_STORAGE_PATH_SOURCE_ADAPTER(SessionBundleSourceAdapterCreator,
+                                     SessionBundleSourceAdapterConfig);
+
 }  // namespace serving
 }  // namespace tensorflow

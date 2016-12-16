@@ -13,15 +13,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
-#define TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
+#ifndef TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_CONFIG_UTIL_H_
+#define TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_CONFIG_UTIL_H_
+
+#include "tensorflow_serving/config/platform_config.proto.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_config.proto.h"
 
 namespace tensorflow {
 namespace serving {
 
-constexpr char kTensorFlowModelPlatform[] = "tensorflow";
+// Creates a PlatformConfigMap containing a single entry with the key as
+// kTensorFlowModelPlatform and the value as a SourceAdapter config proto for
+// one of {SessionBundleSourceAdapter, SavedModelBundleSourceAdapter} (based
+// on 'use_saved_model' using 'session_bundle_config'.
+PlatformConfigMap CreateTensorFlowPlatformConfigMap(
+    const SessionBundleConfig& session_bundle_config, bool use_saved_model);
 
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
+#endif  // TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_CONFIG_UTIL_H_

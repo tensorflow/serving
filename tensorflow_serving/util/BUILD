@@ -50,9 +50,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":class_registration_util",
-        "@org_tensorflow//tensorflow/core",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
         "@protobuf//:cc_wkt_protos",
     ],
 )
@@ -285,9 +283,7 @@ cc_library(
     srcs = ["class_registration_util.cc"],
     hdrs = ["class_registration_util.h"],
     deps = [
-        "@org_tensorflow//tensorflow/core",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
         "@protobuf//:cc_wkt_protos",
     ],
 )

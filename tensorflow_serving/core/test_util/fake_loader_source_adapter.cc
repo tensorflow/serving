@@ -42,17 +42,20 @@ FakeLoaderSourceAdapter::~FakeLoaderSourceAdapter() {
   }
 }
 
-std::function<Status(
-    const string& model_platform,
-    std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*)>
-FakeLoaderSourceAdapter::GetCreator() {
-  return [](const string& model_platform,
-            std::unique_ptr<tensorflow::serving::SourceAdapter<
-                StoragePath, std::unique_ptr<Loader>>>* source) {
-    source->reset(new FakeLoaderSourceAdapter);
+// Register the source adapter.
+class FakeLoaderSourceAdapterCreator {
+ public:
+  static Status Create(
+      const FakeLoaderSourceAdapterConfig& config,
+      std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
+          adapter) {
+    adapter->reset(new FakeLoaderSourceAdapter);
     return Status::OK();
-  };
-}
+  }
+};
+REGISTER_STORAGE_PATH_SOURCE_ADAPTER(FakeLoaderSourceAdapterCreator,
+                                     FakeLoaderSourceAdapterConfig);
+
 }  // namespace test_util
 }  // namespace serving
 }  // namespace tensorflow

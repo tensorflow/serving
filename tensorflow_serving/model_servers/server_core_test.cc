@@ -20,7 +20,10 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
+#include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/test_util/server_core_test_util.h"
+#include "tensorflow_serving/model_servers/test_util/storage_path_error_injecting_source_adapter.h"
+#include "tensorflow_serving/model_servers/test_util/storage_path_error_injecting_source_adapter.proto.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
@@ -31,7 +34,8 @@ using test_util::ServerCoreTest;
 
 TEST_P(ServerCoreTest, CreateWaitsTillModelsAvailable) {
   std::unique_ptr<ServerCore> server_core;
-  TF_ASSERT_OK(CreateServerCore(GetTestModelServerConfig(), &server_core));
+  TF_ASSERT_OK(CreateServerCore(GetTestModelServerConfigForFakePlatform(),
+                                &server_core));
 
   const std::vector<ServableId> available_servables =
       server_core->ListAvailableServableIds();
@@ -55,7 +59,8 @@ TEST_P(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
   TF_ASSERT_OK(CreateServerCore(ModelServerConfig(), &server_core));
 
   // Reconfigure it to load our test model.
-  TF_ASSERT_OK(server_core->ReloadConfig(GetTestModelServerConfig()));
+  TF_ASSERT_OK(
+      server_core->ReloadConfig(GetTestModelServerConfigForFakePlatform()));
 
   const std::vector<ServableId> available_servables =
       server_core->ListAvailableServableIds();
@@ -66,26 +71,26 @@ TEST_P(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
 }
 
 TEST_P(ServerCoreTest, ErroringModel) {
+  ServerCore::Options options = GetDefaultOptions();
+  test_util::StoragePathErrorInjectingSourceAdapterConfig source_adapter_config;
+  source_adapter_config.set_error_message("injected error");
+  ::google::protobuf::Any source_adapter_config_any;
+  source_adapter_config_any.PackFrom(source_adapter_config);
+  (*(*options.platform_config_map.mutable_platform_configs())[kFakePlatform]
+        .mutable_source_adapter_config()) = source_adapter_config_any;
+  options.model_server_config = GetTestModelServerConfigForFakePlatform();
   std::unique_ptr<ServerCore> server_core;
-  Status status = CreateServerCore(
-      GetTestModelServerConfig(),
-      [](const string& model_platform,
-         std::unique_ptr<ServerCore::ModelServerSourceAdapter>* source_adapter)
-          -> Status {
-        source_adapter->reset(
-            new ErrorInjectingSourceAdapter<StoragePath,
-                                            std::unique_ptr<Loader>>(
-                Status(error::CANCELLED, "")));
-        return Status::OK();
-      },
-      &server_core);
+  Status status = ServerCore::Create(std::move(options), &server_core);
   EXPECT_FALSE(status.ok());
+  EXPECT_THAT(status.ToString(),
+              ::testing::HasSubstr("Some models did not become available"));
 }
 
 TEST_P(ServerCoreTest, IllegalReconfigurationToCustomConfig) {
   // Create a ServerCore with ModelConfigList config.
   std::unique_ptr<ServerCore> server_core;
-  TF_ASSERT_OK(CreateServerCore(GetTestModelServerConfig(), &server_core));
+  TF_ASSERT_OK(CreateServerCore(GetTestModelServerConfigForFakePlatform(),
+                                &server_core));
 
   // Reload with a custom config. This is not allowed since the server was
   // first configured with TensorFlow model platform.
@@ -104,14 +109,16 @@ TEST_P(ServerCoreTest, IllegalReconfigurationFromCustomConfig) {
 
   // Reload with a ModelConfigList config. This is not allowed, since the
   // server was first configured with a custom config.
-  EXPECT_THAT(server_core->ReloadConfig(GetTestModelServerConfig()).ToString(),
-              ::testing::HasSubstr("Cannot transition to requested config"));
+  EXPECT_THAT(
+      server_core->ReloadConfig(GetTestModelServerConfigForFakePlatform())
+          .ToString(),
+      ::testing::HasSubstr("Cannot transition to requested config"));
 }
 
 TEST_P(ServerCoreTest, IllegalConfigModelTypeAndPlatformSet) {
   // Create a ServerCore with both model_type and model_platform set.
   std::unique_ptr<ServerCore> server_core;
-  ModelServerConfig config = GetTestModelServerConfig();
+  ModelServerConfig config = GetTestModelServerConfigForFakePlatform();
   config.mutable_model_config_list()->mutable_config(0)->set_model_type(
       ModelType::TENSORFLOW);
   EXPECT_THAT(CreateServerCore(config, &server_core).ToString(),
@@ -121,7 +128,7 @@ TEST_P(ServerCoreTest, IllegalConfigModelTypeAndPlatformSet) {
 TEST_P(ServerCoreTest, DeprecatedModelTypeConfig) {
   // Create a ServerCore with deprecated config.
   std::unique_ptr<ServerCore> server_core;
-  ModelServerConfig config = GetTestModelServerConfig();
+  ModelServerConfig config = GetTestModelServerConfigForTensorflowPlatform();
   config.mutable_model_config_list()->mutable_config(0)->set_model_platform("");
   config.mutable_model_config_list()->mutable_config(0)->set_model_type(
       ModelType::TENSORFLOW);

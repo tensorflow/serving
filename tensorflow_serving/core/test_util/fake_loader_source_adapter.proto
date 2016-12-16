@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package tensorflow.serving.test_util;
+
+// Config proto for FakeLoaderSourceAdapter. (Even though the adapter doesn't
+// have any config parameters, the proto is needed for the adapter registry.)
+message FakeLoaderSourceAdapterConfig {
+}

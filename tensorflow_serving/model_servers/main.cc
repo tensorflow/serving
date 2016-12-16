@@ -57,7 +57,9 @@ limitations under the License.
 #include "grpc++/support/status_code_enum.h"
 #include "grpc/grpc.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/init_main.h"
+#include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/util/command_line_flags.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
@@ -65,10 +67,9 @@ limitations under the License.
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
+#include "tensorflow_serving/model_servers/platform_config_util.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
-#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.h"
-#include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
 
 using tensorflow::serving::AspiredVersionsManager;
 using tensorflow::serving::AspiredVersionPolicy;
@@ -82,9 +83,7 @@ using tensorflow::serving::Loader;
 using tensorflow::serving::ModelServerConfig;
 using tensorflow::serving::ServableState;
 using tensorflow::serving::ServerCore;
-using tensorflow::serving::SavedModelBundleSourceAdapter;
-using tensorflow::serving::SessionBundleSourceAdapter;
-using tensorflow::serving::SessionBundleSourceAdapterConfig;
+using tensorflow::serving::SessionBundleConfig;
 using tensorflow::serving::Target;
 using tensorflow::serving::TensorflowPredictor;
 using tensorflow::serving::UniquePtrWithDeps;
@@ -101,34 +100,6 @@ using tensorflow::serving::PredictResponse;
 using tensorflow::serving::PredictionService;
 
 namespace {
-
-tensorflow::Status CreateSourceAdapter(
-    const SessionBundleSourceAdapterConfig& config,
-    const string& model_platform, bool use_saved_model,
-    std::unique_ptr<ServerCore::ModelServerSourceAdapter>* adapter) {
-  CHECK(model_platform == kTensorFlowModelPlatform)  // Crash ok
-      << "ModelServer supports only TensorFlow model.";
-  if (use_saved_model) {
-    std::unique_ptr<SavedModelBundleSourceAdapter> typed_adapter;
-    const ::tensorflow::Status status =
-        SavedModelBundleSourceAdapter::Create(config, &typed_adapter);
-    if (!status.ok()) {
-      VLOG(1) << "Error creating source adapter: " << status.error_message();
-      return status;
-    }
-    *adapter = std::move(typed_adapter);
-  } else {
-    std::unique_ptr<SessionBundleSourceAdapter> typed_adapter;
-    const ::tensorflow::Status status =
-        SessionBundleSourceAdapter::Create(config, &typed_adapter);
-    if (!status.ok()) {
-      VLOG(1) << "Error creating source adapter: " << status.error_message();
-      return status;
-    }
-    *adapter = std::move(typed_adapter);
-  }
-  return tensorflow::Status::OK();
-}
 
 tensorflow::Status LoadCustomModelConfig(
     const ::google::protobuf::Any& any,
@@ -151,7 +122,8 @@ ModelServerConfig BuildSingleModelConfig(
       config.mutable_model_config_list()->add_config();
   single_model->set_name(model_name);
   single_model->set_base_path(model_base_path);
-  single_model->set_model_platform(kTensorFlowModelPlatform);
+  single_model->set_model_platform(
+      tensorflow::serving::kTensorFlowModelPlatform);
   single_model->set_version_policy(model_version_policy);
   return config;
 }
@@ -206,6 +178,21 @@ void RunServer(int port, std::unique_ptr<ServerCore> core,
   server->Wait();
 }
 
+// Parses an ascii PlatformConfigMap protobuf from 'file'.
+tensorflow::serving::PlatformConfigMap ParsePlatformConfigMap(
+    const string& file) {
+  std::unique_ptr<tensorflow::ReadOnlyMemoryRegion> file_data;
+  TF_CHECK_OK(  // Crash ok
+      tensorflow::Env::Default()->NewReadOnlyMemoryRegionFromFile(file,
+                                                                  &file_data));
+  string file_data_str(static_cast<const char*>(file_data->data()),
+                       file_data->length());
+  tensorflow::serving::PlatformConfigMap platform_config_map;
+  QCHECK(tensorflow::protobuf::TextFormat::ParseFromString(  // Crash ok
+      file_data_str, &platform_config_map));
+  return platform_config_map;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -215,6 +202,7 @@ int main(int argc, char** argv) {
   tensorflow::int32 file_system_poll_wait_seconds = 1;
   tensorflow::string model_base_path;
   bool use_saved_model = false;
+  string platform_config_file = "";
   tensorflow::string model_version_policy =
       FileSystemStoragePathSourceConfig_VersionPolicy_Name(
           FileSystemStoragePathSourceConfig::LATEST_VERSION);
@@ -239,7 +227,13 @@ int main(int argc, char** argv) {
                        "If true, use SavedModel in the server; otherwise, use "
                        "SessionBundle. It is used by tensorflow serving team "
                        "to control the rollout of SavedModel and is not "
-                       "expected to be set by users directly.")};
+                       "expected to be set by users directly."),
+      tensorflow::Flag("platform_config_file", &platform_config_file,
+                       "If non-empty, read an ascii PlatformConfigMap protobuf "
+                       "from the supplied file name, and use that platform "
+                       "config instead of the Tensorflow platform. (If used, "
+                       "--enable_batching and --use_saved_model are "
+                       "ignored.)")};
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
   if (!parse_result || model_base_path.empty()) {
@@ -265,22 +259,20 @@ int main(int argc, char** argv) {
   options.model_server_config = BuildSingleModelConfig(
       model_name, model_base_path, parsed_version_policy);
 
-  SessionBundleSourceAdapterConfig source_adapter_config;
-  // Batching config
-  if (enable_batching) {
-    BatchingParameters* batching_parameters =
-        source_adapter_config.mutable_config()->mutable_batching_parameters();
-    batching_parameters->mutable_thread_pool_name()->set_value(
-        "model_server_batch_threads");
+  if (platform_config_file.empty()) {
+    SessionBundleConfig session_bundle_config;
+    // Batching config
+    if (enable_batching) {
+      BatchingParameters* batching_parameters =
+          session_bundle_config.mutable_batching_parameters();
+      batching_parameters->mutable_thread_pool_name()->set_value(
+          "model_server_batch_threads");
+    }
+    options.platform_config_map = CreateTensorFlowPlatformConfigMap(
+        session_bundle_config, use_saved_model);
+  } else {
+    options.platform_config_map = ParsePlatformConfigMap(platform_config_file);
   }
-
-  options.use_saved_model = use_saved_model;
-  options.source_adapter_creator = [source_adapter_config, use_saved_model](
-      const string& model_platform,
-      std::unique_ptr<ServerCore::ModelServerSourceAdapter>* adapter) {
-    return CreateSourceAdapter(source_adapter_config, model_platform,
-                               use_saved_model, adapter);
-  };
 
   options.custom_model_config_loader = &LoadCustomModelConfig;
 

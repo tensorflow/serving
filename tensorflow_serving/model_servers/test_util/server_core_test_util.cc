@@ -19,13 +19,28 @@ limitations under the License.
 #include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
+#include "tensorflow_serving/model_servers/platform_config_util.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.proto.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_config.proto.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.proto.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-ModelServerConfig ServerCoreTest::GetTestModelServerConfig() {
+constexpr char ServerCoreTest::kFakePlatform[];
+
+ModelServerConfig ServerCoreTest::GetTestModelServerConfigForFakePlatform() {
+  ModelServerConfig config = GetTestModelServerConfigForTensorflowPlatform();
+  ModelConfig* model_config =
+      config.mutable_model_config_list()->mutable_config(0);
+  model_config->set_model_platform(kFakePlatform);
+  return config;
+}
+
+ModelServerConfig
+ServerCoreTest::GetTestModelServerConfigForTensorflowPlatform() {
   ModelServerConfig config;
   auto model = config.mutable_model_config_list()->add_config();
   model->set_name(kTestModelName);
@@ -40,47 +55,39 @@ ModelServerConfig ServerCoreTest::GetTestModelServerConfig() {
   return config;
 }
 
-Status ServerCoreTest::CreateServerCore(
-    const ModelServerConfig& config, std::unique_ptr<ServerCore>* server_core) {
-  return CreateServerCore(
-      config, test_util::FakeLoaderSourceAdapter::GetCreator(), server_core);
-}
-
-Status ServerCoreTest::CreateServerCore(
-    const ModelServerConfig& config,
-    const ServerCore::SourceAdapterCreator& source_adapter_creator,
-    std::unique_ptr<ServerCore>* server_core) {
-  // For ServerCore Options, we leave servable_state_monitor_creator unspecified
-  // so the default servable_state_monitor_creator will be used.
+ServerCore::Options ServerCoreTest::GetDefaultOptions() {
   ServerCore::Options options;
-  options.model_server_config = config;
-  options.source_adapter_creator = source_adapter_creator;
+  options.file_system_poll_wait_seconds = 0;
   // Reduce the number of initial load threads to be num_load_threads to avoid
   // timing out in tests.
   options.num_initial_load_threads = options.num_load_threads;
+  options.aspired_version_policy =
+      std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
   options.custom_model_config_loader = [](
       const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
       UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
     return Status::OK();
   };
-  return CreateServerCore(std::move(options), server_core);
+
+  // Model platforms.
+  const TestType test_type = GetTestType();
+  const bool use_saved_model = test_type == SAVED_MODEL ||
+                               test_type == SAVED_MODEL_BACKWARD_COMPATIBILITY;
+  options.platform_config_map =
+      CreateTensorFlowPlatformConfigMap(SessionBundleConfig(), use_saved_model);
+  ::google::protobuf::Any fake_source_adapter_config;
+  fake_source_adapter_config.PackFrom(
+      test_util::FakeLoaderSourceAdapterConfig());
+  (*(*options.platform_config_map.mutable_platform_configs())[kFakePlatform]
+        .mutable_source_adapter_config()) = fake_source_adapter_config;
+
+  return options;
 }
 
 Status ServerCoreTest::CreateServerCore(
-    ServerCore::Options options, std::unique_ptr<ServerCore>* server_core) {
-  options.file_system_poll_wait_seconds = 0;
-  // Reduce the number of initial load threads to be num_load_threads to avoid
-  // timing out in tests.
-  options.num_initial_load_threads = options.num_load_threads;
-  if (options.aspired_version_policy == nullptr) {
-    options.aspired_version_policy =
-        std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
-  }
-  TestType test_type = GetTestType();
-  if (test_type == SAVED_MODEL ||
-      test_type == SAVED_MODEL_BACKWARD_COMPATIBILITY) {
-    options.use_saved_model = true;
-  }
+    const ModelServerConfig& config, std::unique_ptr<ServerCore>* server_core) {
+  ServerCore::Options options = GetDefaultOptions();
+  options.model_server_config = config;
   return ServerCore::Create(std::move(options), server_core);
 }
 

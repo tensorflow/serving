@@ -39,21 +39,28 @@ namespace serving {
 namespace {
 
 // Returns an error if it is not the case that all ModelConfigList models have
-// the same model type, otherwise returns OK and sets 'model_type' to the type.
+// the same model platform, otherwise returns OK and sets 'model_platform' to
+// the platform.
 Status ValidateAllListedModelsAreOfSamePlatform(const ModelServerConfig& config,
                                                 string* model_platform) {
   for (const auto& model : config.model_config_list().config()) {
-    // Get platform (with backward compatibility)
+    // Get platform (with backward compatibility support of the deprecated
+    // model_type field).
     string platform;
     if (model.model_type() != ModelType::MODEL_TYPE_UNSPECIFIED) {
+      LOG(WARNING) << "Deprecated ModelServerConfig::model_type field used. "
+                      "Prefer ModelServerConfig::model_platform.";
       if (!model.model_platform().empty()) {
         return errors::InvalidArgument(
-            "Illegal setting both model_type(deprecated) and model_platform.");
+            "Illegal setting both ModelServerConfig::model_type (deprecated) "
+            "and ModelServerConfig::model_platform.");
       }
       if (model.model_type() == ModelType::TENSORFLOW) {
         platform = kTensorFlowModelPlatform;
       } else {
-        platform = kOtherModelPlatform;
+        return errors::InvalidArgument(
+            strings::StrCat("ModelServerConfig::model_type choice ",
+                            model.model_type(), " not supported."));
       }
     } else {
       platform = model.model_platform();
@@ -61,7 +68,8 @@ Status ValidateAllListedModelsAreOfSamePlatform(const ModelServerConfig& config,
 
     if (platform.empty()) {
       return errors::InvalidArgument(
-          "Illegal setting neither model_type(deprecated) nor model_platform.");
+          "Illegal setting neither ModelServerConfig::model_type (deprecated) "
+          "nor ModelServerConfig::model_platform.");
     }
 
     // Check if matches found_platform (so far)
@@ -71,7 +79,7 @@ Status ValidateAllListedModelsAreOfSamePlatform(const ModelServerConfig& config,
     // Error if not, continue if true
     if (platform != *model_platform) {
       return errors::InvalidArgument(
-          "Expect all models to have the same type.");
+          "Multiple model platforms not (yet) supported.");
     }
   }
   return Status::OK();
@@ -85,30 +93,6 @@ Status ValidateAllListedModelsAreOfSamePlatform(const ModelServerConfig& config,
 
 Status ServerCore::Create(Options options,
                           std::unique_ptr<ServerCore>* server_core) {
-  if (options.source_adapter_creator == nullptr) {
-    options.source_adapter_creator = [&options](
-        const string& model_platform,
-        std::unique_ptr<ServerCore::ModelServerSourceAdapter>* adapter) {
-      SessionBundleSourceAdapterConfig source_adapter_config;
-      if (model_platform != kTensorFlowModelPlatform) {
-        return errors::InvalidArgument(
-            "ModelServer supports only TensorFlow model.");
-      }
-      if (options.use_saved_model) {
-        std::unique_ptr<SavedModelBundleSourceAdapter> typed_adapter;
-        TF_RETURN_IF_ERROR(SavedModelBundleSourceAdapter::Create(
-            source_adapter_config, &typed_adapter));
-        *adapter = std::move(typed_adapter);
-      } else {
-        std::unique_ptr<SessionBundleSourceAdapter> typed_adapter;
-        TF_RETURN_IF_ERROR(SessionBundleSourceAdapter::Create(
-            source_adapter_config, &typed_adapter));
-        *adapter = std::move(typed_adapter);
-      }
-      return Status::OK();
-    };
-  }
-
   if (options.servable_state_monitor_creator == nullptr) {
     options.servable_state_monitor_creator = [](
         EventBus<ServableState>* event_bus,
@@ -201,7 +185,7 @@ Status ServerCore::AddModelsViaModelConfigList() {
   const FileSystemStoragePathSourceConfig source_config =
       CreateStoragePathSourceConfig(config_);
   if (is_first_config) {
-    std::unique_ptr<ModelServerSourceAdapter> source_adapter;
+    std::unique_ptr<StoragePathSourceAdapter> source_adapter;
     TF_RETURN_IF_ERROR(CreateSourceAdapter(model_platform_, &source_adapter));
     TF_RETURN_IF_ERROR(
         CreateFileSystemStoragePathSource(source_config, source_adapter.get()));
@@ -280,9 +264,17 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
 
 Status ServerCore::CreateSourceAdapter(
     const string& model_platform,
-    std::unique_ptr<ModelServerSourceAdapter>* adapter) {
+    std::unique_ptr<StoragePathSourceAdapter>* adapter) {
+  auto config_it =
+      options_.platform_config_map.platform_configs().find(model_platform);
+  if (config_it == options_.platform_config_map.platform_configs().end()) {
+    return errors::FailedPrecondition(strings::StrCat(
+        "PlatformConfigMap has no entry for platform ", model_platform));
+  }
+  const ::google::protobuf::Any& adapter_config =
+      config_it->second.source_adapter_config();
   const tensorflow::Status status =
-      options_.source_adapter_creator(model_platform, adapter);
+      StoragePathSourceAdapterRegistry::CreateFromAny(adapter_config, adapter);
   if (!status.ok()) {
     VLOG(1) << "Source adapter creation failed: " << status;
   }

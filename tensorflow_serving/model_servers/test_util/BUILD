@@ -34,6 +34,8 @@ cc_library(
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/core:servable_state",
+        "//tensorflow_serving/core/test_util:fake_loader_source_adapter",
+        "//tensorflow_serving/core/test_util:fake_loader_source_adapter_proto",
         "//tensorflow_serving/model_servers:server_core",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
@@ -59,8 +61,38 @@ cc_library(
         "//tensorflow_serving/core:servable_id",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter",
         "//tensorflow_serving/model_servers:model_platform_types",
+        "//tensorflow_serving/model_servers:platform_config_util",
         "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_proto",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
+    name = "storage_path_error_injecting_source_adapter",
+    testonly = 1,
+    srcs = ["storage_path_error_injecting_source_adapter.cc"],
+    hdrs = ["storage_path_error_injecting_source_adapter.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":storage_path_error_injecting_source_adapter_proto",
+        "//tensorflow_serving/core:source_adapter",
+    ],
+)
+
+load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+
+serving_proto_library(
+    name = "storage_path_error_injecting_source_adapter_proto",
+    testonly = 1,
+    srcs = ["storage_path_error_injecting_source_adapter.proto"],
+    cc_api_version = 2,
+    visibility = [
+        "//visibility:public",
     ],
 )

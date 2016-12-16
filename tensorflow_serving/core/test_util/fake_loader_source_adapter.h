@@ -19,6 +19,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/core/simple_loader.h"
 #include "tensorflow_serving/core/storage_path.h"
+#include "tensorflow_serving/core/test_util/fake_loader_source_adapter.pb.h"
 
 namespace tensorflow {
 namespace serving {
@@ -42,12 +43,6 @@ class FakeLoaderSourceAdapter final
       std::function<void(const string&)> call_on_destruct = {});
 
   ~FakeLoaderSourceAdapter() override;
-
-  // Returns a function to create a fake source adapter.
-  static std::function<Status(
-      const string& model_platform,
-      std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*)>
-  GetCreator();
 
  private:
   const string suffix_;

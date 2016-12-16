@@ -44,6 +44,8 @@ class SessionBundleSourceAdapter final
   GetCreator(const SessionBundleSourceAdapterConfig& config);
 
  private:
+  friend class SessionBundleSourceAdapterCreator;
+
   explicit SessionBundleSourceAdapter(
       std::unique_ptr<SessionBundleFactory> bundle_factory);
 
