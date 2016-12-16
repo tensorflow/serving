@@ -5,6 +5,7 @@ option cc_enable_arenas = true;
 
 import "tensorflow_serving/apis/predict.proto";
 
+// open source marker; do not remove
 // PredictionService provides access to machine-learned models loaded by
 // model_servers.
 service PredictionService {
