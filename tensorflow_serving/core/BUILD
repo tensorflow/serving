@@ -227,6 +227,35 @@ cc_test(
 )
 
 cc_library(
+    name = "dynamic_source_router",
+    hdrs = ["dynamic_source_router.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":source_router",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+    ],
+)
+
+cc_test(
+    name = "dynamic_source_router_test",
+    srcs = ["dynamic_source_router_test.cc"],
+    deps = [
+        ":dynamic_source_router",
+        ":servable_data",
+        ":source",
+        ":storage_path",
+        ":target",
+        "//tensorflow_serving/core/test_util:mock_storage_path_target",
+        "//tensorflow_serving/core/test_util:test_main",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
     name = "storage_path",
     hdrs = ["storage_path.h"],
     visibility = [
