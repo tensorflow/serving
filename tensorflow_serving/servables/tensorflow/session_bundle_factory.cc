@@ -73,6 +73,12 @@ Status SessionBundleFactory::EstimateResourceRequirement(
   return EstimateResourceFromPath(path, estimate);
 }
 
+Status SessionBundleFactory::EstimateResourceRequirement(
+    const string& path, FileProbingEnv* env,
+    ResourceAllocation* estimate) const {
+  return EstimateResourceFromPath(path, env, estimate);
+}
+
 Status SessionBundleFactory::CreateSessionBundle(
     const string& path, std::unique_ptr<SessionBundle>* bundle) {
   bundle->reset(new SessionBundle);

@@ -23,6 +23,7 @@ limitations under the License.
 #include "tensorflow_serving/batching/shared_batch_scheduler.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
+#include "tensorflow_serving/util/file_probing_env.h"
 
 namespace tensorflow {
 namespace serving {
@@ -56,7 +57,14 @@ class SavedModelBundleFactory {
 
   // Estimates the resources a SavedModel bundle will use once loaded, from its
   // export path.
+  // TODO(b/33078719): remove this method after we switch all the callers to
+  // the following one.
   Status EstimateResourceRequirement(const string& path,
+                                     ResourceAllocation* estimate) const;
+
+  // Similar to the above method, but also supplies a FileProbingEnv to use in
+  // lieu of tensorflow::Env::Default().
+  Status EstimateResourceRequirement(const string& path, FileProbingEnv* env,
                                      ResourceAllocation* estimate) const;
 
  private:

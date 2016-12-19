@@ -56,6 +56,12 @@ Status SavedModelBundleFactory::EstimateResourceRequirement(
   return EstimateResourceFromPath(path, estimate);
 }
 
+Status SavedModelBundleFactory::EstimateResourceRequirement(
+    const string& path, FileProbingEnv* env,
+    ResourceAllocation* estimate) const {
+  return EstimateResourceFromPath(path, env, estimate);
+}
+
 Status SavedModelBundleFactory::CreateSavedModelBundle(
     const string& path, std::unique_ptr<SavedModelBundle>* bundle) {
   bundle->reset(new SavedModelBundle);

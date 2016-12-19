@@ -273,6 +273,7 @@ cc_library(
     name = "file_probing_env",
     srcs = ["file_probing_env.cc"],
     hdrs = ["file_probing_env.h"],
+    visibility = ["//visibility:public"],
     deps = [
         "@org_tensorflow//tensorflow/core:lib",
     ],

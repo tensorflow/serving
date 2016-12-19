@@ -70,6 +70,11 @@ TEST_F(SessionBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
       kTotalFileSize);
 }
 
+TEST_F(SessionBundleFactoryTest,
+       EstimateResourceRequirementWithFileProbingEnv) {
+  TestEstimateResourceRequirementWithFileProbingEnv<SessionBundleFactory>();
+}
+
 TEST_F(SessionBundleFactoryTest, RunOptions) { TestRunOptions(); }
 
 TEST_F(SessionBundleFactoryTest, RunOptionsError) { TestRunOptionsError(); }
