@@ -41,6 +41,9 @@ cc_library(
     name = "bundle_factory_util",
     srcs = ["bundle_factory_util.cc"],
     hdrs = ["bundle_factory_util.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":serving_session",
         ":session_bundle_config_proto",
