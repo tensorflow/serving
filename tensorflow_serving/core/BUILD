@@ -715,6 +715,9 @@ serving_proto_library(
     name = "logging_proto",
     srcs = ["logging.proto"],
     cc_api_version = 2,
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:logging_config_proto",
@@ -725,10 +728,26 @@ cc_library(
     name = "request_logger",
     srcs = ["request_logger.cc"],
     hdrs = ["request_logger.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":log_collector",
         ":logging_proto",
         "//tensorflow_serving/config:logging_config_proto",
         "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
+    name = "server_request_logger",
+    srcs = ["server_request_logger.cc"],
+    hdrs = ["server_request_logger.h"],
+    deps = [
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/config:logging_config_proto",
+        "//tensorflow_serving/core:logging_proto",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf//:protobuf",
     ],
 )
