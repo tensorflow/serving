@@ -201,7 +201,7 @@ int main(int argc, char** argv) {
   tensorflow::string model_name = "default";
   tensorflow::int32 file_system_poll_wait_seconds = 1;
   tensorflow::string model_base_path;
-  bool use_saved_model = false;
+  bool use_saved_model = true;
   string platform_config_file = "";
   tensorflow::string model_version_policy =
       FileSystemStoragePathSourceConfig_VersionPolicy_Name(
