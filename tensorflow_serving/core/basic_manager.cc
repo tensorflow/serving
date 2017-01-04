@@ -657,8 +657,20 @@ Status BasicManager::ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock) {
       resource_tracker_->RecomputeUsedResources(
           GetLoadersCurrentlyUsingResources());
       bool resources_reserved;
-      TF_RETURN_IF_ERROR(resource_tracker_->ReserveResources(
-          *harness->loader(), &resources_reserved));
+      const Status reserve_resources_status =
+          resource_tracker_->ReserveResources(*harness->loader(),
+                                              &resources_reserved);
+      if (!reserve_resources_status.ok()) {
+        const Status error = errors::Internal(strings::StrCat(
+            "Error while attempting to reserve resources to load servable ",
+            harness->id().DebugString(), ": ",
+            reserve_resources_status.error_message()));
+        LOG(WARNING) << error;
+        harness->Error(error);
+        PublishOnEventBus({harness->id(), ServableState::ManagerState::kEnd,
+                           harness->status()});
+        return error;
+      }
       if (resources_reserved) {
         // Woohoo! We got our resources.
         LOG(INFO) << "Successfully reserved resources to load servable "

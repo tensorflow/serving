@@ -1462,6 +1462,26 @@ TEST_F(ResourceConstrainedBasicManagerTest, FirstLoadDeniedSecondOneApproved) {
               EqualsServableState(expected_error_state));
 }
 
+TEST_F(ResourceConstrainedBasicManagerTest, EventBusErrorOnEstimateResources) {
+  const ServableId id = {kServableName, 7};
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  EXPECT_CALL(*loader, EstimateResources(_))
+      .WillOnce(Return(errors::Internal("Error on estimate resources.")));
+  basic_manager_->ManageServable(
+      CreateServableData(id, std::unique_ptr<Loader>(loader)));
+  basic_manager_->LoadServable(
+      id, [](const Status& status) { EXPECT_FALSE(status.ok()); });
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
+                                       {ServableState::ManagerState::kEnd});
+  const ServableState error_state = {
+      id, ServableState::ManagerState::kEnd,
+      errors::Internal(strings::StrCat(
+          "Error while attempting to reserve resources to load servable ",
+          id.DebugString(), ": Error on estimate resources."))};
+  EXPECT_THAT(*servable_state_monitor_.GetState(id),
+              EqualsServableState(error_state));
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow
