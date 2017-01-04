@@ -63,8 +63,9 @@ TEST(DynamicSourceRouterTest, ReconfigureToInvalidRouteMap) {
 
 TEST(DynamicSourceRouterTest, Basic) {
   std::unique_ptr<DynamicSourceRouter<StoragePath>> router;
-  TF_ASSERT_OK(DynamicSourceRouter<string>::Create(4, {{"foo", 0}, {"bar", 1}},
-                                                   &router));
+  DynamicSourceRouter<StoragePath>::Routes routes = {{"foo", 0}, {"bar", 1}};
+  TF_ASSERT_OK(DynamicSourceRouter<string>::Create(4, routes, &router));
+  EXPECT_EQ(routes, router->GetRoutes());
   std::vector<Source<StoragePath>*> output_ports = router->GetOutputPorts();
   ASSERT_EQ(4, output_ports.size());
   std::vector<std::unique_ptr<test_util::MockStoragePathTarget>> targets;

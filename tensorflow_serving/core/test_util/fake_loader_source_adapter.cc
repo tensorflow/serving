@@ -49,7 +49,7 @@ class FakeLoaderSourceAdapterCreator {
       const FakeLoaderSourceAdapterConfig& config,
       std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
           adapter) {
-    adapter->reset(new FakeLoaderSourceAdapter);
+    adapter->reset(new FakeLoaderSourceAdapter(config.suffix()));
     return Status::OK();
   }
 };

@@ -38,48 +38,93 @@ namespace serving {
 
 namespace {
 
-// Returns an error if it is not the case that all ModelConfigList models have
-// the same model platform, otherwise returns OK and sets 'model_platform' to
-// the platform.
-Status ValidateAllListedModelsAreOfSamePlatform(const ModelServerConfig& config,
-                                                string* model_platform) {
-  for (const auto& model : config.model_config_list().config()) {
-    // Get platform (with backward compatibility support of the deprecated
-    // model_type field).
-    string platform;
-    if (model.model_type() != ModelType::MODEL_TYPE_UNSPECIFIED) {
-      LOG(WARNING) << "Deprecated ModelServerConfig::model_type field used. "
-                      "Prefer ModelServerConfig::model_platform.";
-      if (!model.model_platform().empty()) {
-        return errors::InvalidArgument(
-            "Illegal setting both ModelServerConfig::model_type (deprecated) "
-            "and ModelServerConfig::model_platform.");
-      }
-      if (model.model_type() == ModelType::TENSORFLOW) {
-        platform = kTensorFlowModelPlatform;
-      } else {
-        return errors::InvalidArgument(
-            strings::StrCat("ModelServerConfig::model_type choice ",
-                            model.model_type(), " not supported."));
-      }
+// Gets the platform associated with a model.
+Status GetPlatform(const ModelConfig& model_config, string* platform) {
+  if (model_config.model_type() != ModelType::MODEL_TYPE_UNSPECIFIED) {
+    LOG(WARNING) << "Deprecated ModelServerConfig::model_type field used. "
+                    "Prefer ModelServerConfig::model_platform.";
+    if (!model_config.model_platform().empty()) {
+      return errors::InvalidArgument(
+          "Illegal setting both ModelServerConfig::model_type (deprecated) "
+          "and ModelServerConfig::model_platform.");
+    }
+    if (model_config.model_type() == ModelType::TENSORFLOW) {
+      *platform = kTensorFlowModelPlatform;
     } else {
-      platform = model.model_platform();
-    }
-
-    if (platform.empty()) {
       return errors::InvalidArgument(
-          "Illegal setting neither ModelServerConfig::model_type (deprecated) "
-          "nor ModelServerConfig::model_platform.");
+          strings::StrCat("ModelServerConfig::model_type choice ",
+                          model_config.model_type(), " not supported."));
     }
+  } else {
+    *platform = model_config.model_platform();
+  }
 
-    // Check if matches found_platform (so far)
-    if (model_platform->empty()) {
-      *model_platform = platform;
-    }
-    // Error if not, continue if true
-    if (platform != *model_platform) {
+  if (platform->empty()) {
+    return errors::InvalidArgument(
+        "Illegal setting neither ModelServerConfig::model_type (deprecated) "
+        "nor ModelServerConfig::model_platform.");
+  }
+  return Status::OK();
+}
+
+// Returns an error if 'config_list' is invalid in some way, e.g. a model name
+// appearing multiple times.
+Status ValidateModelConfigList(const ModelConfigList& config_list) {
+  std::set<string> model_names;
+  for (const ModelConfig& config : config_list.config()) {
+    if (model_names.find(config.name()) != model_names.end()) {
       return errors::InvalidArgument(
-          "Multiple model platforms not (yet) supported.");
+          strings::StrCat("Illegal to list model ", config.name(),
+                          " multiple times in config list"));
+    }
+    model_names.insert(config.name());
+  }
+  return Status::OK();
+}
+
+// Returns an error if a model exists in both configs, but with different
+// platforms.
+Status ValidateNoModelsChangePlatforms(const ModelConfigList& old_config_list,
+                                       const ModelConfigList& new_config_list) {
+  std::map<string, string> old_model_platforms;
+  for (const ModelConfig& old_config : old_config_list.config()) {
+    string platform;
+    TF_RETURN_IF_ERROR(GetPlatform(old_config, &platform));
+    old_model_platforms[old_config.name()] = platform;
+  }
+  for (const ModelConfig& new_config : new_config_list.config()) {
+    auto it = old_model_platforms.find(new_config.name());
+    if (it == old_model_platforms.end()) {
+      continue;
+    }
+    const string& old_platform = it->second;
+    string new_platform;
+    TF_RETURN_IF_ERROR(GetPlatform(new_config, &new_platform));
+    if (new_platform != old_platform) {
+      return errors::InvalidArgument(
+          strings::StrCat("Illegal to change a model's platform. For model ",
+                          new_config.name(), " platform was ", old_platform,
+                          " and new platform requested is ", new_platform));
+    }
+  }
+  return Status::OK();
+}
+
+// Unions two route maps. Gives an error if there is a key that is present in
+// both 'a' and 'b' but with different values.
+Status UnionRoutes(const DynamicSourceRouter<StoragePath>::Routes& a,
+                   const DynamicSourceRouter<StoragePath>::Routes& b,
+                   DynamicSourceRouter<StoragePath>::Routes* result) {
+  *result = a;
+  for (const auto& b_entry : b) {
+    auto a_it = a.find(b_entry.first);
+    if (a_it == a.end()) {
+      (*result)[b_entry.first] = b_entry.second;
+    } else {
+      if (a_it->second != b_entry.second) {
+        return errors::InvalidArgument(
+            "Conflict while unioning two route maps.");
+      }
     }
   }
   return Status::OK();
@@ -118,7 +163,15 @@ Status ServerCore::Create(Options options,
 
 ServerCore::ServerCore(Options options)
     : options_(std::move(options)),
-      servable_event_bus_(EventBus<ServableState>::CreateEventBus()) {}
+      servable_event_bus_(EventBus<ServableState>::CreateEventBus()) {
+  // Number the platforms. (The proto map iteration order is nondeterministic,
+  // but we don't care since the numbering is arbitrary.)
+  int port_num = 0;
+  for (const auto& entry : options_.platform_config_map.platform_configs()) {
+    const string& platform = entry.first;
+    platform_to_router_port_[platform] = port_num++;
+  }
+}
 
 Status ServerCore::Initialize(std::unique_ptr<AspiredVersionPolicy> policy) {
   std::unique_ptr<ServableStateMonitor> servable_state_monitor;
@@ -163,47 +216,60 @@ Status ServerCore::WaitUntilConfiguredModelsAvailable() {
 }
 
 Status ServerCore::AddModelsViaModelConfigList() {
-  // Config validation.
-  string model_platform;
-  TF_RETURN_IF_ERROR(
-      ValidateAllListedModelsAreOfSamePlatform(config_, &model_platform));
+  const bool is_first_config = storage_path_source_and_router_ == nullopt;
 
-  // Create the source adapter if we haven't done so.
-  const bool is_first_config = storage_path_source_ == nullptr;
-  if (is_first_config) {
-    model_platform_ = model_platform;
-  }
-
-  // Determine if config transition is legal.
-  if (!is_first_config && model_platform_ != model_platform) {
-    return errors::FailedPrecondition(
-        "Cannot transition to requested model platform. It is only legal to "
-        "transition to the same model platform.");
-  }
-
-  // Create/reload file system storage path source.
+  // Create/reload the source, source router and source adapters.
   const FileSystemStoragePathSourceConfig source_config =
       CreateStoragePathSourceConfig(config_);
+  DynamicSourceRouter<StoragePath>::Routes routes;
+  TF_RETURN_IF_ERROR(CreateStoragePathRoutes(config_, &routes));
   if (is_first_config) {
-    std::unique_ptr<StoragePathSourceAdapter> source_adapter;
-    TF_RETURN_IF_ERROR(CreateSourceAdapter(model_platform_, &source_adapter));
+    // Construct the following source topology:
+    //   Source -> Router -> Adapter_0 (for models using platform 0)
+    //                    -> Adapter_1 (for models using platform 1)
+    //                    -> ...
+    //                    -> ErrorAdapter (for unrecognized models)
+    SourceAdapters adapters;
+    TF_RETURN_IF_ERROR(CreateAdapters(&adapters));
+    std::unique_ptr<DynamicSourceRouter<StoragePath>> router;
+    TF_RETURN_IF_ERROR(CreateRouter(routes, &adapters, &router));
+    std::unique_ptr<FileSystemStoragePathSource> source;
     TF_RETURN_IF_ERROR(
-        CreateFileSystemStoragePathSource(source_config, source_adapter.get()));
-    std::vector<ServableRequest> static_servables;
-    for (const auto& model : config_.model_config_list().config()) {
-      static_servables.push_back(ServableRequest::Latest(model.name()));
+        CreateStoragePathSource(source_config, router.get(), &source));
+
+    // Connect the adapters to the manager, and wait for the models to load.
+    TF_RETURN_IF_ERROR(ConnectAdaptersToManagerAndAwaitModelLoads(&adapters));
+
+    // Stow the source components.
+    storage_path_source_and_router_ = {source.get(), router.get()};
+    manager_.AddDependency(std::move(source));
+    manager_.AddDependency(std::move(router));
+    for (auto& entry : adapters.platform_adapters) {
+      auto& adapter = entry.second;
+      manager_.AddDependency(std::move(adapter));
     }
-    const tensorflow::Status status = ConnectSourceWithFastInitialLoad(
-        manager_.get(), source_adapter.get(), servable_state_monitor_.get(),
-        static_servables, options_.num_initial_load_threads);
-    if (!status.ok()) {
-      VLOG(1) << "Unable to ConnectSourceWithFastInitialLoad due to: "
-              << status;
-      return status;
-    }
-    manager_.AddDependency(std::move(source_adapter));
+    manager_.AddDependency(std::move(adapters.error_adapter));
   } else {
-    TF_RETURN_IF_ERROR(ReloadFileSystemStoragePathSourceConfig(source_config));
+    // First, add the new routes without removing the old ones.
+    DynamicSourceRouter<StoragePath>::Routes old_and_new_routes;
+    const Status union_status =
+        UnionRoutes(storage_path_source_and_router_->router->GetRoutes(),
+                    routes, &old_and_new_routes);
+    if (!union_status.ok()) {
+      // ValidateNoModelsChangePlatforms() should have detected any conflict.
+      DCHECK(false);
+      return errors::Internal("Old and new routes conflict.");
+    }
+    TF_RETURN_IF_ERROR(ReloadRoutes(old_and_new_routes));
+
+    // Change the source config. Among other things this will cause it to emit
+    // tear-downs of any models that aren't present in the new config.
+    TF_RETURN_IF_ERROR(ReloadStoragePathSourceConfig(source_config));
+
+    // Now that any old models are out of the picture, remove the old routes.
+    TF_RETURN_IF_ERROR(ReloadRoutes(routes));
+
+    // Wait for any new models to get loaded and become available.
     TF_RETURN_IF_ERROR(WaitUntilConfiguredModelsAvailable());
   }
   return Status::OK();
@@ -240,6 +306,14 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
     LOG(INFO) << "Taking no action for empty config.";
     return Status::OK();
   }
+  if (new_config.config_case() == ModelServerConfig::kModelConfigList) {
+    TF_RETURN_IF_ERROR(ValidateModelConfigList(new_config.model_config_list()));
+  }
+  if (new_config.config_case() == ModelServerConfig::kModelConfigList &&
+      config_.config_case() == ModelServerConfig::kModelConfigList) {
+    TF_RETURN_IF_ERROR(ValidateNoModelsChangePlatforms(
+        config_.model_config_list(), new_config.model_config_list()));
+  }
   config_ = new_config;
 
   LOG(INFO) << "Adding/updating models.";
@@ -262,9 +336,9 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   return Status::OK();
 }
 
-Status ServerCore::CreateSourceAdapter(
+Status ServerCore::CreateAdapter(
     const string& model_platform,
-    std::unique_ptr<StoragePathSourceAdapter>* adapter) {
+    std::unique_ptr<StoragePathSourceAdapter>* adapter) const {
   auto config_it =
       options_.platform_config_map.platform_configs().find(model_platform);
   if (config_it == options_.platform_config_map.platform_configs().end()) {
@@ -297,30 +371,127 @@ FileSystemStoragePathSourceConfig ServerCore::CreateStoragePathSourceConfig(
   return source_config;
 }
 
-Status ServerCore::CreateFileSystemStoragePathSource(
-    const FileSystemStoragePathSourceConfig& source_config,
-    Target<StoragePath>* target) {
-  std::unique_ptr<FileSystemStoragePathSource> storage_path_source;
-  const tensorflow::Status status =
-      FileSystemStoragePathSource::Create(source_config, &storage_path_source);
+Status ServerCore::CreateStoragePathRoutes(
+    const ModelServerConfig& config,
+    DynamicSourceRouter<StoragePath>::Routes* routes) const {
+  for (const ModelConfig& model_config : config.model_config_list().config()) {
+    const string& model_name = model_config.name();
+    string platform;
+    TF_RETURN_IF_ERROR(GetPlatform(model_config, &platform));
+    auto it = platform_to_router_port_.find(platform);
+    if (it == platform_to_router_port_.end()) {
+      return errors::InvalidArgument(strings::StrCat(
+          "Model ", model_name, " requests unsupported platform ", platform));
+    }
+    const int port = it->second;
+    (*routes)[model_name] = port;
+  }
+  return Status::OK();
+}
+
+Status ServerCore::CreateStoragePathSource(
+    const FileSystemStoragePathSourceConfig& config,
+    Target<StoragePath>* target,
+    std::unique_ptr<FileSystemStoragePathSource>* source) const {
+  const Status status = FileSystemStoragePathSource::Create(config, source);
   if (!status.ok()) {
     VLOG(1) << "Unable to create FileSystemStoragePathSource due to: "
             << status;
     return status;
   }
-  ConnectSourceToTarget(storage_path_source.get(), target);
-  storage_path_source_ = storage_path_source.get();
-  manager_.AddDependency(std::move(storage_path_source));
+  ConnectSourceToTarget(source->get(), target);
   return Status::OK();
 }
 
-Status ServerCore::ReloadFileSystemStoragePathSourceConfig(
-    const FileSystemStoragePathSourceConfig& source_config) {
-  const tensorflow::Status status =
-      storage_path_source_->UpdateConfig(source_config);
+Status ServerCore::CreateRouter(
+    const DynamicSourceRouter<StoragePath>::Routes& routes,
+    SourceAdapters* targets,
+    std::unique_ptr<DynamicSourceRouter<StoragePath>>* router) const {
+  const int num_output_ports = targets->platform_adapters.size() + 1;
+  const Status status = DynamicSourceRouter<StoragePath>::Create(
+      num_output_ports, routes, router);
   if (!status.ok()) {
-    VLOG(1) << "Unable to ReloadFileSystemStoragePathSourceConfig due to: "
-            << status;
+    VLOG(1) << "Unable to create DynamicSourceRouter due to: " << status;
+    return status;
+  }
+
+  std::vector<Source<StoragePath>*> output_ports = (*router)->GetOutputPorts();
+  for (auto& entry : targets->platform_adapters) {
+    const string& platform = entry.first;
+    StoragePathSourceAdapter* adapter = entry.second.get();
+
+    auto it = platform_to_router_port_.find(platform);
+    if (it == platform_to_router_port_.end()) {
+      DCHECK(false);
+      return errors::Internal("Router port for platform not found.");
+    }
+    const int port_num = it->second;
+
+    ConnectSourceToTarget(output_ports[port_num], adapter);
+  }
+  ConnectSourceToTarget(output_ports[output_ports.size() - 1],
+                        targets->error_adapter.get());
+
+  return Status::OK();
+}
+
+Status ServerCore::CreateAdapters(SourceAdapters* adapters) const {
+  for (const auto& entry : platform_to_router_port_) {
+    const string& platform = entry.first;
+    std::unique_ptr<StoragePathSourceAdapter> adapter;
+    TF_RETURN_IF_ERROR(CreateAdapter(platform, &adapter));
+    adapters->platform_adapters[platform] = std::move(adapter);
+  }
+  adapters->error_adapter.reset(
+      new ErrorInjectingSourceAdapter<StoragePath, std::unique_ptr<Loader>>(
+          errors::Internal("No platform found for model")));
+  return Status::OK();
+}
+
+Status ServerCore::ConnectAdaptersToManagerAndAwaitModelLoads(
+    SourceAdapters* adapters) {
+  std::map<string, std::vector<ServableRequest>> models_by_platform;
+  for (const ModelConfig& model_config : config_.model_config_list().config()) {
+    string platform;
+    TF_RETURN_IF_ERROR(GetPlatform(model_config, &platform));
+    models_by_platform[platform].push_back(
+        ServableRequest::Latest(model_config.name()));
+  }
+
+  for (auto& entry : adapters->platform_adapters) {
+    const string& platform = entry.first;
+    StoragePathSourceAdapter* adapter = entry.second.get();
+
+    const Status status = ConnectSourceWithFastInitialLoad(
+        manager_.get(), adapter, servable_state_monitor_.get(),
+        models_by_platform[platform], options_.num_initial_load_threads);
+    if (!status.ok()) {
+      VLOG(1) << "Unable to ConnectSourceWithFastInitialLoad due to: "
+              << status;
+      return status;
+    }
+  }
+  ConnectSourceToTarget(adapters->error_adapter.get(), manager_.get());
+
+  return Status::OK();
+}
+
+Status ServerCore::ReloadStoragePathSourceConfig(
+    const FileSystemStoragePathSourceConfig& source_config) {
+  const Status status =
+      storage_path_source_and_router_->source->UpdateConfig(source_config);
+  if (!status.ok()) {
+    VLOG(1) << "Unable to ReloadStoragePathSourceConfig due to: " << status;
+  }
+  return status;
+}
+
+Status ServerCore::ReloadRoutes(
+    const DynamicSourceRouter<StoragePath>::Routes& routes) {
+  const Status status =
+      storage_path_source_and_router_->router->UpdateRoutes(routes);
+  if (!status.ok()) {
+    VLOG(1) << "Unable to ReloadRoutes due to: " << status;
   }
   return status;
 }

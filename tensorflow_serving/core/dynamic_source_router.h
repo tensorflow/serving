@@ -33,15 +33,20 @@ namespace serving {
 template <typename T>
 class DynamicSourceRouter final : public SourceRouter<T> {
  public:
+  // A servable name -> output port map.
+  using Routes = std::map<string, int>;
+
   // Creates a DynamicSourceRouter with 'num_output_ports' output ports and an
   // (initial) route map given by 'routes'.
-  static Status Create(int num_output_ports,
-                       const std::map<string, int>& routes,
+  static Status Create(int num_output_ports, const Routes& routes,
                        std::unique_ptr<DynamicSourceRouter<T>>* result);
   ~DynamicSourceRouter() override;
 
+  // Gets the current route map.
+  Routes GetRoutes() const;
+
   // Sets the route map to 'routes'.
-  Status UpdateRoutes(const std::map<string, int>& routes);
+  Status UpdateRoutes(const Routes& routes);
 
  protected:
   int num_output_ports() const override { return num_output_ports_; }
@@ -50,17 +55,15 @@ class DynamicSourceRouter final : public SourceRouter<T> {
             const std::vector<ServableData<T>>& versions) override;
 
  private:
-  DynamicSourceRouter(int num_output_ports,
-                      const std::map<string, int>& routes);
+  DynamicSourceRouter(int num_output_ports, const Routes& routes);
 
   // Returns an error if 'routes' is invalid, given 'num_output_ports'.
-  static Status ValidateRoutes(int num_output_ports,
-                               const std::map<string, int>& routes);
+  static Status ValidateRoutes(int num_output_ports, const Routes& routes);
 
   const int num_output_ports_;
 
   mutable mutex routes_mu_;
-  std::map<string, int> routes_ GUARDED_BY(routes_mu_);
+  Routes routes_ GUARDED_BY(routes_mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(DynamicSourceRouter);
 };
@@ -70,7 +73,7 @@ class DynamicSourceRouter final : public SourceRouter<T> {
 
 template <typename T>
 Status DynamicSourceRouter<T>::Create(
-    int num_output_ports, const std::map<string, int>& routes,
+    int num_output_ports, const Routes& routes,
     std::unique_ptr<DynamicSourceRouter<T>>* result) {
   TF_RETURN_IF_ERROR(ValidateRoutes(num_output_ports, routes));
   result->reset(new DynamicSourceRouter<T>(num_output_ports, routes));
@@ -83,8 +86,14 @@ DynamicSourceRouter<T>::~DynamicSourceRouter() {
 }
 
 template <typename T>
-Status DynamicSourceRouter<T>::UpdateRoutes(
-    const std::map<string, int>& routes) {
+typename DynamicSourceRouter<T>::Routes DynamicSourceRouter<T>::GetRoutes()
+    const {
+  mutex_lock l(routes_mu_);
+  return routes_;
+}
+
+template <typename T>
+Status DynamicSourceRouter<T>::UpdateRoutes(const Routes& routes) {
   TF_RETURN_IF_ERROR(ValidateRoutes(num_output_ports_, routes));
   {
     mutex_lock l(routes_mu_);
@@ -110,12 +119,12 @@ int DynamicSourceRouter<T>::Route(
 
 template <typename T>
 DynamicSourceRouter<T>::DynamicSourceRouter(int num_output_ports,
-                                            const std::map<string, int>& routes)
+                                            const Routes& routes)
     : num_output_ports_(num_output_ports), routes_(routes) {}
 
 template <typename T>
-Status DynamicSourceRouter<T>::ValidateRoutes(
-    int num_output_ports, const std::map<string, int>& routes) {
+Status DynamicSourceRouter<T>::ValidateRoutes(int num_output_ports,
+                                              const Routes& routes) {
   for (const auto& entry : routes) {
     const int port = entry.second;
     if (port < 0 || port >= num_output_ports) {
