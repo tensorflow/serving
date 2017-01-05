@@ -631,71 +631,33 @@ Status BasicManager::ApproveLoadOrUnload(const LoadOrUnloadRequest& request,
 
   TF_RETURN_IF_ERROR(GetHealthyHarness(request.servable_id, harness));
 
-  Status approval_status;
   switch (request.kind) {
     case LoadOrUnloadRequest::Kind::kLoad: {
-      approval_status = ApproveLoad(*harness, &l);
+      TF_RETURN_IF_ERROR(ApproveLoad(*harness, &l));
       break;
     }
     case LoadOrUnloadRequest::Kind::kUnload: {
-      approval_status = ApproveUnload(*harness);
+      TF_RETURN_IF_ERROR(ApproveUnload(*harness));
       break;
     }
   }
 
-  if (approval_status.ok()) {
-    ++num_ongoing_load_unload_executions_;
-  }
+  ++num_ongoing_load_unload_executions_;
 
-  return approval_status;
+  return Status::OK();
 }
 
 Status BasicManager::ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock) {
   if (resource_tracker_ != nullptr) {
     // Attempt to reserve resources for the load.
-    while (true) {
-      resource_tracker_->RecomputeUsedResources(
-          GetLoadersCurrentlyUsingResources());
-      bool resources_reserved;
-      const Status reserve_resources_status =
-          resource_tracker_->ReserveResources(*harness->loader(),
-                                              &resources_reserved);
-      if (!reserve_resources_status.ok()) {
-        const Status error = errors::Internal(strings::StrCat(
-            "Error while attempting to reserve resources to load servable ",
-            harness->id().DebugString(), ": ",
-            reserve_resources_status.error_message()));
-        LOG(WARNING) << error;
-        harness->Error(error);
-        PublishOnEventBus({harness->id(), ServableState::ManagerState::kEnd,
-                           harness->status()});
-        return error;
-      }
-      if (resources_reserved) {
-        // Woohoo! We got our resources.
-        LOG(INFO) << "Successfully reserved resources to load servable "
-                  << harness->id().DebugString();
-        break;
-      }
-
-      // We weren't able to reserve the resources. See if there are any ongoing
-      // load/unload executions that may be temporarily tying up resources.
-      if (num_ongoing_load_unload_executions_ == 0) {
-        // There are no ongoing load/unloads, so we really are out of resources
-        // for this servable.
-        LOG(WARNING) << "Unable to reserve resources to load servable "
-                     << harness->id().DebugString();
-        const Status error = errors::ResourceExhausted(
-            "Insufficient resources to load servable ",
-            harness->id().DebugString());
-        harness->Error(error);
-        PublishOnEventBus({harness->id(), ServableState::ManagerState::kEnd,
-                           harness->status()});
-        return error;
-      } else {
-        // Wait until at least one load/unload request finishes, then retry.
-        num_ongoing_load_unload_executions_cv_.wait(*mu_lock);
-      }
+    const Status resource_reservation_status =
+        ReserveResources(harness, mu_lock);
+    if (!resource_reservation_status.ok()) {
+      LOG(WARNING) << resource_reservation_status;
+      harness->Error(resource_reservation_status);
+      PublishOnEventBus({harness->id(), ServableState::ManagerState::kEnd,
+                         resource_reservation_status});
+      return resource_reservation_status;
     }
   }
 
@@ -716,6 +678,44 @@ Status BasicManager::ApproveUnload(LoaderHarness* harness) {
   TF_RETURN_IF_ERROR(harness->StartQuiescing());
 
   return Status::OK();
+}
+
+Status BasicManager::ReserveResources(LoaderHarness* harness,
+                                      mutex_lock* mu_lock) {
+  while (true) {
+    resource_tracker_->RecomputeUsedResources(
+        GetLoadersCurrentlyUsingResources());
+    bool resources_reserved;
+    const Status reserve_resources_status = resource_tracker_->ReserveResources(
+        *harness->loader(), &resources_reserved);
+    if (!reserve_resources_status.ok()) {
+      return errors::Internal(strings::StrCat(
+          "Error while attempting to reserve resources to load servable ",
+          harness->id().DebugString(), ": ",
+          reserve_resources_status.error_message()));
+    }
+    if (resources_reserved) {
+      // Woohoo! We got our resources.
+      LOG(INFO) << "Successfully reserved resources to load servable "
+                << harness->id().DebugString();
+      return Status::OK();
+    }
+
+    // We weren't able to reserve the resources. See if there are any
+    // ongoing load/unload executions that may be temporarily tying up
+    // resources.
+    if (num_ongoing_load_unload_executions_ == 0) {
+      // There are no ongoing load/unloads, so we really are out of
+      // resources for this servable.
+      return errors::ResourceExhausted(
+          "Insufficient resources to load servable ",
+          harness->id().DebugString());
+    } else {
+      // Wait until at least one load/unload request finishes, then retry.
+      VLOG(1) << "Waiting for another load/unload request to finish";
+      num_ongoing_load_unload_executions_cv_.wait(*mu_lock);
+    }
+  }
 }
 
 void BasicManager::PublishOnEventBus(const ServableState& state) {

@@ -332,6 +332,16 @@ class BasicManager : public Manager {
   // prevents a subsequent unload request from proceeding concurrently.
   Status ApproveUnload(LoaderHarness* harness) EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
+  // Attempts to reserve the resources required to load the servable in
+  // 'harness'. Does not make any state transitions on 'harness' -- merely
+  // reserves the resources in 'resource_tracker_' (upon success) or returns an
+  // error.
+  //
+  // Argument 'mu_lock' is a lock held on 'mu_'. It is released temporarily via
+  // 'num_ongoing_load_unload_executions_cv_'.
+  Status ReserveResources(LoaderHarness* harness, mutex_lock* mu_lock)
+      EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
   // The execution phase of loading/unloading a servable. Delegates to either
   // ExecuteLoad() or ExecuteUnload().
   //
