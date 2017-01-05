@@ -74,11 +74,6 @@ TEST_F(SavedModelBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
       kTotalFileSize);
 }
 
-TEST_F(SavedModelBundleFactoryTest,
-       EstimateResourceRequirementWithFileProbingEnv) {
-  TestEstimateResourceRequirementWithFileProbingEnv<SavedModelBundleFactory>();
-}
-
 TEST_F(SavedModelBundleFactoryTest, RunOptions) { TestRunOptions(); }
 
 TEST_F(SavedModelBundleFactoryTest, RunOptionsError) { TestRunOptionsError(); }
@@ -112,11 +107,6 @@ TEST_F(SavedModelBundleFactoryBackwardCompatibilityTest,
       test_util::GetTotalFileSize(test_util::GetTestSessionBundleExportFiles());
   TestEstimateResourceRequirementWithGoodExport<SavedModelBundleFactory>(
       kTotalFileSize);
-}
-
-TEST_F(SavedModelBundleFactoryBackwardCompatibilityTest,
-       EstimateResourceRequirementWithFileProbingEnv) {
-  TestEstimateResourceRequirementWithFileProbingEnv<SavedModelBundleFactory>();
 }
 
 TEST_F(SavedModelBundleFactoryBackwardCompatibilityTest, RunOptions) {

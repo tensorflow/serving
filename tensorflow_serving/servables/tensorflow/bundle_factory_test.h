@@ -26,14 +26,11 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
-#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
-#include "tensorflow_serving/util/file_probing_env.h"
-#include "tensorflow_serving/util/test_util/mock_file_probing_env.h"
 
 namespace tensorflow {
 namespace serving {
@@ -85,38 +82,6 @@ class BundleFactoryTest : public ::testing::Test {
     TF_ASSERT_OK(factory->EstimateResourceRequirement(export_dir_, &actual));
 
     ResourceAllocation expected = GetExpectedResourceEstimate(total_file_size);
-    EXPECT_THAT(actual, EqualsProto(expected));
-  }
-
-  template <class FactoryType>
-  void TestEstimateResourceRequirementWithFileProbingEnv() const {
-    const string export_dir = "/foo/bar";
-    const string child = "child";
-    const string child_path = io::JoinPath(export_dir, child);
-    const double file_size = 100;
-
-    // Set up the expectation that the directory contains exactly one child with
-    // the given file size.
-    MockFileProbingEnv env;
-    EXPECT_CALL(env, FileExists(export_dir))
-        .WillRepeatedly(Return(Status::OK()));
-    EXPECT_CALL(env, GetChildren(export_dir, _))
-        .WillRepeatedly(DoAll(SetArgPointee<1>(std::vector<string>({child})),
-                              Return(Status::OK())));
-    EXPECT_CALL(env, IsDirectory(child_path))
-        .WillRepeatedly(Return(errors::FailedPrecondition("")));
-    EXPECT_CALL(env, GetFileSize(child_path, _))
-        .WillRepeatedly(
-            DoAll(SetArgPointee<1>(file_size), Return(Status::OK())));
-
-    const SessionBundleConfig config;
-    std::unique_ptr<FactoryType> factory;
-    TF_ASSERT_OK(FactoryType::Create(config, &factory));
-    ResourceAllocation actual;
-    TF_ASSERT_OK(
-        factory->EstimateResourceRequirement(export_dir, &env, &actual));
-
-    ResourceAllocation expected = GetExpectedResourceEstimate(file_size);
     EXPECT_THAT(actual, EqualsProto(expected));
   }
 
