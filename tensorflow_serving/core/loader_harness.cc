@@ -18,7 +18,9 @@ limitations under the License.
 #include <algorithm>
 
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow_serving/util/retrier.h"
 
 namespace tensorflow {
 namespace serving {
@@ -89,30 +91,11 @@ Status LoaderHarness::Load(const ResourceAllocation& available_resources) {
     LOG(INFO) << "Loading servable version " << id_;
   }
 
-  const Status status = [&]() {
-    Status load_status;
-    int num_tries = 0;
-    do {
-      if (num_tries > 0) {
-        if (cancel_load_retry()) {
-          LOG(INFO) << "Load retry cancelled for servable: " << id_;
-          break;
-        }
-        Env::Default()->SleepForMicroseconds(
-            options_.load_retry_interval_micros);
-        LOG(INFO) << "Retrying load on servable version: " << id_
-                  << " retry: " << num_tries;
-      }
-      load_status = loader_->Load(available_resources);
-      if (!load_status.ok()) {
-        LOG(ERROR) << "Servable: " << id_ << " load failure: " << load_status;
-      }
-      ++num_tries;
-    } while (!cancel_load_retry() && !load_status.ok() &&
-             (num_tries - 1) < options_.max_num_load_retries);
-
-    return load_status;
-  }();
+  const Status status =
+      Retry(strings::StrCat("Loading servable: ", id_.DebugString()),
+            options_.max_num_load_retries, options_.load_retry_interval_micros,
+            [&]() { return loader_->Load(available_resources); },
+            [&]() { return cancel_load_retry(); });
 
   {
     mutex_lock l(mu_);

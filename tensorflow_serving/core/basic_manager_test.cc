@@ -1482,6 +1482,77 @@ TEST_F(ResourceConstrainedBasicManagerTest, EventBusErrorOnEstimateResources) {
               EqualsServableState(error_state));
 }
 
+TEST(EstimateResourcesRetriedTest, Succeeds) {
+  std::shared_ptr<EventBus<ServableState>> servable_event_bus =
+      EventBus<ServableState>::CreateEventBus();
+  ServableStateMonitor servable_state_monitor(servable_event_bus.get());
+
+  BasicManager::Options options;
+  // Seed the manager with ten resource units.
+  options.resource_tracker = CreateSimpleResourceTracker(10);
+  options.servable_event_bus = servable_event_bus.get();
+  options.num_load_threads = 0;
+  options.num_unload_threads = 0;
+
+  options.max_num_load_retries = 1;
+  options.load_retry_interval_micros = 0;
+
+  std::unique_ptr<BasicManager> basic_manager;
+  TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager));
+
+  const ServableId id = {kServableName, 7};
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  EXPECT_CALL(*loader, EstimateResources(_))
+      .WillOnce(Return(errors::Internal("Error on estimate resources.")))
+      .WillOnce(Return(Status::OK()));
+  basic_manager->ManageServable(
+      CreateServableData(id, std::unique_ptr<Loader>(loader)));
+  basic_manager->LoadServable(
+      id, [](const Status& status) { EXPECT_TRUE(status.ok()); });
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor, id, {ServableState::ManagerState::kAvailable});
+  const ServableState available_state = {
+      id, ServableState::ManagerState::kAvailable, Status::OK()};
+  EXPECT_THAT(*servable_state_monitor.GetState(id),
+              EqualsServableState(available_state));
+}
+
+TEST(EstimateResourcesRetriedTest, Fails) {
+  std::shared_ptr<EventBus<ServableState>> servable_event_bus =
+      EventBus<ServableState>::CreateEventBus();
+  ServableStateMonitor servable_state_monitor(servable_event_bus.get());
+
+  BasicManager::Options options;
+  // Seed the manager with ten resource units.
+  options.resource_tracker = CreateSimpleResourceTracker(10);
+  options.servable_event_bus = servable_event_bus.get();
+  options.num_load_threads = 0;
+  options.num_unload_threads = 0;
+
+  options.max_num_load_retries = 1;
+  options.load_retry_interval_micros = 0;
+
+  std::unique_ptr<BasicManager> basic_manager;
+  TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager));
+
+  const ServableId id = {kServableName, 7};
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  EXPECT_CALL(*loader, EstimateResources(_))
+      .WillOnce(Return(errors::Internal("Error on estimate resources.")))
+      .WillOnce(Return(errors::Internal("Error on estimate resources.")))
+      .WillRepeatedly(Return(Status::OK()));
+  basic_manager->ManageServable(
+      CreateServableData(id, std::unique_ptr<Loader>(loader)));
+  basic_manager->LoadServable(
+      id, [](const Status& status) { EXPECT_FALSE(status.ok()); });
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor, id,
+                                       {ServableState::ManagerState::kEnd});
+  const ServableState available_state = {
+      id, ServableState::ManagerState::kEnd,
+      errors::Internal("Error on estimate resources.")};
+  EXPECT_FALSE(servable_state_monitor.GetState(id)->health.ok());
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

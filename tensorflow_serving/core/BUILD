@@ -416,6 +416,7 @@ cc_library(
         ":loader",
         ":servable_id",
         "//tensorflow_serving/util:optional",
+        "//tensorflow_serving/util:retrier",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

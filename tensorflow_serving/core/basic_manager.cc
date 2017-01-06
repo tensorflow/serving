@@ -32,6 +32,7 @@ limitations under the License.
 #include "tensorflow_serving/util/cleanup.h"
 #include "tensorflow_serving/util/hash.h"
 #include "tensorflow_serving/util/inline_executor.h"
+#include "tensorflow_serving/util/retrier.h"
 #include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {
@@ -686,8 +687,18 @@ Status BasicManager::ReserveResources(LoaderHarness* harness,
     resource_tracker_->RecomputeUsedResources(
         GetLoadersCurrentlyUsingResources());
     bool resources_reserved;
-    const Status reserve_resources_status = resource_tracker_->ReserveResources(
-        *harness->loader(), &resources_reserved);
+    // We retry reserving resources because it may involve transiently failing
+    // operations like file-reads.
+    const Status reserve_resources_status =
+        Retry(strings::StrCat("Reserving resources for servable: ",
+                              harness->id().DebugString()),
+              harness_options_.max_num_load_retries,
+              harness_options_.load_retry_interval_micros,
+              [&]() EXCLUSIVE_LOCKS_REQUIRED(mu_) {
+                return resource_tracker_->ReserveResources(*harness->loader(),
+                                                           &resources_reserved);
+              },
+              [&]() { return harness->cancel_load_retry(); });
     if (!reserve_resources_status.ok()) {
       return errors::Internal(strings::StrCat(
           "Error while attempting to reserve resources to load servable ",

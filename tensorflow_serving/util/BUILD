@@ -301,6 +301,25 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "retrier",
+    srcs = ["retrier.cc"],
+    hdrs = ["retrier.h"],
+    deps = [
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "retrier_test",
+    srcs = ["retrier_test.cc"],
+    deps = [
+        ":retrier",
+        "//tensorflow_serving/core/test_util:test_main",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 serving_proto_library(

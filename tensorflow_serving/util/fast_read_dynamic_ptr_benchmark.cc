@@ -28,7 +28,7 @@ limitations under the License.
 // Run with:
 // bazel run -c opt \
 // tensorflow_serving/util:fast_read_dynamic_ptr_benchmark --
-// --benchmarks=. --benchmark_use_picoseconds
+// --benchmarks=.
 // For a longer run time and more consistent results, consider a min time
 // e.g.: --benchmark_min_time=60.0
 
