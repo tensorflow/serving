@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <memory>
 
+#include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/resources/resources.pb.h"
@@ -76,11 +77,8 @@ class Loader {
 
   // Fetches any data that needs to be loaded before using the servable returned
   // by servable(). May use no more resources than the estimate reported by
-  // EstimateResources(). If that estimate included unbound resources (e.g. 2GB
-  // of GPU RAM, but not specifying which of two GPU devices to use), then the
-  // binding of resources to specific device instances must take into account
-  // the availability on each instance, given by 'available_resources'.
-  virtual Status Load(const ResourceAllocation& available_resources) = 0;
+  // EstimateResources().
+  virtual Status Load() = 0;
 
   // Frees any resources allocated during Load() (except perhaps for resources
   // shared across servables that are still needed for other active ones).
@@ -119,10 +117,9 @@ class Loader {
   virtual AnyPtr servable() = 0;
 };
 
-// A Loader that is oblivious to resources. Its Load() method does not take
-// an 'available_resources' argument. Its EstimateResources() method returns 0,
-// thus effectively disabling resource-based safety checks in the serving
-// system.
+// A Loader that is oblivious to resources. Its EstimateResources() method
+// returns 0, thus effectively disabling resource-based safety checks in the
+// serving system.
 //
 // Loaders that are experimental, or run in environments that do not need the
 // resource safety checks, can subclass ResourceUnsafeLoader instead of Loader.
@@ -132,14 +129,6 @@ class ResourceUnsafeLoader : public Loader {
     estimate->Clear();
     return Status::OK();
   }
-
-  Status Load(const ResourceAllocation& available_resources) final {
-    return Load();
-  }
-
- private:
-  // Subclasses implement this overload, which lacks 'available_resources'.
-  virtual Status Load() = 0;
 };
 
 // A source that emits Loader unique pointers.

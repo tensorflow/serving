@@ -78,7 +78,7 @@ Status LoaderHarness::LoadApproved() {
   return Status::OK();
 }
 
-Status LoaderHarness::Load(const ResourceAllocation& available_resources) {
+Status LoaderHarness::Load() {
   {
     mutex_lock l(mu_);
     if (state_ != State::kLoadApproved) {
@@ -91,11 +91,10 @@ Status LoaderHarness::Load(const ResourceAllocation& available_resources) {
     LOG(INFO) << "Loading servable version " << id_;
   }
 
-  const Status status =
-      Retry(strings::StrCat("Loading servable: ", id_.DebugString()),
-            options_.max_num_load_retries, options_.load_retry_interval_micros,
-            [&]() { return loader_->Load(available_resources); },
-            [&]() { return cancel_load_retry(); });
+  const Status status = Retry(
+      strings::StrCat("Loading servable: ", id_.DebugString()),
+      options_.max_num_load_retries, options_.load_retry_interval_micros,
+      [&]() { return loader_->Load(); }, [&]() { return cancel_load_retry(); });
 
   {
     mutex_lock l(mu_);

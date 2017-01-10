@@ -64,7 +64,7 @@ TEST(SimpleLoaderTest, VerifyServableStates) {
       },
       SimpleLoader<Caller>::EstimateNoResources()));
   EXPECT_EQ(State::kNone, state);
-  const Status status = loader->Load(ResourceAllocation());
+  const Status status = loader->Load();
   TF_EXPECT_OK(status);
   EXPECT_EQ(State::kCtor, state);
   AnyPtr servable = loader->servable();
@@ -111,7 +111,7 @@ TEST(SimpleLoaderTest, LoadError) {
         return errors::InvalidArgument("No way!");
       },
       SimpleLoader<Caller>::EstimateNoResources()));
-  const Status status = loader->Load(ResourceAllocation());
+  const Status status = loader->Load();
   EXPECT_EQ(error::INVALID_ARGUMENT, status.code());
   EXPECT_EQ("No way!", status.error_message());
 }
@@ -165,7 +165,7 @@ TEST(SimpleLoaderSourceAdapterTest, Basic) {
                                         "  } "
                                         "  quantity: 42 "
                                         "} ")));
-        TF_ASSERT_OK(loader->Load(ResourceAllocation()));
+        TF_ASSERT_OK(loader->Load());
         AnyPtr servable = loader->servable();
         ASSERT_TRUE(servable.get<string>() != nullptr);
         EXPECT_EQ("test_data_was_here", *servable.get<string>());
@@ -208,7 +208,7 @@ TEST(SimpleLoaderSourceAdapterTest, OkayToDeleteAdapter) {
   // callbacks, despite the fact that 'adapter' has been deleted.
   ResourceAllocation estimate_given;
   TF_ASSERT_OK(loader->EstimateResources(&estimate_given));
-  TF_ASSERT_OK(loader->Load(ResourceAllocation()));
+  TF_ASSERT_OK(loader->Load());
 }
 
 }  // namespace

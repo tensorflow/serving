@@ -461,7 +461,7 @@ Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
   // deleted by another thread that called StopManagingServable(). We don't hold
   // the lock while calling Load() as the latter may block.
   const ServableId id = harness->id();
-  const Status load_status = harness->Load(ResourceAllocation());
+  const Status load_status = harness->Load();
 
   if (!load_status.ok()) {
     PublishOnEventBus({id, ServableState::ManagerState::kEnd, load_status});

@@ -154,8 +154,7 @@ class LoaderHarness final {
   //
   // Legal to call iff current state is kApprovedForLoading. Returns an error
   // status if violated.
-  Status Load(const ResourceAllocation& available_resources)
-      LOCKS_EXCLUDED(mu_);
+  Status Load() LOCKS_EXCLUDED(mu_);
 
   // Transitions the state of the harness to kUnloadRequested. Returns ok if the
   // state was transitioned successfully, else returns an error status.
