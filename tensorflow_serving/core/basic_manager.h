@@ -384,12 +384,6 @@ class BasicManager : public Manager {
   ManagedMap::iterator FindHarnessInMap(const ServableId& id)
       EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
-  // Removes the harness associated with 'id' from 'managed_map_' and deletes
-  // the harness.
-  //
-  // If no matching harness is found, DCHECK-fails and logs an error.
-  void DeleteHarness(const ServableId& id) EXCLUSIVE_LOCKS_REQUIRED(mu_);
-
   // Publishes the state on the event bus, if an event bus was part of the
   // options, if not we ignore it.
   void PublishOnEventBus(const ServableState& state);

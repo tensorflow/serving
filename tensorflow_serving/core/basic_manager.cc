@@ -301,17 +301,6 @@ BasicManager::ManagedMap::iterator BasicManager::FindHarnessInMap(
   return managed_map_.end();
 }
 
-void BasicManager::DeleteHarness(const ServableId& id) {
-  const auto it = FindHarnessInMap(id);
-  DCHECK(it != managed_map_.end());
-  if (it == managed_map_.end()) {
-    LOG(ERROR) << "Request to delete harness for " << id
-               << ", but no such harness found in managed_map_";
-    return;
-  }
-  managed_map_.erase(it);
-}
-
 Status BasicManager::ManageServableInternal(
     ServableData<std::unique_ptr<Loader>> servable,
     std::function<std::shared_ptr<LoaderHarness>(const ServableId&,
