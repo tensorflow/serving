@@ -47,7 +47,10 @@ limitations under the License.
 #include <memory>
 #include <utility>
 #include <vector>
+#include <fcntl.h>
 
+#include <google/protobuf/text_format.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
 #include "google/protobuf/wrappers.pb.h"
 #include "grpc++/security/server_credentials.h"
 #include "grpc++/server.h"
@@ -156,6 +159,20 @@ ModelServerConfig BuildSingleModelConfig(
   return config;
 }
 
+ModelServerConfig BuildConfigFromFile(
+    const string& config_file_path) {
+
+  ModelServerConfig config;
+  LOG(INFO) << "Building from config file: "
+            << config_file_path;
+
+  ModelServerConfig model_config;
+  int fd = open(config_file_path.c_str(), O_RDONLY);
+  google::protobuf::io::FileInputStream fstream(fd);
+  google::protobuf::TextFormat::Parse(&fstream, &model_config);
+  return model_config;
+}
+
 grpc::Status ToGRPCStatus(const tensorflow::Status& status) {
   const int kErrorMessageLimit = 1024;
   string error_message;
@@ -215,26 +232,28 @@ int main(int argc, char** argv) {
   tensorflow::int32 file_system_poll_wait_seconds = 1;
   tensorflow::string model_base_path;
   bool use_saved_model = false;
+  tensorflow::string config_file;
   tensorflow::string model_version_policy =
       FileSystemStoragePathSourceConfig_VersionPolicy_Name(
           FileSystemStoragePathSourceConfig::LATEST_VERSION);
   std::vector<tensorflow::Flag> flag_list = {
+      tensorflow::Flag("config_file", &config_file, "config file"),
       tensorflow::Flag("port", &port, "port to listen on"),
       tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
-      tensorflow::Flag("model_name", &model_name, "name of model"),
-      tensorflow::Flag(
-          "model_version_policy", &model_version_policy,
-          "The version policy which determines the number of model versions to "
-          "be served at the same time. The default value is LATEST_VERSION, "
-          "which will serve only the latest version. See "
-          "file_system_storage_path_source.proto for the list of possible "
-          "VersionPolicy."),
+      // tensorflow::Flag("model_name", &model_name, "name of model"),
+      // tensorflow::Flag(
+      //    "model_version_policy", &model_version_policy,
+      //    "The version policy which determines the number of model versions to "
+      //    "be served at the same time. The default value is LATEST_VERSION, "
+      //    "which will serve only the latest version. See "
+      //    "file_system_storage_path_source.proto for the list of possible "
+      //    "VersionPolicy."),
       tensorflow::Flag("file_system_poll_wait_seconds",
                        &file_system_poll_wait_seconds,
                        "interval in seconds between each poll of the file "
                        "system for new model version"),
-      tensorflow::Flag("model_base_path", &model_base_path,
-                       "path to export (required)"),
+      // tensorflow::Flag("model_base_path", &model_base_path,
+      //                 "path to export (required)"),
       tensorflow::Flag("use_saved_model", &use_saved_model,
                        "If true, use SavedModel in the server; otherwise, use "
                        "SessionBundle. It is used by tensorflow serving team "
@@ -242,7 +261,7 @@ int main(int argc, char** argv) {
                        "expected to be set by users directly.")};
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
-  if (!parse_result || model_base_path.empty()) {
+  if (!parse_result || config_file.empty()) {
     std::cout << usage;
     return -1;
   }
@@ -262,9 +281,9 @@ int main(int argc, char** argv) {
   // For ServerCore Options, we leave servable_state_monitor_creator unspecified
   // so the default servable_state_monitor_creator will be used.
   ServerCore::Options options;
-  options.model_server_config = BuildSingleModelConfig(
-      model_name, model_base_path, parsed_version_policy);
-
+  //options.model_server_config = BuildSingleModelConfig(
+  //    model_name, model_base_path, parsed_version_policy);
+  options.model_server_config = BuildConfigFromFile(config_file); 
   SessionBundleSourceAdapterConfig source_adapter_config;
   // Batching config
   if (enable_batching) {
