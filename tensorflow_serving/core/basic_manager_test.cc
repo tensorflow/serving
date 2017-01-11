@@ -586,8 +586,7 @@ TEST_P(BasicManagerTest, MultipleLoadServables) {
   basic_manager_->LoadServable(id, [](const Status& status) {
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(error::FAILED_PRECONDITION, status.code());
-    EXPECT_THAT(status.error_message(),
-                HasSubstr("cannot be transitioned to load-requested"));
+    EXPECT_THAT(status.error_message(), HasSubstr("Duplicate load request"));
   });
 }
 
@@ -605,7 +604,8 @@ TEST_P(BasicManagerTest, MultipleUnloadServables) {
   basic_manager_->UnloadServable(id, [](const Status& status) {
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(error::FAILED_PRECONDITION, status.code());
-    EXPECT_THAT(status.error_message(), HasSubstr("cannot be transitioned"));
+    EXPECT_THAT(status.error_message(),
+                HasSubstr("unload already requested/ongoing"));
   });
 }
 
@@ -624,8 +624,7 @@ TEST_P(BasicManagerTest, UnloadWithoutLoad) {
   basic_manager_->UnloadServable(id, [](const Status& status) {
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(error::FAILED_PRECONDITION, status.code());
-    EXPECT_THAT(status.error_message(),
-                HasSubstr("cannot be transitioned to unload-requested"));
+    EXPECT_THAT(status.error_message(), HasSubstr("Servable not loaded"));
   });
 }
 
@@ -961,7 +960,7 @@ TEST_P(BasicManagerTest, ConcurrentLoadsOnlyOneSucceeds) {
     if (!statuses[i].ok()) {
       EXPECT_EQ(error::FAILED_PRECONDITION, statuses[i].code());
       EXPECT_THAT(statuses[i].error_message(),
-                  HasSubstr("cannot be transitioned to load-requested"));
+                  HasSubstr("Duplicate load request"));
     } else {
       ++num_status_ok;
     }
@@ -1010,7 +1009,7 @@ TEST_P(BasicManagerTest, ConcurrentUnloadsOnlyOneSucceeds) {
                     HasSubstr("not being managed"));
       } else {
         EXPECT_THAT(statuses[i].error_message(),
-                    HasSubstr("cannot be transitioned to unload-requested"));
+                    HasSubstr("unload already requested/ongoing"));
       }
     } else {
       ++num_status_ok;

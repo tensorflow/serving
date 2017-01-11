@@ -253,9 +253,9 @@ class BasicManager : public Manager {
   friend class test_util::BasicManagerTestAccess;
 
   BasicManager(Env* env, uint32 num_load_threads, uint32 num_unload_threads,
+               uint32 max_num_load_retries, int64 load_retry_interval_micros,
                std::unique_ptr<ResourceTracker> resource_tracker,
-               EventBus<ServableState>* servable_event_bus,
-               const LoaderHarness::Options& harness_options);
+               EventBus<ServableState>* servable_event_bus);
 
   // Starts managing the servable.
   //
@@ -394,7 +394,7 @@ class BasicManager : public Manager {
   // options, if not we ignore it.
   void PublishOnEventBus(const ServableState& state);
 
-  const LoaderHarness::Options harness_options_;
+  LoaderHarness::Options harness_options_;
 
   // The event bus to which to publish servable state change events, or nullptr
   // if no bus has been configured.

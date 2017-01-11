@@ -202,26 +202,29 @@ void BasicManager::ServingMap::Update(const ManagedMap& managed_map) {
 
 Status BasicManager::Create(Options options,
                             std::unique_ptr<BasicManager>* manager) {
-  LoaderHarness::Options harness_options;
-  harness_options.max_num_load_retries = options.max_num_load_retries;
-  harness_options.load_retry_interval_micros =
-      options.load_retry_interval_micros;
-  manager->reset(new BasicManager(options.env, options.num_load_threads,
-                                  options.num_unload_threads,
-                                  std::move(options.resource_tracker),
-                                  options.servable_event_bus, harness_options));
+  manager->reset(new BasicManager(
+      options.env, options.num_load_threads, options.num_unload_threads,
+      options.max_num_load_retries, options.load_retry_interval_micros,
+      std::move(options.resource_tracker), options.servable_event_bus));
   return Status::OK();
 }
 
 BasicManager::BasicManager(Env* const env, const uint32 num_load_threads,
                            const uint32 num_unload_threads,
+                           uint32 max_num_load_retries,
+                           int64 load_retry_interval_micros,
                            std::unique_ptr<ResourceTracker> resource_tracker,
-                           EventBus<ServableState>* servable_event_bus,
-                           const LoaderHarness::Options& harness_options)
-    : harness_options_(harness_options),
-      servable_event_bus_(servable_event_bus),
+                           EventBus<ServableState>* servable_event_bus)
+    : servable_event_bus_(servable_event_bus),
       env_(env),
       num_load_threads_(num_load_threads) {
+  harness_options_.max_num_load_retries = max_num_load_retries;
+  harness_options_.load_retry_interval_micros = load_retry_interval_micros;
+  harness_options_.error_callback = [this](const ServableId& id,
+                                           const Status& error) {
+    PublishOnEventBus({id, ServableState::ManagerState::kEnd, error});
+  };
+
   {
     mutex_lock l(num_load_threads_mu_);
     load_executor_ =
@@ -334,8 +337,6 @@ Status BasicManager::ManageServableInternal(
       harness_creator(servable.id(), std::move(loader));
   if (!servable.status().ok()) {
     harness->Error(servable.status());
-    PublishOnEventBus(
-        {harness->id(), ServableState::ManagerState::kEnd, harness->status()});
   } else {
     PublishOnEventBus({harness->id(), ServableState::ManagerState::kStart,
                        harness->status()});
@@ -456,24 +457,21 @@ std::vector<string> BasicManager::GetManagedServableNames() const {
 Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
   PublishOnEventBus({harness->id(), ServableState::ManagerState::kLoading,
                      harness->status()});
-  // We save the id and the status of the harness so that we can publish them
-  // after Load(). We can't query harness again after Load() as it may be
-  // deleted by another thread that called StopManagingServable(). We don't hold
-  // the lock while calling Load() as the latter may block.
+  // We save the id of the harness so that we can publish it after Load(). (We
+  // can't query harness again after Load() as it may be deleted by another
+  // thread that called StopManagingServable().)
   const ServableId id = harness->id();
-  const Status load_status = harness->Load();
 
-  if (!load_status.ok()) {
-    PublishOnEventBus({id, ServableState::ManagerState::kEnd, load_status});
-    return load_status;
-  }
+  // We don't hold the lock while calling Load() as it may block.
+  TF_RETURN_IF_ERROR(harness->Load());
 
   {
     mutex_lock l(mu_);
     UpdateServingMap();
   }
 
-  PublishOnEventBus({id, ServableState::ManagerState::kAvailable, load_status});
+  PublishOnEventBus(
+      {id, ServableState::ManagerState::kAvailable, Status::OK()});
   return Status::OK();
 }
 
@@ -497,24 +495,23 @@ void BasicManager::CancelLoadServableRetry(const ServableId& id) {
 }
 
 Status BasicManager::ExecuteUnload(LoaderHarness* harness) {
-  // We save the id and the status of the harness so that we can publish them
-  // after Unload(). Unload() always succeeds, and hence doesn't affect
-  // harness->status(). We can't query harness again after Unload() as it may be
-  // deleted by another thread that called StopManagingServable(). We don't hold
-  // the lock while calling Unload() as the latter may block.
+  // We save the id of the harness so that we can publish it after Unload(). (We
+  // can't query harness again after Unload() as it may be deleted by another
+  // thread that called StopManagingServable().)
   const ServableId id = harness->id();
-  const Status pre_unload_status = [&] {
+
+  {
     // StartQuiescing() would have been already called.
     mutex_lock l(mu_);
     PublishOnEventBus(
         {id, ServableState::ManagerState::kUnloading, harness->status()});
     UpdateServingMap();
-    harness->DoneQuiescing();
-    return harness->status();
-  }();
+    TF_RETURN_IF_ERROR(harness->DoneQuiescing());
+  }
 
-  harness->Unload();
-  PublishOnEventBus({id, ServableState::ManagerState::kEnd, pre_unload_status});
+  // We don't hold the lock while calling Unload() as it may block.
+  TF_RETURN_IF_ERROR(harness->Unload());
+  PublishOnEventBus({id, ServableState::ManagerState::kEnd, Status::OK()});
   return Status::OK();
 }
 
@@ -673,9 +670,6 @@ Status BasicManager::ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock) {
 Status BasicManager::ApproveUnload(LoaderHarness* harness) {
   // Transition to state kQuiescing inside the decision phase, to prevent any
   // concurrent unload requests from executing.
-  //
-  // StartQuiescing() returns an error status if the harness is not in a state
-  // to be quiesced.
   TF_RETURN_IF_ERROR(harness->StartQuiescing());
 
   return Status::OK();
