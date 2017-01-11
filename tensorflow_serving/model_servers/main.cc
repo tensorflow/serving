@@ -47,7 +47,10 @@ limitations under the License.
 #include <memory>
 #include <utility>
 #include <vector>
+#include <fcntl.h>
 
+#include <google/protobuf/text_format.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
 #include "google/protobuf/wrappers.pb.h"
 #include "grpc++/security/server_credentials.h"
 #include "grpc++/server.h"
@@ -128,6 +131,20 @@ ModelServerConfig BuildSingleModelConfig(
   return config;
 }
 
+ModelServerConfig BuildModelConfigFromFile(
+    const string& config_file_path) {
+
+  ModelServerConfig config;
+  LOG(INFO) << "Building from config file: "
+            << config_file_path;
+
+  ModelServerConfig model_config;
+  int fd = open(config_file_path.c_str(), O_RDONLY);
+  google::protobuf::io::FileInputStream fstream(fd);
+  google::protobuf::TextFormat::Parse(&fstream, &model_config);
+  return model_config;
+}
+
 grpc::Status ToGRPCStatus(const tensorflow::Status& status) {
   const int kErrorMessageLimit = 1024;
   string error_message;
@@ -203,20 +220,27 @@ int main(int argc, char** argv) {
   tensorflow::string model_base_path;
   bool use_saved_model = true;
   string platform_config_file = "";
+  string model_config_file = "";
   tensorflow::string model_version_policy =
       FileSystemStoragePathSourceConfig_VersionPolicy_Name(
           FileSystemStoragePathSourceConfig::LATEST_VERSION);
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &port, "port to listen on"),
       tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
+      tensorflow::Flag("model_config_file", &model_config_file,
+                       "If non-empty, read an ascii ModelServerConfig "
+                       "protobuf from the supplied file name, and serve the "
+                       "models in that file. (If used, --model_name, "
+                       "--model_base_path and --model_version_policy "
+                       "are ignored.)"),
       tensorflow::Flag("model_name", &model_name, "name of model"),
       tensorflow::Flag(
-          "model_version_policy", &model_version_policy,
-          "The version policy which determines the number of model versions to "
-          "be served at the same time. The default value is LATEST_VERSION, "
-          "which will serve only the latest version. See "
-          "file_system_storage_path_source.proto for the list of possible "
-          "VersionPolicy."),
+         "model_version_policy", &model_version_policy,
+         "The version policy which determines the number of model versions to "
+         "be served at the same time. The default value is LATEST_VERSION, "
+         "which will serve only the latest version. See "
+         "file_system_storage_path_source.proto for the list of possible "
+         "VersionPolicy."),
       tensorflow::Flag("file_system_poll_wait_seconds",
                        &file_system_poll_wait_seconds,
                        "interval in seconds between each poll of the file "
@@ -236,7 +260,7 @@ int main(int argc, char** argv) {
                        "ignored.)")};
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
-  if (!parse_result || model_base_path.empty()) {
+  if (!parse_result) {
     std::cout << usage;
     return -1;
   }
@@ -256,8 +280,14 @@ int main(int argc, char** argv) {
   // For ServerCore Options, we leave servable_state_monitor_creator unspecified
   // so the default servable_state_monitor_creator will be used.
   ServerCore::Options options;
-  options.model_server_config = BuildSingleModelConfig(
-      model_name, model_base_path, parsed_version_policy);
+
+  // model server config
+  if (model_config_file.empty()) {
+    options.model_server_config = BuildSingleModelConfig(
+        model_name, model_base_path, parsed_version_policy);
+  } else {
+    options.model_server_config = BuildModelConfigFromFile(model_config_file);
+  }
 
   if (platform_config_file.empty()) {
     SessionBundleConfig session_bundle_config;
