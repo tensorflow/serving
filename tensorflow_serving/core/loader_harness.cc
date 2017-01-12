@@ -145,7 +145,7 @@ Status LoaderHarness::DoneQuiescing() {
   return Status::OK();
 }
 
-void LoaderHarness::ErrorInternal(const Status status) {
+void LoaderHarness::ErrorInternal(const Status& status) {
   state_ = State::kError;
   status_ = status;
   if (options_.error_callback) {
@@ -155,12 +155,12 @@ void LoaderHarness::ErrorInternal(const Status status) {
             << status_;
 }
 
-void LoaderHarness::Error(const Status status) {
+void LoaderHarness::Error(const Status& status) {
   mutex_lock l(mu_);
   ErrorInternal(status);
 }
 
-Status LoaderHarness::TransitionState(State from, State to) {
+Status LoaderHarness::TransitionState(const State from, const State to) {
   if (state_ != from) {
     const Status error = errors::Internal(
         "Illegal request to transition from state ", StateDebugString(state_),

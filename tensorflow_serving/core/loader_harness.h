@@ -196,7 +196,7 @@ class LoaderHarness final {
   Status DoneQuiescing() LOCKS_EXCLUDED(mu_);
 
   // Transitions the state to kError and invokes 'options_.error_callback'.
-  void Error(Status status) LOCKS_EXCLUDED(mu_);
+  void Error(const Status& status) LOCKS_EXCLUDED(mu_);
 
   // Whether anything has gone wrong with this servable. If state is kError,
   // this will be non-OK. If not OK, the error could be something that occurred
@@ -218,7 +218,7 @@ class LoaderHarness final {
   // Transitions the state to kError and invokes 'options_.error_callback'.
   // Private method to be used when we want to set an error from another method
   // in this class, where mu_ is already held.
-  void ErrorInternal(Status status) EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void ErrorInternal(const Status& status) EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Expects 'state_' to equal 'from', and if so transitions it to 'to'. If not,
   // DCHECK-fails, calls ErrorInternal() with a suitable error and returns the
