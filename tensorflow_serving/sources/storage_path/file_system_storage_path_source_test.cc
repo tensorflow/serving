@@ -343,6 +343,39 @@ TEST(FileSystemStoragePathSourceTest, AttemptToChangePollingPeriod) {
   EXPECT_FALSE(source->UpdateConfig(new_config).ok());
 }
 
+TEST(FileSystemStoragePathSourceTest, ParseTimestampedVersion) {
+  static_assert(static_cast<int32>(20170111173521LL) == 944751505,
+                "Version overflows if cast to int32.");
+  const string base_path =
+      io::JoinPath(testing::TmpDir(), "ParseTimestampedVersion");
+  TF_ASSERT_OK(Env::Default()->CreateDir(base_path));
+  TF_ASSERT_OK(
+      Env::Default()->CreateDir(io::JoinPath(base_path, "20170111173521")));
+  auto config = test_util::CreateProto<FileSystemStoragePathSourceConfig>(
+      strings::Printf("servables: { "
+                      "  version_policy: ALL_VERSIONS "
+                      "  servable_name: 'test_servable_name' "
+                      "  base_path: '%s' "
+                      "} "
+                      // Disable the polling thread.
+                      "file_system_poll_wait_seconds: -1 ",
+                      base_path.c_str()));
+  std::unique_ptr<FileSystemStoragePathSource> source;
+  TF_ASSERT_OK(FileSystemStoragePathSource::Create(config, &source));
+  std::unique_ptr<test_util::MockStoragePathTarget> target(
+      new StrictMock<test_util::MockStoragePathTarget>);
+  ConnectSourceToTarget(source.get(), target.get());
+
+  EXPECT_CALL(*target, SetAspiredVersions(
+                           Eq("test_servable_name"),
+                           ElementsAre(ServableData<StoragePath>(
+                               {"test_servable_name", 20170111173521LL},
+                               io::JoinPath(base_path, "20170111173521")))));
+
+  TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
+                   .PollFileSystemAndInvokeCallback());
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow
