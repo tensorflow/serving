@@ -20,11 +20,11 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
-#include "tensorflow_serving/core/test_util/fake_loader_source_adapter.proto.h"
+#include "tensorflow_serving/core/test_util/fake_loader_source_adapter.pb.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/test_util/server_core_test_util.h"
 #include "tensorflow_serving/model_servers/test_util/storage_path_error_injecting_source_adapter.h"
-#include "tensorflow_serving/model_servers/test_util/storage_path_error_injecting_source_adapter.proto.h"
+#include "tensorflow_serving/model_servers/test_util/storage_path_error_injecting_source_adapter.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {

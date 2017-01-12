@@ -16,8 +16,8 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_CONFIG_UTIL_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_CONFIG_UTIL_H_
 
-#include "tensorflow_serving/config/platform_config.proto.h"
-#include "tensorflow_serving/servables/tensorflow/session_bundle_config.proto.h"
+#include "tensorflow_serving/config/platform_config.pb.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 
 namespace tensorflow {
 namespace serving {

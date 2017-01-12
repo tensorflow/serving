@@ -20,11 +20,11 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/logging.h"
-#include "tensorflow_serving/apis/model.proto.h"
-#include "tensorflow_serving/config/model_server_config.proto.h"
+#include "tensorflow_serving/apis/model.pb.h"
+#include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_state.h"
-#include "tensorflow_serving/core/test_util/fake_loader_source_adapter.proto.h"
+#include "tensorflow_serving/core/test_util/fake_loader_source_adapter.pb.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 
 namespace tensorflow {

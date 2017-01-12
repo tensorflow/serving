@@ -745,6 +745,7 @@ cc_library(
     srcs = ["server_request_logger.cc"],
     hdrs = ["server_request_logger.h"],
     deps = [
+        ":request_logger",
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:logging_config_proto",
         "//tensorflow_serving/core:logging_proto",

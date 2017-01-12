@@ -15,6 +15,13 @@ limitations under the License.
 
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.h"
 
+#include <memory>
+
+#include "tensorflow/core/lib/strings/strcat.h"
+#include "tensorflow/core/platform/types.h"
+#include "tensorflow_serving/core/loader.h"
+#include "tensorflow_serving/core/source_adapter.h"
+
 namespace tensorflow {
 namespace serving {
 namespace test_util {

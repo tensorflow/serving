@@ -16,7 +16,11 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_CORE_TEST_UTIL_FAKE_LOADER_SOURCE_ADAPTER_H_
 #define TENSORFLOW_SERVING_CORE_TEST_UTIL_FAKE_LOADER_SOURCE_ADAPTER_H_
 
+#include <functional>
+
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/macros.h"
+#include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/simple_loader.h"
 #include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.pb.h"

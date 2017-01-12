@@ -17,8 +17,8 @@ limitations under the License.
 
 #include "google/protobuf/any.pb.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
-#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.proto.h"
-#include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.proto.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.pb.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 
 namespace tensorflow {
 namespace serving {

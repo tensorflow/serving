@@ -30,6 +30,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_MODEL_SERVERS_SERVER_CORE_H_
 
 #include <limits>
+#include <map>
 #include <memory>
 #include <string>
 #include <utility>
@@ -41,7 +42,7 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
-#include "tensorflow_serving/config/platform_config.proto.h"
+#include "tensorflow_serving/config/platform_config.pb.h"
 #include "tensorflow_serving/core/aspired_versions_manager.h"
 #include "tensorflow_serving/core/dynamic_source_router.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
@@ -232,7 +233,8 @@ class ServerCore : public Manager {
   // e.g. cross-model batch scheduling.
   struct SourceAdapters {
     // One adapter for each platform.
-    map<string, std::unique_ptr<StoragePathSourceAdapter>> platform_adapters;
+    std::map<string, std::unique_ptr<StoragePathSourceAdapter>>
+        platform_adapters;
 
     // An extra adapter to report errors for models with no configured platform.
     std::unique_ptr<StoragePathSourceAdapter> error_adapter;

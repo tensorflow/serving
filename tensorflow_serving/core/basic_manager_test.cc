@@ -1502,6 +1502,7 @@ TEST(EstimateResourcesRetriedTest, Succeeds) {
   EXPECT_CALL(*loader, EstimateResources(_))
       .WillOnce(Return(errors::Internal("Error on estimate resources.")))
       .WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*loader, Load()).WillRepeatedly(Return(Status::OK()));
   basic_manager->ManageServable(
       CreateServableData(id, std::unique_ptr<Loader>(loader)));
   basic_manager->LoadServable(

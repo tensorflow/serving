@@ -66,8 +66,11 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":fake_loader_source_adapter_proto",
+        "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:simple_loader",
+        "//tensorflow_serving/core:source_adapter",
         "//tensorflow_serving/core:storage_path",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
