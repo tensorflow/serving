@@ -180,6 +180,7 @@ void ServableStateMonitor::NotifyWhenServablesReachState(
   mutex_lock l(mu_);
   servable_state_notification_requests_.push_back(
       {servables, goal_state, notifier_fn});
+  MaybeSendNotifications();
 }
 
 bool ServableStateMonitor::WaitUntilServablesReachState(

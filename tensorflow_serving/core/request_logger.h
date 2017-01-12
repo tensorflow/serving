@@ -41,6 +41,8 @@ class RequestLogger {
   Status Log(const google::protobuf::Message& request, const google::protobuf::Message& response,
              const LogMetadata& log_metadata);
 
+  const LoggingConfig& logging_config() const { return logging_config_; }
+
  private:
   // Creates the log message given the request, response and metadata.
   // Implementations override it to create the particular message that they want

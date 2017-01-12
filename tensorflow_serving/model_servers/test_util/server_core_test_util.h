@@ -45,22 +45,22 @@ class ServerCoreTest : public ::testing::TestWithParam<int> {
   };
 
  protected:
-  // Returns ModelServerConfig that contains test model.
-  ModelServerConfig GetTestModelServerConfig();
+  // The name of the platform associated with FakeLoaderSourceAdapter.
+  static constexpr char kFakePlatform[] = "fake_servable";
 
-  // Create a ServerCore object configured to use FakeLoaderSourceAdapter.
+  // Returns ModelServerConfig that contains test model for the fake platform.
+  ModelServerConfig GetTestModelServerConfigForFakePlatform();
+
+  // Returns ModelServerConfig that contains test model for the tensorflow
+  // platform.
+  ModelServerConfig GetTestModelServerConfigForTensorflowPlatform();
+
+  // Creates some reasonable default ServerCore options for tests.
+  ServerCore::Options GetDefaultOptions();
+
+  // Creates a ServerCore object configured with both a fake platform and the
+  // tensorflow platform, using GetDefaultOptions().
   Status CreateServerCore(const ModelServerConfig& config,
-                          std::unique_ptr<ServerCore>* server_core);
-
-  // Create a ServerCore object with the supplied SourceAdapterCreator.
-  Status CreateServerCore(
-      const ModelServerConfig& config,
-      const ServerCore::SourceAdapterCreator& source_adapter_creator,
-      std::unique_ptr<ServerCore>* server_core);
-
-  // Create a ServerCore object with the supplied options. The ServerCore uses
-  // continuous polling to speed up testing.
-  Status CreateServerCore(ServerCore::Options options,
                           std::unique_ptr<ServerCore>* server_core);
 
   // Returns test type. This is the parameter of this test.

@@ -54,6 +54,8 @@ class SessionBundleFactory {
 
   // Estimates the resources a session bundle will use once loaded, from its
   // export path.
+  // TODO(b/33078719): remove this method after we switch all the callers to
+  // the following one.
   Status EstimateResourceRequirement(const string& path,
                                      ResourceAllocation* estimate) const;
 

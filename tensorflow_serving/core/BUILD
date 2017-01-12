@@ -145,9 +145,12 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":loader",
         ":servable_data",
         ":source",
+        ":storage_path",
         ":target",
+        "//tensorflow_serving/util:class_registration",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -214,6 +217,35 @@ cc_test(
         ":servable_data",
         ":source",
         ":static_source_router",
+        ":storage_path",
+        ":target",
+        "//tensorflow_serving/core/test_util:mock_storage_path_target",
+        "//tensorflow_serving/core/test_util:test_main",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
+    name = "dynamic_source_router",
+    hdrs = ["dynamic_source_router.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":source_router",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+    ],
+)
+
+cc_test(
+    name = "dynamic_source_router_test",
+    srcs = ["dynamic_source_router_test.cc"],
+    deps = [
+        ":dynamic_source_router",
+        ":servable_data",
+        ":source",
         ":storage_path",
         ":target",
         "//tensorflow_serving/core/test_util:mock_storage_path_target",
@@ -384,6 +416,7 @@ cc_library(
         ":loader",
         ":servable_id",
         "//tensorflow_serving/util:optional",
+        "//tensorflow_serving/util:retrier",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -683,6 +716,9 @@ serving_proto_library(
     name = "logging_proto",
     srcs = ["logging.proto"],
     cc_api_version = 2,
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:logging_config_proto",
@@ -693,10 +729,27 @@ cc_library(
     name = "request_logger",
     srcs = ["request_logger.cc"],
     hdrs = ["request_logger.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":log_collector",
         ":logging_proto",
         "//tensorflow_serving/config:logging_config_proto",
         "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
+    name = "server_request_logger",
+    srcs = ["server_request_logger.cc"],
+    hdrs = ["server_request_logger.h"],
+    deps = [
+        ":request_logger",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/config:logging_config_proto",
+        "//tensorflow_serving/core:logging_proto",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf//:protobuf",
     ],
 )

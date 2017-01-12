@@ -26,6 +26,7 @@ namespace serving {
 namespace {
 
 using ::testing::ElementsAre;
+using ::testing::IsEmpty;
 using ::testing::Pair;
 using ::testing::UnorderedElementsAre;
 using ServableStateAndTime = ServableStateMonitor::ServableStateAndTime;
@@ -268,6 +269,25 @@ TEST(ServableStateMonitorTest, VersionMapDescendingOrder) {
   EXPECT_THAT(monitor.GetLiveServableStates(),
               ElementsAre(Pair("foo", ElementsAre(Pair(42, state_0_and_time),
                                                   Pair(7, state_1_and_time)))));
+}
+
+TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateZeroServables) {
+  auto bus = EventBus<ServableState>::CreateEventBus({});
+  ServableStateMonitor monitor(bus.get());
+  const std::vector<ServableRequest> servables = {};
+
+  using ManagerState = ServableState::ManagerState;
+
+  Notification notified;
+  monitor.NotifyWhenServablesReachState(
+      servables, ManagerState::kAvailable,
+      [&](const bool reached,
+          std::map<ServableId, ManagerState> states_reached) {
+        EXPECT_TRUE(reached);
+        EXPECT_THAT(states_reached, IsEmpty());
+        notified.Notify();
+      });
+  notified.WaitForNotification();
 }
 
 TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateSpecificAvailable) {

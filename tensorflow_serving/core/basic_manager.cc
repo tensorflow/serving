@@ -32,6 +32,7 @@ limitations under the License.
 #include "tensorflow_serving/util/cleanup.h"
 #include "tensorflow_serving/util/hash.h"
 #include "tensorflow_serving/util/inline_executor.h"
+#include "tensorflow_serving/util/retrier.h"
 #include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {
@@ -201,26 +202,29 @@ void BasicManager::ServingMap::Update(const ManagedMap& managed_map) {
 
 Status BasicManager::Create(Options options,
                             std::unique_ptr<BasicManager>* manager) {
-  LoaderHarness::Options harness_options;
-  harness_options.max_num_load_retries = options.max_num_load_retries;
-  harness_options.load_retry_interval_micros =
-      options.load_retry_interval_micros;
-  manager->reset(new BasicManager(options.env, options.num_load_threads,
-                                  options.num_unload_threads,
-                                  std::move(options.resource_tracker),
-                                  options.servable_event_bus, harness_options));
+  manager->reset(new BasicManager(
+      options.env, options.num_load_threads, options.num_unload_threads,
+      options.max_num_load_retries, options.load_retry_interval_micros,
+      std::move(options.resource_tracker), options.servable_event_bus));
   return Status::OK();
 }
 
 BasicManager::BasicManager(Env* const env, const uint32 num_load_threads,
                            const uint32 num_unload_threads,
+                           uint32 max_num_load_retries,
+                           int64 load_retry_interval_micros,
                            std::unique_ptr<ResourceTracker> resource_tracker,
-                           EventBus<ServableState>* servable_event_bus,
-                           const LoaderHarness::Options& harness_options)
-    : harness_options_(harness_options),
-      servable_event_bus_(servable_event_bus),
+                           EventBus<ServableState>* servable_event_bus)
+    : servable_event_bus_(servable_event_bus),
       env_(env),
       num_load_threads_(num_load_threads) {
+  harness_options_.max_num_load_retries = max_num_load_retries;
+  harness_options_.load_retry_interval_micros = load_retry_interval_micros;
+  harness_options_.error_callback = [this](const ServableId& id,
+                                           const Status& error) {
+    PublishOnEventBus({id, ServableState::ManagerState::kEnd, error});
+  };
+
   {
     mutex_lock l(num_load_threads_mu_);
     load_executor_ =
@@ -297,17 +301,6 @@ BasicManager::ManagedMap::iterator BasicManager::FindHarnessInMap(
   return managed_map_.end();
 }
 
-void BasicManager::DeleteHarness(const ServableId& id) {
-  const auto it = FindHarnessInMap(id);
-  DCHECK(it != managed_map_.end());
-  if (it == managed_map_.end()) {
-    LOG(ERROR) << "Request to delete harness for " << id
-               << ", but no such harness found in managed_map_";
-    return;
-  }
-  managed_map_.erase(it);
-}
-
 Status BasicManager::ManageServableInternal(
     ServableData<std::unique_ptr<Loader>> servable,
     std::function<std::shared_ptr<LoaderHarness>(const ServableId&,
@@ -333,8 +326,6 @@ Status BasicManager::ManageServableInternal(
       harness_creator(servable.id(), std::move(loader));
   if (!servable.status().ok()) {
     harness->Error(servable.status());
-    PublishOnEventBus(
-        {harness->id(), ServableState::ManagerState::kEnd, harness->status()});
   } else {
     PublishOnEventBus({harness->id(), ServableState::ManagerState::kStart,
                        harness->status()});
@@ -455,24 +446,21 @@ std::vector<string> BasicManager::GetManagedServableNames() const {
 Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
   PublishOnEventBus({harness->id(), ServableState::ManagerState::kLoading,
                      harness->status()});
-  // We save the id and the status of the harness so that we can publish them
-  // after Load(). We can't query harness again after Load() as it may be
-  // deleted by another thread that called StopManagingServable(). We don't hold
-  // the lock while calling Load() as the latter may block.
+  // We save the id of the harness so that we can publish it after Load(). (We
+  // can't query harness again after Load() as it may be deleted by another
+  // thread that called StopManagingServable().)
   const ServableId id = harness->id();
-  const Status load_status = harness->Load(ResourceAllocation());
 
-  if (!load_status.ok()) {
-    PublishOnEventBus({id, ServableState::ManagerState::kEnd, load_status});
-    return load_status;
-  }
+  // We don't hold the lock while calling Load() as it may block.
+  TF_RETURN_IF_ERROR(harness->Load());
 
   {
     mutex_lock l(mu_);
     UpdateServingMap();
   }
 
-  PublishOnEventBus({id, ServableState::ManagerState::kAvailable, load_status});
+  PublishOnEventBus(
+      {id, ServableState::ManagerState::kAvailable, Status::OK()});
   return Status::OK();
 }
 
@@ -496,24 +484,23 @@ void BasicManager::CancelLoadServableRetry(const ServableId& id) {
 }
 
 Status BasicManager::ExecuteUnload(LoaderHarness* harness) {
-  // We save the id and the status of the harness so that we can publish them
-  // after Unload(). Unload() always succeeds, and hence doesn't affect
-  // harness->status(). We can't query harness again after Unload() as it may be
-  // deleted by another thread that called StopManagingServable(). We don't hold
-  // the lock while calling Unload() as the latter may block.
+  // We save the id of the harness so that we can publish it after Unload(). (We
+  // can't query harness again after Unload() as it may be deleted by another
+  // thread that called StopManagingServable().)
   const ServableId id = harness->id();
-  const Status pre_unload_status = [&] {
+
+  {
     // StartQuiescing() would have been already called.
     mutex_lock l(mu_);
     PublishOnEventBus(
         {id, ServableState::ManagerState::kUnloading, harness->status()});
     UpdateServingMap();
-    harness->DoneQuiescing();
-    return harness->status();
-  }();
+    TF_RETURN_IF_ERROR(harness->DoneQuiescing());
+  }
 
-  harness->Unload();
-  PublishOnEventBus({id, ServableState::ManagerState::kEnd, pre_unload_status});
+  // We don't hold the lock while calling Unload() as it may block.
+  TF_RETURN_IF_ERROR(harness->Unload());
+  PublishOnEventBus({id, ServableState::ManagerState::kEnd, Status::OK()});
   return Status::OK();
 }
 
@@ -631,59 +618,33 @@ Status BasicManager::ApproveLoadOrUnload(const LoadOrUnloadRequest& request,
 
   TF_RETURN_IF_ERROR(GetHealthyHarness(request.servable_id, harness));
 
-  Status approval_status;
   switch (request.kind) {
     case LoadOrUnloadRequest::Kind::kLoad: {
-      approval_status = ApproveLoad(*harness, &l);
+      TF_RETURN_IF_ERROR(ApproveLoad(*harness, &l));
       break;
     }
     case LoadOrUnloadRequest::Kind::kUnload: {
-      approval_status = ApproveUnload(*harness);
+      TF_RETURN_IF_ERROR(ApproveUnload(*harness));
       break;
     }
   }
 
-  if (approval_status.ok()) {
-    ++num_ongoing_load_unload_executions_;
-  }
+  ++num_ongoing_load_unload_executions_;
 
-  return approval_status;
+  return Status::OK();
 }
 
 Status BasicManager::ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock) {
   if (resource_tracker_ != nullptr) {
     // Attempt to reserve resources for the load.
-    while (true) {
-      resource_tracker_->RecomputeUsedResources(
-          GetLoadersCurrentlyUsingResources());
-      bool resources_reserved;
-      TF_RETURN_IF_ERROR(resource_tracker_->ReserveResources(
-          *harness->loader(), &resources_reserved));
-      if (resources_reserved) {
-        // Woohoo! We got our resources.
-        LOG(INFO) << "Successfully reserved resources to load servable "
-                  << harness->id().DebugString();
-        break;
-      }
-
-      // We weren't able to reserve the resources. See if there are any ongoing
-      // load/unload executions that may be temporarily tying up resources.
-      if (num_ongoing_load_unload_executions_ == 0) {
-        // There are no ongoing load/unloads, so we really are out of resources
-        // for this servable.
-        LOG(WARNING) << "Unable to reserve resources to load servable "
-                     << harness->id().DebugString();
-        const Status error = errors::ResourceExhausted(
-            "Insufficient resources to load servable ",
-            harness->id().DebugString());
-        harness->Error(error);
-        PublishOnEventBus({harness->id(), ServableState::ManagerState::kEnd,
-                           harness->status()});
-        return error;
-      } else {
-        // Wait until at least one load/unload request finishes, then retry.
-        num_ongoing_load_unload_executions_cv_.wait(*mu_lock);
-      }
+    const Status resource_reservation_status =
+        ReserveResources(harness, mu_lock);
+    if (!resource_reservation_status.ok()) {
+      LOG(WARNING) << resource_reservation_status;
+      harness->Error(resource_reservation_status);
+      PublishOnEventBus({harness->id(), ServableState::ManagerState::kEnd,
+                         resource_reservation_status});
+      return resource_reservation_status;
     }
   }
 
@@ -698,12 +659,57 @@ Status BasicManager::ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock) {
 Status BasicManager::ApproveUnload(LoaderHarness* harness) {
   // Transition to state kQuiescing inside the decision phase, to prevent any
   // concurrent unload requests from executing.
-  //
-  // StartQuiescing() returns an error status if the harness is not in a state
-  // to be quiesced.
   TF_RETURN_IF_ERROR(harness->StartQuiescing());
 
   return Status::OK();
+}
+
+Status BasicManager::ReserveResources(LoaderHarness* harness,
+                                      mutex_lock* mu_lock) {
+  while (true) {
+    resource_tracker_->RecomputeUsedResources(
+        GetLoadersCurrentlyUsingResources());
+    bool resources_reserved;
+    // We retry reserving resources because it may involve transiently failing
+    // operations like file-reads.
+    const Status reserve_resources_status =
+        Retry(strings::StrCat("Reserving resources for servable: ",
+                              harness->id().DebugString()),
+              harness_options_.max_num_load_retries,
+              harness_options_.load_retry_interval_micros,
+              [&]() EXCLUSIVE_LOCKS_REQUIRED(mu_) {
+                return resource_tracker_->ReserveResources(*harness->loader(),
+                                                           &resources_reserved);
+              },
+              [&]() { return harness->cancel_load_retry(); });
+    if (!reserve_resources_status.ok()) {
+      return errors::Internal(strings::StrCat(
+          "Error while attempting to reserve resources to load servable ",
+          harness->id().DebugString(), ": ",
+          reserve_resources_status.error_message()));
+    }
+    if (resources_reserved) {
+      // Woohoo! We got our resources.
+      LOG(INFO) << "Successfully reserved resources to load servable "
+                << harness->id().DebugString();
+      return Status::OK();
+    }
+
+    // We weren't able to reserve the resources. See if there are any
+    // ongoing load/unload executions that may be temporarily tying up
+    // resources.
+    if (num_ongoing_load_unload_executions_ == 0) {
+      // There are no ongoing load/unloads, so we really are out of
+      // resources for this servable.
+      return errors::ResourceExhausted(
+          "Insufficient resources to load servable ",
+          harness->id().DebugString());
+    } else {
+      // Wait until at least one load/unload request finishes, then retry.
+      VLOG(1) << "Waiting for another load/unload request to finish";
+      num_ongoing_load_unload_executions_cv_.wait(*mu_lock);
+    }
+  }
 }
 
 void BasicManager::PublishOnEventBus(const ServableState& state) {

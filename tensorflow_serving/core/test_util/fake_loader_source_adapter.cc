@@ -15,6 +15,13 @@ limitations under the License.
 
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.h"
 
+#include <memory>
+
+#include "tensorflow/core/lib/strings/strcat.h"
+#include "tensorflow/core/platform/types.h"
+#include "tensorflow_serving/core/loader.h"
+#include "tensorflow_serving/core/source_adapter.h"
+
 namespace tensorflow {
 namespace serving {
 namespace test_util {
@@ -42,17 +49,20 @@ FakeLoaderSourceAdapter::~FakeLoaderSourceAdapter() {
   }
 }
 
-std::function<Status(
-    const string& model_platform,
-    std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*)>
-FakeLoaderSourceAdapter::GetCreator() {
-  return [](const string& model_platform,
-            std::unique_ptr<tensorflow::serving::SourceAdapter<
-                StoragePath, std::unique_ptr<Loader>>>* source) {
-    source->reset(new FakeLoaderSourceAdapter);
+// Register the source adapter.
+class FakeLoaderSourceAdapterCreator {
+ public:
+  static Status Create(
+      const FakeLoaderSourceAdapterConfig& config,
+      std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
+          adapter) {
+    adapter->reset(new FakeLoaderSourceAdapter(config.suffix()));
     return Status::OK();
-  };
-}
+  }
+};
+REGISTER_STORAGE_PATH_SOURCE_ADAPTER(FakeLoaderSourceAdapterCreator,
+                                     FakeLoaderSourceAdapterConfig);
+
 }  // namespace test_util
 }  // namespace serving
 }  // namespace tensorflow

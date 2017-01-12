@@ -18,7 +18,9 @@ limitations under the License.
 #include <algorithm>
 
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow_serving/util/retrier.h"
 
 namespace tensorflow {
 namespace serving {
@@ -49,11 +51,7 @@ Status LoaderHarness::LoadRequested() {
   mutex_lock l(mu_);
 
   if (state_ != State::kNew) {
-    return errors::FailedPrecondition(
-        "Servable: ", id_.DebugString(),
-        " cannot be transitioned to load-requested. In state: ",
-        StateDebugString(state_), " instead of state: ",
-        StateDebugString(State::kNew));
+    return errors::FailedPrecondition("Duplicate load request");
   }
   state_ = State::kLoadRequested;
   VLOG(1) << "Load requested for servable version " << id_;
@@ -63,62 +61,28 @@ Status LoaderHarness::LoadRequested() {
 
 Status LoaderHarness::LoadApproved() {
   mutex_lock l(mu_);
-
-  if (state_ != State::kLoadRequested) {
-    return errors::FailedPrecondition(
-        "Servable: ", id_.DebugString(),
-        " cannot be approved for loading. In state: ", StateDebugString(state_),
-        " instead of state: ", StateDebugString(State::kLoadRequested));
-  }
-  state_ = State::kLoadApproved;
+  TF_RETURN_IF_ERROR(
+      TransitionState(State::kLoadRequested, State::kLoadApproved));
   LOG(INFO) << "Approving load for servable version " << id_;
-
   return Status::OK();
 }
 
-Status LoaderHarness::Load(const ResourceAllocation& available_resources) {
+Status LoaderHarness::Load() {
   {
     mutex_lock l(mu_);
-    if (state_ != State::kLoadApproved) {
-      return errors::FailedPrecondition(
-          "Servable: ", id_.DebugString(), " cannot be loaded. In state: ",
-          StateDebugString(state_), " instead of state: ",
-          StateDebugString(State::kLoadApproved));
-    }
-    state_ = State::kLoading;
+    TF_RETURN_IF_ERROR(TransitionState(State::kLoadApproved, State::kLoading));
     LOG(INFO) << "Loading servable version " << id_;
   }
 
-  const Status status = [&]() {
-    Status load_status;
-    int num_tries = 0;
-    do {
-      if (num_tries > 0) {
-        if (cancel_load_retry()) {
-          LOG(INFO) << "Load retry cancelled for servable: " << id_;
-          break;
-        }
-        Env::Default()->SleepForMicroseconds(
-            options_.load_retry_interval_micros);
-        LOG(INFO) << "Retrying load on servable version: " << id_
-                  << " retry: " << num_tries;
-      }
-      load_status = loader_->Load(available_resources);
-      if (!load_status.ok()) {
-        LOG(ERROR) << "Servable: " << id_ << " load failure: " << load_status;
-      }
-      ++num_tries;
-    } while (!cancel_load_retry() && !load_status.ok() &&
-             (num_tries - 1) < options_.max_num_load_retries);
-
-    return load_status;
-  }();
+  const Status status = Retry(
+      strings::StrCat("Loading servable: ", id_.DebugString()),
+      options_.max_num_load_retries, options_.load_retry_interval_micros,
+      [&]() { return loader_->Load(); }, [&]() { return cancel_load_retry(); });
 
   {
     mutex_lock l(mu_);
-    DCHECK_EQ(State::kLoading, state_);
     if (status.ok()) {
-      state_ = State::kReady;
+      TF_RETURN_IF_ERROR(TransitionState(State::kLoading, State::kReady));
       LOG(INFO) << "Successfully loaded servable version " << id_;
     } else {
       ErrorInternal(status);
@@ -130,13 +94,9 @@ Status LoaderHarness::Load(const ResourceAllocation& available_resources) {
 
 Status LoaderHarness::UnloadRequested() {
   mutex_lock l(mu_);
-
   if (state_ != State::kReady) {
     return errors::FailedPrecondition(
-        "Servable: ", id_.DebugString(),
-        " cannot be transitioned to unload-requested. In state: ",
-        StateDebugString(state_), " instead of state: ",
-        StateDebugString(State::kReady));
+        "Servable not loaded, or unload already requested/ongoing");
   }
   state_ = State::kUnloadRequested;
   return Status::OK();
@@ -152,11 +112,10 @@ bool LoaderHarness::cancel_load_retry() {
   return cancel_load_retry_;
 }
 
-void LoaderHarness::Unload() {
+Status LoaderHarness::Unload() {
   {
     mutex_lock l(mu_);
-    DCHECK_EQ(state_, State::kQuiesced);
-    state_ = State::kUnloading;
+    TF_RETURN_IF_ERROR(TransitionState(State::kQuiesced, State::kUnloading));
     LOG(INFO) << "Unloading servable version " << id_;
   }
 
@@ -164,42 +123,54 @@ void LoaderHarness::Unload() {
 
   {
     mutex_lock l(mu_);
-    DCHECK_EQ(state_, State::kUnloading);
-    state_ = State::kDisabled;
+    TF_RETURN_IF_ERROR(TransitionState(State::kUnloading, State::kDisabled));
     LOG(INFO) << "Done unloading servable version " << id_;
   }
+
+  return Status::OK();
 }
 
 Status LoaderHarness::StartQuiescing() {
   mutex_lock l(mu_);
-  if (state_ != State::kUnloadRequested) {
-    return errors::FailedPrecondition(
-        "Servable: ", id_.DebugString(), " cannot be quiesced. In state: ",
-        StateDebugString(state_), " instead of state: ",
-        StateDebugString(State::kUnloadRequested));
-  }
-  state_ = State::kQuiescing;
+  TF_RETURN_IF_ERROR(
+      TransitionState(State::kUnloadRequested, State::kQuiescing));
   LOG(INFO) << "Quiescing servable version " << id_;
   return Status::OK();
 }
 
-void LoaderHarness::DoneQuiescing() {
+Status LoaderHarness::DoneQuiescing() {
   mutex_lock l(mu_);
-  DCHECK_EQ(state_, State::kQuiescing);
-  state_ = State::kQuiesced;
+  TF_RETURN_IF_ERROR(TransitionState(State::kQuiescing, State::kQuiesced));
   LOG(INFO) << "Done quiescing servable version " << id_;
+  return Status::OK();
 }
 
-void LoaderHarness::ErrorInternal(const Status status) {
+void LoaderHarness::ErrorInternal(const Status& status) {
   state_ = State::kError;
   status_ = status;
+  if (options_.error_callback) {
+    options_.error_callback(id(), status);
+  }
   LOG(INFO) << "Encountered an error for servable version " << id_ << ": "
             << status_;
 }
 
-void LoaderHarness::Error(const Status status) {
+void LoaderHarness::Error(const Status& status) {
   mutex_lock l(mu_);
   ErrorInternal(status);
+}
+
+Status LoaderHarness::TransitionState(const State from, const State to) {
+  if (state_ != from) {
+    const Status error = errors::Internal(
+        "Illegal request to transition from state ", StateDebugString(state_),
+        " to ", StateDebugString(to));
+    DCHECK(false) << error;
+    ErrorInternal(error);
+    return error;
+  }
+  state_ = to;
+  return Status::OK();
 }
 
 Status LoaderHarness::status() const {

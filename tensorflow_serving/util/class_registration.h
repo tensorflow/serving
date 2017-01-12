@@ -161,7 +161,6 @@ limitations under the License.
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/platform/thread_annotations.h"
-#include "tensorflow/core/util/port.h"
 #include "tensorflow_serving/util/class_registration_util.h"
 
 namespace tensorflow {

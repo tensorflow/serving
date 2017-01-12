@@ -98,6 +98,10 @@ class LoaderHarness final {
 
     // The interval, in microseconds, between each servable load retry.
     uint64 load_retry_interval_micros = 0;
+
+    // An (optional) function to call upon transitioning to state kError.
+    std::function<void(const ServableId& id, const Status& error)>
+        error_callback;
   };
 
   LoaderHarness(const ServableId& id, std::unique_ptr<Loader> loader,
@@ -132,35 +136,32 @@ class LoaderHarness final {
   template <typename T = std::nullptr_t>
   ServableStateSnapshot<T> loader_state_snapshot() const LOCKS_EXCLUDED(mu_);
 
-  // Transitions the state of the harness to kLoadRequested. Returns ok if the
-  // state was transitioned successfully, else returns an error status.
-  //
-  // REQUIRES: That the harness is in state kNew when this method is called.
+  // Transitions the state of the harness to kLoadRequested iff its current
+  // state is kNew. The test-and-change is done transactionally, so this method
+  // can be used to ensure that at most one Load() request can proceed.
   Status LoadRequested() LOCKS_EXCLUDED(mu_);
 
   // Transitions to kLoadApproved.
   //
-  // Legal to call iff current state is kLoadRequested. Returns an error status
-  // if violated.
+  // REQUIRES: State is kLoadRequested when called. Otherwise DCHECK-fails,
+  // transitions to state kError and invokes 'options_.error_callback'.
   Status LoadApproved() LOCKS_EXCLUDED(mu_);
 
   // Transitions to kLoading, delegates to Servable::Load(), then transitions
-  // either to kReady if Load() succeeds, or to kError if Load() fails. This
-  // call may take a long time.
+  // either to kReady if Load() succeeds, or to kError (and invokes 'options_.
+  // error_callback') if Load() fails. This call may take a long time.
   //
   // We retry the Servable::Load() according to the options set during
   // construction of this class. We stop retrying and give up if 1. we have
   // reached max_num_load_retries or, 2. if cancel_load() is set to true.
   //
-  // Legal to call iff current state is kApprovedForLoading. Returns an error
-  // status if violated.
-  Status Load(const ResourceAllocation& available_resources)
-      LOCKS_EXCLUDED(mu_);
+  // REQUIRES: State is kLoadApproved when called. Otherwise DCHECK-fails,
+  // transitions to state kError and invokes 'options_.error_callback'.
+  Status Load() LOCKS_EXCLUDED(mu_);
 
-  // Transitions the state of the harness to kUnloadRequested. Returns ok if the
-  // state was transitioned successfully, else returns an error status.
-  //
-  // REQUIRES: That the harness is in state kReady when this method is called.
+  // Transitions the state of the harness to kUnloadRequested iff its current
+  // state is kReady. The test-and-change is done transactionally, so this
+  // method can be used to ensure that at most one Load() request can proceed.
   Status UnloadRequested() LOCKS_EXCLUDED(mu_);
 
   // Cancels retrying the load of the servable. This is best-effort, and does
@@ -174,21 +175,28 @@ class LoaderHarness final {
 
   // Transitions to kUnloading, delegates to Servable::Unload(), then
   // transitions to kDisabled when Unload() is done.
-  void Unload() LOCKS_EXCLUDED(mu_);
+  //
+  // REQUIRES: State is kQuiesced when called. Otherwise DCHECK-fails,
+  // transitions to state kError and invokes 'options_.error_callback'.
+  Status Unload() LOCKS_EXCLUDED(mu_);
 
   // Transitions the state to kQuiescing, which means that we would like to not
   // give out any more handles to this servable.
   //
-  // REQUIRES: State be kReady when called, else returns an error status.
+  // REQUIRES: State is kUnloadRequested when called. Otherwise DCHECK-fails,
+  // transitions to state kError and invokes 'options_.error_callback'.
   Status StartQuiescing() LOCKS_EXCLUDED(mu_);
 
   // Transitions the state to kQuiesced, which means that there are no more live
   // handles to this servable available in the frontend. At this point, we can
   // unload this object.
-  void DoneQuiescing() LOCKS_EXCLUDED(mu_);
+  //
+  // REQUIRES: State is kQuiescing when called. Otherwise DCHECK-fails,
+  // transitions to state kError and invokes 'options_.error_callback'.
+  Status DoneQuiescing() LOCKS_EXCLUDED(mu_);
 
-  // Transitions the state to kError.
-  void Error(Status status) LOCKS_EXCLUDED(mu_);
+  // Transitions the state to kError and invokes 'options_.error_callback'.
+  void Error(const Status& status) LOCKS_EXCLUDED(mu_);
 
   // Whether anything has gone wrong with this servable. If state is kError,
   // this will be non-OK. If not OK, the error could be something that occurred
@@ -207,9 +215,15 @@ class LoaderHarness final {
   static string StateDebugString(State state);
 
  private:
-  // Transitions the state to kError. Private method to be used when we want to
-  // set an error from another method in this class, where mu_ is already held.
-  void ErrorInternal(Status status) EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  // Transitions the state to kError and invokes 'options_.error_callback'.
+  // Private method to be used when we want to set an error from another method
+  // in this class, where mu_ is already held.
+  void ErrorInternal(const Status& status) EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
+  // Expects 'state_' to equal 'from', and if so transitions it to 'to'. If not,
+  // DCHECK-fails, calls ErrorInternal() with a suitable error and returns the
+  // same error.
+  Status TransitionState(State from, State to) EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   const ServableId id_;
   const std::unique_ptr<Loader> loader_;

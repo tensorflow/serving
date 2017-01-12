@@ -261,6 +261,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
     // If this version is not part of the aspired versions.
     if (std::find(next_aspired_versions.begin(), next_aspired_versions.end(),
                   state_snapshot.id.version) == next_aspired_versions.end()) {
+      VLOG(1) << "Setting is_aspired=false for " << state_snapshot.id;
       basic_manager_->GetAdditionalServableState<Aspired>(state_snapshot.id)
           ->is_aspired = false;
       basic_manager_->CancelLoadServableRetry(state_snapshot.id);
@@ -282,6 +283,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
     // if this aspired version is not already present in the map.
     if (std::find(additions.begin(), additions.end(), version.id().version) !=
         additions.end()) {
+      VLOG(1) << "Adding " << version.id() << "to BasicManager";
       const Status manage_status =
           basic_manager_->ManageServableWithAdditionalState(
               std::move(version), std::unique_ptr<Aspired>(new Aspired{true}));
@@ -373,6 +375,7 @@ void AspiredVersionsManager::FlushServables() {
            state_snapshot.state == LoaderHarness::State::kDisabled ||
            state_snapshot.state == LoaderHarness::State::kError) &&
           !state_snapshot.additional_state->is_aspired) {
+        VLOG(1) << "Removing " << state_snapshot.id << "from BasicManager";
         basic_manager_->StopManagingServable(state_snapshot.id);
       }
     }

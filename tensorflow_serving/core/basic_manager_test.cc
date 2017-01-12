@@ -274,7 +274,7 @@ TEST_P(BasicManagerTest, UpdateServingMapServableHandleLatest) {
       .WillByDefault(Return(AnyPtr(&servable)));
   ON_CALL(*notify_to_unload, EstimateResources(_))
       .WillByDefault(Return(Status::OK()));
-  ON_CALL(*notify_to_unload, Load(_)).WillByDefault(Return(Status::OK()));
+  ON_CALL(*notify_to_unload, Load()).WillByDefault(Return(Status::OK()));
   const ServableId id1 = {kServableName3, 1};
   basic_manager_->ManageServable(
       {id1, std::unique_ptr<Loader>(notify_to_unload)});
@@ -586,8 +586,7 @@ TEST_P(BasicManagerTest, MultipleLoadServables) {
   basic_manager_->LoadServable(id, [](const Status& status) {
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(error::FAILED_PRECONDITION, status.code());
-    EXPECT_THAT(status.error_message(),
-                HasSubstr("cannot be transitioned to load-requested"));
+    EXPECT_THAT(status.error_message(), HasSubstr("Duplicate load request"));
   });
 }
 
@@ -605,7 +604,8 @@ TEST_P(BasicManagerTest, MultipleUnloadServables) {
   basic_manager_->UnloadServable(id, [](const Status& status) {
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(error::FAILED_PRECONDITION, status.code());
-    EXPECT_THAT(status.error_message(), HasSubstr("cannot be transitioned"));
+    EXPECT_THAT(status.error_message(),
+                HasSubstr("unload already requested/ongoing"));
   });
 }
 
@@ -624,8 +624,7 @@ TEST_P(BasicManagerTest, UnloadWithoutLoad) {
   basic_manager_->UnloadServable(id, [](const Status& status) {
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(error::FAILED_PRECONDITION, status.code());
-    EXPECT_THAT(status.error_message(),
-                HasSubstr("cannot be transitioned to unload-requested"));
+    EXPECT_THAT(status.error_message(), HasSubstr("Servable not loaded"));
   });
 }
 
@@ -673,12 +672,11 @@ TEST_P(BasicManagerTest, EventBusServableLifecycle) {
 
   Notification load_called;
   Notification load_continue;
-  EXPECT_CALL(*loader, Load(_))
-      .WillOnce(InvokeWithoutArgs([&]() {
-        load_called.Notify();
-        load_continue.WaitForNotification();
-        return Status::OK();
-      }));
+  EXPECT_CALL(*loader, Load()).WillOnce(InvokeWithoutArgs([&]() {
+    load_called.Notify();
+    load_continue.WaitForNotification();
+    return Status::OK();
+  }));
 
   std::unique_ptr<Thread> load_thread(
       Env::Default()->StartThread(ThreadOptions(), "LoadThread", [&]() {
@@ -962,7 +960,7 @@ TEST_P(BasicManagerTest, ConcurrentLoadsOnlyOneSucceeds) {
     if (!statuses[i].ok()) {
       EXPECT_EQ(error::FAILED_PRECONDITION, statuses[i].code());
       EXPECT_THAT(statuses[i].error_message(),
-                  HasSubstr("cannot be transitioned to load-requested"));
+                  HasSubstr("Duplicate load request"));
     } else {
       ++num_status_ok;
     }
@@ -1011,7 +1009,7 @@ TEST_P(BasicManagerTest, ConcurrentUnloadsOnlyOneSucceeds) {
                     HasSubstr("not being managed"));
       } else {
         EXPECT_THAT(statuses[i].error_message(),
-                    HasSubstr("cannot be transitioned to unload-requested"));
+                    HasSubstr("unload already requested/ongoing"));
       }
     } else {
       ++num_status_ok;
@@ -1024,7 +1022,7 @@ TEST_P(BasicManagerTest, RetryOnLoadErrorFinallySucceeds) {
   const ServableId id = {kServableName, 7};
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>();
   basic_manager_->ManageServable({id, std::unique_ptr<Loader>(loader)});
-  EXPECT_CALL(*loader, Load(_))
+  EXPECT_CALL(*loader, Load())
       .WillOnce(Return(errors::Internal("Load error.")))
       .WillRepeatedly(Return(Status::OK()));
   basic_manager_->LoadServable(
@@ -1035,7 +1033,7 @@ TEST_P(BasicManagerTest, RetryOnLoadErrorFinallyFails) {
   const ServableId id = {kServableName, 7};
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>();
   basic_manager_->ManageServable({id, std::unique_ptr<Loader>(loader)});
-  EXPECT_CALL(*loader, Load(_))
+  EXPECT_CALL(*loader, Load())
       .WillRepeatedly(Return(errors::Internal("Load error.")));
   basic_manager_->LoadServable(id, [](const Status& status) {
     EXPECT_EQ(errors::Internal("Load error."), status);
@@ -1050,7 +1048,7 @@ TEST_P(BasicManagerTest, RetryOnLoadErrorCancelledLoad) {
 
   Notification load_called;
   Notification load_should_return;
-  EXPECT_CALL(*loader, Load(_))
+  EXPECT_CALL(*loader, Load())
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
         load_called.Notify();
         load_should_return.WaitForNotification();
@@ -1077,7 +1075,7 @@ TEST_P(BasicManagerTest, LoadAfterCancelledLoad) {
 
   Notification load_called;
   Notification load_should_return;
-  EXPECT_CALL(*loader, Load(_))
+  EXPECT_CALL(*loader, Load())
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
         load_called.Notify();
         load_should_return.WaitForNotification();
@@ -1156,7 +1154,7 @@ class BarrierLoader : public Loader {
     return Status::OK();
   }
 
-  Status Load(const ResourceAllocation& available_resources) override {
+  Status Load() override {
     counter_->DecrementCount();
     counter_->Wait();
     return Status::OK();
@@ -1199,7 +1197,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
         *estimate = CreateResourceQuantity(10 /* = total system resources */);
         return Status::OK();
       }));
-  EXPECT_CALL(*hogging_loader, Load(_)).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*hogging_loader, Load()).WillOnce(Return(Status::OK()));
   basic_manager_->ManageServable(
       CreateServableData(hogging_id, std::unique_ptr<Loader>(hogging_loader)));
   Notification hogging_loaded;
@@ -1251,7 +1249,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedIfLoadFails) {
         *estimate = CreateResourceQuantity(10);
         return Status::OK();
       }));
-  EXPECT_CALL(*failing_loader, Load(_))
+  EXPECT_CALL(*failing_loader, Load())
       .WillOnce(Return(errors::Unknown("Load failure")));
   basic_manager_->ManageServable(
       CreateServableData(failing_id, std::unique_ptr<Loader>(failing_loader)));
@@ -1274,7 +1272,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedIfLoadFails) {
         *estimate = CreateResourceQuantity(10);
         return Status::OK();
       }));
-  EXPECT_CALL(*succeeding_loader, Load(_)).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*succeeding_loader, Load()).WillOnce(Return(Status::OK()));
   basic_manager_->ManageServable(CreateServableData(
       succeeding_id, std::unique_ptr<Loader>(succeeding_loader)));
   basic_manager_->LoadServable(
@@ -1295,7 +1293,7 @@ TEST_F(ResourceConstrainedBasicManagerTest,
           return Status::OK();
         }))
         .RetiresOnSaturation();
-    EXPECT_CALL(*overestimating_loader, Load(_)).WillOnce(Return(Status::OK()));
+    EXPECT_CALL(*overestimating_loader, Load()).WillOnce(Return(Status::OK()));
     EXPECT_CALL(*overestimating_loader, EstimateResources(_))
         .WillOnce(Invoke([](ResourceAllocation* estimate) {
           *estimate = CreateResourceQuantity(5 /* lower estimate after load */);
@@ -1324,7 +1322,7 @@ TEST_F(ResourceConstrainedBasicManagerTest,
         *estimate = CreateResourceQuantity(5);
         return Status::OK();
       }));
-  EXPECT_CALL(*succeeding_loader, Load(_)).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*succeeding_loader, Load()).WillOnce(Return(Status::OK()));
   basic_manager_->ManageServable(CreateServableData(
       succeeding_id, std::unique_ptr<Loader>(succeeding_loader)));
   basic_manager_->LoadServable(
@@ -1340,7 +1338,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedAfterUnload) {
         return Status::OK();
       }));
   Notification load_done;
-  EXPECT_CALL(*unloading_loader, Load(_)).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*unloading_loader, Load()).WillOnce(Return(Status::OK()));
   basic_manager_->ManageServable(CreateServableData(
       unloading_id, std::unique_ptr<Loader>(unloading_loader)));
   basic_manager_->LoadServable(unloading_id,
@@ -1376,7 +1374,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedAfterUnload) {
         *estimate = CreateResourceQuantity(10);
         return Status::OK();
       }));
-  EXPECT_CALL(*succeeding_loader, Load(_)).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*succeeding_loader, Load()).WillOnce(Return(Status::OK()));
   basic_manager_->ManageServable(CreateServableData(
       succeeding_id, std::unique_ptr<Loader>(succeeding_loader)));
   basic_manager_->LoadServable(
@@ -1401,7 +1399,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, FirstLoadDeniedSecondOneApproved) {
         return Status::OK();
       }));
   // Load won't be called because resources are not enough to load it.
-  EXPECT_CALL(*denied_loader, Load(_)).Times(0);
+  EXPECT_CALL(*denied_loader, Load()).Times(0);
   basic_manager_->ManageServable(
       CreateServableData(denied_id, std::unique_ptr<Loader>(denied_loader)));
 
@@ -1428,9 +1426,8 @@ TEST_F(ResourceConstrainedBasicManagerTest, FirstLoadDeniedSecondOneApproved) {
   denied_estimate_started.WaitForNotification();
   // The second servable's Load() call shouldn't occur until after the first
   // servable's load request exits its decision phase.
-  EXPECT_CALL(*succeeding_loader, Load(_))
-      .WillOnce(Invoke([&finish_denied_estimate](
-          const ResourceAllocation& available_resources) {
+  EXPECT_CALL(*succeeding_loader, Load())
+      .WillOnce(Invoke([&finish_denied_estimate]() {
         // Ensure that the first servable's load request has been given
         // permission to exit its decision phase.
         EXPECT_TRUE(finish_denied_estimate.HasBeenNotified());
@@ -1460,6 +1457,98 @@ TEST_F(ResourceConstrainedBasicManagerTest, FirstLoadDeniedSecondOneApproved) {
       denied_id, ServableState::ManagerState::kEnd, denied_load_status};
   EXPECT_THAT(*servable_state_monitor_.GetState(denied_id),
               EqualsServableState(expected_error_state));
+}
+
+TEST_F(ResourceConstrainedBasicManagerTest, EventBusErrorOnEstimateResources) {
+  const ServableId id = {kServableName, 7};
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  EXPECT_CALL(*loader, EstimateResources(_))
+      .WillOnce(Return(errors::Internal("Error on estimate resources.")));
+  basic_manager_->ManageServable(
+      CreateServableData(id, std::unique_ptr<Loader>(loader)));
+  basic_manager_->LoadServable(
+      id, [](const Status& status) { EXPECT_FALSE(status.ok()); });
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
+                                       {ServableState::ManagerState::kEnd});
+  const ServableState error_state = {
+      id, ServableState::ManagerState::kEnd,
+      errors::Internal(strings::StrCat(
+          "Error while attempting to reserve resources to load servable ",
+          id.DebugString(), ": Error on estimate resources."))};
+  EXPECT_THAT(*servable_state_monitor_.GetState(id),
+              EqualsServableState(error_state));
+}
+
+TEST(EstimateResourcesRetriedTest, Succeeds) {
+  std::shared_ptr<EventBus<ServableState>> servable_event_bus =
+      EventBus<ServableState>::CreateEventBus();
+  ServableStateMonitor servable_state_monitor(servable_event_bus.get());
+
+  BasicManager::Options options;
+  // Seed the manager with ten resource units.
+  options.resource_tracker = CreateSimpleResourceTracker(10);
+  options.servable_event_bus = servable_event_bus.get();
+  options.num_load_threads = 0;
+  options.num_unload_threads = 0;
+
+  options.max_num_load_retries = 1;
+  options.load_retry_interval_micros = 0;
+
+  std::unique_ptr<BasicManager> basic_manager;
+  TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager));
+
+  const ServableId id = {kServableName, 7};
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  EXPECT_CALL(*loader, EstimateResources(_))
+      .WillOnce(Return(errors::Internal("Error on estimate resources.")))
+      .WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*loader, Load()).WillRepeatedly(Return(Status::OK()));
+  basic_manager->ManageServable(
+      CreateServableData(id, std::unique_ptr<Loader>(loader)));
+  basic_manager->LoadServable(
+      id, [](const Status& status) { EXPECT_TRUE(status.ok()); });
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor, id, {ServableState::ManagerState::kAvailable});
+  const ServableState available_state = {
+      id, ServableState::ManagerState::kAvailable, Status::OK()};
+  EXPECT_THAT(*servable_state_monitor.GetState(id),
+              EqualsServableState(available_state));
+}
+
+TEST(EstimateResourcesRetriedTest, Fails) {
+  std::shared_ptr<EventBus<ServableState>> servable_event_bus =
+      EventBus<ServableState>::CreateEventBus();
+  ServableStateMonitor servable_state_monitor(servable_event_bus.get());
+
+  BasicManager::Options options;
+  // Seed the manager with ten resource units.
+  options.resource_tracker = CreateSimpleResourceTracker(10);
+  options.servable_event_bus = servable_event_bus.get();
+  options.num_load_threads = 0;
+  options.num_unload_threads = 0;
+
+  options.max_num_load_retries = 1;
+  options.load_retry_interval_micros = 0;
+
+  std::unique_ptr<BasicManager> basic_manager;
+  TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager));
+
+  const ServableId id = {kServableName, 7};
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  EXPECT_CALL(*loader, EstimateResources(_))
+      .WillOnce(Return(errors::Internal("Error on estimate resources.")))
+      .WillOnce(Return(errors::Internal("Error on estimate resources.")))
+      .WillRepeatedly(Return(Status::OK()));
+  basic_manager->ManageServable(
+      CreateServableData(id, std::unique_ptr<Loader>(loader)));
+  basic_manager->LoadServable(
+      id, [](const Status& status) { EXPECT_FALSE(status.ok()); });
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor, id,
+                                       {ServableState::ManagerState::kEnd});
+  const ServableState available_state = {
+      id, ServableState::ManagerState::kEnd,
+      errors::Internal("Error on estimate resources.")};
+  EXPECT_FALSE(servable_state_monitor.GetState(id)->health.ok());
 }
 
 }  // namespace

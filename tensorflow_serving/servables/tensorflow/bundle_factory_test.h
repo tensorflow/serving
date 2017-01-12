@@ -36,6 +36,10 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
+using ::testing::DoAll;
+using ::testing::Return;
+using ::testing::SetArgPointee;
+using ::testing::_;
 using test_util::EqualsProto;
 
 // The base class for SessionBundleFactoryTest and SavedModelBundleFactoryTest.
@@ -71,14 +75,13 @@ class BundleFactoryTest : public ::testing::Test {
   template <class FactoryType>
   void TestEstimateResourceRequirementWithGoodExport(
       double total_file_size) const {
-    ResourceAllocation expected = GetExpectedResourceEstimate(total_file_size);
-
     const SessionBundleConfig config;
     std::unique_ptr<FactoryType> factory;
     TF_ASSERT_OK(FactoryType::Create(config, &factory));
     ResourceAllocation actual;
     TF_ASSERT_OK(factory->EstimateResourceRequirement(export_dir_, &actual));
 
+    ResourceAllocation expected = GetExpectedResourceEstimate(total_file_size);
     EXPECT_THAT(actual, EqualsProto(expected));
   }
 

@@ -16,7 +16,12 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
 
+namespace tensorflow {
+namespace serving {
+
 constexpr char kTensorFlowModelPlatform[] = "tensorflow";
-constexpr char kOtherModelPlatform[] = "other";
+
+}  // namespace serving
+}  // namespace tensorflow
 
 #endif  // TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
