@@ -41,6 +41,9 @@ cc_library(
     name = "bundle_factory_util",
     srcs = ["bundle_factory_util.cc"],
     hdrs = ["bundle_factory_util.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":serving_session",
         ":session_bundle_config_proto",
@@ -71,6 +74,7 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/test_util",
+        "//tensorflow_serving/util/test_util:mock_file_probing_env",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
@@ -227,6 +231,7 @@ cc_library(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
     ],
+    alwayslink = 1,
 )
 
 cc_test(
@@ -263,6 +268,7 @@ cc_library(
     ],
     deps = [
         ":saved_model_bundle_factory",
+        ":saved_model_bundle_source_adapter_proto",
         ":session_bundle_source_adapter_proto",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:simple_loader",
@@ -274,6 +280,7 @@ cc_library(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
     ],
+    alwayslink = 1,
 )
 
 cc_test(
@@ -307,6 +314,18 @@ cc_test(
 serving_proto_library(
     name = "session_bundle_source_adapter_proto",
     srcs = ["session_bundle_source_adapter.proto"],
+    cc_api_version = 2,
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":session_bundle_config_proto",
+    ],
+)
+
+serving_proto_library(
+    name = "saved_model_bundle_source_adapter_proto",
+    srcs = ["saved_model_bundle_source_adapter.proto"],
     cc_api_version = 2,
     visibility = [
         "//visibility:public",
@@ -409,6 +428,7 @@ cc_test(
         "//tensorflow_serving/core:eager_load_policy",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/model_servers:model_platform_types",
+        "//tensorflow_serving/model_servers:platform_config_util",
         "//tensorflow_serving/model_servers:server_core",
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/test_util",

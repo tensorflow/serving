@@ -82,7 +82,7 @@ TEST(HashmapSourceAdapter, Basic) {
   TF_ASSERT_OK(loader_data.status());
   std::unique_ptr<Loader> loader = loader_data.ConsumeDataOrDie();
 
-  TF_ASSERT_OK(loader->Load(ResourceAllocation()));
+  TF_ASSERT_OK(loader->Load());
 
   const Hashmap* hashmap = loader->servable().get<Hashmap>();
   EXPECT_THAT(*hashmap,

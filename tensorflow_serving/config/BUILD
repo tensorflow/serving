@@ -33,6 +33,15 @@ serving_proto_library(
 )
 
 serving_proto_library(
+    name = "platform_config_proto",
+    srcs = ["platform_config.proto"],
+    cc_api_version = 2,
+    deps = [
+        "@protobuf//:cc_wkt_protos",
+    ],
+)
+
+serving_proto_library(
     name = "log_collector_config_proto",
     srcs = ["log_collector_config.proto"],
     cc_api_version = 2,

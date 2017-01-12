@@ -57,7 +57,9 @@ struct ServableState {
     // unavailable.
     kUnloading,
 
-    // The manager is done tracking this servable, and is about to delete it.
+    // This servable has reached the end of its journey in the manager. Either
+    // it loaded and ultimately unloaded successfully, or it hit an error at
+    // some point in its lifecycle.
     kEnd,
   };
   ManagerState manager_state;

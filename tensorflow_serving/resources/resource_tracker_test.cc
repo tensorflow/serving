@@ -163,7 +163,7 @@ class ResourceTrackerTest : public ::testing::Test {
     // Disallow calls to Load()/Unload().
     for (auto* loader : {loader_0_.get(), loader_1_.get(), loader_2_.get(),
                          loader_3_.get(), invalid_resources_loader_.get()}) {
-      EXPECT_CALL(*loader, Load(_)).Times(0);
+      EXPECT_CALL(*loader, Load()).Times(0);
       EXPECT_CALL(*loader, Unload()).Times(0);
     }
   }

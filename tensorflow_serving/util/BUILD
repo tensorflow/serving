@@ -50,9 +50,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":class_registration_util",
-        "@org_tensorflow//tensorflow/core",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
         "@protobuf//:cc_wkt_protos",
     ],
 )
@@ -275,6 +273,7 @@ cc_library(
     name = "file_probing_env",
     srcs = ["file_probing_env.cc"],
     hdrs = ["file_probing_env.h"],
+    visibility = ["//visibility:public"],
     deps = [
         "@org_tensorflow//tensorflow/core:lib",
     ],
@@ -285,9 +284,7 @@ cc_library(
     srcs = ["class_registration_util.cc"],
     hdrs = ["class_registration_util.h"],
     deps = [
-        "@org_tensorflow//tensorflow/core",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:lib",
         "@protobuf//:cc_wkt_protos",
     ],
 )
@@ -301,6 +298,25 @@ cc_test(
         ":class_registration",
         ":class_registration_test_proto",
         "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
+
+cc_library(
+    name = "retrier",
+    srcs = ["retrier.cc"],
+    hdrs = ["retrier.h"],
+    deps = [
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "retrier_test",
+    srcs = ["retrier_test.cc"],
+    deps = [
+        ":retrier",
+        "//tensorflow_serving/core/test_util:test_main",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 

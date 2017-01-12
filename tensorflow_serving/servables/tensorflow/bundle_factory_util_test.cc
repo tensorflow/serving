@@ -26,6 +26,7 @@ limitations under the License.
 #include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/public/session_options.h"
@@ -36,11 +37,15 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
+#include "tensorflow_serving/util/test_util/mock_file_probing_env.h"
 
 namespace tensorflow {
 namespace serving {
 namespace {
 
+using ::testing::_;
+using ::testing::Return;
+using ::testing::SetArgPointee;
 using test_util::EqualsProto;
 using Batcher = SharedBatchScheduler<BatchingSessionTask>;
 
@@ -141,6 +146,32 @@ TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithGoodExport) {
 
   ResourceAllocation actual;
   TF_ASSERT_OK(EstimateResourceFromPath(export_dir_, &actual));
+  EXPECT_THAT(actual, EqualsProto(expected));
+}
+
+TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithFileProbingEnv) {
+  const string export_dir = "/foo/bar";
+  const string child = "child";
+  const string child_path = io::JoinPath(export_dir, child);
+  const double file_size = 100;
+
+  // Set up the expectation that the directory contains exactly one child with
+  // the given file size.
+  test_util::MockFileProbingEnv env;
+  EXPECT_CALL(env, FileExists(export_dir)).WillRepeatedly(Return(Status::OK()));
+  EXPECT_CALL(env, GetChildren(export_dir, _))
+      .WillRepeatedly(DoAll(SetArgPointee<1>(std::vector<string>({child})),
+                            Return(Status::OK())));
+  EXPECT_CALL(env, IsDirectory(child_path))
+      .WillRepeatedly(Return(errors::FailedPrecondition("")));
+  EXPECT_CALL(env, GetFileSize(child_path, _))
+      .WillRepeatedly(DoAll(SetArgPointee<1>(file_size), Return(Status::OK())));
+
+  ResourceAllocation actual;
+  TF_ASSERT_OK(EstimateResourceFromPath(export_dir, &env, &actual));
+
+  ResourceAllocation expected =
+      test_util::GetExpectedResourceEstimate(file_size);
   EXPECT_THAT(actual, EqualsProto(expected));
 }
 

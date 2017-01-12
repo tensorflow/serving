@@ -253,9 +253,9 @@ class BasicManager : public Manager {
   friend class test_util::BasicManagerTestAccess;
 
   BasicManager(Env* env, uint32 num_load_threads, uint32 num_unload_threads,
+               uint32 max_num_load_retries, int64 load_retry_interval_micros,
                std::unique_ptr<ResourceTracker> resource_tracker,
-               EventBus<ServableState>* servable_event_bus,
-               const LoaderHarness::Options& harness_options);
+               EventBus<ServableState>* servable_event_bus);
 
   // Starts managing the servable.
   //
@@ -332,6 +332,16 @@ class BasicManager : public Manager {
   // prevents a subsequent unload request from proceeding concurrently.
   Status ApproveUnload(LoaderHarness* harness) EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
+  // Attempts to reserve the resources required to load the servable in
+  // 'harness'. Does not make any state transitions on 'harness' -- merely
+  // reserves the resources in 'resource_tracker_' (upon success) or returns an
+  // error.
+  //
+  // Argument 'mu_lock' is a lock held on 'mu_'. It is released temporarily via
+  // 'num_ongoing_load_unload_executions_cv_'.
+  Status ReserveResources(LoaderHarness* harness, mutex_lock* mu_lock)
+      EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
   // The execution phase of loading/unloading a servable. Delegates to either
   // ExecuteLoad() or ExecuteUnload().
   //
@@ -374,17 +384,11 @@ class BasicManager : public Manager {
   ManagedMap::iterator FindHarnessInMap(const ServableId& id)
       EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
-  // Removes the harness associated with 'id' from 'managed_map_' and deletes
-  // the harness.
-  //
-  // If no matching harness is found, DCHECK-fails and logs an error.
-  void DeleteHarness(const ServableId& id) EXCLUSIVE_LOCKS_REQUIRED(mu_);
-
   // Publishes the state on the event bus, if an event bus was part of the
   // options, if not we ignore it.
   void PublishOnEventBus(const ServableState& state);
 
-  const LoaderHarness::Options harness_options_;
+  LoaderHarness::Options harness_options_;
 
   // The event bus to which to publish servable state change events, or nullptr
   // if no bus has been configured.

@@ -664,12 +664,11 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
 
   Notification load_called;
   Notification load_continue;
-  EXPECT_CALL(*loader, Load(_))
-      .WillOnce(InvokeWithoutArgs([&]() {
-        load_called.Notify();
-        load_continue.WaitForNotification();
-        return Status::OK();
-      }));
+  EXPECT_CALL(*loader, Load()).WillOnce(InvokeWithoutArgs([&]() {
+    load_called.Notify();
+    load_continue.WaitForNotification();
+    return Status::OK();
+  }));
 
   std::unique_ptr<Thread> load_thread(
       Env::Default()->StartThread(ThreadOptions(), "LoadThread",
@@ -751,7 +750,7 @@ TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallySucceeds) {
 
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
   // We succeed on the last load, before the manager gives up.
-  EXPECT_CALL(*loader, Load(_))
+  EXPECT_CALL(*loader, Load())
       .WillOnce(Return(errors::Internal("Error on load.")))
       .WillOnce(Return(Status::OK()));
 
@@ -871,7 +870,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   std::vector<ServableData<std::unique_ptr<Loader>>> first_aspired_versions;
   test_util::MockLoader* first_loader = new NiceMock<test_util::MockLoader>();
   first_aspired_versions.push_back({id, std::unique_ptr<Loader>(first_loader)});
-  EXPECT_CALL(*first_loader, Load(_)).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*first_loader, Load()).WillOnce(Return(Status::OK()));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
   HandlePendingAspiredVersionsRequests();
@@ -914,7 +913,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   second_aspired_versions.push_back(
       {id, std::unique_ptr<Loader>(second_loader)});
   Notification second_load_called;
-  EXPECT_CALL(*second_loader, Load(_)).WillOnce(InvokeWithoutArgs([&]() {
+  EXPECT_CALL(*second_loader, Load()).WillOnce(InvokeWithoutArgs([&]() {
     second_load_called.Notify();
     return Status::OK();
   }));
@@ -953,7 +952,7 @@ TEST_P(AspiredVersionsManagerTest,
   std::vector<ServableData<std::unique_ptr<Loader>>> first_aspired_versions;
   test_util::MockLoader* first_loader = new NiceMock<test_util::MockLoader>();
   first_aspired_versions.push_back({id, std::unique_ptr<Loader>(first_loader)});
-  EXPECT_CALL(*first_loader, Load(_))
+  EXPECT_CALL(*first_loader, Load())
       .WillRepeatedly(Return(Status(error::UNKNOWN, "first load failing")));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
@@ -977,7 +976,7 @@ TEST_P(AspiredVersionsManagerTest,
   second_aspired_versions.push_back(
       {id, std::unique_ptr<Loader>(second_loader)});
   Notification second_load_called;
-  EXPECT_CALL(*second_loader, Load(_)).WillOnce(InvokeWithoutArgs([&]() {
+  EXPECT_CALL(*second_loader, Load()).WillOnce(InvokeWithoutArgs([&]() {
     second_load_called.Notify();
     return Status::OK();
   }));
@@ -1012,7 +1011,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireNewServableThenImmediatelyReaspire) {
 
   std::vector<ServableData<std::unique_ptr<Loader>>> first_aspired_versions;
   test_util::MockLoader* first_loader = new NiceMock<test_util::MockLoader>();
-  EXPECT_CALL(*first_loader, Load(_)).Times(0);
+  EXPECT_CALL(*first_loader, Load()).Times(0);
   first_aspired_versions.push_back({id, std::unique_ptr<Loader>(first_loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
@@ -1035,7 +1034,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireNewServableThenImmediatelyReaspire) {
   second_aspired_versions.push_back(
       {id, std::unique_ptr<Loader>(second_loader)});
   Notification second_load_called;
-  EXPECT_CALL(*second_loader, Load(_)).WillOnce(InvokeWithoutArgs([&]() {
+  EXPECT_CALL(*second_loader, Load()).WillOnce(InvokeWithoutArgs([&]() {
     second_load_called.Notify();
     return Status::OK();
   }));

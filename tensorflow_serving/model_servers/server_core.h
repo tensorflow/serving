@@ -30,6 +30,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_MODEL_SERVERS_SERVER_CORE_H_
 
 #include <limits>
+#include <map>
 #include <memory>
 #include <string>
 #include <utility>
@@ -41,13 +42,16 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
+#include "tensorflow_serving/config/platform_config.pb.h"
 #include "tensorflow_serving/core/aspired_versions_manager.h"
+#include "tensorflow_serving/core/dynamic_source_router.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/util/event_bus.h"
+#include "tensorflow_serving/util/optional.h"
 #include "tensorflow_serving/util/unique_ptr_with_deps.h"
 
 namespace tensorflow {
@@ -59,13 +63,6 @@ class ServerCoreTestAccess;
 
 class ServerCore : public Manager {
  public:
-  using ModelServerSourceAdapter =
-      SourceAdapter<StoragePath, std::unique_ptr<Loader>>;
-
-  using SourceAdapterCreator =
-      std::function<Status(const string& platform_type,
-                           std::unique_ptr<ModelServerSourceAdapter>* adapter)>;
-
   using ServableStateMonitorCreator =
       std::function<Status(EventBus<ServableState>* event_bus,
                            std::unique_ptr<ServableStateMonitor>* monitor)>;
@@ -109,23 +106,8 @@ class ServerCore : public Manager {
     // Time interval between file-system polls, in seconds.
     int32 file_system_poll_wait_seconds = 30;
 
-    // A function for creating ModelServerSourceAdapter based on the
-    // 'platform_type'.
-    // If not specified, a default creator that creates
-    // SessionBundleSourceAdapter or SavedModelBundleSourceAdapter for
-    // TensorFlow will be used, depending on use_saved_model.
-    SourceAdapterCreator source_adapter_creator;
-
-    // Whether to use SavedModelBundle or SessionBundle. If
-    // source_adapter_creator is not specified, SavedModelBundleSourceAdapter
-    // will be created when this option is true and SessionBundleSourceAdapter
-    // will be created when it is false. If source_adapter_creator is specified,
-    // the creator will be used and this option will be ignored.
-    // This option is used by tensorflow serving team to control the rollout of
-    // SavedModelBundle and is not expected to be set by users directly.
-    // It should always be set to false (except for tests) until
-    // SavedModelBundle is supported by the service API implementation.
-    bool use_saved_model = false;
+    // Configuration for the supported platforms.
+    PlatformConfigMap platform_config_map;
 
     // A function for creating ServableStateMonitor. If not specified, a default
     // creator that creates ServableStateMonitor will be used.
@@ -214,31 +196,71 @@ class ServerCore : public Manager {
   Status CreateResourceTracker(
       std::unique_ptr<ResourceTracker>* resource_tracker);
 
-  // Creates a platform-specific Loader Source.
-  Status CreateSourceAdapter(
+  // Creates a platform-specific source adapter.
+  Status CreateAdapter(
       const string& model_platform,
-      std::unique_ptr<ModelServerSourceAdapter>* adapter);
+      std::unique_ptr<StoragePathSourceAdapter>* adapter) const;
 
   // Creates a FileSystemStoragePathSourceConfig from the ModelConfigList of
   // 'config'.
   FileSystemStoragePathSourceConfig CreateStoragePathSourceConfig(
       const ModelServerConfig& config) const;
 
+  // Creates routes for a DynamicSourceRouter from the ModelConfigList of
+  // 'config'.
+  Status CreateStoragePathRoutes(
+      const ModelServerConfig& config,
+      DynamicSourceRouter<StoragePath>::Routes* routes) const;
+
   // Waits for all models from the ModelConfigList in 'config_' to be loaded.
   // Returns an error if any configured model fails to load.
   Status WaitUntilConfiguredModelsAvailable()
       EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
-  // Creates a FileSystemStoragePathSource, connects it to the supplied target,
-  // stores the pointer in 'storage_path_source_' and transfers the ownership to
-  // 'manager_'.
-  Status CreateFileSystemStoragePathSource(
-      const FileSystemStoragePathSourceConfig& source_config,
-      Target<StoragePath>* target) EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+  // Creates a FileSystemStoragePathSource and connects it to the supplied
+  // target.
+  Status CreateStoragePathSource(
+      const FileSystemStoragePathSourceConfig& config,
+      Target<StoragePath>* target,
+      std::unique_ptr<FileSystemStoragePathSource>* source) const
+      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
-  // Updates the 'storage_path_source_' config.
-  Status ReloadFileSystemStoragePathSourceConfig(
+  // The source adapters to deploy, to handle the configured platforms as well
+  // as models whose platform is unknown (errors).
+  //
+  // Importantly, we deploy one source adapter per platform, not one per model,
+  // to handle cross-model optimizations that some platforms/adapters may employ
+  // e.g. cross-model batch scheduling.
+  struct SourceAdapters {
+    // One adapter for each platform.
+    std::map<string, std::unique_ptr<StoragePathSourceAdapter>>
+        platform_adapters;
+
+    // An extra adapter to report errors for models with no configured platform.
+    std::unique_ptr<StoragePathSourceAdapter> error_adapter;
+  };
+
+  // Creates a source router and connects it to the supplied adapter targets.
+  Status CreateRouter(
+      const DynamicSourceRouter<StoragePath>::Routes& routes,
+      SourceAdapters* targets,
+      std::unique_ptr<DynamicSourceRouter<StoragePath>>* router) const;
+
+  // Creates a set of source adapters based on options_.platform_config_map.
+  Status CreateAdapters(SourceAdapters* adapters) const;
+
+  // Connects the source adapters to the manager and waits it to load all
+  // configured models.
+  Status ConnectAdaptersToManagerAndAwaitModelLoads(SourceAdapters* adapters)
+      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+
+  // Updates the config of 'storage_path_source_and_router_->source'.
+  Status ReloadStoragePathSourceConfig(
       const FileSystemStoragePathSourceConfig& source_config)
+      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+
+  // Updates the configured routes of 'storage_path_source_and_router_->router'.
+  Status ReloadRoutes(const DynamicSourceRouter<StoragePath>::Routes& routes)
       EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // Adds/reloads models through ModelConfigList of 'config_'.
@@ -269,6 +291,11 @@ class ServerCore : public Manager {
   // The options passed to the ctor, minus the AspiredVersionPolicy.
   Options options_;
 
+  // All of the supported platforms (i.e. the ones given in
+  // 'options_.platform_config_map'), and a router output port number for each.
+  // Used to deterministically associate a platform with a source adapter.
+  std::map<string, int> platform_to_router_port_;
+
   std::shared_ptr<EventBus<ServableState>> servable_event_bus_;
   std::shared_ptr<ServableStateMonitor> servable_state_monitor_;
   UniquePtrWithDeps<AspiredVersionsManager> manager_;
@@ -276,15 +303,16 @@ class ServerCore : public Manager {
   // The most recent config supplied to ReloadConfig().
   ModelServerConfig config_ GUARDED_BY(config_mu_);
 
-  // Model platform of the source adapter created for ModelConfigList.
-  // Empty if the source adapter is not yet created.
-  string model_platform_ GUARDED_BY(config_mu_);
+  struct StoragePathSourceAndRouter {
+    FileSystemStoragePathSource* source;
+    DynamicSourceRouter<StoragePath>* router;
+  };
 
-  // If the configuration uses a file-system source, this is populated with a
-  // pointer to the source (to enable reconfiguration later). The source is
-  // owned by 'manager_'.
-  FileSystemStoragePathSource* storage_path_source_ GUARDED_BY(config_mu_) =
-      nullptr;
+  // If the configuration uses a file-system source, this is populated with
+  // pointers to the source and router (to enable reconfiguration later). Both
+  // are owned by 'manager_'.
+  optional<StoragePathSourceAndRouter> storage_path_source_and_router_
+      GUARDED_BY(config_mu_);
 
   // A mutex for reconfiguration, used by ReloadConfig().
   mutex config_mu_;

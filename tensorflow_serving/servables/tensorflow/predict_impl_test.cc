@@ -21,6 +21,10 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow_serving/core/eager_load_policy.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
+#include "tensorflow_serving/model_servers/platform_config_util.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.pb.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
@@ -71,7 +75,8 @@ class PredictImplTest : public ::testing::TestWithParam<bool> {
     // unspecified so the default servable_state_monitor_creator will be used.
     ServerCore::Options options;
     options.model_server_config = config;
-    options.use_saved_model = use_saved_model;
+    options.platform_config_map = CreateTensorFlowPlatformConfigMap(
+        SessionBundleConfig(), use_saved_model);
     options.aspired_version_policy =
         std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
     // Reduce the number of initial load threads to be num_load_threads to avoid

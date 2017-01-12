@@ -85,7 +85,7 @@ class SimpleLoader : public Loader {
 
   Status EstimateResources(ResourceAllocation* estimate) const override;
 
-  Status Load(const ResourceAllocation& available_resources) override;
+  Status Load() override;
 
   void Unload() override;
 
@@ -197,8 +197,7 @@ Status SimpleLoader<ServableType>::EstimateResources(
 }
 
 template <typename ServableType>
-Status SimpleLoader<ServableType>::Load(
-    const ResourceAllocation& available_resources) {
+Status SimpleLoader<ServableType>::Load() {
   const Status status = creator_(&servable_);
   return status;
 }

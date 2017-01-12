@@ -31,6 +31,22 @@ cc_library(
 )
 
 cc_library(
+    name = "platform_config_util",
+    srcs = ["platform_config_util.cc"],
+    hdrs = ["platform_config_util.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "//tensorflow_serving/config:platform_config_proto",
+        "//tensorflow_serving/model_servers:model_platform_types",
+        "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_proto",
+    ],
+)
+
+cc_library(
     name = "server_core",
     srcs = ["server_core.cc"],
     hdrs = ["server_core.h"],
@@ -41,7 +57,9 @@ cc_library(
         ":model_platform_types",
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:model_server_config_proto",
+        "//tensorflow_serving/config:platform_config_proto",
         "//tensorflow_serving/core:aspired_versions_manager",
+        "//tensorflow_serving/core:dynamic_source_router",
         "//tensorflow_serving/core:load_servables_fast",
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/core:source",
@@ -70,8 +88,11 @@ cc_test(
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/core:servable_state",
         "//tensorflow_serving/core/test_util:availability_test_util",
+        "//tensorflow_serving/core/test_util:fake_loader_source_adapter_proto",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/model_servers/test_util:server_core_test_util",
+        "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter",
+        "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter_proto",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/core:test",
     ],
@@ -97,6 +118,7 @@ cc_binary(
     visibility = ["//tensorflow_serving:internal"],
     deps = [
         ":model_platform_types",
+        ":platform_config_util",
         ":server_core",
         "@protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",

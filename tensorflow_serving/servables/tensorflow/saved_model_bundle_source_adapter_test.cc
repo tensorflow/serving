@@ -67,7 +67,7 @@ class SavedModelBundleSourceAdapterTest : public ::testing::Test {
     TF_ASSERT_OK(loader->EstimateResources(&second_resource_estimate));
     EXPECT_THAT(second_resource_estimate, EqualsProto(first_resource_estimate));
 
-    TF_ASSERT_OK(loader->Load(ResourceAllocation()));
+    TF_ASSERT_OK(loader->Load());
 
     const SavedModelBundle* bundle = loader->servable().get<SavedModelBundle>();
     test_util::TestSingleRequest(bundle->session.get());

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+option cc_enable_arenas = true;
+
+import "google/protobuf/any.proto";
+
+// Configuration for a servable platform e.g. tensorflow or other ML systems.
+message PlatformConfig {
+  // The config proto for a SourceAdapter in the StoragePathSourceAdapter
+  // registry.
+  google.protobuf.Any source_adapter_config = 1;
+};
+
+message PlatformConfigMap {
+  // A map from a platform name to a platform config. The platform name is used
+  // in ModelConfig.model_platform.
+  map<string, PlatformConfig> platform_configs = 1;
+};
