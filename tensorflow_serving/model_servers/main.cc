@@ -225,7 +225,6 @@ int main(int argc, char** argv) {
       FileSystemStoragePathSourceConfig_VersionPolicy_Name(
           FileSystemStoragePathSourceConfig::LATEST_VERSION);
   std::vector<tensorflow::Flag> flag_list = {
-      tensorflow::Flag("config_file", &config_file, "config file"),
       tensorflow::Flag("port", &port, "port to listen on"),
       tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
       tensorflow::Flag("model_config_file", &model_config_file,
