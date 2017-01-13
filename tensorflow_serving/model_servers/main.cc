@@ -225,6 +225,7 @@ int main(int argc, char** argv) {
       FileSystemStoragePathSourceConfig_VersionPolicy_Name(
           FileSystemStoragePathSourceConfig::LATEST_VERSION);
   std::vector<tensorflow::Flag> flag_list = {
+      tensorflow::Flag("config_file", &config_file, "config file"),
       tensorflow::Flag("port", &port, "port to listen on"),
       tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
       tensorflow::Flag("model_config_file", &model_config_file,
@@ -245,8 +246,8 @@ int main(int argc, char** argv) {
                        &file_system_poll_wait_seconds,
                        "interval in seconds between each poll of the file "
                        "system for new model version"),
-      tensorflow::Flag("model_base_path", &model_base_path,
-                       "path to export (required)"),
+      // tensorflow::Flag("model_base_path", &model_base_path,
+      //                 "path to export (required)"),
       tensorflow::Flag("use_saved_model", &use_saved_model,
                        "If true, use SavedModel in the server; otherwise, use "
                        "SessionBundle. It is used by tensorflow serving team "
