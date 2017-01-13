@@ -737,6 +737,27 @@ cc_library(
         ":logging_proto",
         "//tensorflow_serving/config:logging_config_proto",
         "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf//:protobuf",
+    ],
+)
+
+cc_test(
+    name = "request_logger_test",
+    size = "small",
+    srcs = ["request_logger_test.cc"],
+    deps = [
+        ":log_collector",
+        ":logging_proto",
+        ":request_logger",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/apis:predict_proto",
+        "//tensorflow_serving/config:logging_config_proto",
+        "//tensorflow_serving/core/test_util:mock_log_collector",
+        "//tensorflow_serving/core/test_util:mock_request_logger",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf//:protobuf",
     ],
 )
 
@@ -744,11 +765,37 @@ cc_library(
     name = "server_request_logger",
     srcs = ["server_request_logger.cc"],
     hdrs = ["server_request_logger.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":request_logger",
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:logging_config_proto",
         "//tensorflow_serving/core:logging_proto",
+        "//tensorflow_serving/util:fast_read_dynamic_ptr",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf//:protobuf",
+    ],
+)
+
+cc_test(
+    name = "server_request_logger_test",
+    size = "small",
+    srcs = ["server_request_logger_test.cc"],
+    deps = [
+        ":log_collector",
+        ":logging_proto",
+        ":request_logger",
+        ":server_request_logger",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/apis:predict_proto",
+        "//tensorflow_serving/config:logging_config_proto",
+        "//tensorflow_serving/core/test_util:fake_log_collector",
+        "//tensorflow_serving/core/test_util:mock_log_collector",
+        "//tensorflow_serving/core/test_util:mock_request_logger",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/core:lib",
         "@protobuf//:protobuf",
     ],

@@ -147,6 +147,11 @@ Status ServerCore::Create(Options options,
     };
   }
 
+  if (options.server_request_logger == nullptr) {
+    TF_RETURN_IF_ERROR(
+        ServerRequestLogger::Create(nullptr, &options.server_request_logger));
+  }
+
   // We need to move the aspired_version_policy first because we will move the
   // server_core_config (which contains aspired_version_policy) below.
   std::unique_ptr<AspiredVersionPolicy> aspired_version_policy =
@@ -285,6 +290,19 @@ Status ServerCore::AddModelsViaCustomModelConfig() {
       config_.custom_model_config(), servable_event_bus_.get(), &manager_);
 }
 
+Status ServerCore::MaybeUpdateServerRequestLogger() {
+  std::map<string, LoggingConfig> logging_config_map;
+  for (const auto& model_config : config_.model_config_list().config()) {
+    if (model_config.has_logging_config()) {
+      logging_config_map.insert(
+          {model_config.name(), model_config.logging_config()});
+    }
+  }
+  TF_RETURN_IF_ERROR(
+      options_.server_request_logger->Update(logging_config_map));
+  return Status::OK();
+}
+
 Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   mutex_lock l(config_mu_);
 
@@ -320,6 +338,7 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   switch (config_.config_case()) {
     case ModelServerConfig::kModelConfigList: {
       TF_RETURN_IF_ERROR(AddModelsViaModelConfigList());
+      TF_RETURN_IF_ERROR(MaybeUpdateServerRequestLogger());
       break;
     }
     case ModelServerConfig::kCustomModelConfig: {
