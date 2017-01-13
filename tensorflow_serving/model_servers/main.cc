@@ -234,6 +234,8 @@ int main(int argc, char** argv) {
                        "--model_base_path and --model_version_policy "
                        "are ignored.)"),
       tensorflow::Flag("model_name", &model_name, "name of model"),
+      tensorflow::Flag("model_base_path", &model_base_path,
+                       "path to export (required)"),
       tensorflow::Flag(
          "model_version_policy", &model_version_policy,
          "The version policy which determines the number of model versions to "
@@ -245,8 +247,6 @@ int main(int argc, char** argv) {
                        &file_system_poll_wait_seconds,
                        "interval in seconds between each poll of the file "
                        "system for new model version"),
-      // tensorflow::Flag("model_base_path", &model_base_path,
-      //                 "path to export (required)"),
       tensorflow::Flag("use_saved_model", &use_saved_model,
                        "If true, use SavedModel in the server; otherwise, use "
                        "SessionBundle. It is used by tensorflow serving team "
