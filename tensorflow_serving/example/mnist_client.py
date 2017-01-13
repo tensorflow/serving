@@ -46,7 +46,6 @@ tf.app.flags.DEFINE_integer('concurrency', 1,
 tf.app.flags.DEFINE_integer('num_tests', 100, 'Number of test images')
 tf.app.flags.DEFINE_string('server', '', 'PredictionService host:port')
 tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory. ')
-tf.app.flags.DEFINE_string('model_name', 'mnist', 'Model name.')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -122,7 +121,7 @@ def _create_rpc_callback(label, result_counter):
   return _callback
 
 
-def do_inference(hostport, work_dir, concurrency, num_tests, model_name):
+def do_inference(hostport, work_dir, concurrency, num_tests):
   """Tests PredictionService with concurrent requests.
 
   Args:
@@ -144,7 +143,7 @@ def do_inference(hostport, work_dir, concurrency, num_tests, model_name):
   result_counter = _ResultCounter(num_tests, concurrency)
   for _ in range(num_tests):
     request = predict_pb2.PredictRequest()
-    request.model_spec.name = model_name
+    request.model_spec.name = 'mnist'
     image, label = test_data_set.next_batch(1)
     request.inputs['images'].CopyFrom(
         tf.contrib.util.make_tensor_proto(image[0], shape=[1, image[0].size]))
@@ -156,17 +155,14 @@ def do_inference(hostport, work_dir, concurrency, num_tests, model_name):
 
 
 def main(_):
-  model_name = "mnist"
   if FLAGS.num_tests > 10000:
     print('num_tests should not be greater than 10k')
     return
   if not FLAGS.server:
     print('please specify server host:port')
     return
-  if FLAGS.model_name:
-    model_name = FLAGS.model_name
   error_rate = do_inference(FLAGS.server, FLAGS.work_dir,
-                            FLAGS.concurrency, FLAGS.num_tests, model_name)
+                            FLAGS.concurrency, FLAGS.num_tests)
   print('\nInference error rate: %s%%' % (error_rate * 100))
 
 
