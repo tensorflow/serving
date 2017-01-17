@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
   bool use_saved_model = true;
   // Tensorflow session parallelism of zero means that both inter and intra op
   // thread pools will be auto configured.
-  int64 tensorflow_session_parallelism = 0;
+  tensorflow::int64 tensorflow_session_parallelism = 0;
   string platform_config_file = "";
   tensorflow::string model_version_policy =
       FileSystemStoragePathSourceConfig_VersionPolicy_Name(
