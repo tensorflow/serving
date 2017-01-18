@@ -513,7 +513,7 @@ cc_test(
     srcs = ["aspired_versions_manager_test.cc"],
     deps = [
         ":aspired_versions_manager",
-        ":eager_load_policy",
+        ":availability_preserving_policy",
         ":servable_state_monitor",
         "//tensorflow_serving/core/test_util:availability_test_util",
         "//tensorflow_serving/core/test_util:fake_loader",
@@ -614,6 +614,7 @@ cc_test(
 
 cc_library(
     name = "aspired_version_policy",
+    srcs = ["aspired_version_policy.cc"],
     hdrs = ["aspired_version_policy.h"],
     visibility = [
         "//visibility:public",
@@ -623,6 +624,18 @@ cc_library(
         ":servable_id",
         "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "aspired_version_policy_test",
+    srcs = ["aspired_version_policy_test.cc"],
+    deps = [
+        ":aspired_version_policy",
+        ":loader_harness",
+        ":servable_id",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/util:optional",
     ],
 )
 
@@ -669,6 +682,54 @@ cc_test(
     srcs = ["eager_unload_policy_test.cc"],
     deps = [
         ":eager_unload_policy",
+        ":servable_id",
+        "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
+
+cc_library(
+    name = "availability_preserving_policy",
+    srcs = ["availability_preserving_policy.cc"],
+    hdrs = ["availability_preserving_policy.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":aspired_version_policy",
+        ":loader_harness",
+        "//tensorflow_serving/util:optional",
+    ],
+)
+
+cc_test(
+    name = "availability_preserving_policy_test",
+    srcs = ["availability_preserving_policy_test.cc"],
+    deps = [
+        ":availability_preserving_policy",
+        ":servable_id",
+        "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
+
+cc_library(
+    name = "resource_preserving_policy",
+    srcs = ["resource_preserving_policy.cc"],
+    hdrs = ["resource_preserving_policy.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":aspired_version_policy",
+        ":loader_harness",
+        "//tensorflow_serving/util:optional",
+    ],
+)
+
+cc_test(
+    name = "resource_preserving_policy_test",
+    srcs = ["resource_preserving_policy_test.cc"],
+    deps = [
+        ":resource_preserving_policy",
         ":servable_id",
         "//tensorflow_serving/core/test_util:test_main",
     ],
