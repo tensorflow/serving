@@ -220,7 +220,7 @@ int main(int argc, char** argv) {
   tensorflow::string model_base_path;
   bool use_saved_model = true;
   string platform_config_file = "";
-  string model_config_file = "";
+  string model_config_file;
   tensorflow::string model_version_policy =
       FileSystemStoragePathSourceConfig_VersionPolicy_Name(
           FileSystemStoragePathSourceConfig::LATEST_VERSION);
@@ -260,7 +260,7 @@ int main(int argc, char** argv) {
                        "ignored.)")};
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
-  if (!parse_result) {
+  if (!parse_result || (model_base_path.empty() && model_config_file.empty())) {
     std::cout << usage;
     return -1;
   }
