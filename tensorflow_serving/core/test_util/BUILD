@@ -145,3 +145,40 @@ cc_library(
         "//tensorflow_serving/core:caching_manager",
     ],
 )
+
+cc_library(
+    name = "mock_log_collector",
+    testonly = 1,
+    hdrs = ["mock_log_collector.h"],
+    deps = [
+        "//external:gtest",
+        "//tensorflow_serving/core:log_collector",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf//:protobuf",
+    ],
+)
+
+cc_library(
+    name = "fake_log_collector",
+    testonly = 1,
+    hdrs = ["fake_log_collector.h"],
+    deps = [
+        "//external:gtest",
+        "//tensorflow_serving/core:log_collector",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf//:protobuf",
+    ],
+)
+
+cc_library(
+    name = "mock_request_logger",
+    testonly = 1,
+    hdrs = ["mock_request_logger.h"],
+    deps = [
+        "//external:gtest",
+        "//tensorflow_serving/core:logging_proto",
+        "//tensorflow_serving/core:request_logger",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf//:protobuf",
+    ],
+)

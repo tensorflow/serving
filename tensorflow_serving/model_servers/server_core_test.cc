@@ -15,12 +15,17 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/server_core.h"
 
+#include "google/protobuf/any.pb.h"
+#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow_serving/apis/model.pb.h"
+#include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.pb.h"
+#include "tensorflow_serving/core/test_util/fake_log_collector.h"
+#include "tensorflow_serving/core/test_util/mock_request_logger.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/test_util/server_core_test_util.h"
 #include "tensorflow_serving/model_servers/test_util/storage_path_error_injecting_source_adapter.h"
@@ -31,6 +36,9 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
+using ::testing::_;
+using ::testing::Invoke;
+using ::testing::NiceMock;
 using test_util::ServerCoreTest;
 
 TEST_P(ServerCoreTest, CreateWaitsTillModelsAvailable) {
@@ -341,6 +349,71 @@ TEST_P(ServerCoreTest, IllegalToChangeModelPlatform) {
   EXPECT_FALSE(reconfigure_status.ok());
   EXPECT_THAT(reconfigure_status.ToString(),
               ::testing::HasSubstr("Illegal to change a model's platform"));
+}
+
+TEST_P(ServerCoreTest, RequestLoggingOff) {
+  // Create a ServerCore with deprecated config.
+  std::unique_ptr<ServerCore> server_core;
+  const ModelServerConfig config =
+      GetTestModelServerConfigForTensorflowPlatform();
+  TF_ASSERT_OK(CreateServerCore(config, &server_core));
+
+  TF_ASSERT_OK(
+      server_core->Log(PredictRequest(), PredictResponse(), LogMetadata()));
+}
+
+TEST_P(ServerCoreTest, RequestLoggingOn) {
+  std::unordered_map<string, FakeLogCollector*> log_collector_map;
+  ServerCore::Options options = GetDefaultOptions();
+  TF_CHECK_OK(ServerRequestLogger::Create(
+      [&](const LoggingConfig& logging_config,
+          std::unique_ptr<RequestLogger>* const request_logger) {
+        const string& filename_prefix =
+            logging_config.log_collector_config().filename_prefix();
+        log_collector_map[filename_prefix] = new FakeLogCollector();
+        auto mock_request_logger = std::unique_ptr<NiceMock<MockRequestLogger>>(
+            new NiceMock<MockRequestLogger>(
+                logging_config, log_collector_map[filename_prefix]));
+        ON_CALL(*mock_request_logger, CreateLogMessage(_, _, _, _))
+            .WillByDefault(Invoke([&](const google::protobuf::Message& actual_request,
+                                      const google::protobuf::Message& actual_response,
+                                      const LogMetadata& actual_log_metadata,
+                                      std::unique_ptr<google::protobuf::Message>* log) {
+              *log = std::unique_ptr<google::protobuf::Any>(
+                  new google::protobuf::Any());
+              return Status::OK();
+            }));
+        *request_logger = std::move(mock_request_logger);
+        return Status::OK();
+      },
+      &options.server_request_logger));
+
+  // We now setup a model-server-config with a model which switches on request
+  // logging.
+  LogCollectorConfig log_collector_config;
+  log_collector_config.set_type("");
+  log_collector_config.set_filename_prefix(test_util::kTestModelName);
+  LoggingConfig logging_config;
+  *logging_config.mutable_log_collector_config() = log_collector_config;
+  logging_config.mutable_sampling_config()->set_sampling_rate(1.0);
+
+  ModelServerConfig model_server_config =
+      GetTestModelServerConfigForTensorflowPlatform();
+  *model_server_config.mutable_model_config_list()
+       ->mutable_config(0)
+       ->mutable_logging_config() = logging_config;
+  options.model_server_config = model_server_config;
+
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(ServerCore::Create(std::move(options), &server_core));
+
+  LogMetadata log_metadata0;
+  auto* const model_spec0 = log_metadata0.mutable_model_spec();
+  model_spec0->set_name(test_util::kTestModelName);
+  TF_ASSERT_OK(
+      server_core->Log(PredictRequest(), PredictResponse(), log_metadata0));
+  ASSERT_EQ(1, log_collector_map.size());
+  EXPECT_EQ(1, log_collector_map[test_util::kTestModelName]->collect_count());
 }
 
 INSTANTIATE_TEST_CASE_P(

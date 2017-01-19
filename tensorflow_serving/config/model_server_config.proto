@@ -4,6 +4,7 @@ package tensorflow.serving;
 option cc_enable_arenas = true;
 
 import "google/protobuf/any.proto";
+import "tensorflow_serving/config/logging_config.proto";
 import "tensorflow_serving/sources/storage_path/file_system_storage_path_source.proto";
 
 // The type of model.
@@ -35,6 +36,9 @@ message ModelConfig {
   // be served at the same time.
   // The default option is to serve only the latest version of the model.
   FileSystemStoragePathSourceConfig.VersionPolicy version_policy = 5;
+
+  // Configures logging requests and responses, to the model.
+  LoggingConfig logging_config = 6;
 }
 
 // Static list of models to be loaded for serving.

@@ -77,6 +77,15 @@ class AspiredVersionPolicy {
   // that the servable stream is up to date.
   virtual optional<ServableAction> GetNextAction(
       const std::vector<AspiredServableStateSnapshot>& all_versions) const = 0;
+
+ protected:
+  // Returns the aspired ServableId with the highest version that matches
+  // kNew state, if any exists.
+  static optional<ServableId> GetHighestAspiredNewServableId(
+      const std::vector<AspiredServableStateSnapshot>& all_versions);
+
+ private:
+  friend class AspiredVersionPolicyTest;
 };
 
 inline bool operator==(const AspiredVersionPolicy::ServableAction& lhs,
