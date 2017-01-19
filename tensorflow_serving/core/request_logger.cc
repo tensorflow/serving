@@ -34,9 +34,13 @@ Status RequestLogger::Log(const google::protobuf::Message& request,
                           const LogMetadata& log_metadata) {
   const double sampling_rate =
       logging_config_.sampling_config().sampling_rate();
+  LogMetadata log_metadata_with_config = log_metadata;
+  *log_metadata_with_config.mutable_sampling_config() =
+      logging_config_.sampling_config();
   if (uniform_sampler_.Sample(sampling_rate)) {
     std::unique_ptr<google::protobuf::Message> log;
-    TF_RETURN_IF_ERROR(CreateLogMessage(request, response, log_metadata, &log));
+    TF_RETURN_IF_ERROR(
+        CreateLogMessage(request, response, log_metadata_with_config, &log));
     TF_RETURN_IF_ERROR(log_collector_->CollectMessage(*log));
   }
   return Status::OK();

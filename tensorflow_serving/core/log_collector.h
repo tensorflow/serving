@@ -57,6 +57,9 @@ class LogCollector {
   // Flushes buffered data so that the data can survive an application crash
   // (but not an OS crash).
   virtual Status Flush() = 0;
+
+ protected:
+  LogCollector() = default;
 };
 
 namespace register_log_collector {
