@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_CORE_EAGER_LOAD_POLICY_H_
-#define TENSORFLOW_SERVING_CORE_EAGER_LOAD_POLICY_H_
+#ifndef TENSORFLOW_SERVING_CORE_RESOURCE_PRESERVING_POLICY_H_
+#define TENSORFLOW_SERVING_CORE_RESOURCE_PRESERVING_POLICY_H_
 
 #include <vector>
 
@@ -25,15 +25,21 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// Deprecated. Use AvailabilityPreservePolicy instead.
+// ServablePolicy that eagerly unloads any no-longer-aspired versions of a
+// servable stream and only after done unloading, loads newly aspired versions
+// in the order of descending version number.
 //
-// AspiredVersionPolicy that loads any aspired versions of a servable before
-// unloading any no-longer-aspired versions.
+// This policy minimizes resource consumption with the trade-off of temporary
+// servable unavailability while all old versions unload followed by the new
+// versions loading.
 //
-// This policy provides servable availability with the trade-off of temporary
-// increased resource consumption while the new version loads followed by the
-// old versions unloading.
-class EagerLoadPolicy final : public AspiredVersionPolicy {
+// Servables with a single version consuming the majority of their host's
+// resources must use this policy to prevent deadlock. Other typical use-cases
+// will be for multi-servable environments where clients can tolerate brief
+// interruptions to a single servable's availability on a replica.
+//
+// NB: This policy does not in any way solve cross-replica availability.
+class ResourcePreservingPolicy final : public AspiredVersionPolicy {
  public:
   optional<ServableAction> GetNextAction(
       const std::vector<AspiredServableStateSnapshot>& all_versions)
@@ -43,4 +49,4 @@ class EagerLoadPolicy final : public AspiredVersionPolicy {
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_CORE_EAGER_LOAD_POLICY_H_
+#endif  // TENSORFLOW_SERVING_CORE_RESOURCE_PRESERVING_POLICY_H_

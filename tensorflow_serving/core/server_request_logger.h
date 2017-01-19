@@ -27,6 +27,7 @@ limitations under the License.
 #include "tensorflow_serving/config/logging_config.pb.h"
 #include "tensorflow_serving/core/logging.pb.h"
 #include "tensorflow_serving/core/request_logger.h"
+#include "tensorflow_serving/util/fast_read_dynamic_ptr.h"
 
 namespace tensorflow {
 namespace serving {
@@ -37,16 +38,25 @@ namespace serving {
 // sampling config.
 class ServerRequestLogger {
  public:
-  // Creates the ServerRequestLogger based on the map of logging-configs keyed
-  // on model-names, and a custom request-logger creator method.
+  // Creates the ServerRequestLogger based on a custom request_logger_creator
+  // method.
+  //
+  // You can create an empty ServerRequestLogger with an empty
+  // request_logger_creator.
   static Status Create(
-      const std::map<string, LoggingConfig>& logging_config_map,
-      const std::function<Status(const LogCollectorConfig& log_collector_config,
+      const std::function<Status(const LoggingConfig& logging_config,
                                  std::unique_ptr<RequestLogger>*)>&
           request_logger_creator,
       std::unique_ptr<ServerRequestLogger>* server_request_logger);
 
   ~ServerRequestLogger() = default;
+
+  // Updates the logger with the new 'logging_config_map'.
+  //
+  // If the ServerRequestLogger was created using an empty
+  // request_logger_creator, this will return an error if a non-empty
+  // logging_config_map is passed in.
+  Status Update(const std::map<string, LoggingConfig>& logging_config_map);
 
   // Similar to RequestLogger::Log().
   Status Log(const google::protobuf::Message& request, const google::protobuf::Message& response,
@@ -54,12 +64,18 @@ class ServerRequestLogger {
 
  private:
   explicit ServerRequestLogger(
-      std::unordered_map<string, std::unique_ptr<RequestLogger>>
-          request_logger_map);
+      const std::function<Status(const LoggingConfig& logging_config,
+                                 std::unique_ptr<RequestLogger>*)>&
+          request_logger_creator);
 
-  // A map from model-name to its corresponding request-logger.
-  std::unordered_map<string, std::unique_ptr<RequestLogger>>
-      request_logger_map_;
+  // A map from model_name to its corresponding RequestLogger.
+  using RequestLoggerMap =
+      std::unordered_map<string, std::unique_ptr<RequestLogger>>;
+  FastReadDynamicPtr<RequestLoggerMap> request_logger_map_;
+
+  std::function<Status(const LoggingConfig& logging_config,
+                       std::unique_ptr<RequestLogger>*)>
+      request_logger_creator_;
 };
 
 }  // namespace serving

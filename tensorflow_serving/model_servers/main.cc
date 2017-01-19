@@ -61,6 +61,7 @@ limitations under the License.
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/util/command_line_flags.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 #include "tensorflow_serving/apis/prediction_service.pb.h"
@@ -202,6 +203,9 @@ int main(int argc, char** argv) {
   tensorflow::int32 file_system_poll_wait_seconds = 1;
   tensorflow::string model_base_path;
   bool use_saved_model = true;
+  // Tensorflow session parallelism of zero means that both inter and intra op
+  // thread pools will be auto configured.
+  tensorflow::int64 tensorflow_session_parallelism = 0;
   string platform_config_file = "";
   tensorflow::string model_version_policy =
       FileSystemStoragePathSourceConfig_VersionPolicy_Name(
@@ -228,6 +232,12 @@ int main(int argc, char** argv) {
                        "SessionBundle. It is used by tensorflow serving team "
                        "to control the rollout of SavedModel and is not "
                        "expected to be set by users directly."),
+      tensorflow::Flag("tensorflow_session_parallelism",
+                       &tensorflow_session_parallelism,
+                       "Number of threads to use for running a "
+                       "Tensorflow session. Auto-configured by default."
+                       "Note that this option is ignored if "
+                       "--platform_config_file is non-empty."),
       tensorflow::Flag("platform_config_file", &platform_config_file,
                        "If non-empty, read an ascii PlatformConfigMap protobuf "
                        "from the supplied file name, and use that platform "
@@ -268,6 +278,11 @@ int main(int argc, char** argv) {
       batching_parameters->mutable_thread_pool_name()->set_value(
           "model_server_batch_threads");
     }
+
+    session_bundle_config.mutable_session_config()
+        ->set_intra_op_parallelism_threads(tensorflow_session_parallelism);
+    session_bundle_config.mutable_session_config()
+        ->set_inter_op_parallelism_threads(tensorflow_session_parallelism);
     options.platform_config_map = CreateTensorFlowPlatformConfigMap(
         session_bundle_config, use_saved_model);
   } else {

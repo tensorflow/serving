@@ -1,5 +1,6 @@
 name: "TensorFlow Serving"
 g3doc: {
-  sitemap_file: "_includes/nav.md"
+  include: "/learning/serving/g3doc/METADATA"
+  sitemap_file: "/learning/serving/g3doc/users/sitemap.md"
 }
 

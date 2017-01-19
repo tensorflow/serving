@@ -62,6 +62,7 @@ cc_library(
         "//tensorflow_serving/core:dynamic_source_router",
         "//tensorflow_serving/core:load_servables_fast",
         "//tensorflow_serving/core:servable_state_monitor",
+        "//tensorflow_serving/core:server_request_logger",
         "//tensorflow_serving/core:source",
         "//tensorflow_serving/core:source_adapter",
         "//tensorflow_serving/core:storage_path",
@@ -85,16 +86,20 @@ cc_test(
     deps = [
         ":server_core",
         "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/core:servable_state",
         "//tensorflow_serving/core/test_util:availability_test_util",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter_proto",
+        "//tensorflow_serving/core/test_util:fake_log_collector",
+        "//tensorflow_serving/core/test_util:mock_request_logger",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/model_servers/test_util:server_core_test_util",
         "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter",
         "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter_proto",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/core:test",
+        "@protobuf//:cc_wkt_protos",
     ],
 )
 
