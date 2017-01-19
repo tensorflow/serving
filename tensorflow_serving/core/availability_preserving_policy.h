@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_CORE_EAGER_LOAD_POLICY_H_
-#define TENSORFLOW_SERVING_CORE_EAGER_LOAD_POLICY_H_
+#ifndef TENSORFLOW_SERVING_CORE_AVAILABILITY_PRESERVING_POLICY_H_
+#define TENSORFLOW_SERVING_CORE_AVAILABILITY_PRESERVING_POLICY_H_
 
 #include <vector>
 
@@ -25,15 +25,19 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// Deprecated. Use AvailabilityPreservePolicy instead.
+// AspiredVersionPolicy that provides servable availability with the trade-off
+// of temporary increased resource consumption while newly-aspired versions load
+// followed by newly-un-aspired versions unloading. At the same time, it tries
+// to minimize the resource usage caused by loading more versions than needed to
+// maintain availability.
 //
-// AspiredVersionPolicy that loads any aspired versions of a servable before
-// unloading any no-longer-aspired versions.
-//
-// This policy provides servable availability with the trade-off of temporary
-// increased resource consumption while the new version loads followed by the
-// old versions unloading.
-class EagerLoadPolicy final : public AspiredVersionPolicy {
+// Here is a detailed description of how this policy works:
+// First, if there are any unaspired loaded versions, we unload the smallest
+// such version, *unless* that is the only loaded version (to avoid compromising
+// availability).
+// Second, if there are no non-aspired versions we are permitted to unload, we
+// load the aspired new version with the highest version number.
+class AvailabilityPreservingPolicy final : public AspiredVersionPolicy {
  public:
   optional<ServableAction> GetNextAction(
       const std::vector<AspiredServableStateSnapshot>& all_versions)
@@ -43,4 +47,4 @@ class EagerLoadPolicy final : public AspiredVersionPolicy {
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_CORE_EAGER_LOAD_POLICY_H_
+#endif  // TENSORFLOW_SERVING_CORE_AVAILABILITY_PRESERVING_POLICY_H_

@@ -217,6 +217,9 @@ Status BatchingSession::Run(
   if (batch_scheduler_it == batch_schedulers_.end()) {
     // We have a Run() call that doesn't match one of our batching signatures.
     // Run it in-line.
+    LOG(WARNING) << "Request doesn't match any declared signature. Bypassing "
+                    "batcher. Request signature is: "
+                 << TensorSignatureDebugString(signature);
     return wrapped_->Run(inputs, output_tensor_names, target_node_names,
                          outputs);
   }

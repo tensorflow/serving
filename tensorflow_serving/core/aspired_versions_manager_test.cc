@@ -25,7 +25,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
-#include "tensorflow_serving/core/eager_load_policy.h"
+#include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 #include "tensorflow_serving/core/test_util/fake_loader.h"
@@ -80,7 +80,8 @@ class AspiredVersionsManagerTest
     // The state manager thread won't be run automatically.
     manager_options.manage_state_interval_micros = -1;
     manager_options.env = Env::Default();
-    manager_options.aspired_version_policy.reset(new EagerLoadPolicy());
+    manager_options.aspired_version_policy.reset(
+        new AvailabilityPreservingPolicy());
     manager_options.servable_event_bus = servable_event_bus_.get();
     max_num_load_retries_ = 1;
     manager_options.max_num_load_retries = max_num_load_retries_;
@@ -197,7 +198,11 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleLatest) {
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(aspired_versions));
   HandlePendingAspiredVersionsRequests();
-  InvokePolicyAndExecuteAction();
+  // Unload version 0 and load the new aspired version. Version 1 may or may not
+  // be unloaded (depending on whether load/unload thread pools are used).
+  for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
+    InvokePolicyAndExecuteAction();
+  }
   WaitUntilServableManagerStateIsOneOf(
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
@@ -434,7 +439,11 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {
   ASSERT_FALSE(not_ready_status.ok()) << not_ready_status;
   EXPECT_EQ(error::NOT_FOUND, not_ready_status.code());
 
-  InvokePolicyAndExecuteAction();
+  // Unload version 0 and load the new aspired version. Version 1 may or may not
+  // be unloaded (depending on whether load/unload thread pools are used).
+  for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
+    InvokePolicyAndExecuteAction();
+  }
   WaitUntilServableManagerStateIsOneOf(
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
@@ -638,7 +647,11 @@ TEST_P(AspiredVersionsManagerTest, EventBusErrorOnLoad) {
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(start_state));
 
-  InvokePolicyAndExecuteAction();
+  // Unload version 0 and load the new aspired version. Version 1 may or may not
+  // be unloaded (depending on whether load/unload thread pools are used).
+  for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
+    InvokePolicyAndExecuteAction();
+  }
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
 
@@ -670,9 +683,15 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
     return Status::OK();
   }));
 
-  std::unique_ptr<Thread> load_thread(
-      Env::Default()->StartThread(ThreadOptions(), "LoadThread",
-                                  [&]() { InvokePolicyAndExecuteAction(); }));
+  std::unique_ptr<Thread> load_unload_thread(
+      Env::Default()->StartThread(ThreadOptions(), "LoadUnloadThread", [&]() {
+        // Unload version 0 and load the new aspired version. Version 1 may or
+        // may not be unloaded (depending on whether load/unload thread pools
+        // are used).
+        for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
+          InvokePolicyAndExecuteAction();
+        }
+      }));
 
   load_called.WaitForNotification();
 
@@ -695,17 +714,17 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
 
   Notification unload_called;
   Notification unload_continue;
-  EXPECT_CALL(*loader, Unload())
-      .WillOnce(Invoke([&]() {
-        unload_called.Notify();
-        unload_continue.WaitForNotification();
-      }));
+  EXPECT_CALL(*loader, Unload()).WillOnce(Invoke([&]() {
+    unload_called.Notify();
+    unload_continue.WaitForNotification();
+  }));
 
   std::unique_ptr<Thread> unload_thread(
       Env::Default()->StartThread(ThreadOptions(), "UnloadThread", [&]() {
-        for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
-          InvokePolicyAndExecuteAction();
-        }
+        // Call InvokePolicyAndExecuteAction() twice to unload version 1 and the
+        // new version, in case version 1 has not been unloaded previously.
+        InvokePolicyAndExecuteAction();
+        InvokePolicyAndExecuteAction();
       }));
 
   unload_called.WaitForNotification();
@@ -731,7 +750,7 @@ TEST_P(AspiredVersionsManagerTest, NoEventBus) {
   // The state manager thread won't be run automatically.
   options.manage_state_interval_micros = -1;
   options.env = Env::Default();
-  options.aspired_version_policy.reset(new EagerLoadPolicy());
+  options.aspired_version_policy.reset(new AvailabilityPreservingPolicy());
   std::unique_ptr<AspiredVersionsManager> aspired_versions_manager;
   TF_ASSERT_OK(AspiredVersionsManager::Create(std::move(options),
                                               &aspired_versions_manager));
@@ -761,7 +780,11 @@ TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallySucceeds) {
                                          std::move(aspired_versions));
   HandlePendingAspiredVersionsRequests();
 
-  InvokePolicyAndExecuteAction();
+  // Unload version 0 and load the new aspired version. Version 1 may or may not
+  // be unloaded (depending on whether load/unload thread pools are used).
+  for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
+    InvokePolicyAndExecuteAction();
+  }
   WaitUntilServableManagerStateIsOneOf(
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
@@ -784,7 +807,11 @@ TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallyFails) {
                                          std::move(aspired_versions));
   HandlePendingAspiredVersionsRequests();
 
-  InvokePolicyAndExecuteAction();
+  // Unload version 0 and load the new aspired version. Version 1 may or may not
+  // be unloaded (depending on whether load/unload thread pools are used).
+  for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
+    InvokePolicyAndExecuteAction();
+  }
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
 
@@ -794,10 +821,11 @@ TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallyFails) {
               EqualsServableState(error_state));
 }
 
-// Tests the interaction between AspiredVersionsManager and the EagerLoadPolicy.
-// Specifically, we want to make sure that the manager will not try to unload a
-// serving version that is no longer aspired if the new aspired version was not
-// able to start serving.
+// Tests the interaction between AspiredVersionsManager and the
+// AvailabilityPreservingPolicy.
+// Specifically, we want to make sure that the manager will not try to unload
+// all serving versions that are no longer aspired if the new aspired version
+// was not able to start serving.
 TEST_P(AspiredVersionsManagerTest, AspireErrorDontUnload) {
   const std::vector<ServableId> expected_before = {{kServableName, 0},
                                                    {kServableName, 1},
@@ -819,16 +847,24 @@ TEST_P(AspiredVersionsManagerTest, AspireErrorDontUnload) {
                                            std::move(aspired_versions));
     HandlePendingAspiredVersionsRequests();
 
+    // Will unload version 0.
+    InvokePolicyAndExecuteAction();
+    WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
+                                         {kServableName, 0},
+                                         {ServableState::ManagerState::kEnd});
+
     // Will try to load version 7 and fail.
     InvokePolicyAndExecuteAction();
     WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                          {ServableState::ManagerState::kEnd});
   }
 
-  // The same servables as before as we can't unload the current servables after
-  // the failure to load the new one.
+  // For kServableName, version 0 has been unloaded. For kServableName2, both
+  // versions should still be loaded.
+  const std::vector<ServableId> expected_after_first_load = {
+      {kServableName, 1}, {kServableName2, 0}, {kServableName2, 1}};
   EXPECT_THAT(manager_->ListAvailableServableIds(),
-              UnorderedElementsAreArray(expected_before));
+              UnorderedElementsAreArray(expected_after_first_load));
 
   // Now successfully loading a new version should allow the older versions to
   // be unloaded.
@@ -846,12 +882,8 @@ TEST_P(AspiredVersionsManagerTest, AspireErrorDontUnload) {
     WaitUntilServableManagerStateIsOneOf(
         servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
-    // Will unload version 0 and 1.
+    // Will unload version 1.
     InvokePolicyAndExecuteAction();
-    InvokePolicyAndExecuteAction();
-    WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
-                                         {kServableName, 0},
-                                         {ServableState::ManagerState::kEnd});
     WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
                                          {kServableName, 1},
                                          {ServableState::ManagerState::kEnd});
@@ -874,6 +906,9 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
   HandlePendingAspiredVersionsRequests();
+
+  // Version 0 is unloaded and the new aspired version is loaded.
+  InvokePolicyAndExecuteAction();
   InvokePolicyAndExecuteAction();
 
   // Pin 'first_loader' in the manager by holding a handle to its servable.
@@ -904,8 +939,11 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   // The following thread will block trying to unload the first loader, while we
   // hold the handle.
   std::unique_ptr<Thread> unload_thread(
-      Env::Default()->StartThread(ThreadOptions(), "UnloadThread",
-                                  [&]() { InvokePolicyAndExecuteAction(); }));
+      Env::Default()->StartThread(ThreadOptions(), "UnloadThread", [&]() {
+        // Unload version 1 and the newly un-aspired version.
+        InvokePolicyAndExecuteAction();
+        InvokePolicyAndExecuteAction();
+      }));
 
   // Re-aspire the servable with a fresh loader.
   std::vector<ServableData<std::unique_ptr<Loader>>> second_aspired_versions;
@@ -957,7 +995,11 @@ TEST_P(AspiredVersionsManagerTest,
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
   HandlePendingAspiredVersionsRequests();
-  InvokePolicyAndExecuteAction();
+  // Unload version 0 and load the new aspired version. Version 1 may or may not
+  // be unloaded (depending on whether load/unload thread pools are used).
+  for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
+    InvokePolicyAndExecuteAction();
+  }
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
 
@@ -1048,7 +1090,11 @@ TEST_P(AspiredVersionsManagerTest, UnaspireNewServableThenImmediatelyReaspire) {
   // second loader.
   FlushServables();
   HandlePendingAspiredVersionsRequests();
-  InvokePolicyAndExecuteAction();
+  // Unload version 0 and load the new aspired version. Version 1 may or may not
+  // be unloaded (depending on whether load/unload thread pools are used).
+  for (int i = 0; i < kNumVersionsPerServable + 1; ++i) {
+    InvokePolicyAndExecuteAction();
+  }
   second_load_called.WaitForNotification();
 }
 

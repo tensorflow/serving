@@ -41,11 +41,13 @@ limitations under the License.
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/model.pb.h"
+#include "tensorflow_serving/config/logging_config.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/config/platform_config.pb.h"
 #include "tensorflow_serving/core/aspired_versions_manager.h"
 #include "tensorflow_serving/core/dynamic_source_router.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
+#include "tensorflow_serving/core/server_request_logger.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/core/storage_path.h"
@@ -116,6 +118,9 @@ class ServerCore : public Manager {
     // A function for instantiating and connecting custom sources and source
     // adapters to the manager.
     CustomModelConfigLoader custom_model_config_loader;
+
+    // Logger used for logging requests hitting the server.
+    std::unique_ptr<ServerRequestLogger> server_request_logger;
   };
 
   virtual ~ServerCore() = default;
@@ -172,8 +177,16 @@ class ServerCore : public Manager {
     return Status::OK();
   }
 
+  // Writes the log for the particular request, response and metadata, if we
+  // decide to sample it and if request-logging was configured for the
+  // particular model.
+  Status Log(const google::protobuf::Message& request, const google::protobuf::Message& response,
+             const LogMetadata& log_metadata) {
+    return options_.server_request_logger->Log(request, response, log_metadata);
+  }
+
  protected:
-  explicit ServerCore(Options options);
+  ServerCore(Options options);
 
  private:
   friend class test_util::ServerCoreTestAccess;
@@ -268,6 +281,9 @@ class ServerCore : public Manager {
 
   // Adds/reloads models through custom model config of 'config_'.
   Status AddModelsViaCustomModelConfig() EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+
+  // Updates the ServerRequestLogger based on the ModelConfigList.
+  Status MaybeUpdateServerRequestLogger() EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // ************************************************************************
   // Request Processing.
