@@ -907,13 +907,19 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
                                          std::move(first_aspired_versions));
   HandlePendingAspiredVersionsRequests();
 
-  // Version 0 is unloaded and the new aspired version is loaded.
+  // Wait for verion 0 to be unloaded and the new aspired version to be loaded.
+  // If we don't wait, the first_loader_handle below may be obtained before
+  // the loading or unloading finishes, which may block the loading or
+  // unloading.
   InvokePolicyAndExecuteAction();
   InvokePolicyAndExecuteAction();
-
-  // Pin 'first_loader' in the manager by holding a handle to its servable.
   WaitUntilServableManagerStateIsOneOf(
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
+                                       {kServableName, 0},
+                                       {ServableState::ManagerState::kEnd});
+
+  // Pin 'first_loader' in the manager by holding a handle to its servable.
   int servable = 42;
   EXPECT_CALL(*first_loader, servable()).WillOnce(InvokeWithoutArgs([&]() {
     return AnyPtr{&servable};
@@ -936,6 +942,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(empty_aspired_versions));
   HandlePendingAspiredVersionsRequests();
+
   // The following thread will block trying to unload the first loader, while we
   // hold the handle.
   std::unique_ptr<Thread> unload_thread(
