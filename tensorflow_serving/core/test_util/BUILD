@@ -150,6 +150,7 @@ cc_library(
     name = "mock_log_collector",
     testonly = 1,
     hdrs = ["mock_log_collector.h"],
+    visibility = ["//visibility:public"],
     deps = [
         "//external:gtest",
         "//tensorflow_serving/core:log_collector",

@@ -23,7 +23,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/core/aspired_versions_manager_builder.h"
-#include "tensorflow_serving/core/eager_load_policy.h"
+#include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/source_adapter.h"
@@ -84,7 +84,8 @@ Status CreateSingleTFModelManagerFromBasePath(
       CreateStoragePathSource(base_path, "default", &path_source));
 
   AspiredVersionsManagerBuilder::Options manager_options;
-  manager_options.aspired_version_policy.reset(new EagerLoadPolicy());
+  manager_options.aspired_version_policy.reset(
+      new AvailabilityPreservingPolicy);
   std::unique_ptr<AspiredVersionsManagerBuilder> builder;
   TF_CHECK_OK(AspiredVersionsManagerBuilder::Create(std::move(manager_options),
                                                     &builder));

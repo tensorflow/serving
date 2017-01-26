@@ -57,7 +57,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "//tensorflow_serving/core:eager_load_policy",
+        "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/core:servable_id",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter",
         "//tensorflow_serving/model_servers:model_platform_types",

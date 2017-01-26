@@ -77,7 +77,7 @@ class ServableStateMonitor {
 
   explicit ServableStateMonitor(EventBus<ServableState>* bus,
                                 const Options& options = Options());
-  virtual ~ServableStateMonitor() = default;
+  virtual ~ServableStateMonitor();
 
   // Returns the current state of one servable, or nullopt if that servable is
   // not being tracked.

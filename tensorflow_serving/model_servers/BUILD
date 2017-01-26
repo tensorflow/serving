@@ -110,6 +110,7 @@ SUPPORTED_TENSORFLOW_OPS = [
 
 TENSORFLOW_DEPS = [
     "@org_tensorflow//tensorflow/core:tensorflow",
+    "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
     "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
     "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter",
     "//tensorflow_serving/servables/tensorflow:predict_impl",
@@ -130,7 +131,7 @@ cc_binary(
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
         "//tensorflow_serving/apis:prediction_service_proto",
         "//tensorflow_serving/config:model_server_config_proto",
-        "//tensorflow_serving/core:eager_load_policy",
+        "//tensorflow_serving/core:availability_preserving_policy",
         "@grpc//:grpc++",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
 )
