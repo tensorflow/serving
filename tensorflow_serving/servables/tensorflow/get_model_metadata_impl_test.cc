@@ -194,9 +194,9 @@ TEST_P(GetModelMetadataImplTest, ReturnsSignaturesForValidModel) {
             received_signature_def_map.signature_def().size());
   if (GetParam()) {
     EXPECT_THAT(
-        expected_signature_def_map.signature_def().at(kRegressMethodName),
+        expected_signature_def_map.signature_def().at("regress_x_to_y"),
         test_util::EqualsProto(
-            received_signature_def_map.signature_def().at(kRegressMethodName)));
+            received_signature_def_map.signature_def().at("regress_x_to_y")));
   } else {
     EXPECT_THAT(expected_signature_def_map.signature_def().at("regress"),
                 test_util::EqualsProto(
