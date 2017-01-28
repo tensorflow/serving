@@ -45,6 +45,7 @@ def main(_):
     data = f.read()
     request = predict_pb2.PredictRequest()
     request.model_spec.name = 'inception'
+    request.model_spec.signature_name = 'predict_images'
     request.inputs['images'].CopyFrom(
         tf.contrib.util.make_tensor_proto(data, shape=[1]))
     result = stub.Predict(request, 10.0)  # 10 secs timeout
