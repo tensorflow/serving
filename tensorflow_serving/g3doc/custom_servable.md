@@ -1,11 +1,11 @@
 # Creating a new kind of servable
 
 This document explains how to extend TensorFlow Serving with a new kind of
-servable. The most prominent servable type is `SessionBundle`, but it can be
+servable. The most prominent servable type is `SavedModelBundle`, but it can be
 useful to define other kinds of servables, to serve data that goes along with
 your model. Examples include: a vocabulary lookup table, feature transformation
-logic. Any C++ class can be a servable, e.g. `int`, `std::map<string, int>`
-or any class defined in your binary -- let us call it `YourServable`.
+logic. Any C++ class can be a servable, e.g. `int`, `std::map<string, int>` or
+any class defined in your binary -- let us call it `YourServable`.
 
 ## Defining a `Loader` and `SourceAdapter` for `YourServable`
 

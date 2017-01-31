@@ -365,7 +365,7 @@ cc_test(
     srcs = ["aspired_versions_manager_builder_test.cc"],
     deps = [
         ":aspired_versions_manager_builder",
-        ":eager_load_policy",
+        ":availability_preserving_policy",
         ":servable_data",
         ":servable_handle",
         ":servable_state_monitor",
@@ -534,7 +534,7 @@ cc_test(
     deps = [
         ":aspired_version_policy",
         ":aspired_versions_manager",
-        ":eager_load_policy",
+        ":availability_preserving_policy",
         ":loader",
         ":manager",
         ":servable_data",

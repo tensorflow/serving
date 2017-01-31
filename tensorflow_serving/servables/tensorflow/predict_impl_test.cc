@@ -19,7 +19,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
-#include "tensorflow_serving/core/eager_load_policy.h"
+#include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.pb.h"
@@ -78,7 +78,7 @@ class PredictImplTest : public ::testing::TestWithParam<bool> {
     options.platform_config_map = CreateTensorFlowPlatformConfigMap(
         SessionBundleConfig(), use_saved_model);
     options.aspired_version_policy =
-        std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
+        std::unique_ptr<AspiredVersionPolicy>(new AvailabilityPreservingPolicy);
     // Reduce the number of initial load threads to be num_load_threads to avoid
     // timing out in tests.
     options.num_initial_load_threads = options.num_load_threads;
