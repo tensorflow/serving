@@ -19,17 +19,16 @@ limitations under the License.
 #include <memory>
 #include <string>
 
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/core/aspired_versions_manager_builder.h"
-#include "tensorflow_serving/core/eager_load_policy.h"
+#include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/core/target.h"
-#include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
@@ -60,15 +59,15 @@ Status CreateStoragePathSource(
   return Status::OK();
 }
 
-// Creates a SessionBundle Source by adapting the underlying
+// Creates a SavedModelBundle Source by adapting the underlying
 // FileSystemStoragePathSource. These two are connected in the
 // 'CreateSingleTFModelManagerFromBasePath' method, with the
-// FileSystemStoragePathSource as the Source and the SessionBundleSource as the
-// Target.
-Status CreateSessionBundleSource(
-    std::unique_ptr<SessionBundleSourceAdapter>* source) {
+// FileSystemStoragePathSource as the Source and the SavedModelBundleSource as
+// the Target.
+Status CreateSavedModelBundleSource(
+    std::unique_ptr<SavedModelBundleSourceAdapter>* source) {
   SessionBundleSourceAdapterConfig config;
-  TF_RETURN_IF_ERROR(SessionBundleSourceAdapter::Create(config, source));
+  TF_RETURN_IF_ERROR(SavedModelBundleSourceAdapter::Create(config, source));
 
   return Status::OK();
 }
@@ -77,14 +76,15 @@ Status CreateSessionBundleSource(
 
 Status CreateSingleTFModelManagerFromBasePath(
     const string& base_path, std::unique_ptr<Manager>* const manager) {
-  std::unique_ptr<SessionBundleSourceAdapter> bundle_source;
-  TF_RETURN_IF_ERROR(CreateSessionBundleSource(&bundle_source));
+  std::unique_ptr<SavedModelBundleSourceAdapter> bundle_source;
+  TF_RETURN_IF_ERROR(CreateSavedModelBundleSource(&bundle_source));
   std::unique_ptr<Source<StoragePath>> path_source;
   TF_RETURN_IF_ERROR(
       CreateStoragePathSource(base_path, "default", &path_source));
 
   AspiredVersionsManagerBuilder::Options manager_options;
-  manager_options.aspired_version_policy.reset(new EagerLoadPolicy());
+  manager_options.aspired_version_policy.reset(
+      new AvailabilityPreservingPolicy);
   std::unique_ptr<AspiredVersionsManagerBuilder> builder;
   TF_CHECK_OK(AspiredVersionsManagerBuilder::Create(std::move(manager_options),
                                                     &builder));

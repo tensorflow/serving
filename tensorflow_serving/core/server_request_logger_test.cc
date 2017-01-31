@@ -40,6 +40,7 @@ namespace serving {
 namespace {
 
 using ::testing::_;
+using ::testing::HasSubstr;
 using ::testing::Invoke;
 using ::testing::NiceMock;
 
@@ -111,6 +112,17 @@ TEST_F(ServerRequestLoggerTest, AbsentModel) {
                                            log_metadata));
   ASSERT_EQ(1, log_collector_map_.size());
   EXPECT_EQ(0, log_collector_map_["/file/model0"]->collect_count());
+}
+
+TEST_F(ServerRequestLoggerTest, DuplicateFilenamePrefix) {
+  std::map<string, LoggingConfig> model_logging_configs;
+  model_logging_configs.insert(CreateLoggingConfigForModel("model0"));
+  const std::pair<string, LoggingConfig> model_and_logging_config =
+      CreateLoggingConfigForModel("model0");
+  model_logging_configs.insert({"model1", model_and_logging_config.second});
+  const auto status = server_request_logger_->Update(model_logging_configs);
+  EXPECT_THAT(status.error_message(),
+              HasSubstr("Duplicate LogCollectorConfig::filename_prefix()"));
 }
 
 TEST_F(ServerRequestLoggerTest, MultipleModels) {

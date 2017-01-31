@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/core/server_request_logger.h"
 
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/gtl/map_util.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/core/logging.pb.h"
@@ -46,10 +47,19 @@ Status ServerRequestLogger::Update(
   if (!logging_config_map.empty() && !request_logger_creator_) {
     return errors::InvalidArgument("No request-logger-creator provided.");
   }
+  std::set<string> filename_prefixes;
   std::unique_ptr<RequestLoggerMap> request_logger_map(new RequestLoggerMap());
   for (const auto& model_and_logging_config : logging_config_map) {
     auto& request_logger =
         (*request_logger_map)[model_and_logging_config.first];
+    const string& filename_prefix =
+        model_and_logging_config.second.log_collector_config()
+            .filename_prefix();
+    if (!gtl::InsertIfNotPresent(&filename_prefixes, filename_prefix)) {
+      // Logs for each model is supposed to be separated from each other.
+      return errors::InvalidArgument(
+          "Duplicate LogCollectorConfig::filename_prefix(): ", filename_prefix);
+    }
     TF_RETURN_IF_ERROR(request_logger_creator_(model_and_logging_config.second,
                                                &request_logger));
   }

@@ -80,15 +80,15 @@ requests.
 ## Using your Source to load TensorFlow sessions
 
 You will likely want to use your new source module in conjunction with
-`SessionBundleSourceAdapter`
-(`servables/tensorflow/session_bundle_source_adapter*`), which will interpret
-each path your source emits as a TensorFlow export, and convert each path to a
-loader for a TensorFlow `SessionBundle` servable. You will likely plug the
-`SessionBundle` adapter into a `AspiredVersionsManager`, which takes care of
-actually loading and serving the servables. A good illustration of chaining
-these three kinds of modules together to get a working server library is found
-in `servables/tensorflow/simple_servers.cc`. Here is a walk-through of the main
-code flow (with bad error handling; real code should be more careful):
+`SavedModelBundleSourceAdapter`
+(`servables/tensorflow/saved_model_bundle_source_adapter*`), which will
+interpret each path your source emits as a TensorFlow export, and convert each
+path to a loader for a TensorFlow `SavedModelBundle` servable. You will likely
+plug the `SavedModelBundle` adapter into a `AspiredVersionsManager`, which takes
+care of actually loading and serving the servables. A good illustration of
+chaining these three kinds of modules together to get a working server library
+is found in `servables/tensorflow/simple_servers.cc`. Here is a walk-through of
+the main code flow (with bad error handling; real code should be more careful):
 
 First, create a manager:
 
@@ -96,17 +96,17 @@ First, create a manager:
 std::unique_ptr<AspiredVersionsManager> manager = ...;
 ~~~
 
-Then, create a `SessionBundle` source adapter and plug it into the manager:
+Then, create a `SavedModelBundle` source adapter and plug it into the manager:
 
 ~~~c++
-std::unique_ptr<SessionBundleSourceAdapter> bundle_adapter;
+std::unique_ptr<SavedModelBundleSourceAdapter> bundle_adapter;
 SessionBundleSourceAdapterConfig config;
 // ... populate 'config' with TensorFlow options.
-TF_CHECK_OK(SessionBundleSourceAdapter::Create(config, &bundle_adapter));
+TF_CHECK_OK(SavedModelBundleSourceAdapter::Create(config, &bundle_adapter));
 ConnectSourceToTarget(bundle_adapter.get(), manager.get());
 ~~~
 
-Lastly, create your path source and plug it into the `SessionBundle` adapter:
+Lastly, create your path source and plug it into the `SavedModelBundle` adapter:
 
 ~~~c++
 auto your_source = new YourPathSource(...);

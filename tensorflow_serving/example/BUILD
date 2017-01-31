@@ -27,6 +27,8 @@ py_library(
     srcs = ["mnist_input_data.py"],
 )
 
+# TODO(b/32628014): remove mnist_export after we no longer support
+# SessionBundle.
 py_binary(
     name = "mnist_export",
     srcs = [
@@ -36,6 +38,24 @@ py_binary(
         ":mnist_input_data",
         "@org_tensorflow//tensorflow:tensorflow_py",
         "@org_tensorflow//tensorflow/contrib/session_bundle:exporter",
+    ],
+)
+
+py_binary(
+    name = "mnist_saved_model",
+    srcs = [
+        "mnist_saved_model.py",
+    ],
+    deps = [
+        ":mnist_input_data",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/python/saved_model:builder",
+        "@org_tensorflow//tensorflow/python/saved_model:constants",
+        "@org_tensorflow//tensorflow/python/saved_model:loader",
+        "@org_tensorflow//tensorflow/python/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/python/saved_model:signature_def_utils",
+        "@org_tensorflow//tensorflow/python/saved_model:tag_constants",
+        "@org_tensorflow//tensorflow/python/saved_model:utils",
     ],
 )
 
@@ -52,6 +72,8 @@ py_binary(
     ],
 )
 
+# TODO(b/32628014): remove inception_export after we no longer support
+# SessionBundle.
 py_binary(
     name = "inception_export",
     srcs = [
@@ -61,6 +83,24 @@ py_binary(
         "@inception_model//inception",
         "@org_tensorflow//tensorflow:tensorflow_py",
         "@org_tensorflow//tensorflow/contrib/session_bundle:exporter",
+    ],
+)
+
+py_binary(
+    name = "inception_saved_model",
+    srcs = [
+        "inception_saved_model.py",
+    ],
+    deps = [
+        "@inception_model//inception",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/python/saved_model:builder",
+        "@org_tensorflow//tensorflow/python/saved_model:constants",
+        "@org_tensorflow//tensorflow/python/saved_model:loader",
+        "@org_tensorflow//tensorflow/python/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/python/saved_model:signature_def_utils",
+        "@org_tensorflow//tensorflow/python/saved_model:tag_constants",
+        "@org_tensorflow//tensorflow/python/saved_model:utils",
     ],
 )
 
