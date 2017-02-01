@@ -16,15 +16,15 @@ limitations under the License.
 // Bootstrapping and configuration utilities for creating simple servers of
 // TensorFlow models. Intended for basic instantiation with default configs.
 //
-// Note: All methods expect TensorFlow exports conforming to the export format
-// specified at tensorflow_serving/servables/tensorflow/README.md.
+// Note: All methods expect TensorFlow SavedModel conforming to the format
+// specified at third_party/tensorflow/python/saved_model/README.md.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SIMPLE_SERVERS_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SIMPLE_SERVERS_H_
 
 #include <memory>
 #include <string>
 
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
+#include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/manager.h"
@@ -43,7 +43,7 @@ namespace simple_servers {
 // SessionOptions.
 //
 // The servables loaded and served from this manager are of type
-// tensorflow::serving::SessionBundle.
+// tensorflow::SavedModelBundle.
 //
 // When new versions arrive the Manager will unload the previous version before
 // loading the new version. This is preferable from a resource utilization

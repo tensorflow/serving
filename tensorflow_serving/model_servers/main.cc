@@ -21,8 +21,9 @@ limitations under the License.
 //
 // ModelServer prioritizes easy invocation over flexibility,
 // and thus serves a statically configured set of models. New versions of these
-// models will be loaded and managed over time using the EagerLoadPolicy at:
-//     tensorflow_serving/core/eager_load_policy.h.
+// models will be loaded and managed over time using the
+// AvailabilityPreservingPolicy at:
+//     tensorflow_serving/core/availability_preserving_policy.h.
 // by AspiredVersionsManager at:
 //     tensorflow_serving/core/aspired_versions_manager.h
 //
@@ -66,20 +67,26 @@ limitations under the License.
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 #include "tensorflow_serving/apis/prediction_service.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
-#include "tensorflow_serving/core/eager_load_policy.h"
+#include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
+
+namespace grpc {
+class ServerCompletionQueue;
+}  // namespace grpc
 
 using tensorflow::serving::AspiredVersionsManager;
 using tensorflow::serving::AspiredVersionPolicy;
+using tensorflow::serving::AvailabilityPreservingPolicy;
 using tensorflow::serving::BatchingParameters;
-using tensorflow::serving::EagerLoadPolicy;
 using tensorflow::serving::EventBus;
 using tensorflow::serving::FileSystemStoragePathSourceConfig;
 using tensorflow::serving::FileSystemStoragePathSourceConfig_VersionPolicy;
 using tensorflow::serving::FileSystemStoragePathSourceConfig_VersionPolicy_Name;
+using tensorflow::serving::GetModelMetadataImpl;
 using tensorflow::serving::Loader;
 using tensorflow::serving::ModelServerConfig;
 using tensorflow::serving::ServableState;
@@ -96,6 +103,8 @@ using grpc::ServerAsyncResponseWriter;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::ServerCompletionQueue;
+using tensorflow::serving::GetModelMetadataRequest;
+using tensorflow::serving::GetModelMetadataResponse;
 using tensorflow::serving::PredictRequest;
 using tensorflow::serving::PredictResponse;
 using tensorflow::serving::PredictionService;
@@ -147,7 +156,8 @@ class PredictionServiceImpl final : public PredictionService::Service {
   explicit PredictionServiceImpl(std::unique_ptr<ServerCore> core,
                                  bool use_saved_model)
       : core_(std::move(core)),
-        predictor_(new TensorflowPredictor(use_saved_model)) {}
+        predictor_(new TensorflowPredictor(use_saved_model)),
+        use_saved_model_(use_saved_model) {}
 
   grpc::Status Predict(ServerContext* context, const PredictRequest* request,
                        PredictResponse* response) override {
@@ -159,9 +169,27 @@ class PredictionServiceImpl final : public PredictionService::Service {
     return status;
   }
 
+  grpc::Status GetModelMetadata(ServerContext* context,
+                                const GetModelMetadataRequest* request,
+                                GetModelMetadataResponse* response) override {
+    if (!use_saved_model_) {
+      return ToGRPCStatus(tensorflow::errors::InvalidArgument(
+          "GetModelMetadata API is only available when use_saved_model is "
+          "set to true"));
+    }
+    const grpc::Status status =
+        ToGRPCStatus(GetModelMetadataImpl::GetModelMetadata(
+            core_.get(), *request, response));
+    if (!status.ok()) {
+      VLOG(1) << "GetModelMetadata failed: " << status.error_message();
+    }
+    return status;
+  }
+
  private:
   std::unique_ptr<ServerCore> core_;
   std::unique_ptr<TensorflowPredictor> predictor_;
+  bool use_saved_model_;
 };
 
 void RunServer(int port, std::unique_ptr<ServerCore> core,
@@ -292,7 +320,7 @@ int main(int argc, char** argv) {
   options.custom_model_config_loader = &LoadCustomModelConfig;
 
   options.aspired_version_policy =
-      std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
+      std::unique_ptr<AspiredVersionPolicy>(new AvailabilityPreservingPolicy);
   options.file_system_poll_wait_seconds = file_system_poll_wait_seconds;
 
   std::unique_ptr<ServerCore> core;

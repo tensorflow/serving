@@ -15,7 +15,7 @@ tutorial.
 The code for this tutorial consists of two parts:
 
   * A Python file
-  [mnist_export.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_export.py)
+  [mnist_saved_model.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_saved_model.py)
   that trains and exports multiple versions of the model.
 
   * A C++ file
@@ -44,18 +44,18 @@ $>rm -rf /tmp/mnist_model
 Train (with 100 iterations) and export the first version of model:
 
 ~~~shell
-$>bazel build //tensorflow_serving/example:mnist_export
-$>bazel-bin/tensorflow_serving/example/mnist_export --training_iteration=100 --export_version=1 /tmp/mnist_model
+$>bazel build //tensorflow_serving/example:mnist_saved_model
+$>bazel-bin/tensorflow_serving/example/mnist_saved_model --training_iteration=100 --model_version=1 /tmp/mnist_model
 ~~~
 
 Train (with 2000 iterations) and export the second version of model:
 
 ~~~shell
-$>bazel-bin/tensorflow_serving/example/mnist_export --training_iteration=2000 --export_version=2 /tmp/mnist_model
+$>bazel-bin/tensorflow_serving/example/mnist_saved_model --training_iteration=2000 --model_version=2 /tmp/mnist_model
 ~~~
 
-As you can see in `mnist_export.py`, the training and exporting is done the same
-way it is in the [TensorFlow Serving basic tutorial](serving_basic.md). For
+As you can see in `mnist_saved_model.py`, the training and exporting is done the
+same way it is in the [TensorFlow Serving basic tutorial](serving_basic.md). For
 demonstration purposes, you're intentionally dialing down the training
 iterations for the first run and exporting it as v1, while training it normally
 for the second run and exporting it as v2 to the same parent directory -- as we
@@ -65,7 +65,7 @@ intensive training. You should see training data for each training run in your
 
 ~~~shell
 $>ls /tmp/mnist_model
-00000001  00000002
+1  2
 ~~~
 
 ## ServerCore
@@ -91,13 +91,17 @@ int main(int argc, char** argv) {
 
   ServerCore::Options options;
   options.model_server_config = model_server_config;
-  options.source_adaptor_creator = [source_adapter_config](
-      const string& platform_type,
-      std::unique_ptr<ModelServerSourceAdapter>* adapter) {
-    return CreateSourceAdapter(source_adapter_config, platform_type, adapter);
-  };
   options.servable_state_monitor_creator = &CreateServableStateMonitor;
   options.custom_model_config_loader = &LoadCustomModelConfig;
+
+  ::google::protobuf::Any source_adapter_config;
+  SavedModelBundleSourceAdapterConfig
+      saved_model_bundle_source_adapter_config;
+  source_adapter_config.PackFrom(saved_model_bundle_source_adapter_config);
+  (*(*options.platform_config_map.mutable_platform_configs())
+      [kTensorFlowModelPlatform].mutable_source_adapter_config()) =
+      source_adapter_config;
+
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(options, &core));
   RunServer(port, std::move(core));
@@ -113,31 +117,35 @@ commonly used options:
   either through `model_config_list`, which declares a static list of models, or
   through `dynamic_model_config`, which declares a dynamic list of models that
   may get updated at runtime.
-  * `SourceAdapterCreator` that creates the `SourceAdapter`, which adapts
-  `StoragePath` (the path where a model version is discovered) to model
-  `Loader` (loads the model version from storage path and provides state
-  transition interfaces to the `Manager`). If not specified, a
-  `SessionBundleSourceAdapter` will be created, which we will explain later.
+  * `PlatformConfigMap` that maps from the name of the platform (such as
+  `tensorflow`) to the `PlatformConfig`, which is used to create the
+  `SourceAdapter`. `SourceAdapter` adapts `StoragePath` (the path where a model
+  version is discovered) to model `Loader` (loads the model version from
+  storage path and provides state transition interfaces to the `Manager`). If
+  `PlatformConfig` contains `SavedModelBundleSourceAdapterConfig`, a
+  `SavedModelBundleSourceAdapter` will be created, which we will explain later.
 
-`SessionBundle` is a key component of TensorFlow Serving. It represents a
+`SavedModelBundle` is a key component of TensorFlow Serving. It represents a
 TensorFlow model loaded from a given path and provides the same `Session::Run`
-interface as TensorFlow to run inference.
-`SessionBundleSourceAdapter` adapts storage path to `Loader<SessionBundle>`
-so that model lifetime can be managed by `Manager`.
+interface as TensorFlow to run inference. `SavedModelBundleSourceAdapter` adapts
+storage path to `Loader<SavedModelBundle>` so that model lifetime can be managed
+by `Manager`. Please note that `SavedModelBundle` is the successor of deprecated
+`SessionBundle`. Users are encouraged to use `SavedModelBundle` as the support
+for `SessionBundle` will soon be removed.
 
 With all these, `ServerCore` internally does the following:
 
   * Instantiates a `FileSystemStoragePathSource` that monitors model export
   paths declared in `model_config_list`.
-  * Instantiates a `SourceAdapter` using the `SourceAdapterCreator` with the
-  model type declared in `model_config_list` and connects the
+  * Instantiates a `SourceAdapter` using the `PlatformConfigMap` with the
+  model platform declared in `model_config_list` and connects the
   `FileSystemStoragePathSource` to it. This way, whenever a new model version is
-  discovered under the export path, the `SessionBundleSourceAdapter` adapts it
-  to a `Loader<SessionBundle>`.
+  discovered under the export path, the `SavedModelBundleSourceAdapter`
+  adapts it to a `Loader<SavedModelBundle>`.
   * Instantiates a specific implementation of `Manager` called
   `AspiredVersionsManager` that manages all such `Loader` instances created by
-  the `SessionBundleSourceAdapter`. `ServerCore` exports the `Manager` interface
-  by delegating the calls to `AspiredVersionsManager`.
+  the `SavedModelBundleSourceAdapter`. `ServerCore` exports the `Manager`
+  interface by delegating the calls to `AspiredVersionsManager`.
 
 Whenever a new version is available, this `AspiredVersionsManager` loads the new
 version, and under its default behavior unloads the old one. If you want to
@@ -162,21 +170,23 @@ Modern hardware accelerators (GPUs, etc.) used to do machine learning inference
 usually achieve best computation efficiency when inference requests are run in
 large batches.
 
-Batching can be turned on by providing proper `SessionBundleSourceAdapterConfig`
-when creating the `SessionBundleSourceAdapter`. In this case we set the
+Batching can be turned on by providing proper `SessionBundleConfig` when
+creating the `SavedModelBundleSourceAdapter`. In this case we set the
 `BatchingParameters` with pretty much default values. Batching can be fine-tuned
 by setting custom timeout, batch_size, etc. values. For details, please refer
 to `BatchingParameters`.
 
 ~~~c++
-SessionBundleSourceAdapterConfig source_adapter_config;
+SessionBundleConfig session_bundle_config;
 // Batching config
 if (enable_batching) {
   BatchingParameters* batching_parameters =
-      source_adapter_config.mutable_config()->mutable_batching_parameters();
+      session_bundle_config.mutable_batching_parameters();
   batching_parameters->mutable_thread_pool_name()->set_value(
       "model_server_batch_threads");
 }
+*saved_model_bundle_source_adapter_config.mutable_legacy_config() =
+    session_bundle_config;
 ~~~
 
 Upon reaching full batch, inference requests are merged internally into a
@@ -211,37 +221,37 @@ around the following key concepts:
   * **Model**:
   A machine-learned model is represented by one or more servables. Examples of
   servables are:
-    * TensorFlow session or wrappers around them, such as `SessionBundle`.
+    * TensorFlow session or wrappers around them, such as `SavedModelBundle`.
     * Other kinds of machine-learned models.
     * Vocabulary lookup tables.
     * Embedding lookup tables.
 
-  A composite model could be represented as multiple independent servables, or
-  as a single composite servable. A servable may also correspond to a fraction
-  of a Model, for example with a large lookup table sharded across many
-  `Manager` instances.
+    A composite model could be represented as multiple independent servables, or
+    as a single composite servable. A servable may also correspond to a fraction
+    of a Model, for example with a large lookup table sharded across many
+    `Manager` instances.
 
 To put all these into the context of this tutorial:
 
   * TensorFlow models are represented by one kind of servable --
-  `SessionBundle`. `SessionBundle` internally consists of a `tensorflow:Session`
-  paired with some metadata about what graph is loaded into the session and how
-  to run it for inference.
+    `SavedModelBundle`. `SavedModelBundle` internally consists of a
+    `tensorflow:Session` paired with some metadata about what graph is loaded
+    into the session and how to run it for inference.
 
   * There is a file-system directory containing a stream of TensorFlow exports,
-  each in its own subdirectory whose name is a version number. The outer
-  directory can be thought of as the serialized representation of the servable
-  stream for the TensorFlow model being served. Each export corresponds to a
-  servables that can be loaded.
+    each in its own subdirectory whose name is a version number. The outer
+    directory can be thought of as the serialized representation of the servable
+    stream for the TensorFlow model being served. Each export corresponds to a
+    servables that can be loaded.
 
   * `AspiredVersionsManager` monitors the export stream, and manages lifecycle
-  of all SessionBundle` servables dynamically.
+    of all SavedModelBundle` servables dynamically.
 
 `TensorflowPredictImpl::Predict` then just:
 
-  * Requests `SessionBundle` from the manager (through ServerCore).
-  * Uses the `generic signatures` to map logical tensor names in `PredictRequest`
-  to real tensor names and bind values to tensors.
+  * Requests `SavedModelBundle` from the manager (through ServerCore).
+  * Uses the `generic signatures` to map logical tensor names in
+  `PredictRequest` to real tensor names and bind values to tensors.
   * Runs inference.
 
 ## Test and Run The Server
@@ -251,9 +261,9 @@ server.
 
 ~~~shell
 $>mkdir /tmp/monitored
-$>cp -r /tmp/mnist_model/00000001 /tmp/monitored
+$>cp -r /tmp/mnist_model/1 /tmp/monitored
 $>bazel build //tensorflow_serving/model_servers:tensorflow_model_server
-$>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --enable_batching --port=9000 --model_name=mnist --model_base_path=/tmp/monitored
+$>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --enable_batching --port=9000 --model_name=mnist --model_base_path=/tmp/monitored --logtostderr
 ~~~
 
 The server will emit log messages every one second that say
@@ -274,7 +284,7 @@ Then we copy the second version of the export to the monitored folder and re-run
 the test:
 
 ~~~shell
-$>cp -r /tmp/mnist_model/00000002 /tmp/monitored
+$>cp -r /tmp/mnist_model/2 /tmp/monitored
 $>bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:9000 --concurrency=10
 ...
 Inference error rate: 9.5%

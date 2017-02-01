@@ -21,7 +21,7 @@ limitations under the License.
 #include <vector>
 
 #include <gtest/gtest.h>
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
+#include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -40,12 +40,12 @@ namespace {
 class SimpleServersTest : public ::testing::Test {
  protected:
   SimpleServersTest()
-      : test_data_path_(test_util::ContribTestSrcDirPath(
-            "session_bundle/testdata/half_plus_two")) {}
+      : test_data_path_(test_util::TensorflowTestSrcDirPath(
+            "cc/saved_model/testdata/half_plus_two")) {}
 
-  // Test that a SessionBundle handles a single request for the half plus two
+  // Test that a SavedModelBundle handles a single request for the half plus two
   // model properly. The request has size=2, for batching purposes.
-  void TestSingleRequest(const SessionBundle& bundle) {
+  void TestSingleRequest(const SavedModelBundle& bundle) {
     const Tensor input = test::AsTensor<float>({100.0f, 42.0f}, {2});
     // half plus two: output should be input / 2 + 2.
     const Tensor expected_output =
@@ -81,7 +81,7 @@ TEST_F(SimpleServersTest, Basic) {
   while (manager->ListAvailableServableIds().empty()) {
     Env::Default()->SleepForMicroseconds(1000);
   }
-  ServableHandle<SessionBundle> bundle;
+  ServableHandle<SavedModelBundle> bundle;
   const Status handle_status =
       manager->GetServableHandle(ServableRequest::Latest("default"), &bundle);
   TF_CHECK_OK(handle_status);

@@ -1,4 +1,4 @@
-/* Copyright 2016 Google Inc. All Rights Reserved.
+/* Copyright 2017 Google Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,21 +13,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/resources/resource_values.h"
+#ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_GET_MODEL_METADATA_IMPL_H_
+#define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_GET_MODEL_METADATA_IMPL_H_
+
+#include "tensorflow/core/lib/core/status.h"
+#include "tensorflow_serving/apis/get_model_metadata.pb.h"
+#include "tensorflow_serving/model_servers/server_core.h"
 
 namespace tensorflow {
 namespace serving {
 
-namespace device_types {
-const char* const kMain = "main";
-const char* const kGpu = "gpu";
-}  // namespace device_types
-
-namespace resource_kinds {
-const char* const kNumModelSlots = "num_model_slots";
-const char* const kRamBytes = "ram_in_bytes";
-const char* const kProcessingMillis = "processing_in_millicores";
-}  // namespace resource_kinds
+class GetModelMetadataImpl {
+ public:
+  static Status GetModelMetadata(ServerCore* core,
+                                 const GetModelMetadataRequest& request,
+                                 GetModelMetadataResponse* response);
+};
 
 }  // namespace serving
 }  // namespace tensorflow
+
+#endif  // TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_GET_MODEL_METADATA_IMPL_H_

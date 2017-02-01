@@ -27,6 +27,7 @@ from google.protobuf import descriptor_pb2
 _sym_db = _symbol_database.Default()
 
 
+from tensorflow_serving.apis import get_model_metadata_pb2 as tensorflow__serving_dot_apis_dot_get__model__metadata__pb2
 from tensorflow_serving.apis import predict_pb2 as tensorflow__serving_dot_apis_dot_predict__pb2
 
 
@@ -34,9 +35,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='tensorflow_serving/apis/prediction_service.proto',
   package='tensorflow.serving',
   syntax='proto3',
-  serialized_pb=_b('\n0tensorflow_serving/apis/prediction_service.proto\x12\x12tensorflow.serving\x1a%tensorflow_serving/apis/predict.proto2g\n\x11PredictionService\x12R\n\x07Predict\x12\".tensorflow.serving.PredictRequest\x1a#.tensorflow.serving.PredictResponseB\x03\xf8\x01\x01\x62\x06proto3')
+  serialized_pb=_b('\n0tensorflow_serving/apis/prediction_service.proto\x12\x12tensorflow.serving\x1a\x30tensorflow_serving/apis/get_model_metadata.proto\x1a%tensorflow_serving/apis/predict.proto2\xd6\x01\n\x11PredictionService\x12R\n\x07Predict\x12\".tensorflow.serving.PredictRequest\x1a#.tensorflow.serving.PredictResponse\x12m\n\x10GetModelMetadata\x12+.tensorflow.serving.GetModelMetadataRequest\x1a,.tensorflow.serving.GetModelMetadataResponseB\x03\xf8\x01\x01\x62\x06proto3')
   ,
-  dependencies=[tensorflow__serving_dot_apis_dot_predict__pb2.DESCRIPTOR,])
+  dependencies=[tensorflow__serving_dot_apis_dot_get__model__metadata__pb2.DESCRIPTOR,tensorflow__serving_dot_apis_dot_predict__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 
@@ -54,7 +55,8 @@ from grpc.beta import interfaces as beta_interfaces
 
 
 class PredictionServiceStub(object):
-  """PredictionService provides access to machine-learned models loaded by
+  """open source marker; do not remove
+  PredictionService provides access to machine-learned models loaded by
   model_servers.
   """
 
@@ -69,15 +71,28 @@ class PredictionServiceStub(object):
         request_serializer=tensorflow__serving_dot_apis_dot_predict__pb2.PredictRequest.SerializeToString,
         response_deserializer=tensorflow__serving_dot_apis_dot_predict__pb2.PredictResponse.FromString,
         )
+    self.GetModelMetadata = channel.unary_unary(
+        '/tensorflow.serving.PredictionService/GetModelMetadata',
+        request_serializer=tensorflow__serving_dot_apis_dot_get__model__metadata__pb2.GetModelMetadataRequest.SerializeToString,
+        response_deserializer=tensorflow__serving_dot_apis_dot_get__model__metadata__pb2.GetModelMetadataResponse.FromString,
+        )
 
 
 class PredictionServiceServicer(object):
-  """PredictionService provides access to machine-learned models loaded by
+  """open source marker; do not remove
+  PredictionService provides access to machine-learned models loaded by
   model_servers.
   """
 
   def Predict(self, request, context):
     """Predict -- provides access to loaded TensorFlow model.
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetModelMetadata(self, request, context):
+    """GetModelMetadata - provides access to metadata for loaded models.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -91,6 +106,11 @@ def add_PredictionServiceServicer_to_server(servicer, server):
           request_deserializer=tensorflow__serving_dot_apis_dot_predict__pb2.PredictRequest.FromString,
           response_serializer=tensorflow__serving_dot_apis_dot_predict__pb2.PredictResponse.SerializeToString,
       ),
+      'GetModelMetadata': grpc.unary_unary_rpc_method_handler(
+          servicer.GetModelMetadata,
+          request_deserializer=tensorflow__serving_dot_apis_dot_get__model__metadata__pb2.GetModelMetadataRequest.FromString,
+          response_serializer=tensorflow__serving_dot_apis_dot_get__model__metadata__pb2.GetModelMetadataResponse.SerializeToString,
+      ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
       'tensorflow.serving.PredictionService', rpc_method_handlers)
@@ -103,11 +123,16 @@ class BetaPredictionServiceServicer(object):
   It is recommended to use the GA API (classes and functions in this
   file not marked beta) for all further purposes. This class was generated
   only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
-  """PredictionService provides access to machine-learned models loaded by
+  """open source marker; do not remove
+  PredictionService provides access to machine-learned models loaded by
   model_servers.
   """
   def Predict(self, request, context):
     """Predict -- provides access to loaded TensorFlow model.
+    """
+    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+  def GetModelMetadata(self, request, context):
+    """GetModelMetadata - provides access to metadata for loaded models.
     """
     context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
 
@@ -118,7 +143,8 @@ class BetaPredictionServiceStub(object):
   It is recommended to use the GA API (classes and functions in this
   file not marked beta) for all further purposes. This class was generated
   only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
-  """PredictionService provides access to machine-learned models loaded by
+  """open source marker; do not remove
+  PredictionService provides access to machine-learned models loaded by
   model_servers.
   """
   def Predict(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
@@ -126,6 +152,11 @@ class BetaPredictionServiceStub(object):
     """
     raise NotImplementedError()
   Predict.future = None
+  def GetModelMetadata(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+    """GetModelMetadata - provides access to metadata for loaded models.
+    """
+    raise NotImplementedError()
+  GetModelMetadata.future = None
 
 
 def beta_create_PredictionService_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
@@ -135,12 +166,15 @@ def beta_create_PredictionService_server(servicer, pool=None, pool_size=None, de
   file not marked beta) for all further purposes. This function was
   generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
   request_deserializers = {
+    ('tensorflow.serving.PredictionService', 'GetModelMetadata'): tensorflow__serving_dot_apis_dot_get__model__metadata__pb2.GetModelMetadataRequest.FromString,
     ('tensorflow.serving.PredictionService', 'Predict'): tensorflow__serving_dot_apis_dot_predict__pb2.PredictRequest.FromString,
   }
   response_serializers = {
+    ('tensorflow.serving.PredictionService', 'GetModelMetadata'): tensorflow__serving_dot_apis_dot_get__model__metadata__pb2.GetModelMetadataResponse.SerializeToString,
     ('tensorflow.serving.PredictionService', 'Predict'): tensorflow__serving_dot_apis_dot_predict__pb2.PredictResponse.SerializeToString,
   }
   method_implementations = {
+    ('tensorflow.serving.PredictionService', 'GetModelMetadata'): face_utilities.unary_unary_inline(servicer.GetModelMetadata),
     ('tensorflow.serving.PredictionService', 'Predict'): face_utilities.unary_unary_inline(servicer.Predict),
   }
   server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
@@ -154,13 +188,17 @@ def beta_create_PredictionService_stub(channel, host=None, metadata_transformer=
   file not marked beta) for all further purposes. This function was
   generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
   request_serializers = {
+    ('tensorflow.serving.PredictionService', 'GetModelMetadata'): tensorflow__serving_dot_apis_dot_get__model__metadata__pb2.GetModelMetadataRequest.SerializeToString,
     ('tensorflow.serving.PredictionService', 'Predict'): tensorflow__serving_dot_apis_dot_predict__pb2.PredictRequest.SerializeToString,
   }
   response_deserializers = {
+    ('tensorflow.serving.PredictionService', 'GetModelMetadata'): tensorflow__serving_dot_apis_dot_get__model__metadata__pb2.GetModelMetadataResponse.FromString,
     ('tensorflow.serving.PredictionService', 'Predict'): tensorflow__serving_dot_apis_dot_predict__pb2.PredictResponse.FromString,
   }
   cardinalities = {
+    'GetModelMetadata': cardinality.Cardinality.UNARY_UNARY,
     'Predict': cardinality.Cardinality.UNARY_UNARY,
   }
   stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
   return beta_implementations.dynamic_stub(channel, 'tensorflow.serving.PredictionService', cardinalities, options=stub_options)
+# @@protoc_insertion_point(module_scope)
