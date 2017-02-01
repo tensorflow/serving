@@ -54,7 +54,7 @@ Usage: model_server [--port=8500] [--enable_batching] [--model_name=my_name] --m
 ### Export Inception model in container
 
 In the running container, we run
-[inception_export.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/inception_export.py)
+[inception_saved_model.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/inception_saved_model.py)
 to export the inception model using the released
 [Inception model training checkpoint](http://download.tensorflow.org/models/image/imagenet/inception-v3-2016-03-01.tar.gz).
 Instead of training from scratch, we use the readily available checkpoints
@@ -66,11 +66,11 @@ root@c97d8e820ced:/serving# curl -O http://download.tensorflow.org/models/image/
 root@c97d8e820ced:/serving# tar xzf inception-v3-2016-03-01.tar.gz
 root@c97d8e820ced:/serving# ls inception-v3
 README.txt  checkpoint  model.ckpt-157585
-root@c97d8e820ced:/serving# bazel-bin/tensorflow_serving/example/inception_export --checkpoint_dir=inception-v3 --export_dir=inception-export
+root@c97d8e820ced:/serving# bazel-bin/tensorflow_serving/example/inception_saved_model --checkpoint_dir=inception-v3 --output_dir=inception-export
 Successfully loaded model from inception-v3/model.ckpt-157585 at step=157585.
 Successfully exported model to inception-export
 root@c97d8e820ced:/serving# ls inception-export
-00157585
+1
 root@c97d8e820ced:/serving# [Ctrl-p] + [Ctrl-q]
 ```
 

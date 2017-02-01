@@ -24,6 +24,28 @@ load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 
 serving_proto_library(
+    name = "get_model_metadata_proto",
+    srcs = ["get_model_metadata.proto"],
+    cc_api_version = 2,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":model_proto",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@protobuf//:cc_wkt_protos",
+    ],
+)
+
+serving_proto_library_py(
+    name = "get_model_metadata_proto_py_pb2",
+    srcs = ["get_model_metadata.proto"],
+    proto_library = "get_model_metadata_proto",
+    deps = [
+        "@org_tensorflow//tensorflow/core:protos_all_py",
+    ],
+)
+
+serving_proto_library(
     name = "model_proto",
     srcs = ["model.proto"],
     cc_api_version = 2,
@@ -72,6 +94,7 @@ serving_proto_library(
     go_api_version = 2,
     java_api_version = 2,
     deps = [
+        ":get_model_metadata_proto",
         ":predict_proto",
     ],
 )
@@ -79,5 +102,8 @@ serving_proto_library(
 py_library(
     name = "prediction_service_proto_py_pb2",
     srcs = ["prediction_service_pb2.py"],
-    deps = [":predict_proto_py_pb2"],
+    deps = [
+        ":get_model_metadata_proto_py_pb2",
+        ":predict_proto_py_pb2",
+    ],
 )

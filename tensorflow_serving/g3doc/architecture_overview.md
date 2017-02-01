@@ -32,7 +32,7 @@ Servables do not manage their own lifecycle.
 
 Typical servables include the following:
 
-  * a TensorFlow SessionBundle (`tensorflow::Session`)
+  * a TensorFlow SavedModelBundle (`tensorflow::Session`)
   * a lookup table for embedding or vocabulary lookups
 
 #### Servable Versions
