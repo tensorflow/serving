@@ -51,8 +51,6 @@ namespace {
 constexpr char kTestModelName[] = "test_model";
 constexpr int kTestModelVersion = 123;
 const string kSignatureDef = "signature_def";
-constexpr char kSavedModelBundlePath[] =
-    "cc/saved_model/testdata/half_plus_two";
 
 class GetModelMetadataImplTest : public ::testing::TestWithParam<bool> {
  public:
@@ -61,8 +59,8 @@ class GetModelMetadataImplTest : public ::testing::TestWithParam<bool> {
         "/servables/tensorflow/testdata/half_plus_two");
     TF_ASSERT_OK(CreateServerCore(session_bundle_path, false, &server_core_));
 
-    const string saved_model_path =
-        io::JoinPath(testing::TensorFlowSrcRoot(), kSavedModelBundlePath);
+    const string saved_model_path = test_util::TensorflowTestSrcDirPath(
+        "cc/saved_model/testdata/half_plus_two");
     TF_ASSERT_OK(
         CreateServerCore(saved_model_path, true, &saved_model_server_core_));
   }
