@@ -31,8 +31,8 @@ serving_proto_library(
     java_api_version = 2,
     deps = [
         ":model_proto",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf//:any",
+        "@org_tensorflow//tensorflow/core:protos_all",
     ],
 )
 
@@ -41,7 +41,7 @@ serving_proto_library_py(
     srcs = ["get_model_metadata.proto"],
     proto_library = "get_model_metadata_proto",
     deps = [
-        "@org_tensorflow//tensorflow/core:protos_all_py",
+        "@org_tensorflow//tensorflow/core:protos_all_py_pb2",
     ],
 )
 
@@ -52,7 +52,7 @@ serving_proto_library(
     go_api_version = 2,
     java_api_version = 2,
     deps = [
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf//:wrappers",
     ],
 )
 
@@ -71,7 +71,7 @@ serving_proto_library(
     java_api_version = 2,
     deps = [
         ":model_proto",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:protos_all",
     ],
 )
 
@@ -81,7 +81,7 @@ serving_proto_library_py(
     proto_library = "predict_proto",
     deps = [
         ":model_proto_py_pb2",
-        "@org_tensorflow//tensorflow/core:protos_all_py",
+        "@org_tensorflow//tensorflow/core:protos_all_py_pb2",
     ],
 )
 
@@ -105,5 +105,6 @@ py_library(
     deps = [
         ":get_model_metadata_proto_py_pb2",
         ":predict_proto_py_pb2",
+        "//net/grpc/python:grpc",
     ],
 )
