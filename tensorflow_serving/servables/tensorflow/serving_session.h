@@ -21,6 +21,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/public/session.h"
 
 namespace tensorflow {
@@ -47,7 +48,10 @@ class ServingSession : public Session {
 class ServingSessionWrapper : public ServingSession {
  public:
   explicit ServingSessionWrapper(std::unique_ptr<Session> wrapped)
-      : wrapped_(std::move(wrapped)) {}
+      : wrapped_(std::move(wrapped)) {
+    VLOG(2) << "Created the ServingSessionWrapper around the Session.";
+  }
+
   ~ServingSessionWrapper() override = default;
 
   Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
@@ -56,6 +60,15 @@ class ServingSessionWrapper : public ServingSession {
              std::vector<Tensor>* outputs) override {
     return wrapped_->Run(inputs, output_tensor_names, target_node_names,
                          outputs);
+  }
+
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_tensor_names,
+             const std::vector<string>& target_node_names,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+    return wrapped_->Run(run_options, inputs, output_tensor_names,
+                         target_node_names, outputs, run_metadata);
   }
 
  private:
