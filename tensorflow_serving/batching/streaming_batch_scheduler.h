@@ -27,6 +27,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/threadpool.h"
+#include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/macros.h"
@@ -135,14 +136,14 @@ class StreamingBatchScheduler : public BatchScheduler<TaskType> {
     //
     // A negative value means that no timeout will be enforced. This setting is
     // useful in some test code.
-    int64 batch_timeout_micros = 10 * 1000 /* 10 milliseconds */;
+    int64 batch_timeout_micros = 0;
 
     // The name to use for the pool of batch threads.
     string thread_pool_name = "batch_threads";
 
     // The number of threads to use to process batches.
     // Must be >= 1, and should be tuned carefully.
-    int num_batch_threads = 1;
+    int num_batch_threads = port::NumSchedulableCPUs();
 
     // The following options are typically only overridden by test code.
 

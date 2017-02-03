@@ -28,6 +28,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/strings/strcat.h"
+#include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/thread_annotations.h"
 #include "tensorflow/core/platform/types.h"
@@ -93,6 +94,9 @@ namespace serving {
 // E.g. let each queue specify a "share" (an int >= 1), so e.g. with queues A
 // and B having shares 1 and 2 respectively, the servicing pattern is ABBABB...
 //
+//
+// PERFORMANCE TUNING: See README.md.
+//
 template <typename TaskType>
 class SharedBatchScheduler
     : public std::enable_shared_from_this<SharedBatchScheduler<TaskType>> {
@@ -104,7 +108,7 @@ class SharedBatchScheduler
 
     // The number of threads to use to process batches.
     // Must be >= 1, and should be tuned carefully.
-    int num_batch_threads = 1;
+    int num_batch_threads = port::NumSchedulableCPUs();
 
     // The environment to use.
     // (Typically only overridden by test code.)
@@ -144,17 +148,15 @@ class SharedBatchScheduler
     // above.)
     //
     // The goal is to smooth out batch sizes under low request rates, and thus
-    // avoid latency spikes. The default value of 1 millisecond was determined
-    // via benchmarking. You may need to adjust it to suit your workload and
-    // environment.
-    int64 batch_timeout_micros = 1 * 1000 /* 1 millisecond */;
+    // avoid latency spikes.
+    int64 batch_timeout_micros = 0;
 
     // The maximum allowable number of enqueued (accepted by Schedule() but
     // not yet being processed on a batch thread) tasks in terms of batches.
     // If this limit is reached, Schedule() will return an UNAVAILABLE error.
     // See the class documentation above for guidelines on how to tune this
     // parameter.
-    int max_enqueued_batches = 1;
+    int max_enqueued_batches = 10;
   };
   Status AddQueue(const QueueOptions& options,
                   std::function<void(std::unique_ptr<Batch<TaskType>>)>
