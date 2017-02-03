@@ -103,10 +103,14 @@ using grpc::ServerAsyncResponseWriter;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::ServerCompletionQueue;
+using tensorflow::serving::ClassificationRequest;
+using tensorflow::serving::ClassificationResponse;
 using tensorflow::serving::GetModelMetadataRequest;
 using tensorflow::serving::GetModelMetadataResponse;
 using tensorflow::serving::PredictRequest;
 using tensorflow::serving::PredictResponse;
+using tensorflow::serving::RegressionRequest;
+using tensorflow::serving::RegressionResponse;
 using tensorflow::serving::PredictionService;
 
 namespace {
@@ -194,6 +198,20 @@ class PredictionServiceImpl final : public PredictionService::Service {
       VLOG(1) << "GetModelMetadata failed: " << status.error_message();
     }
     return status;
+  }
+
+  grpc::Status Classify(ServerContext* context,
+                        const ClassificationRequest* request,
+                        ClassificationResponse* response) override {
+    return ToGRPCStatus(tensorflow::errors::Unimplemented(
+        "Classify API is not implemented"));
+  }
+
+  grpc::Status Regress(ServerContext* context,
+                       const RegressionRequest* request,
+                       RegressionResponse* response) override {
+    return ToGRPCStatus(tensorflow::errors::Unimplemented(
+        "Regress API is not implemented"));
   }
 
  private:
