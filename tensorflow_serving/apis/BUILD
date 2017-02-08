@@ -61,7 +61,9 @@ serving_proto_library_py(
     name = "input_proto_py_pb2",
     srcs = ["input.proto"],
     proto_library = "input_proto",
-    deps = [],
+    deps = [
+        "@org_tensorflow//tensorflow/core:protos_all_py",
+    ],
 )
 
 serving_proto_library(
@@ -124,8 +126,10 @@ py_library(
     name = "prediction_service_proto_py_pb2",
     srcs = ["prediction_service_pb2.py"],
     deps = [
+        ":classification_proto_py_pb2",
         ":get_model_metadata_proto_py_pb2",
         ":predict_proto_py_pb2",
+        ":regression_proto_py_pb2",
     ],
 )
 
@@ -145,7 +149,11 @@ serving_proto_library_py(
     name = "classification_proto_py_pb2",
     srcs = ["classification.proto"],
     proto_library = "classification_proto",
-    deps = [],
+    deps = [
+        ":input_proto_py_pb2",
+        ":model_proto_py_pb2",
+        "@org_tensorflow//tensorflow/core:protos_all_py",
+    ],
 )
 
 serving_proto_library(
@@ -164,7 +172,11 @@ serving_proto_library_py(
     name = "regression_proto_py_pb2",
     srcs = ["regression.proto"],
     proto_library = "regression_proto",
-    deps = [],
+    deps = [
+        ":input_proto_py_pb2",
+        ":model_proto_py_pb2",
+        "@org_tensorflow//tensorflow/core:protos_all_py",
+    ],
 )
 
 cc_library(
