@@ -103,10 +103,14 @@ using grpc::ServerAsyncResponseWriter;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::ServerCompletionQueue;
+using tensorflow::serving::ClassificationRequest;
+using tensorflow::serving::ClassificationResponse;
 using tensorflow::serving::GetModelMetadataRequest;
 using tensorflow::serving::GetModelMetadataResponse;
 using tensorflow::serving::PredictRequest;
 using tensorflow::serving::PredictResponse;
+using tensorflow::serving::RegressionRequest;
+using tensorflow::serving::RegressionResponse;
 using tensorflow::serving::PredictionService;
 
 namespace {
@@ -138,6 +142,12 @@ ModelServerConfig BuildSingleModelConfig(
   return config;
 }
 
+int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
+  return gpr_time_to_millis(
+      gpr_time_sub(gpr_convert_clock_type(deadline, GPR_CLOCK_MONOTONIC),
+                   gpr_now(GPR_CLOCK_MONOTONIC)));
+}
+
 grpc::Status ToGRPCStatus(const tensorflow::Status& status) {
   const int kErrorMessageLimit = 1024;
   string error_message;
@@ -161,8 +171,12 @@ class PredictionServiceImpl final : public PredictionService::Service {
 
   grpc::Status Predict(ServerContext* context, const PredictRequest* request,
                        PredictResponse* response) override {
-    const grpc::Status status =
-        ToGRPCStatus(predictor_->Predict(core_.get(), *request, response));
+    tensorflow::RunOptions run_options = tensorflow::RunOptions();
+    // By default, this is infinite which is the same default as RunOptions.
+    run_options.set_timeout_in_ms(
+        DeadlineToTimeoutMillis(context->raw_deadline()));
+    const grpc::Status status = ToGRPCStatus(
+        predictor_->Predict(run_options, core_.get(), *request, response));
     if (!status.ok()) {
       VLOG(1) << "Predict failed: " << status.error_message();
     }
@@ -184,6 +198,20 @@ class PredictionServiceImpl final : public PredictionService::Service {
       VLOG(1) << "GetModelMetadata failed: " << status.error_message();
     }
     return status;
+  }
+
+  grpc::Status Classify(ServerContext* context,
+                        const ClassificationRequest* request,
+                        ClassificationResponse* response) override {
+    return ToGRPCStatus(tensorflow::errors::Unimplemented(
+        "Classify API is not implemented"));
+  }
+
+  grpc::Status Regress(ServerContext* context,
+                       const RegressionRequest* request,
+                       RegressionResponse* response) override {
+    return ToGRPCStatus(tensorflow::errors::Unimplemented(
+        "Regress API is not implemented"));
   }
 
  private:

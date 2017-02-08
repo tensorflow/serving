@@ -99,6 +99,8 @@ class PredictImplTest : public ::testing::TestWithParam<bool> {
     return server_core_bad_model_.get();
   }
 
+  RunOptions GetRunOptions() { return RunOptions(); }
+
  private:
   static std::unique_ptr<ServerCore> server_core_;
   static std::unique_ptr<ServerCore> server_core_bad_model_;
@@ -117,20 +119,26 @@ TEST_P(PredictImplTest, MissingOrEmptyModelSpec) {
 
   // Empty request is invalid.
   TensorflowPredictor predictor(GetParam());
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
-            predictor.Predict(GetServerCore(), request, &response).code());
+  EXPECT_EQ(
+      tensorflow::error::INVALID_ARGUMENT,
+      predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
+          .code());
 
   ModelSpec* model_spec = request.mutable_model_spec();
   model_spec->clear_name();
 
   // Model name is not specified.
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
-            predictor.Predict(GetServerCore(), request, &response).code());
+  EXPECT_EQ(
+      tensorflow::error::INVALID_ARGUMENT,
+      predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
+          .code());
 
   // Model name is wrong, not found.
   model_spec->set_name("test");
-  EXPECT_EQ(tensorflow::error::NOT_FOUND,
-            predictor.Predict(GetServerCore(), request, &response).code());
+  EXPECT_EQ(
+      tensorflow::error::NOT_FOUND,
+      predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
+          .code());
 }
 
 TEST_P(PredictImplTest, EmptyInputList) {
@@ -143,8 +151,10 @@ TEST_P(PredictImplTest, EmptyInputList) {
 
   TensorflowPredictor predictor(GetParam());
   // The input is empty.
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
-            predictor.Predict(GetServerCore(), request, &response).code());
+  EXPECT_EQ(
+      tensorflow::error::INVALID_ARGUMENT,
+      predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
+          .code());
 }
 
 TEST_P(PredictImplTest, InputTensorsDontMatchModelSpecInputs) {
@@ -163,8 +173,10 @@ TEST_P(PredictImplTest, InputTensorsDontMatchModelSpecInputs) {
   TensorflowPredictor predictor(GetParam());
   auto inputs = request.mutable_inputs();
   (*inputs)["key"] = tensor_proto;
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
-            predictor.Predict(GetServerCore(), request, &response).code());
+  EXPECT_EQ(
+      tensorflow::error::INVALID_ARGUMENT,
+      predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
+          .code());
 }
 
 TEST_P(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
@@ -183,17 +195,22 @@ TEST_P(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
 
   TensorflowPredictor predictor(GetParam());
   // Output filter like this doesn't exist.
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
-            predictor.Predict(GetServerCore(), request, &response).code());
+  EXPECT_EQ(
+      tensorflow::error::INVALID_ARGUMENT,
+      predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
+          .code());
 
   request.clear_output_filter();
   request.add_output_filter(kOutputTensorKey);
-  TF_EXPECT_OK(predictor.Predict(GetServerCore(), request, &response));
+  TF_EXPECT_OK(
+      predictor.Predict(GetRunOptions(), GetServerCore(), request, &response));
   request.add_output_filter(kOutputTensorKey);
 
   // Duplicate output filter specified.
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
-            predictor.Predict(GetServerCore(), request, &response).code());
+  EXPECT_EQ(
+      tensorflow::error::INVALID_ARGUMENT,
+      predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
+          .code());
 }
 
 TEST_P(PredictImplTest, InputTensorsHaveWrongType) {
@@ -213,8 +230,10 @@ TEST_P(PredictImplTest, InputTensorsHaveWrongType) {
 
   TensorflowPredictor predictor(GetParam());
   // Input tensors are all wrong.
-  EXPECT_EQ(tensorflow::error::INTERNAL,
-            predictor.Predict(GetServerCore(), request, &response).code());
+  EXPECT_EQ(
+      tensorflow::error::INTERNAL,
+      predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
+          .code());
 }
 
 TEST_P(PredictImplTest, ModelMissingSignatures) {
@@ -228,7 +247,9 @@ TEST_P(PredictImplTest, ModelMissingSignatures) {
   // Model is missing signatures.
   TensorflowPredictor predictor(GetParam());
   EXPECT_EQ(tensorflow::error::FAILED_PRECONDITION,
-            predictor.Predict(GetServerCoreWithBadModel(), request, &response)
+            predictor
+                .Predict(GetRunOptions(), GetServerCoreWithBadModel(), request,
+                         &response)
                 .code());
 }
 
@@ -246,7 +267,8 @@ TEST_P(PredictImplTest, PredictionSuccess) {
   (*request.mutable_inputs())[kInputTensorKey] = tensor_proto;
 
   TensorflowPredictor predictor(GetParam());
-  TF_EXPECT_OK(predictor.Predict(GetServerCore(), request, &response));
+  TF_EXPECT_OK(
+      predictor.Predict(GetRunOptions(), GetServerCore(), request, &response));
   TensorProto output_tensor_proto;
   output_tensor_proto.add_float_val(3);
   output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
@@ -276,10 +298,13 @@ TEST_P(PredictImplTest, PredictionWithNamedRegressionSignature) {
   TensorflowPredictor predictor(GetParam());
   // This request is expected to work with SavedModel, but not SessionBundle.
   if (GetParam()) {
-    TF_ASSERT_OK(predictor.Predict(GetServerCore(), request, &response));
+    TF_ASSERT_OK(predictor.Predict(GetRunOptions(), GetServerCore(), request,
+                                   &response));
   } else {
-    ASSERT_EQ(tensorflow::error::INVALID_ARGUMENT,
-              predictor.Predict(GetServerCore(), request, &response).code());
+    ASSERT_EQ(
+        tensorflow::error::INVALID_ARGUMENT,
+        predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
+            .code());
     return;
   }
   TensorProto output_tensor_proto;

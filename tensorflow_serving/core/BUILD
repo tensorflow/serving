@@ -640,54 +640,6 @@ cc_test(
 )
 
 cc_library(
-    name = "eager_load_policy",
-    srcs = ["eager_load_policy.cc"],
-    hdrs = ["eager_load_policy.h"],
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        ":aspired_version_policy",
-        ":loader_harness",
-        "//tensorflow_serving/util:optional",
-    ],
-)
-
-cc_test(
-    name = "eager_load_policy_test",
-    srcs = ["eager_load_policy_test.cc"],
-    deps = [
-        ":eager_load_policy",
-        ":servable_id",
-        "//tensorflow_serving/core/test_util:test_main",
-    ],
-)
-
-cc_library(
-    name = "eager_unload_policy",
-    srcs = ["eager_unload_policy.cc"],
-    hdrs = ["eager_unload_policy.h"],
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        ":aspired_version_policy",
-        ":loader_harness",
-        "//tensorflow_serving/util:optional",
-    ],
-)
-
-cc_test(
-    name = "eager_unload_policy_test",
-    srcs = ["eager_unload_policy_test.cc"],
-    deps = [
-        ":eager_unload_policy",
-        ":servable_id",
-        "//tensorflow_serving/core/test_util:test_main",
-    ],
-)
-
-cc_library(
     name = "availability_preserving_policy",
     srcs = ["availability_preserving_policy.cc"],
     hdrs = ["availability_preserving_policy.h"],
