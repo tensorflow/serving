@@ -101,14 +101,18 @@ using tensorflow::serving::PredictionService;
 
 namespace {
 
-bool ParseProtoTextFile(const string& file, google::protobuf::Message* message) {
+tensorflow::Status ParseProtoTextFile(const string& file, google::protobuf::Message* message) {
   std::unique_ptr<tensorflow::ReadOnlyMemoryRegion> file_data;
-  TF_CHECK_OK(  // Crash ok
+  TF_RETURN_IF_ERROR(
     tensorflow::Env::Default()->NewReadOnlyMemoryRegionFromFile(file,
 	                                                            &file_data));
   string file_data_str(static_cast<const char*>(file_data->data()),
 	                   file_data->length());
-  return tensorflow::protobuf::TextFormat::ParseFromString(file_data_str, message);
+  if(tensorflow::protobuf::TextFormat::ParseFromString(file_data_str, message)) {
+	  return tensorflow::Status::OK();
+  } else {
+	  return tensorflow::errors::InvalidArgument("Invalid protobuf file: '", file, "'");
+  }
 }
 
 tensorflow::Status LoadCustomModelConfig(
@@ -140,12 +144,11 @@ ModelServerConfig BuildSingleModelConfig(
 
 ModelServerConfig BuildModelConfigFromFile(
     const string& file) {
-  ModelServerConfig config;
   LOG(INFO) << "Building from config file: "
             << file;
 
   ModelServerConfig model_config;
-  QCHECK(ParseProtoTextFile(file, &model_config));
+  TF_CHECK_OK(ParseProtoTextFile(file, &model_config));
   return model_config;
 }
 
@@ -203,7 +206,7 @@ void RunServer(int port, std::unique_ptr<ServerCore> core,
 tensorflow::serving::PlatformConfigMap ParsePlatformConfigMap(
     const string& file) {
   tensorflow::serving::PlatformConfigMap platform_config_map;
-  QCHECK(ParseProtoTextFile(file, &platform_config_map));
+  TF_CHECK_OK(ParseProtoTextFile(file, &platform_config_map));
   return platform_config_map;
 }
 
