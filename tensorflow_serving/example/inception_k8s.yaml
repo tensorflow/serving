@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
       - name: inception-container
-        image: gcr.io/tensorflow-serving/inception:0.2.0
+        image: gcr.io/tensorflow-serving/inception
         command:
         - /bin/sh
         - -c
