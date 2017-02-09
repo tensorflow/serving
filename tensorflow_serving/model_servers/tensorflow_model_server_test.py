@@ -67,7 +67,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     if self.server_proc is not None:
       self.server_proc.terminate()
 
-  def RunServer(self, port, model_name, model_path, use_saved_model):
+  def RunServer(self, port, model_name, model_path, use_saved_model,
+                enable_batching):
     """Run tensorflow_model_server using test config."""
     print 'Starting test server...'
     command = os.path.join(self.binary_dir, 'tensorflow_model_server')
@@ -75,6 +76,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     command += ' --model_name=' + model_name
     command += ' --model_base_path=' + model_path
     command += ' --use_saved_model=' + str(use_saved_model).lower()
+    command += ' --enable_batching=' + str(enable_batching).lower()
     command += ' --alsologtostderr'
     print command
     self.server_proc = subprocess.Popen(shlex.split(command))
@@ -91,6 +93,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
     request.model_spec.name = 'default'
     request.inputs['x'].dtype = types_pb2.DT_FLOAT
     request.inputs['x'].float_val.append(2.0)
+    dim = request.inputs['x'].tensor_shape.dim.add()
+    dim.size = 1
+
     if specify_output:
       request.output_filter.append('y')
     # Send request
@@ -113,34 +118,44 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Returns a path to a model in SessionBundle format."""
     return os.path.join(self.testdata_dir, 'half_plus_two')
 
-  def _TestPredict(self, model_path, use_saved_model):
+  def _TestPredict(self, model_path, use_saved_model, enable_batching):
     """Helper method to test prediction.
 
     Args:
       model_path:      Path to the model on disk.
       use_saved_model: Whether the model server should use SavedModel.
+      enable_batching: Whether model server should use BatchingSession
     """
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path, use_saved_model)
+                                          model_path, use_saved_model,
+                                          enable_batching)
     time.sleep(5)
     self.VerifyPredictRequest(model_server_address)
     self.VerifyPredictRequest(model_server_address, specify_output=False)
 
   def testPredictSessionBundle(self):
     """Test PredictionService.Predict implementation with SessionBundle."""
-    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=False)
+    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=False,
+                      enable_batching=False)
+
+  def testPredictBatchingSessionBundle(self):
+    """Test PredictionService.Predict implementation with SessionBundle."""
+    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=False,
+                      enable_batching=True)
 
   def testPredictSavedModel(self):
     """Test PredictionService.Predict implementation with SavedModel."""
-    self._TestPredict(self._GetSavedModelBundlePath(), use_saved_model=True)
+    self._TestPredict(self._GetSavedModelBundlePath(), use_saved_model=True,
+                      enable_batching=False)
 
   def testPredictUpconvertedSavedModel(self):
     """Test PredictionService.Predict implementation.
 
     Using a SessionBundle converted to a SavedModel.
     """
-    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=True)
+    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=True,
+                      enable_batching=False)
 
   def _TestBadModel(self, use_saved_model):
     """Helper method to test against a bad model export."""
@@ -149,7 +164,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     # case of SavedModel, the export will get up-converted to a SavedModel.
     model_server_address = self.RunServer(
         PickUnusedPort(), 'default',
-        os.path.join(self.testdata_dir, 'bad_half_plus_two'), use_saved_model)
+        os.path.join(self.testdata_dir, 'bad_half_plus_two'), use_saved_model,
+        enable_batching=False)
     time.sleep(5)
     with self.assertRaises(face.AbortionError) as error:
       self.VerifyPredictRequest(model_server_address)
