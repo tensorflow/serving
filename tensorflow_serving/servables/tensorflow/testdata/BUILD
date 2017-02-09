@@ -52,6 +52,11 @@ exports_files([
     "half_plus_two/00000123/export.data-00000-of-00001",
     "half_plus_two/00000123/export.index",
     "half_plus_two/00000123/export.meta",
+    "half_plus_two2/00000123/export.data-00000-of-00001",
+    "half_plus_two2/00000123/export.index",
+    "half_plus_two2/00000123/export.meta",
     "bad_half_plus_two/00000123/export",
     "bad_half_plus_two/00000123/export.meta",
+    "good_config.template",
+    "bad_config.conf"
 ])

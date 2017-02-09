@@ -141,6 +141,11 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two2/00000123/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two2/00000123/export.index",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two2/00000123/export.meta",
+        "//tensorflow_serving/servables/tensorflow/testdata:good_config.template",
+        "//tensorflow_serving/servables/tensorflow/testdata:bad_config.conf",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
     tags = [
