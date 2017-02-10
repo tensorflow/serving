@@ -41,7 +41,7 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/aspired_version_policy.h"
 #include "tensorflow_serving/core/aspired_versions_manager.h"
-#include "tensorflow_serving/core/eager_load_policy.h"
+#include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/manager.h"
 #include "tensorflow_serving/core/servable_data.h"
@@ -74,7 +74,7 @@ class BenchmarkState {
     AspiredVersionsManager::Options options;
     // Do policy thread won't be run automatically.
     options.manage_state_interval_micros = -1;
-    options.aspired_version_policy.reset(new EagerLoadPolicy());
+    options.aspired_version_policy.reset(new AvailabilityPreservingPolicy());
     TF_CHECK_OK(AspiredVersionsManager::Create(std::move(options), &manager_));
   }
 
@@ -304,7 +304,7 @@ static void BM_GetServableHandle(const int iters) {
     AspiredVersionsManager::Options options;
     // Do policy thread won't be run automatically.
     options.manage_state_interval_micros = -1;
-    options.aspired_version_policy.reset(new EagerLoadPolicy());
+    options.aspired_version_policy.reset(new AvailabilityPreservingPolicy());
     std::unique_ptr<AspiredVersionsManager> manager;
     TF_CHECK_OK(AspiredVersionsManager::Create(std::move(options), &manager));
     auto aspired_versions_callback = manager->GetAspiredVersionsCallback();

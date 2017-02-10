@@ -1,4 +1,4 @@
-/* Copyright 2016 Google Inc. All Rights Reserved.
+/* Copyright 2017 Google Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,21 +13,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/core/eager_unload_policy.h"
+#include "tensorflow_serving/core/resource_preserving_policy.h"
 
 namespace tensorflow {
 namespace serving {
 
-optional<AspiredVersionPolicy::ServableAction> EagerUnloadPolicy::GetNextAction(
+optional<AspiredVersionPolicy::ServableAction>
+ResourcePreservingPolicy::GetNextAction(
     const std::vector<AspiredServableStateSnapshot>& all_versions) const {
   // First iterate over all_versions and find any in kReady that are no longer
   // aspired. Unload the first if any.
   for (const auto& version : all_versions) {
     if (version.state == LoaderHarness::State::kReady && !version.is_aspired) {
-      VLOG(1) << "EagerUnloadPolicy requesting to unload servable "
+      VLOG(1) << "ResourcePreservingPolicy requesting to unload servable "
               << version.id;
-      return AspiredVersionPolicy::ServableAction(
-          {Action::kUnload, version.id});
+      return {{Action::kUnload, version.id}};
     }
   }
 
@@ -44,13 +44,14 @@ optional<AspiredVersionPolicy::ServableAction> EagerUnloadPolicy::GetNextAction(
     return nullopt;
   }
 
-  // Third and only if no action was found earlier, iterate over all
-  // versions and find any in kNew that are aspired. Load the first if any.
-  for (const auto& version : all_versions) {
-    if (version.state == LoaderHarness::State::kNew && version.is_aspired) {
-      VLOG(1) << "EagerUnloadPolicy requesting to load servable " << version.id;
-      return AspiredVersionPolicy::ServableAction({Action::kLoad, version.id});
-    }
+  // Third and only if no action was found earlier, load the aspired new
+  // servable with the highest version if any.
+  optional<ServableId> highest_aspired_new_version_id =
+      GetHighestAspiredNewServableId(all_versions);
+  if (highest_aspired_new_version_id) {
+    VLOG(1) << "ResourcePreservingPolicy requesting to load servable "
+            << highest_aspired_new_version_id;
+    return {{Action::kLoad, highest_aspired_new_version_id.value()}};
   }
 
   return nullopt;

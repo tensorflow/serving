@@ -115,6 +115,12 @@ ServableStateMonitor::ServableStateMonitor(EventBus<ServableState>* bus,
             this->HandleEvent(state_and_time);
           })) {}
 
+ServableStateMonitor::~ServableStateMonitor() {
+  // Halt event handling first, before tearing down state that event handling
+  // may access such as 'servable_state_notification_requests_'.
+  bus_subscription_ = nullptr;
+}
+
 optional<ServableStateMonitor::ServableStateAndTime>
 ServableStateMonitor::GetStateAndTimeInternal(
     const ServableId& servable_id) const {

@@ -16,7 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/test_util/server_core_test_util.h"
 
 #include "tensorflow/core/lib/core/status_test_util.h"
-#include "tensorflow_serving/core/eager_load_policy.h"
+#include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
@@ -62,7 +62,7 @@ ServerCore::Options ServerCoreTest::GetDefaultOptions() {
   // timing out in tests.
   options.num_initial_load_threads = options.num_load_threads;
   options.aspired_version_policy =
-      std::unique_ptr<AspiredVersionPolicy>(new EagerLoadPolicy);
+      std::unique_ptr<AspiredVersionPolicy>(new AvailabilityPreservingPolicy);
   options.custom_model_config_loader = [](
       const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
       UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {

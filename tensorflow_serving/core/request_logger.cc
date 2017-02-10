@@ -17,11 +17,22 @@ limitations under the License.
 
 #include <random>
 
+#include "tensorflow/core/lib/core/error_codes.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/monitoring/counter.h"
 #include "tensorflow/core/lib/random/random.h"
+#include "tensorflow_serving/apis/model.pb.h"
 
 namespace tensorflow {
 namespace serving {
+namespace {
+
+auto* request_log_count = monitoring::Counter<2>::New(
+    "/tensorflow/serving/request_log_count",
+    "The total number of requests logged from the model server sliced "
+    "down by model_name and status code.",
+    "model_name", "status_code");
+}
 
 RequestLogger::RequestLogger(const LoggingConfig& logging_config,
                              std::unique_ptr<LogCollector> log_collector)
@@ -34,10 +45,21 @@ Status RequestLogger::Log(const google::protobuf::Message& request,
                           const LogMetadata& log_metadata) {
   const double sampling_rate =
       logging_config_.sampling_config().sampling_rate();
+  LogMetadata log_metadata_with_config = log_metadata;
+  *log_metadata_with_config.mutable_sampling_config() =
+      logging_config_.sampling_config();
   if (uniform_sampler_.Sample(sampling_rate)) {
-    std::unique_ptr<google::protobuf::Message> log;
-    TF_RETURN_IF_ERROR(CreateLogMessage(request, response, log_metadata, &log));
-    TF_RETURN_IF_ERROR(log_collector_->CollectMessage(*log));
+    const auto status = [&]() {
+      std::unique_ptr<google::protobuf::Message> log;
+      TF_RETURN_IF_ERROR(
+          CreateLogMessage(request, response, log_metadata_with_config, &log));
+      return log_collector_->CollectMessage(*log);
+    }();
+    request_log_count
+        ->GetCell(log_metadata.model_spec().name(),
+                  error::Code_Name(status.code()))
+        ->IncrementBy(1);
+    return status;
   }
   return Status::OK();
 }

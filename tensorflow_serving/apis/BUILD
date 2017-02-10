@@ -24,6 +24,49 @@ load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 
 serving_proto_library(
+    name = "get_model_metadata_proto",
+    srcs = ["get_model_metadata.proto"],
+    cc_api_version = 2,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":model_proto",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@protobuf//:cc_wkt_protos",
+    ],
+)
+
+serving_proto_library_py(
+    name = "get_model_metadata_proto_py_pb2",
+    srcs = ["get_model_metadata.proto"],
+    proto_library = "get_model_metadata_proto",
+    deps = [
+        "@org_tensorflow//tensorflow/core:protos_all_py",
+    ],
+)
+
+serving_proto_library(
+    name = "input_proto",
+    srcs = ["input.proto"],
+    cc_api_version = 2,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@protobuf//:cc_wkt_protos",
+    ],
+)
+
+serving_proto_library_py(
+    name = "input_proto_py_pb2",
+    srcs = ["input.proto"],
+    proto_library = "input_proto",
+    deps = [
+        "@org_tensorflow//tensorflow/core:protos_all_py",
+    ],
+)
+
+serving_proto_library(
     name = "model_proto",
     srcs = ["model.proto"],
     cc_api_version = 2,
@@ -72,12 +115,84 @@ serving_proto_library(
     go_api_version = 2,
     java_api_version = 2,
     deps = [
+        ":classification_proto",
+        ":get_model_metadata_proto",
         ":predict_proto",
+        ":regression_proto",
     ],
 )
 
 py_library(
     name = "prediction_service_proto_py_pb2",
     srcs = ["prediction_service_pb2.py"],
-    deps = [":predict_proto_py_pb2"],
+    deps = [
+        ":classification_proto_py_pb2",
+        ":get_model_metadata_proto_py_pb2",
+        ":predict_proto_py_pb2",
+        ":regression_proto_py_pb2",
+    ],
+)
+
+serving_proto_library(
+    name = "classification_proto",
+    srcs = ["classification.proto"],
+    cc_api_version = 2,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":input_proto",
+        ":model_proto",
+    ],
+)
+
+serving_proto_library_py(
+    name = "classification_proto_py_pb2",
+    srcs = ["classification.proto"],
+    proto_library = "classification_proto",
+    deps = [
+        ":input_proto_py_pb2",
+        ":model_proto_py_pb2",
+        "@org_tensorflow//tensorflow/core:protos_all_py",
+    ],
+)
+
+serving_proto_library(
+    name = "regression_proto",
+    srcs = ["regression.proto"],
+    cc_api_version = 2,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":input_proto",
+        ":model_proto",
+    ],
+)
+
+serving_proto_library_py(
+    name = "regression_proto_py_pb2",
+    srcs = ["regression.proto"],
+    proto_library = "regression_proto",
+    deps = [
+        ":input_proto_py_pb2",
+        ":model_proto_py_pb2",
+        "@org_tensorflow//tensorflow/core:protos_all_py",
+    ],
+)
+
+cc_library(
+    name = "classifier",
+    hdrs = ["classifier.h"],
+    deps = [
+        ":classification_proto",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
+    name = "regressor",
+    hdrs = ["regressor.h"],
+    deps = [
+        ":regression_proto",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
 )

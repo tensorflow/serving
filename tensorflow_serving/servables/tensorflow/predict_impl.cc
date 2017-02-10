@@ -34,7 +34,8 @@ namespace serving {
 namespace {
 
 // Implementation of Predict using the legacy SessionBundle GenericSignature.
-Status SessionBundlePredict(ServerCore* core, const PredictRequest& request,
+Status SessionBundlePredict(const RunOptions& run_options, ServerCore* core,
+                            const PredictRequest& request,
                             PredictResponse* response) {
   // Validate signatures.
   ServableHandle<SessionBundle> bundle;
@@ -111,8 +112,9 @@ Status SessionBundlePredict(ServerCore* core, const PredictRequest& request,
 
   // Run session.
   std::vector<Tensor> outputs;
-  TF_RETURN_IF_ERROR(
-      bundle->session->Run(inputs, output_tensor_names, {}, &outputs));
+  RunMetadata run_metadata;
+  TF_RETURN_IF_ERROR(bundle->session->Run(
+      run_options, inputs, output_tensor_names, {}, &outputs, &run_metadata));
 
   // Validate and return output.
   if (outputs.size() != output_tensor_names.size()) {
@@ -232,7 +234,8 @@ Status PostProcessPredictionResult(
 }
 
 // Implementation of Predict using the SavedModel SignatureDef format.
-Status SavedModelPredict(ServerCore* core, const PredictRequest& request,
+Status SavedModelPredict(const RunOptions& run_options, ServerCore* core,
+                         const PredictRequest& request,
                          PredictResponse* response) {
   // Validate signatures.
   ServableHandle<SavedModelBundle> bundle;
@@ -255,8 +258,10 @@ Status SavedModelPredict(ServerCore* core, const PredictRequest& request,
                                           &output_tensor_names,
                                           &output_tensor_aliases));
   std::vector<Tensor> outputs;
-  TF_RETURN_IF_ERROR(
-      bundle->session->Run(input_tensors, output_tensor_names, {}, &outputs));
+  RunMetadata run_metadata;
+  TF_RETURN_IF_ERROR(bundle->session->Run(run_options, input_tensors,
+                                          output_tensor_names, {}, &outputs,
+                                          &run_metadata));
 
   return PostProcessPredictionResult(signature, output_tensor_aliases, outputs,
                                      response);
@@ -264,7 +269,8 @@ Status SavedModelPredict(ServerCore* core, const PredictRequest& request,
 
 }  // namespace
 
-Status TensorflowPredictor::Predict(ServerCore* core,
+Status TensorflowPredictor::Predict(const RunOptions& run_options,
+                                    ServerCore* core,
                                     const PredictRequest& request,
                                     PredictResponse* response) {
   if (!request.has_model_spec()) {
@@ -272,9 +278,9 @@ Status TensorflowPredictor::Predict(ServerCore* core,
                               "Missing ModelSpec");
   }
   if (use_saved_model_) {
-    return SavedModelPredict(core, request, response);
+    return SavedModelPredict(run_options, core, request, response);
   }
-  return SessionBundlePredict(core, request, response);
+  return SessionBundlePredict(run_options, core, request, response);
 }
 
 }  // namespace serving

@@ -32,7 +32,7 @@ Servables do not manage their own lifecycle.
 
 Typical servables include the following:
 
-  * a TensorFlow SessionBundle (`tensorflow::Session`)
+  * a TensorFlow SavedModelBundle (`tensorflow::Session`)
   * a lookup table for embedding or vocabulary lookups
 
 #### Servable Versions
@@ -179,14 +179,16 @@ Version Policies specify the sequence of version loading and unloading within
 a single servable stream.
 
 TensorFlow Serving includes two policies that accommodate most known use-
-cases. These are the Eager Load Policy (always load new versions first), and
-the Eager Unload Policy (always unload old versions first). For simple usage
-of TensorFlow Serving where the serving availability of a model is important
-and the resource costs low, the Eager Load Policy will ensure that the new
-version is loaded and ready before unloading the old one. For sophisticated
-usage of TensorFlow Serving, for example managing versions across multiple
-server instances, the Eager Unload Policy requires the least resources (no
-extra buffer for loading new versions).
+cases. These are the Availability Preserving Policy (avoid leaving zero versions
+loaded; typically load a new version before unloading an old one), and the
+Resource Preserving Policy (avoid having two versions loaded simultaneously,
+thus requiring double the resources; unload an old version before loading a new
+one). For simple usage of TensorFlow Serving where the serving availability of a
+model is important and the resource costs low, the Availability Preserving
+Policy will ensure that the new version is loaded and ready before unloading the
+old one. For sophisticated usage of TensorFlow Serving, for example managing
+versions across multiple server instances, the Resource Preserving Policy
+requires the least resources (no extra buffer for loading new versions).
 
 ### Source
 

@@ -26,7 +26,8 @@ namespace serving {
 // Standard device types.
 namespace device_types {
 
-// CPU(s) and main memory.
+// The primary devices such as CPU(s) and main memory, as well as aspects of the
+// server as a whole.
 extern const char* const kMain;
 
 // Graphics processing unit(s).
@@ -36,6 +37,10 @@ extern const char* const kGpu;
 
 // Standard resource kinds.
 namespace resource_kinds {
+
+// If a server can accommodate at most N models, depicted as the server having N
+// "model slots", this is the number of slots needed or allocated.
+extern const char* const kNumModelSlots;
 
 // RAM in bytes.
 extern const char* const kRamBytes;

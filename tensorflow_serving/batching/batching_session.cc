@@ -126,6 +126,14 @@ class BatchingSession : public ServingSession {
              const std::vector<string>& target_node_names,
              std::vector<Tensor>* outputs) override;
 
+  // TODO(b/34971139): at the moment this method ignores run_options and
+  // run_metadata and behaves exactly like Run.
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_tensor_names,
+             const std::vector<string>& target_node_names,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata) override;
+
  private:
   explicit BatchingSession(const BatchingSessionOptions& options);
 
@@ -202,6 +210,17 @@ Status BatchingSession::Create(
 }
 
 Status BatchingSession::Run(
+    const RunOptions& run_options,
+    const std::vector<std::pair<string, Tensor>>& inputs,
+    const std::vector<string>& output_tensor_names,
+    const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
+    RunMetadata* run_metadata) {
+  LOG(WARNING) << "Currently both run_options and run_metadata are ignored, "
+               << "see b/34971139";
+  return Run(inputs, output_tensor_names, target_node_names, outputs);
+}
+
+Status BatchingSession::Run(
     const std::vector<std::pair<string, Tensor>>& inputs,
     const std::vector<string>& output_tensor_names,
     const std::vector<string>& target_node_names,
@@ -217,6 +236,9 @@ Status BatchingSession::Run(
   if (batch_scheduler_it == batch_schedulers_.end()) {
     // We have a Run() call that doesn't match one of our batching signatures.
     // Run it in-line.
+    LOG(WARNING) << "Request doesn't match any declared signature. Bypassing "
+                    "batcher. Request signature is: "
+                 << TensorSignatureDebugString(signature);
     return wrapped_->Run(inputs, output_tensor_names, target_node_names,
                          outputs);
   }

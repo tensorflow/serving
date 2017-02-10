@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_CORE_EAGER_UNLOAD_POLICY_H_
-#define TENSORFLOW_SERVING_CORE_EAGER_UNLOAD_POLICY_H_
+#ifndef TENSORFLOW_SERVING_CORE_AVAILABILITY_PRESERVING_POLICY_H_
+#define TENSORFLOW_SERVING_CORE_AVAILABILITY_PRESERVING_POLICY_H_
 
 #include <vector>
 
@@ -25,20 +25,19 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// ServablePolicy that eagerly unloads any no-longer-aspired versions of a
-// servable stream and only after done unloading, loads newly aspired versions.
+// AspiredVersionPolicy that provides servable availability with the trade-off
+// of temporary increased resource consumption while newly-aspired versions load
+// followed by newly-un-aspired versions unloading. At the same time, it tries
+// to minimize the resource usage caused by loading more versions than needed to
+// maintain availability.
 //
-// This policy minimizes resource consumption with the trade-off of temporary
-// servable unavailability while all old versions unload followed by the new
-// versions loading.
-//
-// Servables with a single version consuming the majority of their host's
-// resources must use this policy to prevent deadlock. Other typical use-cases
-// will be for multi-servable environments where clients can tolerate brief
-// interruptions to a single servable's availability on a replica.
-//
-// NB: This policy does not in any way solve cross-replica availability.
-class EagerUnloadPolicy final : public AspiredVersionPolicy {
+// Here is a detailed description of how this policy works:
+// First, if there are any unaspired loaded versions, we unload the smallest
+// such version, *unless* that is the only loaded version (to avoid compromising
+// availability).
+// Second, if there are no non-aspired versions we are permitted to unload, we
+// load the aspired new version with the highest version number.
+class AvailabilityPreservingPolicy final : public AspiredVersionPolicy {
  public:
   optional<ServableAction> GetNextAction(
       const std::vector<AspiredServableStateSnapshot>& all_versions)
@@ -48,4 +47,4 @@ class EagerUnloadPolicy final : public AspiredVersionPolicy {
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_CORE_EAGER_UNLOAD_POLICY_H_
+#endif  // TENSORFLOW_SERVING_CORE_AVAILABILITY_PRESERVING_POLICY_H_
