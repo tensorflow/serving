@@ -1,0 +1,14 @@
+model_config_list: {
+
+  config: {
+    name: "half_plus_two",
+    base_path: "${TEST_SRCDIR}/tf_serving/external/org_tensorflow/tensorflow/cc/saved_model/testdata/half_plus_two",
+    model_platform: "tensorflow"
+  },
+  config: {
+    name: "half_plus_three",
+    base_path: "${TEST_SRCDIR}/tf_serving/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_three",
+    model_platform: "tensorflow"
+  }
+
+}
