@@ -60,10 +60,10 @@ class TensorflowModelServerTest(tf.test.TestCase):
        in the configuration template file and writes it out to another file
        used by the test"""
        
-    with open(self._GetGoodConfigTemplate(), 'r') as template_file :
-      config = template_file.read().replace('${TEST_SRCDIR}', self.__TestSrcDirPath())
+    with open(self._GetGoodModelConfigTemplate(), 'r') as template_file :
+      config = template_file.read().replace('${TEST_SRCDIR}', os.environ['TEST_SRCDIR'])
 
-    with open(self._GetGoodConfigFile(), 'w') as config_file:
+    with open(self._GetGoodModelConfigFile(), 'w') as config_file:
       config_file.write(config)
     
   def setUp(self):
@@ -75,7 +75,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def tearDown(self):
     """Deletes created configuration file"""
-    os.remove(self._GetGoodConfigFile())
+    os.remove(self._GetGoodModelConfigFile())
 
   def TerminateProcs(self):
     """Terminate all processes."""
@@ -113,6 +113,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def VerifyPredictRequest(self,
                            model_server_address,
                            model_name='default',
+                           y_value=3.0,
                            specify_output=True):
     """Send PredictionService.Predict request and verify output."""
     print 'Sending Predict request...'
@@ -132,7 +133,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.assertTrue('y' in result.outputs)
     self.assertIs(types_pb2.DT_FLOAT, result.outputs['y'].dtype)
     self.assertEquals(1, len(result.outputs['y'].float_val))
-    self.assertEquals(3.0, result.outputs['y'].float_val[0])
+    self.assertEquals(y_value, result.outputs['y'].float_val[0])
 
   def _GetSavedModelBundlePath(self):
     """Returns a path to a model in SavedModel format."""
@@ -143,17 +144,17 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Returns a path to a model in SessionBundle format."""
     return os.path.join(self.testdata_dir, 'half_plus_two')
 
-  def _GetGoodConfigTemplate(self):
+  def _GetGoodModelConfigTemplate(self):
     """Returns a path to a working configuration file template"""
-    return os.path.join(self.testdata_dir, 'good_config.template')
+    return os.path.join(self.testdata_dir, 'good_model_config.txt')
 
-  def _GetGoodConfigFile(self):
+  def _GetGoodModelConfigFile(self):
     """Returns a path to a working configuration file"""
-    return os.path.join(self.testdata_dir, 'good_config.conf')
+    return os.path.join(self.testdata_dir, 'good_model_config.conf')
 
-  def _GetBadConfigFile(self):
+  def _GetBadModelConfigFile(self):
     """Returns a path to a improperly formatted configuration file"""
-    return os.path.join(self.testdata_dir, 'bad_config.conf')
+    return os.path.join(self.testdata_dir, 'bad_model_config.txt')
 
   def _TestPredict(self, model_path, use_saved_model):
     """Helper method to test prediction.
@@ -206,26 +207,26 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Test Predict against a bad SessionBundle model export."""
     self._TestBadModel(use_saved_model=False)
     
-  def testGoodFileConfig(self):
+  def testGoodModelConfig(self):
     """Test server model configuration from file works with valid configuration"""
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServerWithModelConfigFile(PickUnusedPort(),
-                                                             self._GetGoodConfigFile(),
-                                                             False) # use_saved_model
+                                                             self._GetGoodModelConfigFile(),
+                                                             True)  # use_saved_model
     time.sleep(5)
     
     # Query both models
     self.VerifyPredictRequest(model_server_address, model_name='half_plus_two')
-    self.VerifyPredictRequest(model_server_address, model_name='half_plus_two_2')
+    self.VerifyPredictRequest(model_server_address, model_name='half_plus_three', y_value=4.0)
     self.VerifyPredictRequest(model_server_address, model_name='half_plus_two', specify_output=False)
-    self.VerifyPredictRequest(model_server_address, model_name='half_plus_two_2', specify_output=False)
+    self.VerifyPredictRequest(model_server_address, model_name='half_plus_three', y_value=4.0, specify_output=False)
          
-  def testBadConfigFile(self):
+  def testBadModelConfig(self):
     """Test server model configuration from file fails for invalid file"""
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServerWithModelConfigFile(PickUnusedPort(),
-                                                             self._GetBadConfigFile(),
-                                                             False, # use_saved_model
+                                                             self._GetBadModelConfigFile(),
+                                                             True,  # use_saved_model
                                                              pipe=subprocess.PIPE)
     last_line = None
     for line in self.server_proc.stderr:
@@ -234,7 +235,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     error_message = 'Check failed: ::tensorflow::Status::OK() == ' \
                     '(ParseProtoTextFile(file, &model_config)) ' \
                     '(OK vs. Invalid argument: ' \
-                    'Invalid protobuf file: \'%s\')' % self._GetBadConfigFile()
+                    'Invalid protobuf file: \'%s\')' % self._GetBadModelConfigFile()
     
     self.assertNotEqual(last_line, None)
     self.assertGreater(last_line.find(error_message), 0)
