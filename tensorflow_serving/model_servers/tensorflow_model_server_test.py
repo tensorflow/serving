@@ -112,8 +112,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def VerifyPredictRequest(self,
                            model_server_address,
+                           expected_output,
                            model_name='default',
-                           y_value=3.0,
                            specify_output=True):
     """Send PredictionService.Predict request and verify output."""
     print 'Sending Predict request...'
@@ -133,7 +133,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.assertTrue('y' in result.outputs)
     self.assertIs(types_pb2.DT_FLOAT, result.outputs['y'].dtype)
     self.assertEquals(1, len(result.outputs['y'].float_val))
-    self.assertEquals(y_value, result.outputs['y'].float_val[0])
+    self.assertEquals(expected_output, result.outputs['y'].float_val[0])
 
   def _GetSavedModelBundlePath(self):
     """Returns a path to a model in SavedModel format."""
@@ -167,8 +167,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
                                           model_path, use_saved_model)
     time.sleep(5)
-    self.VerifyPredictRequest(model_server_address)
-    self.VerifyPredictRequest(model_server_address, specify_output=False)
+    self.VerifyPredictRequest(model_server_address, expected_output=3.0)
+    self.VerifyPredictRequest(model_server_address, 
+                              expected_output=3.0, specify_output=False)
 
   def testPredictSessionBundle(self):
     """Test PredictionService.Predict implementation with SessionBundle."""
@@ -215,11 +216,17 @@ class TensorflowModelServerTest(tf.test.TestCase):
                                                              True)  # use_saved_model
     time.sleep(5)
     
-    # Query both models
-    self.VerifyPredictRequest(model_server_address, model_name='half_plus_two')
-    self.VerifyPredictRequest(model_server_address, model_name='half_plus_three', y_value=4.0)
-    self.VerifyPredictRequest(model_server_address, model_name='half_plus_two', specify_output=False)
-    self.VerifyPredictRequest(model_server_address, model_name='half_plus_three', y_value=4.0, specify_output=False)
+    self.VerifyPredictRequest(model_server_address, 
+                              model_name='half_plus_two', expected_output=3.0)
+    self.VerifyPredictRequest(model_server_address, 
+                              model_name='half_plus_two', expected_output=3.0,
+                              specify_output=False)
+    
+    self.VerifyPredictRequest(model_server_address, 
+                              model_name='half_plus_three', expected_output=4.0)
+    self.VerifyPredictRequest(model_server_address, 
+                              model_name='half_plus_three', expected_output=4.0,
+                              specify_output=False)
          
   def testBadModelConfig(self):
     """Test server model configuration from file fails for invalid file"""
