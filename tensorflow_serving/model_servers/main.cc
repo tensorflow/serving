@@ -41,7 +41,6 @@ limitations under the License.
 // To specify model name (default "default"): --model_name=my_name
 // To specify port (default 8500): --port=my_port
 // To enable batching (default disabled): --enable_batching
-// To log on stderr (default disabled): --alsologtostderr
 
 #include <unistd.h>
 #include <iostream>

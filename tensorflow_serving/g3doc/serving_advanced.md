@@ -263,7 +263,7 @@ server.
 $>mkdir /tmp/monitored
 $>cp -r /tmp/mnist_model/1 /tmp/monitored
 $>bazel build //tensorflow_serving/model_servers:tensorflow_model_server
-$>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --enable_batching --port=9000 --model_name=mnist --model_base_path=/tmp/monitored --logtostderr
+$>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --enable_batching --port=9000 --model_name=mnist --model_base_path=/tmp/monitored
 ~~~
 
 The server will emit log messages every one second that say
