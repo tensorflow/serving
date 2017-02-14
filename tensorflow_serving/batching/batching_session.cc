@@ -126,8 +126,14 @@ class BatchingSession : public ServingSession {
              const std::vector<string>& target_node_names,
              std::vector<Tensor>* outputs) override;
 
-  // TODO(b/34971139): at the moment this method ignores run_options and
-  // run_metadata and behaves exactly like Run.
+  // RunOptions handling:
+  // Since multiple of these Run() calls get backed into a single call to the
+  // underlying Session's Run(), we select an arbitrary 'run_options' (typically
+  // they are the same across calls). The exception is the timeout; we take the
+  // largest value (after subtracting time spent in the batching queue).
+  //
+  // RunMetadata:
+  // We copy the batched call's RunMetadata to each non-batched call's output.
   Status Run(const RunOptions& run_options,
              const std::vector<std::pair<string, Tensor>>& inputs,
              const std::vector<string>& output_tensor_names,
@@ -210,21 +216,21 @@ Status BatchingSession::Create(
 }
 
 Status BatchingSession::Run(
+    const std::vector<std::pair<string, Tensor>>& inputs,
+    const std::vector<string>& output_tensor_names,
+    const std::vector<string>& target_node_names,
+    std::vector<Tensor>* outputs) {
+  RunMetadata run_metadata;
+  return Run(RunOptions(), inputs, output_tensor_names, target_node_names,
+             outputs, &run_metadata);
+}
+
+Status BatchingSession::Run(
     const RunOptions& run_options,
     const std::vector<std::pair<string, Tensor>>& inputs,
     const std::vector<string>& output_tensor_names,
     const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
     RunMetadata* run_metadata) {
-  LOG(WARNING) << "Currently both run_options and run_metadata are ignored, "
-               << "see b/34971139";
-  return Run(inputs, output_tensor_names, target_node_names, outputs);
-}
-
-Status BatchingSession::Run(
-    const std::vector<std::pair<string, Tensor>>& inputs,
-    const std::vector<string>& output_tensor_names,
-    const std::vector<string>& target_node_names,
-    std::vector<Tensor>* outputs) {
   if (!target_node_names.empty()) {
     return errors::PermissionDenied(
         "BatchingSession does not support target nodes");
@@ -239,8 +245,8 @@ Status BatchingSession::Run(
     LOG(WARNING) << "Request doesn't match any declared signature. Bypassing "
                     "batcher. Request signature is: "
                  << TensorSignatureDebugString(signature);
-    return wrapped_->Run(inputs, output_tensor_names, target_node_names,
-                         outputs);
+    return wrapped_->Run(run_options, inputs, output_tensor_names,
+                         target_node_names, outputs, run_metadata);
   }
   BatchScheduler<BatchingSessionTask>* batch_scheduler =
       batch_scheduler_it->second.get();
@@ -250,12 +256,15 @@ Status BatchingSession::Run(
   Notification done;
   Status status;
   auto task = std::unique_ptr<BatchingSessionTask>(new BatchingSessionTask);
+  task->enqueue_time_micros = Env::Default()->NowMicros();
+  task->run_options = run_options;
   TF_RETURN_IF_ERROR(ComputeInputSize(inputs, &task->zeroth_dim_size));
   task->inputs = &inputs;
   task->output_tensor_names = &output_tensor_names;
   task->done = &done;
   task->status = &status;
   task->outputs = outputs;
+  task->run_metadata = run_metadata;
 
   TF_RETURN_IF_ERROR(batch_scheduler->Schedule(&task));
   done.WaitForNotification();
@@ -457,17 +466,54 @@ void BatchingSession::ProcessBatch(
     return;
   }
 
-  Status status;
+  const uint64 dequeue_time_micros = Env::Default()->NowMicros();
 
   // Regardless of the outcome, we need to propagate the status to the
   // individual tasks and signal that they are done. We use MakeCleanup() to
   // ensure that this happens no matter how we exit the method below.
+  Status status;
   auto finally = MakeCleanup([&status, &batch] {
     for (int i = 0; i < batch->num_tasks(); ++i) {
       *batch->mutable_task(i)->status = status;
       batch->mutable_task(i)->done->Notify();
     }
   });
+
+  // Make sure we have at least one task that hasn't exceeded its timeout from
+  // queue time alone, and find the latest task deadline which we'll use for the
+  // overall batch.
+  bool all_tasks_timeout_exceeded = true;
+  uint64 batch_deadline_micros = 0;
+  for (int i = 0; i < batch->num_tasks(); ++i) {
+    const BatchingSessionTask& task = batch->task(i);
+    // If the caller doesn't populate RunOptions, the timeout is 0 by default.
+    // Interpret that as "no timeout" i.e. infinity.
+    const int64 task_timeout_micros =
+        task.run_options.timeout_in_ms() <= 0
+            ? INT_MAX
+            : task.run_options.timeout_in_ms() * 1000;
+    const uint64 task_deadline_micros =
+        task.enqueue_time_micros + task_timeout_micros;
+    if (task_deadline_micros > dequeue_time_micros) {
+      all_tasks_timeout_exceeded = false;
+      if (task_deadline_micros > batch_deadline_micros) {
+        batch_deadline_micros = task_deadline_micros;
+      }
+    }
+  }
+  if (all_tasks_timeout_exceeded) {
+    status = Status(error::RESOURCE_EXHAUSTED,
+                    "Run() timeout exceeded while waiting in batching queue");
+    return;
+  }
+
+  RunOptions run_options = batch->task(0).run_options;
+  if (batch_deadline_micros == INT_MAX) {
+    run_options.set_timeout_in_ms(0);
+  } else {
+    run_options.set_timeout_in_ms(
+        (batch_deadline_micros - dequeue_time_micros) / 1000);
+  }
 
   std::vector<std::pair<string, Tensor>> merged_inputs;
   status = MergeInputTensors(signature, *batch, &merged_inputs);
@@ -478,8 +524,13 @@ void BatchingSession::ProcessBatch(
   const std::vector<string> output_tensor_names(
       signature.output_tensors.begin(), signature.output_tensors.end());
   std::vector<Tensor> combined_outputs;
-  status = wrapped_->Run(merged_inputs, output_tensor_names,
-                         {} /* target node names */, &combined_outputs);
+  RunMetadata run_metadata;
+  status = wrapped_->Run(run_options, merged_inputs, output_tensor_names,
+                         {} /* target node names */, &combined_outputs,
+                         &run_metadata);
+  for (int i = 0; i < batch->num_tasks(); ++i) {
+    *(batch->mutable_task(i)->run_metadata) = run_metadata;
+  }
   if (!status.ok()) {
     return;
   }

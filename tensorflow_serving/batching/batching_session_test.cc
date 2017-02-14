@@ -36,6 +36,7 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
+using ::testing::HasSubstr;
 using ::testing::UnorderedElementsAre;
 
 // A wrapper around a Session that captures the batch size.
@@ -49,9 +50,19 @@ class BatchSizeCapturingSession : public ServingSession {
              const std::vector<string>& output_tensor_names,
              const std::vector<string>& target_node_names,
              std::vector<Tensor>* outputs) override {
+    RunMetadata run_metadata;
+    return Run(RunOptions(), inputs, output_tensor_names, target_node_names,
+               outputs, &run_metadata);
+  }
+
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_tensor_names,
+             const std::vector<string>& target_node_names,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
     latest_batch_size_ = inputs[0].second.shape().dim_size(0);
-    return wrapped_->Run(inputs, output_tensor_names, target_node_names,
-                         outputs);
+    return wrapped_->Run(run_options, inputs, output_tensor_names,
+                         target_node_names, outputs, run_metadata);
   }
 
   int latest_batch_size() const { return latest_batch_size_; }
@@ -390,6 +401,61 @@ TEST(BatchingSessionTest, MultipleSignatures) {
   EXPECT_EQ(0, schedulers[0]->NumEnqueuedTasks());
   run_signature1_request();
   EXPECT_EQ(0, schedulers[1]->NumEnqueuedTasks());
+}
+
+TEST(BatchingSessionTest, EnqueuedLongerThanTimeout) {
+  BatchScheduler<BatchingSessionTask>* scheduler = nullptr;
+  auto create_scheduler = [&scheduler](
+      std::function<void(std::unique_ptr<Batch<BatchingSessionTask>>)>
+          process_batch_callback,
+      std::unique_ptr<BatchScheduler<BatchingSessionTask>>* new_scheduler) {
+    BasicBatchScheduler<BatchingSessionTask>::Options options;
+    options.max_batch_size = 4;                      // fits two 2-unit tasks
+    options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
+    options.num_batch_threads = 1;
+    std::unique_ptr<BasicBatchScheduler<BatchingSessionTask>> basic_scheduler;
+    TF_RETURN_IF_ERROR(BasicBatchScheduler<BatchingSessionTask>::Create(
+        options, process_batch_callback, &basic_scheduler));
+    scheduler = basic_scheduler.get();
+    *new_scheduler = std::move(basic_scheduler);
+    return Status::OK();
+  };
+  BatchingSessionOptions batching_session_options;
+  std::unique_ptr<Session> batching_session;
+  TF_CHECK_OK(CreateBatchingSession(
+      batching_session_options, {{{{"x"}, {"y"}}, create_scheduler}},
+      CreateHalfPlusTwoSession(), &batching_session));
+  ASSERT_FALSE(scheduler == nullptr);
+
+  // Enqueue a request with a timeout specified via RunOptions.
+  Notification request_returned;
+  auto issue_request = [&batching_session, &request_returned] {
+    Tensor input = test::AsTensor<float>({100.0f, 42.0f}, {2});
+    RunOptions run_options;
+    run_options.set_timeout_in_ms(1);
+    std::vector<Tensor> outputs;
+    RunMetadata run_metadata;
+    const Status status =
+        batching_session->Run(run_options, {{"x", input}}, {"y"} /* outputs */,
+                              {} /* target nodes */, &outputs, &run_metadata);
+    EXPECT_FALSE(status.ok());
+    EXPECT_EQ(error::RESOURCE_EXHAUSTED, status.code());
+    EXPECT_THAT(
+        status.error_message(),
+        HasSubstr("Run() timeout exceeded while waiting in batching queue"));
+    request_returned.Notify();
+  };
+  std::unique_ptr<Thread> request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "request_thread", [&] { issue_request(); }));
+  while (scheduler->NumEnqueuedTasks() != 1) {
+    Env::Default()->SleepForMicroseconds(100);
+  }
+  // Sleep for longer than the request's timeout, so that when it does finally
+  // get dequeued for batch processing it has already exceeded its timeout.
+  Env::Default()->SleepForMicroseconds(10 * 1000);
+  // Tear down the batcher, so that it schedules the pending batch.
+  batching_session = nullptr;
+  request_returned.WaitForNotification();
 }
 
 }  // namespace
