@@ -93,7 +93,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
     command += ' --model_base_path=' + model_path
     command += ' --use_saved_model=' + str(use_saved_model).lower()
     command += ' --enable_batching=' + str(enable_batching).lower()
-    command += ' --alsologtostderr'
     print command
     self.server_proc = subprocess.Popen(shlex.split(command))
     print 'Server started'
