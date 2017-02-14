@@ -145,13 +145,13 @@ TEST(BatchingSessionTest, TensorSignatureFromSignatureDefs) {
   const SignatureDef signature_def_0 =
       CreateSignatureDef({{"x0", "x1"}, {"y0", "y1"}});
   const SignatureDef signature_def_1 =
-      CreateSignatureDef({{"x1", "x2"}, {"y1", "y3"}});
+      CreateSignatureDef({{"x1", "x2"}, {"y1", "y2"}});
   const TensorSignature tensor_signature =
       TensorSignatureFromSignatureDefs({signature_def_0, signature_def_1});
   EXPECT_THAT(tensor_signature.input_tensors,
               UnorderedElementsAre("x0", "x1", "x2"));
   EXPECT_THAT(tensor_signature.output_tensors,
-              UnorderedElementsAre("y0", "y1", "y3"));
+              UnorderedElementsAre("y0", "y1", "y2"));
 }
 
 TEST(BatchingSessionTest, Basic) {
@@ -199,9 +199,9 @@ TEST(BatchingSessionTest, RequestThatDoesntMatchSignatureGetsRunAnyway) {
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
   TF_ASSERT_OK(CreateBasicBatchingSession(
-      schedule_options, batching_session_options, {{"x2"}, {"y3"}},
+      schedule_options, batching_session_options, {{"x2"}, {"y2"}},
       CreateHalfPlusTwoSession(), &batching_session));
-  // Issue a request using x/y, which doesn't match the x2/y3 signature.
+  // Issue a request using x/y, which doesn't match the x2/y2 signature.
   TestSingleRequest(100.0f, 42.0f, batching_session.get());
 }
 
@@ -299,7 +299,7 @@ TEST(BatchingSessionTest, DifferentOrderForInputAndOutputTensors) {
   BatchingSessionOptions batching_session_options;
   std::unique_ptr<Session> batching_session;
   TF_ASSERT_OK(CreateBasicBatchingSession(
-      schedule_options, batching_session_options, {{"x", "x2"}, {"y", "y3"}},
+      schedule_options, batching_session_options, {{"x", "x2"}, {"y", "y2"}},
       CreateHalfPlusTwoSession(), &batching_session));
 
   const Tensor input0 = test::AsTensor<float>({8.0f, 6.0f}, {2});
@@ -311,7 +311,7 @@ TEST(BatchingSessionTest, DifferentOrderForInputAndOutputTensors) {
       Env::Default()->StartThread(ThreadOptions(), "first_request_thread", [&] {
         std::vector<Tensor> outputs;
         TF_ASSERT_OK(batching_session->Run({{"x", input0}, {"x2", input1}},
-                                           {"y", "y3"} /* outputs */,
+                                           {"y", "y2"} /* outputs */,
                                            {} /* target nodes */, &outputs));
         ASSERT_EQ(2, outputs.size());
         test::ExpectTensorEqual<float>(expected_output0, outputs[0]);
@@ -321,7 +321,7 @@ TEST(BatchingSessionTest, DifferentOrderForInputAndOutputTensors) {
       ThreadOptions(), "second_request_thread", [&] {
         std::vector<Tensor> outputs;
         TF_ASSERT_OK(batching_session->Run({{"x2", input1}, {"x", input0}},
-                                           {"y3", "y"} /* outputs */,
+                                           {"y2", "y"} /* outputs */,
                                            {} /* target nodes */, &outputs));
         ASSERT_EQ(2, outputs.size());
         test::ExpectTensorEqual<float>(expected_output1, outputs[0]);
@@ -331,7 +331,7 @@ TEST(BatchingSessionTest, DifferentOrderForInputAndOutputTensors) {
       Env::Default()->StartThread(ThreadOptions(), "third_request_thread", [&] {
         std::vector<Tensor> outputs;
         TF_ASSERT_OK(batching_session->Run({{"x2", input1}, {"x", input0}},
-                                           {"y", "y3"} /* outputs */,
+                                           {"y", "y2"} /* outputs */,
                                            {} /* target nodes */, &outputs));
         ASSERT_EQ(2, outputs.size());
         test::ExpectTensorEqual<float>(expected_output0, outputs[0]);
@@ -360,7 +360,7 @@ TEST(BatchingSessionTest, MultipleSignatures) {
   std::unique_ptr<Session> batching_session;
   TF_CHECK_OK(CreateBatchingSession(
       batching_session_options, {{{{"x"}, {"y"}}, create_scheduler},
-                                 {{{"x2"}, {"y3"}}, create_scheduler}},
+                                 {{{"x2"}, {"y2"}}, create_scheduler}},
       CreateHalfPlusTwoSession(), &batching_session));
   ASSERT_EQ(2, schedulers.size());
 
@@ -378,7 +378,7 @@ TEST(BatchingSessionTest, MultipleSignatures) {
     Tensor input = test::AsTensor<float>({100.0f, 42.0f}, {2});
     Tensor expected_output = test::AsTensor<float>({53.0f, 24.0f}, {2});
     std::vector<Tensor> outputs;
-    TF_ASSERT_OK(batching_session->Run({{"x2", input}}, {"y3"} /* outputs */,
+    TF_ASSERT_OK(batching_session->Run({{"x2", input}}, {"y2"} /* outputs */,
                                        {} /* target nodes */, &outputs));
     ASSERT_EQ(1, outputs.size());
     test::ExpectTensorEqual<float>(expected_output, outputs[0]);
