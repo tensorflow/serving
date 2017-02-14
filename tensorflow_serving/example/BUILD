@@ -83,5 +83,6 @@ cc_binary(
     ],
     deps = [
         "//tensorflow_serving/apis:prediction_service_proto",
+        "@org_tensorflow//tensorflow/core:framework",
     ],
 )
