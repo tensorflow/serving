@@ -30,7 +30,10 @@ RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
 
 RUN pip install enum34 futures mock six && \
     pip install --pre 'protobuf>=3.0.0a3' && \
-    pip install -i https://testpypi.python.org/simple --pre grpcio
+    pip install -i https://testpypi.python.org/simple --pre grpcio && \
+    pip install flask && \
+    pip install jupyter && \
+    pip install requests
 
 # Set up Bazel.
 
@@ -67,4 +70,21 @@ RUN mkdir /bazel && \
     cd / && \
     rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
 
+EXPOSE 8888 9000 3000
+
+RUN cd ~ && \
+    git clone --recurse-submodules https://github.com/avloss/serving && \
+    cd serving/tensorflow && \
+    yes "" | ./configure && \
+    cd .. && \
+    bazel build -c opt --local_resources 2048,.5,1.0 tensorflow_serving/... && \
+    mkdir ~/jupyter_notebooks
+
+RUN export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.10.0-cp27-none-linux_x86_64.whl && \
+    pip install --ignore-installed --upgrade $TF_BINARY_URL
+
+RUN ln -s ~/serving/tensorflow_serving/example/setup_flask_client.sh ~/setup_flask_client.sh
+
+# may be create "ln" here?
+#~/serving/tensorflow_serving/example/setup_flask_client.sh
 CMD ["/bin/bash"]
