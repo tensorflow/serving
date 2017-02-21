@@ -41,6 +41,7 @@ serving_proto_library_py(
     srcs = ["get_model_metadata.proto"],
     proto_library = "get_model_metadata_proto",
     deps = [
+        ":model_proto_py_pb2",
         "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
 )
