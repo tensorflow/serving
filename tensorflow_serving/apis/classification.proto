@@ -19,7 +19,6 @@ message Class {
 // List of classes for a single item
 // (tensorflow.Example or tensorflow.InferenceExample.features).
 message Classifications {
-  // List of Classifications for an item sorted by decreasing score.
   repeated Class classes = 1;
 }
 
