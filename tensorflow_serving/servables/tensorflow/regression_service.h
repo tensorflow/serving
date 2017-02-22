@@ -27,8 +27,7 @@ namespace serving {
 // tensorflow_serving/apis/regression-service.proto.
 class TensorflowRegressionServiceImpl final {
  public:
-  static Status Regress(ServerCore* core, const bool use_saved_model,
-                        const RegressionRequest& request,
+  static Status Regress(ServerCore* core, const RegressionRequest& request,
                         RegressionResponse* response);
 };
 

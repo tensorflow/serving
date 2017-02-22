@@ -27,8 +27,7 @@ namespace serving {
 // tensorflow_serving/apis/classification-service.proto.
 class TensorflowClassificationServiceImpl {
  public:
-  static Status Classify(ServerCore* core, const bool use_saved_model,
-                         const ClassificationRequest& request,
+  static Status Classify(ServerCore* core, const ClassificationRequest& request,
                          ClassificationResponse* response);
 };
 
