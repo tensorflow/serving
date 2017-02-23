@@ -130,6 +130,9 @@ namespace serving {
 //     individual per-request units.
 //  6. Perform any post-processing in the batch thread and/or request thread.
 //
+//
+// PERFORMANCE TUNING: See README.md.
+//
 template <typename TaskType>
 class BasicBatchScheduler : public BatchScheduler<TaskType> {
  public:
@@ -156,24 +159,22 @@ class BasicBatchScheduler : public BatchScheduler<TaskType> {
     // above.)
     //
     // The goal is to smooth out batch sizes under low request rates, and thus
-    // avoid latency spikes. The default value of 1 millisecond was determined
-    // via benchmarking. You may need to adjust it to suit your workload and
-    // environment.
-    int64 batch_timeout_micros = 1 * 1000 /* 1 millisecond */;
+    // avoid latency spikes.
+    int64 batch_timeout_micros = 0;
 
     // The name to use for the pool of batch threads.
     string thread_pool_name = {"batch_threads"};
 
     // The number of threads to use to process batches.
     // Must be >= 1, and should be tuned carefully.
-    int num_batch_threads = 1;
+    int num_batch_threads = port::NumSchedulableCPUs();
 
     // The maximum allowable number of enqueued (accepted by Schedule() but
     // not yet being processed on a batch thread) tasks in terms of batches.
     // If this limit is reached, Schedule() will return an UNAVAILABLE error.
     // See the class documentation above for guidelines on how to tune this
     // parameter.
-    int max_enqueued_batches = 1;
+    int max_enqueued_batches = 10;
 
     // The following options are typically only overridden by test code.
 
