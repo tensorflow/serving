@@ -1,0 +1,12 @@
+model_config_list: {
+  config: {
+    name: "half_plus_two",
+    base_path: "${TEST_HALF_PLUS_TWO_DIR}",
+    model_platform: "tensorflow"
+  },
+  config: {
+    name: "half_plus_three",
+    base_path: "${TEST_HALF_PLUS_THREE_DIR}",
+    model_platform: "tensorflow"
+  }
+}

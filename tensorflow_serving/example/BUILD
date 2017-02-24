@@ -115,3 +115,16 @@ py_binary(
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )
+
+cc_binary(
+    name = "inception_client_cc",
+    srcs = [
+        "inception_client.cc",
+    ],
+    deps = [
+        "//tensorflow_serving/apis:prediction_service_proto",
+        "@grpc//:grpc++",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@protobuf//:protobuf_lite",
+    ],
+)

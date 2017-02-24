@@ -52,6 +52,12 @@ exports_files([
     "half_plus_two/00000123/export.data-00000-of-00001",
     "half_plus_two/00000123/export.index",
     "half_plus_two/00000123/export.meta",
+    "saved_model_half_plus_three/00000123/saved_model.pb",
+    "saved_model_half_plus_three/00000123/assets/foo.txt",
+    "saved_model_half_plus_three/00000123/variables/variables.data-00000-of-00001",
+    "saved_model_half_plus_three/00000123/variables/variables.index",
     "bad_half_plus_two/00000123/export",
     "bad_half_plus_two/00000123/export.meta",
+    "good_model_config.txt",
+    "bad_model_config.txt",
 ])
