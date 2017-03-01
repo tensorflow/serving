@@ -400,6 +400,9 @@ cc_library(
     name = "predict_impl",
     srcs = ["predict_impl.cc"],
     hdrs = ["predict_impl.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":get_model_metadata_impl",
         "//tensorflow_serving/apis:get_model_metadata_proto",
