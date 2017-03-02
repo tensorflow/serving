@@ -160,24 +160,18 @@ Status PreProcessPrediction(const SignatureDef& signature,
   }
   for (auto& input : request.inputs()) {
     const string& alias = input.first;
-    // When using a Prediction signature, tensors are aliased and the name is
-    // retrieved from the Tensor value, otherwise the alias (key) is the name.
-    string tensor_name = alias;
-    if (signature.method_name() == kPredictMethodName) {
-      auto iter = signature.inputs().find(alias);
-      if (iter == signature.inputs().end()) {
-        return tensorflow::Status(
-            tensorflow::error::INVALID_ARGUMENT,
-            "input tensor alias not found in signature: " + alias);
-      }
-      tensor_name = iter->second.name();
+    auto iter = signature.inputs().find(alias);
+    if (iter == signature.inputs().end()) {
+      return tensorflow::Status(
+          tensorflow::error::INVALID_ARGUMENT,
+          "input tensor alias not found in signature: " + alias);
     }
     Tensor tensor;
     if (!tensor.FromProto(input.second)) {
       return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
                                 "tensor parsing error: " + alias);
     }
-    inputs->emplace_back(std::make_pair(tensor_name, tensor));
+    inputs->emplace_back(std::make_pair(iter->second.name(), tensor));
   }
 
   // Prepare run target.
@@ -204,13 +198,7 @@ Status PreProcessPrediction(const SignatureDef& signature,
   if (output_tensor_names->empty()) {
     for (auto& iter : signature.outputs()) {
       output_tensor_names->emplace_back(iter.second.name());
-      // When using a Prediction signature, the tensor output alias is the key
-      // in the map, otherwise we don't use aliases and just go by actual tensor
-      // names.
-      const string alias = signature.method_name() == kPredictMethodName
-                               ? iter.first
-                               : iter.second.name();
-      output_tensor_aliases->emplace_back(alias);
+      output_tensor_aliases->emplace_back(iter.first);
     }
   }
   return Status::OK();

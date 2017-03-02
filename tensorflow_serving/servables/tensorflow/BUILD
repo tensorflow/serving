@@ -401,8 +401,6 @@ cc_library(
     srcs = ["predict_impl.cc"],
     hdrs = ["predict_impl.h"],
     deps = [
-        ":get_model_metadata_impl",
-        "//tensorflow_serving/apis:get_model_metadata_proto",
         "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/model_servers:server_core",
@@ -479,6 +477,7 @@ cc_test(
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
     deps = [
         ":predict_impl",
@@ -490,5 +489,174 @@ cc_test(
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
+    name = "classifier",
+    srcs = ["classifier.cc"],
+    hdrs = ["classifier.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":util",
+        "//tensorflow_serving/apis:classification_proto",
+        "//tensorflow_serving/apis:classifier",
+        "//tensorflow_serving/apis:input_proto",
+        "//tensorflow_serving/apis:model_proto",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
+        "@org_tensorflow//tensorflow/core:all_kernels",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+    ],
+)
+
+cc_library(
+    name = "classification_service",
+    srcs = ["classification_service.cc"],
+    hdrs = ["classification_service.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":classifier",
+        "//tensorflow_serving/apis:classification_proto",
+        "//tensorflow_serving/apis:classifier",
+        "//tensorflow_serving/core:servable_handle",
+        "//tensorflow_serving/model_servers:server_core",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
+    name = "regression_service",
+    srcs = ["regression_service.cc"],
+    hdrs = ["regression_service.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":regressor",
+        "//tensorflow_serving/apis:regression_proto",
+        "//tensorflow_serving/apis:regressor",
+        "//tensorflow_serving/core:servable_handle",
+        "//tensorflow_serving/model_servers:server_core",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
+    name = "regressor",
+    srcs = ["regressor.cc"],
+    hdrs = ["regressor.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":util",
+        "//tensorflow_serving/apis:input_proto",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/apis:regression_proto",
+        "//tensorflow_serving/apis:regressor",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
+        "@org_tensorflow//tensorflow/core:all_kernels",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+    ],
+)
+
+cc_test(
+    name = "regressor_test",
+    size = "medium",
+    srcs = ["regressor_test.cc"],
+    deps = [
+        ":regressor",
+        "//tensorflow_serving/apis:input_proto",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/apis:regression_proto",
+        "//tensorflow_serving/core/test_util:mock_session",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:bundle_shim",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
+        "@protobuf//:protobuf_lite",
+    ],
+)
+
+cc_test(
+    name = "classifier_test",
+    size = "medium",
+    srcs = ["classifier_test.cc"],
+    deps = [
+        ":classifier",
+        "//tensorflow_serving/apis:classification_proto",
+        "//tensorflow_serving/apis:input_proto",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/core/test_util:mock_session",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:bundle_shim",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
+        "@protobuf//:protobuf_lite",
+    ],
+)
+
+cc_library(
+    name = "util",
+    srcs = ["util.cc"],
+    hdrs = ["util.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "//tensorflow_serving/apis:input_proto",
+        "@org_tensorflow//tensorflow/core:all_kernels",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+    ],
+)
+
+cc_test(
+    name = "util_test",
+    size = "small",
+    srcs = ["util_test.cc"],
+    deps = [
+        ":util",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
     ],
 )
