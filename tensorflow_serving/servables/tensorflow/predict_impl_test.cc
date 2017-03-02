@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
@@ -41,18 +42,20 @@ const char kOutputTensorKey[] = "y";
 class PredictImplTest : public ::testing::TestWithParam<bool> {
  public:
   static void SetUpTestCase() {
-    TF_ASSERT_OK(CreateServerCore(
-        "/servables/tensorflow/testdata/half_plus_two", false, &server_core_));
     TF_ASSERT_OK(
-        CreateServerCore("/servables/tensorflow/testdata/bad_half_plus_two",
-                         false, &server_core_bad_model_));
+        CreateServerCore(test_util::TestSrcDirPath(
+                             "/servables/tensorflow/testdata/half_plus_two"),
+                         false, &server_core_));
+    const string bad_half_plus_two_path = test_util::TestSrcDirPath(
+        "/servables/tensorflow/testdata/bad_half_plus_two");
+    TF_ASSERT_OK(CreateServerCore(bad_half_plus_two_path, false,
+                                  &server_core_bad_model_));
 
-    TF_ASSERT_OK(
-        CreateServerCore("/servables/tensorflow/testdata/half_plus_two", true,
-                         &saved_model_server_core_));
-    TF_ASSERT_OK(
-        CreateServerCore("/servables/tensorflow/testdata/bad_half_plus_two",
-                         true, &saved_model_server_core_bad_model_));
+    TF_ASSERT_OK(CreateServerCore(test_util::TensorflowTestSrcDirPath(
+                                      "cc/saved_model/testdata/half_plus_two"),
+                                  true, &saved_model_server_core_));
+    TF_ASSERT_OK(CreateServerCore(bad_half_plus_two_path, true,
+                                  &saved_model_server_core_bad_model_));
   }
 
   static void TearDownTestCase() {
@@ -68,7 +71,7 @@ class PredictImplTest : public ::testing::TestWithParam<bool> {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);
-    model_config->set_base_path(test_util::TestSrcDirPath(model_path));
+    model_config->set_base_path(model_path);
     model_config->set_model_platform(kTensorFlowModelPlatform);
 
     // For ServerCore Options, we leave servable_state_monitor_creator
@@ -288,13 +291,12 @@ TEST_P(PredictImplTest, PredictionWithNamedRegressionSignature) {
   ModelSpec* model_spec = request.mutable_model_spec();
   model_spec->set_name(kTestModelName);
   model_spec->mutable_version()->set_value(kTestModelVersion);
-  model_spec->set_signature_name("regress");
+  model_spec->set_signature_name("regress_x2_to_y3");
 
   TensorProto tensor_proto;
   tensor_proto.add_float_val(2.0);
   tensor_proto.set_dtype(tensorflow::DT_FLOAT);
-  (*request.mutable_inputs())["Placeholder:0"] = tensor_proto;
-
+  (*request.mutable_inputs())[kRegressInputs] = tensor_proto;
   TensorflowPredictor predictor(GetParam());
   // This request is expected to work with SavedModel, but not SessionBundle.
   if (GetParam()) {
@@ -308,15 +310,15 @@ TEST_P(PredictImplTest, PredictionWithNamedRegressionSignature) {
     return;
   }
   TensorProto output_tensor_proto;
-  output_tensor_proto.add_float_val(3);
+  output_tensor_proto.add_float_val(4);
   output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
   output_tensor_proto.mutable_tensor_shape();
   PredictResponse expected_response;
-  (*expected_response.mutable_outputs())["Add:0"] = output_tensor_proto;
+  (*expected_response.mutable_outputs())[kRegressOutputs] = output_tensor_proto;
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 
-// Test all ClassifierTest test cases with both SessionBundle and SavedModel.
+// Test all PredictImplTest test cases with both SessionBundle and SavedModel.
 INSTANTIATE_TEST_CASE_P(UseSavedModel, PredictImplTest, ::testing::Bool());
 
 }  // namespace
