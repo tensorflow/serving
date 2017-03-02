@@ -114,17 +114,20 @@ using tensorflow::serving::PredictionService;
 
 namespace {
 
-tensorflow::Status ParseProtoTextFile(const string& file, google::protobuf::Message* message) {
+tensorflow::Status ParseProtoTextFile(const string& file,
+                                      google::protobuf::Message* message) {
   std::unique_ptr<tensorflow::ReadOnlyMemoryRegion> file_data;
   TF_RETURN_IF_ERROR(
-    tensorflow::Env::Default()->NewReadOnlyMemoryRegionFromFile(file,
-	                                                            &file_data));
+      tensorflow::Env::Default()->NewReadOnlyMemoryRegionFromFile(file,
+                                                                  &file_data));
   string file_data_str(static_cast<const char*>(file_data->data()),
-	                   file_data->length());
-  if(tensorflow::protobuf::TextFormat::ParseFromString(file_data_str, message)) {
-	  return tensorflow::Status::OK();
+                       file_data->length());
+  if (tensorflow::protobuf::TextFormat::ParseFromString(file_data_str,
+                                                        message)) {
+    return tensorflow::Status::OK();
   } else {
-	  return tensorflow::errors::InvalidArgument("Invalid protobuf file: '", file, "'");
+    return tensorflow::errors::InvalidArgument("Invalid protobuf file: '", file,
+                                               "'");
   }
 }
 
@@ -155,10 +158,8 @@ ModelServerConfig BuildSingleModelConfig(
   return config;
 }
 
-ModelServerConfig BuildModelConfigFromFile(
-    const string& file) {
-  LOG(INFO) << "Building from config file: "
-            << file;
+ModelServerConfig BuildModelConfigFromFile(const string& file) {
+  LOG(INFO) << "Building from config file: " << file;
 
   ModelServerConfig model_config;
   TF_CHECK_OK(ParseProtoTextFile(file, &model_config));
@@ -291,19 +292,21 @@ int main(int argc, char** argv) {
                        "models in that file. (If used, --model_name, "
                        "--model_base_path and --model_version_policy "
                        "are ignored.)"),
-      tensorflow::Flag("model_name", &model_name, "name of model (ignored "
-    		           "if --model_config_file flag is set"),
+      tensorflow::Flag("model_name", &model_name,
+                       "name of model (ignored "
+                       "if --model_config_file flag is set"),
       tensorflow::Flag("model_base_path", &model_base_path,
                        "path to export (ignored if --model_config_file flag "
-    		           "is set, otherwise required)"),
-      tensorflow::Flag("model_version_policy", &model_version_policy,
-                       "The version policy which determines the number of model "
-                       "versions to be served at the same time. The default "
-                       "value is LATEST_VERSION, which will serve only the "
-                       "latest version. "
-                       "See file_system_storage_path_source.proto for "
-                       "the list of possible VersionPolicy. (Ignored if "
-    		           "--model_config_file flag is set)"),
+                       "is set, otherwise required)"),
+      tensorflow::Flag(
+          "model_version_policy", &model_version_policy,
+          "The version policy which determines the number of model "
+          "versions to be served at the same time. The default "
+          "value is LATEST_VERSION, which will serve only the "
+          "latest version. "
+          "See file_system_storage_path_source.proto for "
+          "the list of possible VersionPolicy. (Ignored if "
+          "--model_config_file flag is set)"),
       tensorflow::Flag("file_system_poll_wait_seconds",
                        &file_system_poll_wait_seconds,
                        "interval in seconds between each poll of the file "

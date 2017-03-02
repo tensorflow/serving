@@ -56,25 +56,30 @@ class TensorflowModelServerTest(tf.test.TestCase):
                         'tf_serving/tensorflow_serving', relative_path)
 
   def __BuildModelConfigFile(self):
-    """Substitutes placeholder for test directory with test directory path
-       in the configuration template file and writes it out to another file
-       used by the test"""
-       
-    with open(self._GetGoodModelConfigTemplate(), 'r') as template_file :
-      config = template_file.read().replace('${TEST_SRCDIR}', os.environ['TEST_SRCDIR'])
+    """Write a config file to disk for use in tests.
 
+    Substitutes placeholder for test directory with test directory path
+    in the configuration template file and writes it out to another file
+    used by the test.
+    """
+    with open(self._GetGoodModelConfigTemplate(), 'r') as template_file:
+      config = template_file.read().replace('${TEST_HALF_PLUS_TWO_DIR}',
+                                            self._GetSavedModelBundlePath())
+      config = config.replace('${TEST_HALF_PLUS_THREE_DIR}',
+                              self._GetSavedModelHalfPlusThreePath())
     with open(self._GetGoodModelConfigFile(), 'w') as config_file:
       config_file.write(config)
-    
+
   def setUp(self):
     """Sets up integration test parameters."""
     self.binary_dir = self.__TestSrcDirPath('model_servers')
     self.testdata_dir = self.__TestSrcDirPath('servables/tensorflow/testdata')
+    self.temp_dir = tf.test.get_temp_dir()
     self.server_proc = None
     self.__BuildModelConfigFile()
 
   def tearDown(self):
-    """Deletes created configuration file"""
+    """Deletes created configuration file."""
     os.remove(self._GetGoodModelConfigFile())
 
   def TerminateProcs(self):
@@ -98,14 +103,18 @@ class TensorflowModelServerTest(tf.test.TestCase):
     print 'Server started'
     return 'localhost:' + str(port)
 
-  def RunServerWithModelConfigFile(self, port, model_config_file, use_saved_model, pipe=None):
+  def RunServerWithModelConfigFile(self,
+                                   port,
+                                   model_config_file,
+                                   use_saved_model,
+                                   pipe=None):
     """Run tensorflow_model_server using test config."""
     print 'Starting test server...'
     command = os.path.join(self.binary_dir, 'tensorflow_model_server')
     command += ' --port=' + str(port)
     command += ' --model_config_file=' + model_config_file
     command += ' --use_saved_model=' + str(use_saved_model).lower()
-    
+
     print command
     self.server_proc = subprocess.Popen(shlex.split(command), stderr=pipe)
     print 'Server started'
@@ -144,22 +153,26 @@ class TensorflowModelServerTest(tf.test.TestCase):
     return os.path.join(os.environ['TEST_SRCDIR'], 'tf_serving/external/org_tensorflow/tensorflow/',
                         'cc/saved_model/testdata/half_plus_two')
 
+  def _GetSavedModelHalfPlusThreePath(self):
+    """Returns a path to a half_plus_three model in SavedModel format."""
+    return os.path.join(self.testdata_dir, 'saved_model_half_plus_three')
+
   def _GetSessionBundlePath(self):
     """Returns a path to a model in SessionBundle format."""
     return os.path.join(self.testdata_dir, 'half_plus_two')
 
   def _GetGoodModelConfigTemplate(self):
-    """Returns a path to a working configuration file template"""
+    """Returns a path to a working configuration file template."""
     return os.path.join(self.testdata_dir, 'good_model_config.txt')
 
   def _GetGoodModelConfigFile(self):
-    """Returns a path to a working configuration file"""
-    return os.path.join(self.testdata_dir, 'good_model_config.conf')
+    """Returns a path to a working configuration file."""
+    return os.path.join(self.temp_dir, 'good_model_config.conf')
 
   def _GetBadModelConfigFile(self):
-    """Returns a path to a improperly formatted configuration file"""
+    """Returns a path to a improperly formatted configuration file."""
     return os.path.join(self.testdata_dir, 'bad_model_config.txt')
-  
+
   def _TestPredict(self, model_path, use_saved_model, enable_batching):
     """Helper method to test prediction.
 
@@ -174,8 +187,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
                                           enable_batching)
     time.sleep(5)
     self.VerifyPredictRequest(model_server_address, expected_output=3.0)
-    self.VerifyPredictRequest(model_server_address, 
-                              expected_output=3.0, specify_output=False)
+    self.VerifyPredictRequest(
+        model_server_address, expected_output=3.0, specify_output=False)
 
   def testPredictSessionBundle(self):
     """Test PredictionService.Predict implementation with SessionBundle."""
@@ -211,7 +224,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
         enable_batching=False)
     time.sleep(5)
     with self.assertRaises(face.AbortionError) as error:
-      self.VerifyPredictRequest(model_server_address)
+      self.VerifyPredictRequest(model_server_address, expected_output=3.0)
     self.assertIs(beta_interfaces.StatusCode.FAILED_PRECONDITION,
                   error.exception.code)
 
@@ -222,47 +235,52 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def _TestBadModelSessionBundle(self):
     """Test Predict against a bad SessionBundle model export."""
     self._TestBadModel(use_saved_model=False)
-    
+
   def testGoodModelConfig(self):
-    """Test server model configuration from file works with valid configuration"""
+    """Test server configuration from file works with valid configuration."""
     atexit.register(self.TerminateProcs)
-    model_server_address = self.RunServerWithModelConfigFile(PickUnusedPort(),
-                                                             self._GetGoodModelConfigFile(),
-                                                             True)  # use_saved_model
+    model_server_address = self.RunServerWithModelConfigFile(
+        PickUnusedPort(), self._GetGoodModelConfigFile(),
+        True)  # use_saved_model
     time.sleep(5)
-    
-    self.VerifyPredictRequest(model_server_address, 
-                              model_name='half_plus_two', expected_output=3.0)
-    self.VerifyPredictRequest(model_server_address, 
-                              model_name='half_plus_two', expected_output=3.0,
-                              specify_output=False)
-    
-    self.VerifyPredictRequest(model_server_address, 
-                              model_name='half_plus_three', expected_output=4.0)
-    self.VerifyPredictRequest(model_server_address, 
-                              model_name='half_plus_three', expected_output=4.0,
-                              specify_output=False)
-         
+
+    self.VerifyPredictRequest(
+        model_server_address, model_name='half_plus_two', expected_output=3.0)
+    self.VerifyPredictRequest(
+        model_server_address,
+        model_name='half_plus_two',
+        expected_output=3.0,
+        specify_output=False)
+
+    self.VerifyPredictRequest(
+        model_server_address, model_name='half_plus_three', expected_output=4.0)
+    self.VerifyPredictRequest(
+        model_server_address,
+        model_name='half_plus_three',
+        expected_output=4.0,
+        specify_output=False)
+
   def testBadModelConfig(self):
-    """Test server model configuration from file fails for invalid file"""
+    """Test server model configuration from file fails for invalid file."""
     atexit.register(self.TerminateProcs)
-    model_server_address = self.RunServerWithModelConfigFile(PickUnusedPort(),
-                                                             self._GetBadModelConfigFile(),
-                                                             True,  # use_saved_model
-                                                             pipe=subprocess.PIPE)
+    self.RunServerWithModelConfigFile(
+        PickUnusedPort(),
+        self._GetBadModelConfigFile(),
+        True,  # use_saved_model
+        pipe=subprocess.PIPE)
     last_line = None
     for line in self.server_proc.stderr:
-        last_line = line
-    
-    error_message = 'Check failed: ::tensorflow::Status::OK() == ' \
-                    '(ParseProtoTextFile(file, &model_config)) ' \
-                    '(OK vs. Invalid argument: ' \
-                    'Invalid protobuf file: \'%s\')' % self._GetBadModelConfigFile()
-    
+      last_line = line
+
+    error_message = (
+        'Check failed: ::tensorflow::Status::OK() == '
+        '(ParseProtoTextFile(file, &model_config)) '
+        '(OK vs. Invalid argument: '
+        'Invalid protobuf file: \'%s\')') % self._GetBadModelConfigFile()
+
     self.assertNotEqual(last_line, None)
     self.assertGreater(last_line.find(error_message), 0)
     # self.assertEquals(self.server_proc.poll(), 1)
 
-    
 if __name__ == '__main__':
   tf.test.main()

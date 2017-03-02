@@ -183,3 +183,14 @@ cc_library(
         "@protobuf//:protobuf",
     ],
 )
+
+cc_library(
+    name = "mock_session",
+    testonly = 1,
+    hdrs = ["mock_session.h"],
+    deps = [
+        "//external:gtest",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
