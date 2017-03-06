@@ -400,6 +400,9 @@ cc_library(
     name = "predict_impl",
     srcs = ["predict_impl.cc"],
     hdrs = ["predict_impl.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/core:servable_handle",
