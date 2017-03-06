@@ -26,6 +26,8 @@ namespace test_util {
 
 constexpr char kTestModelName[] = "test_model";
 constexpr int kTestModelVersion = 123;
+// The name of the platform associated with FakeLoaderSourceAdapter.
+constexpr char kFakePlatform[] = "fake_servable";
 
 // ServerCoreTest is parameterized based on the TestType enum defined below.
 // TODO(b/32248363): remove the parameter and TestType after we switch Model
@@ -45,9 +47,6 @@ class ServerCoreTest : public ::testing::TestWithParam<int> {
   };
 
  protected:
-  // The name of the platform associated with FakeLoaderSourceAdapter.
-  static constexpr char kFakePlatform[] = "fake_servable";
-
   // Returns ModelServerConfig that contains test model for the fake platform.
   ModelServerConfig GetTestModelServerConfigForFakePlatform();
 
@@ -66,6 +65,10 @@ class ServerCoreTest : public ::testing::TestWithParam<int> {
   // Returns test type. This is the parameter of this test.
   TestType GetTestType() { return static_cast<TestType>(GetParam()); }
 };
+
+// Creates a ServerCore object with sane defaults.
+Status CreateServerCore(const ModelServerConfig& config,
+                        std::unique_ptr<ServerCore>* server_core);
 
 }  // namespace test_util
 }  // namespace serving
