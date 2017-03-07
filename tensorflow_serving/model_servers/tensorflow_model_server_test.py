@@ -34,8 +34,10 @@ import tensorflow as tf
 
 from tensorflow.core.framework import types_pb2
 from tensorflow.python.platform import flags
+from tensorflow_serving.apis import classification_pb2
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2
+from tensorflow_serving.apis import regression_pb2
 
 FLAGS = flags.FLAGS
 
@@ -173,6 +175,71 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Returns a path to a improperly formatted configuration file."""
     return os.path.join(self.testdata_dir, 'bad_model_config.txt')
 
+  def testClassify(self):
+    """Test PredictionService.Classify implementation."""
+    model_path = self._GetSavedModelBundlePath()
+    use_saved_model = True
+    enable_batching = False
+
+    atexit.register(self.TerminateProcs)
+    model_server_address = self.RunServer(PickUnusedPort(), 'default',
+                                          model_path, use_saved_model,
+                                          enable_batching)
+    time.sleep(5)
+
+    print 'Sending Classify request...'
+    # Prepare request
+    request = classification_pb2.ClassificationRequest()
+    request.model_spec.name = 'default'
+    request.model_spec.signature_name = 'classify_x_to_y'
+
+    example = request.input.example_list.examples.add()
+    example.features.feature['x'].float_list.value.extend([2.0])
+
+    # Send request
+    host, port = model_server_address.split(':')
+    channel = implementations.insecure_channel(host, int(port))
+    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    result = stub.Classify(request, 5.0)  # 5 secs timeout
+    # Verify response
+    self.assertEquals(1, len(result.result.classifications))
+    self.assertEquals(1, len(result.result.classifications[0].classes))
+    expected_output = 3.0
+    self.assertEquals(expected_output,
+                      result.result.classifications[0].classes[0].score)
+
+  def testRegress(self):
+    """Test PredictionService.Regress implementation."""
+    model_path = self._GetSavedModelBundlePath()
+    use_saved_model = True
+    enable_batching = False
+
+    atexit.register(self.TerminateProcs)
+    model_server_address = self.RunServer(PickUnusedPort(), 'default',
+                                          model_path, use_saved_model,
+                                          enable_batching)
+    time.sleep(5)
+
+    print 'Sending Regress request...'
+    # Prepare request
+    request = regression_pb2.RegressionRequest()
+    request.model_spec.name = 'default'
+    request.model_spec.signature_name = 'regress_x_to_y'
+
+    example = request.input.example_list.examples.add()
+    example.features.feature['x'].float_list.value.extend([2.0])
+
+    # Send request
+    host, port = model_server_address.split(':')
+    channel = implementations.insecure_channel(host, int(port))
+    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    result = stub.Regress(request, 5.0)  # 5 secs timeout
+    # Verify response
+    self.assertEquals(1, len(result.result.regressions))
+    expected_output = 3.0
+    self.assertEquals(expected_output,
+                      result.result.regressions[0].value)
+
   def _TestPredict(self, model_path, use_saved_model, enable_batching):
     """Helper method to test prediction.
 
@@ -273,10 +340,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
       last_line = line
 
     error_message = (
-        'Check failed: ::tensorflow::Status::OK() == '
-        '(ParseProtoTextFile(file, &model_config)) '
-        '(OK vs. Invalid argument: '
-        'Invalid protobuf file: \'%s\')') % self._GetBadModelConfigFile()
+        'Non-OK-status: ParseProtoTextFile(file, &model_config) status: '
+        'Invalid argument: Invalid protobuf file: \'%s\'') % (
+            self._GetBadModelConfigFile())
 
     self.assertNotEqual(last_line, None)
     self.assertGreater(last_line.find(error_message), 0)

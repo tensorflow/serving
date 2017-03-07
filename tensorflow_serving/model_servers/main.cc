@@ -70,8 +70,10 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/servables/tensorflow/classification_service.h"
 #include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
+#include "tensorflow_serving/servables/tensorflow/regression_service.h"
 
 namespace grpc {
 class ServerCompletionQueue;
@@ -92,6 +94,8 @@ using tensorflow::serving::ServableState;
 using tensorflow::serving::ServerCore;
 using tensorflow::serving::SessionBundleConfig;
 using tensorflow::serving::Target;
+using tensorflow::serving::TensorflowClassificationServiceImpl;
+using tensorflow::serving::TensorflowRegressionServiceImpl;
 using tensorflow::serving::TensorflowPredictor;
 using tensorflow::serving::UniquePtrWithDeps;
 using tensorflow::string;
@@ -226,15 +230,25 @@ class PredictionServiceImpl final : public PredictionService::Service {
   grpc::Status Classify(ServerContext* context,
                         const ClassificationRequest* request,
                         ClassificationResponse* response) override {
-    return ToGRPCStatus(tensorflow::errors::Unimplemented(
-        "Classify API is not implemented"));
+    const grpc::Status status =
+        ToGRPCStatus(TensorflowClassificationServiceImpl::Classify(
+            core_.get(), *request, response));
+    if (!status.ok()) {
+      VLOG(1) << "Classify request failed: " << status.error_message();
+    }
+    return status;
   }
 
   grpc::Status Regress(ServerContext* context,
                        const RegressionRequest* request,
                        RegressionResponse* response) override {
-    return ToGRPCStatus(tensorflow::errors::Unimplemented(
-        "Regress API is not implemented"));
+    const grpc::Status status =
+        ToGRPCStatus(TensorflowRegressionServiceImpl::Regress(
+            core_.get(), *request, response));
+    if (!status.ok()) {
+      VLOG(1) << "Regress request failed: " << status.error_message();
+    }
+    return status;
   }
 
  private:
