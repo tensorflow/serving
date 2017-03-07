@@ -80,7 +80,7 @@ py_binary(
         "inception_export.py",
     ],
     deps = [
-        "@inception_model//inception",
+        "@inception//inception",
         "@org_tensorflow//tensorflow:tensorflow_py",
         "@org_tensorflow//tensorflow/contrib/session_bundle:exporter",
     ],
@@ -92,7 +92,7 @@ py_binary(
         "inception_saved_model.py",
     ],
     deps = [
-        "@inception_model//inception",
+        "@inception//inception",
         "@org_tensorflow//tensorflow:tensorflow_py",
         "@org_tensorflow//tensorflow/python/saved_model:builder",
         "@org_tensorflow//tensorflow/python/saved_model:constants",
