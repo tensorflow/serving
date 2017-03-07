@@ -147,6 +147,7 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_model_config.txt",
+        "//tensorflow_serving/servables/tensorflow/testdata:batching_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:good_model_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",

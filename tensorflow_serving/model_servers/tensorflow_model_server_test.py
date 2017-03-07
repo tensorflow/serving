@@ -91,7 +91,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
       self.server_proc.terminate()
 
   def RunServer(self, port, model_name, model_path, use_saved_model,
-                enable_batching):
+                batching_parameters_file=''):
     """Run tensorflow_model_server using test config."""
     print 'Starting test server...'
     command = os.path.join(self.binary_dir, 'tensorflow_model_server')
@@ -99,7 +99,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
     command += ' --model_name=' + model_name
     command += ' --model_base_path=' + model_path
     command += ' --use_saved_model=' + str(use_saved_model).lower()
-    command += ' --enable_batching=' + str(enable_batching).lower()
+    if batching_parameters_file:
+      command += ' --enable_batching'
+      command += ' --batching_parameters_file=' + batching_parameters_file
     print command
     self.server_proc = subprocess.Popen(shlex.split(command))
     print 'Server started'
@@ -175,16 +177,18 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Returns a path to a improperly formatted configuration file."""
     return os.path.join(self.testdata_dir, 'bad_model_config.txt')
 
+  def _GetBatchingParametersFile(self):
+    """Returns a path to a batching configuration file."""
+    return os.path.join(self.testdata_dir, 'batching_config.txt')
+
   def testClassify(self):
     """Test PredictionService.Classify implementation."""
     model_path = self._GetSavedModelBundlePath()
     use_saved_model = True
-    enable_batching = False
 
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path, use_saved_model,
-                                          enable_batching)
+                                          model_path, use_saved_model)
     time.sleep(5)
 
     print 'Sending Classify request...'
@@ -212,12 +216,10 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Test PredictionService.Regress implementation."""
     model_path = self._GetSavedModelBundlePath()
     use_saved_model = True
-    enable_batching = False
 
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path, use_saved_model,
-                                          enable_batching)
+                                          model_path, use_saved_model)
     time.sleep(5)
 
     print 'Sending Regress request...'
@@ -240,18 +242,20 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.assertEquals(expected_output,
                       result.result.regressions[0].value)
 
-  def _TestPredict(self, model_path, use_saved_model, enable_batching):
+  def _TestPredict(self, model_path, use_saved_model,
+                   batching_parameters_file=''):
     """Helper method to test prediction.
 
     Args:
       model_path:      Path to the model on disk.
       use_saved_model: Whether the model server should use SavedModel.
-      enable_batching: Whether model server should use BatchingSession
+      batching_parameters_file: Batching parameters file to use (if left empty,
+                                batching is not enabled).
     """
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
                                           model_path, use_saved_model,
-                                          enable_batching)
+                                          batching_parameters_file)
     time.sleep(5)
     self.VerifyPredictRequest(model_server_address, expected_output=3.0)
     self.VerifyPredictRequest(
@@ -259,26 +263,25 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def testPredictSessionBundle(self):
     """Test PredictionService.Predict implementation with SessionBundle."""
-    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=False,
-                      enable_batching=False)
+    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=False)
 
   def testPredictBatchingSessionBundle(self):
     """Test PredictionService.Predict implementation with SessionBundle."""
-    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=False,
-                      enable_batching=True)
+    self._TestPredict(self._GetSessionBundlePath(),
+                      use_saved_model=False,
+                      batching_parameters_file=
+                      self._GetBatchingParametersFile())
 
   def testPredictSavedModel(self):
     """Test PredictionService.Predict implementation with SavedModel."""
-    self._TestPredict(self._GetSavedModelBundlePath(), use_saved_model=True,
-                      enable_batching=False)
+    self._TestPredict(self._GetSavedModelBundlePath(), use_saved_model=True)
 
   def testPredictUpconvertedSavedModel(self):
     """Test PredictionService.Predict implementation.
 
     Using a SessionBundle converted to a SavedModel.
     """
-    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=True,
-                      enable_batching=False)
+    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=True)
 
   def _TestBadModel(self, use_saved_model):
     """Helper method to test against a bad model export."""
@@ -287,8 +290,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     # case of SavedModel, the export will get up-converted to a SavedModel.
     model_server_address = self.RunServer(
         PickUnusedPort(), 'default',
-        os.path.join(self.testdata_dir, 'bad_half_plus_two'), use_saved_model,
-        enable_batching=False)
+        os.path.join(self.testdata_dir, 'bad_half_plus_two'), use_saved_model)
     time.sleep(5)
     with self.assertRaises(face.AbortionError) as error:
       self.VerifyPredictRequest(model_server_address, expected_output=3.0)
@@ -340,9 +342,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
       last_line = line
 
     error_message = (
-        'Non-OK-status: ParseProtoTextFile(file, &model_config) status: '
-        'Invalid argument: Invalid protobuf file: \'%s\'') % (
-            self._GetBadModelConfigFile())
+        'Invalid protobuf file: \'%s\'') % self._GetBadModelConfigFile()
 
     self.assertNotEqual(last_line, None)
     self.assertGreater(last_line.find(error_message), 0)

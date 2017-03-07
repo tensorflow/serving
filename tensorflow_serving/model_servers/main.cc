@@ -41,6 +41,7 @@ limitations under the License.
 // To specify model name (default "default"): --model_name=my_name
 // To specify port (default 8500): --port=my_port
 // To enable batching (default disabled): --enable_batching
+// To override the default batching parameters: --batching_parameters_file
 
 #include <unistd.h>
 #include <iostream>
@@ -162,13 +163,13 @@ ModelServerConfig BuildSingleModelConfig(
   return config;
 }
 
-ModelServerConfig BuildModelConfigFromFile(const string& file) {
-  LOG(INFO) << "Building from config file: " << file;
-
-  ModelServerConfig model_config;
-  TF_CHECK_OK(ParseProtoTextFile(file, &model_config));
-  return model_config;
+template <typename ProtoType>
+ProtoType ReadProtoFromFile(const string& file) {
+  ProtoType proto;
+  TF_CHECK_OK(ParseProtoTextFile(file, &proto));
+  return proto;
 }
+
 int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
   return gpr_time_to_millis(
       gpr_time_sub(gpr_convert_clock_type(deadline, GPR_CLOCK_MONOTONIC),
@@ -285,6 +286,7 @@ tensorflow::serving::PlatformConfigMap ParsePlatformConfigMap(
 int main(int argc, char** argv) {
   tensorflow::int32 port = 8500;
   bool enable_batching = false;
+  tensorflow::string batching_parameters_file;
   tensorflow::string model_name = "default";
   tensorflow::int32 file_system_poll_wait_seconds = 1;
   tensorflow::string model_base_path;
@@ -300,6 +302,10 @@ int main(int argc, char** argv) {
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &port, "port to listen on"),
       tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
+      tensorflow::Flag("batching_parameters_file", &batching_parameters_file,
+                       "If non-empty, read an ascii BatchingParameters "
+                       "protobuf from the supplied file name and use the "
+                       "contained values instead of the defaults."),
       tensorflow::Flag("model_config_file", &model_config_file,
                        "If non-empty, read an ascii ModelServerConfig "
                        "protobuf from the supplied file name, and serve the "
@@ -370,7 +376,8 @@ int main(int argc, char** argv) {
     options.model_server_config = BuildSingleModelConfig(
         model_name, model_base_path, parsed_version_policy);
   } else {
-    options.model_server_config = BuildModelConfigFromFile(model_config_file);
+    options.model_server_config =
+        ReadProtoFromFile<ModelServerConfig>(model_config_file);
   }
 
   if (platform_config_file.empty()) {
@@ -379,8 +386,17 @@ int main(int argc, char** argv) {
     if (enable_batching) {
       BatchingParameters* batching_parameters =
           session_bundle_config.mutable_batching_parameters();
-      batching_parameters->mutable_thread_pool_name()->set_value(
-          "model_server_batch_threads");
+      if (batching_parameters_file.empty()) {
+        batching_parameters->mutable_thread_pool_name()->set_value(
+            "model_server_batch_threads");
+      } else {
+        *batching_parameters =
+            ReadProtoFromFile<BatchingParameters>(batching_parameters_file);
+      }
+    } else if (!batching_parameters_file.empty()) {
+      CHECK(false)  // Crash ok
+          << "You supplied --batching_parameters_file without "
+             "--enable_batching";
     }
 
     session_bundle_config.mutable_session_config()
