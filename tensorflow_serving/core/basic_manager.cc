@@ -253,17 +253,20 @@ void BasicManager::UnloadAllServables() {
     for (auto it = managed_map_.begin(); it != managed_map_.end(); ++it) {
       LoaderHarness* const harness = it->second.get();
       if (harness->state() == LoaderHarness::State::kReady) {
-        harness->UnloadRequested();
-        harness->StartQuiescing();
-        harness->DoneQuiescing();
-        harness->Unload();
+        // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
+        harness->UnloadRequested().IgnoreError();
+        harness->StartQuiescing().IgnoreError();
+        harness->DoneQuiescing().IgnoreError();
+        harness->Unload().IgnoreError();
       }
       if (harness->state() == LoaderHarness::State::kQuiescing) {
-        harness->DoneQuiescing();
-        harness->Unload();
+        // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
+        harness->DoneQuiescing().IgnoreError();
+        harness->Unload().IgnoreError();
       }
       if (harness->state() == LoaderHarness::State::kQuiesced) {
-        harness->Unload();
+        // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
+        harness->Unload().IgnoreError();
       }
     }
   }
@@ -667,8 +670,10 @@ Status BasicManager::ApproveUnload(LoaderHarness* harness) {
 Status BasicManager::ReserveResources(LoaderHarness* harness,
                                       mutex_lock* mu_lock) {
   while (true) {
-    resource_tracker_->RecomputeUsedResources(
-        GetLoadersCurrentlyUsingResources());
+    // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
+    resource_tracker_
+        ->RecomputeUsedResources(GetLoadersCurrentlyUsingResources())
+        .IgnoreError();
     bool resources_reserved;
     // We retry reserving resources because it may involve transiently failing
     // operations like file-reads.

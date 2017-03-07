@@ -55,7 +55,7 @@ Status WriteHashmapToFile(const HashmapSourceAdapterConfig::Format format,
         const string& key = entry.first;
         const string& value = entry.second;
         const string line = strings::StrCat(key, ",", value, "\n");
-        file->Append(line);
+        TF_CHECK_OK(file->Append(line));
       }
       break;
     }
