@@ -208,8 +208,8 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
   Status Create() {
     if (GetParam()) {
       std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-      internal::ConvertSessionBundleToSavedModelBundle(*bundle_,
-                                                       saved_model.get());
+      TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+          *bundle_, saved_model.get()));
       return CreateRegressorFromSavedModelBundle(std::move(saved_model),
                                                  &regressor_);
     } else {

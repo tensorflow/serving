@@ -8,7 +8,7 @@ load('@org_tensorflow//tensorflow:workspace.bzl', 'tf_workspace')
 # as a submodule, it'll likely be '__workspace_dir__ + "/serving"'
 def tf_serving_workspace():
   native.local_repository(
-    name = "inception_model",
+    name = "inception",
     path = "tf_models/inception",
   )
 

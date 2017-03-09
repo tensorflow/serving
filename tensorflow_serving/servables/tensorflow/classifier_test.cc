@@ -263,8 +263,8 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
   Status Create() {
     if (GetParam()) {
       std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-      internal::ConvertSessionBundleToSavedModelBundle(*bundle_,
-                                                       saved_model.get());
+      TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+          *bundle_, saved_model.get()));
       return CreateClassifierFromSavedModelBundle(std::move(saved_model),
                                                   &classifier_);
     } else {

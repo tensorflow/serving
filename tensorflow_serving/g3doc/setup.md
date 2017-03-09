@@ -83,8 +83,8 @@ cd tensorflow
 cd ..
 ~~~
 
-Consult the [TensorFlow install instructions](
-https://github.com/tensorflow/tensorflow/blob/master/tensorflow/g3doc/get_started/os_setup.md)
+Consult the
+[TensorFlow install instructions](https://www.tensorflow.org/install/)
 if you encounter any issues with setting up TensorFlow or its dependencies.
 
 

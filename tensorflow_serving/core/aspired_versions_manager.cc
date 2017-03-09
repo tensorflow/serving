@@ -376,7 +376,8 @@ void AspiredVersionsManager::FlushServables() {
            state_snapshot.state == LoaderHarness::State::kError) &&
           !state_snapshot.additional_state->is_aspired) {
         VLOG(1) << "Removing " << state_snapshot.id << "from BasicManager";
-        basic_manager_->StopManagingServable(state_snapshot.id);
+        // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
+        basic_manager_->StopManagingServable(state_snapshot.id).IgnoreError();
       }
     }
   }
