@@ -376,7 +376,14 @@ Status BatchingSession::MergeInputTensors(
       return errors::Internal(
           "One or more tasks does not conform to batch signature");
     }
-    merged_inputs->push_back({tensor_name, tensor::Concat(tensors->second)});
+    Tensor concated;
+    const Status concat_status = tensor::TryConcat(tensors->second, &concated);
+    DCHECK(concat_status.ok()) << concat_status.ToString();
+    if (!concat_status.ok()) {
+      return errors::Internal("Tensor concat operation failed: ",
+                              concat_status.ToString());
+    }
+    merged_inputs->push_back({tensor_name, concated});
   }
 
   return Status::OK();
@@ -426,8 +433,14 @@ Status BatchingSession::SplitOutputTensors(
           "0th dimension sizes of the input tensors");
     }
 
-    std::vector<Tensor> split_tensor =
-        tensor::Split(tensor, task_sizes_plus_optional_padding);
+    std::vector<Tensor> split_tensor;
+    const Status split_status = tensor::TrySplit(
+        tensor, task_sizes_plus_optional_padding, &split_tensor);
+    DCHECK(split_status.ok()) << split_status.ToString();
+    if (!split_status.ok()) {
+      return errors::Internal("Tensor split operation failed: ",
+                              split_status.ToString());
+    }
     DCHECK_EQ(split_tensor.size(), task_sizes_plus_optional_padding.size());
     if (split_tensor.size() != task_sizes_plus_optional_padding.size()) {
       return errors::Internal(

@@ -85,7 +85,8 @@ TEST_P(ServerCoreTest, ErroringModel) {
   source_adapter_config.set_error_message("injected error");
   ::google::protobuf::Any source_adapter_config_any;
   source_adapter_config_any.PackFrom(source_adapter_config);
-  (*(*options.platform_config_map.mutable_platform_configs())[kFakePlatform]
+  (*(*options.platform_config_map
+          .mutable_platform_configs())[test_util::kFakePlatform]
         .mutable_source_adapter_config()) = source_adapter_config_any;
   options.model_server_config = GetTestModelServerConfigForFakePlatform();
   std::unique_ptr<ServerCore> server_core;

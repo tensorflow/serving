@@ -110,7 +110,9 @@ SUPPORTED_TENSORFLOW_OPS = [
 
 TENSORFLOW_DEPS = [
     "@org_tensorflow//tensorflow/core:tensorflow",
+    "//tensorflow_serving/servables/tensorflow:classification_service",
     "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
+    "//tensorflow_serving/servables/tensorflow:regression_service",
     "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
     "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter",
     "//tensorflow_serving/servables/tensorflow:predict_impl",
@@ -145,6 +147,7 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_model_config.txt",
+        "//tensorflow_serving/servables/tensorflow/testdata:batching_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:good_model_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",

@@ -60,4 +60,5 @@ exports_files([
     "bad_half_plus_two/00000123/export.meta",
     "good_model_config.txt",
     "bad_model_config.txt",
+    "batching_config.txt",
 ])

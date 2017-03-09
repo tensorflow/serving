@@ -72,6 +72,7 @@ cc_library(
         "//tensorflow_serving/core:storage_path",
         "@org_tensorflow//tensorflow/core:lib",
     ],
+    alwayslink = 1,
 )
 
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")

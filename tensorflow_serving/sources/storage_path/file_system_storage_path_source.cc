@@ -272,7 +272,9 @@ Status FileSystemStoragePathSource::UpdateConfig(
   }
 
   if (aspired_versions_callback_) {
-    UnaspireServables(GetDeletedServables(config_, normalized_config));
+    // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
+    UnaspireServables(GetDeletedServables(config_, normalized_config))
+        .IgnoreError();
   }
   config_ = normalized_config;
 

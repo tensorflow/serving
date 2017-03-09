@@ -29,7 +29,41 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-constexpr char ServerCoreTest::kFakePlatform[];
+namespace {
+
+ServerCore::Options GetDefaultOptions(const bool use_saved_model) {
+  ServerCore::Options options;
+  options.file_system_poll_wait_seconds = 0;
+  // Reduce the number of initial load threads to be num_load_threads to avoid
+  // timing out in tests.
+  options.num_initial_load_threads = options.num_load_threads;
+  options.aspired_version_policy =
+      std::unique_ptr<AspiredVersionPolicy>(new AvailabilityPreservingPolicy);
+  options.custom_model_config_loader =
+      [](const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
+         UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
+    return Status::OK();
+  };
+
+  options.platform_config_map =
+      CreateTensorFlowPlatformConfigMap(SessionBundleConfig(), use_saved_model);
+  ::google::protobuf::Any fake_source_adapter_config;
+  fake_source_adapter_config.PackFrom(
+      test_util::FakeLoaderSourceAdapterConfig());
+  (*(*options.platform_config_map.mutable_platform_configs())[kFakePlatform]
+        .mutable_source_adapter_config()) = fake_source_adapter_config;
+
+  return options;
+}
+
+}  // namespace
+
+Status CreateServerCore(const ModelServerConfig& config,
+                        std::unique_ptr<ServerCore>* server_core) {
+  ServerCore::Options options = GetDefaultOptions(true /*use_saved_model */);
+  options.model_server_config = config;
+  return ServerCore::Create(std::move(options), server_core);
+}
 
 ModelServerConfig ServerCoreTest::GetTestModelServerConfigForFakePlatform() {
   ModelServerConfig config = GetTestModelServerConfigForTensorflowPlatform();
@@ -56,39 +90,16 @@ ServerCoreTest::GetTestModelServerConfigForTensorflowPlatform() {
 }
 
 ServerCore::Options ServerCoreTest::GetDefaultOptions() {
-  ServerCore::Options options;
-  options.file_system_poll_wait_seconds = 0;
-  // Reduce the number of initial load threads to be num_load_threads to avoid
-  // timing out in tests.
-  options.num_initial_load_threads = options.num_load_threads;
-  options.aspired_version_policy =
-      std::unique_ptr<AspiredVersionPolicy>(new AvailabilityPreservingPolicy);
-  options.custom_model_config_loader = [](
-      const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
-      UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
-    return Status::OK();
-  };
-
   // Model platforms.
   const TestType test_type = GetTestType();
   const bool use_saved_model = test_type == SAVED_MODEL ||
                                test_type == SAVED_MODEL_BACKWARD_COMPATIBILITY;
-  options.platform_config_map =
-      CreateTensorFlowPlatformConfigMap(SessionBundleConfig(), use_saved_model);
-  ::google::protobuf::Any fake_source_adapter_config;
-  fake_source_adapter_config.PackFrom(
-      test_util::FakeLoaderSourceAdapterConfig());
-  (*(*options.platform_config_map.mutable_platform_configs())[kFakePlatform]
-        .mutable_source_adapter_config()) = fake_source_adapter_config;
-
-  return options;
+  return test_util::GetDefaultOptions(use_saved_model);
 }
 
 Status ServerCoreTest::CreateServerCore(
     const ModelServerConfig& config, std::unique_ptr<ServerCore>* server_core) {
-  ServerCore::Options options = GetDefaultOptions();
-  options.model_server_config = config;
-  return ServerCore::Create(std::move(options), server_core);
+  return test_util::CreateServerCore(config, server_core);
 }
 
 }  // namespace test_util
