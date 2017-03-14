@@ -19,8 +19,10 @@ limitations under the License.
 #include "tensorflow/contrib/session_bundle/bundle_shim.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/protobuf/config.pb.h"
+#include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
+#include "tensorflow_serving/servables/tensorflow/curried_session.h"
 
 namespace tensorflow {
 namespace serving {
@@ -35,6 +37,22 @@ std::vector<SignatureDef> GetSignatureDefs(const SavedModelBundle& bundle) {
     signature_defs.push_back(signature_def);
   }
   return signature_defs;
+}
+
+// Parses a repeated field of NamedTensorProtos into a corresponding list of
+// name/tensor pairs.
+Status ParseFixedInputTensors(
+    const proto2::RepeatedPtrField<NamedTensorProto>& protos,
+    std::vector<std::pair<string, Tensor>>* parsed) {
+  for (const NamedTensorProto& proto : protos) {
+    Tensor tensor;
+    if (!tensor.FromProto(proto.tensor())) {
+      return errors::InvalidArgument("Unable to parse tensor proto: ",
+                                     proto.tensor().ShortDebugString());
+    }
+    parsed->push_back({proto.name(), tensor});
+  }
+  return Status::OK();
 }
 
 }  // namespace
@@ -62,6 +80,14 @@ Status SavedModelBundleFactory::CreateSavedModelBundle(
   TF_RETURN_IF_ERROR(LoadSessionBundleOrSavedModelBundle(
       GetSessionOptions(config_), GetRunOptions(config_), path,
       {kSavedModelTagServe}, bundle->get()));
+  if (!config_.experimental_fixed_input_tensors().empty()) {
+    LOG(INFO) << "Wrapping session to inject fixed input tensors";
+    std::vector<std::pair<string, Tensor>> fixed_input_tensors;
+    TF_RETURN_IF_ERROR(ParseFixedInputTensors(
+        config_.experimental_fixed_input_tensors(), &fixed_input_tensors));
+    (*bundle)->session.reset(
+        new CurriedSession(std::move((*bundle)->session), fixed_input_tensors));
+  }
   if (config_.has_batching_parameters()) {
     LOG(INFO) << "Wrapping session to perform batch processing";
     if (batch_scheduler_ == nullptr) {
