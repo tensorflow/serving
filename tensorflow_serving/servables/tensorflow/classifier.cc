@@ -80,6 +80,11 @@ class TensorFlowClassifier : public ClassifierInterface {
 
     // Validate classes output Tensor.
     if (classes) {
+      if (classes->dims() != 2) {
+        return errors::InvalidArgument(
+            "Expected Tensor shape: [batch_size num_classes] but got ",
+            classes->shape().DebugString());
+      }
       if (classes->dtype() != DT_STRING) {
         return errors::Internal("Expected classes Tensor of DT_STRING.  Got: ",
                                 DataType_Name(classes->dtype()));
@@ -363,6 +368,11 @@ Status PostProcessClassificationResult(
 
   // Validate classes output Tensor.
   if (classes) {
+    if (classes->dims() != 2) {
+      return errors::InvalidArgument(
+          "Expected Tensor shape: [batch_size num_classes] but got ",
+          classes->shape().DebugString());
+    }
     if (classes->dtype() != DT_STRING) {
       return errors::InvalidArgument(
           "Expected classes Tensor of DT_STRING. Got: ",
