@@ -377,7 +377,7 @@ Status BatchingSession::MergeInputTensors(
           "One or more tasks does not conform to batch signature");
     }
     Tensor concated;
-    const Status concat_status = tensor::TryConcat(tensors->second, &concated);
+    const Status concat_status = tensor::Concat(tensors->second, &concated);
     DCHECK(concat_status.ok()) << concat_status.ToString();
     if (!concat_status.ok()) {
       return errors::Internal("Tensor concat operation failed: ",
@@ -434,8 +434,8 @@ Status BatchingSession::SplitOutputTensors(
     }
 
     std::vector<Tensor> split_tensor;
-    const Status split_status = tensor::TrySplit(
-        tensor, task_sizes_plus_optional_padding, &split_tensor);
+    const Status split_status =
+        tensor::Split(tensor, task_sizes_plus_optional_padding, &split_tensor);
     DCHECK(split_status.ok()) << split_status.ToString();
     if (!split_status.ok()) {
       return errors::Internal("Tensor split operation failed: ",

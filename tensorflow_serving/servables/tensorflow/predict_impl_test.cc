@@ -318,6 +318,45 @@ TEST_P(PredictImplTest, PredictionWithNamedRegressionSignature) {
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 
+// Test querying a model with a classification signature. Predict calls work
+// with predict, classify, and regress signatures when using SavedModel, but
+// will only work with a generic signature when using legacy SessionBundle.
+TEST_P(PredictImplTest, PredictionWithNamedClassificationSignature) {
+  PredictRequest request;
+  PredictResponse response;
+
+  ModelSpec* model_spec = request.mutable_model_spec();
+  model_spec->set_name(kTestModelName);
+  model_spec->mutable_version()->set_value(kTestModelVersion);
+  model_spec->set_signature_name("classify_x2_to_y3");
+
+  TensorProto tensor_proto;
+  tensor_proto.add_float_val(2.0);
+  tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  (*request.mutable_inputs())[kClassifyInputs] = tensor_proto;
+
+  TensorflowPredictor predictor(GetParam());
+  // This request is expected to work with SavedModel, but not SessionBundle.
+  const bool using_session_bundle = !GetParam();
+  if (using_session_bundle) {
+    ASSERT_EQ(
+        tensorflow::error::INVALID_ARGUMENT,
+        predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
+            .code());
+    return;
+  }
+  TF_ASSERT_OK(
+      predictor.Predict(GetRunOptions(), GetServerCore(), request, &response));
+  TensorProto output_tensor_proto;
+  output_tensor_proto.add_float_val(4);
+  output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  output_tensor_proto.mutable_tensor_shape();
+  PredictResponse expected_response;
+  (*expected_response.mutable_outputs())[kClassifyOutputScores] =
+      output_tensor_proto;
+  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
+}
+
 // Test all PredictImplTest test cases with both SessionBundle and SavedModel.
 INSTANTIATE_TEST_CASE_P(UseSavedModel, PredictImplTest, ::testing::Bool());
 

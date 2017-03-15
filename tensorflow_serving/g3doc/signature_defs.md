@@ -1,7 +1,5 @@
 # SignatureDefs in SavedModel for TensorFlow Serving
 
-[TOC]
-
 ## Objective
 
 This document provides examples for the intended usage of SignatureDefs in SavedModel
