@@ -26,6 +26,7 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
+using ::testing::HasSubstr;
 using test_util::EqualsProto;
 
 class InputUtilTest : public ::testing::Test {
@@ -47,9 +48,9 @@ class InputUtilTest : public ::testing::Test {
     return example;
   }
 
-  Example example_C() {
+  Example example_C(const int64 value = 33) {
     Feature feature;
-    feature.mutable_int64_list()->add_value(33);
+    feature.mutable_int64_list()->add_value(value);
     Example example;
     (*example.mutable_features()->mutable_feature())["c"] = feature;
     return example;
@@ -60,36 +61,33 @@ class InputUtilTest : public ::testing::Test {
 };
 
 TEST_F(InputUtilTest, Empty_KindNotSet) {
-  EXPECT_EQ(0, NumInputExamples(input_));
-  TF_ASSERT_OK(InputToSerializedExampleTensor(input_, &tensor_));
-  test::ExpectTensorEqual<string>(test::AsTensor<string>({}, TensorShape({0})),
-                                  tensor_);
+  const Status status = InputToSerializedExampleTensor(input_, &tensor_);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.error_message(), HasSubstr("Input is empty"));
 }
 
 TEST_F(InputUtilTest, Empty_ExampleList) {
   input_.mutable_example_list();
 
-  EXPECT_EQ(0, NumInputExamples(input_));
-  TF_ASSERT_OK(InputToSerializedExampleTensor(input_, &tensor_));
-  test::ExpectTensorEqual<string>(test::AsTensor<string>({}, TensorShape({0})),
-                                  tensor_);
+  const Status status = InputToSerializedExampleTensor(input_, &tensor_);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.error_message(), HasSubstr("Input is empty"));
 }
 
 TEST_F(InputUtilTest, Empty_ExampleListWithContext) {
   input_.mutable_example_list_with_context();
 
-  EXPECT_EQ(0, NumInputExamples(input_));
-  TF_ASSERT_OK(InputToSerializedExampleTensor(input_, &tensor_));
-  test::ExpectTensorEqual<string>(test::AsTensor<string>({}, TensorShape({0})),
-                                  tensor_);
+  const Status status = InputToSerializedExampleTensor(input_, &tensor_);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.error_message(), HasSubstr("Input is empty"));
 }
 
 TEST_F(InputUtilTest, ExampleList) {
   *input_.mutable_example_list()->mutable_examples()->Add() = example_A();
   *input_.mutable_example_list()->mutable_examples()->Add() = example_B();
 
-  EXPECT_EQ(2, NumInputExamples(input_));
   TF_ASSERT_OK(InputToSerializedExampleTensor(input_, &tensor_));
+  EXPECT_EQ(2, tensor_.NumElements());
   const auto vec = tensor_.flat<string>();
   ASSERT_EQ(vec.size(), 2);
   Example serialized_example;
@@ -106,8 +104,8 @@ TEST_F(InputUtilTest, ExampleListWithContext) {
   *examples->Add() = example_B();
   *input_.mutable_example_list_with_context()->mutable_context() = example_C();
 
-  EXPECT_EQ(2, NumInputExamples(input_));
   TF_ASSERT_OK(InputToSerializedExampleTensor(input_, &tensor_));
+  EXPECT_EQ(2, tensor_.NumElements());
   const auto vec = tensor_.flat<string>();
   ASSERT_EQ(vec.size(), 2);
   {
@@ -128,14 +126,42 @@ TEST_F(InputUtilTest, ExampleListWithContext) {
   }
 }
 
+// Tests whether individual examples do override the context.
+TEST_F(InputUtilTest, ExampleListWithOverridingContext) {
+  auto* examples =
+      input_.mutable_example_list_with_context()->mutable_examples();
+  *examples->Add() = example_A();
+  *examples->Add() = example_C(64);
+  *input_.mutable_example_list_with_context()->mutable_context() = example_C();
+
+  TF_ASSERT_OK(InputToSerializedExampleTensor(input_, &tensor_));
+  EXPECT_EQ(2, tensor_.NumElements());
+  const auto vec = tensor_.flat<string>();
+  ASSERT_EQ(vec.size(), 2);
+  {
+    Example serialized_example;
+    ASSERT_TRUE(serialized_example.ParseFromString(vec(0)));
+    EXPECT_THAT(serialized_example.features().feature().at("c"),
+                EqualsProto(example_C().features().feature().at("c")));
+    EXPECT_THAT(serialized_example.features().feature().at("a"),
+                EqualsProto(example_A().features().feature().at("a")));
+  }
+  {
+    Example serialized_example;
+    ASSERT_TRUE(serialized_example.ParseFromString(vec(1)));
+    EXPECT_THAT(serialized_example.features().feature().at("c"),
+                EqualsProto(example_C(64).features().feature().at("c")));
+  }
+}
+
 TEST_F(InputUtilTest, ExampleListWithContext_NoContext) {
   auto* examples =
       input_.mutable_example_list_with_context()->mutable_examples();
   *examples->Add() = example_A();
   *examples->Add() = example_B();
 
-  EXPECT_EQ(2, NumInputExamples(input_));
   TF_ASSERT_OK(InputToSerializedExampleTensor(input_, &tensor_));
+  EXPECT_EQ(2, tensor_.NumElements());
   const auto vec = tensor_.flat<string>();
   ASSERT_EQ(vec.size(), 2);
   {
@@ -155,25 +181,24 @@ TEST_F(InputUtilTest, ExampleListWithContext_OnlyContext) {
   // context is specified).
   *input_.mutable_example_list_with_context()->mutable_context() = example_C();
 
-  EXPECT_EQ(0, NumInputExamples(input_));
-  TF_ASSERT_OK(InputToSerializedExampleTensor(input_, &tensor_));
-  test::ExpectTensorEqual<string>(test::AsTensor<string>({}, TensorShape({0})),
-                                  tensor_);
+  const Status status = InputToSerializedExampleTensor(input_, &tensor_);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.error_message(), HasSubstr("Input is empty"));
 }
 
 TEST_F(InputUtilTest, RequestNumExamplesStreamz) {
   Input input_1;
   *input_1.mutable_example_list()->mutable_examples()->Add() = example_A();
   *input_1.mutable_example_list()->mutable_examples()->Add() = example_B();
-  EXPECT_EQ(2, NumInputExamples(input_1));
   Tensor tensor_1;
   TF_ASSERT_OK(InputToSerializedExampleTensor(input_1, &tensor_1));
+  EXPECT_EQ(2, tensor_1.NumElements());
 
   Input input_2;
   *input_2.mutable_example_list()->mutable_examples()->Add() = example_C();
-  EXPECT_EQ(1, NumInputExamples(input_2));
   Tensor tensor_2;
   TF_ASSERT_OK(InputToSerializedExampleTensor(input_2, &tensor_2));
+  EXPECT_EQ(1, tensor_2.NumElements());
 }
 
 }  // namespace

@@ -159,10 +159,6 @@ class SavedModelTensorFlowClassifier : public ClassifierInterface {
   Status Classify(const ClassificationRequest& request,
                   ClassificationResult* result) override {
     TRACELITERAL("TensorFlowClassifier::Classify");
-    const int num_examples = NumInputExamples(request.input());
-    if (num_examples == 0) {
-      return errors::InvalidArgument("ClassificationRequest::input is empty.");
-    }
 
     string input_tensor_name;
     std::vector<string> output_tensor_names;
@@ -170,9 +166,10 @@ class SavedModelTensorFlowClassifier : public ClassifierInterface {
                                                 &output_tensor_names));
 
     std::vector<Tensor> outputs;
+    int num_examples;
     TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
         request.input(), input_tensor_name, output_tensor_names, session_,
-        &outputs));
+        &outputs, &num_examples));
 
     TRACELITERAL("ConvertToClassificationResult");
     return PostProcessClassificationResult(

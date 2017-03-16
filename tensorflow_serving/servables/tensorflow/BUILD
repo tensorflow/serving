@@ -670,6 +670,7 @@ cc_library(
     ],
     deps = [
         "//tensorflow_serving/apis:input_proto",
+        "//tensorflow_serving/apis/internal:serialized_input_proto",
         "@org_tensorflow//tensorflow/core:all_kernels",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
