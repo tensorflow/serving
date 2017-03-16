@@ -42,7 +42,7 @@ std::vector<SignatureDef> GetSignatureDefs(const SavedModelBundle& bundle) {
 // Parses a repeated field of NamedTensorProtos into a corresponding list of
 // name/tensor pairs.
 Status ParseFixedInputTensors(
-    const proto2::RepeatedPtrField<NamedTensorProto>& protos,
+    const protobuf::RepeatedPtrField<NamedTensorProto>& protos,
     std::vector<std::pair<string, Tensor>>* parsed) {
   for (const NamedTensorProto& proto : protos) {
     Tensor tensor;
