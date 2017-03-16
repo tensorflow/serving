@@ -579,6 +579,9 @@ cc_library(
     name = "caching_manager",
     srcs = ["caching_manager.cc"],
     hdrs = ["caching_manager.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":basic_manager",
         ":loader",
