@@ -23,6 +23,7 @@ limitations under the License.
 
 #include "tensorflow_serving/core/basic_manager.h"
 #include "tensorflow_serving/core/manager.h"
+#include "tensorflow_serving/core/source_adapter.h"
 
 namespace tensorflow {
 namespace serving {
@@ -82,11 +83,10 @@ class CachingManager : public Manager {
     virtual ~LoaderFactory() = default;
 
     // Creates servable data consisting of the loader corresponding to the
-    // servable-id.
-    virtual Status CreateLoader(
-        const ServableId& servable_id,
-        std::unique_ptr<ServableData<std::unique_ptr<Loader>>>*
-            loader_data) = 0;
+    // servable-id. Any errors can be reported by embedding them in the returned
+    // ServableData item.
+    virtual ServableData<std::unique_ptr<Loader>> CreateLoader(
+        const ServableId& servable_id) = 0;
 
     // Returns the latest version corresponding to the servable name.
     virtual int64 GetLatestVersion(const string& servable_name) const = 0;
@@ -129,8 +129,7 @@ class CachingManager : public Manager {
   // exactly one thread performs the load operation using the wrapped
   // basic-manager. All other requests block until the load completes and then
   // trivially succeed.
-  Status LoadServable(
-      std::unique_ptr<ServableData<std::unique_ptr<Loader>>> loader_data)
+  Status LoadServable(ServableData<std::unique_ptr<Loader>> loader_data)
       LOCKS_EXCLUDED(load_mutex_map_mu_);
 
   // Returns the size of the load_mutex_map_.
@@ -155,6 +154,30 @@ class CachingManager : public Manager {
       GUARDED_BY(load_mutex_map_mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(CachingManager);
+};
+
+// A simple LoaderFactory that looks for a servable at a path formed by
+// concatenating a fixed path prefix with the servable's name. It assumes that
+// a given servable only has one version, namely version 0.
+class PathPrefixLoaderFactory : public CachingManager::LoaderFactory {
+ public:
+  PathPrefixLoaderFactory(const string& path_prefix,
+                          std::unique_ptr<StoragePathSourceAdapter> adapter);
+  ~PathPrefixLoaderFactory() override = default;
+
+  ServableData<std::unique_ptr<Loader>> CreateLoader(
+      const ServableId& id) override;
+
+  int64 GetLatestVersion(const string& servable_name) const override;
+
+ private:
+  // The prefix of the path to the servables.
+  const string path_prefix_;
+
+  // An adapter for creating a loader from a given path.
+  const std::unique_ptr<StoragePathSourceAdapter> adapter_;
+
+  TF_DISALLOW_COPY_AND_ASSIGN(PathPrefixLoaderFactory);
 };
 
 }  // namespace serving

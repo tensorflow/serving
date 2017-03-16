@@ -86,8 +86,8 @@ Status CachingManager::GetUntypedServableHandleForId(
   }
 
   // Build the servable data corresponding to the servable-id.
-  std::unique_ptr<ServableData<std::unique_ptr<Loader>>> loader_data;
-  TF_RETURN_IF_ERROR(loader_factory_->CreateLoader(servable_id, &loader_data));
+  ServableData<std::unique_ptr<Loader>> loader_data =
+      loader_factory_->CreateLoader(servable_id);
 
   // Load the servable corresponding to the servable-id. For multiple concurrent
   // requests enforces that exactly one thread performs the load operation with
@@ -101,8 +101,8 @@ Status CachingManager::GetUntypedServableHandleForId(
 }
 
 Status CachingManager::LoadServable(
-    std::unique_ptr<ServableData<std::unique_ptr<Loader>>> loader_data) {
-  const ServableId servable_id = loader_data->id();
+    ServableData<std::unique_ptr<Loader>> loader_data) {
+  const ServableId servable_id = loader_data.id();
 
   std::shared_ptr<mutex> servable_id_mu;
   {
@@ -145,7 +145,7 @@ Status CachingManager::LoadServable(
       // automatically available in the caching-manager as well (via the basic
       // manager).
       const Status manage_status =
-          basic_manager_->ManageServable(std::move(*loader_data));
+          basic_manager_->ManageServable(std::move(loader_data));
       if (!manage_status.ok()) {
         const string error_msg = strings::StrCat(
             "Internal error: unable to transfer servable to 'basic_manager_': ",
@@ -192,6 +192,28 @@ CachingManager::GetAvailableUntypedServableHandles() const {
 
 std::vector<ServableId> CachingManager::ListAvailableServableIds() const {
   return basic_manager_->ListAvailableServableIds();
+}
+
+PathPrefixLoaderFactory::PathPrefixLoaderFactory(
+    const string& path_prefix,
+    std::unique_ptr<StoragePathSourceAdapter> adapter)
+    : path_prefix_(path_prefix), adapter_(std::move(adapter)) {}
+
+ServableData<std::unique_ptr<Loader>> PathPrefixLoaderFactory::CreateLoader(
+    const ServableId& id) {
+  if (id.version != 0) {
+    return ServableData<std::unique_ptr<Loader>>(
+        id,
+        errors::FailedPrecondition("PathPrefixLoaderFactory only supports "
+                                   "single-version servables at version 0"));
+  }
+  const StoragePath servable_path = io::JoinPath(path_prefix_, id.name);
+  return adapter_->AdaptOneVersion({id, servable_path});
+}
+
+int64 PathPrefixLoaderFactory::GetLatestVersion(
+    const string& servable_name) const {
+  return 0;
 }
 
 }  // namespace serving
