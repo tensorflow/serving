@@ -47,7 +47,6 @@ cc_test(
         ":hashmap_source_adapter_proto",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:servable_data",
-        "//tensorflow_serving/core/test_util:source_adapter_test_util",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:any_ptr",
         "@org_tensorflow//tensorflow/core:lib",
