@@ -62,11 +62,11 @@ sudo apt-get update && sudo apt-get install -y \
 ### Clone the TensorFlow Serving repository
 
 ~~~shell
-git clone --recurse-submodules https://github.com/tensorflow/serving
+git clone --recursive https://github.com/tensorflow/serving
 cd serving
 ~~~
 
-`--recurse-submodules` is required to fetch TensorFlow, gRPC, and other
+`--recursive` is required to fetch TensorFlow, gRPC, and other
 libraries that TensorFlow Serving depends on. Note that these instructions
 will install the latest master branch of TensorFlow Serving. If you want to
 install a specific branch (such as a release branch), pass `-b <branchname>`
