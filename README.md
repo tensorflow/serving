@@ -1,4 +1,4 @@
-#TensorFlow Serving
+# TensorFlow Serving
 
 [![Build Status](http://ci.tensorflow.org/buildStatus/icon?job=serving-master-cpu)](http://ci.tensorflow.org/job/serving-master-cpu)
 
@@ -37,18 +37,18 @@ points; perhaps the most useful ways to extend the system are:
 [contribution guidelines](CONTRIBUTING.md).**
 
 **We use [GitHub issues](https://github.com/tensorflow/serving/issues) for
-tracking requests and bugs.
+tracking requests and bugs.**
 
 # Download and Setup
 
 See [install instructions](tensorflow_serving/g3doc/setup.md).
 
-##Tutorials
+## Tutorials
 
 * [Basic tutorial](tensorflow_serving/g3doc/serving_basic.md)
 * [Advanced tutorial](tensorflow_serving/g3doc/serving_advanced.md)
 
-##For more information
+## For more information
 
 * [Serving architecture overview](tensorflow_serving/g3doc/architecture_overview.md)
 * [TensorFlow website](http://tensorflow.org)
