@@ -16,15 +16,13 @@ message Class {
   float score = 2;
 }
 
-// List of classes for a single item
-// (tensorflow.Example or tensorflow.InferenceExample.features).
+// List of classes for a single item (tensorflow.Example).
 message Classifications {
   repeated Class classes = 1;
 }
 
-// For tensorflow.Example this will contain one result.
-// For tensorflow.InferenceExample this will contain one result for each
-// InferenceExample::features and in the same order as the features.
+// Contains one result per input example, in the same order as the input in
+// ClassificationRequest.
 message ClassificationResult {
   repeated Classifications classifications = 1;
 }

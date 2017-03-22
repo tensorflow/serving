@@ -27,7 +27,6 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/servable_data.h"
-#include "tensorflow_serving/core/test_util/source_adapter_test_util.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
@@ -55,7 +54,8 @@ class SessionBundleSourceAdapterTest : public ::testing::Test {
       std::unique_ptr<SessionBundleSourceAdapter> adapter;
       TF_CHECK_OK(SessionBundleSourceAdapter::Create(config, &adapter));
       ServableData<std::unique_ptr<Loader>> loader_data =
-          test_util::RunSourceAdapter(export_dir_, adapter.get());
+          adapter->AdaptOneVersion(
+              ServableData<StoragePath>({"", 0}, export_dir_));
       TF_ASSERT_OK(loader_data.status());
       loader = loader_data.ConsumeDataOrDie();
 

@@ -572,7 +572,7 @@ TEST_P(ClassifierTest, EmptyInput) {
   const Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("ClassificationRequest::input is empty"));
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(ClassifierTest, EmptyExampleList) {
@@ -582,7 +582,7 @@ TEST_P(ClassifierTest, EmptyExampleList) {
   const Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("ClassificationRequest::input is empty"));
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(ClassifierTest, EmptyExampleListWithContext) {
@@ -594,7 +594,7 @@ TEST_P(ClassifierTest, EmptyExampleListWithContext) {
   const Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("ClassificationRequest::input is empty"));
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(ClassifierTest, RunsFails) {

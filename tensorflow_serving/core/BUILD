@@ -374,7 +374,6 @@ cc_test(
         "//tensorflow_serving/core/test_util:availability_test_util",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter",
         "//tensorflow_serving/core/test_util:fake_storage_path_source_adapter",
-        "//tensorflow_serving/core/test_util:source_adapter_test_util",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:event_bus",
     ],
@@ -579,6 +578,9 @@ cc_library(
     name = "caching_manager",
     srcs = ["caching_manager.cc"],
     hdrs = ["caching_manager.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":basic_manager",
         ":loader",
@@ -586,6 +588,7 @@ cc_library(
         ":servable_data",
         ":servable_handle",
         ":servable_id",
+        ":source_adapter",
         "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],
@@ -602,6 +605,7 @@ cc_test(
         ":servable_state",
         ":servable_state_monitor",
         ":simple_loader",
+        "//tensorflow_serving/core/test_util:fake_loader_source_adapter",
         "//tensorflow_serving/core/test_util:manager_test_util",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:event_bus",

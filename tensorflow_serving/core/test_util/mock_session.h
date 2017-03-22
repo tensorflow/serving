@@ -36,6 +36,13 @@ class MockSession : public tensorflow::Session {
                         const std::vector<string>& output_names,
                         const std::vector<string>& target_nodes,
                         std::vector<Tensor>* outputs));
+  MOCK_METHOD6(Run,
+               ::tensorflow::Status(
+                   const RunOptions& run_options,
+                   const std::vector<std::pair<string, Tensor>>& inputs,
+                   const std::vector<string>& output_names,
+                   const std::vector<string>& target_nodes,
+                   std::vector<Tensor>* outputs, RunMetadata* run_metadata));
   MOCK_METHOD4(PRunSetup,
                ::tensorflow::Status(const std::vector<string>& input_names,
                                     const std::vector<string>& output_names,

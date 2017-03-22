@@ -110,20 +110,6 @@ cc_library(
 )
 
 cc_library(
-    name = "source_adapter_test_util",
-    testonly = 1,
-    hdrs = ["source_adapter_test_util.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//external:gtest",
-        "//tensorflow_serving/core:loader",
-        "//tensorflow_serving/core:servable_data",
-        "//tensorflow_serving/core:servable_id",
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
-cc_library(
     name = "availability_test_util",
     testonly = 1,
     srcs = ["availability_test_util.cc"],

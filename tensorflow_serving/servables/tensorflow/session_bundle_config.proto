@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/wrappers.proto";
 import "tensorflow/core/protobuf/config.proto";
+import "tensorflow/core/protobuf/named_tensor.proto";
 
 package tensorflow.serving;
 
@@ -39,6 +40,11 @@ message SessionBundleConfig {
   // correspond to the index of the tensorflow::ThreadPoolOptionProto defined as
   // part of `session_config.session_inter_op_thread_pool`.
   google.protobuf.Int32Value session_run_load_threadpool_index = 4;
+
+  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
+  //
+  // Input tensors to append to every Session::Run() call.
+  repeated NamedTensorProto experimental_fixed_input_tensors = 778;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

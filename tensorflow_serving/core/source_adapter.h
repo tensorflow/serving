@@ -66,17 +66,20 @@ class SourceAdapter : public TargetBase<InputType>, public Source<OutputType> {
   void SetAspiredVersionsCallback(
       typename Source<OutputType>::AspiredVersionsCallback callback) final;
 
- protected:
-  // This is an abstract class.
-  SourceAdapter() = default;
-
- private:
   // Given an InputType-based aspired-versions request, produces a corresponding
   // OutputType-based request.
   virtual std::vector<ServableData<OutputType>> Adapt(
       const StringPiece servable_name,
       std::vector<ServableData<InputType>> versions) = 0;
 
+  // Adapts a single servable data item. (Implemented on top of Adapt().)
+  ServableData<OutputType> AdaptOneVersion(ServableData<InputType> input);
+
+ protected:
+  // This is an abstract class.
+  SourceAdapter() = default;
+
+ private:
   // The callback for emitting OutputType-based aspired-version lists.
   typename Source<OutputType>::AspiredVersionsCallback outgoing_callback_;
 
@@ -178,6 +181,17 @@ void SourceAdapter<InputType, OutputType>::SetAspiredVersionsCallback(
     typename Source<OutputType>::AspiredVersionsCallback callback) {
   outgoing_callback_ = callback;
   outgoing_callback_set_.Notify();
+}
+
+template <typename InputType, typename OutputType>
+ServableData<OutputType> SourceAdapter<InputType, OutputType>::AdaptOneVersion(
+    ServableData<InputType> input) {
+  const StringPiece servable_name(input.id().name);
+  std::vector<ServableData<InputType>> input_versions = {input};
+  std::vector<ServableData<OutputType>> output_versions =
+      Adapt(servable_name, input_versions);
+  DCHECK_EQ(1, output_versions.size());
+  return std::move(output_versions[0]);
 }
 
 template <typename InputType, typename OutputType>
