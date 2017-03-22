@@ -158,6 +158,32 @@ serving_proto_library_py(
 )
 
 serving_proto_library(
+    name = "inference_proto",
+    srcs = ["inference.proto"],
+    cc_api_version = 2,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":classification_proto",
+        ":input_proto",
+        ":model_proto",
+        ":regression_proto",
+    ],
+)
+
+serving_proto_library_py(
+    name = "inference_py_pb2",
+    srcs = ["inference.proto"],
+    proto_library = "inference_proto",
+    deps = [
+        ":classification_proto_py_pb2",
+        ":input_proto_py_pb2",
+        ":model_proto_py_pb2",
+        ":regression_proto_py_pb2",
+    ],
+)
+
+serving_proto_library(
     name = "regression_proto",
     srcs = ["regression.proto"],
     cc_api_version = 2,

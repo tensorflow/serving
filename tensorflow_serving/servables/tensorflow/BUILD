@@ -173,6 +173,7 @@ cc_library(
     ],
     deps = [
         ":bundle_factory_util",
+        ":curried_session",
         ":session_bundle_config_proto",
         "//tensorflow_serving/batching:batching_session",
         "//tensorflow_serving/batching:shared_batch_scheduler",
@@ -249,7 +250,6 @@ cc_test(
         ":session_bundle_source_adapter_proto",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:servable_data",
-        "//tensorflow_serving/core/test_util:source_adapter_test_util",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/test_util",
@@ -301,7 +301,6 @@ cc_test(
         ":session_bundle_source_adapter_proto",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:servable_data",
-        "//tensorflow_serving/core/test_util:source_adapter_test_util",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/test_util",
@@ -393,6 +392,36 @@ cc_library(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
+    ],
+)
+
+cc_library(
+    name = "curried_session",
+    srcs = ["curried_session.cc"],
+    hdrs = ["curried_session.h"],
+    deps = [
+        ":serving_session",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+    ],
+)
+
+cc_test(
+    name = "curried_session_test",
+    size = "small",
+    srcs = ["curried_session_test.cc"],
+    deps = [
+        ":curried_session",
+        "//tensorflow_serving/core/test_util:mock_session",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
     ],
 )
 
@@ -520,6 +549,30 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "classifier_test",
+    size = "medium",
+    srcs = ["classifier_test.cc"],
+    deps = [
+        ":classifier",
+        "//tensorflow_serving/apis:classification_proto",
+        "//tensorflow_serving/apis:input_proto",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/core/test_util:mock_session",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:bundle_shim",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core:test",
+        "@protobuf//:protobuf_lite",
+    ],
+)
+
 cc_library(
     name = "classification_service",
     srcs = ["classification_service.cc"],
@@ -606,27 +659,54 @@ cc_test(
     ],
 )
 
-cc_test(
-    name = "classifier_test",
-    size = "medium",
-    srcs = ["classifier_test.cc"],
+cc_library(
+    name = "multi_inference",
+    srcs = ["multi_inference.cc"],
+    hdrs = ["multi_inference.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
-        ":classifier",
-        "//tensorflow_serving/apis:classification_proto",
+        "//tensorflow_serving/apis:inference_proto",
         "//tensorflow_serving/apis:input_proto",
         "//tensorflow_serving/apis:model_proto",
-        "//tensorflow_serving/core/test_util:mock_session",
-        "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util",
+        "//tensorflow_serving/servables/tensorflow:classifier",
+        "//tensorflow_serving/servables/tensorflow:regressor",
+        "//tensorflow_serving/servables/tensorflow:util",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:bundle_shim",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
-        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:all_kernels",
+        "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@protobuf//:protobuf",
+    ],
+)
+
+cc_test(
+    name = "multi_inference_test",
+    size = "medium",
+    srcs = ["multi_inference_test.cc"],
+    data = [
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
+    deps = [
+        ":multi_inference",
+        "//tensorflow_serving/apis:classification_proto",
+        "//tensorflow_serving/apis:input_proto",
+        "//tensorflow_serving/apis:regression_proto",
+        "//tensorflow_serving/core:availability_preserving_policy",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/model_servers:model_platform_types",
+        "//tensorflow_serving/model_servers:platform_config_util",
+        "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
-        "@protobuf//:protobuf_lite",
     ],
 )
 
@@ -639,6 +719,7 @@ cc_library(
     ],
     deps = [
         "//tensorflow_serving/apis:input_proto",
+        "//tensorflow_serving/apis/internal:serialized_input_proto",
         "@org_tensorflow//tensorflow/core:all_kernels",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",

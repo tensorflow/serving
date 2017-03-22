@@ -326,7 +326,7 @@ TEST_P(RegressorTest, EmptyInput) {
   const Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("RegressionRequest::input is empty"));
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(RegressorTest, EmptyExampleList) {
@@ -335,7 +335,7 @@ TEST_P(RegressorTest, EmptyExampleList) {
   const Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("RegressionRequest::input is empty"));
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(RegressorTest, EmptyExampleListWithContext) {
@@ -347,7 +347,7 @@ TEST_P(RegressorTest, EmptyExampleListWithContext) {
   const Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("RegressionRequest::input is empty"));
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(RegressorTest, RunsFails) {

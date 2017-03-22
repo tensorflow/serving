@@ -58,6 +58,15 @@ class LimitedAdapter final : public SourceAdapter<StoragePath, StoragePath> {
   TF_DISALLOW_COPY_AND_ASSIGN(LimitedAdapter);
 };
 
+TEST(SourceAdapterTest, AdaptOneVersion) {
+  test_util::FakeStoragePathSourceAdapter adapter("baz");
+  ServableData<StoragePath> output =
+      adapter.AdaptOneVersion(ServableData<StoragePath>({"foo", 42}, "bar"));
+  EXPECT_EQ("foo", output.id().name);
+  EXPECT_EQ(42, output.id().version);
+  EXPECT_EQ("bar/baz", output.DataOrDie());
+}
+
 TEST(SourceAdapterTest, SetAspiredVersionsBlocksUntilTargetConnected) {
   LimitedAdapter adapter;
   std::unique_ptr<test_util::MockStoragePathTarget> target(

@@ -156,10 +156,11 @@ Status ServerCore::Create(Options options,
   // server_core_config (which contains aspired_version_policy) below.
   std::unique_ptr<AspiredVersionPolicy> aspired_version_policy =
       std::move(options.aspired_version_policy);
+  auto model_server_config = options.model_server_config;
   server_core->reset(new ServerCore(std::move(options)));
   TF_RETURN_IF_ERROR(
       (*server_core)->Initialize(std::move(aspired_version_policy)));
-  return (*server_core)->ReloadConfig(options.model_server_config);
+  return (*server_core)->ReloadConfig(model_server_config);
 }
 
 // ************************************************************************
