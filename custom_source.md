@@ -1,3 +1,6 @@
+---
+---
+
 # Creating a module that discovers new servable paths
 
 This document explains how to extend TensorFlow Serving to monitor different
@@ -24,7 +27,7 @@ Of course, whatever kind of data your source emits (whether it is POSIX paths,
 Google Cloud Storage paths, or RPC handles), there needs to be accompanying
 module(s) that are able to load servables based on that. Such modules are called
 `SourceAdapters`. Creating a custom one is described in the [Custom
-Servable](custom_servable.md) document. TensorFlow Serving comes with one for
+Servable](custom_servable) document. TensorFlow Serving comes with one for
 instantiating TensorFlow sessions based on paths in file systems that TensorFlow
 supports. One can add support for additional file systems to TensorFlow by
 extending the `RandomAccessFile` abstraction (`tensorflow/core/public/env.h`).

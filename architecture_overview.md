@@ -1,3 +1,6 @@
+---
+---
+
 # Architecture Overview
 
 TensorFlow Serving is a flexible, high-performance serving system for machine
@@ -98,7 +101,7 @@ versions to the Manager, it supercedes the previous list for that servable
 stream. The Manager unloads any previously loaded versions that no longer
 appear in the list.
 
-See the [advanced tutorial](serving_advanced.md) to see how version loading
+See the [advanced tutorial](serving_advanced) to see how version loading
 works in practice.
 
 ### Managers
@@ -198,7 +201,7 @@ easy & fast to create new sources. For example, TensorFlow Serving includes a
 utility to wrap polling behavior around a simple source. Sources are closely
 related to Loaders for specific algorithms and data hosting servables.
 
-See the [Custom Source](custom_source.md) document for more about how to create
+See the [Custom Source](custom_source) document for more about how to create
 a custom Source.
 
 ### Loaders
@@ -209,7 +212,7 @@ new Loader in order to load, provide access to, and unload an instance of a
 new type of servable machine learning model. We anticipate creating Loaders
 for lookup tables and additional algorithms.
 
-See the [Custom Servable](custom_servable.md) document to learn how to create a
+See the [Custom Servable](custom_servable) document to learn how to create a
 custom servable.
 
 ### Batcher
@@ -225,4 +228,4 @@ for more information.
 ## Next Steps
 
 To get started with TensorFlow Serving, try the
-[Basic Tutorial](serving_basic.md).
+[Basic Tutorial](serving_basic).
