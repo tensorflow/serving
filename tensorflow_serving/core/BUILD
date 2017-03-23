@@ -322,6 +322,7 @@ cc_test(
     srcs = ["manager_test.cc"],
     deps = [
         ":manager",
+        "//tensorflow_serving/core/test_util:servable_handle_test_util",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:any_ptr",
         "@org_tensorflow//tensorflow/core:lib",
