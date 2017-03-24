@@ -20,28 +20,17 @@ filegroup(
     ),
 )
 
+# TODO(b/36404166): Remove this shim after migrating all clients.
 cc_library(
     name = "batch_scheduler",
     hdrs = ["batch_scheduler.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/contrib/batching:batch_scheduler",
     ],
 )
 
-cc_test(
-    name = "batch_scheduler_test",
-    srcs = [
-        "batch_scheduler_test.cc",
-    ],
-    deps = [
-        ":batch_scheduler",
-        "//tensorflow_serving/core/test_util:test_main",
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
+# TODO(b/36404166): Remove this shim after migrating all clients.
 cc_library(
     name = "shared_batch_scheduler",
     hdrs = ["shared_batch_scheduler.h"],
@@ -49,27 +38,11 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        ":batch_scheduler",
-        "//tensorflow_serving/util:periodic_function",
-        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/contrib/batching:shared_batch_scheduler",
     ],
 )
 
-cc_test(
-    name = "shared_batch_scheduler_test",
-    srcs = [
-        "shared_batch_scheduler_test.cc",
-    ],
-    deps = [
-        ":shared_batch_scheduler",
-        "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util:fake_clock_env",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:test",
-    ],
-)
-
+# TODO(b/36404166): Remove this shim after migrating all clients.
 cc_library(
     name = "basic_batch_scheduler",
     hdrs = ["basic_batch_scheduler.h"],
@@ -77,36 +50,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        ":shared_batch_scheduler",
-    ],
-)
-
-cc_test(
-    name = "basic_batch_scheduler_test",
-    srcs = [
-        "basic_batch_scheduler_test.cc",
-    ],
-    deps = [
-        ":basic_batch_scheduler",
-        ":batch_scheduler",
-        "//tensorflow_serving/core/test_util:test_main",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:test",
-    ],
-)
-
-cc_test(
-    name = "basic_batch_scheduler_benchmark",
-    srcs = ["basic_batch_scheduler_benchmark.cc"],
-    tags = [
-        "local",
-        "manual",
-    ],
-    deps = [
-        ":basic_batch_scheduler",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
-        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/contrib/batching:basic_batch_scheduler",
     ],
 )
 
@@ -131,7 +75,7 @@ cc_test(
     deps = [
         ":streaming_batch_scheduler",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util:fake_clock_env",
+        "@org_tensorflow//tensorflow/contrib/batching/test_util:fake_clock_env",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
@@ -200,7 +144,7 @@ cc_test(
     deps = [
         ":batch_scheduler_retrier",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util:fake_clock_env",
+        "@org_tensorflow//tensorflow/contrib/batching/test_util:fake_clock_env",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",

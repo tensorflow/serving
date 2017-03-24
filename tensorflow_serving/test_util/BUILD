@@ -32,17 +32,3 @@ cc_library(
         "@protobuf//:protobuf",
     ],
 )
-
-cc_library(
-    name = "fake_clock_env",
-    testonly = 1,
-    srcs = ["fake_clock_env.cc"],
-    hdrs = ["fake_clock_env.h"],
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
-    ],
-)
