@@ -544,11 +544,10 @@ Status ServerCore::CreateResourceTracker(
   auto resource_util =
       std::unique_ptr<ResourceUtil>(new ResourceUtil(resource_util_options));
   ResourceAllocation total_resources;
-  ResourceAllocation::Entry* main_memory_resource =
-      total_resources.add_resource_quantities();
-  main_memory_resource->mutable_resource()->set_device(device_types::kMain);
-  main_memory_resource->mutable_resource()->set_kind(resource_kinds::kRamBytes);
-  main_memory_resource->set_quantity(options_.total_model_memory_limit_bytes);
+  resource_util->SetQuantity(
+      resource_util->CreateBoundResource(device_types::kMain,
+                                         resource_kinds::kRamBytes),
+      options_.total_model_memory_limit_bytes, &total_resources);
   const tensorflow::Status status = ResourceTracker::Create(
       total_resources, std::move(resource_util), resource_tracker);
   if (!status.ok()) {
