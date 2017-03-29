@@ -21,10 +21,10 @@ limitations under the License.
 #include <memory>
 #include <utility>
 
+#include "tensorflow/contrib/batching/batch_scheduler.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/macros.h"
-#include "tensorflow_serving/batching/batch_scheduler.h"
 
 namespace tensorflow {
 namespace serving {
