@@ -238,7 +238,7 @@ service "inception-service" created
 To view status of the deployment and pods:
 
 ```shell
-$ kc get deployments
+$ kubectl get deployments
 NAME                    DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
 inception-deployment    3         3         3            3           5s
 ```
