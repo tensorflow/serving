@@ -213,7 +213,7 @@ $ docker tag $USER/inception_serving gcr.io/tensorflow-serving/inception
 Next we push the image to the Registry,
 
 ```shell
-$ gcloud docker push gcr.io/tensorflow-serving/inception
+$ gcloud docker -- push gcr.io/tensorflow-serving/inception
 ```
 
 ### Create Kubernetes Deployment and Service
