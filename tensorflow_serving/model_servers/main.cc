@@ -231,9 +231,13 @@ class PredictionServiceImpl final : public PredictionService::Service {
   grpc::Status Classify(ServerContext* context,
                         const ClassificationRequest* request,
                         ClassificationResponse* response) override {
+    tensorflow::RunOptions run_options = tensorflow::RunOptions();
+    // By default, this is infinite which is the same default as RunOptions.
+    run_options.set_timeout_in_ms(
+        DeadlineToTimeoutMillis(context->raw_deadline()));
     const grpc::Status status =
         ToGRPCStatus(TensorflowClassificationServiceImpl::Classify(
-            core_.get(), *request, response));
+            run_options, core_.get(), *request, response));
     if (!status.ok()) {
       VLOG(1) << "Classify request failed: " << status.error_message();
     }
@@ -243,9 +247,13 @@ class PredictionServiceImpl final : public PredictionService::Service {
   grpc::Status Regress(ServerContext* context,
                        const RegressionRequest* request,
                        RegressionResponse* response) override {
+    tensorflow::RunOptions run_options = tensorflow::RunOptions();
+    // By default, this is infinite which is the same default as RunOptions.
+    run_options.set_timeout_in_ms(
+        DeadlineToTimeoutMillis(context->raw_deadline()));
     const grpc::Status status =
         ToGRPCStatus(TensorflowRegressionServiceImpl::Regress(
-            core_.get(), *request, response));
+            run_options, core_.get(), *request, response));
     if (!status.ok()) {
       VLOG(1) << "Regress request failed: " << status.error_message();
     }

@@ -28,7 +28,8 @@ namespace tensorflow {
 namespace serving {
 
 Status TensorFlowMultiInferenceRunner::Infer(
-    const MultiInferenceRequest& request, MultiInferenceResponse* response) {
+    const RunOptions& run_options, const MultiInferenceRequest& request,
+    MultiInferenceResponse* response) {
   TRACELITERAL("TensorFlowMultiInferenceRunner::Infer");
 
   string model_name = "";
@@ -94,8 +95,8 @@ Status TensorFlowMultiInferenceRunner::Infer(
   std::vector<Tensor> outputs;
   int num_examples;
   TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
-      request.input(), input_tensor_name, output_tensor_names, session_,
-      &outputs, &num_examples));
+      run_options, request.input(), input_tensor_name, output_tensor_names,
+      session_, &outputs, &num_examples));
 
   TRACELITERAL("PostProcessResults");
   for (const auto& task : request.tasks()) {

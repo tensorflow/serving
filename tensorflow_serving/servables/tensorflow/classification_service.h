@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_CLASSIFICATION_SERVICE_H_
 
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow_serving/apis/classification.pb.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 
@@ -27,7 +28,8 @@ namespace serving {
 // tensorflow_serving/apis/classification-service.proto.
 class TensorflowClassificationServiceImpl {
  public:
-  static Status Classify(ServerCore* core, const ClassificationRequest& request,
+  static Status Classify(const RunOptions& run_options, ServerCore* core,
+                         const ClassificationRequest& request,
                          ClassificationResponse* response);
 };
 

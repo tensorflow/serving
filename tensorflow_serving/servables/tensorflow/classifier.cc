@@ -150,9 +150,10 @@ class TensorFlowClassifier : public ClassifierInterface {
 // Implementation of the ClassifierInterface using SavedModel.
 class SavedModelTensorFlowClassifier : public ClassifierInterface {
  public:
-  explicit SavedModelTensorFlowClassifier(Session* session,
+  explicit SavedModelTensorFlowClassifier(const RunOptions& run_options,
+                                          Session* session,
                                           const SignatureDef* const signature)
-      : session_(session), signature_(signature) {}
+      : run_options_(run_options), session_(session), signature_(signature) {}
 
   ~SavedModelTensorFlowClassifier() override = default;
 
@@ -168,8 +169,8 @@ class SavedModelTensorFlowClassifier : public ClassifierInterface {
     std::vector<Tensor> outputs;
     int num_examples;
     TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
-        request.input(), input_tensor_name, output_tensor_names, session_,
-        &outputs, &num_examples));
+        run_options_, request.input(), input_tensor_name, output_tensor_names,
+        session_, &outputs, &num_examples));
 
     TRACELITERAL("ConvertToClassificationResult");
     return PostProcessClassificationResult(
@@ -177,6 +178,7 @@ class SavedModelTensorFlowClassifier : public ClassifierInterface {
   }
 
  private:
+  const RunOptions run_options_;
   Session* const session_;
   const SignatureDef* const signature_;
 
@@ -213,8 +215,9 @@ class SessionBundleClassifier : public ClassifierInterface {
 
 class SavedModelClassifier : public ClassifierInterface {
  public:
-  explicit SavedModelClassifier(std::unique_ptr<SavedModelBundle> bundle)
-      : bundle_(std::move(bundle)) {}
+  SavedModelClassifier(const RunOptions& run_options,
+                       std::unique_ptr<SavedModelBundle> bundle)
+      : run_options_(run_options), bundle_(std::move(bundle)) {}
 
   ~SavedModelClassifier() override = default;
 
@@ -227,12 +230,13 @@ class SavedModelClassifier : public ClassifierInterface {
     SignatureDef signature;
     TF_RETURN_IF_ERROR(GetClassificationSignatureDef(
         request.model_spec(), bundle_->meta_graph_def, &signature));
-    SavedModelTensorFlowClassifier classifier(bundle_->session.get(),
-                                              &signature);
+    SavedModelTensorFlowClassifier classifier(
+        run_options_, bundle_->session.get(), &signature);
     return classifier.Classify(request, result);
   }
 
  private:
+  const RunOptions run_options_;
   std::unique_ptr<SavedModelBundle> bundle_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(SavedModelClassifier);
@@ -248,9 +252,9 @@ Status CreateClassifierFromBundle(
 }
 
 Status CreateClassifierFromSavedModelBundle(
-    std::unique_ptr<SavedModelBundle> bundle,
+    const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<ClassifierInterface>* service) {
-  service->reset(new SavedModelClassifier(std::move(bundle)));
+  service->reset(new SavedModelClassifier(run_options, std::move(bundle)));
   return Status::OK();
 }
 
@@ -262,9 +266,11 @@ Status CreateFlyweightTensorFlowClassifier(
 }
 
 Status CreateFlyweightTensorFlowClassifier(
-    Session* session, const SignatureDef* signature,
+    const RunOptions& run_options, Session* session,
+    const SignatureDef* signature,
     std::unique_ptr<ClassifierInterface>* service) {
-  service->reset(new SavedModelTensorFlowClassifier(session, signature));
+  service->reset(
+      new SavedModelTensorFlowClassifier(run_options, session, signature));
   return Status::OK();
 }
 

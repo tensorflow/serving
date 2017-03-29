@@ -37,7 +37,7 @@ Status CreateRegressorFromBundle(std::unique_ptr<SessionBundle> bundle,
 // Create a new RegressorInterface backed by a TensorFlow SavedModel.
 // Requires that the default SignatureDef be compatible with Regression.
 Status CreateRegressorFromSavedModelBundle(
-    std::unique_ptr<SavedModelBundle> bundle,
+    const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<RegressorInterface>* service);
 
 // Create a new RegressorInterface backed by a TensorFlow Session using the
@@ -55,7 +55,8 @@ Status CreateFlyweightTensorFlowRegressor(
 // request. The caller must ensure that the session and signature live at least
 // as long as the service.
 Status CreateFlyweightTensorFlowRegressor(
-    Session* session, const SignatureDef* signature,
+    const RunOptions& run_options, Session* session,
+    const SignatureDef* signature,
     std::unique_ptr<RegressorInterface>* service);
 
 // Get a regression signature from the meta_graph_def that's either:

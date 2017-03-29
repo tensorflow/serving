@@ -32,7 +32,8 @@ class TensorFlowMultiInferenceRunner {
 
   // Run inference and return the inference results in the same order as the
   // InferenceTasks in the request.
-  Status Infer(const MultiInferenceRequest& request,
+  Status Infer(const RunOptions& run_options,
+               const MultiInferenceRequest& request,
                MultiInferenceResponse* response);
 
   virtual ~TensorFlowMultiInferenceRunner() = default;
