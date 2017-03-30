@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow_serving/core/test_util/servable_handle_test_util.h"
 #include "tensorflow_serving/util/any_ptr.h"
 
 namespace tensorflow {
@@ -132,56 +133,13 @@ TEST(ManagerTest, ErrorReturnsNullHandle) {
   EXPECT_EQ(nullptr, handle.get());
 }
 
-// Wraps a pointer as a servable. Does a bit of type-gymnastics since servable
-// handles can only be constructed by managers.
-template <typename T>
-ServableHandle<T> WrapAsHandle(const ServableId& id, T* t) {
-  // Perform some type gymnastics to create a handle that points to 't'.
-  class DummyHandle : public UntypedServableHandle {
-   public:
-    explicit DummyHandle(const ServableId& id, T* servable)
-        : id_(id), servable_(servable) {}
-
-    AnyPtr servable() override { return servable_; }
-
-    const ServableId& id() const override { return id_; }
-
-   private:
-    const ServableId id_;
-    T* servable_;
-  };
-
-  // Always returns the same servable.
-  class DummyManager : public TestManager {
-   public:
-    explicit DummyManager(const ServableId& id, T* servable)
-        : id_(id), servable_(servable) {}
-
-    Status GetUntypedServableHandle(
-        const ServableRequest& request,
-        std::unique_ptr<UntypedServableHandle>* result) override {
-      result->reset(new DummyHandle(id_, servable_));
-      return Status::OK();
-    }
-
-   private:
-    const ServableId id_;
-    T* servable_;
-  };
-
-  DummyManager manager{id, t};
-  ServableHandle<T> handle;
-  TF_CHECK_OK(manager.GetServableHandle({"Dummy", 0}, &handle));
-  return handle;
-}
-
 TEST(ServableHandleTest, PointerOps) {
   TestServable servables[2];
   ServableHandle<TestServable> handles[2];
 
   const ServableId id = {"servable", 7};
-  handles[0] = WrapAsHandle(id, &servables[0]);
-  handles[1] = WrapAsHandle(id, &servables[1]);
+  handles[0] = test_util::WrapAsHandle(id, &servables[0]);
+  handles[1] = test_util::WrapAsHandle(id, &servables[1]);
 
   // Equality.
   EXPECT_EQ(handles[0], handles[0]);
@@ -203,8 +161,8 @@ TEST(ServableHandleTest, Id) {
   ServableHandle<TestServable> handles[2];
 
   const ServableId id = {"servable", 7};
-  handles[0] = WrapAsHandle(id, &servables[0]);
-  handles[1] = WrapAsHandle(id, &servables[1]);
+  handles[0] = test_util::WrapAsHandle(id, &servables[0]);
+  handles[1] = test_util::WrapAsHandle(id, &servables[1]);
 
   EXPECT_EQ(id, handles[0].id());
   EXPECT_EQ(id, handles[1].id());

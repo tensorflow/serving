@@ -76,7 +76,7 @@ cc_library(
             "//tensorflow_serving/core:servable_id",
             "//tensorflow_serving/core:source",
             "//tensorflow_serving/core:storage_path",
-            "//tensorflow_serving/util:periodic_function",
+            "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
             "@org_tensorflow//tensorflow/core:lib",
             "@org_tensorflow//tensorflow/core:tensorflow",
         ],

@@ -55,7 +55,7 @@ constants. Specifically:
 
 In addition, SavedModel provides a
 [util](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/utils.py)
-to help build a signature-def: link.
+to help build a signature-def.
 
 ## Sample structures
 

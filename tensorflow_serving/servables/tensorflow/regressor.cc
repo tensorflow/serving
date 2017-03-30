@@ -98,9 +98,10 @@ class TensorFlowRegressor : public RegressorInterface {
 // Implementation of the RegressorInterface using SavedModel.
 class SavedModelTensorFlowRegressor : public RegressorInterface {
  public:
-  explicit SavedModelTensorFlowRegressor(Session* session,
+  explicit SavedModelTensorFlowRegressor(const RunOptions& run_options,
+                                         Session* session,
                                          const SignatureDef* const signature)
-      : session_(session), signature_(signature) {}
+      : run_options_(run_options), session_(session), signature_(signature) {}
 
   ~SavedModelTensorFlowRegressor() override = default;
 
@@ -116,8 +117,8 @@ class SavedModelTensorFlowRegressor : public RegressorInterface {
     std::vector<Tensor> outputs;
     int num_examples;
     TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
-        request.input(), input_tensor_name, output_tensor_names, session_,
-        &outputs, &num_examples));
+        run_options_, request.input(), input_tensor_name, output_tensor_names,
+        session_, &outputs, &num_examples));
 
     TRACELITERAL("ConvertToRegressionResult");
     return PostProcessRegressionResult(*signature_, num_examples,
@@ -125,6 +126,7 @@ class SavedModelTensorFlowRegressor : public RegressorInterface {
   }
 
  private:
+  const RunOptions run_options_;
   Session* const session_;
   const SignatureDef* const signature_;
 
@@ -157,8 +159,9 @@ class SessionBundleRegressor : public RegressorInterface {
 
 class SavedModelRegressor : public RegressorInterface {
  public:
-  explicit SavedModelRegressor(std::unique_ptr<SavedModelBundle> bundle)
-      : bundle_(std::move(bundle)) {}
+  SavedModelRegressor(const RunOptions& run_options,
+                      std::unique_ptr<SavedModelBundle> bundle)
+      : run_options_(run_options), bundle_(std::move(bundle)) {}
 
   ~SavedModelRegressor() override = default;
 
@@ -167,11 +170,13 @@ class SavedModelRegressor : public RegressorInterface {
     SignatureDef signature;
     TF_RETURN_IF_ERROR(GetRegressionSignatureDef(
         request.model_spec(), bundle_->meta_graph_def, &signature));
-    SavedModelTensorFlowRegressor regressor(bundle_->session.get(), &signature);
+    SavedModelTensorFlowRegressor regressor(run_options_,
+                                            bundle_->session.get(), &signature);
     return regressor.Regress(request, result);
   }
 
  private:
+  const RunOptions run_options_;
   std::unique_ptr<SavedModelBundle> bundle_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(SavedModelRegressor);
@@ -186,9 +191,9 @@ Status CreateRegressorFromBundle(std::unique_ptr<SessionBundle> bundle,
 }
 
 Status CreateRegressorFromSavedModelBundle(
-    std::unique_ptr<SavedModelBundle> bundle,
+    const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<RegressorInterface>* service) {
-  service->reset(new SavedModelRegressor(std::move(bundle)));
+  service->reset(new SavedModelRegressor(run_options, std::move(bundle)));
   return Status::OK();
 }
 
@@ -200,9 +205,11 @@ Status CreateFlyweightTensorFlowRegressor(
 }
 
 Status CreateFlyweightTensorFlowRegressor(
-    Session* session, const SignatureDef* signature,
+    const RunOptions& run_options, Session* session,
+    const SignatureDef* signature,
     std::unique_ptr<RegressorInterface>* service) {
-  service->reset(new SavedModelTensorFlowRegressor(session, signature));
+  service->reset(
+      new SavedModelTensorFlowRegressor(run_options, session, signature));
   return Status::OK();
 }
 

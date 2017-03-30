@@ -29,6 +29,24 @@ namespace serving {
 
 namespace {
 
+// Performs a direct equality comparison of 'lhs' and 'rhs'.
+bool RawResourcesEqual(const Resource& lhs, const Resource& rhs) {
+  if (lhs.device() != rhs.device()) {
+    return false;
+  }
+
+  if (lhs.has_device_instance() != rhs.has_device_instance()) {
+    return false;
+  }
+  if (lhs.has_device_instance()) {
+    if (lhs.device_instance().value() != rhs.device_instance().value()) {
+      return false;
+    }
+  }
+
+  return lhs.kind() == rhs.kind();
+}
+
 // Returns a copy of 'devices', stripped of any entries whose value is 0.
 std::map<string, uint32> StripDevicesWithZeroInstances(
     const std::map<string, uint32>& devices) {
@@ -41,26 +59,13 @@ std::map<string, uint32> StripDevicesWithZeroInstances(
   return result;
 }
 
-// Obtains the quantity associated with 'resource' in 'allocation'. If none is
-// found, returns 0.
-uint64 GetQuantityForResource(const Resource& resource,
-                              const ResourceAllocation& allocation) {
-  for (const ResourceAllocation::Entry& entry :
-       allocation.resource_quantities()) {
-    if (entry.resource() == resource) {
-      return entry.quantity();
-    }
-  }
-  return 0;
-}
-
 // Returns a pointer to the entry associated with 'resource' in 'allocation'. If
 // none is found, returns nullptr.
 ResourceAllocation::Entry* FindMutableEntry(const Resource& resource,
                                             ResourceAllocation* allocation) {
   for (ResourceAllocation::Entry& entry :
        *allocation->mutable_resource_quantities()) {
-    if (entry.resource() == resource) {
+    if (RawResourcesEqual(entry.resource(), resource)) {
       return &entry;
     }
   }
@@ -87,75 +92,39 @@ ResourceUtil::ResourceUtil(const Options& options)
 
 Status ResourceUtil::VerifyValidity(
     const ResourceAllocation& allocation) const {
-  // We use 'validated_entries' to look for duplicates.
-  ResourceAllocation validated_entries;
-  for (const auto& entry : allocation.resource_quantities()) {
-    auto it = devices_.find(entry.resource().device());
-    if (it == devices_.end()) {
-      return errors::InvalidArgument(
-          "Invalid resource allocation: Invalid device ",
-          entry.resource().device(), " in resource allocation\n",
-          allocation.DebugString());
-    }
-    const uint32 num_instances = it->second;
-    if (entry.resource().has_device_instance() &&
-        entry.resource().device_instance().value() >= num_instances) {
-      return errors::InvalidArgument(
-          "Invalid resource allocation: Invalid device instance ",
-          entry.resource().device(), ":",
-          entry.resource().device_instance().value(),
-          " in resource allocation\n", allocation.DebugString());
-    }
+  return VerifyValidityInternal(allocation, DCHECKFailOption::kDoNotDCHECKFail);
+}
 
-    if (FindMutableEntry(entry.resource(), &validated_entries) != nullptr) {
-      return errors::InvalidArgument(
-          "Invalid resource allocation: Repeated resource\n",
-          entry.resource().DebugString(), "in allocation\n",
-          allocation.DebugString());
-    }
-
-    *validated_entries.add_resource_quantities() = entry;
-  }
-  return Status::OK();
+Status ResourceUtil::VerifyResourceValidity(const Resource& resource) const {
+  return VerifyResourceValidityInternal(resource,
+                                        DCHECKFailOption::kDoNotDCHECKFail);
 }
 
 ResourceAllocation ResourceUtil::Normalize(
     const ResourceAllocation& allocation) const {
-  const Status validity = VerifyValidity(allocation);
-  DCHECK_EQ(Status::OK(), validity);
-  if (!validity.ok()) {
-    LOG(ERROR) << validity;
+  if (!VerifyValidityInternal(allocation, DCHECKFailOption::kDoDCHECKFail)
+           .ok()) {
     return allocation;
   }
 
   ResourceAllocation normalized;
-  for (const auto& entry : allocation.resource_quantities()) {
+  for (const ResourceAllocation::Entry& entry :
+       allocation.resource_quantities()) {
     if (entry.quantity() == 0) {
       continue;
     }
 
     ResourceAllocation::Entry* normalized_entry =
         normalized.add_resource_quantities();
-    *normalized_entry = entry;
-    if (entry.resource().has_device_instance()) {
-      continue;
-    }
-    const uint32 num_instances =
-        devices_.find(entry.resource().device())->second;
-    if (num_instances == 1) {
-      normalized_entry->mutable_resource()
-          ->mutable_device_instance()
-          ->set_value(0);
-    }
+    *normalized_entry->mutable_resource() = NormalizeResource(entry.resource());
+    normalized_entry->set_quantity(entry.quantity());
   }
   return normalized;
 }
 
 bool ResourceUtil::IsNormalized(const ResourceAllocation& allocation) const {
-  const Status validity = VerifyValidity(allocation);
-  DCHECK_EQ(Status::OK(), validity);
-  if (!validity.ok()) {
-    LOG(ERROR) << validity;
+  if (!VerifyValidityInternal(allocation, DCHECKFailOption::kDoDCHECKFail)
+           .ok()) {
     return false;
   }
 
@@ -163,15 +132,7 @@ bool ResourceUtil::IsNormalized(const ResourceAllocation& allocation) const {
     if (entry.quantity() == 0) {
       return false;
     }
-
-    if (entry.resource().has_device_instance()) {
-      continue;
-    }
-    // For singleton devices (ones that have one instance), the resource should
-    // be bound to the single device in the normalized representation.
-    const uint32 num_instances =
-        devices_.find(entry.resource().device())->second;
-    if (num_instances == 1) {
+    if (!IsResourceNormalized(entry.resource())) {
       return false;
     }
   }
@@ -180,6 +141,45 @@ bool ResourceUtil::IsNormalized(const ResourceAllocation& allocation) const {
 
 bool ResourceUtil::IsBound(const ResourceAllocation& allocation) const {
   return IsBoundNormalized(Normalize(allocation));
+}
+
+Resource ResourceUtil::CreateBoundResource(const string& device,
+                                           const string& kind,
+                                           uint32 device_instance) const {
+  DCHECK(devices_.find(device) != devices_.end());
+  Resource resource;
+  resource.set_device(device);
+  resource.set_kind(kind);
+  resource.mutable_device_instance()->set_value(device_instance);
+  return resource;
+}
+
+uint64 ResourceUtil::GetQuantity(const Resource& resource,
+                                 const ResourceAllocation& allocation) const {
+  DCHECK(devices_.find(resource.device()) != devices_.end());
+  for (const ResourceAllocation::Entry& entry :
+       allocation.resource_quantities()) {
+    if (ResourcesEqual(entry.resource(), resource)) {
+      return entry.quantity();
+    }
+  }
+  return 0;
+}
+
+void ResourceUtil::SetQuantity(const Resource& resource, uint64 quantity,
+                               ResourceAllocation* allocation) const {
+  DCHECK(devices_.find(resource.device()) != devices_.end());
+  for (int i = 0; i < allocation->resource_quantities().size(); ++i) {
+    ResourceAllocation::Entry* entry =
+        allocation->mutable_resource_quantities(i);
+    if (ResourcesEqual(entry->resource(), resource)) {
+      entry->set_quantity(quantity);
+      return;
+    }
+  }
+  ResourceAllocation::Entry* new_entry = allocation->add_resource_quantities();
+  *new_entry->mutable_resource() = resource;
+  new_entry->set_quantity(quantity);
 }
 
 void ResourceUtil::Add(const ResourceAllocation& to_add,
@@ -192,6 +192,17 @@ bool ResourceUtil::Subtract(const ResourceAllocation& to_subtract,
                             ResourceAllocation* base) const {
   *base = Normalize(*base);
   return SubtractNormalized(Normalize(to_subtract), base);
+}
+
+bool ResourceUtil::Equal(const ResourceAllocation& lhs,
+                         const ResourceAllocation& rhs) const {
+  return EqualNormalized(Normalize(lhs), Normalize(rhs));
+}
+
+bool ResourceUtil::ResourcesEqual(const Resource& lhs,
+                                  const Resource& rhs) const {
+  return ResourcesEqualNormalized(NormalizeResource(lhs),
+                                  NormalizeResource(rhs));
 }
 
 bool ResourceUtil::LessThanOrEqual(const ResourceAllocation& lhs,
@@ -213,6 +224,89 @@ bool ResourceUtil::IsBoundNormalized(
     }
   }
   return true;
+}
+
+Status ResourceUtil::VerifyValidityInternal(
+    const ResourceAllocation& allocation,
+    DCHECKFailOption dcheck_fail_option) const {
+  const Status result = [this, &allocation]() -> Status {
+    // We use 'validated_entries' to look for duplicates.
+    ResourceAllocation validated_entries;
+    for (const auto& entry : allocation.resource_quantities()) {
+      TF_RETURN_IF_ERROR(VerifyResourceValidityInternal(
+          entry.resource(), DCHECKFailOption::kDoNotDCHECKFail));
+
+      if (FindMutableEntry(entry.resource(), &validated_entries) != nullptr) {
+        return errors::InvalidArgument(
+            "Invalid resource allocation: Repeated resource\n",
+            entry.resource().DebugString(), "in allocation\n",
+            allocation.DebugString());
+      }
+
+      *validated_entries.add_resource_quantities() = entry;
+    }
+    return Status::OK();
+  }();
+
+  if (dcheck_fail_option == DCHECKFailOption::kDoDCHECKFail) {
+    TF_DCHECK_OK(result);
+  }
+  if (!result.ok()) {
+    LOG(ERROR) << result;
+  }
+
+  return result;
+}
+
+Status ResourceUtil::VerifyResourceValidityInternal(
+    const Resource& resource, DCHECKFailOption dcheck_fail_option) const {
+  const Status result = [this, &resource]() -> Status {
+    auto it = devices_.find(resource.device());
+    if (it == devices_.end()) {
+      return errors::InvalidArgument(
+          "Invalid resource allocation: Invalid device ", resource.device());
+    }
+    const uint32 num_instances = it->second;
+    if (resource.has_device_instance() &&
+        resource.device_instance().value() >= num_instances) {
+      return errors::InvalidArgument(
+          "Invalid resource allocation: Invalid device instance ",
+          resource.device(), ":", resource.device_instance().value());
+    }
+    return Status::OK();
+  }();
+
+  if (dcheck_fail_option == DCHECKFailOption::kDoDCHECKFail) {
+    TF_DCHECK_OK(result);
+  }
+  if (!result.ok()) {
+    LOG(ERROR) << result;
+  }
+
+  return result;
+}
+
+Resource ResourceUtil::NormalizeResource(const Resource& resource) const {
+  Resource normalized = resource;
+  if (!normalized.has_device_instance()) {
+    const uint32 num_instances = devices_.find(normalized.device())->second;
+    if (num_instances == 1) {
+      normalized.mutable_device_instance()->set_value(0);
+    }
+  }
+  return normalized;
+}
+
+bool ResourceUtil::IsResourceNormalized(const Resource& resource) const {
+  if (!VerifyResourceValidityInternal(resource, DCHECKFailOption::kDoDCHECKFail)
+           .ok()) {
+    return false;
+  }
+
+  // For singleton devices (ones that have one instance), the resource should
+  // be bound to the single device in the normalized representation.
+  return resource.has_device_instance() ||
+         devices_.find(resource.device())->second > 1;
 }
 
 void ResourceUtil::AddNormalized(const ResourceAllocation& to_add,
@@ -260,12 +354,54 @@ bool ResourceUtil::SubtractNormalized(const ResourceAllocation& to_subtract,
   return true;
 }
 
+bool ResourceUtil::EqualNormalized(const ResourceAllocation& lhs,
+                                   const ResourceAllocation& rhs) const {
+  if (!VerifyValidityInternal(lhs, DCHECKFailOption::kDoDCHECKFail).ok() ||
+      !VerifyValidityInternal(rhs, DCHECKFailOption::kDoDCHECKFail).ok()) {
+    return false;
+  }
+  DCHECK(IsNormalized(lhs));
+  DCHECK(IsNormalized(rhs));
+
+  if (lhs.resource_quantities().size() != rhs.resource_quantities().size()) {
+    return false;
+  }
+
+  for (const ResourceAllocation::Entry& lhs_entry : lhs.resource_quantities()) {
+    bool matched = false;
+    for (const ResourceAllocation::Entry& rhs_entry :
+         rhs.resource_quantities()) {
+      if (ResourcesEqual(lhs_entry.resource(), rhs_entry.resource()) &&
+          lhs_entry.quantity() == rhs_entry.quantity()) {
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool ResourceUtil::ResourcesEqualNormalized(const Resource& lhs,
+                                            const Resource& rhs) const {
+  if (!VerifyResourceValidityInternal(lhs, DCHECKFailOption::kDoDCHECKFail)
+           .ok() ||
+      !VerifyResourceValidityInternal(rhs, DCHECKFailOption::kDoDCHECKFail)
+           .ok()) {
+    return false;
+  }
+  DCHECK(IsResourceNormalized(lhs));
+  DCHECK(IsResourceNormalized(rhs));
+  return RawResourcesEqual(lhs, rhs);
+}
+
 bool ResourceUtil::LessThanOrEqualNormalized(
     const ResourceAllocation& lhs, const ResourceAllocation& rhs) const {
-  const Status validity = VerifyValidity(lhs);
-  DCHECK_EQ(Status::OK(), validity);
-  if (!validity.ok()) {
-    LOG(ERROR) << validity;
+  if (!VerifyValidityInternal(lhs, DCHECKFailOption::kDoDCHECKFail).ok() ||
+      !VerifyValidityInternal(rhs, DCHECKFailOption::kDoDCHECKFail).ok()) {
     return false;
   }
   DCHECK(IsNormalized(lhs));
@@ -296,7 +432,7 @@ bool ResourceUtil::LessThanOrEqualNormalized(
       for (int instance = 0; instance < num_instances; ++instance) {
         bound_resource.mutable_device_instance()->set_value(instance);
         if (lhs_entry.quantity() <=
-            GetQuantityForResource(bound_resource, subtracted_rhs)) {
+            GetQuantity(bound_resource, subtracted_rhs)) {
           found_room = true;
           break;
         }
@@ -311,10 +447,8 @@ bool ResourceUtil::LessThanOrEqualNormalized(
 
 ResourceAllocation ResourceUtil::OverbindNormalized(
     const ResourceAllocation& allocation) const {
-  const Status validity = VerifyValidity(allocation);
-  DCHECK_EQ(Status::OK(), validity);
-  if (!validity.ok()) {
-    LOG(ERROR) << validity;
+  if (!VerifyValidityInternal(allocation, DCHECKFailOption::kDoDCHECKFail)
+           .ok()) {
     return allocation;
   }
   DCHECK(IsNormalized(allocation));
@@ -341,23 +475,6 @@ ResourceAllocation ResourceUtil::OverbindNormalized(
   }
   DCHECK(IsNormalized(result));
   return result;
-}
-
-bool operator==(const Resource& a, const Resource& b) {
-  if (a.device() != b.device()) {
-    return false;
-  }
-
-  if (a.has_device_instance() != b.has_device_instance()) {
-    return false;
-  }
-  if (a.has_device_instance()) {
-    if (a.device_instance().value() != b.device_instance().value()) {
-      return false;
-    }
-  }
-
-  return a.kind() == b.kind();
 }
 
 }  // namespace serving

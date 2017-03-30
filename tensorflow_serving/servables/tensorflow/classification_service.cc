@@ -29,8 +29,8 @@ namespace tensorflow {
 namespace serving {
 
 Status TensorflowClassificationServiceImpl::Classify(
-    ServerCore* core, const ClassificationRequest& request,
-    ClassificationResponse* response) {
+    const RunOptions& run_options, ServerCore* core,
+    const ClassificationRequest& request, ClassificationResponse* response) {
   TRACELITERAL("TensorflowClassificationServiceImpl::Classify");
   // Verify Request Metadata and create a ServableRequest
   if (!request.has_model_spec()) {
@@ -47,7 +47,8 @@ Status TensorflowClassificationServiceImpl::Classify(
 
   std::unique_ptr<ClassifierInterface> classifier_interface;
   TF_RETURN_IF_ERROR(CreateFlyweightTensorFlowClassifier(
-      saved_model_bundle->session.get(), &signature, &classifier_interface));
+      run_options, saved_model_bundle->session.get(), &signature,
+      &classifier_interface));
   // Run classification.
   return classifier_interface->Classify(request, response->mutable_result());
 }

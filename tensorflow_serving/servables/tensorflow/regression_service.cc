@@ -27,8 +27,8 @@ namespace tensorflow {
 namespace serving {
 
 Status TensorflowRegressionServiceImpl::Regress(
-    ServerCore* core, const RegressionRequest& request,
-    RegressionResponse* response) {
+    const RunOptions& run_options, ServerCore* core,
+    const RegressionRequest& request, RegressionResponse* response) {
   TRACELITERAL("TensorflowRegressionServiceImpl::Regress");
   // Verify Request Metadata and create a ServableRequest
   if (!request.has_model_spec()) {
@@ -45,7 +45,8 @@ Status TensorflowRegressionServiceImpl::Regress(
 
   std::unique_ptr<RegressorInterface> regressor_interface;
   TF_RETURN_IF_ERROR(CreateFlyweightTensorFlowRegressor(
-      saved_model_bundle->session.get(), &signature, &regressor_interface));
+      run_options, saved_model_bundle->session.get(), &signature,
+      &regressor_interface));
   // Run regression
   return regressor_interface->Regress(request, response->mutable_result());
 }

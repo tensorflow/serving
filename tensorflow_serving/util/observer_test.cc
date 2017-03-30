@@ -16,8 +16,8 @@ limitations under the License.
 #include "tensorflow_serving/util/observer.h"
 
 #include <gtest/gtest.h>
+#include "tensorflow/contrib/batching/util/periodic_function.h"
 #include "tensorflow/core/platform/env.h"
-#include "tensorflow_serving/util/periodic_function.h"
 
 namespace tensorflow {
 namespace serving {

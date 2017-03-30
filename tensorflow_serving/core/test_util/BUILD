@@ -134,6 +134,19 @@ cc_library(
 )
 
 cc_library(
+    name = "servable_handle_test_util",
+    testonly = 1,
+    hdrs = ["servable_handle_test_util.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tensorflow_serving/core:manager",
+        "//tensorflow_serving/core:servable_handle",
+        "//tensorflow_serving/core:servable_id",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
     name = "mock_log_collector",
     testonly = 1,
     hdrs = ["mock_log_collector.h"],

@@ -112,6 +112,7 @@ TENSORFLOW_DEPS = [
     "@org_tensorflow//tensorflow/core:tensorflow",
     "//tensorflow_serving/servables/tensorflow:classification_service",
     "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
+    "//tensorflow_serving/servables/tensorflow:multi_inference",
     "//tensorflow_serving/servables/tensorflow:regression_service",
     "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
     "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter",

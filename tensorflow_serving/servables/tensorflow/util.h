@@ -42,7 +42,8 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples);
 // Issues a single Session::Run() call with 'input' to produce 'outputs'.
 // Equivalent to InputToSerializedExampleTensor() followed by Session::Run().
 Status PerformOneShotTensorComputation(
-    const Input& input, const string& input_tensor_name,
+    const RunOptions& run_options, const Input& input,
+    const string& input_tensor_name,
     const std::vector<string>& output_tensor_names, Session* session,
     std::vector<Tensor>* outputs, int* num_input_examples);
 

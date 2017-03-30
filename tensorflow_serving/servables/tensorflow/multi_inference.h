@@ -19,6 +19,7 @@ limitations under the License.
 #include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/apis/inference.pb.h"
+#include "tensorflow_serving/model_servers/server_core.h"
 
 namespace tensorflow {
 namespace serving {
@@ -32,7 +33,8 @@ class TensorFlowMultiInferenceRunner {
 
   // Run inference and return the inference results in the same order as the
   // InferenceTasks in the request.
-  Status Infer(const MultiInferenceRequest& request,
+  Status Infer(const RunOptions& run_options,
+               const MultiInferenceRequest& request,
                MultiInferenceResponse* response);
 
   virtual ~TensorFlowMultiInferenceRunner() = default;
@@ -41,6 +43,10 @@ class TensorFlowMultiInferenceRunner {
   Session* const session_;
   MetaGraphDef* const meta_graph_def_;
 };
+
+Status RunMultiInference(const RunOptions& run_options, ServerCore* core,
+                         const MultiInferenceRequest& request,
+                         MultiInferenceResponse* response);
 
 }  // namespace serving
 }  // namespace tensorflow
