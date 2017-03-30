@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_REGRESSION_SERVICE_H_
 
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 
@@ -27,7 +28,8 @@ namespace serving {
 // tensorflow_serving/apis/regression-service.proto.
 class TensorflowRegressionServiceImpl final {
  public:
-  static Status Regress(ServerCore* core, const RegressionRequest& request,
+  static Status Regress(const RunOptions& run_options, ServerCore* core,
+                        const RegressionRequest& request,
                         RegressionResponse* response);
 };
 

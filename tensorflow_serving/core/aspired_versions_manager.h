@@ -21,6 +21,7 @@ limitations under the License.
 #include <unordered_map>
 #include <vector>
 
+#include "tensorflow/contrib/batching/util/periodic_function.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/hash/hash.h"
@@ -37,7 +38,6 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/target.h"
 #include "tensorflow_serving/util/optional.h"
-#include "tensorflow_serving/util/periodic_function.h"
 
 namespace tensorflow {
 namespace serving {

@@ -23,6 +23,7 @@ limitations under the License.
 #include "google/protobuf/wrappers.pb.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "tensorflow/contrib/batching/shared_batch_scheduler.h"
 #include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -32,7 +33,6 @@ limitations under the License.
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow/core/public/version.h"
 #include "tensorflow_serving/batching/batching_session.h"
-#include "tensorflow_serving/batching/shared_batch_scheduler.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"

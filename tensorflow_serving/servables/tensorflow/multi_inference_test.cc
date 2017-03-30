@@ -129,7 +129,7 @@ TEST_F(MultiInferenceTest, MissingInputTest) {
   PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(request, &response),
+  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT, "Input is empty");
 }
 
@@ -143,7 +143,7 @@ TEST_F(MultiInferenceTest, UndefinedSignatureTest) {
                request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(request, &response),
+  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT, "signature not found");
 }
 
@@ -166,7 +166,7 @@ TEST_F(MultiInferenceTest, InconsistentModelSpecsInRequestTest) {
   task->set_method_name(kRegressMethodName);
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(request, &response),
+  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT,
                     "must access the same model name");
 }
@@ -182,7 +182,7 @@ TEST_F(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
   PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(request, &response),
+  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT,
                     "Duplicate evaluation of signature: regress_x_to_y");
 }
@@ -196,7 +196,7 @@ TEST_F(MultiInferenceTest, UsupportedSignatureTypeTest) {
   PopulateTask("serving_default", kPredictMethodName, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(request, &response),
+  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
                     tensorflow::error::UNIMPLEMENTED, "Unsupported signature");
 }
 
@@ -210,7 +210,7 @@ TEST_F(MultiInferenceTest, SignaturesWithDifferentInputsTest) {
   PopulateTask("regress_x2_to_y3", kRegressMethodName, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(request, &response),
+  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT,
                     "Input tensor must be the same");
 }
@@ -229,7 +229,7 @@ TEST_F(MultiInferenceTest, ValidSingleSignatureTest) {
   regression_result->add_regressions()->set_value(3.0);
 
   MultiInferenceResponse response;
-  TF_ASSERT_OK(inference_runner->Infer(request, &response));
+  TF_ASSERT_OK(inference_runner->Infer(RunOptions(), request, &response));
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 
@@ -253,7 +253,7 @@ TEST_F(MultiInferenceTest, MultipleValidRegressSignaturesTest) {
   regression_result_2->add_regressions()->set_value(4.0);
 
   MultiInferenceResponse response;
-  TF_ASSERT_OK(inference_runner->Infer(request, &response));
+  TF_ASSERT_OK(inference_runner->Infer(RunOptions(), request, &response));
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 
@@ -275,7 +275,7 @@ TEST_F(MultiInferenceTest, RegressAndClassifySignaturesTest) {
   classification_result->add_classifications()->add_classes()->set_score(3.0);
 
   MultiInferenceResponse response;
-  TF_ASSERT_OK(inference_runner->Infer(request, &response));
+  TF_ASSERT_OK(inference_runner->Infer(RunOptions(), request, &response));
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 

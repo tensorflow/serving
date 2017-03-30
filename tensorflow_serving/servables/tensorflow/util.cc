@@ -86,7 +86,8 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
 }
 
 Status PerformOneShotTensorComputation(
-    const Input& input, const string& input_tensor_name,
+    const RunOptions& run_options, const Input& input,
+    const string& input_tensor_name,
     const std::vector<string>& output_tensor_names, Session* session,
     std::vector<Tensor>* outputs, int* num_input_examples) {
   // Setup the input Tensor to be a vector of string containing the serialized
@@ -95,8 +96,9 @@ Status PerformOneShotTensorComputation(
   TF_RETURN_IF_ERROR(InputToSerializedExampleTensor(input, &input_tensor));
   *num_input_examples = input_tensor.dim_size(0);
 
-  return session->Run({{input_tensor_name, input_tensor}}, output_tensor_names,
-                      {}, outputs);
+  RunMetadata run_metadata;
+  return session->Run(run_options, {{input_tensor_name, input_tensor}},
+                      output_tensor_names, {}, outputs, &run_metadata);
 }
 
 }  // namespace serving

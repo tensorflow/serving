@@ -168,6 +168,38 @@ TEST_F(ResourceUtilTest, VerifyValidity) {
                    .ok());
 }
 
+TEST_F(ResourceUtilTest, VerifyResourceValidity) {
+  // Unbound.
+  TF_EXPECT_OK(util_.VerifyResourceValidity(
+      CreateProto<Resource>("device: 'main' "
+                            "kind: 'processing' ")));
+
+  // Bound to a valid instance.
+  TF_EXPECT_OK(util_.VerifyResourceValidity(
+      CreateProto<Resource>("device: 'gpu' "
+                            "device_instance { value: 0 } "
+                            "kind: 'ram' ")));
+  TF_EXPECT_OK(util_.VerifyResourceValidity(
+      CreateProto<Resource>("device: 'gpu' "
+                            "device_instance { value: 1 } "
+                            "kind: 'ram' ")));
+
+  // Non-existent device.
+  EXPECT_FALSE(util_
+                   .VerifyResourceValidity(
+                       CreateProto<Resource>("device: 'nonexistent_device' "
+                                             "kind: 'processing' "))
+                   .ok());
+
+  // Bound to an invalid instance.
+  EXPECT_FALSE(util_
+                   .VerifyResourceValidity(
+                       CreateProto<Resource>("device: 'gpu' "
+                                             "device_instance { value: 2 } "
+                                             "kind: 'ram' "))
+                   .ok());
+}
+
 TEST_F(ResourceUtilTest, Normalize) {
   EXPECT_THAT(util_.Normalize(CreateProto<ResourceAllocation>("")),
               EqualsProto(""));
@@ -338,6 +370,174 @@ TEST_F(ResourceUtilTest, IsBound) {
                                       "  } "
                                       "  quantity: 100 "
                                       "} ")));
+}
+
+TEST_F(ResourceUtilTest, CreateBoundResource) {
+  EXPECT_THAT(util_.CreateBoundResource("gpu", "ram", 2),
+              EqualsProto("device: 'gpu' "
+                          "device_instance { value: 2 } "
+                          "kind: 'ram' "));
+  EXPECT_THAT(
+      util_.CreateBoundResource("gpu", "ram" /* , implicit instance = 0 */),
+      EqualsProto("device: 'gpu' "
+                  "device_instance { value: 0 } "
+                  "kind: 'ram' "));
+}
+
+TEST_F(ResourceUtilTest, GetQuantity) {
+  const auto allocation = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    device_instance { value: 0 } "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 32 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'gpu' "
+      "    device_instance { value: 1 } "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 100 "
+      "} ");
+  EXPECT_EQ(32, util_.GetQuantity(CreateProto<Resource>("device: 'main' "
+                                                        "kind: 'ram' "),
+                                  allocation));
+  EXPECT_EQ(32, util_.GetQuantity(
+                    CreateProto<Resource>("device: 'main' "
+                                          "device_instance { value: 0 } "
+                                          "kind: 'ram' "),
+                    allocation));
+  EXPECT_EQ(100, util_.GetQuantity(
+                     CreateProto<Resource>("device: 'gpu' "
+                                           "device_instance { value: 1 } "
+                                           "kind: 'processing' "),
+                     allocation));
+  EXPECT_EQ(
+      0, util_.GetQuantity(CreateProto<Resource>("device: 'gpu' "
+                                                 "device_instance { value: 1 } "
+                                                 "kind: 'ram' "),
+                           allocation));
+}
+
+TEST_F(ResourceUtilTest, SetQuantity) {
+  const auto initial_allocation = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 32 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'gpu' "
+      "    device_instance { value: 1 } "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 100 "
+      "} ");
+
+  {
+    ResourceAllocation allocation = initial_allocation;
+    util_.SetQuantity(CreateProto<Resource>("device: 'main' "
+                                            "device_instance { value: 0 } "
+                                            "kind: 'ram' "),
+                      64, &allocation);
+    EXPECT_THAT(allocation, EqualsProto("resource_quantities { "
+                                        "  resource { "
+                                        "    device: 'main' "
+                                        "    kind: 'ram' "
+                                        "  } "
+                                        "  quantity: 64 "
+                                        "} "
+                                        "resource_quantities { "
+                                        "  resource { "
+                                        "    device: 'gpu' "
+                                        "    device_instance { value: 1 } "
+                                        "    kind: 'processing' "
+                                        "  } "
+                                        "  quantity: 100 "
+                                        "} "));
+  }
+
+  {
+    ResourceAllocation allocation = initial_allocation;
+    util_.SetQuantity(CreateProto<Resource>("device: 'main' "
+                                            "kind: 'ram' "),
+                      64, &allocation);
+    EXPECT_THAT(allocation, EqualsProto("resource_quantities { "
+                                        "  resource { "
+                                        "    device: 'main' "
+                                        "    kind: 'ram' "
+                                        "  } "
+                                        "  quantity: 64 "
+                                        "} "
+                                        "resource_quantities { "
+                                        "  resource { "
+                                        "    device: 'gpu' "
+                                        "    device_instance { value: 1 } "
+                                        "    kind: 'processing' "
+                                        "  } "
+                                        "  quantity: 100 "
+                                        "} "));
+  }
+
+  {
+    ResourceAllocation allocation = initial_allocation;
+    util_.SetQuantity(CreateProto<Resource>("device: 'gpu' "
+                                            "device_instance { value: 1 } "
+                                            "kind: 'processing' "),
+                      200, &allocation);
+    EXPECT_THAT(allocation, EqualsProto("resource_quantities { "
+                                        "  resource { "
+                                        "    device: 'main' "
+                                        "    kind: 'ram' "
+                                        "  } "
+                                        "  quantity: 32 "
+                                        "} "
+                                        "resource_quantities { "
+                                        "  resource { "
+                                        "    device: 'gpu' "
+                                        "    device_instance { value: 1 } "
+                                        "    kind: 'processing' "
+                                        "  } "
+                                        "  quantity: 200 "
+                                        "} "));
+  }
+
+  {
+    ResourceAllocation allocation = initial_allocation;
+    util_.SetQuantity(CreateProto<Resource>("device: 'gpu' "
+                                            "device_instance { value: 1 } "
+                                            "kind: 'ram' "),
+                      128, &allocation);
+    EXPECT_THAT(allocation, EqualsProto("resource_quantities { "
+                                        "  resource { "
+                                        "    device: 'main' "
+                                        "    kind: 'ram' "
+                                        "  } "
+                                        "  quantity: 32 "
+                                        "} "
+                                        "resource_quantities { "
+                                        "  resource { "
+                                        "    device: 'gpu' "
+                                        "    device_instance { value: 1 } "
+                                        "    kind: 'processing' "
+                                        "  } "
+                                        "  quantity: 100 "
+                                        "} "
+                                        "resource_quantities { "
+                                        "  resource { "
+                                        "    device: 'gpu' "
+                                        "    device_instance { value: 1 } "
+                                        "    kind: 'ram' "
+                                        "  } "
+                                        "  quantity: 128 "
+                                        "} "));
+  }
 }
 
 TEST_F(ResourceUtilTest, AddEmpty) {
@@ -685,6 +885,147 @@ TEST_F(ResourceUtilTest, SubtractBoundAndUnbound) {
                                 "  } "
                                 "  quantity: 12 "
                                 "} "));
+}
+
+TEST_F(ResourceUtilTest, Equal) {
+  const std::vector<ResourceAllocation> values = {
+      CreateProto<ResourceAllocation>(""),
+      CreateProto<ResourceAllocation>("resource_quantities { "
+                                      "  resource { "
+                                      "    device: 'gpu' "
+                                      "    device_instance { value: 1 } "
+                                      "    kind: 'processing' "
+                                      "  } "
+                                      "  quantity: 10 "
+                                      "} "),
+      CreateProto<ResourceAllocation>("resource_quantities { "
+                                      "  resource { "
+                                      "    device: 'gpu' "
+                                      "    device_instance { value: 0 } "
+                                      "    kind: 'processing' "
+                                      "  } "
+                                      "  quantity: 20 "
+                                      "} "),
+      CreateProto<ResourceAllocation>("resource_quantities { "
+                                      "  resource { "
+                                      "    device: 'gpu' "
+                                      "    device_instance { value: 1 } "
+                                      "    kind: 'processing' "
+                                      "  } "
+                                      "  quantity: 20 "
+                                      "} "),
+      CreateProto<ResourceAllocation>("resource_quantities { "
+                                      "  resource { "
+                                      "    device: 'main' "
+                                      "    device_instance { value: 0 } "
+                                      "    kind: 'ram' "
+                                      "  } "
+                                      "  quantity: 32 "
+                                      "} "),
+      CreateProto<ResourceAllocation>("resource_quantities { "
+                                      "  resource { "
+                                      "    device: 'gpu' "
+                                      "    device_instance { value: 1 } "
+                                      "    kind: 'processing' "
+                                      "  } "
+                                      "  quantity: 20 "
+                                      "} "
+                                      "resource_quantities { "
+                                      "  resource { "
+                                      "    device: 'main' "
+                                      "    device_instance { value: 0 } "
+                                      "    kind: 'ram' "
+                                      "  } "
+                                      "  quantity: 32 "
+                                      "} ")};
+
+  for (int i = 0; i < values.size(); ++i) {
+    for (int j = 0; j < values.size(); ++j) {
+      EXPECT_EQ(i == j, util_.Equal(values[i], values[j])) << i << " vs. " << j;
+      EXPECT_EQ(j == i, util_.Equal(values[j], values[i])) << j << " vs. " << i;
+    }
+  }
+}
+
+TEST_F(ResourceUtilTest, EqualOrderInsensitive) {
+  const auto a = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    device_instance { value: 0 } "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 32 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'gpu' "
+      "    device_instance { value: 1 } "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 20 "
+      "} ");
+  const auto b = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'gpu' "
+      "    device_instance { value: 1 } "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 20 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    device_instance { value: 0 } "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 32 "
+      "} ");
+  EXPECT_TRUE(util_.Equal(a, b));
+  EXPECT_TRUE(util_.Equal(b, a));
+}
+
+TEST_F(ResourceUtilTest, ResourcesEqual) {
+  EXPECT_TRUE(util_.ResourcesEqual(CreateProto<Resource>("device: 'gpu' "
+                                                         "kind: 'ram' "),
+                                   CreateProto<Resource>("device: 'gpu' "
+                                                         "kind: 'ram' ")));
+  EXPECT_TRUE(
+      util_.ResourcesEqual(CreateProto<Resource>("device: 'gpu' "
+                                                 "device_instance { value: 1 } "
+                                                 "kind: 'ram' "),
+                           CreateProto<Resource>("device: 'gpu' "
+                                                 "device_instance { value: 1 } "
+                                                 "kind: 'ram' ")));
+  EXPECT_TRUE(
+      util_.ResourcesEqual(CreateProto<Resource>("device: 'main' "
+                                                 "kind: 'ram' "),
+                           CreateProto<Resource>("device: 'main' "
+                                                 "device_instance { value: 0 } "
+                                                 "kind: 'ram' ")));
+  EXPECT_FALSE(util_.ResourcesEqual(CreateProto<Resource>("device: 'gpu' "
+                                                          "kind: 'ram' "),
+                                    CreateProto<Resource>("device: 'main' "
+                                                          "kind: 'ram' ")));
+  EXPECT_FALSE(
+      util_.ResourcesEqual(CreateProto<Resource>("device: 'gpu' "
+                                                 "kind: 'ram' "),
+                           CreateProto<Resource>("device: 'gpu' "
+                                                 "kind: 'processing' ")));
+  EXPECT_FALSE(
+      util_.ResourcesEqual(CreateProto<Resource>("device: 'gpu' "
+                                                 "device_instance { value: 0 } "
+                                                 "kind: 'ram' "),
+                           CreateProto<Resource>("device: 'gpu' "
+                                                 "device_instance { value: 1 } "
+                                                 "kind: 'ram' ")));
+  EXPECT_FALSE(
+      util_.ResourcesEqual(CreateProto<Resource>("device: 'gpu' "
+                                                 "kind: 'ram' "),
+                           CreateProto<Resource>("device: 'gpu' "
+                                                 "device_instance { value: 1 } "
+                                                 "kind: 'ram' ")));
 }
 
 TEST_F(ResourceUtilTest, LessThanOrEqualEmpty) {
@@ -1093,24 +1434,6 @@ TEST_F(ResourceUtilTest, Overbind) {
                           "  } "
                           "  quantity: 6 "
                           "} "));
-}
-
-TEST_F(ResourceUtilTest, ResourceEquality) {
-  std::vector<Resource> distinct_protos = {
-      CreateProto<Resource>(""), CreateProto<Resource>("device: 'main' "
-                                                       "kind: 'ram' "),
-      CreateProto<Resource>("device: 'gpu' "
-                            "kind: 'ram' "),
-      CreateProto<Resource>("device: 'gpu' "
-                            "kind: 'processing' "),
-      CreateProto<Resource>("device: 'gpu' "
-                            " device_instance { value: 1 } "
-                            "kind: 'processing' ")};
-  for (int i = 0; i < distinct_protos.size(); ++i) {
-    for (int j = 0; j < distinct_protos.size(); ++j) {
-      EXPECT_EQ(i == j, operator==(distinct_protos[i], distinct_protos[j]));
-    }
-  }
 }
 
 }  // namespace

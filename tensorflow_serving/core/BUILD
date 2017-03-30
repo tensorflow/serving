@@ -322,6 +322,7 @@ cc_test(
     srcs = ["manager_test.cc"],
     deps = [
         ":manager",
+        "//tensorflow_serving/core/test_util:servable_handle_test_util",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:any_ptr",
         "@org_tensorflow//tensorflow/core:lib",
@@ -403,7 +404,7 @@ cc_test(
     deps = [
         ":servable_state_monitor",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util:fake_clock_env",
+        "@org_tensorflow//tensorflow/contrib/batching/test_util:fake_clock_env",
     ],
 )
 
@@ -501,7 +502,7 @@ cc_library(
         ":target",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:optional",
-        "//tensorflow_serving/util:periodic_function",
+        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -540,7 +541,7 @@ cc_test(
         ":servable_handle",
         ":simple_loader",
         "//tensorflow_serving/core/test_util:manager_test_util",
-        "//tensorflow_serving/util:periodic_function",
+        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
@@ -570,7 +571,6 @@ cc_test(
     deps = [
         ":static_manager",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util:fake_clock_env",
     ],
 )
 

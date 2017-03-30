@@ -8,16 +8,18 @@
 
 ## Introduction
 
-Batching individual model inference requests together can be important for
-performance. In particular, batching is necessary to unlock the high throughput
-promised by hardware accelerators such as GPUs. TensorFlow Serving provides a
-library for batching requests and scheduling the batches. The library is not
-tied to GPUs, per se, and can be used for any situation that benefits from
-processing groups of small tasks in tandem (but this document assumes GPUs to
-simplify exposition). Its code does not depend on the core TensorFlow Serving
-code, so it can be used separately from a TensorFlow Serving deployment if
-desired. It offers a specific TensorFlow Session API, as well as general APIs
-that are not tied to TensorFlow.
+While serving a TensorFlow model, batching individual model inference requests
+together can be important for performance. In particular, batching is necessary
+to unlock the high throughput promised by hardware accelerators such as GPUs.
+This is a library for batching requests and scheduling the batches. The library
+is not tied to GPUs, per se, and can be used for any situation that benefits
+from processing groups of small tasks in tandem (but this document assumes GPUs
+to simplify exposition). It offers a specific TensorFlow Session API, as well as
+lower-level APIs that can be used to batch at other granularities.
+
+The library is currently split across two locations:
+(1) tensorflow/contrib/batching (core API and implementation), and
+(2) tensorflow_serving/batching (higher-level and experimental code).
 
 The library offers several alternative classes to choose from. The reason for
 the choices is that there are many reasonable ways to perform batching. No

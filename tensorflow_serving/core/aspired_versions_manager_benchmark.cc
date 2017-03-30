@@ -26,6 +26,7 @@ limitations under the License.
 #include <string>
 #include <vector>
 
+#include "tensorflow/contrib/batching/util/periodic_function.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/threadpool.h"
@@ -48,7 +49,6 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/simple_loader.h"
 #include "tensorflow_serving/core/test_util/manager_test_util.h"
-#include "tensorflow_serving/util/periodic_function.h"
 
 namespace tensorflow {
 namespace serving {

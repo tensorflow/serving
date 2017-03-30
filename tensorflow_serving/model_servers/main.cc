@@ -73,6 +73,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/classification_service.h"
 #include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
+#include "tensorflow_serving/servables/tensorflow/multi_inference.h"
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
 
@@ -111,6 +112,8 @@ using tensorflow::serving::ClassificationRequest;
 using tensorflow::serving::ClassificationResponse;
 using tensorflow::serving::GetModelMetadataRequest;
 using tensorflow::serving::GetModelMetadataResponse;
+using tensorflow::serving::MultiInferenceRequest;
+using tensorflow::serving::MultiInferenceResponse;
 using tensorflow::serving::PredictRequest;
 using tensorflow::serving::PredictResponse;
 using tensorflow::serving::RegressionRequest;
@@ -231,9 +234,13 @@ class PredictionServiceImpl final : public PredictionService::Service {
   grpc::Status Classify(ServerContext* context,
                         const ClassificationRequest* request,
                         ClassificationResponse* response) override {
+    tensorflow::RunOptions run_options = tensorflow::RunOptions();
+    // By default, this is infinite which is the same default as RunOptions.
+    run_options.set_timeout_in_ms(
+        DeadlineToTimeoutMillis(context->raw_deadline()));
     const grpc::Status status =
         ToGRPCStatus(TensorflowClassificationServiceImpl::Classify(
-            core_.get(), *request, response));
+            run_options, core_.get(), *request, response));
     if (!status.ok()) {
       VLOG(1) << "Classify request failed: " << status.error_message();
     }
@@ -243,11 +250,30 @@ class PredictionServiceImpl final : public PredictionService::Service {
   grpc::Status Regress(ServerContext* context,
                        const RegressionRequest* request,
                        RegressionResponse* response) override {
+    tensorflow::RunOptions run_options = tensorflow::RunOptions();
+    // By default, this is infinite which is the same default as RunOptions.
+    run_options.set_timeout_in_ms(
+        DeadlineToTimeoutMillis(context->raw_deadline()));
     const grpc::Status status =
         ToGRPCStatus(TensorflowRegressionServiceImpl::Regress(
-            core_.get(), *request, response));
+            run_options, core_.get(), *request, response));
     if (!status.ok()) {
       VLOG(1) << "Regress request failed: " << status.error_message();
+    }
+    return status;
+  }
+
+  grpc::Status MultiInference(ServerContext* context,
+                              const MultiInferenceRequest* request,
+                              MultiInferenceResponse* response) override {
+    tensorflow::RunOptions run_options = tensorflow::RunOptions();
+    // By default, this is infinite which is the same default as RunOptions.
+    run_options.set_timeout_in_ms(
+        DeadlineToTimeoutMillis(context->raw_deadline()));
+    const grpc::Status status = ToGRPCStatus(
+        RunMultiInference(run_options, core_.get(), *request, response));
+    if (!status.ok()) {
+      VLOG(1) << "MultiInference request failed: " << status.error_message();
     }
     return status;
   }

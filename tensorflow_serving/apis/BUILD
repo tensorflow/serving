@@ -118,6 +118,7 @@ serving_proto_library(
     deps = [
         ":classification_proto",
         ":get_model_metadata_proto",
+        ":inference_proto",
         ":predict_proto",
         ":regression_proto",
     ],
@@ -129,6 +130,7 @@ py_library(
     deps = [
         ":classification_proto_py_pb2",
         ":get_model_metadata_proto_py_pb2",
+        ":inference_proto_py_pb2",
         ":predict_proto_py_pb2",
         ":regression_proto_py_pb2",
     ],
@@ -172,7 +174,7 @@ serving_proto_library(
 )
 
 serving_proto_library_py(
-    name = "inference_py_pb2",
+    name = "inference_proto_py_pb2",
     srcs = ["inference.proto"],
     proto_library = "inference_proto",
     deps = [

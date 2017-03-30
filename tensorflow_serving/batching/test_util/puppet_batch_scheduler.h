@@ -24,7 +24,7 @@ limitations under the License.
 #include <queue>
 #include <utility>
 
-#include "tensorflow_serving/batching/batch_scheduler.h"
+#include "tensorflow/contrib/batching/batch_scheduler.h"
 
 namespace tensorflow {
 namespace serving {
