@@ -200,7 +200,7 @@ kubeconfig entry generated for inception-serving-cluster.
 ### Upload the Docker image
 
 Let's now push our image to the
-[Google Container Registry] (https://cloud.google.com/container-registry/docs/)
+[Google Container Registry](https://cloud.google.com/container-registry/docs/)
 so that we can run it on Google Cloud Platform.
 
 First we tag the `$USER/inception_serving` image using the Container Registry
