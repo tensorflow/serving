@@ -20,49 +20,15 @@ filegroup(
     ),
 )
 
-# TODO(b/36404166): Remove this shim after migrating all clients.
-cc_library(
-    name = "batch_scheduler",
-    hdrs = ["batch_scheduler.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "@org_tensorflow//tensorflow/contrib/batching:batch_scheduler",
-    ],
-)
-
-# TODO(b/36404166): Remove this shim after migrating all clients.
-cc_library(
-    name = "shared_batch_scheduler",
-    hdrs = ["shared_batch_scheduler.h"],
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        "@org_tensorflow//tensorflow/contrib/batching:shared_batch_scheduler",
-    ],
-)
-
-# TODO(b/36404166): Remove this shim after migrating all clients.
-cc_library(
-    name = "basic_batch_scheduler",
-    hdrs = ["basic_batch_scheduler.h"],
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        "@org_tensorflow//tensorflow/contrib/batching:basic_batch_scheduler",
-    ],
-)
-
 cc_library(
     name = "streaming_batch_scheduler",
     srcs = ["streaming_batch_scheduler.cc"],
     hdrs = ["streaming_batch_scheduler.h"],
     visibility = ["//visibility:public"],
     deps = [
-        ":batch_scheduler",
         ":batch_scheduler_retrier",
         "//tensorflow_serving/util:optional",
+        "@org_tensorflow//tensorflow/contrib/batching:batch_scheduler",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -90,11 +56,11 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        ":basic_batch_scheduler",
-        ":batch_scheduler",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/util:cleanup",
         "//tensorflow_serving/util:hash",
+        "@org_tensorflow//tensorflow/contrib/batching:basic_batch_scheduler",
+        "@org_tensorflow//tensorflow/contrib/batching:batch_scheduler",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -131,7 +97,7 @@ cc_library(
     hdrs = ["batch_scheduler_retrier.h"],
     visibility = ["//visibility:public"],
     deps = [
-        ":batch_scheduler",
+        "@org_tensorflow//tensorflow/contrib/batching:batch_scheduler",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
