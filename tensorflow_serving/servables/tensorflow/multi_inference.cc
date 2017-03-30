@@ -124,5 +124,29 @@ Status TensorFlowMultiInferenceRunner::Infer(
   return Status::OK();
 }
 
+namespace {
+
+const ModelSpec& GetModelSpecFromRequest(const MultiInferenceRequest& request) {
+  if (request.tasks_size() > 0 && request.tasks(0).has_model_spec()) {
+    return request.tasks(0).model_spec();
+  }
+  return ModelSpec::default_instance();
+}
+
+}  // namespace
+
+Status RunMultiInference(const RunOptions& run_options, ServerCore* core,
+                         const MultiInferenceRequest& request,
+                         MultiInferenceResponse* response) {
+  TRACELITERAL("RunMultiInference");
+  ServableHandle<SavedModelBundle> bundle;
+  TF_RETURN_IF_ERROR(
+      core->GetServableHandle(GetModelSpecFromRequest(request), &bundle));
+
+  TensorFlowMultiInferenceRunner inference_runner(bundle->session.get(),
+                                                  &bundle->meta_graph_def);
+  return inference_runner.Infer(run_options, request, response);
+}
+
 }  // namespace serving
 }  // namespace tensorflow

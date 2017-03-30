@@ -672,6 +672,7 @@ cc_library(
         "//tensorflow_serving/apis:inference_proto",
         "//tensorflow_serving/apis:input_proto",
         "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/model_servers:server_core",
         "//tensorflow_serving/servables/tensorflow:classifier",
         "//tensorflow_serving/servables/tensorflow:regressor",
         "//tensorflow_serving/servables/tensorflow:util",

@@ -38,6 +38,7 @@ from tensorflow_serving.apis import classification_pb2
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2
 from tensorflow_serving.apis import regression_pb2
+from tensorflow_serving.apis import inference_pb2
 
 FLAGS = flags.FLAGS
 
@@ -241,6 +242,45 @@ class TensorflowModelServerTest(tf.test.TestCase):
     expected_output = 3.0
     self.assertEquals(expected_output,
                       result.result.regressions[0].value)
+
+  def testMultiInference(self):
+    """Test PredictionService.MultiInference implementation."""
+    model_path = self._GetSavedModelBundlePath()
+    use_saved_model = True
+    enable_batching = False
+
+    atexit.register(self.TerminateProcs)
+    model_server_address = self.RunServer(PickUnusedPort(), 'default',
+                                          model_path, use_saved_model,
+                                          enable_batching)
+    time.sleep(5)
+
+    print 'Sending MultiInference request...'
+    # Prepare request
+    request = inference_pb2.MultiInferenceRequest()
+    request.tasks.add().model_spec.name = 'default'
+    request.tasks[0].model_spec.signature_name = 'regress_x_to_y'
+    request.tasks[0].method_name = 'tensorflow/serving/regress'
+    request.tasks.add().model_spec.name = 'default'
+    request.tasks[1].model_spec.signature_name = 'classify_x_to_y'
+    request.tasks[1].method_name = 'tensorflow/serving/classify'
+
+    example = request.input.example_list.examples.add()
+    example.features.feature['x'].float_list.value.extend([2.0])
+
+    # Send request
+    host, port = model_server_address.split(':')
+    channel = implementations.insecure_channel(host, int(port))
+    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    result = stub.MultiInference(request, 5.0)  # 5 secs timeout
+
+    # Verify response
+    self.assertEquals(2, len(result.results))
+    expected_output = 3.0
+    self.assertEquals(expected_output,
+                      result.results[0].regression_result.regressions[0].value)
+    self.assertEquals(expected_output, result.results[
+        1].classification_result.classifications[0].classes[0].score)
 
   def _TestPredict(self, model_path, use_saved_model,
                    batching_parameters_file=''):
