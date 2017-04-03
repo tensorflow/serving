@@ -24,6 +24,10 @@ def serving_proto_library(name, srcs=[], has_services=False,
                    testonly=testonly,
                    visibility=visibility,)
 
+def serving_go_grpc_library(**kwargs):  # pylint: disable=unused-argument
+  """Build the Go gRPC bindings for a service. Not yet implemented."""
+  return
+
 def serving_proto_library_py(name, proto_library, srcs=[], deps=[], visibility=None, testonly=0):  # pylint: disable=unused-argument
   py_proto_library(name=name,
                    srcs=srcs,
