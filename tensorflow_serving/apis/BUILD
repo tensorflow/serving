@@ -22,6 +22,7 @@ filegroup(
 
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
+load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library")
 
 serving_proto_library(
     name = "get_model_metadata_proto",
@@ -134,6 +135,12 @@ py_library(
         ":predict_proto_py_pb2",
         ":regression_proto_py_pb2",
     ],
+)
+
+serving_go_grpc_library(
+    name = "prediction_service_grpc",
+    srcs = [":prediction_service_proto"],
+    deps = [":prediction_service_proto"],
 )
 
 serving_proto_library(
