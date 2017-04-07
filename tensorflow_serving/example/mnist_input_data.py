@@ -25,7 +25,8 @@ import os
 import numpy
 from six.moves import urllib
 
-SOURCE_URL = 'http://yann.lecun.com/exdb/mnist/'
+# CVDF mirror of http://yann.lecun.com/exdb/mnist/
+SOURCE_URL = 'https://storage.googleapis.com/cvdf-datasets/mnist/'
 TRAIN_IMAGES = 'train-images-idx3-ubyte.gz'
 TRAIN_LABELS = 'train-labels-idx1-ubyte.gz'
 TEST_IMAGES = 't10k-images-idx3-ubyte.gz'
