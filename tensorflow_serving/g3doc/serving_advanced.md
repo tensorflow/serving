@@ -115,8 +115,8 @@ commonly used options:
 
   * `ModelServerConfig` that specifies models to be loaded. Models are declared
   either through `model_config_list`, which declares a static list of models, or
-  through `dynamic_model_config`, which declares a dynamic list of models that
-  may get updated at runtime.
+  through `custom_model_config`, which defines a custom way to declare a list of
+  models that may get updated at runtime.
   * `PlatformConfigMap` that maps from the name of the platform (such as
   `tensorflow`) to the `PlatformConfig`, which is used to create the
   `SourceAdapter`. `SourceAdapter` adapts `StoragePath` (the path where a model
