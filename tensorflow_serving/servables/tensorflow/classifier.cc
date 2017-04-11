@@ -96,6 +96,11 @@ class TensorFlowClassifier : public ClassifierInterface {
     }
     // Validate scores output Tensor.
     if (scores) {
+      if (scores->dims() != 2) {
+        return errors::InvalidArgument(
+            "Expected Tensor shape: [batch_size num_classes] but got ",
+            scores->shape().DebugString());
+      }
       if (scores->dtype() != DT_FLOAT) {
         return errors::Internal("Expected scores Tensor of DT_FLOAT.  Got: ",
                                 DataType_Name(scores->dtype()));
@@ -389,6 +394,11 @@ Status PostProcessClassificationResult(
   }
   // Validate scores output Tensor.
   if (scores) {
+    if (scores->dims() != 2) {
+      return errors::InvalidArgument(
+          "Expected Tensor shape: [batch_size num_classes] but got ",
+          scores->shape().DebugString());
+    }
     if (scores->dtype() != DT_FLOAT) {
       return errors::InvalidArgument(
           "Expected scores Tensor of DT_FLOAT. Got: ",
