@@ -377,16 +377,11 @@ class TensorflowModelServerTest(tf.test.TestCase):
         self._GetBadModelConfigFile(),
         True,  # use_saved_model
         pipe=subprocess.PIPE)
-    last_line = None
-    for line in self.server_proc.stderr:
-      last_line = line
 
     error_message = (
         'Invalid protobuf file: \'%s\'') % self._GetBadModelConfigFile()
-
-    self.assertNotEqual(last_line, None)
-    self.assertGreater(last_line.find(error_message), 0)
-    # self.assertEquals(self.server_proc.poll(), 1)
+    self.assertNotEqual(self.server_proc.stderr, None)
+    self.assertGreater(self.server_proc.stderr.read().find(error_message), -1)
 
 if __name__ == '__main__':
   tf.test.main()
