@@ -294,11 +294,15 @@ Status PostProcessRegressionResult(
   }
 
   // Ensure the regression score output is shaped how we expect.
-  // There should be one float Tensor of shape,
-  //   [batch_size, num_recommendations].
   if (output_tensor == nullptr) {
     return errors::InvalidArgument(strings::StrCat(
         "Could not find output tensor '", output_tensor_name, "'"));
+  }
+  if (!(output_tensor->dims() == 1 ||
+        (output_tensor->dims() == 2 && output_tensor->dim_size(1) == 1))) {
+    return errors::InvalidArgument(
+        "Expected output Tensor shape to be either [batch_size] or ",
+        "[batch_size, 1] but got ", output_tensor->shape().DebugString());
   }
   if (num_examples != output_tensor->dim_size(0)) {
     return errors::InvalidArgument(strings::StrCat(
