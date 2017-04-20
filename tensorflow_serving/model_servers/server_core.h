@@ -78,6 +78,10 @@ class ServerCore : public Manager {
       const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
       UniquePtrWithDeps<AspiredVersionsManager>* manager)>;
 
+  // Function signature used to update the server_request_logger.
+  using ServerRequestLoggerUpdater =
+      std::function<Status(const ModelServerConfig&, ServerRequestLogger*)>;
+
   struct Options {
     // ModelServer configuration.
     ModelServerConfig model_server_config;
@@ -121,6 +125,9 @@ class ServerCore : public Manager {
 
     // Logger used for logging requests hitting the server.
     std::unique_ptr<ServerRequestLogger> server_request_logger;
+
+    // If set, we use this function to update the server_request_logger.
+    ServerRequestLoggerUpdater server_request_logger_updater;
   };
 
   virtual ~ServerCore() = default;

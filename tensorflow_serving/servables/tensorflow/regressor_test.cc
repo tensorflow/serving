@@ -49,10 +49,12 @@ using test_util::MockSession;
 const char kInputTensor[] = "input:0";
 const char kOutputTensor[] = "output:0";
 const char kOutputPlusOneTensor[] = "outputPlusOne:0";
+const char kImproperlySizedOutputTensor[] = "ImproperlySizedOutput:0";
 const char kOutputFeature[] = "output";
 
 const char kOutputPlusOneSignature[] = "output_plus_one";
 const char kInvalidNamedSignature[] = "invalid_classification_signature";
+const char kImproperlySizedOutputSignature[] = "ImproperlySizedOutputSignature";
 
 // Fake Session used for testing TensorFlowRegressor
 // Assumes the input Tensor "input:0" has serialized tensorflow::Example values.
@@ -95,10 +97,6 @@ class FakeSession : public tensorflow::Session {
     }
     if (inputs.size() != 1 || inputs[0].first != kInputTensor) {
       return errors::Internal("Expected one input Tensor.");
-    }
-    if (output_names.size() != 1 || (output_names[0] != kOutputTensor &&
-                                     output_names[0] != kOutputPlusOneTensor)) {
-      return errors::Internal("Expected one output Tensor.");
     }
     const Tensor& input = inputs[0].second;
     std::vector<Example> examples;
@@ -145,8 +143,17 @@ class FakeSession : public tensorflow::Session {
       return errors::Internal("empty example list");
     }
     const int batch_size = examples.size();
-    *tensor = Tensor(DT_FLOAT, TensorShape({batch_size, 1}));
-    auto output_matrix = tensor->matrix<float>();
+    if (output_tensor_name == kImproperlySizedOutputTensor) {
+      // Insert a rank 3 tensor which should be an error because outputs are
+      // expected to be of shape [batch_size] or [batch_size, 1].
+      *tensor = Tensor(DT_FLOAT, TensorShape({batch_size, 1, 10}));
+      return Status::OK();
+    }
+    // Both tensor shapes are valid, so make one of shape [batch_size, 1] and
+    // the rest of shape [batch_size].
+    *tensor = output_tensor_name == kOutputPlusOneTensor
+                  ? Tensor(DT_FLOAT, TensorShape({batch_size, 1}))
+                  : Tensor(DT_FLOAT, TensorShape({batch_size}));
 
     const float offset = output_tensor_name == kOutputPlusOneTensor ? 1 : 0;
     for (int i = 0; i < batch_size; ++i) {
@@ -154,7 +161,7 @@ class FakeSession : public tensorflow::Session {
       if (feature.float_list().value_size() != 1) {
         return errors::Internal("incorrect number of values in output feature");
       }
-      output_matrix(i, 0) = feature.float_list().value(0) + offset;
+      tensor->flat<float>()(i) = feature.float_list().value(0) + offset;
     }
     return Status::OK();
   }
@@ -218,6 +225,12 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
     AddNamedSignature(kInputTensor, kOutputPlusOneTensor,
                       kInvalidNamedSignature, false /* is_regression */,
                       &signatures);
+
+    // Add a named signature where the output is not valid.
+    AddNamedSignature(kInputTensor, kImproperlySizedOutputTensor,
+                      kImproperlySizedOutputSignature, true /* is_regression */,
+                      &signatures);
+
     TF_ASSERT_OK(
         tensorflow::serving::SetSignatures(signatures, meta_graph_def_));
   }
@@ -351,6 +364,26 @@ TEST_P(RegressorTest, InvalidNamedSignature) {
                                      "   value: 3.0 "
                                      " } "));
   }
+}
+
+TEST_P(RegressorTest, MalformedOutputs) {
+  // If not using SavedModel, we don't use named signatures so the test is not
+  // actually testing the right thing. Skip it.
+  if (!GetParam()) {
+    return;
+  }
+
+  TF_ASSERT_OK(Create());
+  request_.mutable_model_spec()->set_signature_name(
+      kImproperlySizedOutputSignature);
+  auto* examples =
+      request_.mutable_input()->mutable_example_list()->mutable_examples();
+  *examples->Add() = example_with_output(2.0);
+  *examples->Add() = example_with_output(3.0);
+  const Status status = regressor_->Regress(request_, &result_);
+
+  ASSERT_FALSE(status.ok());
+  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
 }
 
 TEST_P(RegressorTest, EmptyInput) {
