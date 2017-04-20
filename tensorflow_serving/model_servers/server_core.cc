@@ -292,6 +292,11 @@ Status ServerCore::AddModelsViaCustomModelConfig() {
 }
 
 Status ServerCore::MaybeUpdateServerRequestLogger() {
+  if (options_.server_request_logger_updater) {
+    return options_.server_request_logger_updater(
+        config_, options_.server_request_logger.get());
+  }
+
   std::map<string, LoggingConfig> logging_config_map;
   for (const auto& model_config : config_.model_config_list().config()) {
     if (model_config.has_logging_config()) {
@@ -299,9 +304,7 @@ Status ServerCore::MaybeUpdateServerRequestLogger() {
           {model_config.name(), model_config.logging_config()});
     }
   }
-  TF_RETURN_IF_ERROR(
-      options_.server_request_logger->Update(logging_config_map));
-  return Status::OK();
+  return options_.server_request_logger->Update(logging_config_map);
 }
 
 Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
