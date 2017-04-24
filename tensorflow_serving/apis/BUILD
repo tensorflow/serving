@@ -22,6 +22,7 @@ filegroup(
 
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
+load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library")
 
 serving_proto_library(
     name = "get_model_metadata_proto",
@@ -118,6 +119,7 @@ serving_proto_library(
     deps = [
         ":classification_proto",
         ":get_model_metadata_proto",
+        ":inference_proto",
         ":predict_proto",
         ":regression_proto",
     ],
@@ -129,9 +131,16 @@ py_library(
     deps = [
         ":classification_proto_py_pb2",
         ":get_model_metadata_proto_py_pb2",
+        ":inference_proto_py_pb2",
         ":predict_proto_py_pb2",
         ":regression_proto_py_pb2",
     ],
+)
+
+serving_go_grpc_library(
+    name = "prediction_service_grpc",
+    srcs = [":prediction_service_proto"],
+    deps = [":prediction_service_proto"],
 )
 
 serving_proto_library(
@@ -154,6 +163,32 @@ serving_proto_library_py(
         ":input_proto_py_pb2",
         ":model_proto_py_pb2",
         "@org_tensorflow//tensorflow/core:protos_all_py",
+    ],
+)
+
+serving_proto_library(
+    name = "inference_proto",
+    srcs = ["inference.proto"],
+    cc_api_version = 2,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":classification_proto",
+        ":input_proto",
+        ":model_proto",
+        ":regression_proto",
+    ],
+)
+
+serving_proto_library_py(
+    name = "inference_proto_py_pb2",
+    srcs = ["inference.proto"],
+    proto_library = "inference_proto",
+    deps = [
+        ":classification_proto_py_pb2",
+        ":input_proto_py_pb2",
+        ":model_proto_py_pb2",
+        ":regression_proto_py_pb2",
     ],
 )
 

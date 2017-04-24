@@ -112,6 +112,7 @@ TENSORFLOW_DEPS = [
     "@org_tensorflow//tensorflow/core:tensorflow",
     "//tensorflow_serving/servables/tensorflow:classification_service",
     "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
+    "//tensorflow_serving/servables/tensorflow:multi_inference",
     "//tensorflow_serving/servables/tensorflow:regression_service",
     "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
     "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter",
@@ -158,10 +159,8 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.index",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
-    tags = [
-        "local",
-        "manual",
-    ],
+    # TODO(b/36008812): Remove this tag.
+    tags = ["manual"],
     deps = [
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
         "@org_tensorflow//tensorflow:tensorflow_py",

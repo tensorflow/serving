@@ -98,19 +98,16 @@ class TensorFlowRegressor : public RegressorInterface {
 // Implementation of the RegressorInterface using SavedModel.
 class SavedModelTensorFlowRegressor : public RegressorInterface {
  public:
-  explicit SavedModelTensorFlowRegressor(Session* session,
+  explicit SavedModelTensorFlowRegressor(const RunOptions& run_options,
+                                         Session* session,
                                          const SignatureDef* const signature)
-      : session_(session), signature_(signature) {}
+      : run_options_(run_options), session_(session), signature_(signature) {}
 
   ~SavedModelTensorFlowRegressor() override = default;
 
   Status Regress(const RegressionRequest& request,
                  RegressionResult* result) override {
     TRACELITERAL("SavedModelTensorFlowRegressor::Regress");
-    const int num_examples = NumInputExamples(request.input());
-    if (num_examples == 0) {
-      return errors::InvalidArgument("RegressionRequest::input is empty.");
-    }
 
     string input_tensor_name;
     std::vector<string> output_tensor_names;
@@ -118,9 +115,10 @@ class SavedModelTensorFlowRegressor : public RegressorInterface {
                                             &output_tensor_names));
 
     std::vector<Tensor> outputs;
+    int num_examples;
     TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
-        request.input(), input_tensor_name, output_tensor_names, session_,
-        &outputs));
+        run_options_, request.input(), input_tensor_name, output_tensor_names,
+        session_, &outputs, &num_examples));
 
     TRACELITERAL("ConvertToRegressionResult");
     return PostProcessRegressionResult(*signature_, num_examples,
@@ -128,6 +126,7 @@ class SavedModelTensorFlowRegressor : public RegressorInterface {
   }
 
  private:
+  const RunOptions run_options_;
   Session* const session_;
   const SignatureDef* const signature_;
 
@@ -160,8 +159,9 @@ class SessionBundleRegressor : public RegressorInterface {
 
 class SavedModelRegressor : public RegressorInterface {
  public:
-  explicit SavedModelRegressor(std::unique_ptr<SavedModelBundle> bundle)
-      : bundle_(std::move(bundle)) {}
+  SavedModelRegressor(const RunOptions& run_options,
+                      std::unique_ptr<SavedModelBundle> bundle)
+      : run_options_(run_options), bundle_(std::move(bundle)) {}
 
   ~SavedModelRegressor() override = default;
 
@@ -170,11 +170,13 @@ class SavedModelRegressor : public RegressorInterface {
     SignatureDef signature;
     TF_RETURN_IF_ERROR(GetRegressionSignatureDef(
         request.model_spec(), bundle_->meta_graph_def, &signature));
-    SavedModelTensorFlowRegressor regressor(bundle_->session.get(), &signature);
+    SavedModelTensorFlowRegressor regressor(run_options_,
+                                            bundle_->session.get(), &signature);
     return regressor.Regress(request, result);
   }
 
  private:
+  const RunOptions run_options_;
   std::unique_ptr<SavedModelBundle> bundle_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(SavedModelRegressor);
@@ -189,9 +191,9 @@ Status CreateRegressorFromBundle(std::unique_ptr<SessionBundle> bundle,
 }
 
 Status CreateRegressorFromSavedModelBundle(
-    std::unique_ptr<SavedModelBundle> bundle,
+    const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<RegressorInterface>* service) {
-  service->reset(new SavedModelRegressor(std::move(bundle)));
+  service->reset(new SavedModelRegressor(run_options, std::move(bundle)));
   return Status::OK();
 }
 
@@ -203,9 +205,11 @@ Status CreateFlyweightTensorFlowRegressor(
 }
 
 Status CreateFlyweightTensorFlowRegressor(
-    Session* session, const SignatureDef* signature,
+    const RunOptions& run_options, Session* session,
+    const SignatureDef* signature,
     std::unique_ptr<RegressorInterface>* service) {
-  service->reset(new SavedModelTensorFlowRegressor(session, signature));
+  service->reset(
+      new SavedModelTensorFlowRegressor(run_options, session, signature));
   return Status::OK();
 }
 
@@ -290,11 +294,15 @@ Status PostProcessRegressionResult(
   }
 
   // Ensure the regression score output is shaped how we expect.
-  // There should be one float Tensor of shape,
-  //   [batch_size, num_recommendations].
   if (output_tensor == nullptr) {
     return errors::InvalidArgument(strings::StrCat(
         "Could not find output tensor '", output_tensor_name, "'"));
+  }
+  if (!(output_tensor->dims() == 1 ||
+        (output_tensor->dims() == 2 && output_tensor->dim_size(1) == 1))) {
+    return errors::InvalidArgument(
+        "Expected output Tensor shape to be either [batch_size] or ",
+        "[batch_size, 1] but got ", output_tensor->shape().DebugString());
   }
   if (num_examples != output_tensor->dim_size(0)) {
     return errors::InvalidArgument(strings::StrCat(

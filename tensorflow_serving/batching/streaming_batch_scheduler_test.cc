@@ -19,10 +19,10 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "tensorflow/contrib/batching/test_util/fake_clock_env.h"
 #include "tensorflow/core/lib/core/error_codes.pb.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/macros.h"
-#include "tensorflow_serving/test_util/fake_clock_env.h"
 
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;

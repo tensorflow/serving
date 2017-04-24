@@ -27,7 +27,6 @@ limitations under the License.
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.h"
 #include "tensorflow_serving/core/test_util/fake_storage_path_source_adapter.h"
-#include "tensorflow_serving/core/test_util/source_adapter_test_util.h"
 #include "tensorflow_serving/util/event_bus.h"
 
 namespace tensorflow {

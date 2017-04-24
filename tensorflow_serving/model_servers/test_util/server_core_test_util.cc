@@ -31,6 +31,14 @@ namespace test_util {
 
 namespace {
 
+void AddSessionRunLoadThreadPool(SessionBundleConfig* const bundle_config) {
+  auto* const session_config = bundle_config->mutable_session_config();
+  session_config->add_session_inter_op_thread_pool();
+  // The second pool will be used for loading.
+  session_config->add_session_inter_op_thread_pool()->set_num_threads(4);
+  bundle_config->mutable_session_run_load_threadpool_index()->set_value(1);
+}
+
 ServerCore::Options GetDefaultOptions(const bool use_saved_model) {
   ServerCore::Options options;
   options.file_system_poll_wait_seconds = 0;
@@ -45,8 +53,11 @@ ServerCore::Options GetDefaultOptions(const bool use_saved_model) {
     return Status::OK();
   };
 
+  SessionBundleConfig bundle_config;
+  AddSessionRunLoadThreadPool(&bundle_config);
+
   options.platform_config_map =
-      CreateTensorFlowPlatformConfigMap(SessionBundleConfig(), use_saved_model);
+      CreateTensorFlowPlatformConfigMap(bundle_config, use_saved_model);
   ::google::protobuf::Any fake_source_adapter_config;
   fake_source_adapter_config.PackFrom(
       test_util::FakeLoaderSourceAdapterConfig());

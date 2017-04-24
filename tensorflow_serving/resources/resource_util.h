@@ -49,6 +49,10 @@ class ResourceUtil {
   // have undefined behavior otherwise), and guarantee to produce valid outputs.
   Status VerifyValidity(const ResourceAllocation& allocation) const;
 
+  // Verifies whether 'resource' is valid, i.e. it only refers to valid devices,
+  // i.e. those supplied via Options.
+  Status VerifyResourceValidity(const Resource& resource) const;
+
   // Converts 'allocation' to normal form, meaning:
   //  1. It has no entries with quantity 0.
   //  2. Resources of a device that has exactly one instance are bound to that
@@ -62,6 +66,23 @@ class ResourceUtil {
   //  1. An individual entry is bound iff a device_instance is supplied.
   //  2. An allocation is bound iff every entry is bound.
   bool IsBound(const ResourceAllocation& allocation) const;
+
+  // Creates a bound resource with the given values. For single-instance
+  // resources (which is a common case, e.g. main memory) the 'instance'
+  // argument can be omitted.
+  Resource CreateBoundResource(const string& device, const string& kind,
+                               uint32 device_instance = 0) const;
+
+  // Gets the quantity of 'resource' present in 'allocation'. Returns 0 if
+  // 'resource' is not mentioned in 'allocation', since unmentioned resources
+  // are implicitly zero.
+  uint64 GetQuantity(const Resource& resource,
+                     const ResourceAllocation& allocation) const;
+
+  // Sets the quantity of 'resource' to 'quantity' in 'allocation', overwriting
+  // any existing quantity.
+  void SetQuantity(const Resource& resource, uint64 quantity,
+                   ResourceAllocation* allocation) const;
 
   // Adds 'to_add' to 'base'.
   //
@@ -77,6 +98,15 @@ class ResourceUtil {
   // represented) are produced.
   bool Subtract(const ResourceAllocation& to_subtract,
                 ResourceAllocation* base) const;
+
+  // Determines whether two ResourceAllocation objects are identical (modulo
+  // normalization).
+  bool Equal(const ResourceAllocation& lhs,
+             const ResourceAllocation& rhs) const;
+
+  // Determines whether two Resource objects are identical (modulo
+  // normalization).
+  bool ResourcesEqual(const Resource& lhs, const Resource& rhs) const;
 
   // Takes a (bound or unbound) allocation 'lhs' and a *bound* allocation 'rhs'.
   // Returns true iff for each entry in 'lhs', either:
@@ -103,6 +133,24 @@ class ResourceUtil {
   ResourceAllocation Overbind(const ResourceAllocation& allocation) const;
 
  private:
+  enum class DCHECKFailOption { kDoDCHECKFail, kDoNotDCHECKFail };
+
+  // Wraps VerifyValidity() with error logging and the option to DCHECK-fail.
+  Status VerifyValidityInternal(const ResourceAllocation& allocation,
+                                DCHECKFailOption dcheck_fail_option) const;
+
+  // Wraps VerifyResourceValidity() with error logging and the option to
+  // DCHECK-fail.
+  Status VerifyResourceValidityInternal(
+      const Resource& resource, DCHECKFailOption dcheck_fail_option) const;
+
+  // Converts 'resource' to normal form, i.e. ensures that if the device has
+  // exactly one instance, the resource is bound to that instance.
+  Resource NormalizeResource(const Resource& resource) const;
+
+  // Determines whether 'resource' is normalized. Assumes 'resource' is valid.
+  bool IsResourceNormalized(const Resource& resource) const;
+
   // Like IsBound(), but assumes the input is normalized.
   bool IsBoundNormalized(const ResourceAllocation& allocation) const;
 
@@ -115,6 +163,13 @@ class ResourceUtil {
   // normalized output.
   bool SubtractNormalized(const ResourceAllocation& to_subtract,
                           ResourceAllocation* base) const;
+
+  // Like Equal(), but assumes the input is normalized.
+  bool EqualNormalized(const ResourceAllocation& lhs,
+                       const ResourceAllocation& rhs) const;
+
+  // Like ResourcesEqual(), but assumes the input is normalized.
+  bool ResourcesEqualNormalized(const Resource& lhs, const Resource& rhs) const;
 
   // Like LessThanOrEqual(), but assumes the input is normalized.
   bool LessThanOrEqualNormalized(const ResourceAllocation& lhs,
@@ -129,9 +184,6 @@ class ResourceUtil {
 
   TF_DISALLOW_COPY_AND_ASSIGN(ResourceUtil);
 };
-
-// Determines whether two Resource protos are equal.
-bool operator==(const Resource& a, const Resource& b);
 
 }  // namespace serving
 }  // namespace tensorflow

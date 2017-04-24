@@ -80,6 +80,11 @@ class TensorFlowClassifier : public ClassifierInterface {
 
     // Validate classes output Tensor.
     if (classes) {
+      if (classes->dims() != 2) {
+        return errors::InvalidArgument(
+            "Expected Tensor shape: [batch_size num_classes] but got ",
+            classes->shape().DebugString());
+      }
       if (classes->dtype() != DT_STRING) {
         return errors::Internal("Expected classes Tensor of DT_STRING.  Got: ",
                                 DataType_Name(classes->dtype()));
@@ -91,6 +96,11 @@ class TensorFlowClassifier : public ClassifierInterface {
     }
     // Validate scores output Tensor.
     if (scores) {
+      if (scores->dims() != 2) {
+        return errors::InvalidArgument(
+            "Expected Tensor shape: [batch_size num_classes] but got ",
+            scores->shape().DebugString());
+      }
       if (scores->dtype() != DT_FLOAT) {
         return errors::Internal("Expected scores Tensor of DT_FLOAT.  Got: ",
                                 DataType_Name(scores->dtype()));
@@ -145,19 +155,16 @@ class TensorFlowClassifier : public ClassifierInterface {
 // Implementation of the ClassifierInterface using SavedModel.
 class SavedModelTensorFlowClassifier : public ClassifierInterface {
  public:
-  explicit SavedModelTensorFlowClassifier(Session* session,
+  explicit SavedModelTensorFlowClassifier(const RunOptions& run_options,
+                                          Session* session,
                                           const SignatureDef* const signature)
-      : session_(session), signature_(signature) {}
+      : run_options_(run_options), session_(session), signature_(signature) {}
 
   ~SavedModelTensorFlowClassifier() override = default;
 
   Status Classify(const ClassificationRequest& request,
                   ClassificationResult* result) override {
     TRACELITERAL("TensorFlowClassifier::Classify");
-    const int num_examples = NumInputExamples(request.input());
-    if (num_examples == 0) {
-      return errors::InvalidArgument("ClassificationRequest::input is empty.");
-    }
 
     string input_tensor_name;
     std::vector<string> output_tensor_names;
@@ -165,9 +172,10 @@ class SavedModelTensorFlowClassifier : public ClassifierInterface {
                                                 &output_tensor_names));
 
     std::vector<Tensor> outputs;
+    int num_examples;
     TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
-        request.input(), input_tensor_name, output_tensor_names, session_,
-        &outputs));
+        run_options_, request.input(), input_tensor_name, output_tensor_names,
+        session_, &outputs, &num_examples));
 
     TRACELITERAL("ConvertToClassificationResult");
     return PostProcessClassificationResult(
@@ -175,6 +183,7 @@ class SavedModelTensorFlowClassifier : public ClassifierInterface {
   }
 
  private:
+  const RunOptions run_options_;
   Session* const session_;
   const SignatureDef* const signature_;
 
@@ -211,8 +220,9 @@ class SessionBundleClassifier : public ClassifierInterface {
 
 class SavedModelClassifier : public ClassifierInterface {
  public:
-  explicit SavedModelClassifier(std::unique_ptr<SavedModelBundle> bundle)
-      : bundle_(std::move(bundle)) {}
+  SavedModelClassifier(const RunOptions& run_options,
+                       std::unique_ptr<SavedModelBundle> bundle)
+      : run_options_(run_options), bundle_(std::move(bundle)) {}
 
   ~SavedModelClassifier() override = default;
 
@@ -225,12 +235,13 @@ class SavedModelClassifier : public ClassifierInterface {
     SignatureDef signature;
     TF_RETURN_IF_ERROR(GetClassificationSignatureDef(
         request.model_spec(), bundle_->meta_graph_def, &signature));
-    SavedModelTensorFlowClassifier classifier(bundle_->session.get(),
-                                              &signature);
+    SavedModelTensorFlowClassifier classifier(
+        run_options_, bundle_->session.get(), &signature);
     return classifier.Classify(request, result);
   }
 
  private:
+  const RunOptions run_options_;
   std::unique_ptr<SavedModelBundle> bundle_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(SavedModelClassifier);
@@ -246,9 +257,9 @@ Status CreateClassifierFromBundle(
 }
 
 Status CreateClassifierFromSavedModelBundle(
-    std::unique_ptr<SavedModelBundle> bundle,
+    const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<ClassifierInterface>* service) {
-  service->reset(new SavedModelClassifier(std::move(bundle)));
+  service->reset(new SavedModelClassifier(run_options, std::move(bundle)));
   return Status::OK();
 }
 
@@ -260,9 +271,11 @@ Status CreateFlyweightTensorFlowClassifier(
 }
 
 Status CreateFlyweightTensorFlowClassifier(
-    Session* session, const SignatureDef* signature,
+    const RunOptions& run_options, Session* session,
+    const SignatureDef* signature,
     std::unique_ptr<ClassifierInterface>* service) {
-  service->reset(new SavedModelTensorFlowClassifier(session, signature));
+  service->reset(
+      new SavedModelTensorFlowClassifier(run_options, session, signature));
   return Status::OK();
 }
 
@@ -363,6 +376,11 @@ Status PostProcessClassificationResult(
 
   // Validate classes output Tensor.
   if (classes) {
+    if (classes->dims() != 2) {
+      return errors::InvalidArgument(
+          "Expected Tensor shape: [batch_size num_classes] but got ",
+          classes->shape().DebugString());
+    }
     if (classes->dtype() != DT_STRING) {
       return errors::InvalidArgument(
           "Expected classes Tensor of DT_STRING. Got: ",
@@ -376,6 +394,11 @@ Status PostProcessClassificationResult(
   }
   // Validate scores output Tensor.
   if (scores) {
+    if (scores->dims() != 2) {
+      return errors::InvalidArgument(
+          "Expected Tensor shape: [batch_size num_classes] but got ",
+          scores->shape().DebugString());
+    }
     if (scores->dtype() != DT_FLOAT) {
       return errors::InvalidArgument(
           "Expected scores Tensor of DT_FLOAT. Got: ",

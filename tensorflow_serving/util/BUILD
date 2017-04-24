@@ -82,8 +82,8 @@ cc_test(
     srcs = ["observer_test.cc"],
     deps = [
         ":observer",
-        ":periodic_function",
         "//tensorflow_serving/core/test_util:test_main",
+        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -95,7 +95,7 @@ cc_test(
     deps = [
         ":event_bus",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util:fake_clock_env",
+        "@org_tensorflow//tensorflow/contrib/batching/test_util:fake_clock_env",
     ],
 )
 
@@ -123,7 +123,7 @@ cc_test(
     srcs = ["fast_read_dynamic_ptr_benchmark.cc"],
     deps = [
         ":fast_read_dynamic_ptr",
-        ":periodic_function",
+        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
@@ -150,26 +150,6 @@ cc_test(
         ":optional",
         "//tensorflow_serving/core/test_util:test_main",
         "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
-cc_library(
-    name = "periodic_function",
-    srcs = ["periodic_function.cc"],
-    hdrs = ["periodic_function.h"],
-    deps = [
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
-cc_test(
-    name = "periodic_function_test",
-    srcs = ["periodic_function_test.cc"],
-    deps = [
-        ":periodic_function",
-        "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util:fake_clock_env",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 

@@ -24,9 +24,6 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// Returns the number of examples in the Input.
-int NumInputExamples(const Input& input);
-
 // InputToSerializedExampleTensor populates a string Tensor of serialized
 // Examples.
 // If input has n Examples returns a string Tensor with shape {n}.
@@ -45,9 +42,10 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples);
 // Issues a single Session::Run() call with 'input' to produce 'outputs'.
 // Equivalent to InputToSerializedExampleTensor() followed by Session::Run().
 Status PerformOneShotTensorComputation(
-    const Input& input, const string& input_tensor_name,
+    const RunOptions& run_options, const Input& input,
+    const string& input_tensor_name,
     const std::vector<string>& output_tensor_names, Session* session,
-    std::vector<Tensor>* outputs);
+    std::vector<Tensor>* outputs, int* num_input_examples);
 
 }  // namespace serving
 }  // namespace tensorflow

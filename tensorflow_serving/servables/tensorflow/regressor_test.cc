@@ -36,6 +36,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/regression.pb.h"
 #include "tensorflow_serving/core/test_util/mock_session.h"
 #include "tensorflow_serving/test_util/test_util.h"
+#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -48,16 +49,20 @@ using test_util::MockSession;
 const char kInputTensor[] = "input:0";
 const char kOutputTensor[] = "output:0";
 const char kOutputPlusOneTensor[] = "outputPlusOne:0";
+const char kImproperlySizedOutputTensor[] = "ImproperlySizedOutput:0";
 const char kOutputFeature[] = "output";
 
 const char kOutputPlusOneSignature[] = "output_plus_one";
 const char kInvalidNamedSignature[] = "invalid_classification_signature";
+const char kImproperlySizedOutputSignature[] = "ImproperlySizedOutputSignature";
 
 // Fake Session used for testing TensorFlowRegressor
 // Assumes the input Tensor "input:0" has serialized tensorflow::Example values.
 // Copies the "output" float feature from each Example.
 class FakeSession : public tensorflow::Session {
  public:
+  explicit FakeSession(optional<int64> expected_timeout)
+      : expected_timeout_(expected_timeout) {}
   ~FakeSession() override = default;
   Status Create(const GraphDef& graph) override {
     return errors::Unimplemented("not available in fake");
@@ -74,12 +79,24 @@ class FakeSession : public tensorflow::Session {
              const std::vector<string>& output_names,
              const std::vector<string>& target_nodes,
              std::vector<Tensor>* outputs) override {
+    if (expected_timeout_) {
+      LOG(FATAL) << "Run() without RunOptions not expected to be called";
+    }
+    RunMetadata run_metadata;
+    return Run(RunOptions(), inputs, output_names, target_nodes, outputs,
+               &run_metadata);
+  }
+
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_names,
+             const std::vector<string>& target_nodes,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+    if (expected_timeout_) {
+      CHECK_EQ(*expected_timeout_, run_options.timeout_in_ms());
+    }
     if (inputs.size() != 1 || inputs[0].first != kInputTensor) {
       return errors::Internal("Expected one input Tensor.");
-    }
-    if (output_names.size() != 1 || (output_names[0] != kOutputTensor &&
-                                     output_names[0] != kOutputPlusOneTensor)) {
-      return errors::Internal("Expected one output Tensor.");
     }
     const Tensor& input = inputs[0].second;
     std::vector<Example> examples;
@@ -126,8 +143,17 @@ class FakeSession : public tensorflow::Session {
       return errors::Internal("empty example list");
     }
     const int batch_size = examples.size();
-    *tensor = Tensor(DT_FLOAT, TensorShape({batch_size, 1}));
-    auto output_matrix = tensor->matrix<float>();
+    if (output_tensor_name == kImproperlySizedOutputTensor) {
+      // Insert a rank 3 tensor which should be an error because outputs are
+      // expected to be of shape [batch_size] or [batch_size, 1].
+      *tensor = Tensor(DT_FLOAT, TensorShape({batch_size, 1, 10}));
+      return Status::OK();
+    }
+    // Both tensor shapes are valid, so make one of shape [batch_size, 1] and
+    // the rest of shape [batch_size].
+    *tensor = output_tensor_name == kOutputPlusOneTensor
+                  ? Tensor(DT_FLOAT, TensorShape({batch_size, 1}))
+                  : Tensor(DT_FLOAT, TensorShape({batch_size}));
 
     const float offset = output_tensor_name == kOutputPlusOneTensor ? 1 : 0;
     for (int i = 0; i < batch_size; ++i) {
@@ -135,10 +161,13 @@ class FakeSession : public tensorflow::Session {
       if (feature.float_list().value_size() != 1) {
         return errors::Internal("incorrect number of values in output feature");
       }
-      output_matrix(i, 0) = feature.float_list().value(0) + offset;
+      tensor->flat<float>()(i) = feature.float_list().value(0) + offset;
     }
     return Status::OK();
   }
+
+ private:
+  const optional<int64> expected_timeout_;
 };
 
 // Add a named signature to the mutable signatures* parameter.
@@ -175,7 +204,12 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
   void SetUp() override {
     bundle_.reset(new SessionBundle);
     meta_graph_def_ = &bundle_->meta_graph_def;
-    fake_session_ = new FakeSession();
+    optional<int64> expected_timeout = GetRunOptions().timeout_in_ms();
+    if (!GetParam()) {
+      // For SessionBundle we don't propagate the timeout.
+      expected_timeout = nullopt;
+    }
+    fake_session_ = new FakeSession(expected_timeout);
     bundle_->session.reset(fake_session_);
 
     // Setup some defaults for our signature.
@@ -191,6 +225,12 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
     AddNamedSignature(kInputTensor, kOutputPlusOneTensor,
                       kInvalidNamedSignature, false /* is_regression */,
                       &signatures);
+
+    // Add a named signature where the output is not valid.
+    AddNamedSignature(kInputTensor, kImproperlySizedOutputTensor,
+                      kImproperlySizedOutputSignature, true /* is_regression */,
+                      &signatures);
+
     TF_ASSERT_OK(
         tensorflow::serving::SetSignatures(signatures, meta_graph_def_));
   }
@@ -210,8 +250,8 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
       std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
       TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
           *bundle_, saved_model.get()));
-      return CreateRegressorFromSavedModelBundle(std::move(saved_model),
-                                                 &regressor_);
+      return CreateRegressorFromSavedModelBundle(
+          GetRunOptions(), std::move(saved_model), &regressor_);
     } else {
       return CreateRegressorFromBundle(std::move(bundle_), &regressor_);
     }
@@ -228,6 +268,13 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
   // Convenience variables.
   RegressionRequest request_;
   RegressionResult result_;
+
+ private:
+  RunOptions GetRunOptions() const {
+    RunOptions run_options;
+    run_options.set_timeout_in_ms(42);
+    return run_options;
+  }
 };
 
 TEST_P(RegressorTest, BasicExampleList) {
@@ -319,6 +366,26 @@ TEST_P(RegressorTest, InvalidNamedSignature) {
   }
 }
 
+TEST_P(RegressorTest, MalformedOutputs) {
+  // If not using SavedModel, we don't use named signatures so the test is not
+  // actually testing the right thing. Skip it.
+  if (!GetParam()) {
+    return;
+  }
+
+  TF_ASSERT_OK(Create());
+  request_.mutable_model_spec()->set_signature_name(
+      kImproperlySizedOutputSignature);
+  auto* examples =
+      request_.mutable_input()->mutable_example_list()->mutable_examples();
+  *examples->Add() = example_with_output(2.0);
+  *examples->Add() = example_with_output(3.0);
+  const Status status = regressor_->Regress(request_, &result_);
+
+  ASSERT_FALSE(status.ok());
+  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+}
+
 TEST_P(RegressorTest, EmptyInput) {
   TF_ASSERT_OK(Create());
   // Touch input.
@@ -326,7 +393,7 @@ TEST_P(RegressorTest, EmptyInput) {
   const Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("RegressionRequest::input is empty"));
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(RegressorTest, EmptyExampleList) {
@@ -335,7 +402,7 @@ TEST_P(RegressorTest, EmptyExampleList) {
   const Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("RegressionRequest::input is empty"));
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(RegressorTest, EmptyExampleListWithContext) {
@@ -347,15 +414,21 @@ TEST_P(RegressorTest, EmptyExampleListWithContext) {
   const Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("RegressionRequest::input is empty"));
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(RegressorTest, RunsFails) {
   MockSession* mock = new MockSession;
   bundle_->session.reset(mock);
-  EXPECT_CALL(*mock, Run(_, _, _, _))
-      .WillRepeatedly(
-          ::testing::Return(errors::Internal("Run totally failed")));
+  if (GetParam()) {
+    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+        .WillRepeatedly(
+            ::testing::Return(errors::Internal("Run totally failed")));
+  } else {
+    EXPECT_CALL(*mock, Run(_, _, _, _))
+        .WillRepeatedly(
+            ::testing::Return(errors::Internal("Run totally failed")));
+  }
   TF_ASSERT_OK(Create());
   *request_.mutable_input()->mutable_example_list()->mutable_examples()->Add() =
       example_with_output(2.0);
@@ -368,9 +441,15 @@ TEST_P(RegressorTest, UnexpectedOutputTensorSize) {
   MockSession* mock = new MockSession;
   bundle_->session.reset(mock);
   std::vector<Tensor> outputs = {Tensor(DT_FLOAT, TensorShape({2}))};
-  EXPECT_CALL(*mock, Run(_, _, _, _))
-      .WillOnce(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
-                                 ::testing::Return(Status::OK())));
+  if (GetParam()) {
+    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+        .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                   ::testing::Return(Status::OK())));
+  } else {
+    EXPECT_CALL(*mock, Run(_, _, _, _))
+        .WillOnce(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
+                                   ::testing::Return(Status::OK())));
+  }
   TF_ASSERT_OK(Create());
   *request_.mutable_input()->mutable_example_list()->mutable_examples()->Add() =
       example_with_output(2.0);
@@ -384,9 +463,15 @@ TEST_P(RegressorTest, UnexpectedOutputTensorType) {
   bundle_->session.reset(mock);
   // We expect a FLOAT output type; test returning a STRING.
   std::vector<Tensor> outputs = {Tensor(DT_STRING, TensorShape({1}))};
-  EXPECT_CALL(*mock, Run(_, _, _, _))
-      .WillOnce(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
-                                 ::testing::Return(Status::OK())));
+  if (GetParam()) {
+    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+        .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                   ::testing::Return(Status::OK())));
+  } else {
+    EXPECT_CALL(*mock, Run(_, _, _, _))
+        .WillOnce(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
+                                   ::testing::Return(Status::OK())));
+  }
   TF_ASSERT_OK(Create());
   *request_.mutable_input()->mutable_example_list()->mutable_examples()->Add() =
       example_with_output(2.0);

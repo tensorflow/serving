@@ -38,7 +38,7 @@ Status CreateClassifierFromBundle(
 // Create a new ClassifierInterface backed by a TensorFlow SavedModel.
 // Requires that the default SignatureDef be compatible with classification.
 Status CreateClassifierFromSavedModelBundle(
-    std::unique_ptr<SavedModelBundle> bundle,
+    const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<ClassifierInterface>* service);
 
 // Create a new ClassifierInterface backed by a TensorFlow Session using the
@@ -56,7 +56,8 @@ Status CreateFlyweightTensorFlowClassifier(
 // request. The caller must ensure that the session and signature live at least
 // as long as the service.
 Status CreateFlyweightTensorFlowClassifier(
-    Session* session, const SignatureDef* signature,
+    const RunOptions& run_options, Session* session,
+    const SignatureDef* signature,
     std::unique_ptr<ClassifierInterface>* service);
 
 // Get a classification signature from the meta_graph_def that's either:

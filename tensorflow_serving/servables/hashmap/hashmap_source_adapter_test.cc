@@ -31,7 +31,6 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/servable_data.h"
-#include "tensorflow_serving/core/test_util/source_adapter_test_util.h"
 #include "tensorflow_serving/servables/hashmap/hashmap_source_adapter.pb.h"
 #include "tensorflow_serving/util/any_ptr.h"
 
@@ -78,7 +77,7 @@ TEST(HashmapSourceAdapter, Basic) {
   auto adapter =
       std::unique_ptr<HashmapSourceAdapter>(new HashmapSourceAdapter(config));
   ServableData<std::unique_ptr<Loader>> loader_data =
-      test_util::RunSourceAdapter(file, adapter.get());
+      adapter->AdaptOneVersion({{"", 0}, file});
   TF_ASSERT_OK(loader_data.status());
   std::unique_ptr<Loader> loader = loader_data.ConsumeDataOrDie();
 

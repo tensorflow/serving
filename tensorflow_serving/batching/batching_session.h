@@ -26,10 +26,10 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "tensorflow/contrib/batching/basic_batch_scheduler.h"
+#include "tensorflow/contrib/batching/batch_scheduler.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
-#include "tensorflow_serving/batching/basic_batch_scheduler.h"
-#include "tensorflow_serving/batching/batch_scheduler.h"
 
 namespace tensorflow {
 namespace serving {

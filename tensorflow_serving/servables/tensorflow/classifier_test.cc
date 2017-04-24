@@ -38,6 +38,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/core/test_util/mock_session.h"
 #include "tensorflow_serving/test_util/test_util.h"
+#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -53,9 +54,11 @@ const char kOutputPlusOneClassTensor[] = "outputPlusOne:0";
 const char kClassFeature[] = "class";
 const char kScoreTensor[] = "score:0";
 const char kScoreFeature[] = "score";
+const char kImproperlySizedScoresTensor[] = "ImproperlySizedScores:0";
 
 const char kOutputPlusOneSignature[] = "output_plus_one";
 const char kInvalidNamedSignature[] = "invalid_regression_signature";
+const char kImproperlySizedScoresSignature[] = "ImproperlySizedScoresSignature";
 
 // Fake Session used for testing TensorFlowClassifier.
 // Assumes the input Tensor "input:0" has serialized tensorflow::Example values.
@@ -63,6 +66,8 @@ const char kInvalidNamedSignature[] = "invalid_regression_signature";
 // class for that example.
 class FakeSession : public tensorflow::Session {
  public:
+  explicit FakeSession(optional<int64> expected_timeout)
+      : expected_timeout_(expected_timeout) {}
   ~FakeSession() override = default;
   Status Create(const GraphDef& graph) override {
     return errors::Unimplemented("not available in fake");
@@ -79,15 +84,26 @@ class FakeSession : public tensorflow::Session {
              const std::vector<string>& output_names,
              const std::vector<string>& target_nodes,
              std::vector<Tensor>* outputs) override {
+    if (expected_timeout_) {
+      LOG(FATAL) << "Run() without RunOptions not expected to be called";
+    }
+    RunMetadata run_metadata;
+    return Run(RunOptions(), inputs, output_names, target_nodes, outputs,
+               &run_metadata);
+  }
+
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_names,
+             const std::vector<string>& target_nodes,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+    if (expected_timeout_) {
+      CHECK_EQ(*expected_timeout_, run_options.timeout_in_ms());
+    }
     if (inputs.size() != 1 || inputs[0].first != kInputTensor) {
       return errors::Internal("Expected one input Tensor.");
     }
-    for (const auto& output_name : output_names) {
-      if (output_name != kClassTensor && output_name != kScoreTensor &&
-          output_name != kOutputPlusOneClassTensor) {
-        return errors::Internal("Unsupported output Tensor: ", output_name);
-      }
-    }
+
     const Tensor& input = inputs[0].second;
     std::vector<Example> examples;
     TF_RETURN_IF_ERROR(GetExamples(input, &examples));
@@ -101,6 +117,11 @@ class FakeSession : public tensorflow::Session {
       } else if (output_name == kScoreTensor ||
                  output_name == kOutputPlusOneClassTensor) {
         outputs->push_back(scores);
+      } else if (output_name == kImproperlySizedScoresTensor) {
+        // Insert a rank 3 tensor which should be an error because scores are
+        // expected to be rank 2.
+        outputs->emplace_back(DT_FLOAT, TensorShape({scores.dim_size(0),
+                                                     scores.dim_size(1), 10}));
       }
     }
 
@@ -184,6 +205,9 @@ class FakeSession : public tensorflow::Session {
     }
     return Status::OK();
   }
+
+ private:
+  const optional<int64> expected_timeout_;
 };
 
 // Add a named signature to the mutable signatures* parameter.
@@ -223,7 +247,12 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
   void SetUp() override {
     bundle_.reset(new SessionBundle);
     meta_graph_def_ = &bundle_->meta_graph_def;
-    fake_session_ = new FakeSession();
+    optional<int64> expected_timeout = GetRunOptions().timeout_in_ms();
+    if (!UseSavedModel()) {
+      // For SessionBundle we don't propagate the timeout.
+      expected_timeout = nullopt;
+    }
+    fake_session_ = new FakeSession(expected_timeout);
     bundle_->session.reset(fake_session_);
 
     // Setup some defaults for our signature.
@@ -240,6 +269,11 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
     AddNamedSignature(kInputTensor, kOutputPlusOneClassTensor,
                       kInvalidNamedSignature, false /* is_classification */,
                       &signatures);
+
+    // Add a named signature where the output is not valid.
+    AddNamedSignature(kInputTensor, kImproperlySizedScoresTensor,
+                      kImproperlySizedScoresSignature,
+                      true /* is_classification */, &signatures);
     TF_ASSERT_OK(
         tensorflow::serving::SetSignatures(signatures, meta_graph_def_));
   }
@@ -260,13 +294,17 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
     return example;
   }
 
+  // Whether or not to use SavedModel for this test. Simply wraps GetParam()
+  // with a more meaningful name.
+  bool UseSavedModel() { return GetParam(); }
+
   Status Create() {
-    if (GetParam()) {
+    if (UseSavedModel()) {
       std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
       TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
           *bundle_, saved_model.get()));
-      return CreateClassifierFromSavedModelBundle(std::move(saved_model),
-                                                  &classifier_);
+      return CreateClassifierFromSavedModelBundle(
+          GetRunOptions(), std::move(saved_model), &classifier_);
     } else {
       return CreateClassifierFromBundle(std::move(bundle_), &classifier_);
     }
@@ -283,6 +321,13 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
   // Convenience variables.
   ClassificationRequest request_;
   ClassificationResult result_;
+
+ private:
+  RunOptions GetRunOptions() const {
+    RunOptions run_options;
+    run_options.set_timeout_in_ms(42);
+    return run_options;
+  }
 };
 
 TEST_P(ClassifierTest, ExampleList) {
@@ -453,11 +498,10 @@ TEST_P(ClassifierTest, ValidNamedSignature) {
   *examples->Add() = example({{"cuatro", 4}, {"tres", 3}});
   TF_ASSERT_OK(classifier_->Classify(request_, &result_));
 
-  // GetParam() is 'is_saved_model' in this test. If using saved_model, this
-  // test should use the kOutputPlusOneSignature named signature. Otherwise,
-  // when using session_bundle, the signature_name in the model_spec will be
-  // ignored and the default signature will be used.
-  if (GetParam()) {
+  // If using saved_model, this test should use the kOutputPlusOneSignature
+  // named signature. Otherwise, when using session_bundle, the signature_name
+  // in the model_spec will be ignored and the default signature will be used.
+  if (UseSavedModel()) {
     EXPECT_THAT(result_, EqualsProto(" classifications { "
                                      "   classes { "
                                      "     label: 'dos' "
@@ -511,11 +555,10 @@ TEST_P(ClassifierTest, InvalidNamedSignature) {
   *examples->Add() = example({{"cuatro", 4}, {"tres", 3}});
   const Status status = classifier_->Classify(request_, &result_);
 
-  // GetParam() is 'is_saved_model' in this test. If using saved_model, this
-  // test should fail because the named_signature requested is actually a
-  // regression signature. When using session_bundle, the signature_name
-  // will be ignored and the default signature will be used.
-  if (GetParam()) {
+  // If using saved_model, this test should fail because the named_signature
+  // requested is actually a regression signature. When using session_bundle,
+  // the signature_name will be ignored and the default signature will be used.
+  if (UseSavedModel()) {
     ASSERT_FALSE(status.ok());
     EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
   } else {
@@ -543,6 +586,26 @@ TEST_P(ClassifierTest, InvalidNamedSignature) {
   }
 }
 
+TEST_P(ClassifierTest, MalformedScores) {
+  // If not using SavedModel, we don't use named signatures so the test is not
+  // actually testing the right thing. Skip it.
+  if (!UseSavedModel()) {
+    return;
+  }
+
+  TF_ASSERT_OK(Create());
+  request_.mutable_model_spec()->set_signature_name(
+      kImproperlySizedScoresSignature);
+  auto* examples =
+      request_.mutable_input()->mutable_example_list()->mutable_examples();
+  *examples->Add() = example({{"dos", 2}, {"uno", 1}});
+  *examples->Add() = example({{"cuatro", 4}, {"tres", 3}});
+  const Status status = classifier_->Classify(request_, &result_);
+
+  ASSERT_FALSE(status.ok());
+  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+}
+
 TEST_P(ClassifierTest, MissingClassificationSignature) {
   tensorflow::serving::Signatures signatures;
   signatures.mutable_default_signature();
@@ -557,7 +620,7 @@ TEST_P(ClassifierTest, MissingClassificationSignature) {
   // Old SessionBundle code treats a missing signature as a FAILED_PRECONDITION
   // but new SavedModel code treats it as an INVALID_ARGUMENT (signature
   // specified in the request was invalid).
-  if (GetParam()) {
+  if (UseSavedModel()) {
     EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
   } else {
     EXPECT_EQ(::tensorflow::error::FAILED_PRECONDITION, status.code())
@@ -572,7 +635,7 @@ TEST_P(ClassifierTest, EmptyInput) {
   const Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("ClassificationRequest::input is empty"));
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(ClassifierTest, EmptyExampleList) {
@@ -582,7 +645,7 @@ TEST_P(ClassifierTest, EmptyExampleList) {
   const Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("ClassificationRequest::input is empty"));
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(ClassifierTest, EmptyExampleListWithContext) {
@@ -594,15 +657,21 @@ TEST_P(ClassifierTest, EmptyExampleListWithContext) {
   const Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("ClassificationRequest::input is empty"));
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(ClassifierTest, RunsFails) {
   MockSession* mock = new MockSession;
   bundle_->session.reset(mock);
-  EXPECT_CALL(*mock, Run(_, _, _, _))
-      .WillRepeatedly(
-          ::testing::Return(errors::Internal("Run totally failed")));
+  if (UseSavedModel()) {
+    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+        .WillRepeatedly(
+            ::testing::Return(errors::Internal("Run totally failed")));
+  } else {
+    EXPECT_CALL(*mock, Run(_, _, _, _))
+        .WillRepeatedly(
+            ::testing::Return(errors::Internal("Run totally failed")));
+  }
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -619,9 +688,15 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorBatchSize) {
   Tensor classes(DT_STRING, TensorShape({1, 2}));
   Tensor scores(DT_FLOAT, TensorShape({2, 2}));
   std::vector<Tensor> outputs = {classes, scores};
-  EXPECT_CALL(*mock, Run(_, _, _, _))
-      .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
-                                       ::testing::Return(Status::OK())));
+  if (UseSavedModel()) {
+    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                         ::testing::Return(Status::OK())));
+  } else {
+    EXPECT_CALL(*mock, Run(_, _, _, _))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
+                                         ::testing::Return(Status::OK())));
+  }
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -640,9 +715,15 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorType) {
   Tensor classes(DT_FLOAT, TensorShape({2, 2}));
   Tensor scores(DT_FLOAT, TensorShape({2, 2}));
   std::vector<Tensor> outputs = {classes, scores};
-  EXPECT_CALL(*mock, Run(_, _, _, _))
-      .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
-                                       ::testing::Return(Status::OK())));
+  if (UseSavedModel()) {
+    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                         ::testing::Return(Status::OK())));
+  } else {
+    EXPECT_CALL(*mock, Run(_, _, _, _))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
+                                         ::testing::Return(Status::OK())));
+  }
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -662,9 +743,15 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorBatchSize) {
   // This Tensor only has one batch item but we will have two inputs.
   Tensor scores(DT_FLOAT, TensorShape({1, 2}));
   std::vector<Tensor> outputs = {classes, scores};
-  EXPECT_CALL(*mock, Run(_, _, _, _))
-      .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
-                                       ::testing::Return(Status::OK())));
+  if (UseSavedModel()) {
+    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                         ::testing::Return(Status::OK())));
+  } else {
+    EXPECT_CALL(*mock, Run(_, _, _, _))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
+                                         ::testing::Return(Status::OK())));
+  }
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -683,9 +770,15 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorType) {
   // This Tensor is the wrong type for class.
   Tensor scores(DT_STRING, TensorShape({2, 2}));
   std::vector<Tensor> outputs = {classes, scores};
-  EXPECT_CALL(*mock, Run(_, _, _, _))
-      .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
-                                       ::testing::Return(Status::OK())));
+  if (UseSavedModel()) {
+    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                         ::testing::Return(Status::OK())));
+  } else {
+    EXPECT_CALL(*mock, Run(_, _, _, _))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
+                                         ::testing::Return(Status::OK())));
+  }
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -705,9 +798,15 @@ TEST_P(ClassifierTest, MismatchedNumberOfTensorClasses) {
   // Scores Tensor has three scores but classes only has two labels.
   Tensor scores(DT_FLOAT, TensorShape({2, 3}));
   std::vector<Tensor> outputs = {classes, scores};
-  EXPECT_CALL(*mock, Run(_, _, _, _))
-      .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
-                                       ::testing::Return(Status::OK())));
+  if (UseSavedModel()) {
+    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                         ::testing::Return(Status::OK())));
+  } else {
+    EXPECT_CALL(*mock, Run(_, _, _, _))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<3>(outputs),
+                                         ::testing::Return(Status::OK())));
+  }
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();

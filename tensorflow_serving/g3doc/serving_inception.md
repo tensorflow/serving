@@ -200,7 +200,7 @@ kubeconfig entry generated for inception-serving-cluster.
 ### Upload the Docker image
 
 Let's now push our image to the
-[Google Container Registry] (https://cloud.google.com/container-registry/docs/)
+[Google Container Registry](https://cloud.google.com/container-registry/docs/)
 so that we can run it on Google Cloud Platform.
 
 First we tag the `$USER/inception_serving` image using the Container Registry
@@ -213,7 +213,7 @@ $ docker tag $USER/inception_serving gcr.io/tensorflow-serving/inception
 Next we push the image to the Registry,
 
 ```shell
-$ gcloud docker push gcr.io/tensorflow-serving/inception
+$ gcloud docker -- push gcr.io/tensorflow-serving/inception
 ```
 
 ### Create Kubernetes Deployment and Service
@@ -238,7 +238,7 @@ service "inception-service" created
 To view status of the deployment and pods:
 
 ```shell
-$ kc get deployments
+$ kubectl get deployments
 NAME                    DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
 inception-deployment    3         3         3            3           5s
 ```

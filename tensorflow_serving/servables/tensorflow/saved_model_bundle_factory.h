@@ -17,10 +17,10 @@ limitations under the License.
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SAVED_MODEL_BUNDLE_FACTORY_H_
 
 #include "tensorflow/cc/saved_model/loader.h"
+#include "tensorflow/contrib/batching/shared_batch_scheduler.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/batching/batching_session.h"
-#include "tensorflow_serving/batching/shared_batch_scheduler.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 

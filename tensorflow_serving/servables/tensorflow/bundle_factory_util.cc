@@ -16,11 +16,11 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
 
 #include "google/protobuf/wrappers.pb.h"
+#include "tensorflow/contrib/batching/batch_scheduler.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow_serving/batching/batch_scheduler.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
 

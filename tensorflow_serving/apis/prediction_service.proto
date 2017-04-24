@@ -5,6 +5,7 @@ option cc_enable_arenas = true;
 
 import "tensorflow_serving/apis/classification.proto";
 import "tensorflow_serving/apis/get_model_metadata.proto";
+import "tensorflow_serving/apis/inference.proto";
 import "tensorflow_serving/apis/predict.proto";
 import "tensorflow_serving/apis/regression.proto";
 
@@ -20,6 +21,9 @@ service PredictionService {
 
   // Predict -- provides access to loaded TensorFlow model.
   rpc Predict(PredictRequest) returns (PredictResponse);
+
+  // MultiInference API for multi-headed models.
+  rpc MultiInference(MultiInferenceRequest) returns (MultiInferenceResponse);
 
   // GetModelMetadata - provides access to metadata for loaded models.
   rpc GetModelMetadata(GetModelMetadataRequest)

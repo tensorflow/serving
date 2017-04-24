@@ -156,10 +156,11 @@ Status ServerCore::Create(Options options,
   // server_core_config (which contains aspired_version_policy) below.
   std::unique_ptr<AspiredVersionPolicy> aspired_version_policy =
       std::move(options.aspired_version_policy);
+  auto model_server_config = options.model_server_config;
   server_core->reset(new ServerCore(std::move(options)));
   TF_RETURN_IF_ERROR(
       (*server_core)->Initialize(std::move(aspired_version_policy)));
-  return (*server_core)->ReloadConfig(options.model_server_config);
+  return (*server_core)->ReloadConfig(model_server_config);
 }
 
 // ************************************************************************
@@ -291,6 +292,11 @@ Status ServerCore::AddModelsViaCustomModelConfig() {
 }
 
 Status ServerCore::MaybeUpdateServerRequestLogger() {
+  if (options_.server_request_logger_updater) {
+    return options_.server_request_logger_updater(
+        config_, options_.server_request_logger.get());
+  }
+
   std::map<string, LoggingConfig> logging_config_map;
   for (const auto& model_config : config_.model_config_list().config()) {
     if (model_config.has_logging_config()) {
@@ -298,9 +304,7 @@ Status ServerCore::MaybeUpdateServerRequestLogger() {
           {model_config.name(), model_config.logging_config()});
     }
   }
-  TF_RETURN_IF_ERROR(
-      options_.server_request_logger->Update(logging_config_map));
-  return Status::OK();
+  return options_.server_request_logger->Update(logging_config_map);
 }
 
 Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
@@ -543,11 +547,10 @@ Status ServerCore::CreateResourceTracker(
   auto resource_util =
       std::unique_ptr<ResourceUtil>(new ResourceUtil(resource_util_options));
   ResourceAllocation total_resources;
-  ResourceAllocation::Entry* main_memory_resource =
-      total_resources.add_resource_quantities();
-  main_memory_resource->mutable_resource()->set_device(device_types::kMain);
-  main_memory_resource->mutable_resource()->set_kind(resource_kinds::kRamBytes);
-  main_memory_resource->set_quantity(options_.total_model_memory_limit_bytes);
+  resource_util->SetQuantity(
+      resource_util->CreateBoundResource(device_types::kMain,
+                                         resource_kinds::kRamBytes),
+      options_.total_model_memory_limit_bytes, &total_resources);
   const tensorflow::Status status = ResourceTracker::Create(
       total_resources, std::move(resource_util), resource_tracker);
   if (!status.ok()) {

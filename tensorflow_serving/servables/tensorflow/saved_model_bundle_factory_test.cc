@@ -24,8 +24,10 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/loader.h"
+#include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/public/version.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test.h"
@@ -56,7 +58,7 @@ class SavedModelBundleFactoryTest : public test_util::BundleFactoryTest {
 
   virtual ~SavedModelBundleFactoryTest() = default;
 
- private:
+ protected:
   Status CreateSession(const SessionBundleConfig& config,
                        std::unique_ptr<Session>* session) const override {
     return CreateSessionFromPath(config, export_dir_, session);
@@ -64,6 +66,32 @@ class SavedModelBundleFactoryTest : public test_util::BundleFactoryTest {
 };
 
 TEST_F(SavedModelBundleFactoryTest, Basic) { TestBasic(); }
+
+TEST_F(SavedModelBundleFactoryTest, FixedInputTensors) {
+  Tensor fixed_input = test::AsTensor<float>({100.0f, 42.0f}, {2});
+  NamedTensorProto fixed_input_proto;
+  fixed_input_proto.set_name("x:0");
+  fixed_input.AsProtoField(fixed_input_proto.mutable_tensor());
+
+  SessionBundleConfig config;
+  *config.add_experimental_fixed_input_tensors() = fixed_input_proto;
+  std::unique_ptr<Session> session;
+  TF_ASSERT_OK(CreateSession(config, &session));
+
+  // half plus two: output should be input / 2 + 2.
+  const Tensor expected_output =
+      test::AsTensor<float>({100.0f / 2 + 2, 42.0f / 2 + 2}, {2});
+
+  const std::vector<std::pair<string, Tensor>> non_fixed_inputs = {};
+  const std::vector<string> output_names = {"y:0"};
+  const std::vector<string> empty_targets;
+  std::vector<Tensor> outputs;
+  TF_ASSERT_OK(
+      session->Run(non_fixed_inputs, output_names, empty_targets, &outputs));
+  ASSERT_EQ(1, outputs.size());
+  const Tensor& single_output = outputs.at(0);
+  test::ExpectTensorEqual<float>(expected_output, single_output);
+}
 
 TEST_F(SavedModelBundleFactoryTest, Batching) { TestBatching(); }
 
