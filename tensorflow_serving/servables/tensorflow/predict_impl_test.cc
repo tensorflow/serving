@@ -234,7 +234,7 @@ TEST_P(PredictImplTest, InputTensorsHaveWrongType) {
   TensorflowPredictor predictor(GetParam());
   // Input tensors are all wrong.
   EXPECT_EQ(
-      tensorflow::error::INTERNAL,
+      tensorflow::error::INVALID_ARGUMENT,
       predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
           .code());
 }
