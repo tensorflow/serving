@@ -94,8 +94,8 @@ def export():
       class_descriptions.append(texts[s])
     class_tensor = tf.constant(class_descriptions)
 
-    classes = tf.contrib.lookup.index_to_string(
-        tf.to_int64(indices), mapping=class_tensor)
+    table = tf.contrib.lookup.index_to_string_table_from_tensor(class_tensor)
+    classes = table.lookup(tf.to_int64(indices))
 
     # Restore variables from training checkpoint.
     variable_averages = tf.train.ExponentialMovingAverage(
@@ -152,7 +152,7 @@ def export():
           method_name=signature_constants.PREDICT_METHOD_NAME)
 
       legacy_init_op = tf.group(
-          tf.initialize_all_tables(), name='legacy_init_op')
+          tf.tables_initializer(), name='legacy_init_op')
       builder.add_meta_graph_and_variables(
           sess, [tag_constants.SERVING],
           signature_def_map={
