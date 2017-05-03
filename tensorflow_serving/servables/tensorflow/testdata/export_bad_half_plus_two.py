@@ -42,7 +42,7 @@ def Export():
     # Note that the model is intentionally exported without using exporter,
     # but using the same format. This is to avoid exporter creating default
     # empty signatures upon export.
-    tf.initialize_all_variables().run()
+    tf.global_variables_initializer().run()
     saver = tf.train.Saver()
     saver.export_meta_graph(
         filename=os.path.join(export_path, "export.meta"))

@@ -90,8 +90,8 @@ def export():
       class_descriptions.append(texts[s])
     class_tensor = tf.constant(class_descriptions)
 
-    classes = tf.contrib.lookup.index_to_string(tf.to_int64(indices),
-                                                mapping=class_tensor)
+    table = tf.contrib.lookup.index_to_string_table_from_tensor(class_tensor)
+    classes = table.lookup(tf.to_int64(indices))
 
     # Restore variables from training checkpoint.
     variable_averages = tf.train.ExponentialMovingAverage(
@@ -114,7 +114,7 @@ def export():
         return
 
       # Export inference model.
-      init_op = tf.group(tf.initialize_all_tables(), name='init_op')
+      init_op = tf.group(tf.tables_initializer(), name='init_op')
       classification_signature = exporter.classification_signature(
           input_tensor=serialized_tf_example,
           classes_tensor=classes,

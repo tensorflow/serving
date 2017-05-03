@@ -41,7 +41,7 @@ def Export():
     y = tf.add(tf.multiply(a, x), b)
 
     # Run an export.
-    tf.initialize_all_variables().run()
+    tf.global_variables_initializer().run()
     export = exporter.Exporter(tf.train.Saver())
     export.init(named_graph_signatures={
         "inputs": exporter.generic_signature({"x": x}),
