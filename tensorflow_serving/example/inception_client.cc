@@ -40,12 +40,14 @@ class ServingClient {
       : stub_(PredictionService::NewStub(channel)) {}
 
   tensorflow::string callPredict(const tensorflow::string& model_name,
+                                 const tensorflow::string& model_signature_name,
                                  const tensorflow::string& file_path) {
     PredictRequest predictRequest;
     PredictResponse response;
     ClientContext context;
 
     predictRequest.mutable_model_spec()->set_name(model_name);
+    predictRequest.mutable_model_spec()->set_signature_name(model_signature_name);
 
     google::protobuf::Map<tensorflow::string, tensorflow::TensorProto>& inputs =
         *predictRequest.mutable_inputs();
@@ -116,11 +118,13 @@ int main(int argc, char** argv) {
   tensorflow::string server_port = "localhost:9000";
   tensorflow::string image_file = "";
   tensorflow::string model_name = "inception";
+  tensorflow::string model_signature_name = "predict_images";
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("server_port", &server_port,
                        "the IP and port of the server"),
-      tensorflow::Flag("image_file", &image_file, "the path to the "),
-      tensorflow::Flag("model_name", &model_name, "name of model")};
+      tensorflow::Flag("image_file", &image_file, "the path to the image"),
+      tensorflow::Flag("model_name", &model_name, "name of model"),
+      tensorflow::Flag("model_signature_name", &model_signature_name, "name of model signature")};
   tensorflow::string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
   if (!parse_result || image_file.empty()) {
@@ -132,7 +136,7 @@ int main(int argc, char** argv) {
       grpc::CreateChannel(server_port, grpc::InsecureChannelCredentials()));
   std::cout << "calling predict using file: " << image_file << "  ..."
             << std::endl;
-  std::cout << guide.callPredict(model_name, image_file) << std::endl;
+  std::cout << guide.callPredict(model_name, model_signature_name, image_file) << std::endl;
 
   return 0;
 }
