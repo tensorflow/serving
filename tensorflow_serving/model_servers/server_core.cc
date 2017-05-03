@@ -342,7 +342,6 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   switch (config_.config_case()) {
     case ModelServerConfig::kModelConfigList: {
       TF_RETURN_IF_ERROR(AddModelsViaModelConfigList());
-      TF_RETURN_IF_ERROR(MaybeUpdateServerRequestLogger());
       break;
     }
     case ModelServerConfig::kCustomModelConfig: {
@@ -355,6 +354,7 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
     default:
       return errors::InvalidArgument("Invalid ServerModelConfig");
   }
+  TF_RETURN_IF_ERROR(MaybeUpdateServerRequestLogger());
 
   return Status::OK();
 }
