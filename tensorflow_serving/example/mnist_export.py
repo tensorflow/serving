@@ -68,13 +68,14 @@ def main(_):
   y_ = tf.placeholder('float', shape=[None, 10])
   w = tf.Variable(tf.zeros([784, 10]))
   b = tf.Variable(tf.zeros([10]))
-  sess.run(tf.initialize_all_variables())
+  sess.run(tf.global_variables_initializer())
   y = tf.nn.softmax(tf.matmul(x, w) + b, name='y')
   cross_entropy = -tf.reduce_sum(y_ * tf.log(y))
   train_step = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)
   values, indices = tf.nn.top_k(y, 10)
-  prediction_classes = tf.contrib.lookup.index_to_string(
-      tf.to_int64(indices), mapping=tf.constant([str(i) for i in range(10)]))
+  table = tf.contrib.lookup.index_to_string_table_from_tensor(
+      tf.constant([str(i) for i in range(10)]))
+  prediction_classes = table.lookup(tf.to_int64(indices))
   for _ in range(FLAGS.training_iteration):
     batch = mnist.train.next_batch(50)
     train_step.run(feed_dict={x: batch[0], y_: batch[1]})
@@ -92,7 +93,7 @@ def main(_):
   # whenever code changes.
   export_path = sys.argv[-1]
   print('Exporting trained model to %s' % export_path)
-  init_op = tf.group(tf.initialize_all_tables(), name='init_op')
+  init_op = tf.group(tf.tables_initializer(), name='init_op')
   saver = tf.train.Saver(sharded=True)
   model_exporter = exporter.Exporter(saver)
   model_exporter.init(

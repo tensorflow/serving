@@ -69,13 +69,14 @@ def main(_):
   y_ = tf.placeholder('float', shape=[None, 10])
   w = tf.Variable(tf.zeros([784, 10]))
   b = tf.Variable(tf.zeros([10]))
-  sess.run(tf.initialize_all_variables())
+  sess.run(tf.global_variables_initializer())
   y = tf.nn.softmax(tf.matmul(x, w) + b, name='y')
   cross_entropy = -tf.reduce_sum(y_ * tf.log(y))
   train_step = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)
   values, indices = tf.nn.top_k(y, 10)
-  prediction_classes = tf.contrib.lookup.index_to_string(
-      tf.to_int64(indices), mapping=tf.constant([str(i) for i in xrange(10)]))
+  table = tf.contrib.lookup.index_to_string_table_from_tensor(
+      tf.constant([str(i) for i in xrange(10)]))
+  prediction_classes = table.lookup(tf.to_int64(indices))
   for _ in range(FLAGS.training_iteration):
     batch = mnist.train.next_batch(50)
     train_step.run(feed_dict={x: batch[0], y_: batch[1]})
@@ -120,7 +121,7 @@ def main(_):
       outputs={'scores': tensor_info_y},
       method_name=signature_constants.PREDICT_METHOD_NAME)
 
-  legacy_init_op = tf.group(tf.initialize_all_tables(), name='legacy_init_op')
+  legacy_init_op = tf.group(tf.tables_initializer(), name='legacy_init_op')
   builder.add_meta_graph_and_variables(
       sess, [tag_constants.SERVING],
       signature_def_map={
