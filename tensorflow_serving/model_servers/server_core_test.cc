@@ -79,6 +79,22 @@ TEST_P(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
   EXPECT_EQ(available_servables.at(0), expected_id);
 }
 
+TEST_P(ServerCoreTest, ReloadConfigUnloadsModels) {
+  const ModelServerConfig nonempty_config =
+      GetTestModelServerConfigForFakePlatform();
+  ModelServerConfig empty_config;
+  empty_config.mutable_model_config_list();
+
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(nonempty_config, &server_core));
+  ASSERT_FALSE(server_core->ListAvailableServableIds().empty());
+
+  TF_ASSERT_OK(server_core->ReloadConfig(empty_config));
+  // Wait for the unload to finish (ReloadConfig() doesn't block on this).
+  Env::Default()->SleepForMicroseconds(1 * 1000 * 1000);
+  EXPECT_TRUE(server_core->ListAvailableServableIds().empty());
+}
+
 TEST_P(ServerCoreTest, ErroringModel) {
   ServerCore::Options options = GetDefaultOptions();
   test_util::StoragePathErrorInjectingSourceAdapterConfig source_adapter_config;
