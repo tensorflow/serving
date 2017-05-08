@@ -172,7 +172,7 @@ saved_model.pb variables
 
 Each version sub-directory contains the following files:
 
-  * `saved_model.pb` is the serialized tensorflow::SavedModel. It includes the
+  * `saved_model.pb` is the serialized tensorflow::SavedModel. It includes
   the one or more graph definitions of the model, as well as metadata of the
   model such as signatures.
 
