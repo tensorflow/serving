@@ -147,7 +147,8 @@ class ServerCore : public Manager {
   // Updates the server core with all the models and sources per the
   // ModelServerConfig. Like Create(), waits for all statically configured
   // servables to be made available before returning, and returns an error if
-  // any such model fails to load.
+  // any such model fails to load. (Does not necessarily wait for models removed
+  // from the config to finish unloading; that may occur asynchronously.)
   //
   // IMPORTANT: It is only legal to call this method more than once if using
   // ModelConfigList (versus custom model config).
