@@ -192,6 +192,7 @@ std::unique_ptr<T> FastReadDynamicPtr<T>::Update(std::unique_ptr<T> object) {
   // Swap the new ReleasableSharedPtr under lock.
   {
     mutex_lock lock(mutex_);
+    using std::swap;
     swap(object_, local_ptr);
   }
 

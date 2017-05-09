@@ -69,6 +69,11 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
 
   void SetAspiredVersionsCallback(AspiredVersionsCallback callback) override;
 
+  FileSystemStoragePathSourceConfig config() const {
+    mutex_lock l(mu_);
+    return config_;
+  }
+
  private:
   friend class internal::FileSystemStoragePathSourceTestAccess;
 

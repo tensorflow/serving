@@ -232,10 +232,10 @@ class ServerCore : public Manager {
       const ModelServerConfig& config,
       DynamicSourceRouter<StoragePath>::Routes* routes) const;
 
-  // Waits for all models from the ModelConfigList in 'config_' to be loaded.
-  // Returns an error if any configured model fails to load.
-  Status WaitUntilConfiguredModelsAvailable()
-      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+  // Waits until all entries in 'models' have been loaded, according to
+  // 'monitor'. Returns an error if any model fails to load.
+  Status WaitUntilModelsAvailable(const std::set<string>& models,
+                                  ServableStateMonitor* monitor);
 
   // Creates a FileSystemStoragePathSource and connects it to the supplied
   // target.
