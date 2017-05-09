@@ -91,8 +91,9 @@ TEST_P(ServerCoreTest, ReloadConfigUnloadsModels) {
 
   TF_ASSERT_OK(server_core->ReloadConfig(empty_config));
   // Wait for the unload to finish (ReloadConfig() doesn't block on this).
-  Env::Default()->SleepForMicroseconds(1 * 1000 * 1000);
-  EXPECT_TRUE(server_core->ListAvailableServableIds().empty());
+  while (!server_core->ListAvailableServableIds().empty()) {
+    Env::Default()->SleepForMicroseconds(10 * 1000);
+  }
 }
 
 TEST_P(ServerCoreTest, ReloadConfigHandlesLoadingAPreviouslyUnloadedModel) {
@@ -106,8 +107,9 @@ TEST_P(ServerCoreTest, ReloadConfigHandlesLoadingAPreviouslyUnloadedModel) {
   TF_ASSERT_OK(CreateServerCore(nonempty_config, &server_core));
   TF_ASSERT_OK(server_core->ReloadConfig(empty_config));
   // Wait for the unload to finish (ReloadConfig() doesn't block on this).
-  Env::Default()->SleepForMicroseconds(1 * 1000 * 1000);
-  ASSERT_TRUE(server_core->ListAvailableServableIds().empty());
+  while (!server_core->ListAvailableServableIds().empty()) {
+    Env::Default()->SleepForMicroseconds(10 * 1000);
+  }
 
   // Re-load the same servable.
   TF_ASSERT_OK(server_core->ReloadConfig(nonempty_config));
