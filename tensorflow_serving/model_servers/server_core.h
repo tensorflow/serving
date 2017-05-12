@@ -147,7 +147,8 @@ class ServerCore : public Manager {
   // Updates the server core with all the models and sources per the
   // ModelServerConfig. Like Create(), waits for all statically configured
   // servables to be made available before returning, and returns an error if
-  // any such model fails to load.
+  // any such model fails to load. (Does not necessarily wait for models removed
+  // from the config to finish unloading; that may occur asynchronously.)
   //
   // IMPORTANT: It is only legal to call this method more than once if using
   // ModelConfigList (versus custom model config).
@@ -232,10 +233,10 @@ class ServerCore : public Manager {
       const ModelServerConfig& config,
       DynamicSourceRouter<StoragePath>::Routes* routes) const;
 
-  // Waits for all models from the ModelConfigList in 'config_' to be loaded.
-  // Returns an error if any configured model fails to load.
-  Status WaitUntilConfiguredModelsAvailable()
-      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+  // Waits until all entries in 'models' have been loaded, according to
+  // 'monitor'. Returns an error if any model fails to load.
+  Status WaitUntilModelsAvailable(const std::set<string>& models,
+                                  ServableStateMonitor* monitor);
 
   // Creates a FileSystemStoragePathSource and connects it to the supplied
   // target.
