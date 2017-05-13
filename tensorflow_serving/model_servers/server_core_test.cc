@@ -79,6 +79,48 @@ TEST_P(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
   EXPECT_EQ(available_servables.at(0), expected_id);
 }
 
+TEST_P(ServerCoreTest, ReloadConfigUnloadsModels) {
+  const ModelServerConfig nonempty_config =
+      GetTestModelServerConfigForFakePlatform();
+  ModelServerConfig empty_config;
+  empty_config.mutable_model_config_list();
+
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(nonempty_config, &server_core));
+  ASSERT_FALSE(server_core->ListAvailableServableIds().empty());
+
+  TF_ASSERT_OK(server_core->ReloadConfig(empty_config));
+  // Wait for the unload to finish (ReloadConfig() doesn't block on this).
+  while (!server_core->ListAvailableServableIds().empty()) {
+    Env::Default()->SleepForMicroseconds(10 * 1000);
+  }
+}
+
+TEST_P(ServerCoreTest, ReloadConfigHandlesLoadingAPreviouslyUnloadedModel) {
+  ModelServerConfig empty_config;
+  empty_config.mutable_model_config_list();
+  const ModelServerConfig nonempty_config =
+      GetTestModelServerConfigForFakePlatform();
+
+  // Load, and then unload, a servable.
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(nonempty_config, &server_core));
+  TF_ASSERT_OK(server_core->ReloadConfig(empty_config));
+  // Wait for the unload to finish (ReloadConfig() doesn't block on this).
+  while (!server_core->ListAvailableServableIds().empty()) {
+    Env::Default()->SleepForMicroseconds(10 * 1000);
+  }
+
+  // Re-load the same servable.
+  TF_ASSERT_OK(server_core->ReloadConfig(nonempty_config));
+  const std::vector<ServableId> available_servables =
+      server_core->ListAvailableServableIds();
+  ASSERT_EQ(available_servables.size(), 1);
+  const ServableId expected_id = {test_util::kTestModelName,
+                                  test_util::kTestModelVersion};
+  EXPECT_EQ(available_servables.at(0), expected_id);
+}
+
 TEST_P(ServerCoreTest, ErroringModel) {
   ServerCore::Options options = GetDefaultOptions();
   test_util::StoragePathErrorInjectingSourceAdapterConfig source_adapter_config;

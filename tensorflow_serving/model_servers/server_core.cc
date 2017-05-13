@@ -130,6 +130,27 @@ Status UnionRoutes(const DynamicSourceRouter<StoragePath>::Routes& a,
   return Status::OK();
 }
 
+// Finds all models that occur in 'new_config' but not in 'old_config'.
+std::set<string> NewModelNamesInSourceConfig(
+    const FileSystemStoragePathSourceConfig& old_config,
+    const FileSystemStoragePathSourceConfig& new_config) {
+  std::set<string> old_models;
+  for (const FileSystemStoragePathSourceConfig::ServableToMonitor& servable :
+       old_config.servables()) {
+    const string& model_name = servable.servable_name();
+    old_models.insert(model_name);
+  }
+  std::set<string> new_models;
+  for (const FileSystemStoragePathSourceConfig::ServableToMonitor& servable :
+       new_config.servables()) {
+    const string& model_name = servable.servable_name();
+    if (old_models.find(model_name) == old_models.end()) {
+      new_models.insert(model_name);
+    }
+  }
+  return new_models;
+}
+
 }  // namespace
 
 // ************************************************************************
@@ -198,16 +219,16 @@ Status ServerCore::Initialize(std::unique_ptr<AspiredVersionPolicy> policy) {
   return Status::OK();
 }
 
-Status ServerCore::WaitUntilConfiguredModelsAvailable() {
-  std::vector<ServableRequest> awaited_models;
-  for (const auto& model : config_.model_config_list().config()) {
-    awaited_models.push_back(ServableRequest::Latest(model.name()));
+Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
+                                            ServableStateMonitor* monitor) {
+  std::vector<ServableRequest> awaited_servables;
+  for (const string& model : models) {
+    awaited_servables.push_back(ServableRequest::Latest(model));
   }
   std::map<ServableId, ServableState::ManagerState> states_reached;
-  const bool all_models_available =
-      servable_state_monitor_->WaitUntilServablesReachState(
-          awaited_models, ServableState::ManagerState::kAvailable,
-          &states_reached);
+  const bool all_models_available = monitor->WaitUntilServablesReachState(
+      awaited_servables, ServableState::ManagerState::kAvailable,
+      &states_reached);
   if (!all_models_available) {
     string message = "Some models did not become available: {";
     for (const auto& id_and_state : states_reached) {
@@ -256,6 +277,18 @@ Status ServerCore::AddModelsViaModelConfigList() {
     }
     manager_.AddDependency(std::move(adapters.error_adapter));
   } else {
+    // Create a fresh servable state monitor, to avoid getting confused if we're
+    // re-loading a model-version that has previously been unloaded.
+    ServableStateMonitor fresh_servable_state_monitor(
+        servable_event_bus_.get());
+
+    // Figure out which models are new.
+    const std::set<string> new_models = NewModelNamesInSourceConfig(
+        storage_path_source_and_router_->source->config(), source_config);
+
+    // Now we're ready to start reconfiguring the elements of the Source->
+    // Manager pipeline ...
+
     // First, add the new routes without removing the old ones.
     DynamicSourceRouter<StoragePath>::Routes old_and_new_routes;
     const Status union_status =
@@ -276,7 +309,8 @@ Status ServerCore::AddModelsViaModelConfigList() {
     TF_RETURN_IF_ERROR(ReloadRoutes(routes));
 
     // Wait for any new models to get loaded and become available.
-    TF_RETURN_IF_ERROR(WaitUntilConfiguredModelsAvailable());
+    TF_RETURN_IF_ERROR(
+        WaitUntilModelsAvailable(new_models, &fresh_servable_state_monitor));
   }
   return Status::OK();
 }

@@ -44,6 +44,7 @@ using ::testing::Invoke;
 using ::testing::InvokeWithoutArgs;
 using ::testing::NiceMock;
 using ::testing::Return;
+using ::testing::UnorderedElementsAre;
 using ::testing::UnorderedElementsAreArray;
 using test_util::FakeLoader;
 using test_util::WaitUntilServableManagerStateIsOneOf;
@@ -393,14 +394,6 @@ TEST_P(AspiredVersionsManagerTest, AspiredRemovedFull) {
 }
 
 TEST_P(AspiredVersionsManagerTest, AspiredRemovedPartial) {
-  {
-    ServableHandle<int64> handle;
-    const Status status = manager_->GetServableHandle(
-        ServableRequest::Specific(kServableName, 1), &handle);
-    TF_ASSERT_OK(status);
-    EXPECT_EQ(1, *handle);
-  }
-
   std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
   aspired_versions.push_back(CreateAspiredVersion({kServableName, 0}));
   manager_->GetAspiredVersionsCallback()(kServableName,
@@ -412,11 +405,78 @@ TEST_P(AspiredVersionsManagerTest, AspiredRemovedPartial) {
                                        {kServableName, 1},
                                        {ServableState::ManagerState::kEnd});
 
-  ServableHandle<int64> missing_handle;
-  const Status missing_status = manager_->GetServableHandle(
-      ServableRequest::Specific(kServableName, 1), &missing_handle);
-  ASSERT_FALSE(missing_status.ok());
-  EXPECT_EQ(error::NOT_FOUND, missing_status.code());
+  // Version 0 should remain available in the manager.
+  ServableHandle<int64> v0_handle;
+  const Status v0_status = manager_->GetServableHandle(
+      ServableRequest::Specific(kServableName, 0), &v0_handle);
+  TF_ASSERT_OK(v0_status);
+  EXPECT_EQ(0, *v0_handle);
+
+  // Version 1 should no longer be available.
+  ServableHandle<int64> v1_handle;
+  const Status v1_status = manager_->GetServableHandle(
+      ServableRequest::Specific(kServableName, 1), &v1_handle);
+  ASSERT_FALSE(v1_status.ok());
+  EXPECT_EQ(error::NOT_FOUND, v1_status.code());
+}
+
+TEST_P(AspiredVersionsManagerTest, RevertToSmallerVersionNumber) {
+  // Initially, versions 0 and 1 of kServableName are loaded.
+  std::set<int64> initial_versions;
+  for (const ServableId& id : manager_->ListAvailableServableIds()) {
+    if (id.name == kServableName) {
+      initial_versions.insert(id.version);
+    }
+  }
+  ASSERT_THAT(initial_versions, UnorderedElementsAre(0, 1));
+
+  // Unload version 0, s.t. only version 1 is loaded.
+  std::vector<ServableData<std::unique_ptr<Loader>>> initial_aspired_versions;
+  initial_aspired_versions.push_back(CreateAspiredVersion({kServableName, 1}));
+  manager_->GetAspiredVersionsCallback()(kServableName,
+                                         std::move(initial_aspired_versions));
+  HandlePendingAspiredVersionsRequests();
+  InvokePolicyAndExecuteAction();
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
+                                       {kServableName, 0},
+                                       {ServableState::ManagerState::kEnd});
+  FlushServables();
+
+  // Now, switch to version 0 (dropping version 1).
+  std::vector<ServableData<std::unique_ptr<Loader>>> new_aspired_versions;
+  new_aspired_versions.push_back(CreateAspiredVersion({kServableName, 0}));
+  manager_->GetAspiredVersionsCallback()(kServableName,
+                                         std::move(new_aspired_versions));
+  HandlePendingAspiredVersionsRequests();
+  Notification done_transitioning;
+  std::unique_ptr<Thread> transition_servables(
+      Env::Default()->StartThread({}, "TransitionServables", [&]() {
+        while (!done_transitioning.HasBeenNotified()) {
+          InvokePolicyAndExecuteAction();
+          Env::Default()->SleepForMicroseconds(1000 /* 1 ms */);
+        }
+      }));
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, {kServableName, 0},
+      {ServableState::ManagerState::kAvailable});
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
+                                       {kServableName, 1},
+                                       {ServableState::ManagerState::kEnd});
+  done_transitioning.Notify();
+
+  // Version 0 should be available.
+  ServableHandle<int64> v0_handle;
+  const Status v0_status = manager_->GetServableHandle(
+      ServableRequest::Specific(kServableName, 0), &v0_handle);
+  TF_ASSERT_OK(v0_status);
+  EXPECT_EQ(0, *v0_handle);
+
+  // Version 1 should not be available.
+  ServableHandle<int64> v1_handle;
+  const Status v1_status = manager_->GetServableHandle(
+      ServableRequest::Specific(kServableName, 1), &v1_handle);
+  ASSERT_FALSE(v1_status.ok());
+  EXPECT_EQ(error::NOT_FOUND, v1_status.code());
 }
 
 TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {

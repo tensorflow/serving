@@ -129,6 +129,21 @@ Status SessionBundlePredict(const RunOptions& run_options, ServerCore* core,
   return Status::OK();
 }
 
+// Returns the keys in the map as a comma delimited string. Useful for debugging
+// or when returning error messages.
+// e.g. returns "key1, key2, key3".
+string MapKeysToString(const google::protobuf::Map<string, tensorflow::TensorInfo>& map) {
+  string result = "";
+  for (const auto& i : map) {
+    if (result.empty()) {
+      result += i.first;
+    } else {
+      result += ", " + i.first;
+    }
+  }
+  return result;
+}
+
 // Validate a SignatureDef to make sure it's compatible with prediction, and
 // if so, populate the input and output tensor names.
 Status PreProcessPrediction(const SignatureDef& signature,
@@ -164,7 +179,9 @@ Status PreProcessPrediction(const SignatureDef& signature,
     if (iter == signature.inputs().end()) {
       return tensorflow::Status(
           tensorflow::error::INVALID_ARGUMENT,
-          "input tensor alias not found in signature: " + alias);
+          strings::StrCat("input tensor alias not found in signature: ", alias,
+                          ". Inputs expected to be in the set {",
+                          MapKeysToString(signature.inputs()), "}."));
     }
     Tensor tensor;
     if (!tensor.FromProto(input.second)) {
@@ -183,7 +200,9 @@ Status PreProcessPrediction(const SignatureDef& signature,
     if (iter == signature.outputs().end()) {
       return tensorflow::Status(
           tensorflow::error::INVALID_ARGUMENT,
-          "output tensor alias not found in signature: " + alias);
+          strings::StrCat("output tensor alias not found in signature: ", alias,
+                          " Outputs expected to be in the set {",
+                          MapKeysToString(signature.outputs()), "}."));
     }
     if (seen_outputs.find(alias) != seen_outputs.end()) {
       return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
