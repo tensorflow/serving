@@ -26,6 +26,7 @@ namespace test_util {
 
 constexpr char kTestModelName[] = "test_model";
 constexpr int kTestModelVersion = 123;
+constexpr int kTestModelLargerVersion = 124;
 // The name of the platform associated with FakeLoaderSourceAdapter.
 constexpr char kFakePlatform[] = "fake_servable";
 
@@ -53,6 +54,10 @@ class ServerCoreTest : public ::testing::TestWithParam<int> {
   // Returns ModelServerConfig that contains test model for the tensorflow
   // platform.
   ModelServerConfig GetTestModelServerConfigForTensorflowPlatform();
+
+  // Mutates 'config' by changing the model's base path to point to a variant
+  // of half-plus-two that has two versions instead of one.
+  void SwitchToHalfPlusTwoWith2Versions(ModelServerConfig* config);
 
   // Creates some reasonable default ServerCore options for tests.
   ServerCore::Options GetDefaultOptions();
