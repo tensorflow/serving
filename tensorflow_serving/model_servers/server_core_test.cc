@@ -121,6 +121,46 @@ TEST_P(ServerCoreTest, ReloadConfigHandlesLoadingAPreviouslyUnloadedModel) {
   EXPECT_EQ(available_servables.at(0), expected_id);
 }
 
+TEST_P(ServerCoreTest, ReloadConfigChangeModelBasePath) {
+  // Create two configs that differ only in the model's base path. One base path
+  // has a single version test_util::kTestModelVersion, and one has two versions
+  // test_util::kTestModelVersion and test_util::kTestModelLargerVersion.
+  const ModelServerConfig one_version_config =
+      GetTestModelServerConfigForFakePlatform();
+  ModelServerConfig two_version_config =
+      GetTestModelServerConfigForFakePlatform();
+  SwitchToHalfPlusTwoWith2Versions(&two_version_config);
+
+  // Start with the one-version path.
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(one_version_config, &server_core));
+  std::vector<ServableId> available_servables =
+      server_core->ListAvailableServableIds();
+  ASSERT_EQ(1, available_servables.size());
+  EXPECT_EQ(test_util::kTestModelVersion, available_servables.at(0).version);
+
+  // Switch to the two-version path.
+  TF_ASSERT_OK(server_core->ReloadConfig(two_version_config));
+  // Wait for the new base path set-up to propagate through the Source and
+  // Manager to (ReloadConfig() doesn't block on this).
+  do {
+    Env::Default()->SleepForMicroseconds(10 * 1000);
+    available_servables = server_core->ListAvailableServableIds();
+  } while (available_servables.empty() ||
+           available_servables.at(0).version !=
+               test_util::kTestModelLargerVersion);
+
+  // Revert to the one-version path.
+  TF_ASSERT_OK(server_core->ReloadConfig(one_version_config));
+  // Wait for the new base path set-up to propagate through the Source and
+  // Manager to (ReloadConfig() doesn't block on this).
+  do {
+    Env::Default()->SleepForMicroseconds(10 * 1000);
+    available_servables = server_core->ListAvailableServableIds();
+  } while (available_servables.empty() ||
+           available_servables.at(0).version != test_util::kTestModelVersion);
+}
+
 TEST_P(ServerCoreTest, ErroringModel) {
   ServerCore::Options options = GetDefaultOptions();
   test_util::StoragePathErrorInjectingSourceAdapterConfig source_adapter_config;
