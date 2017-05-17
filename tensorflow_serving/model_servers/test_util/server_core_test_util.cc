@@ -100,6 +100,14 @@ ServerCoreTest::GetTestModelServerConfigForTensorflowPlatform() {
   return config;
 }
 
+void ServerCoreTest::SwitchToHalfPlusTwoWith2Versions(
+    ModelServerConfig* config) {
+  CHECK_EQ(1, config->model_config_list().config().size());
+  auto model = config->mutable_model_config_list()->mutable_config(0);
+  model->set_base_path(test_util::TestSrcDirPath(
+      "/servables/tensorflow/testdata/half_plus_two_2_versions"));
+}
+
 ServerCore::Options ServerCoreTest::GetDefaultOptions() {
   // Model platforms.
   const TestType test_type = GetTestType();

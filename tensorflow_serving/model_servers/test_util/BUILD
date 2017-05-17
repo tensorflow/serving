@@ -51,6 +51,12 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_2_versions/00000123/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_2_versions/00000123/export.index",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_2_versions/00000123/export.meta",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_2_versions/00000124/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_2_versions/00000124/export.index",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_2_versions/00000124/export.meta",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
     visibility = [
