@@ -23,6 +23,10 @@ message ModelConfig {
   // Base path to the model, excluding the version directory.
   // E.g> for a model at /foo/bar/my_model/123, where 123 is the version, the
   // base path is /foo/bar/my_model.
+  //
+  // (This can be changed once a model is in serving, *if* the underlying data
+  // remains the same. Otherwise there are no guarantees about whether the old
+  // or new data will be used for model versions currently loaded.)
   string base_path = 2;
 
   // Type of model.
@@ -30,14 +34,20 @@ message ModelConfig {
   ModelType model_type = 3 [deprecated = true];
 
   // Type of model (e.g. "tensorflow").
+  //
+  // (This cannot be changed once a model is in serving.)
   string model_platform = 4;
 
   // Version policy for the model indicating how many versions of the model to
   // be served at the same time.
   // The default option is to serve only the latest version of the model.
+  //
+  // (This can be changed once a model is in serving.)
   FileSystemStoragePathSourceConfig.VersionPolicy version_policy = 5;
 
   // Configures logging requests and responses, to the model.
+  //
+  // (This can be changed once a model is in serving.)
   LoggingConfig logging_config = 6;
 }
 

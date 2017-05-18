@@ -79,6 +79,88 @@ TEST_P(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
   EXPECT_EQ(available_servables.at(0), expected_id);
 }
 
+TEST_P(ServerCoreTest, ReloadConfigUnloadsModels) {
+  const ModelServerConfig nonempty_config =
+      GetTestModelServerConfigForFakePlatform();
+  ModelServerConfig empty_config;
+  empty_config.mutable_model_config_list();
+
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(nonempty_config, &server_core));
+  ASSERT_FALSE(server_core->ListAvailableServableIds().empty());
+
+  TF_ASSERT_OK(server_core->ReloadConfig(empty_config));
+  // Wait for the unload to finish (ReloadConfig() doesn't block on this).
+  while (!server_core->ListAvailableServableIds().empty()) {
+    Env::Default()->SleepForMicroseconds(10 * 1000);
+  }
+}
+
+TEST_P(ServerCoreTest, ReloadConfigHandlesLoadingAPreviouslyUnloadedModel) {
+  ModelServerConfig empty_config;
+  empty_config.mutable_model_config_list();
+  const ModelServerConfig nonempty_config =
+      GetTestModelServerConfigForFakePlatform();
+
+  // Load, and then unload, a servable.
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(nonempty_config, &server_core));
+  TF_ASSERT_OK(server_core->ReloadConfig(empty_config));
+  // Wait for the unload to finish (ReloadConfig() doesn't block on this).
+  while (!server_core->ListAvailableServableIds().empty()) {
+    Env::Default()->SleepForMicroseconds(10 * 1000);
+  }
+
+  // Re-load the same servable.
+  TF_ASSERT_OK(server_core->ReloadConfig(nonempty_config));
+  const std::vector<ServableId> available_servables =
+      server_core->ListAvailableServableIds();
+  ASSERT_EQ(available_servables.size(), 1);
+  const ServableId expected_id = {test_util::kTestModelName,
+                                  test_util::kTestModelVersion};
+  EXPECT_EQ(available_servables.at(0), expected_id);
+}
+
+TEST_P(ServerCoreTest, ReloadConfigChangeModelBasePath) {
+  // Create two configs that differ only in the model's base path. One base path
+  // has a single version test_util::kTestModelVersion, and one has two versions
+  // test_util::kTestModelVersion and test_util::kTestModelLargerVersion.
+  const ModelServerConfig one_version_config =
+      GetTestModelServerConfigForFakePlatform();
+  ModelServerConfig two_version_config =
+      GetTestModelServerConfigForFakePlatform();
+  SwitchToHalfPlusTwoWith2Versions(&two_version_config);
+
+  // Start with the one-version path.
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(one_version_config, &server_core));
+  std::vector<ServableId> available_servables =
+      server_core->ListAvailableServableIds();
+  ASSERT_EQ(1, available_servables.size());
+  EXPECT_EQ(test_util::kTestModelVersion, available_servables.at(0).version);
+
+  // Switch to the two-version path.
+  TF_ASSERT_OK(server_core->ReloadConfig(two_version_config));
+  // Wait for the new base path set-up to propagate through the Source and
+  // Manager to (ReloadConfig() doesn't block on this).
+  do {
+    Env::Default()->SleepForMicroseconds(10 * 1000);
+    available_servables = server_core->ListAvailableServableIds();
+  } while (available_servables.empty() ||
+           available_servables.at(0).version !=
+               test_util::kTestModelLargerVersion);
+
+  // Revert to the one-version path.
+  TF_ASSERT_OK(server_core->ReloadConfig(one_version_config));
+  // Wait for the new base path set-up to propagate through the Source and
+  // Manager to (ReloadConfig() doesn't block on this).
+  do {
+    Env::Default()->SleepForMicroseconds(10 * 1000);
+    available_servables = server_core->ListAvailableServableIds();
+  } while (available_servables.empty() ||
+           available_servables.at(0).version != test_util::kTestModelVersion);
+}
+
 TEST_P(ServerCoreTest, ErroringModel) {
   ServerCore::Options options = GetDefaultOptions();
   test_util::StoragePathErrorInjectingSourceAdapterConfig source_adapter_config;

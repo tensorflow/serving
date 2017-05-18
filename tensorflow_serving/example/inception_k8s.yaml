@@ -31,8 +31,8 @@ spec:
         - /bin/sh
         - -c
         args:
-        - /serving/bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server
-          --port=9000 --model_name=inception --model_base_path=/serving/inception-export
+        - serving/bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server
+          --port=9000 --model_name=inception --model_base_path=serving/inception-export
         ports:
         - containerPort: 9000
 ---
