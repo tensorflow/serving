@@ -10,9 +10,11 @@ tensorflow/tensorflow/core/protobuf/rewriter_config.proto
 tensorflow/tensorflow/core/protobuf/queue_runner.proto
 tensorflow/tensorflow/core/protobuf/named_tensor.proto
 tensorflow/tensorflow/core/protobuf/meta_graph.proto
+tensorflow/tensorflow/core/protobuf/device_properties.proto
 tensorflow/tensorflow/core/protobuf/debug.proto
 tensorflow/tensorflow/core/protobuf/control_flow.proto
 tensorflow/tensorflow/core/protobuf/config.proto
+tensorflow/tensorflow/core/protobuf/cluster.proto
 tensorflow/tensorflow/core/lib/core/error_codes.proto
 tensorflow/tensorflow/core/framework/versions.proto
 tensorflow/tensorflow/core/framework/variable.proto

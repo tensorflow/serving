@@ -10,9 +10,11 @@ tensorflow/tensorflow/core/protobuf/rewriter_config.pb.h
 tensorflow/tensorflow/core/protobuf/queue_runner.pb.h
 tensorflow/tensorflow/core/protobuf/named_tensor.pb.h
 tensorflow/tensorflow/core/protobuf/meta_graph.pb.h
+tensorflow/tensorflow/core/protobuf/device_properties.pb.h
 tensorflow/tensorflow/core/protobuf/debug.pb.h
 tensorflow/tensorflow/core/protobuf/control_flow.pb.h
 tensorflow/tensorflow/core/protobuf/config.pb.h
+tensorflow/tensorflow/core/protobuf/cluster.pb.h
 tensorflow/tensorflow/core/lib/core/error_codes.pb.h
 tensorflow/tensorflow/core/framework/versions.pb.h
 tensorflow/tensorflow/core/framework/variable.pb.h
