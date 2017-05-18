@@ -30,7 +30,7 @@ sudo apt-get update && sudo apt-get install -y \
         zlib1g-dev \
         autoconf \
         automake \
-        libtool \ 
+        libtool \
         make \
         g++ \
         unzip \
