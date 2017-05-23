@@ -44,9 +44,9 @@ FLAGS = flags.FLAGS
 
 
 def PickUnusedPort():
-  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
   s.bind(('localhost', 0))
-  _, port = s.getsockname()
+  port = s.getsockname()[1]
   s.close()
   return port
 
