@@ -140,6 +140,8 @@ class BatchingSession : public ServingSession {
              const std::vector<string>& target_node_names,
              std::vector<Tensor>* outputs, RunMetadata* run_metadata) override;
 
+  Status ListDevices(std::vector<DeviceAttributes>* response) override;
+
  private:
   explicit BatchingSession(const BatchingSessionOptions& options);
 
@@ -269,6 +271,10 @@ Status BatchingSession::Run(
   TF_RETURN_IF_ERROR(batch_scheduler->Schedule(&task));
   done.WaitForNotification();
   return status;
+}
+
+Status BatchingSession::ListDevices(std::vector<DeviceAttributes>* response) {
+  return wrapped_->ListDevices(response);
 }
 
 BatchingSession::BatchingSession(const BatchingSessionOptions& options)
@@ -581,17 +587,19 @@ Status CreateBasicBatchingSession(
     }
   }
 
-  auto scheduler_creator = [schedule_options](
-      std::function<void(std::unique_ptr<Batch<BatchingSessionTask>>)>
-          process_batch_callback,
-      std::unique_ptr<BatchScheduler<BatchingSessionTask>>* batch_scheduler) {
-    std::unique_ptr<BasicBatchScheduler<BatchingSessionTask>>
-        basic_batch_scheduler;
-    TF_RETURN_IF_ERROR(BasicBatchScheduler<BatchingSessionTask>::Create(
-        schedule_options, process_batch_callback, &basic_batch_scheduler));
-    *batch_scheduler = std::move(basic_batch_scheduler);
-    return Status::OK();
-  };
+  auto scheduler_creator =
+      [schedule_options](
+          std::function<void(std::unique_ptr<Batch<BatchingSessionTask>>)>
+              process_batch_callback,
+          std::unique_ptr<BatchScheduler<BatchingSessionTask>>*
+              batch_scheduler) {
+        std::unique_ptr<BasicBatchScheduler<BatchingSessionTask>>
+            basic_batch_scheduler;
+        TF_RETURN_IF_ERROR(BasicBatchScheduler<BatchingSessionTask>::Create(
+            schedule_options, process_batch_callback, &basic_batch_scheduler));
+        *batch_scheduler = std::move(basic_batch_scheduler);
+        return Status::OK();
+      };
   return CreateBatchingSession(batching_session_options,
                                {{signature, scheduler_creator}},
                                std::move(session), batching_session);

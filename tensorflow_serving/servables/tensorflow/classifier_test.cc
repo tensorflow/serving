@@ -80,6 +80,10 @@ class FakeSession : public tensorflow::Session {
     return errors::Unimplemented("not available in fake");
   }
 
+  Status ListDevices(std::vector<DeviceAttributes>* response) override {
+    return errors::Unimplemented("not available in fake");
+  }
+
   Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
              const std::vector<string>& output_names,
              const std::vector<string>& target_nodes,
