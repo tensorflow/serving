@@ -45,6 +45,8 @@ class CurriedSession : public ServingSession {
              const std::vector<string>& target_node_names,
              std::vector<Tensor>* outputs, RunMetadata* run_metadata) override;
 
+  Status ListDevices(std::vector<DeviceAttributes>* response) override;
+
  private:
   // Verifies no overlap between the tensor names in 'explicit_inputs' and
   // 'curried_inputs_'.
