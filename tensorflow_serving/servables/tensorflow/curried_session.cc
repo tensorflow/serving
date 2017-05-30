@@ -52,6 +52,10 @@ Status CurriedSession::Run(const RunOptions& run_options,
                        target_node_names, outputs, run_metadata);
 }
 
+Status CurriedSession::ListDevices(std::vector<DeviceAttributes>* response) {
+  return wrapped_->ListDevices(response);
+}
+
 Status CurriedSession::ValidateExplicitInputsDontMatchCurriedInputs(
     const std::vector<std::pair<string, Tensor>>& explicit_inputs) const {
   for (const auto& entry : explicit_inputs) {

@@ -65,6 +65,10 @@ class BatchSizeCapturingSession : public ServingSession {
                          target_node_names, outputs, run_metadata);
   }
 
+  Status ListDevices(std::vector<DeviceAttributes>* response) override {
+    return wrapped_->ListDevices(response);
+  }
+
   int latest_batch_size() const { return latest_batch_size_; }
 
  private:

@@ -53,6 +53,11 @@ class MockSession : public tensorflow::Session {
                          const std::vector<std::pair<string, Tensor>>& inputs,
                          const std::vector<string>& output_names,
                          std::vector<Tensor>* outputs));
+
+  MOCK_METHOD1(ListDevices,
+               ::tensorflow::Status(
+                   std::vector<::tensorflow::DeviceAttributes>* response));
+
   MOCK_METHOD0(Close, ::tensorflow::Status());
 };
 

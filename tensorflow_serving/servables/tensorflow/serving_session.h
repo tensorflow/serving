@@ -70,6 +70,9 @@ class ServingSessionWrapper : public ServingSession {
     return wrapped_->Run(run_options, inputs, output_tensor_names,
                          target_node_names, outputs, run_metadata);
   }
+  Status ListDevices(std::vector<DeviceAttributes>* response) override {
+    return wrapped_->ListDevices(response);
+  }
 
  private:
   std::unique_ptr<Session> wrapped_;
