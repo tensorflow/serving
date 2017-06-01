@@ -293,7 +293,8 @@ void RunServer(int port, std::unique_ptr<ServerCore> core,
   std::shared_ptr<grpc::ServerCredentials> creds = InsecureServerCredentials();
   builder.AddListeningPort(server_address, creds);
   builder.RegisterService(&service);
-  builder.SetMaxMessageSize(tensorflow::kint32max);
+  // Raise max frame size for larger request if it is reasonable
+  builder.SetMaxMessageSize(104857600);
   std::unique_ptr<Server> server(builder.BuildAndStart());
   LOG(INFO) << "Running ModelServer at " << server_address << " ...";
   server->Wait();
