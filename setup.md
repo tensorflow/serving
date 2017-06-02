@@ -103,7 +103,7 @@ Binaries are placed in the bazel-bin directory, and can be run using a command
 like:
 
 ~~~shell
-./bazel-bin/tensorflow_serving/example/mnist_inference
+bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server
 ~~~
 
 To test your installation, execute:
