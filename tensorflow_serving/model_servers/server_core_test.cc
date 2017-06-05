@@ -84,6 +84,8 @@ TEST_P(ServerCoreTest, ReloadConfigUnloadsModels) {
       GetTestModelServerConfigForFakePlatform();
   ModelServerConfig empty_config;
   empty_config.mutable_model_config_list();
+  const ServableId servable_id = {test_util::kTestModelName,
+                                  test_util::kTestModelVersion};
 
   std::unique_ptr<ServerCore> server_core;
   TF_ASSERT_OK(CreateServerCore(nonempty_config, &server_core));
@@ -91,9 +93,9 @@ TEST_P(ServerCoreTest, ReloadConfigUnloadsModels) {
 
   TF_ASSERT_OK(server_core->ReloadConfig(empty_config));
   // Wait for the unload to finish (ReloadConfig() doesn't block on this).
-  while (!server_core->ListAvailableServableIds().empty()) {
-    Env::Default()->SleepForMicroseconds(10 * 1000);
-  }
+  test_util::WaitUntilServableManagerStateIsOneOf(
+      *server_core->servable_state_monitor(), servable_id,
+      {ServableState::ManagerState::kEnd});
 }
 
 TEST_P(ServerCoreTest, ReloadConfigHandlesLoadingAPreviouslyUnloadedModel) {
@@ -101,15 +103,17 @@ TEST_P(ServerCoreTest, ReloadConfigHandlesLoadingAPreviouslyUnloadedModel) {
   empty_config.mutable_model_config_list();
   const ModelServerConfig nonempty_config =
       GetTestModelServerConfigForFakePlatform();
+  const ServableId servable_id = {test_util::kTestModelName,
+                                  test_util::kTestModelVersion};
 
   // Load, and then unload, a servable.
   std::unique_ptr<ServerCore> server_core;
   TF_ASSERT_OK(CreateServerCore(nonempty_config, &server_core));
   TF_ASSERT_OK(server_core->ReloadConfig(empty_config));
   // Wait for the unload to finish (ReloadConfig() doesn't block on this).
-  while (!server_core->ListAvailableServableIds().empty()) {
-    Env::Default()->SleepForMicroseconds(10 * 1000);
-  }
+  test_util::WaitUntilServableManagerStateIsOneOf(
+      *server_core->servable_state_monitor(), servable_id,
+      {ServableState::ManagerState::kEnd});
 
   // Re-load the same servable.
   TF_ASSERT_OK(server_core->ReloadConfig(nonempty_config));
