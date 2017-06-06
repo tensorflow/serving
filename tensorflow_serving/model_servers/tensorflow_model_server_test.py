@@ -14,7 +14,6 @@
 # ==============================================================================
 
 #!/usr/bin/env python2.7
-
 """Tests for tensorflow_model_server."""
 
 import atexit
@@ -42,6 +41,10 @@ from tensorflow_serving.apis import inference_pb2
 
 FLAGS = flags.FLAGS
 
+RPC_TIMEOUT = 5.0
+CHANNEL_WAIT_TIMEOUT = 5.0
+WAIT_FOR_SERVER_READY_INT_SECS = 60
+
 
 def PickUnusedPort():
   s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
@@ -49,6 +52,25 @@ def PickUnusedPort():
   port = s.getsockname()[1]
   s.close()
   return port
+
+
+def WaitForServerReady(port):
+  """Waits for a server on the localhost to become ready."""
+  for _ in range(0, WAIT_FOR_SERVER_READY_INT_SECS):
+    time.sleep(1)
+    request = predict_pb2.PredictRequest()
+    request.model_spec.name = 'intentionally_missing_model'
+
+    try:
+      # Send empty request to missing model
+      channel = implementations.insecure_channel('localhost', port)
+      stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+      stub.Predict(request, RPC_TIMEOUT)
+    except face.AbortionError as error:
+      # Missing model error will have details containing 'Servable'
+      if 'Servable' in error.details:
+        print 'Server is ready'
+        break
 
 
 class TensorflowModelServerTest(tf.test.TestCase):
@@ -91,8 +113,13 @@ class TensorflowModelServerTest(tf.test.TestCase):
     if self.server_proc is not None:
       self.server_proc.terminate()
 
-  def RunServer(self, port, model_name, model_path, use_saved_model,
-                batching_parameters_file=''):
+  def RunServer(self,
+                port,
+                model_name,
+                model_path,
+                use_saved_model,
+                batching_parameters_file='',
+                wait_for_server_ready=True):
     """Run tensorflow_model_server using test config."""
     print 'Starting test server...'
     command = os.path.join(self.binary_dir, 'tensorflow_model_server')
@@ -106,13 +133,16 @@ class TensorflowModelServerTest(tf.test.TestCase):
     print command
     self.server_proc = subprocess.Popen(shlex.split(command))
     print 'Server started'
+    if wait_for_server_ready:
+      WaitForServerReady(port)
     return 'localhost:' + str(port)
 
   def RunServerWithModelConfigFile(self,
                                    port,
                                    model_config_file,
                                    use_saved_model,
-                                   pipe=None):
+                                   pipe=None,
+                                   wait_for_server_ready=True):
     """Run tensorflow_model_server using test config."""
     print 'Starting test server...'
     command = os.path.join(self.binary_dir, 'tensorflow_model_server')
@@ -123,6 +153,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     print command
     self.server_proc = subprocess.Popen(shlex.split(command), stderr=pipe)
     print 'Server started'
+    if wait_for_server_ready:
+      WaitForServerReady(port)
     return 'localhost:' + str(port)
 
   def VerifyPredictRequest(self,
@@ -146,7 +178,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     host, port = model_server_address.split(':')
     channel = implementations.insecure_channel(host, int(port))
     stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
-    result = stub.Predict(request, 5.0)  # 5 secs timeout
+    result = stub.Predict(request, RPC_TIMEOUT)  # 5 secs timeout
     # Verify response
     self.assertTrue('y' in result.outputs)
     self.assertIs(types_pb2.DT_FLOAT, result.outputs['y'].dtype)
@@ -190,7 +222,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
                                           model_path, use_saved_model)
-    time.sleep(5)
 
     print 'Sending Classify request...'
     # Prepare request
@@ -205,7 +236,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     host, port = model_server_address.split(':')
     channel = implementations.insecure_channel(host, int(port))
     stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
-    result = stub.Classify(request, 5.0)  # 5 secs timeout
+    result = stub.Classify(request, RPC_TIMEOUT)  # 5 secs timeout
     # Verify response
     self.assertEquals(1, len(result.result.classifications))
     self.assertEquals(1, len(result.result.classifications[0].classes))
@@ -221,7 +252,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
                                           model_path, use_saved_model)
-    time.sleep(5)
 
     print 'Sending Regress request...'
     # Prepare request
@@ -236,12 +266,11 @@ class TensorflowModelServerTest(tf.test.TestCase):
     host, port = model_server_address.split(':')
     channel = implementations.insecure_channel(host, int(port))
     stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
-    result = stub.Regress(request, 5.0)  # 5 secs timeout
+    result = stub.Regress(request, RPC_TIMEOUT)  # 5 secs timeout
     # Verify response
     self.assertEquals(1, len(result.result.regressions))
     expected_output = 3.0
-    self.assertEquals(expected_output,
-                      result.result.regressions[0].value)
+    self.assertEquals(expected_output, result.result.regressions[0].value)
 
   def testMultiInference(self):
     """Test PredictionService.MultiInference implementation."""
@@ -253,7 +282,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
                                           model_path, use_saved_model,
                                           enable_batching)
-    time.sleep(5)
 
     print 'Sending MultiInference request...'
     # Prepare request
@@ -272,7 +300,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     host, port = model_server_address.split(':')
     channel = implementations.insecure_channel(host, int(port))
     stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
-    result = stub.MultiInference(request, 5.0)  # 5 secs timeout
+    result = stub.MultiInference(request, RPC_TIMEOUT)  # 5 secs timeout
 
     # Verify response
     self.assertEquals(2, len(result.results))
@@ -282,7 +310,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.assertEquals(expected_output, result.results[
         1].classification_result.classifications[0].classes[0].score)
 
-  def _TestPredict(self, model_path, use_saved_model,
+  def _TestPredict(self,
+                   model_path,
+                   use_saved_model,
                    batching_parameters_file=''):
     """Helper method to test prediction.
 
@@ -296,7 +326,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
                                           model_path, use_saved_model,
                                           batching_parameters_file)
-    time.sleep(5)
     self.VerifyPredictRequest(model_server_address, expected_output=3.0)
     self.VerifyPredictRequest(
         model_server_address, expected_output=3.0, specify_output=False)
@@ -307,10 +336,10 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def testPredictBatchingSessionBundle(self):
     """Test PredictionService.Predict implementation with SessionBundle."""
-    self._TestPredict(self._GetSessionBundlePath(),
-                      use_saved_model=False,
-                      batching_parameters_file=
-                      self._GetBatchingParametersFile())
+    self._TestPredict(
+        self._GetSessionBundlePath(),
+        use_saved_model=False,
+        batching_parameters_file=self._GetBatchingParametersFile())
 
   def testPredictSavedModel(self):
     """Test PredictionService.Predict implementation with SavedModel."""
@@ -328,10 +357,14 @@ class TensorflowModelServerTest(tf.test.TestCase):
     atexit.register(self.TerminateProcs)
     # Both SessionBundle and SavedModel use the same bad model path, but in the
     # case of SavedModel, the export will get up-converted to a SavedModel.
+    # As the bad model will prevent the server from becoming ready, we set the
+    # wait_for_server_ready param to False to avoid blocking/timing out.
     model_server_address = self.RunServer(
-        PickUnusedPort(), 'default',
-        os.path.join(self.testdata_dir, 'bad_half_plus_two'), use_saved_model)
-    time.sleep(5)
+        PickUnusedPort(),
+        'default',
+        os.path.join(self.testdata_dir, 'bad_half_plus_two'),
+        use_saved_model,
+        wait_for_server_ready=False)
     with self.assertRaises(face.AbortionError) as error:
       self.VerifyPredictRequest(model_server_address, expected_output=3.0)
     self.assertIs(beta_interfaces.StatusCode.FAILED_PRECONDITION,
@@ -351,7 +384,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
     model_server_address = self.RunServerWithModelConfigFile(
         PickUnusedPort(), self._GetGoodModelConfigFile(),
         True)  # use_saved_model
-    time.sleep(5)
 
     self.VerifyPredictRequest(
         model_server_address, model_name='half_plus_two', expected_output=3.0)
@@ -382,6 +414,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
         'Invalid protobuf file: \'%s\'') % self._GetBadModelConfigFile()
     self.assertNotEqual(self.server_proc.stderr, None)
     self.assertGreater(self.server_proc.stderr.read().find(error_message), -1)
+
 
 if __name__ == '__main__':
   tf.test.main()

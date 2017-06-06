@@ -142,7 +142,7 @@ cc_binary(
 
 py_test(
     name = "tensorflow_model_server_test",
-    size = "large",
+    size = "medium",
     srcs = ["tensorflow_model_server_test.py"],
     data = [
         ":tensorflow_model_server",
