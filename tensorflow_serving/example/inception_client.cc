@@ -47,7 +47,8 @@ class ServingClient {
     ClientContext context;
 
     predictRequest.mutable_model_spec()->set_name(model_name);
-    predictRequest.mutable_model_spec()->set_signature_name(model_signature_name);
+    predictRequest.mutable_model_spec()->set_signature_name(
+        model_signature_name);
 
     google::protobuf::Map<tensorflow::string, tensorflow::TensorProto>& inputs =
         *predictRequest.mutable_inputs();
@@ -124,7 +125,9 @@ int main(int argc, char** argv) {
                        "the IP and port of the server"),
       tensorflow::Flag("image_file", &image_file, "the path to the image"),
       tensorflow::Flag("model_name", &model_name, "name of model"),
-      tensorflow::Flag("model_signature_name", &model_signature_name, "name of model signature")};
+      tensorflow::Flag("model_signature_name", &model_signature_name,
+                       "name of model signature")};
+
   tensorflow::string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
   if (!parse_result || image_file.empty()) {
@@ -136,7 +139,7 @@ int main(int argc, char** argv) {
       grpc::CreateChannel(server_port, grpc::InsecureChannelCredentials()));
   std::cout << "calling predict using file: " << image_file << "  ..."
             << std::endl;
-  std::cout << guide.callPredict(model_name, model_signature_name, image_file) << std::endl;
-
+  std::cout << guide.callPredict(model_name, model_signature_name, image_file)
+            << std::endl;
   return 0;
 }
