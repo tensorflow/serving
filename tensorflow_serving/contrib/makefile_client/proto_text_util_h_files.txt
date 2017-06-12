@@ -1,0 +1,16 @@
+tensorflow/tensorflow/tools/proto_text/gen_proto_text_functions_lib.h
+tensorflow/tensorflow/core/platform/types.h
+tensorflow/tensorflow/core/platform/protobuf.h
+tensorflow/tensorflow/core/platform/platform.h
+tensorflow/tensorflow/core/platform/macros.h
+tensorflow/tensorflow/core/platform/logging.h
+tensorflow/tensorflow/core/platform/init_main.h
+tensorflow/tensorflow/core/platform/env_time.h
+tensorflow/tensorflow/core/platform/default/protobuf.h
+tensorflow/tensorflow/core/platform/default/logging.h
+tensorflow/tensorflow/core/platform/default/integral_types.h
+tensorflow/tensorflow/core/lib/strings/strcat.h
+tensorflow/tensorflow/core/lib/strings/numbers.h
+tensorflow/tensorflow/core/lib/core/stringpiece.h
+tensorflow/tensorflow/core/lib/core/status.h
+tensorflow/tensorflow/core/lib/core/errors.h

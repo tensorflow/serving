@@ -1,0 +1,6 @@
+tensorflow/tensorflow/tools/proto_text/gen_proto_text_functions_lib.cc
+tensorflow/tensorflow/tools/proto_text/gen_proto_text_functions.cc
+tensorflow/tensorflow/core/platform/posix/env_time.cc
+tensorflow/tensorflow/core/platform/env_time.cc
+tensorflow/tensorflow/core/platform/default/protobuf.cc
+tensorflow/tensorflow/core/platform/default/logging.cc

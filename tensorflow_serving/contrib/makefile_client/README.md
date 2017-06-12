@@ -1,0 +1,189 @@
+### Makefile Builder for TensorFlow Serving Inception Client
+
+This project builds the C++ Inception Client using a Makefile build instead of the Bazel Build. 
+This project may, additionally, be used as the basis of building your own custom clients and for the basis to build clients for other platforms. I was able to compile the client on a cloud machine with only 1GB of RAM.
+
+## This project produces the following.
+
+1). An example Inception client with the gRPC and protobuf libraries statically linked to the client, so you will not need to manually install gRPC or Protocol Buffers to build or use the client.
+
+2). A trimmed down source code tree of the files needed to build TensorFlow Serving clients. Including the generated protobuf and protobuf_text C++ files needed to compile a client. You can copy this tree to other development environments as a basis to compile clients for other architectures.
+
+3). An archive library that you can link to, to build your own clients.
+
+4). Locally compiled libraries for gRPC and Protocol Buffers that you can link to.
+
+### Building the Inception Client.
+
+Note: These instructions are for building on a Linux host. At this time the build has only been tested under Linux (Specifically Ubuntu 16.04, but it should not be limited to this version). It should be possible to add a Mac host build, in the future.
+
+1). **Install the following prerequisites on your host machine.**
+
+```bash
+sudo apt-get update && sudo apt-get install -y \
+        build-essential \
+        curl \
+        libcurl3-dev \
+        git \
+        libpng12-dev \
+        zip \
+        zlib1g-dev \
+        autoconf \
+        automake \
+        libtool \
+        make \
+        g++ \
+        unzip \
+        libssl-dev
+```
+
+2). **Clone the TensorFlow Serving repository. Then, when the clone has finished, cd to the makefile_client directory.**
+
+```bash
+git clone --recurse-submodules https://github.com/tensorflow/serving
+cd serving/tensorflow_serving/contrib/makefile_client
+```
+
+3). **Download dependencies by running shell script.**
+
+   This will download the dependencies into the "downloads" subdirectory.
+
+```bash
+./download_dependencies.sh
+```
+
+4). **Compile dependencies**
+   This will produce compiled gRPC, Protocol Buffers and a number of other libraries. These compiled libraries, headers and the protoc binary will be placed in the gen/grpc subdirectory.
+
+```bash
+./compile_linux_grpc_protobuf.sh
+```
+   The dependencies build will take some time to complete.
+
+5). **Run command to copy a trimmed downed source tree from the full repository**
+  The files will be copied into the "code-slice" subdirectory.
+  
+```bash
+./copy_selected_files.sh
+```
+
+6). **Build the client with make** 
+
+```bash
+make
+```
+
+Once again compiling the source code will take a while. When done you may test the client.
+
+### Test the client - preliminaries.
+
+In order to test the client you will need to have a server running on another machine, or on another VM or Docker container. Running the server on a VM on the same host as the client you just built could result in some minor networking puzzles you may not care to spend the time to solve. In my case, I ran the server from a Docker container on a cloud machine. 
+
+Building the docker container is described here:
+https://tensorflow.github.io/serving/docker.html
+
+To start the server running from inside the Docker container run the following commands.
+
+```bash
+root@f07eec53fd95:/# cd serving
+root@f07eec53fd95:/serving# bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000 --model_name=inception --model_base_path=inception-export &> inception_log &
+```
+These instructions were borrowed from this article:
+https://tensorflow.github.io/serving/serving_inception
+
+The article also includes the steps necessary to download and "import" the Inception model. You can ignore the Kubernetes related material in part 2.
+
+### Test the client
+
+From where you have been building the client, run the following command:
+
+- Use the ip address of your server instead of the 107.170.xx.xxx in the example command line.
+
+```bash
+./gen/bin/inception_client --server_port="107.170.xx.xxx:9000" --image_file="../../../tensorflow/tensorflow/examples/label_image/data/grace_hopper.jpg"
+```
+
+You should see this response:
+```bash
+call predict ok
+outputs size is 2
+the result tensor[0] is:
+[7.8828206 6.8400025 6.4891167 5.6658578 5.538981]
+the result tensor[1] is:
+military uniform bow tie, bow-tie, bowtie mortarboard suit, suit of clothes academic gown, academic robe, judge\'s robe
+Done.
+```
+
+### What's where in the subdirectories.
+
+The directory structure is a follows:
+
+**downloads:** Support files like eigen, gRPC and such.
+
+**code-slice:** The trimmed source tree for compling clients.
+
+**gen/grpc:** The compiled libraries, headers and binaries for gRPC and Protocol Buffers.
+
+**gen/proto_pb:** The C++ files generated by Protocol Buffers from .proto files.
+
+**gen/proto_text:** The C++ files generated by proto_text utility from .proto files.
+
+**gen/lib/libtensorflow-serving-client.a:** A library to link your clients to.
+
+**gen/bin/inception_client:** The example Inception Client created by running make.
+
+**gen/host_bin/proto_text:** A utility used to generate the "pb_text" files from the .proto files.
+
+The files in code-slice, gen/proto_pb and gen/proto_text are the source files needed to compile clients. 
+
+The files in gen/host_bin and gen/host_obj are files related to building the utility that was used to generate the "pb_text" files. The host_bin and host_obj directories are not needed to compile clients once the ".pb_text.cc" and ".pb_text.h" files have been generated.
+
+
+### Updating the build file lists - preliminaries.
+
+The Makefile build process and the files selected to populate the "code-slice" tree are driven by a set of files generated with Bazel dependency tree queries.
+
+It should not be necessary to update the file lists often. Unless there is some breaking change in the TensorFlow Serving source tree or some new functionally added to the API that you want to take advantage of, there is no pressing need to update your code-slice source tree.
+
+To update the file lists, in this case, it is necessary to have Bazel installed. Bazel will be used for its dependency tree analysis functionally; to generate the file lists. You will not need to compile the TensorFlow Serving code for the file lists to be generated.
+
+To install Bazel follow the instructions here:
+https://tensorflow.github.io/serving/setup
+Follow step one.
+
+### Updating the build file lists.
+
+1). **cd to main repository and run configure.**
+  Answer the configure questions, then return to the makefile_client directory. 
+  You do not need to do a Bazel build.
+
+```bash
+cd ../../../tensorflow/
+./configure
+cd ../tensorflow_serving/contrib/makefile_client/
+```
+
+2). **Run the file list update script.**
+```bash
+./update_client_build_filelists.sh 
+```
+
+3). **Update the "code-slice" tree from the new file lists.**
+
+```bash
+./copy_selected_files.sh
+```
+
+4). **Rebuild client.**
+
+```bash
+make clean
+make
+```
+
+### Acknowledgment
+This project is leveraged on the TensorFlow makefile build project. That project may be found here:
+https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/makefile
+
+I have removed support for cross compiling to other targets, as, at this time, this would be dead code. However, I kept the core needed to allow the Makefile to be expanded, once again, with multi target possibilities. (mountaintom)
+
