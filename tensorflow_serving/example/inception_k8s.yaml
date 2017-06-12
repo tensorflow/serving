@@ -47,5 +47,5 @@ spec:
   - port: 9000
     targetPort: 9000
   selector:
-    run: inception-service
+    app: inception-server
   type: LoadBalancer
