@@ -173,7 +173,8 @@ multiple versions of a model offered concurrently). In another scenario, a
 single request gets broken down into sub-requests involving multiple distinct
 servables (e.g. a recommender system might have a triggering model that decides
 whether to formulate a recommendation, followed by a model that selects the
-actual recommendation).
+actual recommendation). A third scenario is bucketizing sequence model requests
+to batch together requests of similar length, to minimize padding.
 
 Generally speaking, using a separate batch scheduler for each kind of request
 or sub-task does not work well if they share a common underlying compute
