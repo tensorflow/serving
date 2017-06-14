@@ -127,6 +127,7 @@ int main(int argc, char** argv) {
       tensorflow::Flag("model_name", &model_name, "name of model"),
       tensorflow::Flag("model_signature_name", &model_signature_name,
                        "name of model signature")};
+
   tensorflow::string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
   if (!parse_result || image_file.empty()) {
