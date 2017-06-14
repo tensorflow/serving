@@ -31,12 +31,6 @@ import sys
 
 import tensorflow as tf
 
-from tensorflow.python.saved_model import builder as saved_model_builder
-from tensorflow.python.saved_model import signature_constants
-from tensorflow.python.saved_model import signature_def_utils
-from tensorflow.python.saved_model import tag_constants
-from tensorflow.python.saved_model import utils
-from tensorflow.python.util import compat
 from tensorflow_serving.example import mnist_input_data
 
 tf.app.flags.DEFINE_integer('training_iteration', 1000,
@@ -93,41 +87,48 @@ def main(_):
   # whenever code changes.
   export_path_base = sys.argv[-1]
   export_path = os.path.join(
-      compat.as_bytes(export_path_base),
-      compat.as_bytes(str(FLAGS.model_version)))
+      tf.compat.as_bytes(export_path_base),
+      tf.compat.as_bytes(str(FLAGS.model_version)))
   print 'Exporting trained model to', export_path
-  builder = saved_model_builder.SavedModelBuilder(export_path)
+  builder = tf.saved_model.builder.SavedModelBuilder(export_path)
 
   # Build the signature_def_map.
-  classification_inputs = utils.build_tensor_info(serialized_tf_example)
-  classification_outputs_classes = utils.build_tensor_info(prediction_classes)
-  classification_outputs_scores = utils.build_tensor_info(values)
+  classification_inputs = tf.saved_model.utils.build_tensor_info(
+      serialized_tf_example)
+  classification_outputs_classes = tf.saved_model.utils.build_tensor_info(
+      prediction_classes)
+  classification_outputs_scores = tf.saved_model.utils.build_tensor_info(values)
 
-  classification_signature = signature_def_utils.build_signature_def(
-      inputs={signature_constants.CLASSIFY_INPUTS: classification_inputs},
-      outputs={
-          signature_constants.CLASSIFY_OUTPUT_CLASSES:
-              classification_outputs_classes,
-          signature_constants.CLASSIFY_OUTPUT_SCORES:
-              classification_outputs_scores
-      },
-      method_name=signature_constants.CLASSIFY_METHOD_NAME)
+  classification_signature = (
+      tf.saved_model.signature_def_utils.build_signature_def(
+          inputs={
+              tf.saved_model.signature_constants.CLASSIFY_INPUTS:
+                  classification_inputs
+          },
+          outputs={
+              tf.saved_model.signature_constants.CLASSIFY_OUTPUT_CLASSES:
+                  classification_outputs_classes,
+              tf.saved_model.signature_constants.CLASSIFY_OUTPUT_SCORES:
+                  classification_outputs_scores
+          },
+          method_name=tf.saved_model.signature_constants.CLASSIFY_METHOD_NAME))
 
-  tensor_info_x = utils.build_tensor_info(x)
-  tensor_info_y = utils.build_tensor_info(y)
+  tensor_info_x = tf.saved_model.utils.build_tensor_info(x)
+  tensor_info_y = tf.saved_model.utils.build_tensor_info(y)
 
-  prediction_signature = signature_def_utils.build_signature_def(
-      inputs={'images': tensor_info_x},
-      outputs={'scores': tensor_info_y},
-      method_name=signature_constants.PREDICT_METHOD_NAME)
+  prediction_signature = (
+      tf.saved_model.signature_def_utils.build_signature_def(
+          inputs={'images': tensor_info_x},
+          outputs={'scores': tensor_info_y},
+          method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
 
   legacy_init_op = tf.group(tf.tables_initializer(), name='legacy_init_op')
   builder.add_meta_graph_and_variables(
-      sess, [tag_constants.SERVING],
+      sess, [tf.saved_model.tag_constants.SERVING],
       signature_def_map={
           'predict_images':
               prediction_signature,
-          signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
+          tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
               classification_signature,
       },
       legacy_init_op=legacy_init_op)

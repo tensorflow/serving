@@ -49,13 +49,6 @@ py_binary(
     deps = [
         ":mnist_input_data",
         "@org_tensorflow//tensorflow:tensorflow_py",
-        "@org_tensorflow//tensorflow/python/saved_model:builder",
-        "@org_tensorflow//tensorflow/python/saved_model:constants",
-        "@org_tensorflow//tensorflow/python/saved_model:loader",
-        "@org_tensorflow//tensorflow/python/saved_model:signature_constants",
-        "@org_tensorflow//tensorflow/python/saved_model:signature_def_utils",
-        "@org_tensorflow//tensorflow/python/saved_model:tag_constants",
-        "@org_tensorflow//tensorflow/python/saved_model:utils",
     ],
 )
 
@@ -94,13 +87,6 @@ py_binary(
     deps = [
         "@inception_model//inception",
         "@org_tensorflow//tensorflow:tensorflow_py",
-        "@org_tensorflow//tensorflow/python/saved_model:builder",
-        "@org_tensorflow//tensorflow/python/saved_model:constants",
-        "@org_tensorflow//tensorflow/python/saved_model:loader",
-        "@org_tensorflow//tensorflow/python/saved_model:signature_constants",
-        "@org_tensorflow//tensorflow/python/saved_model:signature_def_utils",
-        "@org_tensorflow//tensorflow/python/saved_model:tag_constants",
-        "@org_tensorflow//tensorflow/python/saved_model:utils",
     ],
 )
 

@@ -26,12 +26,6 @@ import os.path
 
 import tensorflow as tf
 
-from tensorflow.python.saved_model import builder as saved_model_builder
-from tensorflow.python.saved_model import signature_constants
-from tensorflow.python.saved_model import signature_def_utils
-from tensorflow.python.saved_model import tag_constants
-from tensorflow.python.saved_model import utils
-from tensorflow.python.util import compat
 from inception import inception_model
 
 tf.app.flags.DEFINE_string('checkpoint_dir', '/tmp/inception_train',
@@ -119,46 +113,53 @@ def export():
 
       # Export inference model.
       output_path = os.path.join(
-          compat.as_bytes(FLAGS.output_dir),
-          compat.as_bytes(str(FLAGS.model_version)))
+          tf.compat.as_bytes(FLAGS.output_dir),
+          tf.compat.as_bytes(str(FLAGS.model_version)))
       print 'Exporting trained model to', output_path
-      builder = saved_model_builder.SavedModelBuilder(output_path)
+      builder = tf.saved_model.builder.SavedModelBuilder(output_path)
 
       # Build the signature_def_map.
-      classify_inputs_tensor_info = utils.build_tensor_info(
+      classify_inputs_tensor_info = tf.saved_model.utils.build_tensor_info(
           serialized_tf_example)
-      classes_output_tensor_info = utils.build_tensor_info(classes)
-      scores_output_tensor_info = utils.build_tensor_info(values)
+      classes_output_tensor_info = tf.saved_model.utils.build_tensor_info(
+          classes)
+      scores_output_tensor_info = tf.saved_model.utils.build_tensor_info(values)
 
-      classification_signature = signature_def_utils.build_signature_def(
-          inputs={
-              signature_constants.CLASSIFY_INPUTS: classify_inputs_tensor_info
-          },
-          outputs={
-              signature_constants.CLASSIFY_OUTPUT_CLASSES:
-                  classes_output_tensor_info,
-              signature_constants.CLASSIFY_OUTPUT_SCORES:
-                  scores_output_tensor_info
-          },
-          method_name=signature_constants.CLASSIFY_METHOD_NAME)
+      classification_signature = (
+          tf.saved_model.signature_def_utils.build_signature_def(
+              inputs={
+                  tf.saved_model.signature_constants.CLASSIFY_INPUTS:
+                      classify_inputs_tensor_info
+              },
+              outputs={
+                  tf.saved_model.signature_constants.CLASSIFY_OUTPUT_CLASSES:
+                      classes_output_tensor_info,
+                  tf.saved_model.signature_constants.CLASSIFY_OUTPUT_SCORES:
+                      scores_output_tensor_info
+              },
+              method_name=tf.saved_model.signature_constants.
+              CLASSIFY_METHOD_NAME))
 
-      predict_inputs_tensor_info = utils.build_tensor_info(jpegs)
-      prediction_signature = signature_def_utils.build_signature_def(
-          inputs={'images': predict_inputs_tensor_info},
-          outputs={
-              'classes': classes_output_tensor_info,
-              'scores': scores_output_tensor_info
-          },
-          method_name=signature_constants.PREDICT_METHOD_NAME)
+      predict_inputs_tensor_info = tf.saved_model.utils.build_tensor_info(jpegs)
+      prediction_signature = (
+          tf.saved_model.signature_def_utils.build_signature_def(
+              inputs={'images': predict_inputs_tensor_info},
+              outputs={
+                  'classes': classes_output_tensor_info,
+                  'scores': scores_output_tensor_info
+              },
+              method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
+          ))
 
       legacy_init_op = tf.group(
           tf.tables_initializer(), name='legacy_init_op')
       builder.add_meta_graph_and_variables(
-          sess, [tag_constants.SERVING],
+          sess, [tf.saved_model.tag_constants.SERVING],
           signature_def_map={
               'predict_images':
                   prediction_signature,
-              signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
+              tf.saved_model.signature_constants.
+              DEFAULT_SERVING_SIGNATURE_DEF_KEY:
                   classification_signature,
           },
           legacy_init_op=legacy_init_op)

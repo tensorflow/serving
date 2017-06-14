@@ -17,6 +17,6 @@ message ModelSpec {
   google.protobuf.Int64Value version = 2;
 
   // A named signature to evaluate. If unspecified, the default signature will
-  // be used. Note that only MultiInference will initially support this.
+  // be used.
   string signature_name = 3;
 }
