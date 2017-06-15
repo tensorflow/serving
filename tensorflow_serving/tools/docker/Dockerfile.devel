@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
         libfreetype6-dev \
         libpng12-dev \
         libzmq3-dev \
+        mlocate \
         pkg-config \
         python-dev \
         python-numpy \
