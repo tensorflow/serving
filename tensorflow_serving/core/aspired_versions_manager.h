@@ -58,65 +58,68 @@ namespace test_util {
 class AspiredVersionsManagerTestAccess;
 }  // namespace test_util
 
-// A manager that implements the Target<Loader> API which uses aspired-versions
-// callbacks to dictate which servable versions to load. This manager also uses
-// that API to infer which ones to unload: If a given servable version is
-// currently loaded, and is omitted from an aspired-versions callback invocation
-// pertaining to its servable stream, this manager interprets that omission as
-// an implicit instruction to unload the version. See below for details.
-//
-// (The implicit-unload semantics facilitates stateless Source implementations,
-// whereby a given iteration of the Source's logic simply decides which versions
-// of a servable ought to be loaded, without needing to know what it has decided
-// in the past.)
-//
-// This manager makes transitions between versions of a servable stream using a
-// configured AspiredVersionPolicy. The manager prefers unloading before loading
-// to free up resources in the server when deciding among transitions suggested
-// by the policy.
+/// A manager that implements the Target<Loader> API which uses aspired-versions
+/// callbacks to dictate which servable versions to load. This manager also uses
+/// that API to infer which ones to unload: If a given servable version is
+/// currently loaded, and is omitted from an aspired-versions callback
+/// invocation pertaining to its servable stream, this manager interprets that
+/// omission as an implicit instruction to unload the version. See below for
+/// details.
+///
+/// (The implicit-unload semantics facilitates stateless Source implementations,
+/// whereby a given iteration of the Source's logic simply decides which
+/// versions of a servable ought to be loaded, without needing to know what it
+/// has decided in the past.)
+///
+/// This manager makes transitions between versions of a servable stream using a
+/// configured AspiredVersionPolicy. The manager prefers unloading before
+/// loading to free up resources in the server when deciding among transitions
+/// suggested by the policy.
 class AspiredVersionsManager : public Manager,
                                public Target<std::unique_ptr<Loader>> {
  public:
+  /// Config options and pluggable objects that will be used by the
+  /// AspiredVersionsManager.
   struct Options {
-    // The resource tracker to use while managing servable resources. Optional.
-    // If left as nullptr, we do not validate servable resource usage.
+    /// The resource tracker to use while managing servable resources. Optional.
+    /// If left as nullptr, we do not validate servable resource usage.
     std::unique_ptr<ResourceTracker> resource_tracker;
 
-    // The periodicity, in microseconds, of the thread which manages the state
-    // of the servables. Default: 100 milliseconds. If this is set less than or
-    // equal to 0, we don't run this thread at all.
+    /// The periodicity, in microseconds, of the thread which manages the state
+    /// of the servables. Default: 100 milliseconds. If this is set less than or
+    /// equal to 0, we don't run this thread at all.
     int64 manage_state_interval_micros = 100 * 1000;
 
-    // EventBus to publish servable state changes. This is optional, if unset,
-    // we don't publish.
+    /// EventBus to publish servable state changes. This is optional, if unset,
+    /// we don't publish.
     EventBus<ServableState>* servable_event_bus = nullptr;
 
-    // The AspiredVersionPolicy to use for the manager. Must be non-null.
+    /// The AspiredVersionPolicy to use for the manager. Must be non-null.
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy;
 
-    // The number of threads in the thread-pool used to load servables.
-    //
-    // If set as 0, we don't use a thread-pool, and servable loads are performed
-    // serially in the manager's main work loop.
+    /// The number of threads in the thread-pool used to load servables.
+    ///
+    /// If set as 0, we don't use a thread-pool, and servable loads are
+    /// performed serially in the manager's main work loop.
     uint32 num_load_threads = 0;
 
-    // The number of threads in the thread-pool used to unload servables.
-    //
-    // If set as 0, we don't use a thread-pool, and servable unloads are
-    // performed serially in the manager's main work loop.
+    /// The number of threads in the thread-pool used to unload servables.
+    ///
+    /// If set as 0, we don't use a thread-pool, and servable unloads are
+    /// performed serially in the manager's main work loop.
     uint32 num_unload_threads = 0;
 
-    // Maximum number of times we retry loading a servable, after the first
-    // failure, before we give up.
+    /// Maximum number of times we retry loading a servable, after the first
+    /// failure, before we give up.
     uint32 max_num_load_retries = 5;
 
-    // The interval, in microseconds, between each servable load retry. If set
-    // negative, we don't wait.
-    // Default: 1 minute.
+    /// The interval, in microseconds, between each servable load retry. If set
+    /// negative, we don't wait.
+    /// Default: 1 minute.
     int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
 
-    // The environment to use for starting threads in the thread-pool or for
-    // sleeping.
+    /// The environment to use for starting threads in the thread-pool or for
+    /// sleeping.
     Env* env = Env::Default();
   };
   static Status Create(Options options,
@@ -125,9 +128,11 @@ class AspiredVersionsManager : public Manager,
 
   std::vector<ServableId> ListAvailableServableIds() const override;
 
-  // Returns a callback to set the list of aspired versions for a particular
-  // servable stream, using Loaders. AspiredVersionsManager's semantics with
-  // respect to this callback are as follows:
+  /// \brief Returns a callback to set the list of aspired versions for a
+  /// particular servable stream, using Loaders.
+  //
+  // AspiredVersionsManager's semantics with respect to this callback are as
+  // follows:
   //
   // 1. OMITTING A VERSION INSTRUCTS THE MANAGER TO UNLOAD IT
   //

@@ -33,8 +33,9 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// A query for a specific loaded servable object. The request can either specify
-// a specific version number, or simply opt to use the latest loaded version.
+/// A query for a specific loaded servable object. The request can either
+/// specify a specific version number, or simply opt to use the latest loaded
+/// version.
 struct ServableRequest {
   // Initialization factories, for convenience and readability.
   static ServableRequest Specific(const string& name, const int64 version);
@@ -51,30 +52,30 @@ struct ServableRequest {
   string DebugString() const;
 };
 
-// Manager is responsible for loading, unloading, lookup and lifetime
-// management of all Servable objects via their Loaders.
+/// Manager is responsible for loading, unloading, lookup and lifetime
+/// management of all Servable objects via their Loaders.
 class Manager {
  public:
   virtual ~Manager() = default;
 
-  // Gets a list of all available servable ids, i.e. each of these can
-  // be retrieved using GetServableHandle.
+  /// Gets a list of all available servable ids, i.e. each of these can
+  /// be retrieved using GetServableHandle.
   virtual std::vector<ServableId> ListAvailableServableIds() const = 0;
 
-  // Returns a map of all the currently available servables of a particular type
-  // T. The map is from the servable's id to its corresponding handle.
-  //
-  // IMPORTANT: The caller should not hold onto the handles for a long time,
-  // because holding them will delay servable loading and unloading.
+  /// Returns a map of all the currently available servables of a particular
+  /// type T. The map is from the servable's id to its corresponding handle.
+  ///
+  /// IMPORTANT: The caller should not hold onto the handles for a long time,
+  /// because holding them will delay servable loading and unloading.
   template <typename T>
   std::map<ServableId, ServableHandle<T>> GetAvailableServableHandles() const;
 
-  // Returns a ServableHandle given a ServableRequest. Returns error if no such
-  // Servable is available -- e.g. not yet loaded, has been quiesced/unloaded,
-  // etc. Callers may assume that an OK status indicates a non-null handle.
-  //
-  // IMPORTANT: The caller should not hold onto the handles for a long time,
-  // because holding them will delay servable loading and unloading.
+  /// Returns a ServableHandle given a ServableRequest. Returns error if no such
+  /// Servable is available -- e.g. not yet loaded, has been quiesced/unloaded,
+  /// etc. Callers may assume that an OK status indicates a non-null handle.
+  ///
+  /// IMPORTANT: The caller should not hold onto the handles for a long time,
+  /// because holding them will delay servable loading and unloading.
   template <typename T>
   Status GetServableHandle(const ServableRequest& request,
                            ServableHandle<T>* const handle);

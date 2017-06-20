@@ -21,15 +21,15 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// An abstract object that can execute closures.
-//
-// Implementations of executor must be thread-safe.
+/// An abstract object that can execute closures.
+///
+/// Implementations of executor must be thread-safe.
 class Executor {
  public:
   virtual ~Executor() = default;
 
-  // Schedule the specified 'fn' for execution in this executor. Depending on
-  // the subclass implementation, this may block in some situations.
+  /// Schedule the specified 'fn' for execution in this executor. Depending on
+  /// the subclass implementation, this may block in some situations.
   virtual void Schedule(std::function<void()> fn) = 0;
 };
 

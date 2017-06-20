@@ -32,18 +32,20 @@ namespace test_util {
 class CachingManagerTestAccess;
 }  // namespace test_util
 
-// A manager that manages and loads servables on-demand. Upon receiving the
-// request for a servable name and optional version, the manager checks if it
-// already has the requested servable loaded. If not, it initiates the load
-// operation and then serves the request.
-//
-// The manager blocks on the load operation and returns the handle when the
-// servable has been loaded, or upon error.
+/// A manager that manages and loads servables on-demand. Upon receiving the
+/// request for a servable name and optional version, the manager checks if it
+/// already has the requested servable loaded. If not, it initiates the load
+/// operation and then serves the request.
+///
+/// The manager blocks on the load operation and returns the handle when the
+/// servable has been loaded, or upon error.
 //
 // TODO(b/25449742): Add support for evictions of loaded servables from the
 // caching-manager.
 class CachingManager : public Manager {
  public:
+  /// Config options and pluggable objects that will be used by the
+  /// CachingManager.
   struct Options {
     // The resource tracker to use while managing servable resources. Optional.
     // If left as nullptr, we do not validate servable resource usage.
@@ -76,19 +78,19 @@ class CachingManager : public Manager {
     Env* env = Env::Default();
   };
 
-  // An abstraction for a loader-factory to map from a servable request to the
-  // corresponding loader.
+  /// An abstraction for a loader-factory to map from a servable request to the
+  /// corresponding loader.
   class LoaderFactory {
    public:
     virtual ~LoaderFactory() = default;
 
-    // Creates servable data consisting of the loader corresponding to the
-    // servable-id. Any errors can be reported by embedding them in the returned
-    // ServableData item.
+    /// Creates servable data consisting of the loader corresponding to the
+    /// servable-id. Any errors can be reported by embedding them in the
+    /// returned ServableData item.
     virtual ServableData<std::unique_ptr<Loader>> CreateLoader(
         const ServableId& servable_id) = 0;
 
-    // Returns the latest version corresponding to the servable name.
+    /// Returns the latest version corresponding to the servable name.
     virtual int64 GetLatestVersion(const string& servable_name) const = 0;
   };
 
@@ -156,9 +158,9 @@ class CachingManager : public Manager {
   TF_DISALLOW_COPY_AND_ASSIGN(CachingManager);
 };
 
-// A simple LoaderFactory that looks for a servable at a path formed by
-// concatenating a fixed path prefix with the servable's name. It assumes that
-// a given servable only has one version, namely version 0.
+/// A simple LoaderFactory that looks for a servable at a path formed by
+/// concatenating a fixed path prefix with the servable's name. It assumes that
+/// a given servable only has one version, namely version 0.
 class PathPrefixLoaderFactory : public CachingManager::LoaderFactory {
  public:
   PathPrefixLoaderFactory(const string& path_prefix,

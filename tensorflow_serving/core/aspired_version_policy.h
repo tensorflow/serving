@@ -28,59 +28,59 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// A snapshot of a servable's state and aspiredness.
+/// A snapshot of a servable's state and aspiredness.
 struct AspiredServableStateSnapshot final {
   ServableId id;
   LoaderHarness::State state;
   bool is_aspired;
 };
 
-// An interface for the policy to be applied for transitioning servable versions
-// in a servable stream.
-//
-// Policies should be entirely stateless and idempotent. Asking the same policy
-// multiple times for the next action, for an identical vector of
-// AspiredServableStateSnapshots, should return the same result.
-//
-// If additional state is required to implement a Policy, such state shall be
-// shared via AspiredServableStateSnapshots. Depending on the kind of state, the
-// most likely candidates for originating or tracking state are Sources or the
-// Harness and Manager.
+/// An interface for the policy to be applied for transitioning servable
+/// versions in a servable stream.
+///
+/// Policies should be entirely stateless and idempotent. Asking the same policy
+/// multiple times for the next action, for an identical vector of
+/// AspiredServableStateSnapshots, should return the same result.
+///
+/// If additional state is required to implement a Policy, such state shall be
+/// shared via AspiredServableStateSnapshots. Depending on the kind of state,
+/// the most likely candidates for originating or tracking state are Sources or
+/// the Harness and Manager.
 class AspiredVersionPolicy {
  public:
-  // The different actions that could be recommended by a policy.
+  /// The different actions that could be recommended by a policy.
   enum class Action : int {
-    // Call load on the servable.
+    /// Call load on the servable.
     kLoad,
-    // Call unload on the servable.
+    /// Call unload on the servable.
     kUnload,
   };
 
   virtual ~AspiredVersionPolicy() = default;
 
-  // Action and the id of the servable associated with it.
+  /// Action and the id of the servable associated with it.
   struct ServableAction final {
     Action action;
     ServableId id;
 
     string DebugString() const {
-      return strings::StrCat("{ action: ", static_cast<int>(action), " id: ",
-                             id.DebugString(), " }");
+      return strings::StrCat("{ action: ", static_cast<int>(action),
+                             " id: ", id.DebugString(), " }");
     }
   };
 
-  // Takes in a vector of state snapshots of all versions of a servable stream
-  // and returns an action to be performed for a particular servable version,
-  // depending only on the states of all the versions.
-  //
-  // If no action is to be performed, we don't return an action, meaning
-  // that the servable stream is up to date.
+  /// Takes in a vector of state snapshots of all versions of a servable stream
+  /// and returns an action to be performed for a particular servable version,
+  /// depending only on the states of all the versions.
+  ///
+  /// If no action is to be performed, we don't return an action, meaning
+  /// that the servable stream is up to date.
   virtual optional<ServableAction> GetNextAction(
       const std::vector<AspiredServableStateSnapshot>& all_versions) const = 0;
 
  protected:
-  // Returns the aspired ServableId with the highest version that matches
-  // kNew state, if any exists.
+  /// Returns the aspired ServableId with the highest version that matches
+  /// kNew state, if any exists.
   static optional<ServableId> GetHighestAspiredNewServableId(
       const std::vector<AspiredServableStateSnapshot>& all_versions);
 
