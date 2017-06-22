@@ -9,8 +9,6 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
-exports_files(["LICENSE"])
-
 cc_library(
     name = "mock_file_probing_env",
     testonly = 1,
