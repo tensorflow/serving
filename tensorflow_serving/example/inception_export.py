@@ -16,6 +16,9 @@
 #!/usr/bin/env python2.7
 """Export inception model given existing training checkpoints.
 
+Note the export format for this example is SessionBundle, which is deprecated.
+Please use SavedModel instead. Specifically, see: `inception_saved_model.py`.
+
 The model is exported with proper signatures that can be loaded by standard
 tensorflow_model_server.
 """
