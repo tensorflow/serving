@@ -37,34 +37,34 @@ class FileSystemStoragePathSourceTestAccess;
 namespace tensorflow {
 namespace serving {
 
-// A storage path source that aspires versions for a given set of servables. For
-// each servable, it monitors a given file-system base path. It identifies base-
-// path children whose name is a number (e.g. 123) and emits the path
-// corresponding to the largest number as the servable's single aspired version.
-// (To do the file-system monitoring, it uses a background thread that polls the
-// file system periodically.)
-//
-// For example, if a configured servable's base path is /foo/bar, and a file-
-// system poll reveals child paths /foo/bar/baz, /foo/bar/123 and /foo/bar/456,
-// the aspired-versions callback is called with {{456, "/foo/bar/456"}}. If, at
-// any time, the base path is found to contain no numerical children, the
-// aspired-versions callback is called with an empty versions list.
-//
-// The configured set of servables to monitor can be updated at any time by
-// calling UpdateConfig(). If any servables were present in the old config but
-// not in the new one, the source will immediately aspire zero versions for that
-// servable (causing it to be unloaded in the Manager that ultimately consumes
-// the aspired-versions calls).
+/// A storage path source that aspires versions for a given set of servables.
+/// For each servable, it monitors a given file-system base path. It identifies
+/// base-path children whose name is a number (e.g. 123) and emits the path
+/// corresponding to the largest number as the servable's single aspired
+/// version. (To do the file-system monitoring, it uses a background thread that
+/// polls the file system periodically.)
+///
+/// For example, if a configured servable's base path is /foo/bar, and a file-
+/// system poll reveals child paths /foo/bar/baz, /foo/bar/123 and /foo/bar/456,
+/// the aspired-versions callback is called with {456, "/foo/bar/456"}. If, at
+/// any time, the base path is found to contain no numerical children, the
+/// aspired-versions callback is called with an empty versions list.
+///
+/// The configured set of servables to monitor can be updated at any time by
+/// calling UpdateConfig(). If any servables were present in the old config but
+/// not in the new one, the source will immediately aspire zero versions for
+/// that servable (causing it to be unloaded in the Manager that ultimately
+/// consumes the aspired-versions calls).
 class FileSystemStoragePathSource : public Source<StoragePath> {
  public:
   static Status Create(const FileSystemStoragePathSourceConfig& config,
                        std::unique_ptr<FileSystemStoragePathSource>* result);
   ~FileSystemStoragePathSource() override;
 
-  // Supplies a new config to use. The set of servables to monitor can be
-  // changed at any time (see class comment for more information), but it is
-  // illegal to change the file-system polling period once
-  // SetAspiredVersionsCallback() has been called.
+  /// Supplies a new config to use. The set of servables to monitor can be
+  /// changed at any time (see class comment for more information), but it is
+  /// illegal to change the file-system polling period once
+  /// SetAspiredVersionsCallback() has been called.
   Status UpdateConfig(const FileSystemStoragePathSourceConfig& config);
 
   void SetAspiredVersionsCallback(AspiredVersionsCallback callback) override;

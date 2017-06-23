@@ -33,15 +33,15 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// A utility that listens to an EventBus<ServableState>, and keeps track of the
-// state of each servable mentioned on the bus. The intended use case is to
-// track the states of servables in a Manager.
-//
-// Offers an interface for querying the servable states. It may be useful as the
-// basis for dashboards, as well as for testing a manager.
-//
-// IMPORTANT: You must create this monitor before arranging for events to be
-// published on the event bus, e.g. giving the event bus to a Manager.
+/// A utility that listens to an EventBus<ServableState>, and keeps track of the
+/// state of each servable mentioned on the bus. The intended use case is to
+/// track the states of servables in a Manager.
+///
+/// Offers an interface for querying the servable states. It may be useful as
+/// the basis for dashboards, as well as for testing a manager.
+///
+/// IMPORTANT: You must create this monitor before arranging for events to be
+/// published on the event bus, e.g. giving the event bus to a Manager.
 class ServableStateMonitor {
  public:
   struct ServableStateAndTime {
@@ -49,14 +49,14 @@ class ServableStateMonitor {
     ServableStateAndTime(ServableState servable_state, const uint64 event_time)
         : state(std::move(servable_state)), event_time_micros(event_time) {}
 
-    // State of the servable.
+    /// State of the servable.
     ServableState state;
 
-    // Time at which servable state event was published.
+    /// Time at which servable state event was published.
     uint64 event_time_micros;
 
-    // Returns a string representation of this struct useful for debugging or
-    // logging.
+    /// Returns a string representation of this struct useful for debugging or
+    /// logging.
     string DebugString() const;
   };
 
@@ -69,8 +69,8 @@ class ServableStateMonitor {
   struct Options {
     Options() {}
 
-    // Upper bound for the number of events captured in the bounded log. If set
-    // to 0, logging is disabled.
+    /// Upper bound for the number of events captured in the bounded log. If set
+    /// to 0, logging is disabled.
     uint64 max_count_log_events = 0;
   };
   using BoundedLog = std::deque<ServableStateAndTime>;
@@ -79,54 +79,55 @@ class ServableStateMonitor {
                                 const Options& options = Options());
   virtual ~ServableStateMonitor();
 
-  // Returns the current state of one servable, or nullopt if that servable is
-  // not being tracked.
+  /// Returns the current state of one servable, or nullopt if that servable is
+  /// not being tracked.
   optional<ServableState> GetState(const ServableId& servable_id) const
       LOCKS_EXCLUDED(mu_);
 
-  // Returns the current state and time of one servable, or nullopt if that
-  // servable is not being tracked.
+  /// Returns the current state and time of one servable, or nullopt if that
+  /// servable is not being tracked.
   optional<ServableStateAndTime> GetStateAndTime(
       const ServableId& servable_id) const LOCKS_EXCLUDED(mu_);
 
-  // Returns the current states of all tracked versions of the given servable,
-  // if any.
+  /// Returns the current states of all tracked versions of the given servable,
+  /// if any.
   VersionMap GetVersionStates(const string& servable_name) const
       LOCKS_EXCLUDED(mu_);
 
-  // Returns the current states of all tracked versions of all servables.
+  /// Returns the current states of all tracked versions of all servables.
   ServableMap GetAllServableStates() const LOCKS_EXCLUDED(mu_);
 
-  // Returns the current states of all versions of all servables which have not
-  // transitioned to state ServableState::ManagerState::kEnd.
+  /// Returns the current states of all versions of all servables which have not
+  /// transitioned to state ServableState::ManagerState::kEnd.
   ServableMap GetLiveServableStates() const LOCKS_EXCLUDED(mu_);
 
-  // Returns the current bounded log of handled servable state events.
+  /// Returns the current bounded log of handled servable state events.
   BoundedLog GetBoundedLog() const LOCKS_EXCLUDED(mu_);
 
-  // Notifies when all of the servables have reached the 'goal_state'.
-  //
-  // Servables can be specified in two ways:
-  //   1. As specific versions of a servable stream name. In this case, we check
-  //   whether the specific version has reached the 'goal_state' or kEnd.
-  //   2. As latest versions, in which case any version for a servable stream
-  //   name will be matched against the 'goal_state' or kEnd.
-  //
-  // We call the 'notifier_fn' when both conditions are true -
-  //   1. All of the specific servable requests have either reached the
-  //   'goal_state' or kEnd.
-  //   2. All of the latest servable requests have reached 'goal_state' or kEnd.
-  // The 'notifier_fn' will be called only once, and not repeatedly.
-  //
-  // The 'reached_goal_state' argument is set as true iff all of the specific
-  // servables have reached 'goal_state'.  So callers should verify that
-  // 'reached_goal_state' is true in the 'notifier_fn'.
-  //
-  // The 'states_reached' argument is populated with the servable's id and the
-  // state it reached. The state would be 'goal_state' if 'reached_goal_state'
-  // is true, else it will contain one or more servables in kEnd state. For
-  // latest servable requests, the servable id will be the id of the servable in
-  // the stream which reached the state.
+  /// Notifies when all of the servables have reached the 'goal_state'.
+  ///
+  /// Servables can be specified in two ways:
+  ///   1. As specific versions of a servable stream name. In this case, we
+  ///   check whether the specific version has reached the 'goal_state' or kEnd.
+  ///   2. As latest versions, in which case any version for a servable stream
+  ///   name will be matched against the 'goal_state' or kEnd.
+  ///
+  /// We call the 'notifier_fn' when both conditions are true -
+  ///   1. All of the specific servable requests have either reached the
+  ///   'goal_state' or kEnd.
+  ///   2. All of the latest servable requests have reached 'goal_state' or
+  ///   kEnd.
+  /// The 'notifier_fn' will be called only once, and not repeatedly.
+  ///
+  /// The 'reached_goal_state' argument is set as true iff all of the specific
+  /// servables have reached 'goal_state'.  So callers should verify that
+  /// 'reached_goal_state' is true in the 'notifier_fn'.
+  ///
+  /// The 'states_reached' argument is populated with the servable's id and the
+  /// state it reached. The state would be 'goal_state' if 'reached_goal_state'
+  /// is true, else it will contain one or more servables in kEnd state. For
+  /// latest servable requests, the servable id will be the id of the servable
+  /// in the stream which reached the state.
   using ServableStateNotifierFn = std::function<void(
       bool reached_goal_state,
       const std::map<ServableId, ServableState::ManagerState>& states_reached)>;
@@ -135,11 +136,11 @@ class ServableStateMonitor {
       ServableState::ManagerState goal_state,
       const ServableStateNotifierFn& notifier_fn) LOCKS_EXCLUDED(mu_);
 
-  // Similar to NotifyWhenServablesReachState(...), but instead of notifying, we
-  // wait until the 'goal_state' or kEnd is reached.
-  //
-  // To understand the return value and the return parameter 'states_reached',
-  // please read the documentation on NotifyWhenServablesReachState(...).
+  /// Similar to NotifyWhenServablesReachState(...), but instead of notifying,
+  /// we wait until the 'goal_state' or kEnd is reached.
+  ///
+  /// To understand the return value and the return parameter 'states_reached',
+  /// please read the documentation on NotifyWhenServablesReachState(...).
   bool WaitUntilServablesReachState(
       const std::vector<ServableRequest>& servables,
       ServableState::ManagerState goal_state,

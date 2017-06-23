@@ -13,31 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-// EventBus enables basic publish / subscribe semantics for events amongst one
-// or more publishers and subscribers. The purpose of EventBus for serving is
-// to de-couple the code for such events, and is optimized for that use-case.
-//
-// EventBus is thread-safe. However, if any subscriber callback calls any method
-// in the EventBus, it will deadlock.
-//
-// EventBus and Subscriptions can be destroyed safely in any order. There is a
-// strict requirement for memory safety that a Subscription must be destroyed
-// before any of the objects or memory that a subscriber's callback accesses.
-//
-// Important scaling and threading limitations:
-//
-// Scaling:
-// The EventBus is not currently optimized for high scale, either in the number
-// of subscribers or frequency of events. For such use-cases, consider alternate
-// implementations or upgrades to this class.
-//
-// Threading:
-// Subscribers are notified serially on the event publisher's thread. Thus, the
-// amount of work done in a subscriber's callback should be very minimal.
-//
 // TODO(b/25725560): Consider having a thread pool for invoking callbacks.
-//
-// This implementation is single-binary and does not communicate across tasks.
 
 #ifndef TENSORFLOW_SERVING_UTIL_EVENT_BUS_H_
 #define TENSORFLOW_SERVING_UTIL_EVENT_BUS_H_
@@ -57,24 +33,47 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// Note that the types used for typename E in EventBus must be moveable and
-// thread-safe. Future implementations may read Events of type E in multiple
-// threads.
+/// EventBus enables basic publish / subscribe semantics for events amongst one
+/// or more publishers and subscribers. The purpose of EventBus for serving is
+/// to de-couple the code for such events, and is optimized for that use-case.
+///
+/// EventBus and Subscriptions can be destroyed safely in any order. There is a
+/// strict requirement for memory safety that a Subscription must be destroyed
+/// before any of the objects or memory that a subscriber's callback accesses.
+///
+/// Important scaling and threading limitations:
+///
+/// Scaling:
+/// The EventBus is not currently optimized for high scale, either in the number
+/// of subscribers or frequency of events. For such use-cases, consider
+/// alternate implementations or upgrades to this class.
+///
+/// Threading:
+/// EventBus is thread-safe. However, if any subscriber callback calls any
+/// method in the EventBus, it will deadlock. Subscribers are notified serially
+/// on the event publisher's thread. Thus, the amount of work done in a
+/// subscriber's callback should be very minimal.
+///
+/// This implementation is single-binary and does not communicate across tasks.
+///
+/// Note that the types used for typename E in EventBus must be moveable and
+/// thread-safe. Future implementations may read Events of type E in multiple
+/// threads.
 template <typename E>
 class EventBus : public std::enable_shared_from_this<EventBus<E>> {
   static_assert(std::is_move_assignable<E>::value, "E must be moveable");
 
  public:
-  // Subscription is an RAII object and tracks the lifecycle of a single
-  // subscription to an EventBus. Upon destruction, it automatically
-  // Unsubscribes from the originating EventBus.
-  //
-  // Note that Subscription only maintains weak_ptr references to the EventBus,
-  // such that the EventBus and Subscriptions can be safely destructed in any
-  // order. Subscription is not an owner of EventBus.
+  /// Subscription is an RAII object and tracks the lifecycle of a single
+  /// subscription to an EventBus. Upon destruction, it automatically
+  /// Unsubscribes from the originating EventBus.
+  ///
+  /// Note that Subscription only maintains weak_ptr references to the EventBus,
+  /// such that the EventBus and Subscriptions can be safely destructed in any
+  /// order. Subscription is not an owner of EventBus.
   class Subscription {
    public:
-    // Unsubscribes the subscriber.
+    /// Unsubscribes the subscriber.
     ~Subscription();
 
    private:
@@ -93,45 +92,45 @@ class EventBus : public std::enable_shared_from_this<EventBus<E>> {
     Env* env = Env::Default();
   };
 
-  // Creates an EventBus and returns a shared_ptr to it. This is the only
-  // allowed public mechanism for creating an EventBus so that we can track
-  // references to an EventBus uniformly.
+  /// Creates an EventBus and returns a shared_ptr to it. This is the only
+  /// allowed public mechanism for creating an EventBus so that we can track
+  /// references to an EventBus uniformly.
   static std::shared_ptr<EventBus> CreateEventBus(const Options& options = {});
 
   ~EventBus() = default;
 
-  // Event and the publish time associated with it.
+  /// Event and the publish time associated with it.
   struct EventAndTime {
     const E& event;
     uint64 event_time_micros;
   };
 
-  // The function type for EventBus Callbacks to be implemented by clients.
-  // Important Warnings:
-  // * Callbacks must not themselves callback to the EventBus for any purpose
-  //   including subscribing, publishing or unsubscribing. This will cause a
-  //   circular deadlock.
-  // * Callbacks must do very little work as they are invoked on the
-  //   publisher's thread. Any costly work should be performed asynchronously.
+  /// The function type for EventBus Callbacks to be implemented by clients.
+  /// Important Warnings:
+  /// * Callbacks must not themselves callback to the EventBus for any purpose
+  ///   including subscribing, publishing or unsubscribing. This will cause a
+  ///   circular deadlock.
+  /// * Callbacks must do very little work as they are invoked on the
+  ///   publisher's thread. Any costly work should be performed asynchronously.
   using Callback = std::function<void(const EventAndTime&)>;
 
-  // Subscribes to all events on the EventBus.
-  //
-  // Returns a Subscription RAII object that can be used to unsubscribe, or will
-  // automatically unsubscribe on destruction. Returns a unique_ptr so that we
-  // can use the subscription's address to Unsubscribe.
-  //
-  // Important contract for unsubscribing (deleting the RAII object):
-  //   * Unsubscribing (deleting the RAII object) may block while currently
-  //     scheduled callback invocation(s) finish.
-  //   * Once it returns no callback invocations will occur.
-  // Callers' destructors must use the sequence:
-  //   (1) Unsubscribe.
-  //   (2) Tear down anything that the callback references.
+  /// Subscribes to all events on the EventBus.
+  ///
+  /// Returns a Subscription RAII object that can be used to unsubscribe, or
+  /// will automatically unsubscribe on destruction. Returns a unique_ptr so
+  /// that we can use the subscription's address to Unsubscribe.
+  ///
+  /// Important contract for unsubscribing (deleting the RAII object):
+  ///   * Unsubscribing (deleting the RAII object) may block while currently
+  ///     scheduled callback invocation(s) finish.
+  ///   * Once it returns no callback invocations will occur.
+  /// Callers' destructors must use the sequence:
+  ///   (1) Unsubscribe.
+  ///   (2) Tear down anything that the callback references.
   std::unique_ptr<Subscription> Subscribe(const Callback& callback)
       LOCKS_EXCLUDED(mutex_) TF_MUST_USE_RESULT;
 
-  // Publishes an event to all subscribers.
+  /// Publishes an event to all subscribers.
   void Publish(const E& event) LOCKS_EXCLUDED(mutex_);
 
  private:

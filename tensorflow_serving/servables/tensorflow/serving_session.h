@@ -27,9 +27,9 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// A Session that blocks state-changing methods such as Close(), while allowing
-// Run() for read-only access (not enforced). Useful for Session implementations
-// that intend to be read-only and only implement Run().
+/// A Session that blocks state-changing methods such as Close(), while allowing
+/// Run() for read-only access (not enforced). Useful for Session
+/// implementations that intend to be read-only and only implement Run().
 class ServingSession : public Session {
  public:
   ServingSession() = default;
@@ -43,8 +43,8 @@ class ServingSession : public Session {
   // (Subclasses just implement Run().)
 };
 
-// A ServingSession that wraps a given Session, and blocks all calls other than
-// Run().
+/// A ServingSession that wraps a given Session, and blocks all calls other than
+/// Run().
 class ServingSessionWrapper : public ServingSession {
  public:
   explicit ServingSessionWrapper(std::unique_ptr<Session> wrapped)

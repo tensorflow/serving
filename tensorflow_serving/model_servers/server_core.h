@@ -13,19 +13,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-// ServerCore contains state and helper methods enabling the building of
-// ModelServers that support multiple interfaces. All functionality in
-// ServerCore is independent of any domain specific APIs and independent of
-// platforms.
-//
-// In terms of state, ServerCore is initialized with and retains a static
-// ModelServerConfig, from which it bootstraps an AspiredVersionsManager and
-// auxiliary data structures to support efficient serving.
-//
-// Interfaces built above ServerCore, e.g. RPC service implementations, will
-// remain stateless and will perform all lookups of servables (models) via
-// ServerCore.
-
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_SERVER_CORE_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_SERVER_CORE_H_
 
@@ -63,25 +50,38 @@ namespace test_util {
 class ServerCoreTestAccess;
 }  // namespace test_util
 
+/// ServerCore contains state and helper methods enabling the building of
+/// ModelServers that support multiple interfaces. All functionality in
+/// ServerCore is independent of any domain specific APIs and independent of
+/// platforms.
+///
+/// In terms of state, ServerCore is initialized with and retains a static
+/// ModelServerConfig, from which it bootstraps an AspiredVersionsManager and
+/// auxiliary data structures to support efficient serving.
+///
+/// Interfaces built above ServerCore, e.g. RPC service implementations, will
+/// remain stateless and will perform all lookups of servables (models) via
+/// ServerCore.
 class ServerCore : public Manager {
  public:
   using ServableStateMonitorCreator =
       std::function<Status(EventBus<ServableState>* event_bus,
                            std::unique_ptr<ServableStateMonitor>* monitor)>;
 
-  // A function that's responsible for instantiating and connecting the
-  // necessary custom sources and source adapters to the manager based on a
-  // passed in config (any).
-  // The expected pattern is that ownership of the created sources/source
-  // adapters can be transferred to the manager.
+  /// A function that's responsible for instantiating and connecting the
+  /// necessary custom sources and source adapters to the manager based on a
+  /// passed in config (any).
+  /// The expected pattern is that ownership of the created sources/source
+  /// adapters can be transferred to the manager.
   using CustomModelConfigLoader = std::function<Status(
       const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
       UniquePtrWithDeps<AspiredVersionsManager>* manager)>;
 
-  // Function signature used to update the server_request_logger.
+  /// Function signature used to update the server_request_logger.
   using ServerRequestLoggerUpdater =
       std::function<Status(const ModelServerConfig&, ServerRequestLogger*)>;
 
+  /// Options for configuring a ServerCore object.
   struct Options {
     // ModelServer configuration.
     ModelServerConfig model_server_config;
@@ -132,41 +132,42 @@ class ServerCore : public Manager {
 
   virtual ~ServerCore() = default;
 
-  // Creates a ServerCore instance with all the models and sources per the
-  // ModelServerConfig.
-  //
-  // For models statically configured with ModelConfigList, waits for them
-  // to be made available (or hit an error) for serving before returning.
-  // Returns an error status if any such model fails to load.
+  /// Creates a ServerCore instance with all the models and sources per the
+  /// ModelServerConfig.
+  ///
+  /// For models statically configured with ModelConfigList, waits for them
+  /// to be made available (or hit an error) for serving before returning.
+  /// Returns an error status if any such model fails to load.
   static Status Create(Options options, std::unique_ptr<ServerCore>* core);
 
   std::vector<ServableId> ListAvailableServableIds() const override {
     return manager_->ListAvailableServableIds();
   }
 
-  // Updates the server core with all the models and sources per the
-  // ModelServerConfig. Like Create(), waits for all statically configured
-  // servables to be made available before returning, and returns an error if
-  // any such model fails to load. (Does not necessarily wait for models removed
-  // from the config to finish unloading; that may occur asynchronously.)
-  //
-  // IMPORTANT: It is only legal to call this method more than once if using
-  // ModelConfigList (versus custom model config).
+  /// Updates the server core with all the models and sources per the
+  /// ModelServerConfig. Like Create(), waits for all statically configured
+  /// servables to be made available before returning, and returns an error if
+  /// any such model fails to load. (Does not necessarily wait for models
+  /// removed from the config to finish unloading; that may occur
+  /// asynchronously.)
+  ///
+  /// IMPORTANT: It is only legal to call this method more than once if using
+  /// ModelConfigList (versus custom model config).
   virtual Status ReloadConfig(const ModelServerConfig& config)
       LOCKS_EXCLUDED(config_mu_);
 
-  // Returns ServableStateMonitor that can be used to query servable states.
+  /// Returns ServableStateMonitor that can be used to query servable states.
   virtual const ServableStateMonitor* servable_state_monitor() const {
     return servable_state_monitor_.get();
   }
 
-  // Returns a ServableHandle given a ServableRequest. Returns error if no such
-  // Servable is available -- e.g. not yet loaded, has been quiesced/unloaded,
-  // etc. Callers may assume that an OK status indicates a non-null handle.
-  //
-  // IMPORTANT: The caller should only hold on to a handle for a short time, for
-  // example for the duration of a single request. Holding a handle for a long
-  // period of time will prevent servable loading and unloading.
+  /// Returns a ServableHandle given a ServableRequest. Returns error if no such
+  /// Servable is available -- e.g. not yet loaded, has been quiesced/unloaded,
+  /// etc. Callers may assume that an OK status indicates a non-null handle.
+  ///
+  /// IMPORTANT: The caller should only hold on to a handle for a short time,
+  /// for example for the duration of a single request. Holding a handle for a
+  /// long period of time will prevent servable loading and unloading.
   template <typename T>
   Status GetServableHandle(const ModelSpec& model_spec,
                            ServableHandle<T>* const handle) {
@@ -185,9 +186,9 @@ class ServerCore : public Manager {
     return Status::OK();
   }
 
-  // Writes the log for the particular request, response and metadata, if we
-  // decide to sample it and if request-logging was configured for the
-  // particular model.
+  /// Writes the log for the particular request, response and metadata, if we
+  /// decide to sample it and if request-logging was configured for the
+  /// particular model.
   Status Log(const google::protobuf::Message& request, const google::protobuf::Message& response,
              const LogMetadata& log_metadata) {
     return options_.server_request_logger->Log(request, response, log_metadata);

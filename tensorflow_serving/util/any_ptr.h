@@ -22,55 +22,55 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// A (sort of) type-safe void*. Appears as null if a caller attempts to use it
-// as the wrong type.
-//
-//  Example use:
-//
-//    // A function that returns an AnyPtr:
-//    AnyPtr StringOrInt() {
-//      if (use_string) {
-//        return AnyPtr(&some_string);
-//      } else {
-//        return AnyPtr(&some_int);
-//      }
-//    }
-//
-//    // Use an AnyPtr at the correct type:
-//    AnyPtr ptr = StringOrInt();
-//    if (ptr.get<int>() != nullptr) {
-//      DoSomethingWithInt(*ptr.get<int>());
-//    } else if (ptr.get<string>() != nullptr) {
-//      DoSomethingWithString(*ptr.get<string>());
-//    } else {
-//      // Handle error.
-//    }
-//
-// Typical best practice for this class is to use it when two disjoint pieces of
-// code must agree on type, but intermediate code is type agnostic. Large chains
-// of conditionals that handle a multitude of types is discouraged as an
-// anti-pattern.
-//
-// Note that this will appear null even if T is somewhere on the underlying
-// type's inheritance hierarchy, if you must use the object at some other type
-// you must do so explicitly when constructing an AnyPtr, like so:
-//
-//   SomeObject object;
-//   AnyPtr any_ptr(static_cast<SomeInterface*>(&object));
-//   SomeInterface* interface = any_ptr.get<SomeInterface>();
-//
-// This class is a value type; It can be copied or assigned. It performs no
-// internal allocations and should be relatively cheap to copy or return by
-// value.
+/// A (sort of) type-safe void*. Appears as null if a caller attempts to use it
+/// as the wrong type.
+///
+///  Example use:
+///
+///    // A function that returns an AnyPtr:
+///    AnyPtr StringOrInt() {
+///      if (use_string) {
+///        return AnyPtr(&some_string);
+///      } else {
+///        return AnyPtr(&some_int);
+///      }
+///    }
+///
+///    // Use an AnyPtr at the correct type:
+///    AnyPtr ptr = StringOrInt();
+///    if (ptr.get<int>() != nullptr) {
+///      DoSomethingWithInt(*ptr.get<int>());
+///    } else if (ptr.get<string>() != nullptr) {
+///      DoSomethingWithString(*ptr.get<string>());
+///    } else {
+///      // Handle error.
+///    }
+///
+/// Typical best practice for this class is to use it when two disjoint pieces
+/// of code must agree on type, but intermediate code is type agnostic. Large
+/// chains of conditionals that handle a multitude of types is discouraged as an
+/// anti-pattern.
+///
+/// Note that this will appear null even if T is somewhere on the underlying
+/// type's inheritance hierarchy, if you must use the object at some other type
+/// you must do so explicitly when constructing an AnyPtr, like so:
+///
+///   SomeObject object;
+///   AnyPtr any_ptr(static_cast<SomeInterface*>(&object));
+///   SomeInterface* interface = any_ptr.get<SomeInterface>();
+///
+/// This class is a value type; It can be copied or assigned. It performs no
+/// internal allocations and should be relatively cheap to copy or return by
+/// value.
 class AnyPtr {
  public:
-  // AnyPtr is void and null by default.
+  /// AnyPtr is void and null by default.
   AnyPtr() : type_id_(FastTypeId<void>()), ptr_(nullptr) {}
 
-  // Implicit construction from nullptr.
+  /// Implicit construction from nullptr.
   AnyPtr(std::nullptr_t) : AnyPtr() {}  // NOLINT
 
-  // Construct from a pointer to any type.
+  /// Construct from a pointer to any type.
   template <typename T>
   AnyPtr(T* ptr)  // NOLINT
       : type_id_(FastTypeId<T>()),
@@ -80,7 +80,7 @@ class AnyPtr {
         // non-const T.
         ptr_(const_cast<void*>(reinterpret_cast<const void*>(ptr))) {}
 
-  // Returns the underlying pointer if it is of type T, otherwise null.
+  /// Accessor for the underlying pointer if it is of type T, otherwise null.
   template <typename T>
   T* get() const {
     if (type_id_ != FastTypeId<T>()) {
@@ -104,15 +104,15 @@ class AnyPtr {
   void* ptr_;
 };
 
-// Like AnyPtr, but owns the pointed-to object (calls delete upon destruction).
-// This class is move-only, like std::unique_ptr.
+/// Like AnyPtr, but owns the pointed-to object (calls delete upon destruction).
+/// This class is move-only, like std::unique_ptr.
 class UniqueAnyPtr {
  public:
-  // UniqueAnyPtr is void and null by default.
+  /// UniqueAnyPtr is void and null by default.
   UniqueAnyPtr() = default;
   UniqueAnyPtr(std::nullptr_t) : UniqueAnyPtr() {}  // NOLINT
 
-  // Construct from a unique pointer to any type.
+  /// Construct from a unique pointer to any type.
   template <typename T>
   explicit UniqueAnyPtr(std::unique_ptr<T> ptr)
       : ptr_(ptr.release()), deleter_(DeleterForType<T>()) {}
@@ -131,13 +131,13 @@ class UniqueAnyPtr {
     return *this;
   }
 
-  // Returns the underlying pointer if it is of type T, otherwise null.
+  /// Accessor for the underlying pointer if it is of type T, otherwise null.
   template <typename T>
   T* get() const {
     return ptr_.get<T>();
   }
 
-  // Returns the underlying pointer as an AnyPtr.
+  /// Accessor for the underlying pointer as an AnyPtr.
   const AnyPtr& as_any_ptr() const { return ptr_; }
 
   void swap(UniqueAnyPtr& other) {

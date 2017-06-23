@@ -17,6 +17,9 @@
 
 """Train and export a simple Softmax Regression TensorFlow model.
 
+Note the export format for this example is SessionBundle, which is deprecated.
+Please use SavedModel instead. Specifically, see: `mnist_saved_model.py`.
+
 The model is from the TensorFlow "MNIST For ML Beginner" tutorial. This program
 simply follows all its training instructions, and uses TensorFlow Serving
 exporter to export the trained model with proper signatures that can be
