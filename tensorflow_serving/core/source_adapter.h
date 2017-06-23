@@ -35,44 +35,45 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// An abstraction for a module that receives aspired-version callbacks with data
-// of type InputType and converts them into calls with data of type OutputType.
-//
-// A common example uses InputType=StoragePath, OutputType=unique_ptr<Loader>,
-// in which case the module "converts" each incoming storage path into a loader
-// capable of loading a (particular type of) servable based on the path.
-//
-// SourceAdapters are typically stateless. However, as with all Sources they can
-// house state that is shared among multiple emitted servables. See the
-// discussion in source.h.
-//
-// Implementing subclasses supply an implementation of the Adapt() virtual
-// method, which converts a servable version list from InputType to OutputType.
-//
-// IMPORTANT: Every leaf derived class must call Detach() at the top of its
-// destructor. (See documentation on TargetBase::Detach() in target.h.) Doing so
-// ensures that no Adapt() calls are in flight during destruction of member
-// variables.
+/// An abstraction for a module that receives aspired-version callbacks with
+/// data of type InputType and converts them into calls with data of type
+/// OutputType.
+///
+/// A common example uses InputType=StoragePath, OutputType=unique_ptr<Loader>,
+/// in which case the module "converts" each incoming storage path into a loader
+/// capable of loading a (particular type of) servable based on the path.
+///
+/// SourceAdapters are typically stateless. However, as with all Sources they
+/// can house state that is shared among multiple emitted servables. See the
+/// discussion in source.h.
+///
+/// Implementing subclasses supply an implementation of the Adapt() virtual
+/// method, which converts a servable version list from InputType to OutputType.
+///
+/// IMPORTANT: Every leaf derived class must call Detach() at the top of its
+/// destructor. (See documentation on TargetBase::Detach() in target.h.) Doing
+/// so ensures that no Adapt() calls are in flight during destruction of member
+/// variables.
 template <typename InputType, typename OutputType>
 class SourceAdapter : public TargetBase<InputType>, public Source<OutputType> {
  public:
   ~SourceAdapter() override = 0;
 
-  // This method is implemented in terms of Adapt(), which the implementing
-  // subclass must supply.
+  /// This method is implemented in terms of Adapt(), which the implementing
+  /// subclass must supply.
   void SetAspiredVersions(const StringPiece servable_name,
                           std::vector<ServableData<InputType>> versions) final;
 
   void SetAspiredVersionsCallback(
       typename Source<OutputType>::AspiredVersionsCallback callback) final;
 
-  // Given an InputType-based aspired-versions request, produces a corresponding
-  // OutputType-based request.
+  /// Given an InputType-based aspired-versions request, produces a
+  /// corresponding OutputType-based request.
   virtual std::vector<ServableData<OutputType>> Adapt(
       const StringPiece servable_name,
       std::vector<ServableData<InputType>> versions) = 0;
 
-  // Adapts a single servable data item. (Implemented on top of Adapt().)
+  /// Adapts a single servable data item. (Implemented on top of Adapt().)
   ServableData<OutputType> AdaptOneVersion(ServableData<InputType> input);
 
  protected:
