@@ -22,6 +22,7 @@ filegroup(
 
 py_library(
     name = "mnist_input_data",
+    srcs_version = "PY2AND3",
     srcs = ["mnist_input_data.py"],
 )
 
@@ -32,6 +33,7 @@ py_binary(
     srcs = [
         "mnist_export.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":mnist_input_data",
         "@org_tensorflow//tensorflow:tensorflow_py",
@@ -44,6 +46,7 @@ py_binary(
     srcs = [
         "mnist_saved_model.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":mnist_input_data",
         "@org_tensorflow//tensorflow:tensorflow_py",
@@ -55,6 +58,7 @@ py_binary(
     srcs = [
         "mnist_client.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":mnist_input_data",
         "//tensorflow_serving/apis:predict_proto_py_pb2",
@@ -70,6 +74,7 @@ py_binary(
     srcs = [
         "inception_export.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         "@inception_model//inception",
         "@org_tensorflow//tensorflow:tensorflow_py",
@@ -82,6 +87,7 @@ py_binary(
     srcs = [
         "inception_saved_model.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         "@inception_model//inception",
         "@org_tensorflow//tensorflow:tensorflow_py",
@@ -93,6 +99,7 @@ py_binary(
     srcs = [
         "inception_client.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         "//tensorflow_serving/apis:predict_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",

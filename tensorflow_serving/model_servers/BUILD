@@ -169,6 +169,7 @@ py_test(
 py_binary(
     name = "tensorflow_model_server_test_client",
     srcs = ["tensorflow_model_server_test_client.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
         "@org_tensorflow//tensorflow:tensorflow_py",

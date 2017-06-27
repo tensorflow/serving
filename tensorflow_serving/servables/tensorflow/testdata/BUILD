@@ -25,6 +25,7 @@ filegroup(
 
 py_binary(
     name = "export_half_plus_two",
+    srcs_version = "PY2AND3",
     srcs = [
         "export_half_plus_two.py",
     ],
@@ -36,6 +37,7 @@ py_binary(
 
 py_binary(
     name = "export_bad_half_plus_two",
+    srcs_version = "PY2AND3",
     srcs = [
         "export_bad_half_plus_two.py",
     ],
