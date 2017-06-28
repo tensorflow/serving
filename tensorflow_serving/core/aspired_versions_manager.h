@@ -33,10 +33,12 @@ limitations under the License.
 #include "tensorflow_serving/core/basic_manager.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/manager.h"
+#include "tensorflow_serving/core/servable_data.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_id.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/target.h"
+#include "tensorflow_serving/util/event_bus.h"
 #include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {

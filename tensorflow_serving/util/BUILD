@@ -263,7 +263,6 @@ cc_library(
     hdrs = ["class_registration_util.h"],
     deps = [
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf//:cc_wkt_protos",
     ],
 )
 
