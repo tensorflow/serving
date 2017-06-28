@@ -36,12 +36,9 @@ using ::testing::_;
 using ::testing::HasSubstr;
 using ::testing::InvokeWithoutArgs;
 using ::testing::InSequence;
-using ::testing::IsNull;
 using ::testing::NiceMock;
 using ::testing::Return;
-using ::testing::ReturnRef;
 using ::testing::StrictMock;
-using test_util::EqualsProto;
 
 // Walks 'harness' through a sequence of transitions from kReady to kDisabled.
 void QuiesceAndUnload(LoaderHarness* const harness) {

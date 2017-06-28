@@ -33,7 +33,6 @@ limitations under the License.
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::IsEmpty;
-using ::testing::Return;
 using ::testing::StrictMock;
 
 namespace tensorflow {
