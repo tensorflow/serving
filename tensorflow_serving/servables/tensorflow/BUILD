@@ -523,10 +523,10 @@ cc_library(
         "//tensorflow_serving/apis:classifier",
         "//tensorflow_serving/apis:input_proto",
         "//tensorflow_serving/apis:model_proto",
-        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader_lite",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
-        "@org_tensorflow//tensorflow/contrib/session_bundle",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:session_bundle_lite",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:signature_lite",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -700,12 +700,10 @@ cc_library(
     deps = [
         "//tensorflow_serving/apis:input_proto",
         "//tensorflow_serving/apis/internal:serialized_input_proto",
-        "@org_tensorflow//tensorflow/core:all_kernels",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
