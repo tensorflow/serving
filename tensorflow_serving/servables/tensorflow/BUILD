@@ -78,7 +78,6 @@ cc_test(
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
         "@protobuf//:cc_wkt_protos",
     ],
@@ -136,7 +135,6 @@ cc_library(
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -156,7 +154,6 @@ cc_test(
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
         "@protobuf//:cc_wkt_protos",
     ],
@@ -182,7 +179,6 @@ cc_library(
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -201,10 +197,8 @@ cc_test(
         ":session_bundle_config_proto",
         "//tensorflow_serving/core/test_util:test_main",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
-        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
         "@protobuf//:cc_wkt_protos",
     ],
@@ -218,7 +212,6 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        ":serving_session",
         ":session_bundle_factory",
         ":session_bundle_source_adapter_proto",
         "//tensorflow_serving/core:loader",
@@ -229,7 +222,6 @@ cc_library(
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
     alwayslink = 1,
 )
@@ -253,7 +245,6 @@ cc_test(
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
@@ -277,7 +268,6 @@ cc_library(
         "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
     alwayslink = 1,
 )
@@ -304,7 +294,6 @@ cc_test(
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
@@ -355,7 +344,6 @@ cc_library(
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -370,12 +358,10 @@ cc_test(
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
-        "//tensorflow_serving/util:unique_ptr_with_deps",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
     ],
@@ -402,7 +388,6 @@ cc_library(
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -418,7 +403,6 @@ cc_test(
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
@@ -511,13 +495,17 @@ cc_test(
     ],
     deps = [
         ":predict_impl",
+        ":saved_model_bundle_source_adapter_proto",
+        ":session_bundle_config_proto",
+        ":session_bundle_source_adapter_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/model_servers:model_platform_types",
         "//tensorflow_serving/model_servers:platform_config_util",
         "//tensorflow_serving/model_servers:server_core",
-        "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
@@ -535,15 +523,13 @@ cc_library(
         "//tensorflow_serving/apis:classifier",
         "//tensorflow_serving/apis:input_proto",
         "//tensorflow_serving/apis:model_proto",
-        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader_lite",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
-        "@org_tensorflow//tensorflow/contrib/session_bundle",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
-        "@org_tensorflow//tensorflow/core:all_kernels",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:session_bundle_lite",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:signature_lite",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -566,7 +552,6 @@ cc_test(
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
         "@protobuf//:protobuf_lite",
     ],
@@ -627,11 +612,9 @@ cc_library(
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
-        "@org_tensorflow//tensorflow/core:all_kernels",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -653,7 +636,6 @@ cc_test(
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
         "@protobuf//:protobuf_lite",
     ],
@@ -676,10 +658,8 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:util",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
-        "@org_tensorflow//tensorflow/core:all_kernels",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@protobuf//:protobuf",
     ],
 )
@@ -706,7 +686,6 @@ cc_test(
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
@@ -721,12 +700,10 @@ cc_library(
     deps = [
         "//tensorflow_serving/apis:input_proto",
         "//tensorflow_serving/apis/internal:serialized_input_proto",
-        "@org_tensorflow//tensorflow/core:all_kernels",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
@@ -740,7 +717,6 @@ cc_test(
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
     ],

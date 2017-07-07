@@ -36,7 +36,6 @@ using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::IsEmpty;
 using ::testing::StrictMock;
-using ::testing::Return;
 
 namespace tensorflow {
 namespace serving {

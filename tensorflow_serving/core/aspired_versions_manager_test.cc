@@ -39,7 +39,6 @@ namespace serving {
 namespace {
 
 using ::testing::_;
-using ::testing::DoAll;
 using ::testing::Invoke;
 using ::testing::InvokeWithoutArgs;
 using ::testing::NiceMock;

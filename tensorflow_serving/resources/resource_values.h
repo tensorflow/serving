@@ -48,9 +48,6 @@ extern const char* const kRamBytes;
 // Fraction of a processing unit's cycles, in thousandths.
 extern const char* const kProcessingMillis;
 
-// 90th percentile request processing latency, measured in microseconds.
-extern const char* const kP90LatencyMicros;
-
 }  // namespace resource_kinds
 
 }  // namespace serving
