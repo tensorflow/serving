@@ -27,7 +27,6 @@ namespace resource_kinds {
 const char* const kNumModelSlots = "num_model_slots";
 const char* const kRamBytes = "ram_in_bytes";
 const char* const kProcessingMillis = "processing_in_millicores";
-const char* const kP90LatencyMicros = "p90_latency_in_microseconds";
 }  // namespace resource_kinds
 
 }  // namespace serving
