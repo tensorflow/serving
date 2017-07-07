@@ -36,9 +36,6 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-using ::testing::DoAll;
-using ::testing::Return;
-using ::testing::SetArgPointee;
 using ::testing::_;
 using test_util::EqualsProto;
 

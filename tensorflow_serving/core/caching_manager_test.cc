@@ -41,7 +41,6 @@ namespace serving {
 namespace {
 
 using ::testing::HasSubstr;
-using ::testing::UnorderedElementsAre;
 using ::testing::UnorderedElementsAreArray;
 
 // A simple loader-factory that concatenates requested servable name and

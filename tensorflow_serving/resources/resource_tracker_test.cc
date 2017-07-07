@@ -33,7 +33,6 @@ using ::tensorflow::serving::test_util::EqualsProto;
 using ::testing::_;
 using ::testing::Invoke;
 using ::testing::NiceMock;
-using ::testing::Return;
 
 namespace tensorflow {
 namespace serving {
