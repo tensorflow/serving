@@ -44,4 +44,17 @@ RUN mkdir /bazel && \
     cd / && \
     rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
 
+# Download TensorFlow Serving
+RUN git clone --recurse-submodules https://github.com/tensorflow/serving && \
+  cd serving && \
+  git checkout
+
+WORKDIR /serving/tensorflow
+RUN tensorflow/tools/ci_build/builds/configured CPU
+
+WORKDIR /serving
+RUN bazel build -c opt tensorflow_serving/... && \
+    cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server /usr/local/bin/ && \
+    bazel clean --expunge
+
 CMD ["/bin/bash"]
