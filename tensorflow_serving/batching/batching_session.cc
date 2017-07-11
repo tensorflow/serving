@@ -406,6 +406,7 @@ Status BatchingSession::SplitOutputTensors(
   }
 
   std::vector<int64> task_sizes_plus_optional_padding;
+  task_sizes_plus_optional_padding.reserve(batch->num_tasks());
   for (int i = 0; i < batch->num_tasks(); ++i) {
     task_sizes_plus_optional_padding.push_back(batch->task(i).zeroth_dim_size);
   }
