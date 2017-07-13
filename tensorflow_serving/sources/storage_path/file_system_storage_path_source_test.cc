@@ -375,10 +375,10 @@ TEST(FileSystemStoragePathSourceTest, ParseTimestampedVersion) {
                    .PollFileSystemAndInvokeCallback());
 }
 
-TEST(FileSystemStoragePathSourceTest, ModelVersionDirRenamed) {
-  // Create one servable that is set up to serve two latest version.
+TEST(FileSystemStoragePathSourceTest, ServableVersionDirRenamed) {
+  // Create one servable that is set up to serve the two latest versions.
   const string base_path_prefix =
-      io::JoinPath(testing::TmpDir(), "ModelVersionDirRenamed_");
+      io::JoinPath(testing::TmpDir(), "ServableVersionDirRenamed_");
   TF_ASSERT_OK(Env::Default()->CreateDir(base_path_prefix));
   for (const string& version : {"1", "2", "3", "5", "8"}) {
     TF_ASSERT_OK(
