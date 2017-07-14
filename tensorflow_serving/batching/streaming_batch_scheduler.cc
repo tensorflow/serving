@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/streaming_batch_scheduler.h"
 
+#include <utility>
+
 namespace tensorflow {
 namespace serving {
 
@@ -25,7 +27,7 @@ namespace internal {
 SingleTaskScheduler::SingleTaskScheduler(Env* env, string thread_name,
                                          uint64 no_tasks_wait_time_micros)
     : env_(env),
-      thread_name_(thread_name),
+      thread_name_(std::move(thread_name)),
       no_tasks_wait_time_micros_(no_tasks_wait_time_micros) {}
 
 SingleTaskScheduler::~SingleTaskScheduler() { stop_.Notify(); }
@@ -37,7 +39,7 @@ void SingleTaskScheduler::Schedule(uint64 time_micros,
 
   {
     mutex_lock l(mu_);
-    updated_task_ = {time_micros, closure};
+    updated_task_ = {time_micros, std::move(closure)};
   }
 
   if (thread_ == nullptr) {

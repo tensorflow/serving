@@ -175,3 +175,23 @@ py_binary(
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )
+
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
+
+pkg_tar(
+    name = "tensorflow_model_server_tar",
+    files = [
+        ":tensorflow_model_server",
+    ],
+    package_dir = "/usr/bin",
+)
+
+pkg_deb(
+    name = "tensorflow_model_server_deb",
+    data = ":tensorflow_model_server_tar",
+    description = "TensorFlow Serving ModelServer",
+    homepage = "https://github.com/tensorflow/serving",
+    maintainer = "TensorFlow Serving team",
+    package = "tensorflow-model-server",
+    version = "1.0.0",
+)

@@ -22,8 +22,8 @@ filegroup(
 
 py_library(
     name = "mnist_input_data",
-    srcs_version = "PY2AND3",
     srcs = ["mnist_input_data.py"],
+    srcs_version = "PY2AND3",
 )
 
 # TODO(b/32628014): remove mnist_export after we no longer support

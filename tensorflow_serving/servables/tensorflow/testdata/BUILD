@@ -25,10 +25,10 @@ filegroup(
 
 py_binary(
     name = "export_half_plus_two",
-    srcs_version = "PY2AND3",
     srcs = [
         "export_half_plus_two.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         "@org_tensorflow//tensorflow:tensorflow_py",
         "@org_tensorflow//tensorflow/contrib/session_bundle:exporter",
@@ -37,10 +37,10 @@ py_binary(
 
 py_binary(
     name = "export_bad_half_plus_two",
-    srcs_version = "PY2AND3",
     srcs = [
         "export_bad_half_plus_two.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
