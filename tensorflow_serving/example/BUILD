@@ -22,7 +22,6 @@ filegroup(
 
 py_library(
     name = "mnist_input_data",
-    srcs_version = "PY2AND3",
     srcs = ["mnist_input_data.py"],
     srcs_version = "PY2AND3",
 )
