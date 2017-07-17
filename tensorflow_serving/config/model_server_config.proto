@@ -38,12 +38,19 @@ message ModelConfig {
   // (This cannot be changed once a model is in serving.)
   string model_platform = 4;
 
+  // DEPRECATED: This field is deprecated. For now it's still obeyed as long as
+  // 'model_version_policy' is not set. If 'model_version_policy' is set, then
+  // the value of this field is ignored.
+  FileSystemStoragePathSourceConfig.VersionPolicy version_policy = 5
+      [deprecated = true];
+
   // Version policy for the model indicating how many versions of the model to
   // be served at the same time.
   // The default option is to serve only the latest version of the model.
   //
   // (This can be changed once a model is in serving.)
-  FileSystemStoragePathSourceConfig.VersionPolicy version_policy = 5;
+  FileSystemStoragePathSourceConfig.ServableVersionPolicy model_version_policy =
+      7;
 
   // Configures logging requests and responses, to the model.
   //

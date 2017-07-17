@@ -143,22 +143,18 @@ tensorflow::Status LoadCustomModelConfig(
       << "ModelServer does not yet support custom model config.";
 }
 
-ModelServerConfig BuildSingleModelConfig(
-    const string& model_name, const string& model_base_path,
-    const FileSystemStoragePathSourceConfig_VersionPolicy&
-        model_version_policy) {
+ModelServerConfig BuildSingleModelConfig(const string& model_name,
+                                         const string& model_base_path) {
   ModelServerConfig config;
   LOG(INFO) << "Building single TensorFlow model file config: "
             << " model_name: " << model_name
-            << " model_base_path: " << model_base_path
-            << " model_version_policy: " << model_version_policy;
+            << " model_base_path: " << model_base_path;
   tensorflow::serving::ModelConfig* single_model =
       config.mutable_model_config_list()->add_config();
   single_model->set_name(model_name);
   single_model->set_base_path(model_base_path);
   single_model->set_model_platform(
       tensorflow::serving::kTensorFlowModelPlatform);
-  single_model->set_version_policy(model_version_policy);
   return config;
 }
 
@@ -318,9 +314,6 @@ int main(int argc, char** argv) {
   tensorflow::int64 tensorflow_session_parallelism = 0;
   string platform_config_file = "";
   string model_config_file;
-  tensorflow::string model_version_policy =
-      FileSystemStoragePathSourceConfig_VersionPolicy_Name(
-          FileSystemStoragePathSourceConfig::LATEST_VERSION);
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &port, "port to listen on"),
       tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
@@ -331,24 +324,16 @@ int main(int argc, char** argv) {
       tensorflow::Flag("model_config_file", &model_config_file,
                        "If non-empty, read an ascii ModelServerConfig "
                        "protobuf from the supplied file name, and serve the "
-                       "models in that file. (If used, --model_name, "
-                       "--model_base_path and --model_version_policy "
-                       "are ignored.)"),
+                       "models in that file. This config file can be used to "
+                       "specify multiple models to serve and other advanced "
+                       "parameters including non-default version policy. (If "
+                       "used, --model_name, --model_base_path are ignored.)"),
       tensorflow::Flag("model_name", &model_name,
                        "name of model (ignored "
                        "if --model_config_file flag is set"),
       tensorflow::Flag("model_base_path", &model_base_path,
                        "path to export (ignored if --model_config_file flag "
                        "is set, otherwise required)"),
-      tensorflow::Flag(
-          "model_version_policy", &model_version_policy,
-          "The version policy which determines the number of model "
-          "versions to be served at the same time. The default "
-          "value is LATEST_VERSION, which will serve only the "
-          "latest version. "
-          "See file_system_storage_path_source.proto for "
-          "the list of possible VersionPolicy. (Ignored if "
-          "--model_config_file flag is set)"),
       tensorflow::Flag("file_system_poll_wait_seconds",
                        &file_system_poll_wait_seconds,
                        "interval in seconds between each poll of the file "
@@ -381,22 +366,14 @@ int main(int argc, char** argv) {
     std::cout << "unknown argument: " << argv[1] << "\n" << usage;
   }
 
-  FileSystemStoragePathSourceConfig_VersionPolicy parsed_version_policy;
-  bool valid_policy = FileSystemStoragePathSourceConfig_VersionPolicy_Parse(
-      model_version_policy, &parsed_version_policy);
-  QCHECK(valid_policy)  // Crash ok.
-      << "Invalid model_version_policy input argument: " << model_version_policy
-      << "\n"
-      << usage;
-
   // For ServerCore Options, we leave servable_state_monitor_creator unspecified
   // so the default servable_state_monitor_creator will be used.
   ServerCore::Options options;
 
   // model server config
   if (model_config_file.empty()) {
-    options.model_server_config = BuildSingleModelConfig(
-        model_name, model_base_path, parsed_version_policy);
+    options.model_server_config =
+        BuildSingleModelConfig(model_name, model_base_path);
   } else {
     options.model_server_config =
         ReadProtoFromFile<ModelServerConfig>(model_config_file);

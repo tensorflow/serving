@@ -423,7 +423,24 @@ FileSystemStoragePathSourceConfig ServerCore::CreateStoragePathSourceConfig(
         source_config.add_servables();
     servable->set_servable_name(model.name());
     servable->set_base_path(model.base_path());
-    servable->set_version_policy(model.version_policy());
+    // TODO(akhorlin): remove this logic once the corresponding deprecated
+    // field is removed (b/62834753).
+    if (!model.has_model_version_policy()) {
+      switch (model.version_policy()) {
+        case FileSystemStoragePathSourceConfig::LATEST_VERSION:
+          servable->mutable_servable_version_policy()->mutable_latest();
+          break;
+        case FileSystemStoragePathSourceConfig::ALL_VERSIONS:
+          servable->mutable_servable_version_policy()->mutable_all();
+          break;
+        default:
+          LOG(FATAL) << "Unknown version policy: "  // Crash ok.
+                     << model.version_policy();
+      }
+    } else {
+      *servable->mutable_servable_version_policy() =
+          model.model_version_policy();
+    }
   }
   return source_config;
 }

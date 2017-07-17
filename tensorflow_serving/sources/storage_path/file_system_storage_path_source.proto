@@ -4,6 +4,40 @@ package tensorflow.serving;
 
 // Config proto for FileSystemStoragePathSource.
 message FileSystemStoragePathSourceConfig {
+  // A policy that dictates which version(s) of a servable should be served.
+  message ServableVersionPolicy {
+    // Serve the latest versions (i.e. the ones with the highest version
+    // numbers), among those found on disk.
+    //
+    // This is the default policy, with the default number of versions as 1.
+    message Latest {
+      // Number of latest versions to serve. (The default is 1.)
+      uint32 num_versions = 1;
+    }
+
+    // Serve all versions found on disk.
+    message All {
+    }
+
+    // Serve a specific version (or set of versions).
+    //
+    // This policy is useful for rolling back to a specific version, or for
+    // canarying a specific version while still serving a separate stable
+    // version.
+    message Specific {
+      // The version numbers to serve.
+      repeated int64 versions = 1;
+    }
+
+    oneof policy_choice {
+      Latest latest = 100;
+      All all = 101;
+      Specific specific = 102;
+    }
+  }
+
+  // DEPRECATED: Please use VersionPolicy message definition instead. The
+  // enum will be removed once noone depends on it any longer.
   // The policy to define how many versions of the servable should be
   // served at the same time.
   enum VersionPolicy {
@@ -25,7 +59,10 @@ message FileSystemStoragePathSourceConfig {
 
     // The policy to determines the number of versions of the servable to be
     // served at the same time.
-    VersionPolicy version_policy = 3;
+    tensorflow.serving.FileSystemStoragePathSourceConfig.ServableVersionPolicy
+        servable_version_policy = 4;
+
+    reserved 3;  // Legacy version_policy definition.
   };
 
   // The servables to monitor for new versions, and aspire.
