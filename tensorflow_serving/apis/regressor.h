@@ -13,8 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-//
-// Interface for performing regression using regression messages.
 
 #ifndef TENSORFLOW_SERVING_APIS_REGRESSOR_H
 #define TENSORFLOW_SERVING_APIS_REGRESSOR_H
@@ -25,8 +23,21 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+/// Model agnostic interface for performing regression.
+///
+/// Specific implementations will exist for different model types
+/// (e.g. TensorFlow SavedModel) that can convert the request into a model
+/// specific input and know how to convert the output into a generic
+/// RegressionResult.
 class RegressorInterface {
  public:
+  /// Given a RegressionRequest, populates the RegressionResult with the
+  /// result.
+  ///
+  /// @param request  Input request specifying the model/signature to query
+  /// along with the data payload.
+  /// @param result   The output regression results that will get populated.
+  /// @return         A status object indicating success or failure.
   virtual Status Regress(const RegressionRequest& request,
                          RegressionResult* result) = 0;
 

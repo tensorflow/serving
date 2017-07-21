@@ -12,8 +12,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-//
-// Interface for performing classification using classification messages.
 
 #ifndef TENSORFLOW_SERVING_APIS_CLASSIFIER_H_
 #define TENSORFLOW_SERVING_APIS_CLASSIFIER_H_
@@ -24,8 +22,21 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+/// Model-type agnostic interface for performing classification.
+///
+/// Specific implementations will exist for different model types
+/// (e.g. TensorFlow SavedModel) that can convert the request into a model
+/// specific input and know how to convert the output into a generic
+/// ClassificationResult.
 class ClassifierInterface {
  public:
+  /// Given a ClassificationRequest, populates the ClassificationResult with the
+  /// result.
+  ///
+  /// @param request  Input request specifying the model/signature to query
+  /// along with the data payload.
+  /// @param result   The output classifications that will get populated.
+  /// @return         A status object indicating success or failure.
   virtual Status Classify(const ClassificationRequest& request,
                           ClassificationResult* result) = 0;
 

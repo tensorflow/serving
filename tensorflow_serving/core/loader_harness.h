@@ -30,9 +30,11 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+// START_SKIP_DOXYGEN
 // Forward-declaration for the use in LoaderHarness.
 template <typename T>
 struct ServableStateSnapshot;
+// END_SKIP_DOXYGEN
 
 /// LoaderHarness is a widget the Manager uses to hold on to and talk to a
 /// Loader while it owns it. It tracks the overall state of a Servable such that
@@ -243,6 +245,8 @@ class LoaderHarness final {
   TF_DISALLOW_COPY_AND_ASSIGN(LoaderHarness);
 };
 
+// START_SKIP_DOXYGEN
+
 // A snapshot of a servable's state and aspiredness, from the LoaderHarness's
 // perspective.
 template <typename T = std::nullptr_t>
@@ -293,6 +297,8 @@ LoaderHarness::loader_state_snapshot() const {
   mutex_lock l(mu_);
   return {id_, state_, {}};
 }
+
+// END_SKIP_DOXYGEN
 
 }  // namespace serving
 }  // namespace tensorflow
