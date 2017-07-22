@@ -583,6 +583,7 @@ Status ServerCore::CreateAspiredVersionsManager(
   manager_options.num_load_threads = options_.num_load_threads;
   manager_options.num_unload_threads = options_.num_unload_threads;
   manager_options.max_num_load_retries = options_.max_num_load_retries;
+  manager_options.pre_load_hook = std::move(options_.pre_load_hook);
   const tensorflow::Status status =
       AspiredVersionsManager::Create(std::move(manager_options), manager);
   if (!status.ok()) {
