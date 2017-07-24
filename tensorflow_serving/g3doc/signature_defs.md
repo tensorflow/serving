@@ -75,7 +75,7 @@ Classification API. These prescribe that there must be an `inputs` Tensor, and
 that there are two optional output Tensors: `classes` and `scores`, at least one
 of which must be present.
 
-~~~proto
+```proto
 signature_def: {
   key  : "my_classification_signature"
   value: {
@@ -106,7 +106,7 @@ signature_def: {
     method_name: "tensorflow/serving/classify"
   }
 }
-~~~
+```
 
 ### Predict SignatureDef
 
@@ -128,7 +128,7 @@ key below of `scores`, you also wanted to fetch a pooling layer for debugging or
 other purposes. In that case, you would simply add an additional Tensor with a
 key like `pool` and appropriate value.
 
-~~~proto
+```proto
 signature_def: {
   key  : "my_prediction_signature"
   value: {
@@ -151,7 +151,7 @@ signature_def: {
     method_name: "tensorflow/serving/predict"
   }
 }
-~~~
+```
 
 ### Regression SignatureDef
 
@@ -159,7 +159,7 @@ Regression SignatureDefs support structured calls to TensorFlow Serving's
 Regression API. These prescribe that there must be exactly one `inputs` Tensor,
 and one `outputs` Tensor.
 
-~~~proto
+```proto
 signature_def: {
   key  : "my_regression_signature"
   value: {
@@ -182,4 +182,4 @@ signature_def: {
     method_name: "tensorflow/serving/regress"
   }
 }
-~~~
+```

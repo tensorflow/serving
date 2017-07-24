@@ -65,20 +65,20 @@ should be more careful):
 
 First, create a manager:
 
-~~~c++
+```c++
 std::unique_ptr<AspiredVersionsManager> manager = ...;
-~~~
+```
 
 Then, create a `YourServable` source adapter and plug it into the manager:
 
-~~~c++
+```c++
 auto your_adapter = new YourServableSourceAdapter(...);
 ConnectSourceToTarget(your_adapter, manager.get());
-~~~
+```
 
 Lastly, create a simple path source and plug it into your adapter:
 
-~~~c++
+```c++
 std::unique_ptr<FileSystemStoragePathSource> path_source;
 // Here are some FileSystemStoragePathSource config settings that ought to get
 // it working, but for details please see its documentation.
@@ -89,13 +89,13 @@ config.set_base_path(FLAGS::base_path /* base path for our servable files */);
 config.set_file_system_poll_wait_seconds(1);
 TF_CHECK_OK(FileSystemStoragePathSource::Create(config, &path_source));
 ConnectSourceToTarget(path_source.get(), your_adapter.get());
-~~~
+```
 
 ## Accessing loaded `YourServable` objects
 
 Here is how to get a handle to a loaded `YourServable`, and use it:
 
-~~~c++
+```c++
 auto handle_request = serving::ServableRequest::Latest("default");
 ServableHandle<YourServable*> servable;
 Status status = manager->GetServableHandle(handle_request, &servable);
@@ -105,7 +105,7 @@ if (!status.ok()) {
 }
 // Use the servable.
 (*servable)->SomeYourServableMethod();
-~~~
+```
 
 ## Advanced: Arranging for multiple servable instances to share state
 
