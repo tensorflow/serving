@@ -64,6 +64,8 @@ class ServerCoreTestAccess;
 /// ServerCore.
 class ServerCore : public Manager {
  public:
+  using PreLoadHook = AspiredVersionsManager::PreLoadHook;
+
   using ServableStateMonitorCreator =
       std::function<Status(EventBus<ServableState>* event_bus,
                            std::unique_ptr<ServableStateMonitor>* monitor)>;
@@ -128,6 +130,10 @@ class ServerCore : public Manager {
 
     // If set, we use this function to update the server_request_logger.
     ServerRequestLoggerUpdater server_request_logger_updater;
+
+    // Callback to be called just before a servable is to be loaded. This will
+    // called on the same manager load thread which starts the load.
+    PreLoadHook pre_load_hook;
   };
 
   virtual ~ServerCore() = default;

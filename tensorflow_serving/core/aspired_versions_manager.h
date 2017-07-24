@@ -80,6 +80,8 @@ class AspiredVersionsManagerTestAccess;
 class AspiredVersionsManager : public Manager,
                                public Target<std::unique_ptr<Loader>> {
  public:
+  using PreLoadHook = BasicManager::PreLoadHook;
+
   /// Config options and pluggable objects that will be used by the
   /// AspiredVersionsManager.
   struct Options {
@@ -123,6 +125,10 @@ class AspiredVersionsManager : public Manager,
     /// The environment to use for starting threads in the thread-pool or for
     /// sleeping.
     Env* env = Env::Default();
+
+    /// Callback to be called just before a servable is to be loaded. This will
+    /// called on the same manager load thread which starts the load.
+    PreLoadHook pre_load_hook;
   };
   static Status Create(Options options,
                        std::unique_ptr<AspiredVersionsManager>* manager);

@@ -27,35 +27,50 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// A factory that creates SavedModelBundles from SavedModel or SessionBundle
-// export paths.
-//
-// The emitted sessions only support Run(), and although not enforced it is
-// expected that the client will only make non-mutating Run() calls. (If this
-// restriction, which we've added as a safety measure, is problematic for your
-// use-case please contact the TensorFlow Serving team to discuss disabling it.)
-//
-// If the config calls for batching, the emitted sessions automatically batch
-// Run() calls behind the scenes, using a SharedBatchScheduler owned by the
-// factory. The 'config.num_batch_threads' threads are shared across all session
-// instances created by this factory. However, each session has its own
-// dedicated queue of size 'config.max_enqueued_batches'.
-//
-// The factory can also estimate the resource (e.g. RAM) requirements of a
-// SavedModelBundle based on the SavedModel (i.e. prior to loading the session).
-//
-// This class is thread-safe.
+/// A factory that creates SavedModelBundles from SavedModel or SessionBundle
+/// export paths.
+///
+/// The emitted sessions only support Run(), and although not enforced it is
+/// expected that the client will only make non-mutating Run() calls. (If this
+/// restriction, which we've added as a safety measure, is problematic for your
+/// use-case please contact the TensorFlow Serving team to discuss disabling
+/// it.)
+///
+/// If the config calls for batching, the emitted sessions automatically batch
+/// Run() calls behind the scenes, using a SharedBatchScheduler owned by the
+/// factory. The 'config.num_batch_threads' threads are shared across all
+/// session instances created by this factory. However, each session has its own
+/// dedicated queue of size 'config.max_enqueued_batches'.
+///
+/// The factory can also estimate the resource (e.g. RAM) requirements of a
+/// SavedModelBundle based on the SavedModel (i.e. prior to loading the
+/// session).
+///
+/// This class is thread-safe.
 class SavedModelBundleFactory {
  public:
+  /// Instantiates a SavedModelBundleFactory using a config.
+  ///
+  /// @param config    Config with initialization options.
+  /// @param factory   Newly created factory if the returned Status is OK.
   static Status Create(const SessionBundleConfig& config,
                        std::unique_ptr<SavedModelBundleFactory>* factory);
 
-  // Instantiates a bundle from a given export or SavedModel path.
+  /// Instantiates a bundle from a given export or SavedModel path.
+  ///
+  /// @param path      Path to the model.
+  /// @param bundle    Newly created SavedModelBundle if the returned Status is
+  /// OK.
   Status CreateSavedModelBundle(const string& path,
                                 std::unique_ptr<SavedModelBundle>* bundle);
 
-  // Estimates the resources a SavedModel bundle will use once loaded, from its
-  // export path.
+  /// Estimates the resources a SavedModel bundle will use once loaded, from its
+  /// export path.
+  ///
+  /// @param path      Path to the model.
+  /// @param estimate  Output resource usage estimates. Different kinds of
+  /// resources (e.g. CPU, RAM, etc.) may get populated.
+  //
   // TODO(b/33078719): remove this method after we switch all the callers to
   // the following one.
   Status EstimateResourceRequirement(const string& path,
