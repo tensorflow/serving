@@ -37,22 +37,22 @@ Before getting started, please complete the [prerequisites](setup.md#prerequisit
 
 Clear the export directory if it already exists:
 
-~~~shell
+```shell
 $>rm -rf /tmp/mnist_model
-~~~
+```
 
 Train (with 100 iterations) and export the first version of model:
 
-~~~shell
+```shell
 $>bazel build //tensorflow_serving/example:mnist_saved_model
 $>bazel-bin/tensorflow_serving/example/mnist_saved_model --training_iteration=100 --model_version=1 /tmp/mnist_model
-~~~
+```
 
 Train (with 2000 iterations) and export the second version of model:
 
-~~~shell
+```shell
 $>bazel-bin/tensorflow_serving/example/mnist_saved_model --training_iteration=2000 --model_version=2 /tmp/mnist_model
-~~~
+```
 
 As you can see in `mnist_saved_model.py`, the training and exporting is done the
 same way it is in the [TensorFlow Serving basic tutorial](serving_basic.md). For
@@ -63,10 +63,10 @@ expect the latter to achieve better classification accuracy due to more
 intensive training. You should see training data for each training run in your
 `mnist_model` directory:
 
-~~~shell
+```shell
 $>ls /tmp/mnist_model
 1  2
-~~~
+```
 
 ## ServerCore
 
@@ -85,7 +85,7 @@ version transitions. In this tutorial, you will build your server on top of a
 TensorFlow Serving `ServerCore`, which internally wraps an
 `AspiredVersionsManager`.
 
-~~~c++
+```c++
 int main(int argc, char** argv) {
   ...
 
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
 
   return 0;
 }
-~~~
+```
 
 `ServerCore::Create()` takes a ServerCore::Options parameter. Here are a few
 commonly used options:
@@ -176,7 +176,7 @@ creating the `SavedModelBundleSourceAdapter`. In this case we set the
 by setting custom timeout, batch_size, etc. values. For details, please refer
 to `BatchingParameters`.
 
-~~~c++
+```c++
 SessionBundleConfig session_bundle_config;
 // Batching config
 if (enable_batching) {
@@ -187,7 +187,7 @@ if (enable_batching) {
 }
 *saved_model_bundle_source_adapter_config.mutable_legacy_config() =
     session_bundle_config;
-~~~
+```
 
 Upon reaching full batch, inference requests are merged internally into a
 single large request (tensor), and `tensorflow::Session::Run()` is invoked
@@ -259,12 +259,12 @@ To put all these into the context of this tutorial:
 Copy the first version of the export to the monitored folder and start the
 server.
 
-~~~shell
+```shell
 $>mkdir /tmp/monitored
 $>cp -r /tmp/mnist_model/1 /tmp/monitored
 $>bazel build //tensorflow_serving/model_servers:tensorflow_model_server
 $>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --enable_batching --port=9000 --model_name=mnist --model_base_path=/tmp/monitored
-~~~
+```
 
 The server will emit log messages every one second that say
 "Aspiring version for servable ...", which means it has found the export, and is
@@ -273,22 +273,22 @@ tracking its continued existence.
 Run the test with `--concurrency=10`. This will send concurrent requests to the
 server and thus trigger your batching logic.
 
-~~~shell
+```shell
 $>bazel build //tensorflow_serving/example:mnist_client
 $>bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:9000 --concurrency=10
 ...
 Inference error rate: 13.1%
-~~~
+```
 
 Then we copy the second version of the export to the monitored folder and re-run
 the test:
 
-~~~shell
+```shell
 $>cp -r /tmp/mnist_model/2 /tmp/monitored
 $>bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:9000 --concurrency=10
 ...
 Inference error rate: 9.5%
-~~~
+```
 
 This confirms that your server automatically discovers the new version and uses
 it for serving!
