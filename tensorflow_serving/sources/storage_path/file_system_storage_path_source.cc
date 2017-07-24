@@ -230,7 +230,7 @@ Status PollFileSystemForServable(
   switch (servable.servable_version_policy().policy_choice_case()) {
     case FileSystemStoragePathSourceConfig::ServableVersionPolicy::
         POLICY_CHOICE_NOT_SET:
-      FALLTHROUGH_INTENDED;  // Default policy is kLatest.
+      TF_FALLTHROUGH_INTENDED;  // Default policy is kLatest.
     case FileSystemStoragePathSourceConfig::ServableVersionPolicy::kLatest:
       at_least_one_version_found =
           AspireLatestVersions(servable, children_by_version, versions);
