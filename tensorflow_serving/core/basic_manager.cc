@@ -205,7 +205,8 @@ Status BasicManager::Create(Options options,
   manager->reset(new BasicManager(
       options.env, options.num_load_threads, options.num_unload_threads,
       options.max_num_load_retries, options.load_retry_interval_micros,
-      std::move(options.resource_tracker), options.servable_event_bus));
+      std::move(options.resource_tracker), options.servable_event_bus,
+      std::move(options.pre_load_hook)));
   return Status::OK();
 }
 
@@ -214,10 +215,12 @@ BasicManager::BasicManager(Env* const env, const uint32 num_load_threads,
                            uint32 max_num_load_retries,
                            int64 load_retry_interval_micros,
                            std::unique_ptr<ResourceTracker> resource_tracker,
-                           EventBus<ServableState>* servable_event_bus)
+                           EventBus<ServableState>* servable_event_bus,
+                           std::function<void(const ServableId&)> pre_load_hook)
     : servable_event_bus_(servable_event_bus),
       env_(env),
-      num_load_threads_(num_load_threads) {
+      num_load_threads_(num_load_threads),
+      pre_load_hook_(std::move(pre_load_hook)) {
   harness_options_.max_num_load_retries = max_num_load_retries;
   harness_options_.load_retry_interval_micros = load_retry_interval_micros;
   harness_options_.error_callback = [this](const ServableId& id,
@@ -453,6 +456,10 @@ Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
   // can't query harness again after Load() as it may be deleted by another
   // thread that called StopManagingServable().)
   const ServableId id = harness->id();
+
+  if (pre_load_hook_) {
+    pre_load_hook_(id);
+  }
 
   // We don't hold the lock while calling Load() as it may block.
   TF_RETURN_IF_ERROR(harness->Load());

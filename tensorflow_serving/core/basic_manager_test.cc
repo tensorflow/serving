@@ -44,6 +44,7 @@ using ::testing::HasSubstr;
 using ::testing::InSequence;
 using ::testing::Invoke;
 using ::testing::InvokeWithoutArgs;
+using ::testing::MockFunction;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::UnorderedElementsAre;
@@ -1107,6 +1108,34 @@ TEST_P(BasicManagerTest, LoadAfterCancelledLoad) {
 
   basic_manager_->LoadServable(
       id, [](const Status& status) { EXPECT_FALSE(status.ok()) << status; });
+}
+
+TEST(NonParameterizedBasicManagerTest, PreLoadHook) {
+  BasicManager::Options options;
+  // Single threaded execution.
+  options.num_load_threads = 0;
+  // No event bus.
+  options.servable_event_bus = nullptr;
+  MockFunction<void(const ServableId&)> mock_pre_load_hook;
+  options.pre_load_hook = mock_pre_load_hook.AsStdFunction();
+  std::unique_ptr<BasicManager> manager;
+  TF_ASSERT_OK(BasicManager::Create(std::move(options), &manager));
+
+  const ServableId id = {kServableName, 7};
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>();
+  TF_CHECK_OK(manager->ManageServable({id, std::unique_ptr<Loader>(loader)}));
+
+  bool pre_load_hook_called = false;
+  EXPECT_CALL(mock_pre_load_hook, Call(id)).WillOnce(InvokeWithoutArgs([&]() {
+    pre_load_hook_called = true;
+  }));
+  EXPECT_CALL(*loader, Load()).WillOnce(InvokeWithoutArgs([&]() {
+    EXPECT_TRUE(pre_load_hook_called);
+    return Status::OK();
+  }));
+  manager->LoadServable(id, [](const Status& status) { TF_ASSERT_OK(status); });
+  manager->UnloadServable(id,
+                          [](const Status& status) { TF_ASSERT_OK(status); });
 }
 
 // Creates a ResourceAllocation proto with 'quantity' units of RAM.

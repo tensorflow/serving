@@ -104,6 +104,9 @@ class BasicManagerTestAccess;
 /// TF_CHECK_OK(manager.StopManagingServable(id));
 class BasicManager : public Manager {
  public:
+  // Type of the callback to be called just before a servable is to be loaded.
+  using PreLoadHook = std::function<void(const ServableId&)>;
+
   /// Config options and pluggable objects that will be used by the
   /// BasicManager.
   struct Options {
@@ -138,6 +141,10 @@ class BasicManager : public Manager {
 
     // The environment to use for starting threads in the thread-pool.
     Env* env = Env::Default();
+
+    // Callback to be called just before a servable is to be loaded. This will
+    // called on the same manager load thread which starts the load.
+    PreLoadHook pre_load_hook;
   };
   static Status Create(Options options, std::unique_ptr<BasicManager>* manager);
 
@@ -257,7 +264,8 @@ class BasicManager : public Manager {
   BasicManager(Env* env, uint32 num_load_threads, uint32 num_unload_threads,
                uint32 max_num_load_retries, int64 load_retry_interval_micros,
                std::unique_ptr<ResourceTracker> resource_tracker,
-               EventBus<ServableState>* servable_event_bus);
+               EventBus<ServableState>* servable_event_bus,
+               PreLoadHook pre_load_hook);
 
   // Starts managing the servable.
   //
@@ -490,6 +498,8 @@ class BasicManager : public Manager {
   // Used to wake up threads that are waiting for 'num_ongoing_executions' to
   // decrease.
   condition_variable num_ongoing_load_unload_executions_cv_;
+
+  PreLoadHook pre_load_hook_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(BasicManager);
 };

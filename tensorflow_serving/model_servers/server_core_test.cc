@@ -38,8 +38,22 @@ namespace {
 
 using ::testing::_;
 using ::testing::Invoke;
+using ::testing::MockFunction;
 using ::testing::NiceMock;
 using test_util::ServerCoreTest;
+
+TEST_P(ServerCoreTest, PreLoadHook) {
+  std::unique_ptr<ServerCore> server_core;
+  ServerCore::Options options = GetDefaultOptions();
+  MockFunction<void(const ServableId&)> mock_pre_load_hook;
+  options.pre_load_hook = mock_pre_load_hook.AsStdFunction();
+  options.model_server_config = GetTestModelServerConfigForFakePlatform();
+
+  const ServableId expected_id = {test_util::kTestModelName,
+                                  test_util::kTestModelVersion};
+  EXPECT_CALL(mock_pre_load_hook, Call(expected_id));
+  TF_ASSERT_OK(ServerCore::Create(std::move(options), &server_core));
+}
 
 TEST_P(ServerCoreTest, CreateWaitsTillModelsAvailable) {
   std::unique_ptr<ServerCore> server_core;

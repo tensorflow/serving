@@ -89,6 +89,8 @@ class SourceAdapter : public TargetBase<InputType>, public Source<OutputType> {
   Notification outgoing_callback_set_;
 };
 
+// START_SKIP_DOXYGEN
+
 // Define a SourceAdapter registry for the common case of adapting from a
 // storage path to a loader.
 using StoragePathSourceAdapter =
@@ -255,6 +257,8 @@ ErrorInjectingSourceAdapter<InputType, OutputType>::Adapt(
   }
   return adapted_versions;
 }
+
+// END_SKIP_DOXYGEN
 
 }  // namespace serving
 }  // namespace tensorflow

@@ -44,6 +44,7 @@ namespace serving {
 /// published on the event bus, e.g. giving the event bus to a Manager.
 class ServableStateMonitor {
  public:
+  // START_SKIP_DOXYGEN
   struct ServableStateAndTime {
     ServableStateAndTime() = default;
     ServableStateAndTime(ServableState servable_state, const uint64 event_time)
@@ -73,6 +74,8 @@ class ServableStateMonitor {
     /// to 0, logging is disabled.
     uint64 max_count_log_events = 0;
   };
+  // END_SKIP_DOXYGEN
+
   using BoundedLog = std::deque<ServableStateAndTime>;
 
   explicit ServableStateMonitor(EventBus<ServableState>* bus,
