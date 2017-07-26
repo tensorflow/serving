@@ -92,26 +92,26 @@ the main code flow (with bad error handling; real code should be more careful):
 
 First, create a manager:
 
-~~~c++
+```c++
 std::unique_ptr<AspiredVersionsManager> manager = ...;
-~~~
+```
 
 Then, create a `SavedModelBundle` source adapter and plug it into the manager:
 
-~~~c++
+```c++
 std::unique_ptr<SavedModelBundleSourceAdapter> bundle_adapter;
 SessionBundleSourceAdapterConfig config;
 // ... populate 'config' with TensorFlow options.
 TF_CHECK_OK(SavedModelBundleSourceAdapter::Create(config, &bundle_adapter));
 ConnectSourceToTarget(bundle_adapter.get(), manager.get());
-~~~
+```
 
 Lastly, create your path source and plug it into the `SavedModelBundle` adapter:
 
-~~~c++
+```c++
 auto your_source = new YourPathSource(...);
 ConnectSourceToTarget(your_source, bundle_adapter.get());
-~~~
+```
 
 The `ConnectSourceToTarget()` function (defined in `core/target.h`) merely
 invokes `SetAspiredVersionsCallback()` to connect a `Source<T>` to a
