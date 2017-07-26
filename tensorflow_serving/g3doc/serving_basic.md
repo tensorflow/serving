@@ -41,7 +41,7 @@ From [mnist_saved_model.py](https://github.com/tensorflow/serving/tree/master/te
 the following is a short code snippet to illustrate the general process of
 saving a model to disk.
 
-~~~python
+```python
 from tensorflow.python.saved_model import builder as saved_model_builder
 ...
 export_path_base = sys.argv[-1]
@@ -60,7 +60,7 @@ builder.add_meta_graph_and_variables(
       },
       legacy_init_op=legacy_init_op)
 builder.save()
-~~~
+```
 
 `SavedModelBuilder.__init__` takes the following argument:
 
@@ -138,11 +138,11 @@ Let's run it!
 
 Clear the export directory if it already exists:
 
-~~~shell
+```shell
 $>rm -rf /tmp/mnist_model
-~~~
+```
 
-~~~shell
+```shell
 $>bazel build //tensorflow_serving/example:mnist_saved_model
 $>bazel-bin/tensorflow_serving/example/mnist_saved_model /tmp/mnist_model
 Training model...
@@ -152,23 +152,23 @@ Training model...
 Done training!
 Exporting trained model to /tmp/mnist_model
 Done exporting!
-~~~
+```
 
 Now let's take a look at the export directory.
 
-~~~shell
+```shell
 $>ls /tmp/mnist_model
 1
-~~~
+```
 
 As mentioned above, a sub-directory will be created for exporting each version
 of the model. `FLAGS.model_version` has the default value of 1, therefore
 the corresponding sub-directory `1` is created.
 
-~~~shell
+```shell
 $>ls /tmp/mnist_model/1
 saved_model.pb variables
-~~~
+```
 
 Each version sub-directory contains the following files:
 
@@ -182,10 +182,10 @@ With that, your TensorFlow model is exported and ready to be loaded!
 
 ## Load Exported Model With Standard TensorFlow Model Server
 
-~~~shell
+```shell
 $>bazel build //tensorflow_serving/model_servers:tensorflow_model_server
 $>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000 --model_name=mnist --model_base_path=/tmp/mnist_model/
-~~~
+```
 
 ## Test The Server
 
@@ -195,12 +195,12 @@ requests to the server, and calculates the inference error rate.
 
 To run it:
 
-~~~shell
+```shell
 $>bazel build //tensorflow_serving/example:mnist_client
 $>bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:9000
 ...
 Inference error rate: 10.5%
-~~~
+```
 
 We expect around 91% accuracy for the trained Softmax model and we get
 10.5% inference error rate for the first 1000 test images. This confirms that

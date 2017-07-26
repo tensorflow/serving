@@ -17,16 +17,16 @@ following steps:
     Let's say you downloaded bazel-0.4.5-installer-linux-x86_64.sh. You would
     execute:
 
-    ~~~shell
+    ```shell
     cd ~/Downloads
     chmod +x bazel-0.4.5-installer-linux-x86_64.sh
     ./bazel-0.4.5-installer-linux-x86_64.sh --user
-    ~~~
+    ```
 2.  Set up your environment. Put this in your ~/.bashrc.
 
-    ~~~shell
+    ```shell
     export PATH="$PATH:$HOME/bin"
-    ~~~
+    ```
 
 ### gRPC
 
@@ -38,7 +38,7 @@ framework. You can find the installation instructions
 
 To install TensorFlow Serving dependencies, execute the following:
 
-~~~shell
+```shell
 sudo apt-get update && sudo apt-get install -y \
         build-essential \
         curl \
@@ -55,16 +55,16 @@ sudo apt-get update && sudo apt-get install -y \
         swig \
         zip \
         zlib1g-dev
-~~~
+```
 
 ## Installing from source
 
 ### Clone the TensorFlow Serving repository
 
-~~~shell
+```shell
 git clone --recurse-submodules https://github.com/tensorflow/serving
 cd serving
-~~~
+```
 
 `--recurse-submodules` is required to fetch TensorFlow, gRPC, and other
 libraries that TensorFlow Serving depends on. Note that these instructions
@@ -77,11 +77,11 @@ to the `git clone` command.
 Follow the Prerequisites section above to install all dependencies.
 To configure TensorFlow, run
 
-~~~shell
+```shell
 cd tensorflow
 ./configure
 cd ..
-~~~
+```
 
 Consult the
 [TensorFlow install instructions](https://www.tensorflow.org/install/)
@@ -95,22 +95,22 @@ targets or the entire source tree.
 
 To build the entire tree, execute:
 
-~~~shell
+```shell
 bazel build tensorflow_serving/...
-~~~
+```
 
 Binaries are placed in the bazel-bin directory, and can be run using a command
 like:
 
-~~~shell
+```shell
 bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server
-~~~
+```
 
 To test your installation, execute:
 
-~~~shell
+```shell
 bazel test tensorflow_serving/...
-~~~
+```
 
 See the [basic tutorial](serving_basic.md) and [advanced tutorial](serving_advanced.md)
 for more in-depth examples of running TensorFlow Serving.
@@ -123,11 +123,11 @@ using TensorFlow [ci_build](https://github.com/tensorflow/tensorflow/tree/master
 infrastructure offers you simplified development using docker. All you need is
 git and docker. No need to install all other dependencies manually.
 
-~~~shell
+```shell
 git clone --recursive https://github.com/tensorflow/serving
 cd serving
 CI_TENSORFLOW_SUBMODULE_PATH=tensorflow tensorflow/tensorflow/tools/ci_build/ci_build.sh CPU bazel test //tensorflow_serving/...
-~~~
+```
 
 Note: The `serving` directory is mapped into the container. You can develop
 outside the docker container (in your favourite editor) and when you run this

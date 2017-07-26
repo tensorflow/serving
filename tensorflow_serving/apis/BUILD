@@ -21,6 +21,7 @@ filegroup(
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library")
+load("@org_tensorflow//tensorflow/core:platform/default/build_config.bzl", "tf_pyclif_proto_library")
 
 serving_proto_library(
     name = "get_model_metadata_proto",
@@ -66,6 +67,12 @@ serving_proto_library_py(
     ],
 )
 
+tf_pyclif_proto_library(
+    name = "input_pyclif",
+    proto_lib = ":input_proto",
+    proto_srcfile = "input.proto",
+)
+
 serving_proto_library(
     name = "model_proto",
     srcs = ["model.proto"],
@@ -82,6 +89,12 @@ serving_proto_library_py(
     srcs = ["model.proto"],
     proto_library = "model_proto",
     deps = [],
+)
+
+tf_pyclif_proto_library(
+    name = "model_pyclif",
+    proto_lib = ":model_proto",
+    proto_srcfile = "model.proto",
 )
 
 serving_proto_library(
@@ -165,6 +178,12 @@ serving_proto_library_py(
     ],
 )
 
+tf_pyclif_proto_library(
+    name = "classification_pyclif",
+    proto_lib = ":classification_proto",
+    proto_srcfile = "classification.proto",
+)
+
 serving_proto_library(
     name = "inference_proto",
     srcs = ["inference.proto"],
@@ -191,6 +210,12 @@ serving_proto_library_py(
     ],
 )
 
+tf_pyclif_proto_library(
+    name = "inference_pyclif",
+    proto_lib = ":inference_proto",
+    proto_srcfile = "inference.proto",
+)
+
 serving_proto_library(
     name = "regression_proto",
     srcs = ["regression.proto"],
@@ -212,6 +237,12 @@ serving_proto_library_py(
         ":model_proto_py_pb2",
         "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
+)
+
+tf_pyclif_proto_library(
+    name = "regression_pyclif",
+    proto_lib = ":regression_proto",
+    proto_srcfile = "regression.proto",
 )
 
 cc_library(

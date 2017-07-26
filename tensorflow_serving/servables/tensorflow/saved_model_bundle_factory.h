@@ -70,9 +70,6 @@ class SavedModelBundleFactory {
   /// @param path      Path to the model.
   /// @param estimate  Output resource usage estimates. Different kinds of
   /// resources (e.g. CPU, RAM, etc.) may get populated.
-  //
-  // TODO(b/33078719): remove this method after we switch all the callers to
-  // the following one.
   Status EstimateResourceRequirement(const string& path,
                                      ResourceAllocation* estimate) const;
 
