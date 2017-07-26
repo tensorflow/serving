@@ -186,6 +186,7 @@ pkg_tar(
     package_dir = "/usr/bin",
 )
 
+# Build with '-c opt --copt=-mavx --copt=-msse4.2'
 pkg_deb(
     name = "tensorflow_model_server_deb",
     data = ":tensorflow_model_server_tar",
@@ -193,5 +194,16 @@ pkg_deb(
     homepage = "https://github.com/tensorflow/serving",
     maintainer = "TensorFlow Serving team",
     package = "tensorflow-model-server",
+    version = "1.0.0",
+)
+
+# Build with '-c opt'
+pkg_deb(
+    name = "tensorflow_model_server_universal_deb",
+    data = ":tensorflow_model_server_tar",
+    description = "TensorFlow Serving ModelServer",
+    homepage = "https://github.com/tensorflow/serving",
+    maintainer = "TensorFlow Serving team",
+    package = "tensorflow-model-server-universal",
     version = "1.0.0",
 )
