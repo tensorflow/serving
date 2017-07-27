@@ -25,7 +25,7 @@ namespace tensorflow {
 namespace serving {
 
 // An InlineExecutor is a trivial executor that immediately executes the closure
-// given to it. It's useful as a mock, and in cases where an executor is needed,
+// given to it. It's useful as a fake, and in cases where an executor is needed,
 // but multi-threadedness is not.
 class InlineExecutor : public Executor {
  public:
