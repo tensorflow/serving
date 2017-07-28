@@ -4,7 +4,7 @@
 
 To compile and use TensorFlow Serving, you need to set up some prerequisites.
 
-### Bazel
+### Bazel (only if compiling source code)
 
 TensorFlow Serving requires Bazel 0.4.5 or higher. You can find the Bazel
 installation instructions [here](http://bazel.build/docs/install.html).
@@ -56,6 +56,54 @@ sudo apt-get update && sudo apt-get install -y \
         zip \
         zlib1g-dev
 ```
+
+## Installing using apt-get
+
+### Available binaries
+
+The TensorFlow Serving ModelServer binary is available in two variants:
+
+**tensorflow-model-server**: Fully optimized server that uses some platform
+specific compiler optimizations like SSE4 and AVX instructions. This should be
+the preferred option for most users, but may not work on some older machines.
+
+**tensorflow-model-server-universal**: Compiled with basic optimizations, but
+doesn't include platform specific instructiob sets, so should work on most if
+not all machines out there. Use this if `tensorflow-model-server` does not work
+for you. Note that the binary name is the same for both packages, so if you
+already installed tensorflow-model-server, you should first uninstall it using
+
+```shell
+sudo apt-get remove tensorflow-model-server
+```
+
+### Installing the ModelServer
+
+1.  Add TensorFlow Serving distribution URI as a package source (one time setup)
+
+```shell
+echo "deb [arch=amd64] http://storage.googleapis.com/tensorflow-serving-apt stable tensorflow-model-server tensorflow-model-server-universal" | sudo tee /etc/apt/sources.list.d/tensorflow-serving.list
+
+curl https://storage.googleapis.com/tensorflow-serving-apt/tensorflow-serving.release.pub.gpg | sudo apt-key add -
+```
+
+2.  Install and update TensorFlow ModelServer
+
+```shell
+sudo apt-get update && sudo apt-get install tensorflow-model-server
+```
+
+Once installed, the binary can be invoked using the command `tensorflow_model_server`.
+
+You can upgrade to a newer version of tensorflow-model-server with:
+
+```shell
+sudo apt-get upgrade tensorflow-model-server
+```
+
+Note: In the above commands, replace tensorflow-model-server with
+tensorflow-model-server-universal if your processor does not support AVX
+instructions.
 
 ## Installing from source
 
