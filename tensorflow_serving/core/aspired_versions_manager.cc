@@ -284,7 +284,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
     // if this aspired version is not already present in the map.
     if (std::find(additions.begin(), additions.end(), version.id().version) !=
         additions.end()) {
-      VLOG(1) << "Adding " << version.id() << "to BasicManager";
+      VLOG(1) << "Adding " << version.id() << " to BasicManager";
       const Status manage_status =
           basic_manager_->ManageServableWithAdditionalState(
               std::move(version), std::unique_ptr<Aspired>(new Aspired{true}));
