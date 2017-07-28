@@ -96,7 +96,7 @@ targets or the entire source tree.
 To build the entire tree, execute:
 
 ```shell
-bazel build tensorflow_serving/...
+bazel build -c opt tensorflow_serving/...
 ```
 
 Binaries are placed in the bazel-bin directory, and can be run using a command
@@ -109,12 +109,28 @@ bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server
 To test your installation, execute:
 
 ```shell
-bazel test tensorflow_serving/...
+bazel test -c opt tensorflow_serving/...
 ```
 
 See the [basic tutorial](serving_basic.md) and [advanced tutorial](serving_advanced.md)
 for more in-depth examples of running TensorFlow Serving.
 
+### Optimized build
+
+It's possible to compile using some platform specific instruction sets (e.g.
+AVX) that can significantly improve performance. Wherever you see 'bazel build'
+in the documentation, you can add the flags `-c opt --copt=-msse4.1
+--copt=-msse4.2 --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-O3` (or some
+subset of these flags). For example:
+
+```shell
+bazel build -c opt --config=mkl --copt=-msse4.1 --copt=-msse4.2 --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-O3 tensorflow_serving/...
+```
+
+Note: These instruction sets are not available on all machines, especially with
+older processors, so it may not work with all flags. You can try some subset of
+them, or revert to just the basic '-c opt' which is guaranteed to work on all
+machines.
 
 ### Continuous integration build
 
