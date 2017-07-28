@@ -14,14 +14,22 @@ tutorial.
 
 The code for this tutorial consists of two parts:
 
-* A Python file, [mnist_saved_model.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_saved_model.py),
-that trains and exports the model.
+*   A Python file,
+    [mnist_saved_model.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_saved_model.py),
+    that trains and exports the model.
 
-* A C++ file, [main.cc](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/model_servers/main.cc),
-which is the standard TensorFlow model server that discovers new exported
-models and runs a [gRPC](http://www.grpc.io) service for serving them.
+*   A ModelServer binary which can be either installed using apt-get, or
+    compiled from a C++ file
+    ([main.cc](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/model_servers/main.cc)).
+    The TensorFlow Serving ModelServer discovers new exported models and runs a
+    [gRPC](http://www.grpc.io) service for serving them.
 
-Before getting started, please complete the [prerequisites](setup.md#prerequisites).
+Before getting started, please complete the
+[prerequisites](setup.md#prerequisites).
+
+Note: All `bazel build` commands below use the standard `-c opt` flag. To
+further optimize the build, refer to the [instructions
+here](setup.md#optimized-build).
 
 ## Train And Export TensorFlow Model
 
@@ -143,7 +151,7 @@ $>rm -rf /tmp/mnist_model
 ```
 
 ```shell
-$>bazel build //tensorflow_serving/example:mnist_saved_model
+$>bazel build -c opt //tensorflow_serving/example:mnist_saved_model
 $>bazel-bin/tensorflow_serving/example/mnist_saved_model /tmp/mnist_model
 Training model...
 
@@ -180,23 +188,34 @@ Each version sub-directory contains the following files:
 
 With that, your TensorFlow model is exported and ready to be loaded!
 
-## Load Exported Model With Standard TensorFlow Model Server
+## Load Exported Model With Standard TensorFlow ModelServer
+
+If you'd like to use a locally compiled ModelServer, run the following:
 
 ```shell
-$>bazel build //tensorflow_serving/model_servers:tensorflow_model_server
+$>bazel build -c opt //tensorflow_serving/model_servers:tensorflow_model_server
 $>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000 --model_name=mnist --model_base_path=/tmp/mnist_model/
+```
+
+If you'd prefer to skip compilation and install using apt-get, follow the
+[instructions here](setup.md#installing-using-apt-get). Then run the server with
+the following command:
+
+```shell
+tensorflow_model_server --port=9000 --model_name=mnist --model_base_path=/tmp/mnist_model/
 ```
 
 ## Test The Server
 
-We can use the provided [mnist_client](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_client.py) utility
-to test the server. The client downloads MNIST test data, sends them as
+We can use the provided
+[mnist_client](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_client.py)
+utility to test the server. The client downloads MNIST test data, sends them as
 requests to the server, and calculates the inference error rate.
 
 To run it:
 
 ```shell
-$>bazel build //tensorflow_serving/example:mnist_client
+$>bazel build -c opt //tensorflow_serving/example:mnist_client
 $>bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:9000
 ...
 Inference error rate: 10.5%
