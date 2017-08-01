@@ -28,27 +28,30 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+// TODO(b/64163389): revisit the escaped HTML characters in c2devsite toolchain
+
 /// Builds an AspiredVersionsManager with options and sources connected to it.
 /// It takes over the ownership of the sources and the returned manager handles
-/// the destruction of itself and its dependencies. Both single sources and
+/// the destruction of itself and its dependencies.  Both single sources and
 /// source/source-adapter chains are accepted, i.e. you can use sources that
-/// directly supply loaders (Source<std::unique_ptr<Loader>) or composites that
-/// consist of Source<S> + some chain of SourceAdapter<S, ...>, ...,
-/// SourceAdapter<..., std::unique_ptr<Loader>>. The builder connects the chain
-/// for you.
+/// directly supply loaders (Source&amp;lt;std::unique_ptr&amp;lt;Loader>>) or
+/// composites that consist of Source&amp;lt;S> + some chain of
+/// SourceAdapter&amp;lt;S, ...>, ..., SourceAdapter&amp;lt;...,
+/// std::unique_ptr&amp;lt;Loader>>. The builder connects the chain for you.
 ///
 /// Usage:
-/// ...
-/// AspiredVersionsManagerBuilder::Options options = ManagerOptions();
-/// std::unique_ptr<AspiredVersionsManagerBuilder> builder;
-/// TF_CHECK_OK(AspiredVersionsManagerBuilder::Create(
-///     std::move(options), &builder));
-/// builder->AddSource(std::move(some_source));
-/// builder->AddSourceChain(
-///     std::move(source), std::move(source_adapter1),
-///     std::move(source_adapter2));
-/// std::unique_ptr<Manager> manager = builder->Build();
-/// ...
+///
+///     ...
+///     AspiredVersionsManagerBuilder::Options options = ManagerOptions();
+///     std::unique_ptr&lt;AspiredVersionsManagerBuilder> builder;
+///     TF_CHECK_OK(AspiredVersionsManagerBuilder::Create(
+///         std::move(options), &builder));
+///     builder->AddSource(std::move(some_source));
+///     builder->AddSourceChain(
+///         std::move(source), std::move(source_adapter1),
+///         std::move(source_adapter2));
+///     std::unique_ptr&lt;Manager> manager = builder->Build();
+///     ...
 ///
 /// NOTE: A builder can only be used to build a single AspiredVersionsManager.
 ///
@@ -65,7 +68,7 @@ class AspiredVersionsManagerBuilder {
   /// over its ownership.
   ///
   /// REQUIRES: Template type S be convertible to
-  /// Source<std::unique_ptr<Loader>>.
+  /// Source&amp;lt;std::unique_ptr&amp;lt;Loader>>.
   template <typename S>
   void AddSource(std::unique_ptr<S> source);
 

@@ -39,9 +39,10 @@ namespace serving {
 /// data of type InputType and converts them into calls with data of type
 /// OutputType.
 ///
-/// A common example uses InputType=StoragePath, OutputType=unique_ptr<Loader>,
-/// in which case the module "converts" each incoming storage path into a loader
-/// capable of loading a (particular type of) servable based on the path.
+/// A common example uses InputType=StoragePath,
+/// OutputType=unique_ptr&amp;lt;Loader>, in which case the module "converts"
+/// each incoming storage path into a loader capable of loading a (particular
+/// type of) servable based on the path.
 ///
 /// SourceAdapters are typically stateless. However, as with all Sources they
 /// can house state that is shared among multiple emitted servables. See the
