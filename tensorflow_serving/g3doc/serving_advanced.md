@@ -1,7 +1,7 @@
-# Building Standard TensorFlow Model Server
+# Building Standard TensorFlow ModelServer
 
 This tutorial shows you how to use TensorFlow Serving components to build the
-standard TensorFlow model server that dynamically discovers and serves new
+standard TensorFlow ModelServer that dynamically discovers and serves new
 versions of a trained TensorFlow model. If you just want to use the standard
 server to serve your models, see
 [TensorFlow Serving basic tutorial](serving_basic.md).
@@ -20,18 +20,23 @@ The code for this tutorial consists of two parts:
 
   * A C++ file
   [main.cc](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/model_servers/main.cc)
-  which is the standard TensorFlow model server that discovers new exported
+  which is the standard TensorFlow ModelServer that discovers new exported
   models and runs a [gRPC](http://www.grpc.io) service for serving them.
 
 This tutorial steps through the following tasks:
 
-  1. Train and export a TensorFlow model.
-  2. Manage model versioning with TensorFlow Serving `ServerCore`.
-  3. Configure batching using `SessionBundleSourceAdapterConfig`.
-  4. Serve request with TensorFlow Serving `ServerCore`.
-  5. Run and test the service.
+1.  Train and export a TensorFlow model.
+2.  Manage model versioning with TensorFlow Serving `ServerCore`.
+3.  Configure batching using `SessionBundleSourceAdapterConfig`.
+4.  Serve request with TensorFlow Serving `ServerCore`.
+5.  Run and test the service.
 
-Before getting started, please complete the [prerequisites](setup.md#prerequisites).
+Before getting started, please complete the
+[prerequisites](setup.md#prerequisites).
+
+Note: All `bazel build` commands below use the standard `-c opt` flag. To
+further optimize the build, refer to the [instructions
+here](setup.md#optimized-build).
 
 ## Train And Export TensorFlow Model
 
@@ -44,7 +49,7 @@ $>rm -rf /tmp/mnist_model
 Train (with 100 iterations) and export the first version of model:
 
 ```shell
-$>bazel build //tensorflow_serving/example:mnist_saved_model
+$>bazel build -c opt //tensorflow_serving/example:mnist_saved_model
 $>bazel-bin/tensorflow_serving/example/mnist_saved_model --training_iteration=100 --model_version=1 /tmp/mnist_model
 ```
 
@@ -262,7 +267,7 @@ server.
 ```shell
 $>mkdir /tmp/monitored
 $>cp -r /tmp/mnist_model/1 /tmp/monitored
-$>bazel build //tensorflow_serving/model_servers:tensorflow_model_server
+$>bazel build -c opt //tensorflow_serving/model_servers:tensorflow_model_server
 $>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --enable_batching --port=9000 --model_name=mnist --model_base_path=/tmp/monitored
 ```
 
@@ -274,7 +279,7 @@ Run the test with `--concurrency=10`. This will send concurrent requests to the
 server and thus trigger your batching logic.
 
 ```shell
-$>bazel build //tensorflow_serving/example:mnist_client
+$>bazel build -c opt //tensorflow_serving/example:mnist_client
 $>bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:9000 --concurrency=10
 ...
 Inference error rate: 13.1%

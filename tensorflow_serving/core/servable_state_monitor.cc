@@ -103,11 +103,15 @@ string ServableStateMonitor::ServableStateAndTime::DebugString() const {
 
 ServableStateMonitor::ServableStateMonitor(EventBus<ServableState>* bus,
                                            const Options& options)
-    : options_(options),
-      bus_subscription_(bus->Subscribe(
-          [this](const EventBus<ServableState>::EventAndTime& state_and_time) {
-            this->HandleEvent(state_and_time);
-          })) {}
+    : options_(options) {
+  // Important: We must allow the state members ('states_', 'live_states_' and
+  // so on) to be initialized *before* we start the bus subscription, in case an
+  // event comes in while we are initializing.
+  bus_subscription_ = bus->Subscribe(
+      [this](const EventBus<ServableState>::EventAndTime& state_and_time) {
+        this->HandleEvent(state_and_time);
+      });
+}
 
 ServableStateMonitor::~ServableStateMonitor() {
   // Halt event handling first, before tearing down state that event handling
