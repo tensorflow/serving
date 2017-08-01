@@ -17,7 +17,7 @@ from setuptools import find_packages
 from setuptools import setup
 
 
-_VERSION = '1.0.0.rc0'
+_VERSION = '1.0.0rc0'
 
 REQUIRED_PACKAGES = [
     'tensorflow>=1.2.0',
@@ -28,7 +28,7 @@ setup(
     name='tensorflow-serving-api',
     version=_VERSION,
     author='Google Inc.',
-    author_email='opensource@google.com',
+    author_email='tensorflow-serving-dev@googlegroups.com',
     packages=find_packages(),
     description='TensorFlow Serving API libraries',
     license='Apache 2.0',
