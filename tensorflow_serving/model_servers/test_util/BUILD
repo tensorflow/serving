@@ -28,7 +28,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "//base",
+        "//external:gtest",
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/config:platform_config_proto",
@@ -42,7 +42,6 @@ cc_library(
         "//tensorflow_serving/model_servers:server_core",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:unique_ptr_with_deps",
-        "//testing/base/public:gunit_for_library",
         "@org_tensorflow//tensorflow/core:lib",
         "@protobuf//:cc_wkt_protos",
         "@protobuf//:protobuf_lite",
