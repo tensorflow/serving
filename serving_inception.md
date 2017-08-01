@@ -35,21 +35,34 @@ $ docker run --name=inception_container -it $USER/tensorflow-serving-devel
 
 ### Clone, configure, and build TensorFlow Serving in a container
 
-In the running container, we clone, configure and build TensorFlow Serving.
-Then test run [tensorflow_model_server](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/model_servers/main.cc).
+Note: All `bazel build` commands below use the standard `-c opt` flag. To
+further optimize the build, refer to the [instructions
+here](setup.md#optimized-build).
+
+In the running container, we clone, configure and build TensorFlow Serving
+example code.
 
 ```shell
 root@c97d8e820ced:/# git clone --recurse-submodules https://github.com/tensorflow/serving
 root@c97d8e820ced:/# cd serving/tensorflow
 root@c97d8e820ced:/serving/tensorflow# ./configure
 root@c97d8e820ced:/serving# cd ..
-root@c97d8e820ced:/serving# bazel build -c opt tensorflow_serving/...
-root@c97d8e820ced:/serving# ls
-AUTHORS          LICENSE    RELEASE.md  bazel-bin       bazel-out      bazel-testlogs  tensorflow          zlib.BUILD
-CONTRIBUTING.md  README.md  WORKSPACE   bazel-genfiles  bazel-serving  grpc            tensorflow_serving
-root@c97d8e820ced:/serving# bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server
-Usage: model_server [--port=8500] [--enable_batching] [--model_name=my_name] --model_base_path=/path/to/export
+root@c97d8e820ced:/serving# bazel build -c opt tensorflow_serving/example/...
 ```
+
+Next we can either install a TensorFlow ModelServer with apt-get using the
+[instructions here](setup.md#installing-using-apt-get), or build a ModelServer
+binary using:
+
+```shell
+root@c97d8e820ced:/serving# bazel build -c opt tensorflow_serving/model_servers:tensorflow_model_server
+```
+
+The rest of this tutorial assumes you compiled the ModelServer locally, in which
+case the command to run it is
+`bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server`. If however
+you installed the ModelServer using apt-get, simply replace that command with
+`tensorflow_model_server`.
 
 ### Export Inception model in container
 
