@@ -60,13 +60,13 @@ namespace test_util {
 class AspiredVersionsManagerTestAccess;
 }  // namespace test_util
 
-/// A manager that implements the Target<Loader> API which uses aspired-versions
-/// callbacks to dictate which servable versions to load. This manager also uses
-/// that API to infer which ones to unload: If a given servable version is
-/// currently loaded, and is omitted from an aspired-versions callback
-/// invocation pertaining to its servable stream, this manager interprets that
-/// omission as an implicit instruction to unload the version. See below for
-/// details.
+/// A manager that implements the Target&amp;lt;Loader> API which uses
+/// aspired-versions callbacks to dictate which servable versions to load. This
+/// manager also uses that API to infer which ones to unload: If a given
+/// servable version is currently loaded, and is omitted from an
+/// aspired-versions callback invocation pertaining to its servable stream, this
+/// manager interprets that omission as an implicit instruction to unload the
+/// version. See below for details.
 ///
 /// (The implicit-unload semantics facilitates stateless Source implementations,
 /// whereby a given iteration of the Source's logic simply decides which
