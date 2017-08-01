@@ -17,15 +17,27 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_TEST_UTIL_MOCK_SERVER_CORE_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_TEST_UTIL_MOCK_SERVER_CORE_H_
 
+#include <memory>
+#include <string>
+
+#include "base/logging.h"
+#include "google/protobuf/any.pb.h"
+#include "google/protobuf/map.h"
 #include <gmock/gmock.h>
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
+#include "tensorflow_serving/config/platform_config.pb.h"
+#include "tensorflow_serving/core/aspired_versions_manager.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_state.h"
+#include "tensorflow_serving/core/servable_state_monitor.h"
+#include "tensorflow_serving/core/server_request_logger.h"
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.pb.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/util/event_bus.h"
+#include "tensorflow_serving/util/unique_ptr_with_deps.h"
 
 namespace tensorflow {
 namespace serving {
@@ -46,17 +58,20 @@ class MockServerCore : public ServerCore {
   static Options GetOptions(const PlatformConfigMap& platform_config_map) {
     Options options;
     options.platform_config_map = platform_config_map;
-    options.servable_state_monitor_creator = [](
-        EventBus<ServableState>* event_bus,
-        std::unique_ptr<ServableStateMonitor>* monitor) -> Status {
+    options.servable_state_monitor_creator =
+        [](EventBus<ServableState>* event_bus,
+           std::unique_ptr<ServableStateMonitor>* monitor) -> Status {
       monitor->reset(new ServableStateMonitor(event_bus));
       return Status::OK();
     };
-    options.custom_model_config_loader = [](
-        const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
-        UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
+    options.custom_model_config_loader =
+        [](const ::google::protobuf::Any& any,
+           EventBus<ServableState>* event_bus,
+           UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
       return Status::OK();
     };
+    TF_CHECK_OK(
+        ServerRequestLogger::Create(nullptr, &options.server_request_logger));
     return options;
   }
 

@@ -52,9 +52,9 @@ class BasicManagerTestAccess;
 /// unloading them. The manager accepts servables in the form of Loaders.
 ///
 /// We start managing a servable through one of the ManageServable* methods. You
-/// can go on to load the servable after this by calling LoadServable. Loading
+/// can go on to load the servable after this by calling LoadServable(). Loading
 /// will also make the servable available to serve. Once you decide to unload
-/// it, you can call UnloadServable on it, which will make it unavailable to
+/// it, you can call UnloadServable() on it, which will make it unavailable to
 /// serve, then unload the servable.
 ///
 /// Servables are retained until StopManagingServable() is called. This allows a
@@ -65,8 +65,8 @@ class BasicManagerTestAccess;
 /// only allows loading new servables that fit within the overall resource pool.
 ///
 /// BasicManager can be configured to use a thread-pool to do it's load and
-/// unloads. This makes the {Load,Unload}Servable() methods schedule the
-/// load/unloads rather than executing them synchronously. If there are more
+/// unloads. This makes the LoadServable() and UnloadServable() methods schedule
+/// the load/unloads rather than executing them synchronously. If there are more
 /// pending load/unloads than threads in the thread pool, they are processed in
 /// FIFO order.
 ///
@@ -78,7 +78,7 @@ class BasicManagerTestAccess;
 ///
 /// REQUIRES:
 /// 1. Order of method calls -
-///    ManageServable*() -> LoadServable() -> UnloadServable() ->
+///    ManageServable() (and variants) -> LoadServable() -> UnloadServable() ->
 ///    StopManagingServable().
 /// 2. Do not schedule concurrent load and unloads of the same servable.
 /// 3. Do not call load or unload multiple times on the same servable.
@@ -87,21 +87,21 @@ class BasicManagerTestAccess;
 ///
 /// Example usage:
 ///
-/// const ServableId id = {kServableName, 0};
-/// std::unique_ptr<Loader> loader = ...;
-/// ...
-/// BasicManager manager;
-/// TF_CHECK_OK(manager.ManageServable(
-///     CreateServableData(id, std::move(loader))));
-/// TF_CHECK_OK(manager.LoadServable(id));
+///     const ServableId id = {kServableName, 0};
+///     std::unique_ptr&lt;Loader> loader = ...;
+///     ...
+///     BasicManager manager;
+///     TF_CHECK_OK(manager.ManageServable(
+///       CreateServableData(id, std::move(loader))));
+///     TF_CHECK_OK(manager.LoadServable(id));
 ///
-/// ...
-/// TF_CHECK_OK(manager.GetServableHandle(
-///     ServableRequest::Latest(kServableName), &handle));
-/// ...
+///     ...
+///     TF_CHECK_OK(manager.GetServableHandle(
+///         ServableRequest::Latest(kServableName), &handle));
+///     ...
 ///
-/// TF_CHECK_OK(manager.UnloadServable(id));
-/// TF_CHECK_OK(manager.StopManagingServable(id));
+///     TF_CHECK_OK(manager.UnloadServable(id));
+///     TF_CHECK_OK(manager.StopManagingServable(id));
 class BasicManager : public Manager {
  public:
   // Type of the callback to be called just before a servable is to be loaded.
@@ -165,7 +165,7 @@ class BasicManager : public Manager {
   ///
   /// Returns an error if given a servable that is already being managed.
   ///
-  /// If 'servable' is in an error state, this method does *not* return an
+  /// If *servable* is in an error state, this method does **not** return an
   /// error. Instead, the manager accepts the servable, puts it in state kError
   /// (with a notification sent to the event bus), and then immediately stops
   /// managing it. This behavior facilitates uniform handling of errors that
@@ -222,7 +222,7 @@ class BasicManager : public Manager {
   using DoneCallback = std::function<void(const Status& status)>;
 
   /// Loads the servable with this id, and updates the serving map too. Calls
-  /// 'done_callback' with ok iff the servable was loaded successfully, else
+  /// *done_callback* with ok iff the servable was loaded successfully, else
   /// returns an error status.
   ///
   /// If using a thread-pool, this method transitions the servable harness to
@@ -230,7 +230,7 @@ class BasicManager : public Manager {
   /// completes the load before returning.
   ///
   /// REQUIRES: This manager should have been managing this servable already,
-  /// for it to be loaded, else we call 'done_callback' with an error status. Do
+  /// for it to be loaded, else we call *done_callback* with an error status. Do
   /// not call this multiple times on the same servable. Only one of those will
   /// succeed and the rest will fail with an error status.
   void LoadServable(const ServableId& id, DoneCallback done_callback);
@@ -244,7 +244,7 @@ class BasicManager : public Manager {
   void CancelLoadServableRetry(const ServableId& id);
 
   /// Unloads the servable with this id, and updates the serving map too. Calls
-  /// 'done_callback' with ok iff the servable was unloaded successfully, else
+  /// *done_callback* with ok iff the servable was unloaded successfully, else
   /// returns an error status.
   ///
   /// If using a thread-pool, this method transitions the servable harness to
@@ -252,7 +252,7 @@ class BasicManager : public Manager {
   /// the unload before returning.
   ///
   /// REQUIRES: This manager should have loaded and made this servable
-  /// available, for it to be unloaded, else calls 'done_callback' with an error
+  /// available, for it to be unloaded, else calls *done_callback* with an error
   /// status. Do not call this multiple times on the same servable. Only one of
   /// those will succeed and the rest will fail with an error status.
   void UnloadServable(const ServableId& id, DoneCallback done_callback);
