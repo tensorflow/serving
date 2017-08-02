@@ -1,9 +1,0 @@
-[submodule "tensorflow"]
-	path = tensorflow
-	url = https://github.com/tensorflow/tensorflow.git
-[submodule "grpc"]
-	path = grpc
-	url = https://github.com/grpc/grpc.git
-[submodule "tf_models"]
-	path = tf_models
-	url = https://github.com/tensorflow/models.git
