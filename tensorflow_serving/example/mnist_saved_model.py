@@ -14,14 +14,15 @@
 # ==============================================================================
 
 #!/usr/bin/env python2.7
-"""Train and export a simple Softmax Regression TensorFlow model.
+r"""Train and export a simple Softmax Regression TensorFlow model.
 
 The model is from the TensorFlow "MNIST For ML Beginner" tutorial. This program
 simply follows all its training instructions, and uses TensorFlow SavedModel to
 export the trained model with proper signatures that can be loaded by standard
 tensorflow_model_server.
 
-Usage: mnist_export.py [--training_iteration=x] [--model_version=y] export_dir
+Usage: mnist_saved_model.py [--training_iteration=x] [--model_version=y] \
+    export_dir
 """
 
 import os
