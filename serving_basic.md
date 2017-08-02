@@ -150,6 +150,16 @@ Clear the export directory if it already exists:
 $>rm -rf /tmp/mnist_model
 ```
 
+If you would like to install the `tensorflow` and `tensorflow-serving-api` PIP
+packages, you can run all Python code (export and client) using a simple
+`python` command. To install the PIP package, follow the [instructions
+here](setup.md#tensorflow-serving-python-api-pip-package). It's also possible to
+use Bazel to build the necessary dependencies and run all code without
+installing those packages. The rest of the codelab will have instructions for
+both the Bazel and PIP options.
+
+Bazel:
+
 ```shell
 $>bazel build -c opt //tensorflow_serving/example:mnist_saved_model
 $>bazel-bin/tensorflow_serving/example/mnist_saved_model /tmp/mnist_model
@@ -160,6 +170,12 @@ Training model...
 Done training!
 Exporting trained model to /tmp/mnist_model
 Done exporting!
+```
+
+Or if you have `tensorflow-serving-api` installed, you can run:
+
+```shell
+python tensorflow_serving/example/mnist_saved_model.py /tmp/mnist_model
 ```
 
 Now let's take a look at the export directory.
@@ -212,13 +228,19 @@ We can use the provided
 utility to test the server. The client downloads MNIST test data, sends them as
 requests to the server, and calculates the inference error rate.
 
-To run it:
+To run it with Bazel:
 
 ```shell
 $>bazel build -c opt //tensorflow_serving/example:mnist_client
 $>bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:9000
 ...
 Inference error rate: 10.5%
+```
+
+Alternatively if you installed the PIP package, run:
+
+```shell
+python tensorflow_serving/example/mnist_client.py --num_tests=1000 --server=localhost:9000
 ```
 
 We expect around 91% accuracy for the trained Softmax model and we get
