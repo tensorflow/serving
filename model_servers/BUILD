@@ -118,6 +118,31 @@ TENSORFLOW_DEPS = [
     "//tensorflow_serving/servables/tensorflow:predict_impl",
 ]
 
+# DRAGNN additions
+
+# Shared/common components for all tools.
+py_library(
+    name = "components",
+    deps = [
+        "//dragnn/core:dragnn_bulk_ops",
+        "//dragnn/core:dragnn_ops",
+        "//dragnn/protos:spec_py_pb2",
+        "//dragnn/python:graph_builder",
+        "//dragnn/python:load_dragnn_cc_impl_py",
+        "//dragnn/python:sentence_io",
+        "//syntaxnet:load_parser_ops_py",
+        "//syntaxnet:parser_ops",
+        "//syntaxnet:sentence_py_pb2",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/core:protos_all_py",
+    ],
+)
+
+DRAGNN_DEPS = [
+        "//dragnn/core:dragnn_ops_cc",
+]
+
+
 cc_binary(
     name = "tensorflow_model_server",
     srcs = [
@@ -135,7 +160,7 @@ cc_binary(
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
         "@grpc//:grpc++",
-    ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
+    ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS + DRAGNN_DEPS,
 )
 
 py_test(
