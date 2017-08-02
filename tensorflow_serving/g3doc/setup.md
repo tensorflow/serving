@@ -57,6 +57,15 @@ sudo apt-get update && sudo apt-get install -y \
         zlib1g-dev
 ```
 
+### TensorFlow Serving Python API PIP package
+
+To run Python client code without the need to install Bazel, you can install
+the `tensorflow-serving-api` PIP package using:
+
+```shell
+pip install tensorflow-serving-api
+```
+
 ## Installing using apt-get
 
 ### Available binaries

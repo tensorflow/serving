@@ -31,7 +31,7 @@ import sys
 
 import tensorflow as tf
 
-from tensorflow_serving.example import mnist_input_data
+import mnist_input_data
 
 tf.app.flags.DEFINE_integer('training_iteration', 1000,
                             'number of training iterations.')

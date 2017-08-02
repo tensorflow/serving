@@ -48,7 +48,7 @@ WAIT_FOR_SERVER_READY_INT_SECS = 60
 
 def PickUnusedPort():
   s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-  s.bind(('localhost', 0))
+  s.bind(('', 0))
   port = s.getsockname()[1]
   s.close()
   return port
