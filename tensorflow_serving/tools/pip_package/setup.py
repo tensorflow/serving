@@ -17,7 +17,7 @@ from setuptools import find_packages
 from setuptools import setup
 
 
-_VERSION = '1.0.0rc0'
+_VERSION = '1.0.0'
 
 REQUIRED_PACKAGES = [
     'tensorflow>=1.2.0',
