@@ -28,8 +28,8 @@ Before getting started, please complete the
 [prerequisites](setup.md#prerequisites).
 
 Note: All `bazel build` commands below use the standard `-c opt` flag. To
-further optimize the build, refer to the [instructions
-here](setup.md#optimized-build).
+further optimize the build, refer to the
+[instructions here](setup.md#optimized-build).
 
 ## Train And Export TensorFlow Model
 
@@ -152,8 +152,9 @@ $>rm -rf /tmp/mnist_model
 
 If you would like to install the `tensorflow` and `tensorflow-serving-api` PIP
 packages, you can run all Python code (export and client) using a simple
-`python` command. To install the PIP package, follow the [instructions
-here](setup.md#tensorflow-serving-python-api-pip-package). It's also possible to
+`python` command. To install the PIP package, follow the
+[instructions here](setup.md#tensorflow-serving-python-api-pip-package).
+It's also possible to
 use Bazel to build the necessary dependencies and run all code without
 installing those packages. The rest of the codelab will have instructions for
 both the Bazel and PIP options.
