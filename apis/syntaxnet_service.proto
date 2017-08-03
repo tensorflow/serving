@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+
+import "syntaxnet/sentence.proto";
+import "tensorflow_serving/apis/model.proto";
+
+message SyntaxNetRequest {
+    // Model Specification.
+    ModelSpec model_spec = 1;
+
+    repeated syntaxnet.Sentence inputs = 2;
+};
+
+message SyntaxNetResponse {
+    repeated syntaxnet.Sentence outputs = 1;
+};
+
+service SyntaxNetService {
+    rpc Parse(SyntaxNetRequest) returns (SyntaxNetResponse);
+}
