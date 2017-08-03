@@ -308,7 +308,7 @@ int main(int argc, char** argv) {
   tensorflow::string model_name = "default";
   tensorflow::int32 file_system_poll_wait_seconds = 1;
   tensorflow::string model_base_path;
-  bool use_saved_model = true;
+  const bool use_saved_model = true;
   // Tensorflow session parallelism of zero means that both inter and intra op
   // thread pools will be auto configured.
   tensorflow::int64 tensorflow_session_parallelism = 0;
@@ -338,11 +338,6 @@ int main(int argc, char** argv) {
                        &file_system_poll_wait_seconds,
                        "interval in seconds between each poll of the file "
                        "system for new model version"),
-      tensorflow::Flag("use_saved_model", &use_saved_model,
-                       "If true, use SavedModel in the server; otherwise, use "
-                       "SessionBundle. It is used by tensorflow serving team "
-                       "to control the rollout of SavedModel and is not "
-                       "expected to be set by users directly."),
       tensorflow::Flag("tensorflow_session_parallelism",
                        &tensorflow_session_parallelism,
                        "Number of threads to use for running a "
@@ -353,8 +348,7 @@ int main(int argc, char** argv) {
                        "If non-empty, read an ascii PlatformConfigMap protobuf "
                        "from the supplied file name, and use that platform "
                        "config instead of the Tensorflow platform. (If used, "
-                       "--enable_batching and --use_saved_model are "
-                       "ignored.)")};
+                       "--enable_batching is ignored.)")};
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
   if (!parse_result || (model_base_path.empty() && model_config_file.empty())) {

@@ -56,9 +56,11 @@ Status ServerRequestLogger::Update(
         model_and_logging_config.second.log_collector_config()
             .filename_prefix();
     if (!gtl::InsertIfNotPresent(&filename_prefixes, filename_prefix)) {
-      // Logs for each model is supposed to be separated from each other.
-      return errors::InvalidArgument(
-          "Duplicate LogCollectorConfig::filename_prefix(): ", filename_prefix);
+      // Each model's logs are supposed to be separated from each other, though
+      // there could be systems which can distinguish based on the model-spec
+      // in the logging proto, so we issue only a warning.
+      LOG(WARNING) << "Duplicate LogCollectorConfig::filename_prefix(): "
+                   << filename_prefix << ". Possibly a misconfiguration.";
     }
     TF_RETURN_IF_ERROR(request_logger_creator_(model_and_logging_config.second,
                                                &request_logger));
