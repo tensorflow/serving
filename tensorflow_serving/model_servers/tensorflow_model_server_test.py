@@ -117,7 +117,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
                 port,
                 model_name,
                 model_path,
-                use_saved_model,
                 batching_parameters_file='',
                 wait_for_server_ready=True):
     """Run tensorflow_model_server using test config."""
@@ -126,7 +125,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
     command += ' --port=' + str(port)
     command += ' --model_name=' + model_name
     command += ' --model_base_path=' + model_path
-    command += ' --use_saved_model=' + str(use_saved_model).lower()
     if batching_parameters_file:
       command += ' --enable_batching'
       command += ' --batching_parameters_file=' + batching_parameters_file
@@ -140,7 +138,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def RunServerWithModelConfigFile(self,
                                    port,
                                    model_config_file,
-                                   use_saved_model,
                                    pipe=None,
                                    wait_for_server_ready=True):
     """Run tensorflow_model_server using test config."""
@@ -148,7 +145,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
     command = os.path.join(self.binary_dir, 'tensorflow_model_server')
     command += ' --port=' + str(port)
     command += ' --model_config_file=' + model_config_file
-    command += ' --use_saved_model=' + str(use_saved_model).lower()
 
     print command
     self.server_proc = subprocess.Popen(shlex.split(command), stderr=pipe)
@@ -217,11 +213,10 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def testClassify(self):
     """Test PredictionService.Classify implementation."""
     model_path = self._GetSavedModelBundlePath()
-    use_saved_model = True
 
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path, use_saved_model)
+                                          model_path)
 
     print 'Sending Classify request...'
     # Prepare request
@@ -247,11 +242,10 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def testRegress(self):
     """Test PredictionService.Regress implementation."""
     model_path = self._GetSavedModelBundlePath()
-    use_saved_model = True
 
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path, use_saved_model)
+                                          model_path)
 
     print 'Sending Regress request...'
     # Prepare request
@@ -275,12 +269,11 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def testMultiInference(self):
     """Test PredictionService.MultiInference implementation."""
     model_path = self._GetSavedModelBundlePath()
-    use_saved_model = True
     enable_batching = False
 
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path, use_saved_model,
+                                          model_path,
                                           enable_batching)
 
     print 'Sending MultiInference request...'
@@ -312,47 +305,39 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def _TestPredict(self,
                    model_path,
-                   use_saved_model,
                    batching_parameters_file=''):
     """Helper method to test prediction.
 
     Args:
       model_path:      Path to the model on disk.
-      use_saved_model: Whether the model server should use SavedModel.
       batching_parameters_file: Batching parameters file to use (if left empty,
                                 batching is not enabled).
     """
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path, use_saved_model,
-                                          batching_parameters_file)
+                                          model_path, batching_parameters_file)
     self.VerifyPredictRequest(model_server_address, expected_output=3.0)
     self.VerifyPredictRequest(
         model_server_address, expected_output=3.0, specify_output=False)
 
-  def testPredictSessionBundle(self):
-    """Test PredictionService.Predict implementation with SessionBundle."""
-    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=False)
-
-  def testPredictBatchingSessionBundle(self):
+  def testPredictBatching(self):
     """Test PredictionService.Predict implementation with SessionBundle."""
     self._TestPredict(
         self._GetSessionBundlePath(),
-        use_saved_model=False,
         batching_parameters_file=self._GetBatchingParametersFile())
 
   def testPredictSavedModel(self):
     """Test PredictionService.Predict implementation with SavedModel."""
-    self._TestPredict(self._GetSavedModelBundlePath(), use_saved_model=True)
+    self._TestPredict(self._GetSavedModelBundlePath())
 
   def testPredictUpconvertedSavedModel(self):
     """Test PredictionService.Predict implementation.
 
     Using a SessionBundle converted to a SavedModel.
     """
-    self._TestPredict(self._GetSessionBundlePath(), use_saved_model=True)
+    self._TestPredict(self._GetSessionBundlePath())
 
-  def _TestBadModel(self, use_saved_model):
+  def _TestBadModel(self):
     """Helper method to test against a bad model export."""
     atexit.register(self.TerminateProcs)
     # Both SessionBundle and SavedModel use the same bad model path, but in the
@@ -363,7 +348,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
         PickUnusedPort(),
         'default',
         os.path.join(self.testdata_dir, 'bad_half_plus_two'),
-        use_saved_model,
         wait_for_server_ready=False)
     with self.assertRaises(face.AbortionError) as error:
       self.VerifyPredictRequest(model_server_address, expected_output=3.0)
@@ -372,18 +356,13 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def _TestBadModelUpconvertedSavedModel(self):
     """Test Predict against a bad upconverted SavedModel model export."""
-    self._TestBadModel(use_saved_model=True)
-
-  def _TestBadModelSessionBundle(self):
-    """Test Predict against a bad SessionBundle model export."""
-    self._TestBadModel(use_saved_model=False)
+    self._TestBadModel()
 
   def testGoodModelConfig(self):
     """Test server configuration from file works with valid configuration."""
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServerWithModelConfigFile(
-        PickUnusedPort(), self._GetGoodModelConfigFile(),
-        True)  # use_saved_model
+        PickUnusedPort(), self._GetGoodModelConfigFile())
 
     self.VerifyPredictRequest(
         model_server_address, model_name='half_plus_two', expected_output=3.0)
@@ -407,7 +386,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.RunServerWithModelConfigFile(
         PickUnusedPort(),
         self._GetBadModelConfigFile(),
-        True,  # use_saved_model
         pipe=subprocess.PIPE)
 
     error_message = (
