@@ -14,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 // gRPC server implementation of
-// tensorflow_serving/apis/prediction_service.proto.
+// tensorflow_serving/apis/syntaxnet_service.proto.
 //
 // It bring up a standard server to serve a single TensorFlow model using
 // command line flags, or multiple models via config file.
@@ -48,8 +48,6 @@ limitations under the License.
 #include <memory>
 #include <utility>
 #include <vector>
-#include <tensorflow/util/python/python_lib/tensorflow/include/tensorflow/core/framework/types.pb.h>
-#include <tensorflow/util/python/python_lib/tensorflow/include/tensorflow/core/lib/core/error_codes.pb.h>
 
 #include "google/protobuf/wrappers.pb.h"
 #include "grpc++/security/server_credentials.h"
@@ -77,7 +75,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/classification_service.h"
 #include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
-#include "tensorflow_serving/servables/tensorflow/predict_impl.h"
+#include "tensorflow_serving/servables/tensorflow/regressor.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
 
 namespace grpc {
@@ -101,7 +99,6 @@ using tensorflow::serving::SessionBundleConfig;
 using tensorflow::serving::Target;
 using tensorflow::serving::TensorflowClassificationServiceImpl;
 using tensorflow::serving::TensorflowRegressionServiceImpl;
-using tensorflow::serving::TensorflowPredictor;
 using tensorflow::serving::UniquePtrWithDeps;
 using tensorflow::string;
 
@@ -202,7 +199,7 @@ class SyntaxNetServiceImpl final : public SyntaxNetService::Service {
         DeadlineToTimeoutMillis(context->raw_deadline()));
 
     const grpc::Status status = ToGRPCStatus(
-        predictor_->Predict(run_options, core_.get(), *request, response));
+        regressor_->Regress(run_options, core_.get(), *request, response));
 
     if (!status.ok()) {
       VLOG(1) << "Parse failed: " << status.error_message();
@@ -212,52 +209,48 @@ class SyntaxNetServiceImpl final : public SyntaxNetService::Service {
 
  private:
   std::unique_ptr<ServerCore> core_;
-  std::unique_ptr<SyntaxNetPredictor> predictor_;
+  std::unique_ptr<SyntaxNetRegressor> regressor_;
   bool use_saved_model_;
 };
 
-class SyntaxNetPredictor {
+class SyntaxNetRegressor {
   using namespace tensorflow;
   using namespace tensorflow::serving;
  public:
-  explicit SyntaxNetPredictor(bool use_saved_model)
+  explicit SyntaxNetRegressor(bool use_saved_model)
       : use_saved_model_(use_saved_model) {}
 
-  Status Predict(const RunOptions &run_options,
+  Status Regress(const RunOptions &run_options,
                  ServerCore *core,
                  const SyntaxNetRequest &request,
                  SyntaxNetResponse *response) {
     if (request.inputs().empty()) {
-      return Status(error::Code::INVALID_ARGUMENT,
-                    tensorflow::strings::StrCat("expected at least one sentence"));
+      return errors::InvalidArgument("expected at least one sentence");
     }
     if (use_saved_model_) {
-      return SavedModelPredict(run_options, core, request, response);
+      return SavedModelRegress(run_options, core, request, response);
     }
-    return SessionBundlePredict(run_options, core, request, response);
+    return SessionBundleRegress(run_options, core, request, response);
   }
 
  private:
-  Status SessionBundlePredict(const RunOptions &options,
+  Status SessionBundleRegress(const RunOptions &options,
                               ServerCore *core,
                               const SyntaxNetRequest &request,
                               SyntaxNetResponse *response) {
-    ServableHandle<SessionBundle> bundle;
-    TF_RETURN_IF_ERROR(core->GetServableHandle(request.model_spec(), &bundle));
+//    ServableHandle<SessionBundle> bundle;
+//    TF_RETURN_IF_ERROR(core->GetServableHandle(request.model_spec(), &bundle));
+//
+//    RegressionSignature signature;
+//    GetRegressionSignature(bundle->meta_graph_def, &signature);
+//
+//    signature.
 
-    Signature signature;
-    TF_RETURN_IF_ERROR(
-        GetNamedSignature("inputs", bundle->meta_graph_def, &signature));
-    if (!signature.has_generic_signature()) {
-      return tensorflow::Status(
-          tensorflow::error::INVALID_ARGUMENT,
-          "'inputs' named signature is not a generic signature");
-    }
     return errors::Unimplemented(
         "This format not implemented yet.");
   }
 
-  Status SavedModelPredict(const RunOptions &options,
+  Status SavedModelRegress(const RunOptions &options,
                            ServerCore *core,
                            const SyntaxNetRequest &request,
                            SyntaxNetResponse *response) {
