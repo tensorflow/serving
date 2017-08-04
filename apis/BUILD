@@ -133,6 +133,7 @@ serving_proto_library(
     java_api_version = 2,
     deps = [
         "//syntaxnet:sentence_proto",
+        ":model_proto",
     ],
 )
 
