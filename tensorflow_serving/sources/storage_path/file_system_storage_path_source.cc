@@ -174,13 +174,13 @@ bool AspireSpecificVersions(
     const FileSystemStoragePathSourceConfig::ServableToMonitor& servable,
     const std::map<int64, string>& children_by_version,
     std::vector<ServableData<StoragePath>>* versions) {
-  const std::unordered_set<int> versions_to_serve(
+  const std::unordered_set<int64> versions_to_serve(
       servable.servable_version_policy().specific().versions().begin(),
       servable.servable_version_policy().specific().versions().end());
   // Identify specific version to serve (as specified by 'versions_to_serve')
   // among children that can be interpreted as version numbers and emit as
   // aspired versions.
-  bool at_least_one_version_emitted = false;
+  std::unordered_set<int64> aspired_versions;
   for (auto it = children_by_version.begin(); it != children_by_version.end();
        ++it) {
     const int64 version = it->first;
@@ -189,10 +189,19 @@ bool AspireSpecificVersions(
     }
     const string& child = it->second;
     AspireVersion(servable, child, version, versions);
-    at_least_one_version_emitted = true;
+    aspired_versions.insert(version);
+  }
+  for (const int64 version : versions_to_serve) {
+    if (aspired_versions.count(version) == 0) {
+      LOG(WARNING)
+          << "Version " << version << " of servable "
+          << servable.servable_name() << ", which was requested to be served "
+          << "as a 'specific' version in the servable's version policy, was "
+          << "not found in the file system";
+    }
   }
 
-  return at_least_one_version_emitted;
+  return !aspired_versions.empty();
 }
 
 // Like PollFileSystemForConfig(), but for a single servable.
