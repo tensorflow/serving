@@ -1,4 +1,4 @@
-FROM nvidia/cuda:8.0-cudnn5-devel-ubuntu16.04
+FROM nvidia/cuda:8.0-cudnn6-devel-ubuntu16.04
 
 RUN apt-get update && apt-get install -y \
         build-essential \
@@ -83,8 +83,16 @@ RUN mkdir /usr/lib/x86_64-linux-gnu/include/ && \
   ln -s /usr/lib/x86_64-linux-gnu/include/cudnn.h /usr/lib/x86_64-linux-gnu/include/cudnn.h && \
   ln -s /usr/include/cudnn.h /usr/local/cuda/include/cudnn.h && \
   ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so /usr/local/cuda/lib64/libcudnn.so && \
-  ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so.5 /usr/local/cuda/lib64/libcudnn.so.5
+  ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so.6 /usr/local/cuda/lib64/libcudnn.so.6
 
+# Fix from https://github.com/tensorflow/serving/issues/327#issuecomment-282207825
+WORKDIR /
+RUN git clone https://github.com/NVIDIA/nccl.git && \
+    cd nccl/ && \
+    make CUDA_HOME=/usr/local/cuda && \
+    make install && \
+    mkdir -p /usr/local/include/external/nccl_archive/src && \
+    ln -s /usr/local/include/nccl.h /usr/local/include/external/nccl_archive/src/nccl.h
 
 # Configure Tensorflow to use the GPU
 WORKDIR /serving/tensorflow
