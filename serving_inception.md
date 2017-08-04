@@ -1,3 +1,6 @@
+---
+---
+
 # Serving Inception Model with TensorFlow Serving and Kubernetes
 
 This tutorial shows how to use TensorFlow Serving components running in Docker
@@ -5,8 +8,8 @@ containers to serve the TensorFlow Inception model and how to deploy the
 serving cluster with Kubernetes.
 
 To learn more about TensorFlow Serving, we recommend
-[TensorFlow Serving basic tutorial](serving_basic.md) and
-[TensorFlow Serving advanced tutorial](serving_advanced.md).
+[TensorFlow Serving basic tutorial](serving_basic) and
+[TensorFlow Serving advanced tutorial](serving_advanced).
 
 To learn more about TensorFlow Inception model, we recommend
 [Inception in TensorFlow](https://github.com/tensorflow/models/tree/master/inception).
@@ -19,7 +22,7 @@ To learn more about TensorFlow Inception model, we recommend
 
 ## Part 0: Create a Docker image
 
-Please refer to [Using TensorFlow Serving via Docker](docker.md) for details
+Please refer to [Using TensorFlow Serving via Docker](docker) for details
 about building a TensorFlow Serving Docker image.
 
 ### Run container
@@ -37,7 +40,7 @@ $ docker run --name=inception_container -it $USER/tensorflow-serving-devel
 
 Note: All `bazel build` commands below use the standard `-c opt` flag. To
 further optimize the build, refer to the
-[instructions here](setup.md#optimized-build).
+[instructions here](setup#optimized-build).
 
 In the running container, we clone, configure and build TensorFlow Serving
 example code.
@@ -51,7 +54,7 @@ root@c97d8e820ced:/serving# bazel build -c opt tensorflow_serving/example/...
 ```
 
 Next we can either install a TensorFlow ModelServer with apt-get using the
-[instructions here](setup.md#installing-using-apt-get), or build a ModelServer
+[instructions here](setup#installing-using-apt-get), or build a ModelServer
 binary using:
 
 ```shell
