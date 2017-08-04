@@ -185,18 +185,16 @@ grpc::Status ToGRPCStatus(const tensorflow::Status &status) {
 }
 
 class SyntaxNetRegressor {
-  using namespace tensorflow;
-  using namespace tensorflow::serving;
  public:
   explicit SyntaxNetRegressor(bool use_saved_model)
       : use_saved_model_(use_saved_model) {}
 
-  Status Regress(const RunOptions &run_options,
+  tensorflow::Status Regress(const tensorflow::RunOptions &run_options,
                  ServerCore *core,
                  const SyntaxNetRequest &request,
                  SyntaxNetResponse *response) {
     if (request.inputs().empty()) {
-      return errors::InvalidArgument("expected at least one sentence");
+      return tensorflow::errors::InvalidArgument("expected at least one sentence");
     }
     if (use_saved_model_) {
       return SavedModelRegress(run_options, core, request, response);
@@ -205,7 +203,7 @@ class SyntaxNetRegressor {
   }
 
  private:
-  Status SessionBundleRegress(const RunOptions &options,
+  tensorflow::Status SessionBundleRegress(const tensorflow::RunOptions &options,
                               ServerCore *core,
                               const SyntaxNetRequest &request,
                               SyntaxNetResponse *response) {
@@ -217,15 +215,15 @@ class SyntaxNetRegressor {
 //
 //    signature.
 
-    return errors::Unimplemented(
+    return tensorflow::errors::Unimplemented(
         "This format not implemented yet.");
   }
 
-  Status SavedModelRegress(const RunOptions &options,
+  tensorflow::Status SavedModelRegress(const tensorflow::RunOptions &options,
                            ServerCore *core,
                            const SyntaxNetRequest &request,
                            SyntaxNetResponse *response) {
-    return errors::Unimplemented(
+    return tensorflow::errors::Unimplemented(
         "This format not implemented yet.");
   }
 
