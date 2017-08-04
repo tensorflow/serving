@@ -76,10 +76,13 @@ struct SignatureWithBatchingSessionSchedulerCreator {
   BatchingSessionSchedulerCreator scheduler_creator;
 };
 
-// Constructs array of paddings where
-// paddings[i].first - number of objects to add before elements in dimension i,
+// Constructs array of paddings, where:
+// paddings[i].first - number of objects to add before elements in dimension i of given tensor,
 // paddings[i].second - number of objects to add after elements in dimension i.
 // This padding signature is used when parforming internal padding with Eigen.
+//
+// When building paddings it is assumed that tensor needs to be padded after each dimension,
+// so its shape matches max_dim_sizes, except zeroth dimension which is left as is.
 template<int num_dims>
 std::array<std::pair<int32, int32>, num_dims> CreatePadding(Tensor tensor,
         const std::vector<int>& max_dim_sizes) {
@@ -237,6 +240,8 @@ std::map<string, std::vector<int>> CalculateMaxDimSizes(
 // For example given tensor with shape [1, 2, 3, 4] and max_dim_sizes
 // [0, 2, 5, 8] function returns PaddingResult with padded_tensor of shape
 // [1, 2, 5, 8].
+//
+// Only tensors with rank from 0 to 6 are supported.
 PaddingResult AddPadding(const Tensor& tensor,
     const std::vector<int>& max_dim_sizes);
 
