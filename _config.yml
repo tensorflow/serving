@@ -21,3 +21,10 @@ defaults:
       path: ""
     values:
       layout: "default"
+
+gems:
+  - jekyll-redirect-from
+
+title: AAA
+redirect_to:
+  - https://tensorflow.github.io/serving
