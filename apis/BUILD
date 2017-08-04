@@ -123,6 +123,19 @@ serving_proto_library(
     ],
 )
 
+serving_proto_library(
+    name = "syntaxnet_service_proto",
+    srcs = ["syntaxnet_service.proto"],
+    has_services = 1,
+    cc_api_version = 2,
+    cc_grpc_version = 1,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        "//syntaxnet:sentence_proto",
+    ],
+)
+
 py_library(
     name = "prediction_service_proto_py_pb2",
     srcs = ["prediction_service_pb2.py"],
