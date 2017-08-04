@@ -54,7 +54,7 @@ constants. Specifically:
     C++](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/cc/saved_model/signature_constants.h).
 
 In addition, SavedModel provides a
-[util](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/utils.py)
+[util](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/signature_def_utils.py)
 to help build a signature-def.
 
 ## Sample structures
