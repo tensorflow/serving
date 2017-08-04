@@ -184,35 +184,6 @@ grpc::Status ToGRPCStatus(const tensorflow::Status &status) {
                       error_message);
 }
 
-class SyntaxNetServiceImpl final : public SyntaxNetService::Service {
- public:
-  explicit SyntaxNetServiceImpl(std::unique_ptr<ServerCore> core,
-                                bool use_saved_model)
-      : core_(std::move(core)),
-        use_saved_model_(use_saved_model) {}
-
-  grpc::Status Parse(ServerContext *context, const SyntaxNetRequest *request,
-                     ::tensorflow::serving::SyntaxNetResponse *response) override {
-    tensorflow::RunOptions run_options = tensorflow::RunOptions();
-    // By default, this is infinite which is the same default as RunOptions.
-    run_options.set_timeout_in_ms(
-        DeadlineToTimeoutMillis(context->raw_deadline()));
-
-    const grpc::Status status = ToGRPCStatus(
-        regressor_->Regress(run_options, core_.get(), *request, response));
-
-    if (!status.ok()) {
-      VLOG(1) << "Parse failed: " << status.error_message();
-    }
-    return status;
-  }
-
- private:
-  std::unique_ptr<ServerCore> core_;
-  std::unique_ptr<SyntaxNetRegressor> regressor_;
-  bool use_saved_model_;
-};
-
 class SyntaxNetRegressor {
   using namespace tensorflow;
   using namespace tensorflow::serving;
@@ -258,6 +229,35 @@ class SyntaxNetRegressor {
         "This format not implemented yet.");
   }
 
+  bool use_saved_model_;
+};
+
+class SyntaxNetServiceImpl final : public SyntaxNetService::Service {
+ public:
+  explicit SyntaxNetServiceImpl(std::unique_ptr<ServerCore> core,
+                                bool use_saved_model)
+      : core_(std::move(core)),
+        use_saved_model_(use_saved_model) {}
+
+  grpc::Status Parse(ServerContext *context, const SyntaxNetRequest *request,
+                     ::tensorflow::serving::SyntaxNetResponse *response) override {
+    tensorflow::RunOptions run_options = tensorflow::RunOptions();
+    // By default, this is infinite which is the same default as RunOptions.
+    run_options.set_timeout_in_ms(
+        DeadlineToTimeoutMillis(context->raw_deadline()));
+
+    const grpc::Status status = ToGRPCStatus(
+        regressor_->Regress(run_options, core_.get(), *request, response));
+
+    if (!status.ok()) {
+      VLOG(1) << "Parse failed: " << status.error_message();
+    }
+    return status;
+  }
+
+ private:
+  std::unique_ptr<ServerCore> core_;
+  std::unique_ptr<SyntaxNetRegressor> regressor_;
   bool use_saved_model_;
 };
 
