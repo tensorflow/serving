@@ -17,17 +17,17 @@ following steps:
     Let's say you downloaded bazel-0.4.5-installer-linux-x86_64.sh. You would
     execute:
 
-    ```shell
+    <pre>
     cd ~/Downloads
     chmod +x bazel-0.4.5-installer-linux-x86_64.sh
     ./bazel-0.4.5-installer-linux-x86_64.sh --user
-    ```
+    </pre>
 
 2.  Set up your environment. Put this in your ~/.bashrc.
 
-    ```shell
+    <pre>
     export PATH="$PATH:$HOME/bin"
-    ```
+    </pre>
 
 ### gRPC
 
@@ -91,17 +91,17 @@ sudo apt-get remove tensorflow-model-server
 
 1.  Add TensorFlow Serving distribution URI as a package source (one time setup)
 
-    ```shell
+    <pre>
     echo "deb [arch=amd64] http://storage.googleapis.com/tensorflow-serving-apt stable tensorflow-model-server tensorflow-model-server-universal" | sudo tee /etc/apt/sources.list.d/tensorflow-serving.list
 
     curl https://storage.googleapis.com/tensorflow-serving-apt/tensorflow-serving.release.pub.gpg | sudo apt-key add -
-    ```
+    </pre>
 
 2.  Install and update TensorFlow ModelServer
 
-    ```shell
+    <pre>
     sudo apt-get update && sudo apt-get install tensorflow-model-server
-    ```
+    </pre>
 
 Once installed, the binary can be invoked using the command `tensorflow_model_server`.
 
