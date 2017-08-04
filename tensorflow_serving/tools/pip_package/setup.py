@@ -16,8 +16,8 @@
 from setuptools import find_packages
 from setuptools import setup
 
-
-_VERSION = '1.0.0rc0'
+# Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
+_VERSION = 'undefined'
 
 REQUIRED_PACKAGES = [
     'tensorflow>=1.2.0',
