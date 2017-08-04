@@ -1,4 +1,5 @@
 ---
+redirect_to: "https://www.tensorflow.org/serving/custom_servable"
 ---
 
 # Creating a new kind of servable

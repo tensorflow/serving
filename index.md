@@ -1,5 +1,5 @@
 ---
-redirect_to: "https://tensorflow.github.io/serving"
+redirect_to: "https://www.tensorflow.org/serving"
 ---
 
 # Introduction

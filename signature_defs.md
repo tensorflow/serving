@@ -1,4 +1,5 @@
 ---
+redirect_to: "https://www.tensorflow.org/serving/signature_defs"
 ---
 
 # SignatureDefs in SavedModel for TensorFlow Serving

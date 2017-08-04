@@ -1,4 +1,5 @@
 ---
+redirect_to: "https://www.tensorflow.org/serving/architecture_overview"
 ---
 
 # Architecture Overview
