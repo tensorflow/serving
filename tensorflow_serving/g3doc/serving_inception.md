@@ -36,8 +36,8 @@ $ docker run --name=inception_container -it $USER/tensorflow-serving-devel
 ### Clone, configure, and build TensorFlow Serving in a container
 
 Note: All `bazel build` commands below use the standard `-c opt` flag. To
-further optimize the build, refer to the [instructions
-here](setup.md#optimized-build).
+further optimize the build, refer to the
+[instructions here](setup.md#optimized-build).
 
 In the running container, we clone, configure and build TensorFlow Serving
 example code.
