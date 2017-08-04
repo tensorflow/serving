@@ -112,35 +112,36 @@ You can add meta graph and variables to the builder using
   As an example for how `predict_signature` is defined, the util takes the
   following arguments:
 
-    * `inputs={'images': tensor_info_x}` specifies the input tensor info.
+  * `inputs={'images': tensor_info_x}` specifies the input tensor info.
 
-    * `outputs={'scores': tensor_info_y}` specifies the scores tensor info.
+  * `outputs={'scores': tensor_info_y}` specifies the scores tensor info.
 
-      Note that `tensor_info_x` and `tensor_info_y` have the structure of
-      `tensorflow::TensorInfo` protocol buffer defined [here](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/protobuf/meta_graph.proto).
-      To easily build tensor infos, the TensorFlow SavedModel API also provides
-      [utils.py](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/utils.py),
-      with [related TensorFlow 1.0 API documentation](https://www.tensorflow.org/api_docs/python/tf/saved_model/utils).
+  * `method_name` is the method used for the inference. For Prediction
+     requests, it should be set to `tensorflow/serving/predict`. For other
+     method names, see [signature_constants.py](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/signature_constants.py)
+     and related [TensorFlow 1.0 API documentation](https://www.tensorflow.org/api_docs/python/tf/saved_model/signature_constants).
 
-      Also, note that `images` and `scores` are tensor alias names. They can be
-      whatever unique strings you want, and they will become the logical names
-      of tensor `x` and `y` that you refer to for tensor binding when sending
-      prediction requests later.
 
-      For instance, if `x` refers to the tensor with name 'long_tensor_name_foo'
-      and `y` refers to the tensor with name 'generated_tensor_name_bar',
-      `builder` will store tensor logical name to real name mapping
-      ('images' -> 'long_tensor_name_foo') and ('scores' -> 'generated_tensor_name_bar').
-      This allows the user to refer to these tensors with their logical names
-      when running inference.
+Note that `tensor_info_x` and `tensor_info_y` have the structure of
+`tensorflow::TensorInfo` protocol buffer defined [here](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/protobuf/meta_graph.proto).
+To easily build tensor infos, the TensorFlow SavedModel API also provides
+[utils.py](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/utils.py),
+with [related TensorFlow 1.0 API documentation](https://www.tensorflow.org/api_docs/python/tf/saved_model/utils).
 
-    * `method_name` is the method used for the inference. For Prediction
-      requests, it should be set to `tensorflow/serving/predict`. For other
-      method names, see [signature_constants.py](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/signature_constants.py)
-      and related [TensorFlow 1.0 API documentation](https://www.tensorflow.org/api_docs/python/tf/saved_model/signature_constants).
+Also, note that `images` and `scores` are tensor alias names. They can be
+whatever unique strings you want, and they will become the logical names
+of tensor `x` and `y` that you refer to for tensor binding when sending
+prediction requests later.
 
-  In addition to the description above, documentation related to signature def
-  structure and how to set up them up can be found [here](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/g3doc/signature_defs.md).
+For instance, if `x` refers to the tensor with name 'long_tensor_name_foo' and
+`y` refers to the tensor with name 'generated_tensor_name_bar', `builder` will
+store tensor logical name to real name mapping ('images' ->
+'long_tensor_name_foo') and ('scores' -> 'generated_tensor_name_bar').  This
+allows the user to refer to these tensors with their logical names when
+running inference.
+
+Note: In addition to the description above, documentation related to signature
+def structure and how to set up them up can be found [here](signature_defs.md).
 
 Let's run it!
 
