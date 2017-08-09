@@ -31,6 +31,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
 #include "tensorflow_serving/util/cleanup.h"
 #include "tensorflow_serving/util/hash.h"
+#include "tensorflow_serving/batching/batching_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -81,6 +82,17 @@ TensorSignature TensorSignatureFromRunArgs(
   return signature;
 }
 
+std::vector<std::vector<std::pair<string, Tensor>>> GetTaskInputsVector(
+    const Batch<BatchingSessionTask>& batch) {
+  std::vector<std::vector<std::pair<string, Tensor>>> all_task_inputs;
+  for (int i = 0; i < batch.num_tasks(); ++i) {
+    const std::vector<std::pair<string, Tensor>>& task_inputs =
+      *batch.task(i).inputs;
+    all_task_inputs.push_back(task_inputs);
+  }
+  return all_task_inputs;
+}
+
 }  // namespace
 
 TensorSignature TensorSignatureFromSignatureDef(
@@ -102,58 +114,6 @@ TensorSignature TensorSignatureFromSignatureDefs(
     }
   }
   return tensor_signature;
-}
-
-std::map<string, std::vector<int>> CalculateMaxDimSizes(
-    const Batch<BatchingSessionTask>& batch) {
-  std::map<string, std::vector<int>> max_dim_sizes;
-  // Populate 'max_dim_sizes'
-  // init
-  const std::vector<std::pair<string, Tensor>>& task_inputs =
-      *batch.task(0).inputs;
-  for (const auto& entry : task_inputs) {
-    const string& tensor_name = entry.first;
-    const Tensor& tensor = entry.second;
-    max_dim_sizes[tensor_name] = std::vector<int>(tensor.dims(), 0);
-  }
-  // fill
-  for (int i = 0; i < batch.num_tasks(); ++i) {
-    const std::vector<std::pair<string, Tensor>>& task_inputs =
-        *batch.task(i).inputs;
-    for (const auto& entry : task_inputs) {
-      const string& tensor_name = entry.first;
-      const Tensor& tensor = entry.second;
-
-      std::vector<int>& max_dim_sizes_for_one_input =
-          max_dim_sizes[tensor_name];
-      for (int j = 0; j < tensor.dims(); ++j) {
-        int old_max_size = max_dim_sizes_for_one_input[j];
-        if (tensor.shape().dim_size(j) > old_max_size) {
-          max_dim_sizes_for_one_input[j] = tensor.shape().dim_size(j);
-        }
-      }
-      max_dim_sizes_for_one_input[0] = 0;  // no need to pad in zeroth dimension
-    }
-  }
-  return max_dim_sizes;
-}
-
-PaddingResult AddPadding(const Tensor& tensor,
-                         const std::vector<int>& max_dim_sizes) {
-  DataType input_dtype = tensor.dtype();
-  PaddingResult res;
-#define CASE(type) \
-        case DataTypeToEnum<type>::value: { \
-          res = PadTensorOfSpecificType<type>(tensor, max_dim_sizes); \
-          break; \
-        }
-       switch (input_dtype) {
-         TF_CALL_ALL_TYPES(CASE);
-         default:
-           res = {Tensor(), errors::InvalidArgument("Unsupported type")};
-       }
-#undef CASE
-  return res;
 }
 
 // A session that performs batching on top of a wrapped session. See the
@@ -396,7 +356,9 @@ Status BatchingSession::MergeInputTensors(
   std::map<string, std::vector<Tensor>> tensors_to_merge;
   std::map<string, std::vector<int>> max_dim_sizes;
   if (options_.pad_variable_length_inputs) {
-    max_dim_sizes = CalculateMaxDimSizes(batch);
+    std::vector<std::vector<std::pair<string, Tensor>>> all_task_inputs =
+      GetTaskInputsVector(batch);
+    max_dim_sizes = CalculateMaxDimSizes(all_task_inputs);
   }
   // Populate 'tensors_to_merge'.
   for (int i = 0; i < batch.num_tasks(); ++i) {

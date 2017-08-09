@@ -92,6 +92,17 @@ std::unique_ptr<Session> CreateHalfPlusTwoSession() {
   return std::move(bundle.session);
 }
 
+std::unique_ptr<Session> CreateMatrixHalfPlusTwoSession() {
+  tensorflow::SessionOptions session_options;
+  tensorflow::RunOptions run_options;
+  const string export_dir = test_util::TestSrcDirPath(
+          "batching/testdata/matrix_half_plus_two/1");
+  SavedModelBundle bundle;
+  TF_CHECK_OK(LoadSavedModel(session_options, run_options, export_dir,
+      {kSavedModelTagServe}, &bundle));
+  return std::move(bundle.session);
+}
+
 // Test that a session handles a single request for the half-plus-two model
 // properly. The request has two input floats (size=2 for batching purposes).
 void TestSingleRequest(float input_0, float input_1, Session* session) {
@@ -106,6 +117,18 @@ void TestSingleRequest(float input_0, float input_1, Session* session) {
   ASSERT_EQ(1, outputs.size());
   test::ExpectTensorEqual<float>(expected_output, outputs[0]);
 }
+
+void TestRequestToMatrixHalfPlusTwo(const std::vector<float>& x_values,
+      TensorShape x_shape, const std::vector<float>& y_values,
+      TensorShape y_shape, Session* session) {
+  Tensor input = test::AsTensor<float>(x_values, x_shape);
+  Tensor expected_output = test::AsTensor<float>(y_values, y_shape);
+  std::vector<Tensor> output;
+  TF_ASSERT_OK(session->Run({{"x", input}}, {"y"}, {}, &output));
+  ASSERT_EQ(1, output.size());
+  test::ExpectTensorEqual<float>(expected_output, output[0]);
+}
+
 
 // Invoke Run() with the supplied arguments, and expect a particular error.
 void ExpectError(const string& error_message,
@@ -158,106 +181,6 @@ TEST(BatchingSessionTest, TensorSignatureFromSignatureDefs) {
               UnorderedElementsAre("y0", "y1", "y3"));
 }
 
-
-std::vector<std::pair<string, Tensor>> CreateInputsWithTensorShapes(
-        const std::vector<TensorShape>& shapes) {
-  std::vector<std::pair<string, Tensor>> inputs;
-  for (int i = 0; i < shapes.size(); ++i) {
-    inputs.push_back({"x" + std::to_string(i), Tensor(DT_FLOAT, shapes[i])});
-  }
-  return inputs;
-}
-
-TEST(BatchingSessionTest, CalculateMaxDimSizes) {
-   std::vector<TensorShape> shapes1;
-   shapes1.push_back({10, 20, 30});  // x0
-   shapes1.push_back({10, 100});  // x1
-   BatchingSessionTask* task1 = new BatchingSessionTask();
-   std::vector<std::pair<string, Tensor>> inputs1 = CreateInputsWithTensorShapes(shapes1);
-   task1->inputs = &inputs1;
-   std::vector<TensorShape> shapes2;
-   shapes2.push_back({20, 50, 15});  // x0
-   shapes2.push_back({20, 101});  // x1
-   BatchingSessionTask* task2 = new BatchingSessionTask();
-   std::vector<std::pair<string, Tensor>> inputs2 = CreateInputsWithTensorShapes(shapes2);
-   task2->inputs = &inputs2;
-   Batch<BatchingSessionTask> batch;
-   batch.AddTask(std::unique_ptr<BatchingSessionTask>(task1));
-   batch.AddTask(std::unique_ptr<BatchingSessionTask>(task2));
-   batch.Close();
-   std::map<string, std::vector<int>> max_dim_sizes = CalculateMaxDimSizes(batch);
-   std::map<string, std::vector<int>> true_max_dim_sizes;
-   true_max_dim_sizes["x0"] = {0, 50, 30};
-   true_max_dim_sizes["x1"] = {0, 101};
-   EXPECT_EQ(max_dim_sizes, true_max_dim_sizes);
-}
-
-TEST(BatchingSessionTest, AddPadding) {
-  std::vector<int> max_dim_sizes {0, 100, 200};
-  std::vector<DataType> types {DT_FLOAT,
-                               DT_DOUBLE,
-                               DT_INT32,
-                               DT_UINT8,
-                               DT_INT16,
-                               DT_INT8,
-                               DT_STRING,
-                               DT_COMPLEX64,
-                               DT_INT64,
-                               DT_BOOL,
-                               DT_HALF,
-                               DT_RESOURCE,
-                               DT_COMPLEX128,
-                               DT_UINT16};
-  PaddingResult res;
-  for(auto type: types) {
-    Tensor tensor(type, {10, 20, 30});
-    res = AddPadding(tensor, max_dim_sizes);
-    EXPECT_EQ(res.padding_status, Status::OK());
-    EXPECT_EQ(res.padded_tensor.shape(), TensorShape({10, 100, 200}));
-  }
-}
-
-TEST(BatchingSessionTest, CreatePadding) {
-  Tensor tensor(DT_FLOAT, {10, 20, 30});
-  std::vector<int> max_dim_sizes {0, 100, 200};
-  std::array<std::pair<int32, int32>, 3> true_paddings;
-  true_paddings[0] = {0, 0};
-  true_paddings[1] = {0, 80};
-  true_paddings[2] = {0, 170};
-  std::array<std::pair<int32, int32>, 3> paddings = CreatePadding<3>(tensor, max_dim_sizes);
-  EXPECT_EQ(paddings, true_paddings);
-}
-
-TEST(BatchingSessionTest, PadTensorOfSpecificType) {
-  Tensor tensor(DT_FLOAT, {10, 20, 30});
-  std::vector<int> max_dim_sizes {0, 100, 200};
-  PaddingResult res;
-  res = PadTensorOfSpecificType<float>(tensor, max_dim_sizes);
-  EXPECT_EQ(res.padding_status, Status::OK());
-  EXPECT_EQ(res.padded_tensor.shape(), TensorShape({10, 100, 200}));
-  tensor = Tensor(DT_FLOAT, {10, 20, 30, 40, 50, 60, 70});
-  res = PadTensorOfSpecificType<float>(tensor, max_dim_sizes);
-  EXPECT_NE(res.padding_status, Status::OK());
-}
-
-TEST(BatchingSessionTest, PadTensor) {
-  Tensor tensor(DT_FLOAT, {10, 20, 30});
-  std::array<std::pair<int32, int32>, 3> paddings;
-  paddings[0] = {0, 0};
-  paddings[1] = {5, 10};
-  paddings[2] = {10, 15};
-  PaddingResult res;
-  PadTensor<float, 3> padding_functor;
-  res = padding_functor(tensor, paddings);
-  EXPECT_EQ(res.padding_status, Status::OK());
-  EXPECT_EQ(res.padded_tensor.shape(), TensorShape({10, 35, 55}));
-  Tensor scalar(DT_FLOAT, {});
-  PadTensor<float, 0> scalar_padding_functor;
-  res = scalar_padding_functor(scalar, std::array<std::pair<int32, int32>, 0>());
-  EXPECT_EQ(res.padding_status, Status::OK());
-  EXPECT_EQ(res.padded_tensor.shape(), scalar.shape());
-}
-
 TEST(BatchingSessionTest, Basic) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 4;  // fits two 2-unit tasks
@@ -279,6 +202,34 @@ TEST(BatchingSessionTest, Basic) {
       ThreadOptions(), "second_request_thread", [&batching_session] {
         TestSingleRequest(71.5f, 18.3f, batching_session.get());
       }));
+}
+
+TEST(BatchingSessionTest, BatchingWithPadding) {
+  BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
+  schedule_options.max_batch_size = 2;
+  schedule_options.batch_timeout_micros = 1e6;
+  schedule_options.num_batch_threads = 1;
+  std::unique_ptr<Session> batching_session;
+  BatchingSessionOptions batching_session_options;
+  batching_session_options.pad_variable_length_inputs = true;
+  TF_ASSERT_OK(CreateBasicBatchingSession(schedule_options,
+        batching_session_options, {{"x"}, {"y"}},
+        CreateMatrixHalfPlusTwoSession(), &batching_session));
+  // two requests form a batch and first input gets padded with zeros to match
+  // [1, 3, 3] shape that is accepted by the model.
+  // if padding doesn't work, test will fail.
+  std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
+          ThreadOptions(), "first_request", [&batching_session] {
+              TestRequestToMatrixHalfPlusTwo({1, 2, 3, 4}, {1, 2, 2},
+              {2.5, 3, 2, 3.5, 4, 2, 2, 2, 2}, {1, 3, 3},
+              batching_session.get());
+          }));
+  std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
+          ThreadOptions(), "second_request", [&batching_session] {
+              TestRequestToMatrixHalfPlusTwo({5, 6, 7, 8, 9, 10, 11, 12, 13},
+                  {1, 3, 3}, {4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5}, {1, 3, 3},
+                  batching_session.get());
+          }));
 }
 
 TEST(BatchingSessionTest, SingletonBatch) {
