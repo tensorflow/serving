@@ -26,6 +26,7 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/source_adapter.h"
+#include "tensorflow_serving/resources/resource_util.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/util/any_ptr.h"
 #include "tensorflow_serving/util/optional.h"
@@ -62,6 +63,9 @@ namespace serving {
 //   };
 //   std::unique_ptr<Loader> loader(new SimpleLoader<time_t>(
 //       servable_creator, resource_estimator));
+//
+// This class is not thread-safe. Synchronization is assumed to be done by the
+// caller.
 template <typename ServableType>
 class SimpleLoader : public Loader {
  public:
@@ -80,7 +84,19 @@ class SimpleLoader : public Loader {
   // and hence the serving system cannot enforce resource safety.
   static ResourceEstimator EstimateNoResources();
 
+  // Constructor that takes a single resource estimator, to use for estimating
+  // the resources needed during load as well as post-load.
   SimpleLoader(Creator creator, ResourceEstimator resource_estimator);
+
+  // Constructor that takes two resource estimators: one to use for estimating
+  // the resources needed during load, as well as a second one that gives a
+  // different estimate after loading has finished. See the documentation on
+  // Loader::EstimateResources() for (a) potential reasons the estimate might
+  // decrease, and (b) correctness constraints on how the estimate is allowed to
+  // change over time.
+  SimpleLoader(Creator creator, ResourceEstimator resource_estimator,
+               ResourceEstimator post_load_resource_estimator);
+
   ~SimpleLoader() override = default;
 
   Status EstimateResources(ResourceAllocation* estimate) const override;
@@ -94,10 +110,19 @@ class SimpleLoader : public Loader {
  private:
   Creator creator_;
 
+  // A function that estimates the resources needed to load the servable.
   ResourceEstimator resource_estimator_;
 
-  // The memoized estimated resource requirement of the session bundle servable.
+  // An optional function that estimates the resources needed for the servable
+  // after it has been loaded. (If omitted, 'resource_estimator_' should be used
+  // for all estimates, i.e. before, during and after load.)
+  optional<ResourceEstimator> post_load_resource_estimator_;
+
+  // The memoized estimated resource requirement of the servable.
   mutable optional<ResourceAllocation> memoized_resource_estimate_;
+
+  std::unique_ptr<ResourceUtil> resource_util_;
+  Resource ram_resource_;
 
   std::unique_ptr<ServableType> servable_;
 
@@ -180,7 +205,23 @@ SimpleLoader<ServableType>::EstimateNoResources() {
 template <typename ServableType>
 SimpleLoader<ServableType>::SimpleLoader(Creator creator,
                                          ResourceEstimator resource_estimator)
-    : creator_(creator), resource_estimator_(resource_estimator) {}
+    : creator_(creator), resource_estimator_(resource_estimator) {
+  ResourceUtil::Options resource_util_options;
+  resource_util_options.devices = {{device_types::kMain, 1}};
+  resource_util_ =
+      std::unique_ptr<ResourceUtil>(new ResourceUtil(resource_util_options));
+
+  ram_resource_ = resource_util_->CreateBoundResource(
+      device_types::kMain, resource_kinds::kRamBytes);
+}
+
+template <typename ServableType>
+SimpleLoader<ServableType>::SimpleLoader(
+    Creator creator, ResourceEstimator resource_estimator,
+    ResourceEstimator post_load_resource_estimator)
+    : SimpleLoader(creator, resource_estimator) {
+  post_load_resource_estimator_ = post_load_resource_estimator;
+}
 
 template <typename ServableType>
 Status SimpleLoader<ServableType>::EstimateResources(
@@ -198,8 +239,36 @@ Status SimpleLoader<ServableType>::EstimateResources(
 
 template <typename ServableType>
 Status SimpleLoader<ServableType>::Load() {
-  const Status status = creator_(&servable_);
-  return status;
+  TF_RETURN_IF_ERROR(creator_(&servable_));
+
+  if (post_load_resource_estimator_) {
+    // Save the during-load estimate (may be able to use the memoized value).
+    ResourceAllocation during_load_resource_estimate;
+    TF_RETURN_IF_ERROR(EstimateResources(&during_load_resource_estimate));
+
+    // Obtain the post-load estimate, and store it as the memoized value.
+    ResourceAllocation post_load_resource_estimate;
+    TF_RETURN_IF_ERROR(
+        (*post_load_resource_estimator_)(&post_load_resource_estimate));
+    memoized_resource_estimate_ = post_load_resource_estimate;
+
+    // Release any transient memory used only during load to the OS.
+    const uint64 during_load_ram_estimate = resource_util_->GetQuantity(
+        ram_resource_, during_load_resource_estimate);
+    const uint64 post_load_ram_estimate =
+        resource_util_->GetQuantity(ram_resource_, post_load_resource_estimate);
+    if (post_load_ram_estimate < during_load_ram_estimate) {
+      const uint64 transient_ram_estimate =
+          during_load_ram_estimate - post_load_ram_estimate;
+      LOG(INFO) << "Calling MallocExtension_ReleaseToSystem() after servable "
+                   "load with "
+                << transient_ram_estimate;
+      ::tensorflow::port::MallocExtension_ReleaseToSystem(
+          transient_ram_estimate);
+    }
+  }
+
+  return Status::OK();
 }
 
 template <typename ServableType>
@@ -219,14 +288,13 @@ void SimpleLoader<ServableType>::Unload() {
 
   // If we have a main-memory footprint estimate, release that amount of memory
   // to the OS.
-  for (const ResourceAllocation::Entry& entry :
-       resource_estimate.resource_quantities()) {
-    if (entry.resource().device() == device_types::kMain &&
-        entry.resource().kind() == resource_kinds::kRamBytes) {
-      LOG(INFO) << "Calling MallocExtension_ReleaseToSystem() with "
-                << entry.quantity();
-      ::tensorflow::port::MallocExtension_ReleaseToSystem(entry.quantity());
-    }
+  const uint64 memory_estimate =
+      resource_util_->GetQuantity(ram_resource_, resource_estimate);
+  if (memory_estimate > 0) {
+    LOG(INFO) << "Calling MallocExtension_ReleaseToSystem() after servable "
+                 "unload with "
+              << memory_estimate;
+    ::tensorflow::port::MallocExtension_ReleaseToSystem(memory_estimate);
   }
 }
 
