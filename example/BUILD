@@ -122,8 +122,8 @@ py_binary(
         "syntaxnet_client.py",
     ],
     deps = [
-        "//tensorflow_serving/apis:syntaxnet_service_pb2.py",
-        "//syntaxnet:sentence_pb2.py",
+        "//tensorflow_serving/apis:syntaxnet_service_pb2",
+        "//syntaxnet:sentence_pb2",
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )
