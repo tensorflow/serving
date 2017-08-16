@@ -6,9 +6,7 @@ import "syntaxnet/sentence.proto";
 import "tensorflow_serving/apis/model.proto";
 
 message SyntaxNetRequest {
-    // Model Specification.
     ModelSpec model_spec = 1;
-
     repeated syntaxnet.Sentence inputs = 2;
 };
 

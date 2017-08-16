@@ -15,3 +15,4 @@ node_modules
 
 *.pb.h
 *.pb.cc
+*_pb2.py

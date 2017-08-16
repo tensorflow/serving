@@ -116,6 +116,18 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "syntaxnet_client",
+    srcs = [
+        "syntaxnet_client.py",
+    ],
+    deps = [
+        "//tensorflow_serving/apis:syntaxnet_service_pb2.py",
+        "//syntaxnet:sentence_pb2.py",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+    ],
+)
+
 cc_binary(
     name = "inception_client_cc",
     srcs = [
