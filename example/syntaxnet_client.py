@@ -33,7 +33,7 @@ def main(_):
                     sentence_pb2.Token(word='Алексей', start=18, end=26)])
 
   request.inputs.extend([sentence])
-  result = stub.Predict(request, 10.0)
+  result = stub.Parse(request, 10.0)
   print(result)
 
 
