@@ -13,7 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 
-#!/usr/bin/env python2.7
+# !/usr/bin/env python2.7
+# -*- coding: utf-8 -*-
 
 from __future__ import print_function
 
@@ -25,9 +26,8 @@ import tensorflow as tf
 from syntaxnet import sentence_pb2
 from tensorflow_serving.apis import syntaxnet_service_pb2
 
-
 tf.app.flags.DEFINE_string('server', 'localhost:8500',
-                           'SyntaxNetService host:port')
+  'SyntaxNetService host:port')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -45,7 +45,7 @@ def main(_):
   sentence.token = [sentence_pb2.Token(word='Привет', start=0, end=6),
                     sentence_pb2.Token(word='меня', start=7, end=11),
                     sentence_pb2.Token(word='зовут', start=12, end=17),
-                    sentence_pb2.Token(word='Алексей', start=18, end=26),]
+                    sentence_pb2.Token(word='Алексей', start=18, end=26), ]
 
   request.inputs = [sentence]
   result = stub.Predict(request, 10.0)
