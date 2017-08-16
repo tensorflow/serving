@@ -148,6 +148,15 @@ py_library(
     ],
 )
 
+py_library(
+    name = "syntaxnet_service_proto_py_pb2",
+    srcs = ["syntaxnet_service_pb2.py"],
+    deps = [
+        "//syntaxnet:sentence_py_pb2",
+        ":model_proto_py_pb2"
+    ],
+)
+
 serving_proto_library(
     name = "classification_proto",
     srcs = ["classification.proto"],
