@@ -48,6 +48,7 @@ limitations under the License.
 #include <memory>
 #include <utility>
 #include <vector>
+#include <tensorflow/util/python/python_lib/tensorflow/include/tensorflow/core/framework/types.pb.h>
 
 #include "google/protobuf/wrappers.pb.h"
 #include "grpc++/security/server_credentials.h"
@@ -57,6 +58,7 @@ limitations under the License.
 #include "grpc++/support/status.h"
 #include "grpc++/support/status_code_enum.h"
 #include "grpc/grpc.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/init_main.h"
@@ -78,6 +80,8 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/regressor.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
 
+#include "syntaxnet/sentence.pb.h"
+
 namespace grpc {
 class ServerCompletionQueue;
 }  // namespace grpc
@@ -93,8 +97,11 @@ using tensorflow::serving::FileSystemStoragePathSourceConfig_VersionPolicy_Name;
 using tensorflow::serving::GetModelMetadataImpl;
 using tensorflow::serving::Loader;
 using tensorflow::serving::ModelServerConfig;
+using tensorflow::serving::RegressionSignature;
 using tensorflow::serving::ServableState;
+using tensorflow::serving::ServableHandle;
 using tensorflow::serving::ServerCore;
+using tensorflow::serving::SessionBundle;
 using tensorflow::serving::SessionBundleConfig;
 using tensorflow::serving::Target;
 using tensorflow::serving::TensorflowClassificationServiceImpl;
@@ -190,9 +197,9 @@ class SyntaxNetRegressor {
       : use_saved_model_(use_saved_model) {}
 
   tensorflow::Status Regress(const tensorflow::RunOptions &run_options,
-                 ServerCore *core,
-                 const SyntaxNetRequest &request,
-                 SyntaxNetResponse *response) {
+                             ServerCore *core,
+                             const SyntaxNetRequest &request,
+                             SyntaxNetResponse *response) {
     if (request.inputs().empty()) {
       return tensorflow::errors::InvalidArgument("expected at least one sentence");
     }
@@ -204,29 +211,58 @@ class SyntaxNetRegressor {
 
  private:
   tensorflow::Status SessionBundleRegress(const tensorflow::RunOptions &options,
-                              ServerCore *core,
-                              const SyntaxNetRequest &request,
-                              SyntaxNetResponse *response) {
-//    ServableHandle<SessionBundle> bundle;
-//    TF_RETURN_IF_ERROR(core->GetServableHandle(request.model_spec(), &bundle));
-//
-//    RegressionSignature signature;
-//    GetRegressionSignature(bundle->meta_graph_def, &signature);
-//
-//    signature.
+                                          ServerCore *core,
+                                          const SyntaxNetRequest &request,
+                                          SyntaxNetResponse *response) {
+
+    using namespace tensorflow;
+
+    if (!request.has_model_spec()) {
+      return errors::InvalidArgument("Missing ModelSpec");
+    }
+
+    TF_RETURN_IF_ERROR(core->GetServableHandle(request.model_spec(), &bundle_));
+
+    RegressionSignature signature;
+    GetRegressionSignature(bundle_->meta_graph_def, &signature);
+
+    int sentences_count = request.inputs_size();
+    if (sentences_count == 0) {
+      return errors::InvalidArgument("Expected at least one sentence objects");
+    }
+
+    TensorShape shape;
+    shape.AddDim(sentences_count);
+
+    std::vector<Tensor> outputs;
+
+    int max_token_size;
+    for (int i = 0; i < sentences_count; i++) {
+      auto& sentence = request.inputs(i);
+      VLOG(1) << "TOKEN COUNT: " << sentence.token_size();
+      if (sentence.token_size() == 0) {
+        VLOG(1) << "Sentence #" << i << " of " << sentences_count
+                << " doesn't contain tokens.";
+        continue;
+      }
+
+    }
+
+    Tensor input(tensorflow::DT_STRING, {sentences_count});
 
     return tensorflow::errors::Unimplemented(
         "This format not implemented yet.");
   }
 
   tensorflow::Status SavedModelRegress(const tensorflow::RunOptions &options,
-                           ServerCore *core,
-                           const SyntaxNetRequest &request,
-                           SyntaxNetResponse *response) {
+                                       ServerCore *core,
+                                       const SyntaxNetRequest &request,
+                                       SyntaxNetResponse *response) {
     return tensorflow::errors::Unimplemented(
         "This format not implemented yet.");
   }
 
+  ServableHandle<SessionBundle> bundle_;
   bool use_saved_model_;
 };
 
