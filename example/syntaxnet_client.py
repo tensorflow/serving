@@ -27,10 +27,10 @@ def main(_):
 
   sentence = sentence_pb2.Sentence()
   sentence.text = 'Привет меня зовут Алексей'
-  sentence.token = [sentence_pb2.Token(word='Привет', start=0, end=6),
+  sentence.token.extend([sentence_pb2.Token(word='Привет', start=0, end=6),
                     sentence_pb2.Token(word='меня', start=7, end=11),
                     sentence_pb2.Token(word='зовут', start=12, end=17),
-                    sentence_pb2.Token(word='Алексей', start=18, end=26), ]
+                    sentence_pb2.Token(word='Алексей', start=18, end=26)])
 
   request.inputs = [sentence]
   result = stub.Predict(request, 10.0)
