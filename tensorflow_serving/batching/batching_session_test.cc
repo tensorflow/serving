@@ -221,7 +221,7 @@ TEST(BatchingSessionTest, BatchingWithPadding) {
   std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
           ThreadOptions(), "first_request", [&batching_session] {
               TestRequestToMatrixHalfPlusTwo({1, 2, 3, 4}, {1, 2, 2},
-              {2.5, 3, 2, 3.5, 4, 2, 2, 2, 2}, {1, 3, 3},
+              {2.5, 3, 2.5, 3.5, 4, 2.5, 2.5, 2.5, 2.5}, {1, 3, 3},
               batching_session.get());
           }));
   std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
@@ -231,6 +231,43 @@ TEST(BatchingSessionTest, BatchingWithPadding) {
                   batching_session.get());
           }));
 }
+
+TEST(BatchingSessionTest, UnequalTensorShapesWithBatchingTurnedOff) {
+  BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
+  schedule_options.max_batch_size = 2;
+  schedule_options.batch_timeout_micros = 1e6;
+  schedule_options.num_batch_threads = 1;
+  std::unique_ptr<Session> batching_session;
+  BatchingSessionOptions batching_session_options;
+  batching_session_options.pad_variable_length_inputs = false;
+  TF_ASSERT_OK(CreateBasicBatchingSession(schedule_options,
+               batching_session_options, {{"x"}, {"y"}},
+               CreateMatrixHalfPlusTwoSession(), &batching_session));
+  std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "first_request", [&batching_session] {
+          ExpectError(
+              "Tensors with name 'x' from different tasks"
+              " have different shapes and padding is turned off."
+              "Set pad_variable_length_inputs to true, or ensure that "
+              "all tensors with the same name"
+              "have equal dimensions starting with the first dim.",
+              {{"x", test::AsTensor<float>({1, 2, 3, 4}, {1, 2, 2})}},
+              {"y"}, batching_session.get());
+      }));
+  std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "first_request", [&batching_session] {
+          ExpectError(
+              "Tensors with name 'x' from different tasks"
+              " have different shapes and padding is turned off."
+              "Set pad_variable_length_inputs to true, or ensure that "
+              "all tensors with the same name"
+              "have equal dimensions starting with the first dim.",
+              {{"x", test::AsTensor<float>({5, 6, 7, 8, 9, 10, 11, 12, 13},
+                                           {1, 3, 3})}},
+              {"y"}, batching_session.get());
+      }));
+}
+
 
 TEST(BatchingSessionTest, SingletonBatch) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;

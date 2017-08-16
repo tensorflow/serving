@@ -20,8 +20,6 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_util.h"
-#include "tensorflow/core/framework/types.h"
-#include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -32,6 +30,7 @@ limitations under the License.
 #include "tensorflow_serving/util/cleanup.h"
 #include "tensorflow_serving/util/hash.h"
 #include "tensorflow_serving/batching/batching_util.h"
+#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -82,6 +81,8 @@ TensorSignature TensorSignatureFromRunArgs(
   return signature;
 }
 
+// Constructs vector of all task inputs from Batch of BatchingSessionTasks.
+// Input for each task is a vector of pairs (tensor_name, tensor_value).
 std::vector<std::vector<std::pair<string, Tensor>>> GetTaskInputsVector(
     const Batch<BatchingSessionTask>& batch) {
   std::vector<std::vector<std::pair<string, Tensor>>> all_task_inputs;
@@ -91,6 +92,21 @@ std::vector<std::vector<std::pair<string, Tensor>>> GetTaskInputsVector(
     all_task_inputs.push_back(task_inputs);
   }
   return all_task_inputs;
+}
+// Returns true iff all dims of shape1 are equal to dims of shape2 starting with
+// the first dimension.
+// For example, for shapes [1, 2, 3] and [4, 2, 3] the result is true.
+bool CheckShapesEqualExceptZeroDim(const TensorShape& shape1,
+    const TensorShape& shape2) {
+  if (shape1.dims() != shape2.dims()) {
+    return false;
+  }
+  for (int i = 1; i < shape1.dims(); ++i) {
+    if (shape1.dim_size(i) != shape2.dim_size(i)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 }  // namespace
@@ -354,11 +370,13 @@ Status BatchingSession::MergeInputTensors(
 
   // For each input tensor name, a vector of tensors from the individual tasks.
   std::map<string, std::vector<Tensor>> tensors_to_merge;
-  std::map<string, std::vector<int>> max_dim_sizes;
+  // For each input tensor name a vector of maximum dimension sizes
+  // among tensors from individual tasks.
+  auto max_dim_sizes = optional<std::map<string, std::vector<int>>>();
   if (options_.pad_variable_length_inputs) {
     std::vector<std::vector<std::pair<string, Tensor>>> all_task_inputs =
       GetTaskInputsVector(batch);
-    max_dim_sizes = CalculateMaxDimSizes(all_task_inputs);
+    max_dim_sizes = make_optional(CalculateMaxDimSizes(all_task_inputs));
   }
   // Populate 'tensors_to_merge'.
   for (int i = 0; i < batch.num_tasks(); ++i) {
@@ -369,15 +387,28 @@ Status BatchingSession::MergeInputTensors(
       const Tensor& tensor = entry.second;
 
       std::vector<Tensor>& tensor_vec = tensors_to_merge[tensor_name];
-      Tensor new_tensor = tensor;
+      Tensor optionally_padded_tensor;
       if (options_.pad_variable_length_inputs) {
-        PaddingResult res = AddPadding(tensor, max_dim_sizes[tensor_name]);
-        if (!res.padding_status.ok()) {
-          return res.padding_status;
+        TF_RETURN_IF_ERROR(AddPadding(tensor, (*max_dim_sizes)[tensor_name],
+                                      &optionally_padded_tensor));
+      } else {
+        optionally_padded_tensor = tensor;
+        // Check whether tensors with the same name have equal dims
+        // (except zeroth dim) when padding is turned off.
+        if (i > 0) {  // added at least one task to tensors_to_merge
+          TensorShape reference_shape =
+            tensors_to_merge[tensor_name][0].shape();
+          if (!CheckShapesEqualExceptZeroDim(tensor.shape(), reference_shape)) {
+            return errors::FailedPrecondition(
+              "Tensors with name '" + tensor_name + "' from different tasks" +
+              " have different shapes and padding is turned off." +
+              "Set pad_variable_length_inputs to true, or ensure that " +
+              "all tensors with the same name" +
+              "have equal dimensions starting with the first dim.");
+          }
         }
-        new_tensor = res.padded_tensor;
       }
-      tensor_vec.push_back(new_tensor);
+      tensor_vec.push_back(optionally_padded_tensor);
       if (i == batch.num_tasks() - 1 && padding_size > 0) {
         // This is the last task. Insert padding.
         //
@@ -387,7 +418,7 @@ Status BatchingSession::MergeInputTensors(
         //
         // Slice() operates on the 0th dimension, which is the batch dimension.
         // It avoids a deep copy, which is a nice efficiency bonus.
-        const Tensor padding_tensor = new_tensor.Slice(0, 1);
+        const Tensor padding_tensor = optionally_padded_tensor.Slice(0, 1);
         for (int i = 0; i < padding_size; ++i) {
           tensor_vec.push_back(padding_tensor);
         }

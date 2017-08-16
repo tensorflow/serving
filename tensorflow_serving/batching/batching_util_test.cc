@@ -50,76 +50,43 @@ TEST(BatchingUtilTest, CalculateMaxDimSizes) {
   std::map<string, std::vector<int>> max_dim_sizes =
     CalculateMaxDimSizes(batch);
   std::map<string, std::vector<int>> true_max_dim_sizes;
-  true_max_dim_sizes["x0"] = {0, 50, 30};
-  true_max_dim_sizes["x1"] = {0, 101};
+  true_max_dim_sizes["x0"] = {20, 50, 30};
+  true_max_dim_sizes["x1"] = {20, 101};
   EXPECT_EQ(max_dim_sizes, true_max_dim_sizes);
 }
 
 TEST(BatchingUtilTest, AddPadding) {
-  std::vector<int> max_dim_sizes {0, 100, 200};
-  std::vector<DataType> types {DT_FLOAT,
-                               DT_DOUBLE,
-                               DT_INT32,
-                               DT_UINT8,
-                               DT_INT16,
-                               DT_INT8,
-                               DT_STRING,
-                               DT_COMPLEX64,
-                               DT_INT64,
-                               DT_BOOL,
-                               DT_HALF,
-                               DT_RESOURCE,
-                               DT_COMPLEX128,
-                               DT_UINT16};
-  PaddingResult res;
+  std::vector<int> max_dim_sizes {20, 100, 200};
+  std::vector<DataType> types {DT_FLOAT, DT_DOUBLE, DT_INT32, DT_UINT8,
+      DT_INT16, DT_UINT16, DT_INT8, DT_STRING, DT_COMPLEX64, DT_COMPLEX128,
+      DT_INT64, DT_BOOL, DT_QINT8, DT_QUINT8, DT_QINT16,
+      DT_QUINT16, DT_QINT32, DT_HALF, DT_RESOURCE};
+  Status padding_status;
   for (auto type : types) {
     Tensor tensor(type, {10, 20, 30});
-    res = AddPadding(tensor, max_dim_sizes);
-    EXPECT_EQ(res.padding_status, Status::OK());
-    EXPECT_EQ(res.padded_tensor.shape(), TensorShape({10, 100, 200}));
+    Tensor padded_tensor;
+    padding_status = AddPadding(tensor, max_dim_sizes, &padded_tensor);
+    EXPECT_EQ(padding_status, Status::OK());
+    EXPECT_EQ(padded_tensor.shape(), TensorShape({10, 100, 200}));
   }
 }
 
-TEST(BatchingUtilTest, CreatePadding) {
-  Tensor tensor(DT_FLOAT, {10, 20, 30});
-  std::vector<int> max_dim_sizes {0, 100, 200};
-  std::array<std::pair<int32, int32>, 3> true_paddings;
-  true_paddings[0] = {0, 0};
-  true_paddings[1] = {0, 80};
-  true_paddings[2] = {0, 170};
-  auto paddings = CreatePadding<3>(tensor, max_dim_sizes);
-  EXPECT_EQ(paddings, true_paddings);
+TEST(BatchingUtilTest, AddPaddingTensorWithUnsupportedRank) {
+  std::vector<int> max_dim_sizes {20, 100, 200, 300, 400, 500, 600};
+  Tensor tensor(DT_FLOAT, {10, 20, 30, 40, 50, 60, 70});
+  Tensor padded_tensor;
+  Status padding_status = AddPadding(tensor, max_dim_sizes, &padded_tensor);
+  EXPECT_EQ(padding_status, errors::InvalidArgument(
+            "Only tensors with rank from 0 to 6 can be padded."));
 }
 
-TEST(BatchingUtilTest, PadTensorOfSpecificType) {
-  Tensor tensor(DT_FLOAT, {10, 20, 30});
-  std::vector<int> max_dim_sizes {0, 100, 200};
-  PaddingResult res;
-  res = PadTensorOfSpecificType<float>(tensor, max_dim_sizes);
-  EXPECT_EQ(res.padding_status, Status::OK());
-  EXPECT_EQ(res.padded_tensor.shape(), TensorShape({10, 100, 200}));
-  tensor = Tensor(DT_FLOAT, {10, 20, 30, 40, 50, 60, 70});
-  res = PadTensorOfSpecificType<float>(tensor, max_dim_sizes);
-  EXPECT_NE(res.padding_status, Status::OK());
-}
-
-TEST(BatchingUtilTest, PadTensor) {
-  Tensor tensor(DT_FLOAT, {10, 20, 30});
-  std::array<std::pair<int32, int32>, 3> paddings;
-  paddings[0] = {0, 0};
-  paddings[1] = {5, 10};
-  paddings[2] = {10, 15};
-  PaddingResult res;
-  PadTensor<float, 3> padding_functor;
-  res = padding_functor(tensor, paddings);
-  EXPECT_EQ(res.padding_status, Status::OK());
-  EXPECT_EQ(res.padded_tensor.shape(), TensorShape({10, 35, 55}));
+TEST(BatchingUtilTest, AddPaddingScalar) {
+  std::vector<int> max_dim_sizes;
   Tensor scalar(DT_FLOAT, {});
-  PadTensor<float, 0> scalar_padding_functor;
-  res = scalar_padding_functor(scalar,
-      std::array<std::pair<int32, int32>, 0>());
-  EXPECT_EQ(res.padding_status, Status::OK());
-  EXPECT_EQ(res.padded_tensor.shape(), scalar.shape());
+  Tensor padded_tensor;
+  Status padding_status = AddPadding(scalar, max_dim_sizes, &padded_tensor);
+  EXPECT_EQ(padding_status, Status::OK());
+  EXPECT_EQ(padded_tensor.shape(), scalar.shape());
 }
 }  // namespace
 }  // namespace serving

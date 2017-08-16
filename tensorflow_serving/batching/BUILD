@@ -64,6 +64,7 @@ cc_library(
         "//tensorflow_serving/util:cleanup",
         "//tensorflow_serving/util:hash",
         "//tensorflow_serving/batching:batching_util",
+        "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/contrib/batching:basic_batch_scheduler",
         "@org_tensorflow//tensorflow/contrib/batching:batch_scheduler",
         "@org_tensorflow//tensorflow/core:core_cpu",
@@ -126,11 +127,9 @@ cc_library(
     name = "batching_util",
     srcs = ["batching_util.cc"],
     hdrs = ["batching_util.h"],
-    visibility = ["//visibility:public"],
     deps = [
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/contrib/batching:basic_batch_scheduler",
     ],
 )
 

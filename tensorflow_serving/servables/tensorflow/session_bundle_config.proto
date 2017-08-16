@@ -87,6 +87,6 @@ message BatchingParameters {
   //  - The final entry must equal 'max_batch_size'.
   repeated int64 allowed_batch_sizes = 6;
 
-  // Whether to pad variable-length inputs when batch is formed.
+  // Whether to pad variable-length inputs when a batch is formed.
   google.protobuf.BoolValue pad_variable_length_inputs = 7;
 }
