@@ -28,8 +28,8 @@ namespace serving {
 
 // Padding for one dimension of a tensor.
 struct OneDimPadding {
-  int first;  // pad before
-  int second;  // pad after
+  int64 first;  // pad before
+  int64 second;  // pad after
 };
 
 // Constructs array of paddings, where:

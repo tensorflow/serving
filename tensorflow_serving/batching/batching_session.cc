@@ -372,11 +372,11 @@ Status BatchingSession::MergeInputTensors(
   std::map<string, std::vector<Tensor>> tensors_to_merge;
   // For each input tensor name a vector of maximum dimension sizes
   // among tensors from individual tasks.
-  auto max_dim_sizes = optional<std::map<string, std::vector<int>>>();
+  optional<std::map<string, std::vector<int>>> max_dim_sizes;
   if (options_.pad_variable_length_inputs) {
     std::vector<std::vector<std::pair<string, Tensor>>> all_task_inputs =
       GetTaskInputsVector(batch);
-    max_dim_sizes = make_optional(CalculateMaxDimSizes(all_task_inputs));
+    max_dim_sizes = CalculateMaxDimSizes(all_task_inputs);
   }
   // Populate 'tensors_to_merge'.
   for (int i = 0; i < batch.num_tasks(); ++i) {
