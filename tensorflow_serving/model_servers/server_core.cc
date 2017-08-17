@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "google/protobuf/any.pb.h"
 #include "google/protobuf/wrappers.pb.h"
+#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow_serving/core/load_servables_fast.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
@@ -69,7 +70,9 @@ Status GetPlatform(const ModelConfig& model_config, string* platform) {
 
 // Returns an error if 'config_list' is invalid in some way, e.g. a model name
 // appearing multiple times.
-Status ValidateModelConfigList(const ModelConfigList& config_list) {
+Status ValidateModelConfigList(const ModelConfigList& config_list,
+                               const ServerCore::Options& options) {
+  // Unique model-names.
   std::set<string> model_names;
   for (const ModelConfig& config : config_list.config()) {
     if (model_names.find(config.name()) != model_names.end()) {
@@ -79,6 +82,35 @@ Status ValidateModelConfigList(const ModelConfigList& config_list) {
     }
     model_names.insert(config.name());
   }
+
+  // Base-paths are either all relative, or all absolute.
+  using ::tensorflow::io::IsAbsolutePath;
+  using ::tensorflow::io::JoinPath;
+  if (options.model_config_list_root_dir) {
+    // All paths must be relative.
+    if (!IsAbsolutePath(*options.model_config_list_root_dir)) {
+      return errors::InvalidArgument(strings::StrCat(
+          "Expected non-empty absolute path; got model_config_list_root_dir=",
+          *options.model_config_list_root_dir));
+    }
+    for (const ModelConfig& config : config_list.config()) {
+      if (IsAbsolutePath(config.base_path())) {
+        return errors::InvalidArgument(strings::StrCat(
+            "Expected model ", config.name(),
+            " to have a relative path; got base_path()=", config.base_path()));
+      }
+    }
+  } else {
+    // All paths must be absolute.
+    for (const ModelConfig& config : config_list.config()) {
+      if (!IsAbsolutePath(config.base_path())) {
+        return errors::InvalidArgument(strings::StrCat(
+            "Expected model ", config.name(),
+            " to have an absolute path; got base_path()=", config.base_path()));
+      }
+    }
+  }
+
   return Status::OK();
 }
 
@@ -149,6 +181,32 @@ std::set<string> NewModelNamesInSourceConfig(
     }
   }
   return new_models;
+}
+
+// Updates the base_path fields in each ModelConfig, prepending an
+// absolute model_config_list_root_dir.
+// It is assumed that initially, all the base_path fields are relative.
+Status UpdateModelConfigListRelativePaths(
+    const string& model_config_list_root_dir, ModelConfigList* config_list) {
+  using ::tensorflow::io::IsAbsolutePath;
+  using ::tensorflow::io::JoinPath;
+  std::vector<string> updated_paths;
+  updated_paths.reserve(config_list->config_size());
+  for (const ModelConfig& config : config_list->config()) {
+    updated_paths.emplace_back(
+        JoinPath(model_config_list_root_dir, config.base_path()));
+    if (!IsAbsolutePath(updated_paths.back())) {
+      return errors::InvalidArgument(strings::StrCat(
+          "Expected model ", config.name(),
+          " with updated base_path = JoinPath(", model_config_list_root_dir,
+          ", ", config.base_path(), ") to have an absolute path; got ",
+          updated_paths.back()));
+    }
+  }
+  for (int ii = 0; ii < updated_paths.size(); ++ii) {
+    config_list->mutable_config(ii)->set_base_path(updated_paths[ii]);
+  }
+  return Status::OK();
 }
 
 }  // namespace
@@ -363,7 +421,8 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
     return Status::OK();
   }
   if (new_config.config_case() == ModelServerConfig::kModelConfigList) {
-    TF_RETURN_IF_ERROR(ValidateModelConfigList(new_config.model_config_list()));
+    TF_RETURN_IF_ERROR(
+        ValidateModelConfigList(new_config.model_config_list(), options_));
   }
   if (new_config.config_case() == ModelServerConfig::kModelConfigList &&
       config_.config_case() == ModelServerConfig::kModelConfigList) {
@@ -375,6 +434,11 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   LOG(INFO) << "Adding/updating models.";
   switch (config_.config_case()) {
     case ModelServerConfig::kModelConfigList: {
+      if (options_.model_config_list_root_dir) {
+        TF_RETURN_IF_ERROR(UpdateModelConfigListRelativePaths(
+            *options_.model_config_list_root_dir,
+            config_.mutable_model_config_list()));
+      }
       TF_RETURN_IF_ERROR(AddModelsViaModelConfigList());
       break;
     }
