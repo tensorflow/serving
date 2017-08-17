@@ -48,7 +48,6 @@ limitations under the License.
 #include <memory>
 #include <utility>
 #include <vector>
-#include <tensorflow/util/python/python_lib/tensorflow/include/tensorflow/core/framework/types.pb.h>
 
 #include "google/protobuf/wrappers.pb.h"
 #include "grpc++/security/server_credentials.h"
@@ -248,7 +247,7 @@ class SyntaxNetRegressor {
 
     }
 
-    Tensor input(tensorflow::DT_STRING, {sentences_count});
+//    Tensor input(tensorflow::DT_STRING, {sentences_count});
 
     return tensorflow::errors::Unimplemented(
         "This format not implemented yet.");
