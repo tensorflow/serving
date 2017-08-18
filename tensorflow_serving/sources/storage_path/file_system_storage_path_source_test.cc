@@ -33,6 +33,7 @@ limitations under the License.
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
+using ::testing::AnyOf;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::IsEmpty;
@@ -685,6 +686,43 @@ TEST(FileSystemStoragePathSourceTest, ServableVersionDirRenamed) {
                                         io::JoinPath(base_path_prefix, "3")))));
 
   TF_ASSERT_OK(source->UpdateConfig(config));
+  TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
+                   .PollFileSystemAndInvokeCallback());
+}
+
+TEST(FileSystemStoragePathSourceTest, DuplicateVersions) {
+  const string base_path = io::JoinPath(testing::TmpDir(), "DuplicateVersions");
+  TF_ASSERT_OK(Env::Default()->CreateDir(base_path));
+  TF_ASSERT_OK(Env::Default()->CreateDir(
+      io::JoinPath(base_path, "non_numerical_child")));
+  for (const string& version : {"0001", "001", "00001"}) {
+    TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path, version)));
+  }
+
+  auto config = test_util::CreateProto<FileSystemStoragePathSourceConfig>(
+      strings::Printf("servable_name: 'test_servable_name' "
+                      "base_path: '%s' "
+                      // Disable the polling thread.
+                      "file_system_poll_wait_seconds: -1 ",
+                      base_path.c_str()));
+  std::unique_ptr<FileSystemStoragePathSource> source;
+  TF_ASSERT_OK(FileSystemStoragePathSource::Create(config, &source));
+  std::unique_ptr<test_util::MockStoragePathTarget> target(
+      new StrictMock<test_util::MockStoragePathTarget>);
+  ConnectSourceToTarget(source.get(), target.get());
+
+  EXPECT_CALL(
+      *target,
+      SetAspiredVersions(
+          Eq("test_servable_name"),
+          AnyOf(
+              ElementsAre(ServableData<StoragePath>(
+                  {"test_servable_name", 1}, io::JoinPath(base_path, "001"))),
+              ElementsAre(ServableData<StoragePath>(
+                  {"test_servable_name", 1}, io::JoinPath(base_path, "0001"))),
+              ElementsAre(ServableData<StoragePath>(
+                  {"test_servable_name", 1},
+                  io::JoinPath(base_path, "00001"))))));
   TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
                    .PollFileSystemAndInvokeCallback());
 }

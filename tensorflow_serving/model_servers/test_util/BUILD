@@ -79,6 +79,7 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
         "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_proto",
         "//tensorflow_serving/test_util",
+        "//testing/base/public:gunit_for_library",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )

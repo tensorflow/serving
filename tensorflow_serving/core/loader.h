@@ -71,7 +71,10 @@ class Loader {
   ///     the estimate must specify the instance to which each resource is
   ///     bound.
   ///  4. The estimate must be monotonically non-increasing, i.e. it cannot
-  ///     increase over time.
+  ///     increase over time. Reasons to have it potentially decrease over time
+  //      include: (a) replace conservative estimate with actual measurement
+  //      once loaded in memory; (b) load process consumes extra transient
+  //      memory that is not used in steady-state after the load completes.
   ///
   /// @return an estimate of the resources the servable will consume once
   /// loaded. If the servable has already been loaded, returns an estimate of
