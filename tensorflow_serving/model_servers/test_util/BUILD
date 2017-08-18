@@ -69,6 +69,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "//external:gtest",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/core:servable_id",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter",

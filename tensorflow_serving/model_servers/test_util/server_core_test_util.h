@@ -63,13 +63,26 @@ class ServerCoreTest : public ::testing::TestWithParam<int> {
   ServerCore::Options GetDefaultOptions();
 
   // Creates a ServerCore object configured with both a fake platform and the
+  // tensorflow platform, using the supplied options.
+  Status CreateServerCore(const ModelServerConfig& config,
+                          ServerCore::Options options,
+                          std::unique_ptr<ServerCore>* server_core);
+
+  // Creates a ServerCore object configured with both a fake platform and the
   // tensorflow platform, using GetDefaultOptions().
   Status CreateServerCore(const ModelServerConfig& config,
-                          std::unique_ptr<ServerCore>* server_core);
+                          std::unique_ptr<ServerCore>* server_core) {
+    return CreateServerCore(config, GetDefaultOptions(), server_core);
+  }
 
   // Returns test type. This is the parameter of this test.
   TestType GetTestType() { return static_cast<TestType>(GetParam()); }
 };
+
+// Creates a ServerCore object with the supplied options.
+Status CreateServerCore(const ModelServerConfig& config,
+                        ServerCore::Options options,
+                        std::unique_ptr<ServerCore>* server_core);
 
 // Creates a ServerCore object with sane defaults.
 Status CreateServerCore(const ModelServerConfig& config,

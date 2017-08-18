@@ -264,6 +264,8 @@ cc_library(
         "//tensorflow_serving/core:simple_loader",
         "//tensorflow_serving/core:source_adapter",
         "//tensorflow_serving/core:storage_path",
+        "//tensorflow_serving/resources:resource_util",
+        "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/resources:resources_proto",
         "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",

@@ -54,6 +54,7 @@ cc_library(
     deps = [
         ":model_platform_types",
         "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/config:logging_config_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/config:platform_config_proto",
         "//tensorflow_serving/core:aspired_versions_manager",
@@ -71,6 +72,7 @@ cc_library(
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto",
         "//tensorflow_serving/util:event_bus",
+        "//tensorflow_serving/util:optional",
         "//tensorflow_serving/util:unique_ptr_with_deps",
         "@org_tensorflow//tensorflow/core:lib",
         "@protobuf//:cc_wkt_protos",
@@ -82,6 +84,7 @@ cc_test(
     size = "medium",
     srcs = ["server_core_test.cc"],
     deps = [
+        ":model_platform_types",
         ":server_core",
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/apis:predict_proto",
@@ -96,6 +99,8 @@ cc_test(
         "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter",
         "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter_proto",
         "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
         "@protobuf//:cc_wkt_protos",
     ],

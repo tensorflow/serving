@@ -70,10 +70,16 @@ ServerCore::Options GetDefaultOptions(const bool use_saved_model) {
 }  // namespace
 
 Status CreateServerCore(const ModelServerConfig& config,
+                        ServerCore::Options options,
                         std::unique_ptr<ServerCore>* server_core) {
-  ServerCore::Options options = GetDefaultOptions(true /*use_saved_model */);
   options.model_server_config = config;
   return ServerCore::Create(std::move(options), server_core);
+}
+
+Status CreateServerCore(const ModelServerConfig& config,
+                        std::unique_ptr<ServerCore>* server_core) {
+  return CreateServerCore(config, GetDefaultOptions(true /*use_saved_model */),
+                          server_core);
 }
 
 ModelServerConfig ServerCoreTest::GetTestModelServerConfigForFakePlatform() {
@@ -117,8 +123,9 @@ ServerCore::Options ServerCoreTest::GetDefaultOptions() {
 }
 
 Status ServerCoreTest::CreateServerCore(
-    const ModelServerConfig& config, std::unique_ptr<ServerCore>* server_core) {
-  return test_util::CreateServerCore(config, server_core);
+    const ModelServerConfig& config, ServerCore::Options options,
+    std::unique_ptr<ServerCore>* server_core) {
+  return test_util::CreateServerCore(config, std::move(options), server_core);
 }
 
 }  // namespace test_util

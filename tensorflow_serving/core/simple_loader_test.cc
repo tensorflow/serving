@@ -96,10 +96,66 @@ TEST(SimpleLoaderTest, ResourceEstimation) {
         *estimate = want;
         return Status::OK();
       }));
-  for (int i = 0; i < 2; ++i) {
+
+  {
     ResourceAllocation got;
     TF_ASSERT_OK(loader->EstimateResources(&got));
     EXPECT_THAT(got, EqualsProto(want));
+  }
+
+  // The estimate should remain the same after load.
+  TF_ASSERT_OK(loader->Load());
+  {
+    ResourceAllocation got;
+    TF_ASSERT_OK(loader->EstimateResources(&got));
+    EXPECT_THAT(got, EqualsProto(want));
+  }
+}
+
+TEST(SimpleLoaderTest, ResourceEstimationWithPostLoadRelease) {
+  const auto pre_load_resources = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 42 "
+      "} ");
+  const auto post_load_resources = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 17 "
+      "} ");
+  std::unique_ptr<Loader> loader(new SimpleLoader<int>(
+      [](std::unique_ptr<int>* servable) {
+        servable->reset(new int);
+        return Status::OK();
+      },
+      [&pre_load_resources](ResourceAllocation* estimate) {
+        *estimate = pre_load_resources;
+        return Status::OK();
+      },
+      [&post_load_resources](ResourceAllocation* estimate) {
+        *estimate = post_load_resources;
+        return Status::OK();
+      }));
+
+  // Run it twice, to exercise memoization.
+  for (int i = 0; i < 2; ++i) {
+    ResourceAllocation got;
+    TF_ASSERT_OK(loader->EstimateResources(&got));
+    EXPECT_THAT(got, EqualsProto(pre_load_resources));
+  }
+
+  // The estimate should switch to the post-load one after load.
+  TF_ASSERT_OK(loader->Load());
+  {
+    ResourceAllocation got;
+    TF_ASSERT_OK(loader->EstimateResources(&got));
+    EXPECT_THAT(got, EqualsProto(post_load_resources));
   }
 }
 
