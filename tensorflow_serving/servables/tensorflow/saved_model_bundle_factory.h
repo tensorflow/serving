@@ -73,6 +73,8 @@ class SavedModelBundleFactory {
   Status EstimateResourceRequirement(const string& path,
                                      ResourceAllocation* estimate) const;
 
+  const SessionBundleConfig& config() const { return config_; }
+
  private:
   using Batcher = SharedBatchScheduler<BatchingSessionTask>;
 

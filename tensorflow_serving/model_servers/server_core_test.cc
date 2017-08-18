@@ -16,8 +16,10 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/server_core.h"
 
 #include "google/protobuf/any.pb.h"
+#include "tensorflow/core/lib/core/error_codes.pb.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/core/servable_handle.h"
@@ -177,6 +179,98 @@ TEST_P(ServerCoreTest, ReloadConfigChangeModelBasePath) {
     available_servables = server_core->ListAvailableServableIds();
   } while (available_servables.empty() ||
            available_servables.at(0).version != test_util::kTestModelVersion);
+}
+
+class RelativePathsServerCoreTest : public ServerCoreTest {
+ protected:
+  // Creates a ModelServerConfig instance where the directory name has
+  // been stripped off the ModelConfig::base_path.  Instead that prefix
+  // can be supplied via the Options::model_config_list_root_dir.
+  ModelServerConfig GetTestModelServerConfigWithRelativePath(
+      string* optional_config_list_root_dir = nullptr) {
+    using ::tensorflow::io::Basename;
+    using ::tensorflow::io::Dirname;
+    using ::tensorflow::io::IsAbsolutePath;
+
+    ModelServerConfig result = GetTestModelServerConfigForFakePlatform();
+    const string model_name = result.model_config_list().config(0).name();
+
+    ModelConfig& relative =
+        *result.mutable_model_config_list()->mutable_config(0);
+    relative.set_name(strings::StrCat(model_name, "_relative"));
+    CHECK(IsAbsolutePath(relative.base_path()))
+        << "relative.base_path()=" << relative.base_path()
+        << " must start as an absolute path for this unit-test to work.";
+    const string dirname = Dirname(relative.base_path()).ToString();
+    const string basename = Basename(relative.base_path()).ToString();
+    CHECK(!dirname.empty());
+    CHECK(!basename.empty());
+    relative.set_base_path(basename);
+
+    if (optional_config_list_root_dir) {
+      *optional_config_list_root_dir = dirname;
+    }
+
+    return result;
+  }
+};
+
+TEST_P(RelativePathsServerCoreTest, AbsolutePathSucceeds) {
+  std::unique_ptr<ServerCore> server_core;
+  ModelServerConfig absolute = GetTestModelServerConfigForFakePlatform();
+  TF_ASSERT_OK(CreateServerCore(absolute, &server_core));
+}
+
+TEST_P(RelativePathsServerCoreTest, RelativePathFails) {
+  std::unique_ptr<ServerCore> server_core;
+  ModelServerConfig relative = GetTestModelServerConfigWithRelativePath();
+  EXPECT_EQ(error::INVALID_ARGUMENT,
+            CreateServerCore(relative, &server_core).code());
+}
+
+TEST_P(RelativePathsServerCoreTest, AbsolutePathWithOptionsFails) {
+  std::unique_ptr<ServerCore> server_core;
+  ModelServerConfig absolute = GetTestModelServerConfigForFakePlatform();
+  ServerCore::Options options = GetDefaultOptions();
+  {
+    string model_config_list_root_dir;
+    ModelServerConfig relative =
+        GetTestModelServerConfigWithRelativePath(&model_config_list_root_dir);
+    options.model_config_list_root_dir = std::move(model_config_list_root_dir);
+  }
+  EXPECT_EQ(
+      error::INVALID_ARGUMENT,
+      CreateServerCore(absolute, std::move(options), &server_core).code());
+}
+
+TEST_P(RelativePathsServerCoreTest, AbsolutePathWithEmptyPathFails) {
+  std::unique_ptr<ServerCore> server_core;
+  ModelServerConfig absolute = GetTestModelServerConfigForFakePlatform();
+  ServerCore::Options options = GetDefaultOptions();
+  options.model_config_list_root_dir = "";  // This should fail IsAbsolutePath.
+  EXPECT_EQ(
+      error::INVALID_ARGUMENT,
+      CreateServerCore(absolute, std::move(options), &server_core).code());
+}
+
+TEST_P(RelativePathsServerCoreTest, RelativePathWithOptionsSucceeds) {
+  std::unique_ptr<ServerCore> server_core;
+  ServerCore::Options options = GetDefaultOptions();
+  string model_config_list_root_dir;
+  ModelServerConfig relative =
+      GetTestModelServerConfigWithRelativePath(&model_config_list_root_dir);
+  options.model_config_list_root_dir = std::move(model_config_list_root_dir);
+  TF_ASSERT_OK(CreateServerCore(relative, std::move(options), &server_core));
+}
+
+TEST_P(RelativePathsServerCoreTest, MixedAbsoluteRelativeFails) {
+  std::unique_ptr<ServerCore> server_core;
+  ModelServerConfig mixed = GetTestModelServerConfigForFakePlatform();
+  const ModelServerConfig relative = GetTestModelServerConfigWithRelativePath();
+  *mixed.mutable_model_config_list()->add_config() =
+      relative.model_config_list().config(0);
+  EXPECT_EQ(error::INVALID_ARGUMENT,
+            CreateServerCore(mixed, &server_core).code());
 }
 
 TEST_P(ServerCoreTest, ErroringModel) {
@@ -519,6 +613,10 @@ TEST_P(ServerCoreTest, RequestLoggingOn) {
 
 INSTANTIATE_TEST_CASE_P(
     TestType, ServerCoreTest,
+    ::testing::Range(0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)));
+
+INSTANTIATE_TEST_CASE_P(
+    TestType, RelativePathsServerCoreTest,
     ::testing::Range(0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)));
 
 }  // namespace
