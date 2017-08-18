@@ -87,8 +87,6 @@ using tensorflow::serving::AvailabilityPreservingPolicy;
 using tensorflow::serving::BatchingParameters;
 using tensorflow::serving::EventBus;
 using tensorflow::serving::FileSystemStoragePathSourceConfig;
-using tensorflow::serving::FileSystemStoragePathSourceConfig_VersionPolicy;
-using tensorflow::serving::FileSystemStoragePathSourceConfig_VersionPolicy_Name;
 using tensorflow::serving::GetModelMetadataImpl;
 using tensorflow::serving::ModelServerConfig;
 using tensorflow::serving::ServableState;

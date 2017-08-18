@@ -27,6 +27,8 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/servable_data.h"
+#include "tensorflow_serving/resources/resource_util.h"
+#include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
@@ -41,6 +43,16 @@ using test_util::EqualsProto;
 
 class SavedModelBundleSourceAdapterTest : public ::testing::Test {
  protected:
+  SavedModelBundleSourceAdapterTest() {
+    ResourceUtil::Options resource_util_options;
+    resource_util_options.devices = {{device_types::kMain, 1}};
+    resource_util_ =
+        std::unique_ptr<ResourceUtil>(new ResourceUtil(resource_util_options));
+
+    ram_resource_ = resource_util_->CreateBoundResource(
+        device_types::kMain, resource_kinds::kRamBytes);
+  }
+
   void TestSavedModelBundleSourceAdapter(
       const SessionBundleSourceAdapterConfig& config,
       const string& export_dir) const {
@@ -69,15 +81,33 @@ class SavedModelBundleSourceAdapterTest : public ::testing::Test {
 
     TF_ASSERT_OK(loader->Load());
 
+    // We should get a new (lower) resource estimate post-load.
+    ResourceAllocation expected_post_load_resource_estimate =
+        first_resource_estimate;
+    resource_util_->SetQuantity(
+        ram_resource_,
+        resource_util_->GetQuantity(ram_resource_, first_resource_estimate) -
+            config.config().experimental_transient_ram_bytes_during_load(),
+        &expected_post_load_resource_estimate);
+    ResourceAllocation actual_post_load_resource_estimate;
+    TF_ASSERT_OK(
+        loader->EstimateResources(&actual_post_load_resource_estimate));
+    EXPECT_THAT(actual_post_load_resource_estimate,
+                EqualsProto(expected_post_load_resource_estimate));
+
     const SavedModelBundle* bundle = loader->servable().get<SavedModelBundle>();
     test_util::TestSingleRequest(bundle->session.get());
 
     loader->Unload();
   }
+
+  std::unique_ptr<ResourceUtil> resource_util_;
+  Resource ram_resource_;
 };
 
 TEST_F(SavedModelBundleSourceAdapterTest, Basic) {
-  const SessionBundleSourceAdapterConfig config;
+  SessionBundleSourceAdapterConfig config;
+  config.mutable_config()->set_experimental_transient_ram_bytes_during_load(42);
   TestSavedModelBundleSourceAdapter(config, test_util::GetTestSavedModelPath());
 }
 

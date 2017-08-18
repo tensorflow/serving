@@ -182,7 +182,7 @@ in the documentation, you can add the flags `-c opt --copt=-msse4.1
 subset of these flags). For example:
 
 ```shell
-bazel build -c opt --config=mkl --copt=-msse4.1 --copt=-msse4.2 --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-O3 tensorflow_serving/...
+bazel build -c opt --copt=-msse4.1 --copt=-msse4.2 --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-O3 tensorflow_serving/...
 ```
 
 Note: These instruction sets are not available on all machines, especially with

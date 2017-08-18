@@ -87,6 +87,9 @@ class ServerCore : public Manager {
   struct Options {
     // ModelServer configuration.
     ModelServerConfig model_server_config;
+    // Relative (non-absolute) base-paths in model_server_config will
+    // be prepended with model_config_list_root_dir.
+    optional<string> model_config_list_root_dir;
 
     // The AspiredVersionPolicy to use for the manager. Must be non-null.
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy;
