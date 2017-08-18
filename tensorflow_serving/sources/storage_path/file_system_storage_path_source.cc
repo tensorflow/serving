@@ -132,6 +132,12 @@ IndexChildrenByVersion(const std::vector<string>& children) {
       continue;
     }
 
+    if (children_by_version.count(version_number) > 0) {
+      LOG(WARNING) << "Duplicate version directories detected. Version "
+                   << version_number << " will be loaded from " << children[i]
+                   << ", " << children_by_version[version_number]
+                   << " will be ignored.";
+    }
     children_by_version[version_number] = children[i];
   }
   return children_by_version;

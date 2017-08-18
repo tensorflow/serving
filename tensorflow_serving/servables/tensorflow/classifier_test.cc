@@ -493,6 +493,31 @@ TEST_P(ClassifierTest, ScoresOnly) {
                                    " } "));
 }
 
+TEST_P(ClassifierTest, ZeroScoresArePresent) {
+  tensorflow::serving::Signatures signatures;
+  auto signature = signatures.mutable_default_signature()
+                       ->mutable_classification_signature();
+  signature->mutable_input()->set_tensor_name(kInputTensor);
+  // No classes Tensor.
+  signature->mutable_scores()->set_tensor_name(kScoreTensor);
+  TF_ASSERT_OK(tensorflow::serving::SetSignatures(signatures, meta_graph_def_));
+  TF_ASSERT_OK(Create());
+  auto* examples =
+      request_.mutable_input()->mutable_example_list()->mutable_examples();
+  *examples->Add() = example({{"minus", -1}, {"zero", 0}, {"one", 1}});
+  const std::vector<double> expected_outputs = {-1, 0, 1};
+
+  TF_ASSERT_OK(classifier_->Classify(request_, &result_));
+  // Parse the protos and compare the results with expected scores.
+  ASSERT_EQ(result_.classifications_size(), 1);
+  auto& classification = result_.classifications(0);
+  ASSERT_EQ(classification.classes_size(), 3);
+
+  for (int i = 0; i < 3; ++i) {
+    EXPECT_NEAR(classification.classes(i).score(), expected_outputs[i], 1e-7);
+  }
+}
+
 TEST_P(ClassifierTest, ValidNamedSignature) {
   TF_ASSERT_OK(Create());
   request_.mutable_model_spec()->set_signature_name(kOutputPlusOneSignature);
