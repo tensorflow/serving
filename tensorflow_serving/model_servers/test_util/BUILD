@@ -69,6 +69,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "//external:gtest",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/core:servable_id",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter",
@@ -79,7 +80,6 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
         "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_proto",
         "//tensorflow_serving/test_util",
-        "//testing/base/public:gunit_for_library",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
