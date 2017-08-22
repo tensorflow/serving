@@ -245,7 +245,7 @@ class SyntaxNetRegressor {
 //    Tensor input(tensorflow::DT_STRING, {sentences_count});
 
     return tensorflow::errors::Unimplemented(
-        "This format not implemented yet.");
+        "SessionBundle format not implemented yet.");
   }
 
   tensorflow::Status SavedModelRegress(const tensorflow::RunOptions &options,
@@ -253,7 +253,7 @@ class SyntaxNetRegressor {
                                        const SyntaxNetRequest &request,
                                        SyntaxNetResponse *response) {
     return tensorflow::errors::Unimplemented(
-        "This format not implemented yet.");
+        "SavedModel format not implemented yet.");
   }
 
   ServableHandle<SessionBundle> bundle_;
