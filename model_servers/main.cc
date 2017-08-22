@@ -78,7 +78,6 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
 #include "tensorflow_serving/servables/tensorflow/regressor.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
-
 #include "syntaxnet/sentence.pb.h"
 
 namespace grpc {
@@ -215,7 +214,6 @@ class SyntaxNetRegressor {
                                           SyntaxNetResponse *response) {
 
     using namespace tensorflow;
-
     if (!request.has_model_spec()) {
       return errors::InvalidArgument("Missing ModelSpec");
     }
@@ -226,9 +224,6 @@ class SyntaxNetRegressor {
     GetRegressionSignature(bundle_->meta_graph_def, &signature);
 
     int sentences_count = request.inputs_size();
-    if (sentences_count == 0) {
-      return errors::InvalidArgument("Expected at least one sentence objects");
-    }
 
     TensorShape shape;
     shape.AddDim(sentences_count);
@@ -270,6 +265,7 @@ class SyntaxNetServiceImpl final : public SyntaxNetService::Service {
   explicit SyntaxNetServiceImpl(std::unique_ptr<ServerCore> core,
                                 bool use_saved_model)
       : core_(std::move(core)),
+        regressor_(new SyntaxNetRegressor(use_saved_model)),
         use_saved_model_(use_saved_model) {}
 
   grpc::Status Parse(ServerContext *context, const SyntaxNetRequest *request,
