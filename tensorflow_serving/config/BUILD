@@ -24,6 +24,7 @@ serving_proto_library(
     name = "model_server_config_proto",
     srcs = ["model_server_config.proto"],
     cc_api_version = 2,
+    go_api_version = 2,
     deps = [
         ":logging_config_proto",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto",
