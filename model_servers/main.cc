@@ -220,32 +220,35 @@ class SyntaxNetRegressor {
 
     TF_RETURN_IF_ERROR(core->GetServableHandle(request.model_spec(), &bundle_));
 
-    RegressionSignature signature;
-    GetRegressionSignature(bundle_->meta_graph_def, &signature);
-
     int sentences_count = request.inputs_size();
 
-    TensorShape shape;
-    shape.AddDim(sentences_count);
-
-    std::vector<Tensor> outputs;
-
-    int max_token_size;
+    Tensor inputs(tensorflow::DT_STRING, {sentences_count});
     for (int i = 0; i < sentences_count; i++) {
-      auto& sentence = request.inputs(i);
-      VLOG(1) << "TOKEN COUNT: " << sentence.token_size();
-      if (sentence.token_size() == 0) {
-        VLOG(1) << "Sentence #" << i << " of " << sentences_count
-                << " doesn't contain tokens.";
-        continue;
-      }
+      inputs.vec<string>()(i) = request.inputs(i).SerializeAsString();
+    }
+    std::vector<Tensor> outputs;
+    RunMetadata run_metadata;
 
+    TF_RETURN_IF_ERROR(bundle_->session->Run(
+        options,
+        {{"annotation/ComputeSession/InputBatch:0", inputs}},
+        {"annotation/annotations:0"},
+        {},
+        &outputs,
+        &run_metadata
+    ));
+
+    LOG(INFO) << outputs.size() << " output tensors available";
+    auto sentences = outputs[0].vec<string>();
+    LOG(INFO) << "Sentences count: " << sentences.size();
+
+    for (int i = 0; i < sentences.size(); ++i) {
+      syntaxnet::Sentence *sentence = response->add_outputs();
+      sentence->ParseFromString(sentences(i));
+      LOG(INFO) << "sentence " << i << ": " << sentence->DebugString();
     }
 
-//    Tensor input(tensorflow::DT_STRING, {sentences_count});
-
-    return tensorflow::errors::Unimplemented(
-        "SessionBundle format not implemented yet.");
+    return Status::OK();
   }
 
   tensorflow::Status SavedModelRegress(const tensorflow::RunOptions &options,

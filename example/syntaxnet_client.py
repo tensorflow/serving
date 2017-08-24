@@ -25,12 +25,22 @@ def main(_):
   request = syntaxnet_service_pb2.SyntaxNetRequest()
   request.model_spec.name = 'default'
 
+  # text = u'П р и в е т '
+  # tokens = [sentence_pb2.Token(word=word, start=-1, end=-1) for word in text.split()]
+  tokens = [sentence_pb2.Token(word=u"В", start=0, end=0, break_level=0),
+            sentence_pb2.Token(word=u"линии", start=2, end=6, break_level=1),
+            sentence_pb2.Token(word=u"её", start=8, end=9, break_level=1),
+            sentence_pb2.Token(word=u"кузова", start=11, end=16, break_level=1),
+            sentence_pb2.Token(word=u"я", start=17, end=18, break_level=1),
+            sentence_pb2.Token(word=u"влюбился", start=20, end=27, break_level=1),
+            sentence_pb2.Token(word=u"с", start=29, end=30, break_level=1),
+            sentence_pb2.Token(word=u"первого", start=32, end=38, break_level=1),
+            sentence_pb2.Token(word=u"взгляда", start=40, end=46, break_level=1),
+            sentence_pb2.Token(word=u".", start=48, end=48, break_level=1),
+            ]
   sentence = sentence_pb2.Sentence()
-  sentence.text = 'Привет меня зовут Алексей'
-  sentence.token.extend([sentence_pb2.Token(word='Привет', start=0, end=6),
-                    sentence_pb2.Token(word='меня', start=7, end=11),
-                    sentence_pb2.Token(word='зовут', start=12, end=17),
-                    sentence_pb2.Token(word='Алексей', start=18, end=26)])
+  sentence.text = u'В линии её кузова я влюбился с первого взгляда'
+  sentence.token.extend(tokens)
 
   request.inputs.extend([sentence])
   result = stub.Parse(request, 10)

@@ -139,9 +139,11 @@ py_library(
 )
 
 DRAGNN_DEPS = [
-        "//dragnn/core:dragnn_ops_cc",
+    "//dragnn/components/stateless:stateless_component",
+    "//dragnn/components/syntaxnet:syntaxnet_component",
+    "//dragnn/core:dragnn_bulk_ops_cc",
+    "//dragnn/core:dragnn_ops_cc",
 ]
-
 
 cc_binary(
     name = "tensorflow_model_server",
