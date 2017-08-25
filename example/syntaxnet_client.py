@@ -27,16 +27,16 @@ def main(_):
 
   # text = u'П р и в е т '
   # tokens = [sentence_pb2.Token(word=word, start=-1, end=-1) for word in text.split()]
-  tokens = [sentence_pb2.Token(word=u"В", start=0, end=0, break_level=0),
-            sentence_pb2.Token(word=u"линии", start=2, end=6, break_level=1),
-            sentence_pb2.Token(word=u"её", start=8, end=9, break_level=1),
-            sentence_pb2.Token(word=u"кузова", start=11, end=16, break_level=1),
-            sentence_pb2.Token(word=u"я", start=17, end=18, break_level=1),
-            sentence_pb2.Token(word=u"влюбился", start=20, end=27, break_level=1),
-            sentence_pb2.Token(word=u"с", start=29, end=30, break_level=1),
-            sentence_pb2.Token(word=u"первого", start=32, end=38, break_level=1),
-            sentence_pb2.Token(word=u"взгляда", start=40, end=46, break_level=1),
-            sentence_pb2.Token(word=u".", start=48, end=48, break_level=1),
+  tokens = [sentence_pb2.Token(word=u"В", start=0, end=1, break_level=0),
+            sentence_pb2.Token(word=u"линии", start=3, end=12, break_level=1),
+            sentence_pb2.Token(word=u"её", start=14, end=17, break_level=1),
+            sentence_pb2.Token(word=u"кузова", start=19, end=30, break_level=1),
+            sentence_pb2.Token(word=u"я", start=32, end=33, break_level=1),
+            sentence_pb2.Token(word=u"влюбился", start=35, end=50, break_level=1),
+            sentence_pb2.Token(word=u"с", start=52, end=53, break_level=1),
+            sentence_pb2.Token(word=u"первого", start=55, end=68, break_level=1),
+            sentence_pb2.Token(word=u"взгляда", start=70, end=83, break_level=1),
+            sentence_pb2.Token(word=u".", start=84, end=84, break_level=0),
             ]
   sentence = sentence_pb2.Sentence()
   sentence.text = u'В линии её кузова я влюбился с первого взгляда'
