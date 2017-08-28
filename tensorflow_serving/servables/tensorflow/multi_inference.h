@@ -28,7 +28,8 @@ namespace serving {
 // Only supports Models in the SavedModel format.
 class TensorFlowMultiInferenceRunner {
  public:
-  TensorFlowMultiInferenceRunner(Session* session, MetaGraphDef* meta_graph_def)
+  TensorFlowMultiInferenceRunner(Session* session,
+                                 const MetaGraphDef* meta_graph_def)
       : session_(session), meta_graph_def_(meta_graph_def) {}
 
   // Run inference and return the inference results in the same order as the
@@ -41,7 +42,7 @@ class TensorFlowMultiInferenceRunner {
 
  private:
   Session* const session_;
-  MetaGraphDef* const meta_graph_def_;
+  const MetaGraphDef* const meta_graph_def_;
 };
 
 Status RunMultiInference(const RunOptions& run_options, ServerCore* core,

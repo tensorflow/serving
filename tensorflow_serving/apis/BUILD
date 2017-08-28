@@ -32,7 +32,7 @@ serving_proto_library(
     deps = [
         ":model_proto",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -54,7 +54,7 @@ serving_proto_library(
     java_api_version = 2,
     deps = [
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -80,7 +80,7 @@ serving_proto_library(
     go_api_version = 2,
     java_api_version = 2,
     deps = [
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 

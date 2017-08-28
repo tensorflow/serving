@@ -31,7 +31,7 @@ serving_proto_library(
     ],
     deps = [
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -54,7 +54,7 @@ cc_library(
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -79,7 +79,7 @@ cc_test(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -113,7 +113,7 @@ cc_library(
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -155,7 +155,7 @@ cc_test(
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -200,7 +200,7 @@ cc_test(
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -478,8 +478,8 @@ cc_test(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
-        "@protobuf//:cc_wkt_protos",
-        "@protobuf//:protobuf",
+        "@protobuf_archive//:cc_wkt_protos",
+        "@protobuf_archive//:protobuf",
     ],
 )
 
@@ -555,7 +555,7 @@ cc_test(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
-        "@protobuf//:protobuf_lite",
+        "@protobuf_archive//:protobuf_lite",
     ],
 )
 
@@ -639,7 +639,7 @@ cc_test(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
-        "@protobuf//:protobuf_lite",
+        "@protobuf_archive//:protobuf_lite",
     ],
 )
 
@@ -662,7 +662,7 @@ cc_library(
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf//:protobuf",
+        "@protobuf_archive//:protobuf",
     ],
 )
 

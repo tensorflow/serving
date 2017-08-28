@@ -28,7 +28,6 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "//external:gtest",
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/config:platform_config_proto",
@@ -42,9 +41,10 @@ cc_library(
         "//tensorflow_serving/model_servers:server_core",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:unique_ptr_with_deps",
+        "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf//:cc_wkt_protos",
-        "@protobuf//:protobuf_lite",
+        "@protobuf_archive//:cc_wkt_protos",
+        "@protobuf_archive//:protobuf_lite",
     ],
 )
 
@@ -69,7 +69,6 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "//external:gtest",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/core:servable_id",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter",
@@ -80,6 +79,7 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
         "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_proto",
         "//tensorflow_serving/test_util",
+        "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
