@@ -14,8 +14,8 @@ cc_library(
     testonly = 1,
     hdrs = ["mock_file_probing_env.h"],
     deps = [
-        "//external:gtest",
         "//tensorflow_serving/util:file_probing_env",
+        "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

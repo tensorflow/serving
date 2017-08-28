@@ -754,7 +754,7 @@ cc_library(
         ":logging_proto",
         "//tensorflow_serving/config:logging_config_proto",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf//:protobuf",
+        "@protobuf_archive//:protobuf",
     ],
 )
 
@@ -774,7 +774,7 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf//:protobuf",
+        "@protobuf_archive//:protobuf",
     ],
 )
 
@@ -792,7 +792,7 @@ cc_library(
         "//tensorflow_serving/core:logging_proto",
         "//tensorflow_serving/util:fast_read_dynamic_ptr",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf//:protobuf",
+        "@protobuf_archive//:protobuf",
     ],
 )
 
@@ -812,6 +812,6 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf//:protobuf",
+        "@protobuf_archive//:protobuf",
     ],
 )

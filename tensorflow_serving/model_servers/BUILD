@@ -75,7 +75,7 @@ cc_library(
         "//tensorflow_serving/util:optional",
         "//tensorflow_serving/util:unique_ptr_with_deps",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -102,7 +102,7 @@ cc_test(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -132,14 +132,14 @@ cc_binary(
         ":model_platform_types",
         ":platform_config_util",
         ":server_core",
-        "@protobuf//:cc_wkt_protos",
+        "@protobuf_archive//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
         "@org_tensorflow//tensorflow/core/platform/hadoop:hadoop_file_system",
         "//tensorflow_serving/apis:prediction_service_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
-        "@grpc//:grpc++",
+        "@grpc//:grpc++_unsecure",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
 )
 
