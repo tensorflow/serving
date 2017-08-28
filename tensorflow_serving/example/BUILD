@@ -84,8 +84,8 @@ cc_binary(
     ],
     deps = [
         "//tensorflow_serving/apis:prediction_service_proto",
-        "@grpc//:grpc++",
+        "@grpc//:grpc++_unsecure",
         "@org_tensorflow//tensorflow/core:framework",
-        "@protobuf//:protobuf_lite",
+        "@protobuf_archive//:protobuf_lite",
     ],
 )

@@ -244,9 +244,15 @@ Status BatchingSession::Run(
   if (batch_scheduler_it == batch_schedulers_.end()) {
     // We have a Run() call that doesn't match one of our batching signatures.
     // Run it in-line.
-    LOG(WARNING) << "Request doesn't match any declared signature. Bypassing "
-                    "batcher. Request signature is: "
-                 << TensorSignatureDebugString(signature);
+    static uint64 last_log_message_secs = 0;
+    uint64 now_secs = Env::Default()->NowSeconds();
+    // The time check is not strictly thread safe, but it doesn't matter.
+    if (now_secs - last_log_message_secs >= 120) {
+      LOG(WARNING) << "Request doesn't match any declared signature. Bypassing "
+                      "batcher. Request signature is: "
+                   << TensorSignatureDebugString(signature);
+      last_log_message_secs = now_secs;
+    }
     return wrapped_->Run(run_options, inputs, output_tensor_names,
                          target_node_names, outputs, run_metadata);
   }
