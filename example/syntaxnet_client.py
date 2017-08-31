@@ -4,7 +4,7 @@
 from __future__ import print_function
 
 # This is a placeholder for a Google-internal import.
-
+import time
 from grpc.beta import implementations
 import tensorflow as tf
 
@@ -42,9 +42,18 @@ def main(_):
   sentence.text = u'В линии её кузова я влюбился с первого взгляда'
   sentence.token.extend(tokens)
 
-  request.inputs.extend([sentence])
-  result = stub.Parse(request, 10)
+  sentences = [sentence] # * 10000
+
+  request.inputs.extend(sentences)
+
+  start_time = time.time()
+
+  result = stub.Parse(request, 60)
+
+  elapsed_time = time.time() - start_time
+
   print(result)
+  print('Parsing took: ' + str(elapsed_time))
 
 
 if __name__ == '__main__':

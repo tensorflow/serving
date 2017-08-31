@@ -245,7 +245,7 @@ class SyntaxNetRegressor {
     for (int i = 0; i < sentences.size(); ++i) {
       syntaxnet::Sentence *sentence = response->add_outputs();
       sentence->ParseFromString(sentences(i));
-      LOG(INFO) << "sentence " << i << ": " << sentence->DebugString();
+//      LOG(INFO) << "sentence " << i << ": " << sentence->DebugString();
     }
 
     return Status::OK();
