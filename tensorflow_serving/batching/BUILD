@@ -18,11 +18,6 @@ filegroup(
     ),
 )
 
-filegroup(
-    name = "matrix_half_plus_two",
-    srcs = glob(
-        ["testdata/matrix_half_plus_two/**/*"]),
-)
 
 cc_library(
     name = "streaming_batch_scheduler",
@@ -80,7 +75,8 @@ cc_test(
         "batching_session_test.cc",
     ],
     data = [
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two", ":matrix_half_plus_two"
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+        "//tensorflow_serving/batching/testdata:matrix_half_plus_two"
     ],
     deps = [
         ":batching_session",

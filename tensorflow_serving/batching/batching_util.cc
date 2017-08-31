@@ -27,6 +27,11 @@ namespace tensorflow {
 namespace serving {
 
 // Padding for one dimension of a tensor.
+// pad_before is a number of values to add before elements in one dimension,
+// pad_after is number of objects to add after.
+// NOTE: fields are named this way because of Eigen::TensorMap::pad method.
+// It requires padding to be an array of elements that have fields
+// "first" and "second".
 struct OneDimPadding {
   int64 first;  // pad before
   int64 second;  // pad after
@@ -75,11 +80,15 @@ struct PadTensor {
       output_shape.AddDim(before_d + input.dim_size(d) + after_d);
     }
     if (output_shape.num_elements() == input.NumElements()) {
-      auto result = output->CopyFrom(input, output_shape);
+      bool result = output->CopyFrom(input, output_shape);
       if (!result) {
         return errors::Internal("Couldn't create output.");
       }
       return Status::OK();
+    }
+    if (input.NumElements() < 1) {
+      return errors::InvalidArgument(
+          "Got empty tensor in batch of non-empty tensors.");
     }
     *output = Tensor(input.dtype(), output_shape);
     typename TTypes<T, num_dims>::Tensor inputs = input.tensor<T, num_dims>();
@@ -89,85 +98,56 @@ struct PadTensor {
   }
 };
 
-// functor specialization for scalars:
-// we do not perform padding in that case.
-template<typename T>
-struct PadTensor<T, 0> {
-  Status operator()(Tensor input,
-      const std::array<OneDimPadding, 0>&  padding, Tensor* output) {
-    TensorShape output_shape;
-    *output = Tensor(input.dtype(), output_shape);
-    typename TTypes<T, 0>::Tensor inputs = input.tensor<T, 0>();
-    output->tensor<T, 0>() = inputs;
-    return Status::OK();
-  }
-};
-
 // Invokes padding procedure for specific tensor ranks.
-// Only ranks from 0 to 6 are supported (like in PadOp).
+// Only ranks from 1 to 6 are supported (like in PadOp).
 template<typename T>
 Status PadTensorOfSpecificType(const Tensor& tensor,
                                const std::vector<int>& max_dim_sizes,
                                Tensor* output_tensor) {
   int num_dims = tensor.dims();
-  Status padding_status;
   switch (num_dims) {
-    case 0: {
-      std::array<OneDimPadding, 0> padding;
-      padding = CreatePadding<0>(tensor, max_dim_sizes);
-      PadTensor<T, 0> padding_functor = PadTensor<T, 0>();
-      padding_status = padding_functor(tensor, padding, output_tensor);
-      break;
-    }
     case 1: {
       std::array<OneDimPadding, 1> padding;
       padding = CreatePadding<1>(tensor, max_dim_sizes);
       PadTensor<T, 1> padding_functor = PadTensor<T, 1>();
-      padding_status = padding_functor(tensor, padding, output_tensor);
-      break;
+      return padding_functor(tensor, padding, output_tensor);
     }
     case 2: {
       std::array<OneDimPadding, 2> padding;
       padding = CreatePadding<2>(tensor, max_dim_sizes);
       PadTensor<T, 2> padding_functor = PadTensor<T, 2>();
-      padding_status = padding_functor(tensor, padding, output_tensor);
-      break;
+      return padding_functor(tensor, padding, output_tensor);
     }
     case 3: {
       std::array<OneDimPadding, 3> padding;
       padding = CreatePadding<3>(tensor, max_dim_sizes);
       PadTensor<T, 3> padding_functor = PadTensor<T, 3>();
-      padding_status = padding_functor(tensor, padding, output_tensor);
-      break;
+      return padding_functor(tensor, padding, output_tensor);
     }
     case 4: {
       std::array<OneDimPadding, 4> padding;
       padding = CreatePadding<4>(tensor, max_dim_sizes);
       PadTensor<T, 4> padding_functor = PadTensor<T, 4>();
-      padding_status = padding_functor(tensor, padding, output_tensor);
-      break;
+      return padding_functor(tensor, padding, output_tensor);
     }
     case 5: {
       std::array<OneDimPadding, 5> padding;
       padding = CreatePadding<5>(tensor, max_dim_sizes);
       PadTensor<T, 5> padding_functor = PadTensor<T, 5>();
-      padding_status = padding_functor(tensor, padding, output_tensor);
-      break;
+      return padding_functor(tensor, padding, output_tensor);
     }
     case 6: {
       std::array<OneDimPadding, 6> padding;
       padding = CreatePadding<6>(tensor, max_dim_sizes);
       PadTensor<T, 6> padding_functor = PadTensor<T, 6>();
-      padding_status = padding_functor(tensor, padding, output_tensor);
-      break;
+      return padding_functor(tensor, padding, output_tensor);
     }
     default:
-    // only ranks from 0 to 6 are supported
+    // only ranks from 1 to 6 are supported
     // (like in tensorflow/core/kernels/pad_op.cc)
-      padding_status = errors::InvalidArgument(
-            "Only tensors with rank from 0 to 6 can be padded.");
+      return errors::InvalidArgument(
+            "Only tensors with rank from 1 to 6 can be padded.");
   }
-  return padding_status;
 }
 
 std::map<string, std::vector<int>> CalculateMaxDimSizes(
@@ -191,7 +171,7 @@ std::map<string, std::vector<int>> CalculateMaxDimSizes(
       std::vector<int>& max_dim_sizes_for_one_input =
           max_dim_sizes[tensor_name];
       for (int j = 0; j < tensor.dims(); ++j) {
-        int old_max_size = max_dim_sizes_for_one_input[j];
+        const int old_max_size = max_dim_sizes_for_one_input[j];
         if (tensor.shape().dim_size(j) > old_max_size) {
           max_dim_sizes_for_one_input[j] = tensor.shape().dim_size(j);
         }
@@ -204,7 +184,7 @@ std::map<string, std::vector<int>> CalculateMaxDimSizes(
 Status AddPadding(const Tensor& tensor,
                   const std::vector<int>& max_dim_sizes,
                   Tensor* padded_tensor) {
-  DataType input_dtype = tensor.dtype();
+  const DataType input_dtype = tensor.dtype();
   Status padding_status;
 #define CASE(type) \
         case DataTypeToEnum<type>::value: { \

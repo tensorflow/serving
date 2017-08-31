@@ -34,12 +34,12 @@ namespace serving {
 // For example, for batch containing three tasks with the following inputs
 // (instead of tensors there are their shapes):
 //
-// task1: {'features': [100, 500, 300], 'true_labels': [100]}
-// task2: {'features': [100, 200, 123], 'true_labels': [100]}
-// task3: {'features': [200, 100, 400], 'true_labels': [200]}
+// task1: {'tensor_a': [100, 500, 300], 'tensor_b': [100]}
+// task2: {'tensor_a': [100, 200, 123], 'tensor_b': [100]}
+// task3: {'tensor_a': [200, 100, 400], 'tensor_b': [200]}
 //
 // the following map will be generated:
-// {'features': [200, 500, 400], 'true_labels': [200]}
+// {'tensor_a': [200, 500, 400], 'tensor_b': [200]}
 std::map<string, std::vector<int>> CalculateMaxDimSizes(
     const std::vector<std::vector<std::pair<string, Tensor>>>& batch);
 
@@ -47,6 +47,7 @@ std::map<string, std::vector<int>> CalculateMaxDimSizes(
 // except for zeroth dimension, which is left as is.
 // First entry in max_dim_sizes is ignored.
 // First element of a tensor is used as padding value.
+// If tensor is empty, an error will be returned.
 //
 // For example given input tensor with shape [1, 2, 3, 4] and max_dim_sizes
 // [1, 2, 5, 8] function produces padded_tensor of shape
@@ -58,7 +59,7 @@ std::map<string, std::vector<int>> CalculateMaxDimSizes(
 // DT_STRING, DT_BOOL, DT_QINT8, DT_QUINT8, DT_QINT16,
 // DT_QUINT16, DT_QINT32, DT_HALF, DT_RESOURCE.
 //
-// Supported tensor ranks: from 0 to 6.
+// Supported tensor ranks: from 1 to 6.
 
 Status AddPadding(const Tensor& tensor,
     const std::vector<int>& max_dim_sizes, Tensor* padded_tensor);

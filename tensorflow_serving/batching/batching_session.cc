@@ -94,9 +94,9 @@ std::vector<std::vector<std::pair<string, Tensor>>> GetTaskInputsVector(
   return all_task_inputs;
 }
 // Returns true iff all dims of shape1 are equal to dims of shape2 starting with
-// the first dimension.
+// the first (not zeroth) dimension.
 // For example, for shapes [1, 2, 3] and [4, 2, 3] the result is true.
-bool CheckShapesEqualExceptZeroDim(const TensorShape& shape1,
+bool AreShapesEqualExceptZeroDim(const TensorShape& shape1,
     const TensorShape& shape2) {
   if (shape1.dims() != shape2.dims()) {
     return false;
@@ -398,7 +398,7 @@ Status BatchingSession::MergeInputTensors(
         if (i > 0) {  // added at least one task to tensors_to_merge
           TensorShape reference_shape =
             tensors_to_merge[tensor_name][0].shape();
-          if (!CheckShapesEqualExceptZeroDim(tensor.shape(), reference_shape)) {
+          if (!AreShapesEqualExceptZeroDim(tensor.shape(), reference_shape)) {
             return errors::FailedPrecondition(
               "Tensors with name '" + tensor_name + "' from different tasks" +
               " have different shapes and padding is turned off." +

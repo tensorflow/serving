@@ -232,7 +232,7 @@ TEST(BatchingSessionTest, BatchingWithPadding) {
           }));
 }
 
-TEST(BatchingSessionTest, UnequalTensorShapesWithBatchingTurnedOff) {
+TEST(BatchingSessionTest, UnequalTensorShapesWithPaddingTurnedOff) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 2;
   schedule_options.batch_timeout_micros = 1e6;
@@ -243,25 +243,22 @@ TEST(BatchingSessionTest, UnequalTensorShapesWithBatchingTurnedOff) {
   TF_ASSERT_OK(CreateBasicBatchingSession(schedule_options,
                batching_session_options, {{"x"}, {"y"}},
                CreateMatrixHalfPlusTwoSession(), &batching_session));
-  std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
-      ThreadOptions(), "first_request", [&batching_session] {
-          ExpectError(
-              "Tensors with name 'x' from different tasks"
+  string expected_error_msg = "Tensors with name 'x' from different tasks"
               " have different shapes and padding is turned off."
               "Set pad_variable_length_inputs to true, or ensure that "
               "all tensors with the same name"
-              "have equal dimensions starting with the first dim.",
+              "have equal dimensions starting with the first dim.";
+  std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "first_request", [&batching_session,
+                                         &expected_error_msg] {
+          ExpectError(expected_error_msg,
               {{"x", test::AsTensor<float>({1, 2, 3, 4}, {1, 2, 2})}},
               {"y"}, batching_session.get());
       }));
   std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
-      ThreadOptions(), "first_request", [&batching_session] {
-          ExpectError(
-              "Tensors with name 'x' from different tasks"
-              " have different shapes and padding is turned off."
-              "Set pad_variable_length_inputs to true, or ensure that "
-              "all tensors with the same name"
-              "have equal dimensions starting with the first dim.",
+      ThreadOptions(), "first_request", [&batching_session,
+                                         &expected_error_msg] {
+          ExpectError(expected_error_msg,
               {{"x", test::AsTensor<float>({5, 6, 7, 8, 9, 10, 11, 12, 13},
                                            {1, 3, 3})}},
               {"y"}, batching_session.get());
