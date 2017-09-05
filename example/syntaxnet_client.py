@@ -39,7 +39,7 @@ def main(_):
             sentence_pb2.Token(word=u".", start=84, end=84, break_level=0),
             ]
   sentence = sentence_pb2.Sentence()
-  sentence.text = u'В линии её кузова я влюбился с первого взгляда'
+  sentence.text = u'В линии её кузова я влюбился с первого взгляда.'
   sentence.token.extend(tokens)
 
   sentences = [sentence] # * 10000
@@ -47,12 +47,12 @@ def main(_):
   request.inputs.extend(sentences)
 
   start_time = time.time()
-
-  result = stub.Parse(request, 60)
+  for i in range(1):
+    result = stub.Parse(request, 60)
+    print(i)
 
   elapsed_time = time.time() - start_time
 
-  print(result)
   print('Parsing took: ' + str(elapsed_time))
 
 
