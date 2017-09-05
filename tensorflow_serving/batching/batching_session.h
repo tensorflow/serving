@@ -99,6 +99,37 @@ struct BatchingSessionOptions {
   //
   // If left empty, no rounding/padding is performed.
   std::vector<int> allowed_batch_sizes;
+
+  // If set to true, padding is performed for tensors of the same name
+  // but with unequal dimensions (modulo zeroth dimension), so that
+  // all tensors of the same name have equal dim sizes.
+  // For each tensor its first element is used as padding value.
+  //
+  // For example:
+  // given input tensors of shapes [1, 500, 101], [2, 300, 101], [1, 400, 101]
+  // they will be padded to shapes [1, 500, 101], [2, 500, 101], [1, 500, 101].
+  // Padding is not performed in zeroth dimension.
+  //
+  // Supported tensor datatypes:
+  // DT_FLOAT, DT_DOUBLE, DT_INT8, DT_UINT8, DT_INT16,
+  // DT_UINT16, DT_INT32, DT_INT64, DT_COMPLEX64, DT_COMPLEX128,
+  // DT_STRING, DT_BOOL, DT_QINT8, DT_QUINT8, DT_QINT16,
+  // DT_QUINT16, DT_QINT32, DT_HALF, DT_RESOURCE.
+  //
+  // Supported ranks: from 1 to 6.
+  //
+  // This option is useful when using recurrent models(like LSTMs) with serving.
+  // These models typically accept variable-length inputs and when
+  // training them typical strategy is to save sequence lengths for decoding
+  // and pad those variable-length dims to maximum in batch.
+  // So, this option is used to achieve similar behavior
+  // when serving with batching, it is assumed that sequence lengths
+  // have already been saved.
+  //
+  // If tensors with the same name have different shapes
+  // (modulo zeroth dimension) and this option is set to false,
+  // then error Status will be returned.
+  bool pad_variable_length_inputs = false;
 };
 
 // Wraps a session in a new session that automatically batches Run() calls.

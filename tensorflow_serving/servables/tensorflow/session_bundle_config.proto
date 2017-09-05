@@ -96,4 +96,7 @@ message BatchingParameters {
   //  - The entries must be in increasing order.
   //  - The final entry must equal 'max_batch_size'.
   repeated int64 allowed_batch_sizes = 6;
+
+  // Whether to pad variable-length inputs when a batch is formed.
+  bool pad_variable_length_inputs = 7;
 }
