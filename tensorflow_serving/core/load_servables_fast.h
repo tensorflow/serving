@@ -38,14 +38,23 @@ Status ConnectSourceWithFastInitialLoad(
     const std::vector<ServableRequest>& initial_servables,
     uint32 num_threads = 4 * port::NumSchedulableCPUs());
 
+// Like ConnectSourceWithFastInitialLoad(), but with multiple sources.
+Status ConnectSourcesWithFastInitialLoad(
+    AspiredVersionsManager* manager,
+    std::vector<Source<std::unique_ptr<Loader>>*> sources,
+    ServableStateMonitor* servable_state_monitor,
+    const std::vector<ServableRequest>& initial_servables,
+    uint32 num_threads = 4 * port::NumSchedulableCPUs());
+
 ////
 // Implementation detail. API readers may skip.
 ///
 
 namespace internal {
 
-Status ConnectSourceWithFastInitialLoad(
-    AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
+Status ConnectSourcesWithFastInitialLoad(
+    AspiredVersionsManager* manager,
+    std::vector<Source<std::unique_ptr<Loader>>*> sources,
     const std::function<Status()>& wait_until_loaded_fn, uint32 num_threads);
 
 }  // namespace internal

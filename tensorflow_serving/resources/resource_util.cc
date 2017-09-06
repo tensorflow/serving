@@ -335,10 +335,6 @@ bool ResourceUtil::SubtractNormalized(const ResourceAllocation& to_subtract,
         FindMutableEntry(to_subtract_entry.resource(), base);
     if (base_entry == nullptr ||
         base_entry->quantity() < to_subtract_entry.quantity()) {
-      LOG(ERROR) << "Subtracting\n"
-                 << to_subtract.DebugString() << "from\n"
-                 << base->DebugString()
-                 << "would result in a negative quantity";
       return false;
     }
     const uint64 new_quantity =
