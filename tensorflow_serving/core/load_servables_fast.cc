@@ -28,13 +28,16 @@ namespace serving {
 
 namespace internal {
 
-Status ConnectSourceWithFastInitialLoad(
-    AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
+Status ConnectSourcesWithFastInitialLoad(
+    AspiredVersionsManager* manager,
+    std::vector<Source<std::unique_ptr<Loader>>*> sources,
     const std::function<Status()>& wait_until_loaded_fn,
     const uint32 num_threads) {
   const uint32 prev_num_load_threads = manager->num_load_threads();
   manager->SetNumLoadThreads(num_threads);
-  ConnectSourceToTarget(source, manager);
+  for (Source<std::unique_ptr<Loader>>* source : sources) {
+    ConnectSourceToTarget(source, manager);
+  }
   const Status status = wait_until_loaded_fn();
   manager->SetNumLoadThreads(prev_num_load_threads);
   return status;
@@ -45,17 +48,29 @@ Status ConnectSourceWithFastInitialLoad(
 Status ConnectSourceWithFastInitialLoad(
     AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
     ServableStateMonitor* servable_state_monitor,
-    const std::vector<ServableRequest>& servables, const uint32 num_threads) {
-  return internal::ConnectSourceWithFastInitialLoad(
-      manager, source,
+    const std::vector<ServableRequest>& initial_servables,
+    const uint32 num_threads) {
+  return ConnectSourcesWithFastInitialLoad(manager, {source},
+                                           servable_state_monitor,
+                                           initial_servables, num_threads);
+}
+
+Status ConnectSourcesWithFastInitialLoad(
+    AspiredVersionsManager* manager,
+    std::vector<Source<std::unique_ptr<Loader>>*> sources,
+    ServableStateMonitor* servable_state_monitor,
+    const std::vector<ServableRequest>& initial_servables,
+    const uint32 num_threads) {
+  return internal::ConnectSourcesWithFastInitialLoad(
+      manager, sources,
       [&]() {
         std::map<ServableId, ServableState::ManagerState> states_reached;
         const bool all_servables_available =
             servable_state_monitor->WaitUntilServablesReachState(
-                servables, ServableState::ManagerState::kAvailable,
+                initial_servables, ServableState::ManagerState::kAvailable,
                 &states_reached);
         if (!all_servables_available) {
-          string message = "Some models did not become available: {";
+          string message = "Some servables did not become available: {";
           for (const auto& id_and_state : states_reached) {
             if (id_and_state.second !=
                 ServableState::ManagerState::kAvailable) {

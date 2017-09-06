@@ -50,8 +50,9 @@ namespace internal {
 
 class AspiredVersionsManagerTargetImpl;
 
-Status ConnectSourceWithFastInitialLoad(
-    AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
+Status ConnectSourcesWithFastInitialLoad(
+    AspiredVersionsManager* manager,
+    std::vector<Source<std::unique_ptr<Loader>>*> sources,
     const std::function<Status()>& wait_until_loaded_fn, uint32 num_threads);
 
 }  // namespace internal
@@ -197,8 +198,9 @@ class AspiredVersionsManager : public Manager,
   friend class internal::AspiredVersionsManagerTargetImpl;
   friend class test_util::AspiredVersionsManagerTestAccess;
   friend class ServerCore;
-  friend Status internal::ConnectSourceWithFastInitialLoad(
-      AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
+  friend Status internal::ConnectSourcesWithFastInitialLoad(
+      AspiredVersionsManager* manager,
+      std::vector<Source<std::unique_ptr<Loader>>*> sources,
       const std::function<Status()>& wait_until_loaded_fn, uint32 num_threads);
 
   AspiredVersionsManager(

@@ -571,28 +571,24 @@ Status ServerCore::CreateAdapters(SourceAdapters* adapters) const {
 
 Status ServerCore::ConnectAdaptersToManagerAndAwaitModelLoads(
     SourceAdapters* adapters) {
-  std::map<string, std::vector<ServableRequest>> models_by_platform;
+  std::vector<ServableRequest> models_to_await;
   for (const ModelConfig& model_config : config_.model_config_list().config()) {
-    string platform;
-    TF_RETURN_IF_ERROR(GetPlatform(model_config, &platform));
-    models_by_platform[platform].push_back(
-        ServableRequest::Latest(model_config.name()));
+    models_to_await.push_back(ServableRequest::Latest(model_config.name()));
   }
 
+  std::vector<Source<std::unique_ptr<Loader>>*> adapter_list;
   for (auto& entry : adapters->platform_adapters) {
-    const string& platform = entry.first;
-    StoragePathSourceAdapter* adapter = entry.second.get();
-
-    const Status status = ConnectSourceWithFastInitialLoad(
-        manager_.get(), adapter, servable_state_monitor_.get(),
-        models_by_platform[platform], options_.num_initial_load_threads);
-    if (!status.ok()) {
-      VLOG(1) << "Unable to ConnectSourceWithFastInitialLoad due to: "
-              << status;
-      return status;
-    }
+    adapter_list.push_back(entry.second.get());
   }
-  ConnectSourceToTarget(adapters->error_adapter.get(), manager_.get());
+  adapter_list.push_back(adapters->error_adapter.get());
+
+  const Status status = ConnectSourcesWithFastInitialLoad(
+      manager_.get(), adapter_list, servable_state_monitor_.get(),
+      models_to_await, options_.num_initial_load_threads);
+  if (!status.ok()) {
+    VLOG(1) << "Unable to ConnectSourcesWithFastInitialLoad due to: " << status;
+    return status;
+  }
 
   return Status::OK();
 }
