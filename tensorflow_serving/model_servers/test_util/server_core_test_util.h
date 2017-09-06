@@ -16,6 +16,8 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_TEST_UTIL_SERVER_CORE_TEST_UTIL_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_TEST_UTIL_SERVER_CORE_TEST_UTIL_H_
 
+#include <utility>
+
 #include <gtest/gtest.h>
 #include "tensorflow_serving/core/servable_id.h"
 #include "tensorflow_serving/model_servers/server_core.h"
@@ -33,7 +35,7 @@ constexpr char kFakePlatform[] = "fake_servable";
 // ServerCoreTest is parameterized based on the TestType enum defined below.
 // TODO(b/32248363): remove the parameter and TestType after we switch Model
 // Server to Saved Model.
-class ServerCoreTest : public ::testing::TestWithParam<int> {
+class ServerCoreTest : public ::testing::TestWithParam<std::tuple<int, bool>> {
  public:
   // The parameter of this test.
   enum TestType {
@@ -46,6 +48,19 @@ class ServerCoreTest : public ::testing::TestWithParam<int> {
     // This should always be the last value.
     NUM_TEST_TYPES,
   };
+
+  static string GetNameOfTestType(int test_type) {
+    switch (static_cast<TestType>(test_type)) {
+      case SESSION_BUNDLE:
+        return "SESSION_BUNDLE";
+      case SAVED_MODEL_BACKWARD_COMPATIBILITY:
+        return "SAVED_MODEL_BACKWARD_COMPATIBILITY";
+      case SAVED_MODEL:
+        return "SAVED_MODEL";
+      default:
+        return "unknown";
+    }
+  }
 
  protected:
   // Returns ModelServerConfig that contains test model for the fake platform.
@@ -75,8 +90,21 @@ class ServerCoreTest : public ::testing::TestWithParam<int> {
     return CreateServerCore(config, GetDefaultOptions(), server_core);
   }
 
-  // Returns test type. This is the parameter of this test.
-  TestType GetTestType() { return static_cast<TestType>(GetParam()); }
+  // Returns test type.
+  // This is the first parameter of this test.
+  TestType GetTestType() {
+    return static_cast<TestType>(std::get<0>(GetParam()));
+  }
+
+  // Returns whether to assume paths are URIs.
+  // This is the second parameter of this test.
+  bool PrefixPathsWithURIScheme() { return std::get<1>(GetParam()); }
+
+  // Returns a string corresponding to the parameterized test-case.
+  string GetNameForTestCase() {
+    return GetNameOfTestType(GetTestType()) + "_" +
+           (PrefixPathsWithURIScheme() ? "URI" : "Path");
+  }
 };
 
 // Creates a ServerCore object with the supplied options.
