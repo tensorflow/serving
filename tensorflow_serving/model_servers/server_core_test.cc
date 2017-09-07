@@ -20,6 +20,8 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/io/path.h"
+#include "tensorflow/core/lib/random/random.h"
+#include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/core/servable_handle.h"
@@ -287,7 +289,7 @@ TEST_P(ServerCoreTest, ErroringModel) {
   Status status = ServerCore::Create(std::move(options), &server_core);
   EXPECT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("Some models did not become available"));
+              ::testing::HasSubstr("Some servables did not become available"));
 }
 
 TEST_P(ServerCoreTest, IllegalReconfigurationToCustomConfig) {
@@ -364,8 +366,24 @@ TEST_P(ServerCoreTest, UnknownModelPlatform) {
 
 // Creates a model name that incorporates 'platform'. Useful for tests that have
 // one model for a given platform.
+//
+// The model names contain a random element, to vary the model name sort order
+// independently from the platform name order. This is to get regression
+// coverage of b/65363800. If called twice for a given platform, always returns
+// the same model name.
 string ModelNameForPlatform(const string& platform) {
-  return strings::StrCat("model_for_", platform);
+  static std::map<string, string>* platform_to_model_map = [] {
+    return new std::map<string, string>();
+  }();
+  auto it = platform_to_model_map->find(platform);
+  if (it != platform_to_model_map->end()) {
+    return it->second;
+  }
+  const string random = strings::Printf("%llu", random::New64());
+  const string model_name =
+      strings::StrCat("model_", random, "_for_", platform);
+  (*platform_to_model_map)[platform] = model_name;
+  return model_name;
 }
 
 // Builds a ModelSpec with a model named 'ModelNameForPlatform(platform)' and
