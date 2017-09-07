@@ -1,10 +1,13 @@
+---
+---
+
 # Serving a TensorFlow Model
 
 This tutorial shows you how to use TensorFlow Serving components to export a
 trained TensorFlow model and use the standard tensorflow_model_server to serve
 it. If you are already familiar with TensorFlow Serving, and you want to know
 more about how the server internals work, see the
-[TensorFlow Serving advanced tutorial](serving_advanced.md).
+[TensorFlow Serving advanced tutorial](serving_advanced).
 
 This tutorial uses the simple Softmax Regression model introduced in the
 TensorFlow tutorial for handwritten image (MNIST data) classification. If you
@@ -25,11 +28,11 @@ The code for this tutorial consists of two parts:
     [gRPC](http://www.grpc.io) service for serving them.
 
 Before getting started, please complete the
-[prerequisites](setup.md#prerequisites).
+[prerequisites](setup#prerequisites).
 
 Note: All `bazel build` commands below use the standard `-c opt` flag. To
 further optimize the build, refer to the
-[instructions here](setup.md#optimized-build).
+[instructions here](setup#optimized-build).
 
 ## Train And Export TensorFlow Model
 
@@ -141,7 +144,7 @@ allows the user to refer to these tensors with their logical names when
 running inference.
 
 Note: In addition to the description above, documentation related to signature
-def structure and how to set up them up can be found [here](signature_defs.md).
+def structure and how to set up them up can be found [here](signature_defs).
 
 Let's run it!
 
@@ -154,7 +157,7 @@ $>rm -rf /tmp/mnist_model
 If you would like to install the `tensorflow` and `tensorflow-serving-api` PIP
 packages, you can run all Python code (export and client) using a simple
 `python` command. To install the PIP package, follow the
-[instructions here](setup.md#tensorflow-serving-python-api-pip-package).
+[instructions here](setup#tensorflow-serving-python-api-pip-package).
 It's also possible to
 use Bazel to build the necessary dependencies and run all code without
 installing those packages. The rest of the codelab will have instructions for
@@ -216,7 +219,7 @@ $>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000
 ```
 
 If you'd prefer to skip compilation and install using apt-get, follow the
-[instructions here](setup.md#installing-using-apt-get). Then run the server with
+[instructions here](setup#installing-using-apt-get). Then run the server with
 the following command:
 
 ```shell

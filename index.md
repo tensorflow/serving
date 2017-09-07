@@ -1,3 +1,6 @@
+---
+---
+
 # Introduction
 
 TensorFlow Serving is a flexible, high-performance serving system for machine
@@ -9,9 +12,9 @@ types of models and data.
 
 To get started with TensorFlow Serving:
 
-* Read the [overview](architecture_overview.md)
-* [Set up](setup.md) your environment
-* Do the [basic tutorial](serving_basic.md)
+* Read the [overview](architecture_overview)
+* [Set up](setup) your environment
+* Do the [basic tutorial](serving_basic)
 
 
 

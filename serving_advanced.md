@@ -1,10 +1,13 @@
+---
+---
+
 # Building Standard TensorFlow ModelServer
 
 This tutorial shows you how to use TensorFlow Serving components to build the
 standard TensorFlow ModelServer that dynamically discovers and serves new
 versions of a trained TensorFlow model. If you just want to use the standard
 server to serve your models, see
-[TensorFlow Serving basic tutorial](serving_basic.md).
+[TensorFlow Serving basic tutorial](serving_basic).
 
 This tutorial uses the simple Softmax Regression model introduced in the
 TensorFlow tutorial for handwritten image (MNIST data) classification. If you
@@ -32,11 +35,11 @@ This tutorial steps through the following tasks:
 5.  Run and test the service.
 
 Before getting started, please complete the
-[prerequisites](setup.md#prerequisites).
+[prerequisites](setup#prerequisites).
 
 Note: All `bazel build` commands below use the standard `-c opt` flag. To
 further optimize the build, refer to the
-[instructions here](setup.md#optimized-build).
+[instructions here](setup#optimized-build).
 
 ## Train And Export TensorFlow Model
 
@@ -60,7 +63,7 @@ $>bazel-bin/tensorflow_serving/example/mnist_saved_model --training_iteration=20
 ```
 
 As you can see in `mnist_saved_model.py`, the training and exporting is done the
-same way it is in the [TensorFlow Serving basic tutorial](serving_basic.md). For
+same way it is in the [TensorFlow Serving basic tutorial](serving_basic). For
 demonstration purposes, you're intentionally dialing down the training
 iterations for the first run and exporting it as v1, while training it normally
 for the second run and exporting it as v2 to the same parent directory -- as we
@@ -165,8 +168,8 @@ that monitors cloud storage instead of local storage, or you could build a
 version policy plugin that does version transition in a different way -- in
 fact, you could even build a custom model plugin that serves non-TensorFlow
 models. These topics are out of scope for this tutorial. However, you can refer
-to the [custom source](custom_source.md) and [custom servable]
-(custom_servable.md) tutorials for more information.
+to the [custom source](custom_source) and [custom servable]
+(custom_servable) tutorials for more information.
 
 ## Batching
 
