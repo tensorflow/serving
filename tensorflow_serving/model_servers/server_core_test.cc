@@ -192,7 +192,6 @@ class RelativePathsServerCoreTest : public ServerCoreTest {
       string* optional_config_list_root_dir = nullptr) {
     using ::tensorflow::io::Basename;
     using ::tensorflow::io::Dirname;
-    using ::tensorflow::io::IsAbsolutePath;
 
     ModelServerConfig result = GetTestModelServerConfigForFakePlatform();
     const string model_name = result.model_config_list().config(0).name();
@@ -200,9 +199,6 @@ class RelativePathsServerCoreTest : public ServerCoreTest {
     ModelConfig& relative =
         *result.mutable_model_config_list()->mutable_config(0);
     relative.set_name(strings::StrCat(model_name, "_relative"));
-    CHECK(IsAbsolutePath(relative.base_path()))
-        << "relative.base_path()=" << relative.base_path()
-        << " must start as an absolute path for this unit-test to work.";
     const string dirname = Dirname(relative.base_path()).ToString();
     const string basename = Basename(relative.base_path()).ToString();
     CHECK(!dirname.empty());
@@ -436,8 +432,9 @@ string ServableDataForPlatform(const string& root_path, const string& platform,
 }
 
 TEST_P(ServerCoreTest, MultiplePlatforms) {
-  const string root_path = io::JoinPath(
-      testing::TmpDir(), strings::StrCat("MultiplePlatforms_", GetTestType()));
+  const string root_path =
+      io::JoinPath(testing::TmpDir(),
+                   strings::StrCat("MultiplePlatforms_", GetNameForTestCase()));
   TF_ASSERT_OK(Env::Default()->CreateDir(root_path));
 
   // Create a ServerCore with two platforms, and one model for each platform.
@@ -470,8 +467,8 @@ TEST_P(ServerCoreTest, MultiplePlatforms) {
 
 TEST_P(ServerCoreTest, MultiplePlatformsWithConfigChange) {
   const string root_path = io::JoinPath(
-      testing::TmpDir(),
-      strings::StrCat("MultiplePlatformsWithConfigChange_", GetTestType()));
+      testing::TmpDir(), strings::StrCat("MultiplePlatformsWithConfigChange_",
+                                         GetNameForTestCase()));
   TF_ASSERT_OK(Env::Default()->CreateDir(root_path));
 
   // Create config for three platforms, and one model per platform.
@@ -533,7 +530,7 @@ TEST_P(ServerCoreTest, MultiplePlatformsWithConfigChange) {
 TEST_P(ServerCoreTest, IllegalToChangeModelPlatform) {
   const string root_path = io::JoinPath(
       testing::TmpDir(),
-      strings::StrCat("IllegalToChangeModelPlatform_", GetTestType()));
+      strings::StrCat("IllegalToChangeModelPlatform_", GetNameForTestCase()));
   TF_ASSERT_OK(Env::Default()->CreateDir(root_path));
 
   ServerCore::Options options = GetDefaultOptions();
@@ -631,11 +628,15 @@ TEST_P(ServerCoreTest, RequestLoggingOn) {
 
 INSTANTIATE_TEST_CASE_P(
     TestType, ServerCoreTest,
-    ::testing::Range(0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)));
+    ::testing::Combine(
+        ::testing::Range(0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)),
+        ::testing::Bool()));
 
 INSTANTIATE_TEST_CASE_P(
     TestType, RelativePathsServerCoreTest,
-    ::testing::Range(0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)));
+    ::testing::Combine(
+        ::testing::Range(0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)),
+        ::testing::Bool()));
 
 }  // namespace
 }  // namespace serving

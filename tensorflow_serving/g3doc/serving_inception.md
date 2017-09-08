@@ -79,10 +79,10 @@ root@c97d8e820ced:/serving# curl -O http://download.tensorflow.org/models/image/
 root@c97d8e820ced:/serving# tar xzf inception-v3-2016-03-01.tar.gz
 root@c97d8e820ced:/serving# ls inception-v3
 README.txt  checkpoint  model.ckpt-157585
-root@c97d8e820ced:/serving# bazel-bin/tensorflow_serving/example/inception_saved_model --checkpoint_dir=inception-v3 --output_dir=inception-export
+root@c97d8e820ced:/serving# bazel-bin/tensorflow_serving/example/inception_saved_model --checkpoint_dir=inception-v3 --output_dir=/tmp/inception-export
 Successfully loaded model from inception-v3/model.ckpt-157585 at step=157585.
-Successfully exported model to inception-export
-root@c97d8e820ced:/serving# ls inception-export
+Successfully exported model to /tmp/inception-export
+root@c97d8e820ced:/serving# ls /tmp/inception-export
 1
 root@c97d8e820ced:/serving# [Ctrl-p] + [Ctrl-q]
 ```
@@ -112,7 +112,7 @@ Run the [gRPC]( http://www.grpc.io/) `tensorflow_model_server` in the container.
 
 ```shell
 root@f07eec53fd95:/# cd serving
-root@f07eec53fd95:/serving# bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000 --model_name=inception --model_base_path=inception-export &> inception_log &
+root@f07eec53fd95:/serving# bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000 --model_name=inception --model_base_path=/tmp/inception-export &> inception_log &
 [1] 45
 ```
 

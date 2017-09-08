@@ -58,6 +58,12 @@ sudo apt-get update && sudo apt-get install -y \
         zlib1g-dev
 ```
 
+The list of packages needed to build TensorFlow changes over time, so if you
+encounter any issues, refer TensorFlow's [build
+instructions](https://www.tensorflow.org/install/install_sources). Pay
+particular attention to `apt-get install` and `pip install` commands which you
+may need to run.
+
 ### TensorFlow Serving Python API PIP package
 
 To run Python client code without the need to install Bazel, you can install
