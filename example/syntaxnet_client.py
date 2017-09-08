@@ -23,7 +23,7 @@ def main(_):
   stub = syntaxnet_service_pb2.beta_create_SyntaxNetService_stub(channel)
 
   request = syntaxnet_service_pb2.SyntaxNetRequest()
-  request.model_spec.name = 'default'
+  request.model_spec.name = 'russian'
 
   # text = u'П р и в е т '
   # tokens = [sentence_pb2.Token(word=word, start=-1, end=-1) for word in text.split()]
