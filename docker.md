@@ -1,4 +1,5 @@
 ---
+redirect_to: "https://www.tensorflow.org/serving/docker"
 ---
 
 # Using TensorFlow Serving via Docker

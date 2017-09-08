@@ -1,4 +1,5 @@
 ---
+redirect_to: "https://www.tensorflow.org/serving/custom_source"
 ---
 
 # Creating a module that discovers new servable paths

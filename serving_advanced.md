@@ -1,4 +1,5 @@
 ---
+redirect_to: "https://www.tensorflow.org/serving/serving_advanced"
 ---
 
 # Building Standard TensorFlow ModelServer

@@ -1,4 +1,5 @@
 ---
+redirect_to: "https://www.tensorflow.org/serving"
 ---
 
 # Introduction

@@ -1,4 +1,5 @@
 ---
+redirect_to: "https://www.tensorflow.org/serving/serving_inception"
 ---
 
 # Serving Inception Model with TensorFlow Serving and Kubernetes
