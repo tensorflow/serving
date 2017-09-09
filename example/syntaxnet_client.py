@@ -24,6 +24,7 @@ def main(_):
 
   request = syntaxnet_service_pb2.SyntaxNetRequest()
   request.model_spec.name = 'russian'
+  request.model_spec.signature_name = 'parse_sentences'
 
   # text = u'П р и в е т '
   # tokens = [sentence_pb2.Token(word=word, start=-1, end=-1) for word in text.split()]
@@ -49,7 +50,7 @@ def main(_):
   start_time = time.time()
   for i in range(1):
     result = stub.Parse(request, 60)
-    print(i)
+    print("Result {}: \n {}".format(i, str(result)))
 
   elapsed_time = time.time() - start_time
 

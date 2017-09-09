@@ -65,6 +65,7 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/util/command_line_flags.h"
+#include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/contrib/session_bundle/manifest.pb.h"
 #include "tensorflow_serving/apis/syntaxnet_service.grpc.pb.h"
@@ -189,36 +190,35 @@ grpc::Status ToGRPCStatus(const tensorflow::Status &status) {
                       error_message);
 }
 
-class SyntaxNetRegressor {
+class SyntaxNetParser {
  public:
-  explicit SyntaxNetRegressor(bool use_saved_model)
-      : use_saved_model_(use_saved_model) {}
-
-  tensorflow::Status Regress(const tensorflow::RunOptions &run_options,
-                             ServerCore *core,
-                             const SyntaxNetRequest &request,
-                             SyntaxNetResponse *response) {
-    if (request.inputs().empty()) {
-      return tensorflow::errors::InvalidArgument("expected at least one sentence");
-    }
-    if (use_saved_model_) {
-      return SavedModelRegress(run_options, core, request, response);
-    }
-    return SessionBundleRegress(run_options, core, request, response);
-  }
-
- private:
-  tensorflow::Status SessionBundleRegress(const tensorflow::RunOptions &options,
-                                          ServerCore *core,
-                                          const SyntaxNetRequest &request,
-                                          SyntaxNetResponse *response) {
-
+  tensorflow::Status Parse(const tensorflow::RunOptions &run_options,
+                           ServerCore *core,
+                           const SyntaxNetRequest &request,
+                           SyntaxNetResponse *response) {
     using namespace tensorflow;
+    using namespace tensorflow::serving;
+
     if (!request.has_model_spec()) {
       return errors::InvalidArgument("Missing ModelSpec");
     }
 
-    TF_RETURN_IF_ERROR(core->GetServableHandle(request.model_spec(), &bundle_));
+    if (request.inputs().empty()) {
+      return errors::InvalidArgument("expected at least one sentence");
+    }
+
+    // Validate signatures
+    ServableHandle<SavedModelBundle> bundle;
+    TF_RETURN_IF_ERROR(core->GetServableHandle(request.model_spec(), &bundle));
+
+    const string signature_name = request.model_spec().signature_name();
+    auto iter = bundle->meta_graph_def.signature_def().find(signature_name);
+    if (iter == bundle->meta_graph_def.signature_def().end()) {
+      return errors::FailedPrecondition(
+          "Serving signature key not found.");
+    }
+
+    SignatureDef signature = iter->second;
 
     int sentences_count = request.inputs_size();
 
@@ -229,10 +229,16 @@ class SyntaxNetRegressor {
     std::vector<Tensor> outputs;
     RunMetadata run_metadata;
 
-    TF_RETURN_IF_ERROR(bundle_->session->Run(
-        options,
-        {{"annotation/ComputeSession/InputBatch:0", inputs}},
-        {"annotation/annotations:0"},
+    auto input_alias = "sentences";
+    auto input_sig = signature.inputs().find(input_alias)->second;
+
+    auto out_alias = "outputs";
+    auto out_sig = signature.outputs().find(out_alias)->second;
+
+    TF_RETURN_IF_ERROR(bundle->session->Run(
+        run_options,
+        {{input_sig.name(), inputs}},
+        {out_sig.name()},
         {},
         &outputs,
         &run_metadata
@@ -250,26 +256,13 @@ class SyntaxNetRegressor {
 
     return Status::OK();
   }
-
-  tensorflow::Status SavedModelRegress(const tensorflow::RunOptions &options,
-                                       ServerCore *core,
-                                       const SyntaxNetRequest &request,
-                                       SyntaxNetResponse *response) {
-    return tensorflow::errors::Unimplemented(
-        "SavedModel format not implemented yet.");
-  }
-
-  ServableHandle<SessionBundle> bundle_;
-  bool use_saved_model_;
 };
 
 class SyntaxNetServiceImpl final : public SyntaxNetService::Service {
  public:
-  explicit SyntaxNetServiceImpl(std::unique_ptr<ServerCore> core,
-                                bool use_saved_model)
+  explicit SyntaxNetServiceImpl(std::unique_ptr<ServerCore> core)
       : core_(std::move(core)),
-        regressor_(new SyntaxNetRegressor(use_saved_model)),
-        use_saved_model_(use_saved_model) {}
+        parser_(new SyntaxNetParser()) {}
 
   grpc::Status Parse(ServerContext *context, const SyntaxNetRequest *request,
                      ::tensorflow::serving::SyntaxNetResponse *response) override {
@@ -279,7 +272,7 @@ class SyntaxNetServiceImpl final : public SyntaxNetService::Service {
         DeadlineToTimeoutMillis(context->raw_deadline()));
 
     const grpc::Status status = ToGRPCStatus(
-        regressor_->Regress(run_options, core_.get(), *request, response));
+        parser_->Parse(run_options, core_.get(), *request, response));
 
     if (!status.ok()) {
       VLOG(1) << "Parse failed: " << status.error_message();
@@ -289,15 +282,13 @@ class SyntaxNetServiceImpl final : public SyntaxNetService::Service {
 
  private:
   std::unique_ptr<ServerCore> core_;
-  std::unique_ptr<SyntaxNetRegressor> regressor_;
-  bool use_saved_model_;
+  std::unique_ptr<SyntaxNetParser> parser_;
 };
 
-void RunServer(int port, std::unique_ptr<ServerCore> core,
-               bool use_saved_model) {
+void RunServer(int port, std::unique_ptr<ServerCore> core) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
-  SyntaxNetServiceImpl service(std::move(core), use_saved_model);
+  SyntaxNetServiceImpl service(std::move(core));
   ServerBuilder builder;
   std::shared_ptr<grpc::ServerCredentials> creds = InsecureServerCredentials();
   builder.AddListeningPort(server_address, creds);
@@ -452,7 +443,7 @@ int main(int argc, char **argv) {
 
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(std::move(options), &core));
-  RunServer(port, std::move(core), use_saved_model);
+  RunServer(port, std::move(core));
 
   return 0;
 }
