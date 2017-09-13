@@ -132,14 +132,14 @@ cc_binary(
         ":model_platform_types",
         ":platform_config_util",
         ":server_core",
-        "@protobuf_archive//:wrappers",
+        "@protobuf_archive//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
         "@org_tensorflow//tensorflow/core/platform/hadoop:hadoop_file_system",
         "//tensorflow_serving/apis:prediction_service_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
-        "//net/grpc:grpc++",
+        "@grpc//:grpc++_unsecure",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
 )
 
@@ -183,7 +183,7 @@ load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
 
 pkg_tar(
     name = "tensorflow_model_server_tar",
-    files = [
+    srcs = [
         ":tensorflow_model_server",
     ],
     package_dir = "/usr/bin",
