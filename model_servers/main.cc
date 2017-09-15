@@ -224,9 +224,6 @@ class SyntaxNetParser {
 
     Tensor inputs(tensorflow::DT_STRING, {sentences_count});
     for (int i = 0; i < sentences_count; i++) {
-      if (request.inputs(i).token().empty()) {
-        return errors::InvalidArgument("expected at least one token in a sentence");
-      }
       inputs.vec<string>()(i) = request.inputs(i).SerializeAsString();
     }
     std::vector<Tensor> outputs;
