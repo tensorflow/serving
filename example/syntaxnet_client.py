@@ -43,18 +43,17 @@ def main(_):
   sentence.text = u'В линии её кузова я влюбился с первого взгляда.'
   sentence.token.extend(tokens)
 
-  sentences = [sentence] # * 10000
+  sentences = [sentence] * 2048
 
   request.inputs.extend(sentences)
 
-  start_time = time.time()
-  for i in range(1):
+  i = 1
+  while True:
+    start_time = time.time()
     result = stub.Parse(request, 60)
-    print("Result {}: \n {}".format(i, str(result)))
-
-  elapsed_time = time.time() - start_time
-
-  print('Parsing took: ' + str(elapsed_time))
+    elapsed_time = time.time() - start_time
+    print('Completed #{}, time: {}, count: {} '.format(str(i), str(elapsed_time), str(len(result.outputs))))
+    i += 1
 
 
 if __name__ == '__main__':
