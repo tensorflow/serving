@@ -5,7 +5,7 @@ from __future__ import print_function
 
 # This is a placeholder for a Google-internal import.
 import time
-from grpc.beta import implementations
+import grpc
 import tensorflow as tf
 
 from syntaxnet import sentence_pb2
@@ -17,10 +17,11 @@ FLAGS = tf.app.flags.FLAGS
 
 
 def main(_):
-  host, port = FLAGS.server.split(':')
-  channel = implementations.insecure_channel(host, int(port))
+  channel = grpc.insecure_channel(FLAGS.server,
+    options=[('grpc.max_send_message_length', -1), (
+    'grpc.max_receive_message_length', -1)])
 
-  stub = syntaxnet_service_pb2.beta_create_SyntaxNetService_stub(channel)
+  stub = syntaxnet_service_pb2.SyntaxNetServiceStub(channel)
 
   request = syntaxnet_service_pb2.SyntaxNetRequest()
   request.model_spec.name = 'russian'
