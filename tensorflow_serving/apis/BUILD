@@ -58,6 +58,11 @@ serving_proto_library(
     ],
 )
 
+go_proto_library(
+    name = "input_go_proto",
+    deps = [":input_proto"],
+)
+
 serving_proto_library_py(
     name = "input_proto_py_pb2",
     srcs = ["input.proto"],
@@ -82,6 +87,11 @@ serving_proto_library(
     deps = [
         "@protobuf_archive//:cc_wkt_protos",
     ],
+)
+
+go_proto_library(
+    name = "model_go_proto",
+    deps = [":model_proto"],
 )
 
 serving_proto_library_py(
@@ -109,6 +119,11 @@ serving_proto_library(
     ],
 )
 
+go_proto_library(
+    name = "predict_go_proto",
+    deps = [":predict_proto"],
+)
+
 serving_proto_library_py(
     name = "predict_proto_py_pb2",
     srcs = ["predict.proto"],
@@ -134,6 +149,11 @@ serving_proto_library(
         ":predict_proto",
         ":regression_proto",
     ],
+)
+
+go_proto_library(
+    name = "prediction_service_go_proto",
+    deps = [":prediction_service_proto"],
 )
 
 py_library(
@@ -165,6 +185,11 @@ serving_proto_library(
         ":input_proto",
         ":model_proto",
     ],
+)
+
+go_proto_library(
+    name = "classification_go_proto",
+    deps = [":classification_proto"],
 )
 
 serving_proto_library_py(
@@ -226,6 +251,11 @@ serving_proto_library(
         ":input_proto",
         ":model_proto",
     ],
+)
+
+go_proto_library(
+    name = "regression_go_proto",
+    deps = [":regression_proto"],
 )
 
 serving_proto_library_py(
