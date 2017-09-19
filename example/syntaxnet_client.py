@@ -46,14 +46,16 @@ def main(_):
   sentence.token.extend(tokens)
 
   batch_sizes = [256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
-  sentences = [sentence] * random.choice(batch_sizes)
-
-  request.inputs.extend(sentences)
 
   i = 1
   while True:
+    sentences = [sentence] * random.choice(batch_sizes)
+    request.inputs.extend(sentences)
+
     start_time = time.time()
+
     result = stub.Parse(request, 60)
+
     elapsed_time = time.time() - start_time
     print('Completed #{}, time: {}, count: {} '.format(str(i), str(elapsed_time), str(len(result.outputs))))
     i += 1
