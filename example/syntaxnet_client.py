@@ -6,6 +6,7 @@ from __future__ import print_function
 # This is a placeholder for a Google-internal import.
 import time
 import grpc
+import random
 import tensorflow as tf
 
 from syntaxnet import sentence_pb2
@@ -44,7 +45,8 @@ def main(_):
   sentence.text = u'В линии её кузова я влюбился с первого взгляда.'
   sentence.token.extend(tokens)
 
-  sentences = [sentence] * 2048
+  batch_sizes = [256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+  sentences = [sentence] * random.choice(batch_sizes)
 
   request.inputs.extend(sentences)
 
