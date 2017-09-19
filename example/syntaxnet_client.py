@@ -50,7 +50,8 @@ def main(_):
   i = 1
   while True:
     sentences = [sentence] * random.choice(batch_sizes)
-    request.inputs[:] = sentences
+    del request.inputs[:]
+    request.inputs.extend(sentences)
 
     start_time = time.time()
 
