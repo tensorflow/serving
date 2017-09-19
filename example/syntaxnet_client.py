@@ -14,6 +14,8 @@ from tensorflow_serving.apis import syntaxnet_service_pb2
 
 tf.app.flags.DEFINE_string('server', 'localhost:8500',
   'SyntaxNetService host:port')
+tf.app.flags.DEFINE_bool('interactive', False,
+  'Interactivity for choosing batch size during every request')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -49,7 +51,7 @@ def main(_):
 
   i = 1
   while True:
-    sentences = [sentence] * random.choice(batch_sizes)
+    sentences = [sentence] * (random.choice(batch_sizes) if not FLAGS.interactive else int(input("Enter batch size number: ")))
     del request.inputs[:]
     request.inputs.extend(sentences)
 
