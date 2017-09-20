@@ -224,6 +224,9 @@ class SyntaxNetParser {
 
     Tensor inputs(tensorflow::DT_STRING, {sentences_count});
     for (int i = 0; i < sentences_count; i++) {
+      if (request.inputs(i).token().empty()) {
+          return errors::InvalidArgument("expected at least one token in a sentence");
+        }
       inputs.vec<string>()(i) = request.inputs(i).SerializeAsString();
     }
     std::vector<Tensor> outputs;
@@ -243,7 +246,7 @@ class SyntaxNetParser {
         &outputs,
         &run_metadata
     ));
-
+//    LOG(INFO) << run_metadata.DebugString();
     LOG(INFO) << outputs.size() << " output tensors available";
     auto sentences = outputs[0].vec<string>();
     LOG(INFO) << "Sentences count: " << sentences.size();
@@ -267,6 +270,7 @@ class SyntaxNetServiceImpl final : public SyntaxNetService::Service {
   grpc::Status Parse(ServerContext *context, const SyntaxNetRequest *request,
                      ::tensorflow::serving::SyntaxNetResponse *response) override {
     tensorflow::RunOptions run_options = tensorflow::RunOptions();
+//    run_options.set_trace_level(tensorflow::RunOptions::SOFTWARE_TRACE);
     // By default, this is infinite which is the same default as RunOptions.
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
@@ -425,6 +429,8 @@ int main(int argc, char **argv) {
                 "--enable_batching";
     }
 
+//    session_bundle_config.mutable_session_config()
+//        ->mutable_gpu_options()->set_allow_growth(true);
     session_bundle_config.mutable_session_config()
         ->set_intra_op_parallelism_threads(tensorflow_session_parallelism);
     session_bundle_config.mutable_session_config()
