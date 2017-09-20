@@ -254,8 +254,8 @@ Status SavedModelPredict(const RunOptions& run_options, ServerCore* core,
                                     : request.model_spec().signature_name();
   auto iter = bundle->meta_graph_def.signature_def().find(signature_name);
   if (iter == bundle->meta_graph_def.signature_def().end()) {
-    return errors::FailedPrecondition(
-        "Default serving signature key not found.");
+    return errors::FailedPrecondition(strings::StrCat(
+        "Serving signature key \"", signature_name, "\" not found."));
   }
   SignatureDef signature = iter->second;
 
