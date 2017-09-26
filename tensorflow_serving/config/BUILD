@@ -32,11 +32,6 @@ serving_proto_library(
     ],
 )
 
-go_proto_library(
-    name = "model_server_config_go_proto",
-    deps = [":model_server_config_proto"],
-)
-
 serving_proto_library(
     name = "platform_config_proto",
     srcs = ["platform_config.proto"],
