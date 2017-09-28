@@ -99,6 +99,10 @@ class ResourceUtil {
   bool Subtract(const ResourceAllocation& to_subtract,
                 ResourceAllocation* base) const;
 
+  // Multiplies every resource quantity in 'base' by 'multiplier'. Keeps bound
+  // and unbound entries separate.
+  void Multiply(uint64 multiplier, ResourceAllocation* base) const;
+
   // Determines whether two ResourceAllocation objects are identical (modulo
   // normalization).
   bool Equal(const ResourceAllocation& lhs,
@@ -163,6 +167,10 @@ class ResourceUtil {
   // normalized output.
   bool SubtractNormalized(const ResourceAllocation& to_subtract,
                           ResourceAllocation* base) const;
+
+  // Like Multiply(), but assumes the input is normalized and produces
+  // normalized output.
+  void MultiplyNormalized(uint64 multiplier, ResourceAllocation* base) const;
 
   // Like Equal(), but assumes the input is normalized.
   bool EqualNormalized(const ResourceAllocation& lhs,

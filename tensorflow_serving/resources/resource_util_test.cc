@@ -887,6 +887,63 @@ TEST_F(ResourceUtilTest, SubtractBoundAndUnbound) {
                                 "} "));
 }
 
+TEST_F(ResourceUtilTest, MultiplyEmpty) {
+  auto base = CreateProto<ResourceAllocation>("");
+  util_.Multiply(2, &base);
+  EXPECT_THAT(base, EqualsProto(""));
+}
+
+TEST_F(ResourceUtilTest, MultiplyBasic) {
+  auto base = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    device_instance { value: 0 } "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 300 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    device_instance { value: 0 } "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 8 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'gpu' "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 16 "
+      "} ");
+  util_.Multiply(2, &base);
+  EXPECT_THAT(base, EqualsProto("resource_quantities { "
+                                "  resource { "
+                                "    device: 'main' "
+                                "    device_instance { value: 0 } "
+                                "    kind: 'processing' "
+                                "  } "
+                                "  quantity: 600 "
+                                "} "
+                                "resource_quantities { "
+                                "  resource { "
+                                "    device: 'main' "
+                                "    device_instance { value: 0 } "
+                                "    kind: 'ram' "
+                                "  } "
+                                "  quantity: 16 "
+                                "} "
+                                "resource_quantities { "
+                                "  resource { "
+                                "    device: 'gpu' "
+                                "    kind: 'ram' "
+                                "  } "
+                                "  quantity: 32 "
+                                "} "));
+}
+
 TEST_F(ResourceUtilTest, Equal) {
   const std::vector<ResourceAllocation> values = {
       CreateProto<ResourceAllocation>(""),

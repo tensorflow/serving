@@ -9,7 +9,7 @@ To learn more about TensorFlow Serving, we recommend
 [TensorFlow Serving advanced tutorial](serving_advanced.md).
 
 To learn more about TensorFlow Inception model, we recommend
-[Inception in TensorFlow](https://github.com/tensorflow/models/tree/master/inception).
+[Inception in TensorFlow](https://github.com/tensorflow/models/tree/master/research/inception).
 
 -   [Part 0](#part_0_create_a_docker_image) shows how to create a TensorFlow
     Serving Docker image for deployment
