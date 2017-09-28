@@ -137,7 +137,7 @@ tensorflow::Status LoadCustomModelConfig(
     const ::google::protobuf::Any& any,
     EventBus<ServableState>* servable_event_bus,
     UniquePtrWithDeps<AspiredVersionsManager>* manager) {
-  CHECK(false)  // Crash ok
+  LOG(FATAL)  // Crash ok
       << "ModelServer does not yet support custom model config.";
 }
 
@@ -385,7 +385,7 @@ int main(int argc, char** argv) {
             ReadProtoFromFile<BatchingParameters>(batching_parameters_file);
       }
     } else if (!batching_parameters_file.empty()) {
-      CHECK(false)  // Crash ok
+      LOG(FATAL)  // Crash ok
           << "You supplied --batching_parameters_file without "
              "--enable_batching";
     }

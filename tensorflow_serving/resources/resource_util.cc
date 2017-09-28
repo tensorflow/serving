@@ -194,6 +194,11 @@ bool ResourceUtil::Subtract(const ResourceAllocation& to_subtract,
   return SubtractNormalized(Normalize(to_subtract), base);
 }
 
+void ResourceUtil::Multiply(uint64 multiplier, ResourceAllocation* base) const {
+  *base = Normalize(*base);
+  return MultiplyNormalized(multiplier, base);
+}
+
 bool ResourceUtil::Equal(const ResourceAllocation& lhs,
                          const ResourceAllocation& rhs) const {
   return EqualNormalized(Normalize(lhs), Normalize(rhs));
@@ -348,6 +353,15 @@ bool ResourceUtil::SubtractNormalized(const ResourceAllocation& to_subtract,
   }
   *base = Normalize(*base);
   return true;
+}
+
+void ResourceUtil::MultiplyNormalized(uint64 multiplier,
+                                      ResourceAllocation* base) const {
+  DCHECK(IsNormalized(*base));
+  for (int i = 0; i < base->resource_quantities().size(); ++i) {
+    ResourceAllocation::Entry* entry = base->mutable_resource_quantities(i);
+    entry->set_quantity(entry->quantity() * multiplier);
+  }
 }
 
 bool ResourceUtil::EqualNormalized(const ResourceAllocation& lhs,
