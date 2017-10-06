@@ -267,7 +267,8 @@ class ClassRegistry {
             ->GetPrototype(descriptor)
             ->New());
     if (!any_config.UnpackTo(config.get())) {
-      return errors::InvalidArgument("Malformed content of Any.value");
+      return errors::InvalidArgument("Malformed content of Any.value: ",
+          any_config.DebugString());
     }
     return Create(*config, std::forward<AdditionalFactoryArgs>(args)...,
                   result);
