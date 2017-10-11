@@ -386,7 +386,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.RunServerWithModelConfigFile(
         PickUnusedPort(),
         self._GetBadModelConfigFile(),
-        pipe=subprocess.PIPE)
+        pipe=subprocess.PIPE,
+        wait_for_server_ready=False)
 
     error_message = (
         'Invalid protobuf file: \'%s\'') % self._GetBadModelConfigFile()
