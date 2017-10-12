@@ -152,7 +152,7 @@ py_library(
 serving_go_grpc_library(
     name = "prediction_service_grpc",
     srcs = [":prediction_service_proto"],
-    deps = [":prediction_service_proto"],
+    deps = [":prediction_service_go_proto"],
 )
 
 serving_proto_library(
