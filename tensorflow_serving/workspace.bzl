@@ -8,17 +8,17 @@ load('@org_tensorflow//tensorflow:workspace.bzl', 'tf_workspace')
 # as a submodule, it'll likely be '__workspace_dir__ + "/serving"'
 def tf_serving_workspace():
   native.new_local_repository(
-    name = "inception_model",
-    path = "tf_models/inception",
-    build_file = "tf_models/inception/inception/BUILD",
+      name = "inception_model",
+      path = "tf_models/research/inception",
+      build_file = "tf_models/research/inception/inception/BUILD",
   )
 
   tf_workspace(path_prefix = "", tf_repo_name = "org_tensorflow")
 
   # ===== gRPC dependencies =====
   native.bind(
-    name = "libssl",
-    actual = "@boringssl//:ssl",
+      name = "libssl",
+      actual = "@boringssl//:ssl",
   )
 
   native.bind(
