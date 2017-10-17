@@ -1,6 +1,6 @@
 [submodule "tensorflow"]
 	path = tensorflow
-	url = https://github.com/tensorflow/tensorflow.git
+	url = https://github.com/forgeAI/tensorflow.git
 [submodule "tf_models"]
 	path = tf_models
 	url = https://github.com/tensorflow/models.git
