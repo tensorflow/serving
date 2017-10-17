@@ -1,4 +1,4 @@
-# Description: Tensorflow Serving examples.
+#Description: Tensorflow Serving examples.
 
 package(
     default_visibility = ["//tensorflow_serving:internal"],
@@ -49,43 +49,5 @@ py_binary(
         "//tensorflow_serving/apis:predict_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
         "@org_tensorflow//tensorflow:tensorflow_py",
-    ],
-)
-
-py_binary(
-    name = "inception_saved_model",
-    srcs = [
-        "inception_saved_model.py",
-    ],
-    srcs_version = "PY2AND3",
-    deps = [
-        "@inception_model//inception",
-        "@org_tensorflow//tensorflow:tensorflow_py",
-    ],
-)
-
-py_binary(
-    name = "inception_client",
-    srcs = [
-        "inception_client.py",
-    ],
-    srcs_version = "PY2AND3",
-    deps = [
-        "//tensorflow_serving/apis:predict_proto_py_pb2",
-        "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
-        "@org_tensorflow//tensorflow:tensorflow_py",
-    ],
-)
-
-cc_binary(
-    name = "inception_client_cc",
-    srcs = [
-        "inception_client.cc",
-    ],
-    deps = [
-        "//tensorflow_serving/apis:prediction_service_proto",
-        "@grpc//:grpc++",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@protobuf//:protobuf_lite",
     ],
 )
