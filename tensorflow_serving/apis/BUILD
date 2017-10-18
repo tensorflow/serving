@@ -133,6 +133,7 @@ serving_proto_library(
         ":inference_proto",
         ":predict_proto",
         ":regression_proto",
+        "//tensorflow_serving/config:model_server_config_proto"
     ],
 )
 
@@ -146,6 +147,7 @@ py_library(
         ":inference_proto_py_pb2",
         ":predict_proto_py_pb2",
         ":regression_proto_py_pb2",
+        "//tensorflow_serving/config:model_server_config_proto_py_pb2"
     ],
 )
 

@@ -204,6 +204,15 @@ class PredictionServiceImpl final : public PredictionService::Service {
     return status;
   }
 
+  grpc::Status Reload(ServerContext* context, const ModelServerConfig* request,
+                      PredictResponse* response) override {
+    const grpc::Status status = ToGRPCStatus(core_->ReloadConfig(*request));
+    if (!status.ok()) {
+      VLOG(1) << "Server reload failed: " << status.error_message();
+    }
+    return status;
+  }
+
   grpc::Status GetModelMetadata(ServerContext* context,
                                 const GetModelMetadataRequest* request,
                                 GetModelMetadataResponse* response) override {
