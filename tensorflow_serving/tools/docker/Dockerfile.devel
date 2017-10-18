@@ -34,7 +34,7 @@ RUN pip install mock grpcio
 
 ENV BAZELRC /root/.bazelrc
 # Install the most recent bazel release.
-ENV BAZEL_VERSION 0.5.1
+ENV BAZEL_VERSION 0.5.4
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \
