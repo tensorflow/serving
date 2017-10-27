@@ -13,9 +13,8 @@ If you have the prerequisites for Bazel, those instructions consist of the
 following steps:
 
 1.  Download the relevant binary from
-    [here](https://github.com/bazelbuild/bazel/releases).
-    Let's say you downloaded bazel-0.5.4-installer-linux-x86_64.sh. You would
-    execute:
+    [here](https://github.com/bazelbuild/bazel/releases). Let's say you
+    downloaded bazel-0.5.4-installer-linux-x86_64.sh. You would execute:
 
     <pre>
     cd ~/Downloads
