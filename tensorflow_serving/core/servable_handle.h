@@ -22,7 +22,6 @@ limitations under the License.
 #include <type_traits>
 
 #include "tensorflow_serving/core/loader.h"
-#include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/util/any_ptr.h"
 
 namespace tensorflow {

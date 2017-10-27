@@ -183,7 +183,7 @@ load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
 
 pkg_tar(
     name = "tensorflow_model_server_tar",
-    srcs = [
+    files = [
         ":tensorflow_model_server",
     ],
     package_dir = "/usr/bin",

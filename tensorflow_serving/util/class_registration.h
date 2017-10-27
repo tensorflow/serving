@@ -266,7 +266,10 @@ class ClassRegistry {
         protobuf::MessageFactory::generated_factory()
             ->GetPrototype(descriptor)
             ->New());
-    any_config.UnpackTo(config.get());
+    if (!any_config.UnpackTo(config.get())) {
+      return errors::InvalidArgument("Malformed content of Any: ",
+                                     any_config.DebugString());
+    }
     return Create(*config, std::forward<AdditionalFactoryArgs>(args)...,
                   result);
   }
