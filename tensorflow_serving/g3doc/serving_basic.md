@@ -34,9 +34,10 @@ further optimize the build, refer to the
 ## Train And Export TensorFlow Model
 
 As you can see in `mnist_saved_model.py`, the training is done the same way it
-is in the MNIST For ML Beginners tutorial. The TensorFlow graph is launched in
-TensorFlow session `sess`, with the input tensor (image) as `x` and output
-tensor (Softmax score) as `y`.
+is in the
+[MNIST For ML Beginners tutorial](https://www.tensorflow.org/get_started/mnist/beginners). 
+The TensorFlow graph is launched in TensorFlow session `sess`, with the input
+tensor (image) as `x` and output tensor (Softmax score) as `y`.
 
 Then we use TensorFlow's [SavedModelBuilder module](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/builder.py)
 to export the model. `SavedModelBuilder` saves a "snapshot" of the trained model
