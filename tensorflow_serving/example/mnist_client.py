@@ -38,7 +38,6 @@ import tensorflow as tf
 
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2
-from tensorflow_serving.config import model_server_config_pb2
 import mnist_input_data
 
 
@@ -46,7 +45,6 @@ tf.app.flags.DEFINE_integer('concurrency', 1,
                             'maximum number of concurrent inference requests')
 tf.app.flags.DEFINE_integer('num_tests', 100, 'Number of test images')
 tf.app.flags.DEFINE_string('server', '', 'PredictionService host:port')
-tf.app.flags.DEFINE_string('config_file', '', 'file')
 tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory. ')
 FLAGS = tf.app.flags.FLAGS
 
@@ -156,32 +154,6 @@ def do_inference(hostport, work_dir, concurrency, num_tests):
         _create_rpc_callback(label[0], result_counter))
   return result_counter.get_error_rate()
 
-def reload(hostport, config_file):
-  """Tests PredictionService with concurrent requests.
-
-  Args:
-    hostport: Host:port address of the PredictionService.
-    work_dir: The full path of working directory for test data set.
-    concurrency: Maximum number of concurrent requests.
-    num_tests: Number of test images to use.
-
-  Returns:
-    The classification error rate.
-
-  Raises:
-    IOError: An error occurred processing test data set.
-  """
-  host, port = hostport.split(':')
-  channel = implementations.insecure_channel(host, int(port))
-  stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
-  print(stub.__dict__)
-  new_config = model_server_config_pb2.ModelServerConfig()
-  with open(config_file, "r") as f:
-    new_config.ParseFromString(f.read().decode('string_escape')[:-1])
-  result_future = stub.Reload.future(new_config, 5.0)  # 5 seconds
-  # result_future.add_done_callback(
-  #     _create_rpc_callback(label[0], result_counter))
-  return result_future
 
 def main(_):
   if FLAGS.num_tests > 10000:
@@ -190,11 +162,10 @@ def main(_):
   if not FLAGS.server:
     print('please specify server host:port')
     return
-  # error_rate = do_inference(FLAGS.server, FLAGS.work_dir,
-  #                           FLAGS.concurrency, FLAGS.num_tests)
-  # print('\nInference error rate: %s%%' % (error_rate * 100))
-  result = reload(FLAGS.server, FLAGS.config_file)
-  print('result', result)
+  error_rate = do_inference(FLAGS.server, FLAGS.work_dir,
+                            FLAGS.concurrency, FLAGS.num_tests)
+  print('\nInference error rate: %s%%' % (error_rate * 100))
+
 
 if __name__ == '__main__':
   tf.app.run()
