@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+option cc_enable_arenas = true;
+
+import "tensorflow_serving/apis/predict.proto";
+import "tensorflow_serving/config/model_server_config.proto";
+
+// open source marker; do not remove
+// AdminService provides access to machine-learned models loaded by
+// model_servers.
+service AdminService {
+  // Reload -- reloads models from config.
+  rpc Reload(ModelServerConfig) returns (PredictResponse);
+}

@@ -64,6 +64,8 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/util/command_line_flags.h"
+#include "tensorflow_serving/apis/admin_service.grpc.pb.h"
+#include "tensorflow_serving/apis/admin_service.pb.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 #include "tensorflow_serving/apis/prediction_service.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
@@ -113,6 +115,7 @@ using tensorflow::serving::PredictResponse;
 using tensorflow::serving::RegressionRequest;
 using tensorflow::serving::RegressionResponse;
 using tensorflow::serving::PredictionService;
+using tensorflow::serving::AdminService;
 
 namespace {
 
@@ -182,6 +185,24 @@ grpc::Status ToGRPCStatus(const tensorflow::Status& status) {
                       error_message);
 }
 
+class AdminServiceImpl final : public AdminService::Service {
+ public:
+  explicit AdminServiceImpl(std::unique_ptr<ServerCore>* core): core_(core) {}
+
+  grpc::Status Reload(ServerContext* context, const ModelServerConfig* request,
+                      PredictResponse* response) override {
+    VLOG(1) << "Reloading with config " << request->DebugString();
+    const grpc::Status status = ToGRPCStatus((*core_)->ReloadConfig(*request));
+    if (!status.ok()) {
+      VLOG(1) << "Server reload failed: " << status.error_message();
+    }
+    return status;
+  }
+
+ private:
+  std::unique_ptr<ServerCore>* core_;
+};
+
 class PredictionServiceImpl final : public PredictionService::Service {
  public:
   explicit PredictionServiceImpl(std::unique_ptr<ServerCore> core,
@@ -204,13 +225,8 @@ class PredictionServiceImpl final : public PredictionService::Service {
     return status;
   }
 
-  grpc::Status Reload(ServerContext* context, const ModelServerConfig* request,
-                      PredictResponse* response) override {
-    const grpc::Status status = ToGRPCStatus(core_->ReloadConfig(*request));
-    if (!status.ok()) {
-      VLOG(1) << "Server reload failed: " << status.error_message();
-    }
-    return status;
+  std::unique_ptr<ServerCore>* get_server_core() {
+    return &core_;
   }
 
   grpc::Status GetModelMetadata(ServerContext* context,
@@ -283,15 +299,19 @@ class PredictionServiceImpl final : public PredictionService::Service {
   bool use_saved_model_;
 };
 
+
+
 void RunServer(int port, std::unique_ptr<ServerCore> core,
                bool use_saved_model) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
   PredictionServiceImpl service(std::move(core), use_saved_model);
+  AdminServiceImpl admin_service(service.get_server_core());
   ServerBuilder builder;
   std::shared_ptr<grpc::ServerCredentials> creds = InsecureServerCredentials();
   builder.AddListeningPort(server_address, creds);
   builder.RegisterService(&service);
+  builder.RegisterService(&admin_service);
   builder.SetMaxMessageSize(tensorflow::kint32max);
   std::unique_ptr<Server> server(builder.BuildAndStart());
   LOG(INFO) << "Running ModelServer at " << server_address << " ...";

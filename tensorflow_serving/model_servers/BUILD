@@ -136,6 +136,7 @@ cc_binary(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
         "@org_tensorflow//tensorflow/core/platform/hadoop:hadoop_file_system",
+        "//tensorflow_serving/apis:admin_service_proto",
         "//tensorflow_serving/apis:prediction_service_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
@@ -154,6 +155,7 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:bad_model_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:batching_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:good_model_config.txt",
+        "//tensorflow_serving/servables/tensorflow/testdata:good_model_config_with_one_model.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
@@ -165,6 +167,8 @@ py_test(
     ],
     deps = [
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        "//tensorflow_serving/apis:admin_service_proto_py_pb2",
+        "//tensorflow_serving/config:model_server_config_proto_py_pb2",
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )

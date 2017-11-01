@@ -43,6 +43,7 @@ function main() {
     "${TMPDIR}/tensorflow_serving/apis"
 
   touch "${TMPDIR}/tensorflow_serving/apis/__init__.py"
+  touch "${TMPDIR}/tensorflow_serving/config/__init__.py"
   touch "${TMPDIR}/tensorflow_serving/__init__.py"
 
   echo "Adding package setup files"
