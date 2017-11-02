@@ -5,7 +5,7 @@ def serving_proto_library(name, srcs=[], has_services=False,
                           deps=[], visibility=None, testonly=0,  # pylint: disable=unused-argument
                           cc_grpc_version = None,
                           cc_api_version=2, go_api_version=2,
-                          java_api_version=2,
+                          java_api_version=2, js_api_version=2,
                           py_api_version=2):
   native.filegroup(name=name + "_proto_srcs",
                    srcs=srcs,
