@@ -1,10 +1,13 @@
----
----
-<style>hr{display:none;}</style>
-
 # TensorFlow Serving Batching Guide
 
-[TOC]
+* [Introduction](#introduction)
+* [Simple Batching](#simple-batching)
+  * [BatchingSession](#batchingsession)
+  * [BasicBatchScheduler](#basicbatchscheduler)
+* [Batch Scheduling Parameters and Tuning](#batch-scheduling-parameters-and-tuning)
+  * [Performance Tuning](#performance-tuning)
+* [Servers with Multiple Models, Model Versions or Subtasks](#servers-with-multiple-models-model-versions-or-subtasks)
+* [Mixed CPU/GPU/IO Workloads](#mixed-cpugpuio-workloads)
 
 ## Introduction
 
