@@ -65,6 +65,7 @@ class TensorFlowRegressor : public RegressorInterface {
     if (num_examples == 0) {
       return errors::InvalidArgument("RegressionRequest::input is empty.");
     }
+    RecordRequestExampleCount(request.model_spec().name(), num_examples);
 
     TRACELITERAL("RunRegression");
     Tensor output;

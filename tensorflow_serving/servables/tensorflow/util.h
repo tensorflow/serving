@@ -18,11 +18,23 @@ limitations under the License.
 
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/input.pb.h"
 
 namespace tensorflow {
 namespace serving {
+
+// Implementation details mainly used for testing; please don't depend on it.
+namespace internal {
+
+monitoring::Sampler<1>* GetExampleCounts();
+
+}  // namespace internal
+
+// Records the example count of this request with the metric tracking the
+// histogram of number of examples per request.
+void RecordRequestExampleCount(const string& model_name, size_t count);
 
 // InputToSerializedExampleTensor populates a string Tensor of serialized
 // Examples.
