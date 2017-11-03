@@ -63,6 +63,7 @@ class TensorFlowClassifier : public ClassifierInterface {
     if (num_examples == 0) {
       return errors::InvalidArgument("ClassificationRequest::input is empty.");
     }
+    RecordRequestExampleCount(request.model_spec().name(), num_examples);
 
     TRACELITERAL("RunClassification");
     // Support serving models that return classes, scores or both.
