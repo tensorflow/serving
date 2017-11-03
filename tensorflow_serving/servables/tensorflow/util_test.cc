@@ -20,6 +20,7 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/lib/histogram/histogram.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
@@ -199,6 +200,20 @@ TEST_F(InputUtilTest, RequestNumExamplesStreamz) {
   Tensor tensor_2;
   TF_ASSERT_OK(InputToSerializedExampleTensor(input_2, &tensor_2));
   EXPECT_EQ(1, tensor_2.NumElements());
+}
+
+TEST(ExampleCountsTest, Simple) {
+  using histogram::Histogram;
+
+  const HistogramProto before_histogram =
+      internal::GetExampleCounts()->GetCell("model-name")->value();
+  RecordRequestExampleCount("model-name", 3);
+  const HistogramProto after_histogram =
+      internal::GetExampleCounts()->GetCell("model-name")->value();
+
+  ASSERT_GE(before_histogram.bucket().size(), 3);
+  ASSERT_GE(after_histogram.bucket().size(), 3);
+  EXPECT_EQ(1, after_histogram.bucket(2) - before_histogram.bucket(2));
 }
 
 }  // namespace

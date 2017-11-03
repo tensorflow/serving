@@ -27,6 +27,13 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
+auto* example_counts = monitoring::Sampler<1>::New(
+    {"/tensorflow/serving/request_example_counts",
+     "The number of tensorflow.Examples per request.", "model"},
+    // It's 15 buckets with the last bucket being 2^14 to DBL_MAX;
+    // so the limits are [1, 2, 4, 8, ..., 16 * 1024, DBL_MAX].
+    monitoring::Buckets::Exponential(1, 2, 15));
+
 // Returns the number of examples in the Input.
 int NumInputExamples(const internal::SerializedInput& input) {
   switch (input.kind_case()) {
@@ -39,7 +46,18 @@ int NumInputExamples(const internal::SerializedInput& input) {
   }
   return 0;
 }
+
 }  // namespace
+
+namespace internal {
+
+monitoring::Sampler<1>* GetExampleCounts() { return example_counts; }
+
+}  // namespace internal
+
+void RecordRequestExampleCount(const string& model_name, size_t count) {
+  example_counts->GetCell(model_name)->Add(count);
+}
 
 Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
   const string serialized_input_str = input.SerializeAsString();

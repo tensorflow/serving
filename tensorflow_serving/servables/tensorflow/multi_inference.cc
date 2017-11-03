@@ -97,6 +97,7 @@ Status TensorFlowMultiInferenceRunner::Infer(
   TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
       run_options, request.input(), input_tensor_name, output_tensor_names,
       session_, &outputs, &num_examples));
+  RecordRequestExampleCount(model_name, num_examples);
 
   TRACELITERAL("PostProcessResults");
   for (const auto& task : request.tasks()) {
