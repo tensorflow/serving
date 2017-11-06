@@ -187,12 +187,12 @@ grpc::Status ToGRPCStatus(const tensorflow::Status& status) {
 
 class AdminServiceImpl final : public AdminService::Service {
  public:
-  explicit AdminServiceImpl(std::unique_ptr<ServerCore>* core): core_(core) {}
+  explicit AdminServiceImpl(std::shared_ptr<ServerCore> core): core_(core) {}
 
   grpc::Status Reload(ServerContext* context, const ModelServerConfig* request,
                       PredictResponse* response) override {
     VLOG(1) << "Reloading with config " << request->DebugString();
-    const grpc::Status status = ToGRPCStatus((*core_)->ReloadConfig(*request));
+    const grpc::Status status = ToGRPCStatus(core_->ReloadConfig(*request));
     if (!status.ok()) {
       VLOG(1) << "Server reload failed: " << status.error_message();
     }
@@ -200,12 +200,12 @@ class AdminServiceImpl final : public AdminService::Service {
   }
 
  private:
-  std::unique_ptr<ServerCore>* core_;
+  std::shared_ptr<ServerCore> core_;
 };
 
 class PredictionServiceImpl final : public PredictionService::Service {
  public:
-  explicit PredictionServiceImpl(std::unique_ptr<ServerCore> core,
+  explicit PredictionServiceImpl(std::shared_ptr<ServerCore> core,
                                  bool use_saved_model)
       : core_(std::move(core)),
         predictor_(new TensorflowPredictor(use_saved_model)),
@@ -223,10 +223,6 @@ class PredictionServiceImpl final : public PredictionService::Service {
       VLOG(1) << "Predict failed: " << status.error_message();
     }
     return status;
-  }
-
-  std::unique_ptr<ServerCore>* get_server_core() {
-    return &core_;
   }
 
   grpc::Status GetModelMetadata(ServerContext* context,
@@ -294,19 +290,17 @@ class PredictionServiceImpl final : public PredictionService::Service {
   }
 
  private:
-  std::unique_ptr<ServerCore> core_;
+  std::shared_ptr<ServerCore> core_;
   std::unique_ptr<TensorflowPredictor> predictor_;
   bool use_saved_model_;
 };
 
-
-
-void RunServer(int port, std::unique_ptr<ServerCore> core,
+void RunServer(int port, std::shared_ptr<ServerCore> core,
                bool use_saved_model) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
-  PredictionServiceImpl service(std::move(core), use_saved_model);
-  AdminServiceImpl admin_service(service.get_server_core());
+  PredictionServiceImpl service(core, use_saved_model);
+  AdminServiceImpl admin_service(core);
   ServerBuilder builder;
   std::shared_ptr<grpc::ServerCredentials> creds = InsecureServerCredentials();
   builder.AddListeningPort(server_address, creds);
