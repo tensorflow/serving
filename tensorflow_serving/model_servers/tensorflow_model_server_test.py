@@ -26,6 +26,7 @@ import time
 
 # This is a placeholder for a Google-internal import.
 
+from google.protobuf import text_format
 from grpc.beta import implementations
 from grpc.beta import interfaces as beta_interfaces
 from grpc.framework.interfaces.face import face
@@ -33,11 +34,13 @@ import tensorflow as tf
 
 from tensorflow.core.framework import types_pb2
 from tensorflow.python.platform import flags
+from tensorflow_serving.apis import admin_service_pb2
 from tensorflow_serving.apis import classification_pb2
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2
 from tensorflow_serving.apis import regression_pb2
 from tensorflow_serving.apis import inference_pb2
+from tensorflow_serving.config import model_server_config_pb2
 
 FLAGS = flags.FLAGS
 
@@ -95,6 +98,20 @@ class TensorflowModelServerTest(tf.test.TestCase):
     with open(self._GetGoodModelConfigFile(), 'w') as config_file:
       config_file.write(config)
 
+  def __BuildModelConfigFileWithOneModel(self):
+    """Write a config file to disk for use in tests.
+
+    Substitutes placeholder for test directory with test directory path
+    in the configuration template file and writes it out to another file
+    used by the test.
+    """
+    with open(self._GetGoodModelConfigWithOneModelTemplate(), 'r') as \
+        template_file:
+      config = template_file.read().replace('${TEST_HALF_PLUS_TWO_DIR}',
+                                            self._GetSavedModelBundlePath())
+    with open(self._GetGoodModelConfigWithOneModelFile(), 'w') as config_file:
+      config_file.write(config)
+
   def setUp(self):
     """Sets up integration test parameters."""
     self.binary_dir = self.__TestSrcDirPath('model_servers')
@@ -102,6 +119,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.temp_dir = tf.test.get_temp_dir()
     self.server_proc = None
     self.__BuildModelConfigFile()
+    self.__BuildModelConfigFileWithOneModel()
 
   def tearDown(self):
     """Deletes created configuration file."""
@@ -181,6 +199,22 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.assertEquals(1, len(result.outputs['y'].float_val))
     self.assertEquals(expected_output, result.outputs['y'].float_val[0])
 
+  def ReloadRequest(self,
+                    model_server_address,
+                    model_config_file):
+    """Send AdminService.Reload request."""
+    print 'Sending Reload request...'
+    # Prepare request
+    config = model_server_config_pb2.ModelServerConfig()
+    with open(model_config_file, "r") as f:
+      text_format.Parse(f.read(), config)
+    # Send request
+    host, port = model_server_address.split(':')
+    channel = implementations.insecure_channel(host, int(port))
+    stub = admin_service_pb2.beta_create_AdminService_stub(channel)
+    result = stub.Reload(config, RPC_TIMEOUT)
+    print "result of reload", result
+
   def _GetSavedModelBundlePath(self):
     """Returns a path to a model in SavedModel format."""
     return os.path.join(os.environ['TEST_SRCDIR'], 'tf_serving/external/org_tensorflow/tensorflow/',
@@ -198,9 +232,19 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Returns a path to a working configuration file template."""
     return os.path.join(self.testdata_dir, 'good_model_config.txt')
 
+  def _GetGoodModelConfigWithOneModelTemplate(self):
+    """Returns a path to a working configuration file template with one model.
+    """
+    return os.path.join(
+        self.testdata_dir, 'good_model_config_with_one_model.txt')
+
   def _GetGoodModelConfigFile(self):
     """Returns a path to a working configuration file."""
     return os.path.join(self.temp_dir, 'good_model_config.conf')
+
+  def _GetGoodModelConfigWithOneModelFile(self):
+    """Returns a path to a working configuration file with just one model."""
+    return os.path.join(self.temp_dir, 'good_model_config_with_one_model.conf')
 
   def _GetBadModelConfigFile(self):
     """Returns a path to a improperly formatted configuration file."""
@@ -392,6 +436,44 @@ class TensorflowModelServerTest(tf.test.TestCase):
         'Invalid protobuf file: \'%s\'') % self._GetBadModelConfigFile()
     self.assertNotEqual(self.server_proc.stderr, None)
     self.assertGreater(self.server_proc.stderr.read().find(error_message), -1)
+
+  def testReloadConfig(self):
+    atexit.register(self.TerminateProcs)
+    model_server_address = self.RunServerWithModelConfigFile(
+        PickUnusedPort(), self._GetGoodModelConfigWithOneModelFile())
+
+    self.VerifyPredictRequest(
+        model_server_address, model_name='half_plus_two', expected_output=3.0)
+    self.VerifyPredictRequest(
+        model_server_address,
+        model_name='half_plus_two',
+        expected_output=3.0,
+        specify_output=False)
+
+    with self.assertRaises(face.AbortionError) as error:
+      self.VerifyPredictRequest(
+          model_server_address,
+          model_name='half_plus_three', expected_output=4.0)
+      self.assertIs(beta_interfaces.StatusCode.NOT_FOUND, error.exception.code)
+
+    self.ReloadRequest(model_server_address, self._GetGoodModelConfigFile())
+    self.VerifyPredictRequest(
+        model_server_address, model_name='half_plus_two', expected_output=3.0)
+    self.VerifyPredictRequest(
+        model_server_address,
+        model_name='half_plus_two',
+        expected_output=3.0,
+        specify_output=False)
+
+    self.VerifyPredictRequest(
+        model_server_address, model_name='half_plus_three', expected_output=4.0)
+    self.VerifyPredictRequest(
+        model_server_address,
+        model_name='half_plus_three',
+        expected_output=4.0,
+        specify_output=False)
+
+
 
 
 if __name__ == '__main__':

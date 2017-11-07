@@ -132,7 +132,7 @@ serving_proto_library(
         ":get_model_metadata_proto",
         ":inference_proto",
         ":predict_proto",
-        ":regression_proto",
+        ":regression_proto"
     ],
 )
 
@@ -145,7 +145,7 @@ py_library(
         ":get_model_metadata_proto_py_pb2",
         ":inference_proto_py_pb2",
         ":predict_proto_py_pb2",
-        ":regression_proto_py_pb2",
+        ":regression_proto_py_pb2"
     ],
 )
 
@@ -153,6 +153,36 @@ serving_go_grpc_library(
     name = "prediction_service_grpc",
     srcs = [":prediction_service_proto"],
     deps = [":prediction_service_proto"],
+)
+
+serving_proto_library(
+    name = "admin_service_proto",
+    srcs = ["admin_service.proto"],
+    has_services = 1,
+    cc_api_version = 2,
+    cc_grpc_version = 1,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":predict_proto",
+        "//tensorflow_serving/config:model_server_config_proto"
+    ],
+)
+
+py_library(
+    name = "admin_service_proto_py_pb2",
+    srcs = ["admin_service_pb2.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":predict_proto_py_pb2",
+        "//tensorflow_serving/config:model_server_config_proto_py_pb2"
+    ],
+)
+
+serving_go_grpc_library(
+    name = "admin_service_grpc",
+    srcs = [":admin_service_proto"],
+    deps = [":admin_service_proto"],
 )
 
 serving_proto_library(
