@@ -250,7 +250,7 @@ Status BatchingSession::Run(
   }
   BatchScheduler<BatchingSessionTask>* batch_scheduler =
       batch_scheduler_it->second.get();
-
+  LOG(INFO) << "Number of scheduled tasks: " << batch_scheduler->NumEnqueuedTasks();
   outputs->clear();
 
   Notification done;
