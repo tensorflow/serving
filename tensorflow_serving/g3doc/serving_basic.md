@@ -51,14 +51,12 @@ the following is a short code snippet to illustrate the general process of
 saving a model to disk.
 
 ```python
-from tensorflow.python.saved_model import builder as saved_model_builder
-...
 export_path_base = sys.argv[-1]
 export_path = os.path.join(
       compat.as_bytes(export_path_base),
       compat.as_bytes(str(FLAGS.model_version)))
 print 'Exporting trained model to', export_path
-builder = saved_model_builder.SavedModelBuilder(export_path)
+builder = tf.saved_model.builder.SavedModelBuilder(export_path)
 builder.add_meta_graph_and_variables(
       sess, [tag_constants.SERVING],
       signature_def_map={
