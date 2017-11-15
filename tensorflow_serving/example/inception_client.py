@@ -12,6 +12,11 @@ from tensorflow_serving.apis import prediction_service_pb2
 import base64
 import os
 
+tf.app.flags.DEFINE_string('server', 'localhost:9000',
+                           'PredictionService host:port')
+tf.app.flags.DEFINE_string('image', '', 'path to image in JPEG format')
+FLAGS = tf.app.flags.FLAGS
+
 class Processor:
   __stub = None
   __vocab = None
@@ -37,5 +42,12 @@ class Processor:
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  p = Processor(FLAGS.server, '')
+  image = open(FLAGS.image, 'rb')
+  ListOfInputs = []
+  image_read = image.read()
+  image_64_encode = base64.encodestring(image_read)
+  ListOfInputs.append(image_64_encode)
+  result = p.Process('inception', ListOfInputs)
+  print(result)
 
