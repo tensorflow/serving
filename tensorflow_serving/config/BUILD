@@ -53,6 +53,7 @@ serving_proto_library(
     srcs = ["log_collector_config.proto"],
     cc_api_version = 2,
     go_api_version = 2,
+    java_api_version = 2,
     deps = [
     ],
 )
@@ -62,6 +63,7 @@ serving_proto_library(
     srcs = ["logging_config.proto"],
     cc_api_version = 2,
     go_api_version = 2,
+    java_api_version = 2,
     deps = [
         ":log_collector_config_proto",
     ],
