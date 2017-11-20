@@ -226,19 +226,28 @@ TEST_P(RelativePathsServerCoreTest, RelativePathFails) {
             CreateServerCore(relative, &server_core).code());
 }
 
-TEST_P(RelativePathsServerCoreTest, AbsolutePathWithOptionsFails) {
+TEST_P(RelativePathsServerCoreTest,
+       AbsoluteAndRelativePathsWithOptionsSucceed) {
   std::unique_ptr<ServerCore> server_core;
+  ModelServerConfig absolute_and_relative;
   ModelServerConfig absolute = GetTestModelServerConfigForFakePlatform();
   ServerCore::Options options = GetDefaultOptions();
   {
     string model_config_list_root_dir;
     ModelServerConfig relative =
         GetTestModelServerConfigWithRelativePath(&model_config_list_root_dir);
+    // Add the absolute and relative config to absolute. We'll check that both
+    // paths can be interleaved in the same model config list.
+    CHECK_GT(relative.model_config_list().config_size(), 0);
+    CHECK_GT(absolute.model_config_list().config_size(), 0);
+    *absolute_and_relative.mutable_model_config_list()->add_config() =
+        absolute.model_config_list().config(0);
+    *absolute_and_relative.mutable_model_config_list()->add_config() =
+        relative.model_config_list().config(0);
     options.model_config_list_root_dir = std::move(model_config_list_root_dir);
   }
-  EXPECT_EQ(
-      error::INVALID_ARGUMENT,
-      CreateServerCore(absolute, std::move(options), &server_core).code());
+  TF_ASSERT_OK(CreateServerCore(absolute_and_relative, std::move(options),
+                                &server_core));
 }
 
 TEST_P(RelativePathsServerCoreTest, AbsolutePathWithEmptyPathFails) {
