@@ -183,6 +183,17 @@ cc_library(
 )
 
 cc_library(
+    name = "mock_server_request_logger",
+    testonly = 1,
+    hdrs = ["mock_server_request_logger.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tensorflow_serving/core:server_request_logger",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
+cc_library(
     name = "mock_session",
     testonly = 1,
     hdrs = ["mock_session.h"],
