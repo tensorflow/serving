@@ -74,20 +74,18 @@ unloading a servable.
 
 ### Sources
 
-**Sources** are plugin modules that originate servables;  each Source
-originates zero or more servable streams.  For each stream, a Source supplies
-one Loader instance  for each version it wants to have loaded. (To be precise,
-a Source is actually chained together with zero or more SourceAdapters, and
-the last item in the chain emits Loaders.)
+**Sources** are plugin modules that find and provide servables. Each Source
+provides zero or more servable streams.  For each servable stream, a Source supplies
+one Loader instance for each version it makes available to be loaded. (A Source is
+actually chained together with zero or more SourceAdapters, and the last item in
+the chain emits the Loaders.)
 
-TensorFlow Serving’s interface  for Sources is simple and narrow, so it lets
-you use arbitrary  storage systems to discover servables to load.  Sources may
-access other mechanisms such as RPC. TensorFlow Serving includes common
-reference Source implementations. For example, TensorFlow Serving can poll a
-file system.
+TensorFlow Serving’s interface for Sources can discover servables from arbitrary
+storage systems. TensorFlow Serving includes common reference Source implementations.
+For example, Sources may access mechanisms such as RPC and can poll a file system.
 
-Sources can house state that is shared across multiple servables or versions,
-for special cases such as models that efficiently accept delta updates.
+Sources can maintain state that is shared across multiple servables or versions. This
+is useful for servables that use delta (diff) updates between versions.
 
 #### Aspired Versions
 
