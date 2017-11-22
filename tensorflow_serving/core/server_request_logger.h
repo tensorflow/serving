@@ -49,25 +49,28 @@ class ServerRequestLogger {
           request_logger_creator,
       std::unique_ptr<ServerRequestLogger>* server_request_logger);
 
-  ~ServerRequestLogger() = default;
+  virtual ~ServerRequestLogger() = default;
 
   // Updates the logger with the new 'logging_config_map'.
   //
   // If the ServerRequestLogger was created using an empty
   // request_logger_creator, this will return an error if a non-empty
   // logging_config_map is passed in.
-  Status Update(const std::map<string, LoggingConfig>& logging_config_map);
+  virtual Status Update(
+      const std::map<string, LoggingConfig>& logging_config_map);
 
   // Similar to RequestLogger::Log().
-  Status Log(const google::protobuf::Message& request, const google::protobuf::Message& response,
-             const LogMetadata& log_metadata);
+  virtual Status Log(const google::protobuf::Message& request,
+                     const google::protobuf::Message& response,
+                     const LogMetadata& log_metadata);
 
- private:
+ protected:
   explicit ServerRequestLogger(
       const std::function<Status(const LoggingConfig& logging_config,
                                  std::unique_ptr<RequestLogger>*)>&
           request_logger_creator);
 
+ private:
   // A map from model_name to its corresponding RequestLogger.
   using RequestLoggerMap =
       std::unordered_map<string, std::unique_ptr<RequestLogger>>;
