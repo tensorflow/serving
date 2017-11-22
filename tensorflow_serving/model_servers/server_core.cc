@@ -101,13 +101,6 @@ Status ValidateModelConfigList(const ModelConfigList& config_list,
                           "model_config_list_root_dir=",
                           *options.model_config_list_root_dir));
     }
-    for (const ModelConfig& config : config_list.config()) {
-      if (!UriIsRelativePath(config.base_path())) {
-        return errors::InvalidArgument(strings::StrCat(
-            "Expected model ", config.name(),
-            " to have a relative path; got base_path()=", config.base_path()));
-      }
-    }
   } else {
     // All base-paths must be absolute.
     for (const ModelConfig& config : config_list.config()) {
@@ -200,6 +193,11 @@ Status UpdateModelConfigListRelativePaths(
   std::vector<string> updated_paths;
   updated_paths.reserve(config_list->config_size());
   for (const ModelConfig& config : config_list->config()) {
+    // Don't modify absolute paths.
+    if (!UriIsRelativePath(config.base_path())) {
+      updated_paths.push_back(config.base_path());
+      continue;
+    }
     updated_paths.emplace_back(
         io::JoinPath(model_config_list_root_dir, config.base_path()));
     if (UriIsRelativePath(updated_paths.back())) {
