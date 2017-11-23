@@ -6,7 +6,7 @@ import time
 import grpc
 import random
 import os
-import tensorflow as tf
+import argparse
 
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.internal.decoder import _DecodeVarint32
@@ -14,11 +14,20 @@ from google.protobuf.internal.decoder import _DecodeVarint32
 from syntaxnet import sentence_pb2
 from tensorflow_serving.apis import syntaxnet_service_pb2
 
-tf.app.flags.DEFINE_string('server', 'localhost:8500',
-                           'SyntaxNetService host:port')
-tf.app.flags.DEFINE_string('proto_dir', '/workspace',
-                           'Input can be a folder with sentence objects as protobufs (data preprocessed with segmenter)')
-FLAGS = tf.app.flags.FLAGS
+
+def parse_cmd_line_args():
+  """Define and handle command-line args, computing defaults as needed."""
+  parser = argparse.ArgumentParser(
+      description="Sample client for the server, that works with preprocessed (segmented) data.")
+  parser.add_argument("--server", default='localhost:8500',
+                      help="DRAGNN server host:port.")
+  parser.add_argument("--proto_dir", default='/workspace',
+                      help="Input can be a folder with sentence objects as protobufs (data preprocessed with segmenter).")
+
+  return parser.parse_args()
+
+
+FLAGS = parse_cmd_line_args()
 
 
 def abs_filepath(directory):
@@ -75,4 +84,4 @@ def main(_):
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  main()
