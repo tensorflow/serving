@@ -64,7 +64,7 @@ def parse(stub, request, sentences):
                                                                 result.outputs))))
 
 
-def main(_):
+def main():
   channel = grpc.insecure_channel(FLAGS.server,
                                   options=[('grpc.max_send_message_length', -1),
                                            (
