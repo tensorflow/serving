@@ -8,6 +8,8 @@ import random
 import os
 import argparse
 
+from multiprocessing import Pool
+
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.internal.decoder import _DecodeVarint32
 
@@ -23,8 +25,8 @@ def parse_cmd_line_args():
                       help="DRAGNN server host:port.")
   parser.add_argument("--proto_dir", default='/workspace',
                       help="Input can be a folder with sentence objects as protobufs (data preprocessed with segmenter).")
-  parser.add_argument("--threads", default=-1,
-                      help="Amount of threads to spawn (by default, equals to number of usable CPUs).")
+  parser.add_argument("--processses", default=os.cpu_count(),
+                      help="Amount of processses to spawn (by default, equals to number of CPUs in the system).")
 
   return parser.parse_args()
 
@@ -66,12 +68,7 @@ def parse(stub, request, sentences):
                                                                 result.outputs))))
 
 
-def main():
-  if FLAGS.threads == -1:
-    FLAGS.threads = len(os.sched_getaffinity(0))
-
-  print('Number of threads to spawn: {}'.format(FLAGS.threads))
-
+def parse_file(file):
   channel = grpc.insecure_channel(FLAGS.server,
                                   options=[('grpc.max_send_message_length', -1),
                                            (
@@ -84,10 +81,16 @@ def main():
   request.model_spec.name = 'russian'
   request.model_spec.signature_name = 'parse_sentences'
 
-  for file in abs_filepath(FLAGS.proto_dir):
-    with open(file, 'rb') as f:
-      sentences = read_all_sentences(f)
-    parse(stub, request, sentences)
+  with open(file, 'rb') as f:
+    sentences = read_all_sentences(f)
+  parse(stub, request, sentences)
+
+
+def main():
+  print('Number of processes to spawn: {}'.format(FLAGS.processses))
+  pool = Pool(FLAGS.processses)
+
+  pool.map(parse_file(), abs_filepath(FLAGS.proto_dir))
 
 
 if __name__ == '__main__':
