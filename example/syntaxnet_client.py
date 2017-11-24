@@ -23,6 +23,8 @@ def parse_cmd_line_args():
                       help="DRAGNN server host:port.")
   parser.add_argument("--proto_dir", default='/workspace',
                       help="Input can be a folder with sentence objects as protobufs (data preprocessed with segmenter).")
+  parser.add_argument("--threads", default=-1,
+                      help="Amount of threads to spawn (by default, equals to number of usable CPUs).")
 
   return parser.parse_args()
 
@@ -65,6 +67,11 @@ def parse(stub, request, sentences):
 
 
 def main():
+  if FLAGS.threads == -1:
+    FLAGS.threads = len(os.sched_getaffinity(0))
+
+  print('Number of threads to spawn: {}'.format(FLAGS.threads))
+
   channel = grpc.insecure_channel(FLAGS.server,
                                   options=[('grpc.max_send_message_length', -1),
                                            (
