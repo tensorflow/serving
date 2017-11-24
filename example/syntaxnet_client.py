@@ -9,7 +9,7 @@ import os
 import argparse
 
 import multiprocessing
-from multiprocessing import Pool
+from multiprocessing import Pool, Lock
 
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.internal.decoder import _DecodeVarint32
@@ -34,6 +34,8 @@ def parse_cmd_line_args():
 
 FLAGS = parse_cmd_line_args()
 
+LOCK_OUTPUT = Lock()
+
 
 def abs_filepath(directory):
   for dirpath, _, filenames in os.walk(directory):
@@ -53,20 +55,16 @@ def read_all_sentences(file):
     sentence = sentence_pb2.Sentence()
     sentence.ParseFromString(msg_buf)
     sentences.append(sentence)
-  print('Amount of sentences in a file: {}'.format(len(sentences)))
   return sentences
 
 
-def parse(stub, request, sentences):
+def parse_request(stub, request, sentences):
   del request.inputs[:]
   request.inputs.extend(sentences)
   start_time = time.time()
   result = stub.Parse(request, 60)
   elapsed_time = time.time() - start_time
-  print(
-    'Finished parsing request, time: {}, count: {} '.format(str(elapsed_time),
-                                                            str(len(
-                                                                result.outputs))))
+  return result, elapsed_time
 
 
 def parse_file(file):
@@ -84,14 +82,23 @@ def parse_file(file):
 
   with open(file, 'rb') as f:
     sentences = read_all_sentences(f)
-  parse(stub, request, sentences)
+  result, elapsed_time = parse_request(stub, request, sentences)
+
+  LOCK_OUTPUT.acquire()
+  print('ID# {}, Parsed sentences: {}, Elapsed time: {}'.format(
+      multiprocessing.current_process().pid,
+      str(len(result.outputs)),
+      str(elapsed_time)))
+  LOCK_OUTPUT.release()
 
 
 def main():
-  print('Number of processes to spawn: {}'.format(FLAGS.processses))
+  print('Number of processes: {}'.format(FLAGS.processses))
   pool = Pool(FLAGS.processses)
 
+  print('Started processing.')
   pool.map(parse_file, abs_filepath(FLAGS.proto_dir))
+  print('Finished processing.')
 
 
 if __name__ == '__main__':
