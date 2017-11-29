@@ -277,6 +277,8 @@ TEST(StreamingBatchSchedulerTest, ConstMethods) {
     TF_ASSERT_OK(StreamingBatchScheduler<FakeTask>::Create(options, callback,
                                                            &scheduler));
 
+    EXPECT_EQ(2, scheduler->max_task_size());
+
     // Submit 'num_threads' full batches, to make the scheduling threads "full".
     // (At all times, the queue length should show as 0, since
     // StreamingBatchScheduler never enqueues tasks.)
