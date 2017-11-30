@@ -94,7 +94,7 @@ def parse_file(file):
 
 def main():
   print('Number of processes: {}'.format(FLAGS.processes))
-  pool = Pool(FLAGS.processes)
+  pool = Pool(processes=int(FLAGS.processes))
 
   print('Started processing.')
   pool.map(parse_file, abs_filepath(FLAGS.proto_dir))
