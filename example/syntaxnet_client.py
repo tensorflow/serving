@@ -26,7 +26,7 @@ def parse_cmd_line_args():
                       help="DRAGNN server host:port.")
   parser.add_argument("--proto_dir", default='/workspace',
                       help="Input can be a folder with sentence objects as protobufs (data preprocessed with segmenter).")
-  parser.add_argument("--processses", default=multiprocessing.cpu_count(),
+  parser.add_argument("--processes", default=multiprocessing.cpu_count(),
                       help="Amount of processses to spawn (by default, equals to number of CPUs in the system).")
 
   return parser.parse_args()
@@ -93,8 +93,8 @@ def parse_file(file):
 
 
 def main():
-  print('Number of processes: {}'.format(FLAGS.processses))
-  pool = Pool(FLAGS.processses)
+  print('Number of processes: {}'.format(FLAGS.processes))
+  pool = Pool(FLAGS.processes)
 
   print('Started processing.')
   pool.map(parse_file, abs_filepath(FLAGS.proto_dir))
