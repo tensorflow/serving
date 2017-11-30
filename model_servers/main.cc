@@ -317,6 +317,7 @@ int main(int argc, char **argv) {
   tensorflow::int32 port = 8500;
   bool enable_batching = false;
   tensorflow::string batching_parameters_file;
+  tensorflow::string gpu_devices;
   tensorflow::string model_name = "default";
   tensorflow::int32 file_system_poll_wait_seconds = 1;
   tensorflow::string model_base_path;
@@ -336,6 +337,15 @@ int main(int argc, char **argv) {
                        "If non-empty, read an ascii BatchingParameters "
                            "protobuf from the supplied file name and use the "
                            "contained values instead of the defaults."),
+      tensorflow::Flag("gpu_devices", &gpu_devices,
+                       "A comma-separated list of GPU ids that determines the 'visible'"
+                       "to 'virtual' mapping of GPU devices."
+                       "For example, if TensorFlow"
+                       "can see 8 GPU devices in the process, and one wanted to map"
+                       "visible GPU devices 5 and 3 as '/gpu:0', and '/gpu:1', then one"
+                       "would specify this field as '5,3'.  This field is similar in"
+                       "spirit to the CUDA_VISIBLE_DEVICES environment variable, except"
+                       "it applies to the visible GPU devices in the process."),
       tensorflow::Flag("model_config_file", &model_config_file,
                        "If non-empty, read an ascii ModelServerConfig "
                            "protobuf from the supplied file name, and serve the "
@@ -429,8 +439,8 @@ int main(int argc, char **argv) {
                 "--enable_batching";
     }
 
-//    session_bundle_config.mutable_session_config()
-//        ->mutable_gpu_options()->set_allow_growth(true);
+    session_bundle_config.mutable_session_config()
+        ->mutable_gpu_options()->set_visible_device_list(gpu_devices);
     session_bundle_config.mutable_session_config()
         ->set_intra_op_parallelism_threads(tensorflow_session_parallelism);
     session_bundle_config.mutable_session_config()
