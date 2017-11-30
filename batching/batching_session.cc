@@ -250,7 +250,6 @@ Status BatchingSession::Run(
   }
   BatchScheduler<BatchingSessionTask>* batch_scheduler =
       batch_scheduler_it->second.get();
-  LOG(INFO) << "Number of scheduled tasks: " << batch_scheduler->NumEnqueuedTasks();
   outputs->clear();
 
   Notification done;
@@ -533,6 +532,8 @@ void BatchingSession::ProcessBatch(
   if (!status.ok()) {
     return;
   }
+
+  LOG(INFO) << "Batch size to process: " << batch->size();
 
   const std::vector<string> output_tensor_names(
       signature.output_tensors.begin(), signature.output_tensors.end());

@@ -247,9 +247,9 @@ class SyntaxNetParser {
         &run_metadata
     ));
 //    LOG(INFO) << run_metadata.DebugString();
-    LOG(INFO) << outputs.size() << " output tensors available";
+//    LOG(INFO) << outputs.size() << " output tensors available";
     auto sentences = outputs[0].vec<string>();
-    LOG(INFO) << "Sentences count: " << sentences.size();
+//    LOG(INFO) << "Sentences count: " << sentences.size();
 
     for (int i = 0; i < sentences.size(); ++i) {
       syntaxnet::Sentence *sentence = response->add_outputs();
