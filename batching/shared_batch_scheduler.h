@@ -615,6 +615,7 @@ void Queue<TaskType>::ProcessBatch(std::unique_ptr<Batch<TaskType>> batch) {
   {
     mutex_lock l(mu_);
     --num_batches_being_processed_;
+
     if (empty_notification_ != nullptr && IsEmptyInternal()) {
       empty_notification_->Notify();
     }
@@ -652,6 +653,8 @@ bool Queue<TaskType>::IsEmptyInternal() const {
 template <typename TaskType>
 void Queue<TaskType>::StartNewBatch() {
   batches_.back()->Close();
+  LOG(INFO) << "Number of batches in a queue: " << batches_.size() - 1;
+  LOG(INFO) << "Batch size to process: " << batches_.back()->size();
   batches_.emplace_back(new Batch<TaskType>);
 }
 

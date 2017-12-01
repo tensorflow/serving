@@ -314,7 +314,7 @@ int BatchingSession::RoundToLowestAllowedBatchSize(int batch_size) const {
       return allowed_size;
     }
   }
-  LOG(ERROR) << "Maximum batch size greater than largest allowed size; "
+  LOG(INFO) << "Maximum batch size greater than largest allowed size; "
                 "ignoring allowed sizes constraint";
   return batch_size;
 }
@@ -533,7 +533,7 @@ void BatchingSession::ProcessBatch(
     return;
   }
 
-  LOG(INFO) << "Batch size to process: " << batch->size();
+//  LOG(INFO) << "Batch size to process: " << batch->size();
 
   const std::vector<string> output_tensor_names(
       signature.output_tensors.begin(), signature.output_tensors.end());
