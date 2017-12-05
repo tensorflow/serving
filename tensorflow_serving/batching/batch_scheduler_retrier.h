@@ -57,6 +57,8 @@ class BatchSchedulerRetrier : public BatchScheduler<TaskType> {
   size_t NumEnqueuedTasks() const override;
   size_t SchedulingCapacity() const override;
 
+  size_t max_task_size() const override { return wrapped_->max_task_size(); }
+
  private:
   BatchSchedulerRetrier(const Options& options,
                         std::unique_ptr<BatchScheduler<TaskType>> wrapped);

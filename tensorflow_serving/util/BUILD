@@ -53,6 +53,15 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "observer",
+    hdrs = ["observer.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
 ###############################################################################
 #                  Internal targets
 ###############################################################################
@@ -61,14 +70,6 @@ cc_library(
     name = "hash",
     srcs = ["hash.cc"],
     hdrs = ["hash.h"],
-    deps = [
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
-cc_library(
-    name = "observer",
-    hdrs = ["observer.h"],
     deps = [
         "@org_tensorflow//tensorflow/core:lib",
     ],
