@@ -171,6 +171,8 @@ class StreamingBatchScheduler : public BatchScheduler<TaskType> {
   // immediately (there is no queueing).
   size_t SchedulingCapacity() const override;
 
+  size_t max_task_size() const override { return options_.max_batch_size; }
+
  private:
   StreamingBatchScheduler(const Options& options,
                           std::function<void(std::unique_ptr<Batch<TaskType>>)>
