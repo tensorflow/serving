@@ -31,8 +31,8 @@ serving_proto_library(
     java_api_version = 2,
     deps = [
         ":model_proto",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@protobuf_archive//:cc_wkt_protos",
+        "@protobuf_archive//:any",
+        "@org_tensorflow//tensorflow/core:protos_all",
     ],
 )
 
@@ -42,7 +42,7 @@ serving_proto_library_py(
     proto_library = "get_model_metadata_proto",
     deps = [
         ":model_proto_py_pb2",
-        "@org_tensorflow//tensorflow/core:protos_all_py",
+        "@org_tensorflow//tensorflow/core:protos_all_py_pb2",
     ],
 )
 
@@ -50,11 +50,12 @@ serving_proto_library(
     name = "input_proto",
     srcs = ["input.proto"],
     cc_api_version = 2,
+    compatible_with = ["//buildenv/target:appengine"],
     go_api_version = 2,
     java_api_version = 2,
     deps = [
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@protobuf_archive//:cc_wkt_protos",
+        "@protobuf_archive//:wrappers",
+        "@org_tensorflow//tensorflow/core:protos_all",
     ],
 )
 
@@ -63,7 +64,7 @@ serving_proto_library_py(
     srcs = ["input.proto"],
     proto_library = "input_proto",
     deps = [
-        "@org_tensorflow//tensorflow/core:protos_all_py",
+        "@org_tensorflow//tensorflow/core:protos_all_py_pb2",
     ],
 )
 
@@ -77,11 +78,12 @@ serving_proto_library(
     name = "model_proto",
     srcs = ["model.proto"],
     cc_api_version = 2,
+    compatible_with = ["//buildenv/target:appengine"],
     go_api_version = 2,
     java_api_version = 2,
     js_api_version = 2,
     deps = [
-        "@protobuf_archive//:cc_wkt_protos",
+        "@protobuf_archive//:wrappers",
     ],
 )
 
@@ -106,7 +108,7 @@ serving_proto_library(
     java_api_version = 2,
     deps = [
         ":model_proto",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:protos_all",
     ],
 )
 
@@ -116,7 +118,7 @@ serving_proto_library_py(
     proto_library = "predict_proto",
     deps = [
         ":model_proto_py_pb2",
-        "@org_tensorflow//tensorflow/core:protos_all_py",
+        "@org_tensorflow//tensorflow/core:protos_all_py_pb2",
     ],
 )
 
@@ -147,6 +149,7 @@ py_library(
         ":inference_proto_py_pb2",
         ":predict_proto_py_pb2",
         ":regression_proto_py_pb2",
+        "//net/grpc/python:grpc",
     ],
 )
 
@@ -160,6 +163,7 @@ serving_proto_library(
     name = "classification_proto",
     srcs = ["classification.proto"],
     cc_api_version = 2,
+    compatible_with = ["//buildenv/target:appengine"],
     go_api_version = 2,
     java_api_version = 2,
     deps = [
@@ -175,7 +179,7 @@ serving_proto_library_py(
     deps = [
         ":input_proto_py_pb2",
         ":model_proto_py_pb2",
-        "@org_tensorflow//tensorflow/core:protos_all_py",
+        "@org_tensorflow//tensorflow/core:protos_all_py_pb2",
     ],
 )
 
@@ -189,6 +193,7 @@ serving_proto_library(
     name = "inference_proto",
     srcs = ["inference.proto"],
     cc_api_version = 2,
+    compatible_with = ["//buildenv/target:appengine"],
     go_api_version = 2,
     java_api_version = 2,
     deps = [
@@ -221,6 +226,7 @@ serving_proto_library(
     name = "regression_proto",
     srcs = ["regression.proto"],
     cc_api_version = 2,
+    compatible_with = ["//buildenv/target:appengine"],
     go_api_version = 2,
     java_api_version = 2,
     deps = [
@@ -236,7 +242,7 @@ serving_proto_library_py(
     deps = [
         ":input_proto_py_pb2",
         ":model_proto_py_pb2",
-        "@org_tensorflow//tensorflow/core:protos_all_py",
+        "@org_tensorflow//tensorflow/core:protos_all_py_pb2",
     ],
 )
 
@@ -262,4 +268,39 @@ cc_library(
         ":regression_proto",
         "@org_tensorflow//tensorflow/core:lib",
     ],
+)
+
+go_proto_library(
+    name = "classification_go_proto",
+    deps = [":classification_proto"],
+)
+
+go_proto_library(
+    name = "inference_go_proto",
+    deps = [":inference_proto"],
+)
+
+go_proto_library(
+    name = "input_go_proto",
+    deps = [":input_proto"],
+)
+
+go_proto_library(
+    name = "model_go_proto",
+    deps = [":model_proto"],
+)
+
+go_proto_library(
+    name = "predict_go_proto",
+    deps = [":predict_proto"],
+)
+
+go_proto_library(
+    name = "prediction_service_go_proto",
+    deps = [":prediction_service_proto"],
+)
+
+go_proto_library(
+    name = "regression_go_proto",
+    deps = [":regression_proto"],
 )
