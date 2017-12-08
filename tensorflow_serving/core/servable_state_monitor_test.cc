@@ -41,6 +41,10 @@ TEST(ServableStateMonitorTest, AddingStates) {
   monitor_options.max_count_log_events = 4;
 
   ServableStateMonitor monitor(bus.get(), monitor_options);
+  ServableState notified_state;
+  monitor.Notify([&](const ServableState& servable_state) {
+    notified_state = servable_state;
+  });
   EXPECT_FALSE(monitor.GetState(ServableId{"foo", 42}));
   EXPECT_TRUE(monitor.GetVersionStates("foo").empty());
   EXPECT_TRUE(monitor.GetAllServableStates().empty());
@@ -54,6 +58,7 @@ TEST(ServableStateMonitorTest, AddingStates) {
   bus->Publish(state_0);
   ASSERT_TRUE(monitor.GetState(ServableId{"foo", 42}));
   EXPECT_EQ(state_0, *monitor.GetState(ServableId{"foo", 42}));
+  EXPECT_EQ(state_0, notified_state);
   EXPECT_FALSE(monitor.GetState(ServableId{"foo", 99}));
   EXPECT_FALSE(monitor.GetState(ServableId{"bar", 42}));
   EXPECT_THAT(monitor.GetVersionStates("foo"),
@@ -75,6 +80,7 @@ TEST(ServableStateMonitorTest, AddingStates) {
   EXPECT_EQ(state_0, *monitor.GetState(ServableId{"foo", 42}));
   ASSERT_TRUE(monitor.GetState(ServableId{"foo", 43}));
   EXPECT_EQ(state_1, *monitor.GetState(ServableId{"foo", 43}));
+  EXPECT_EQ(state_1, notified_state);
   EXPECT_FALSE(monitor.GetState(ServableId{"foo", 99}));
   EXPECT_FALSE(monitor.GetState(ServableId{"bar", 42}));
   EXPECT_THAT(
@@ -101,6 +107,7 @@ TEST(ServableStateMonitorTest, AddingStates) {
   EXPECT_EQ(state_1, *monitor.GetState(ServableId{"foo", 43}));
   ASSERT_TRUE(monitor.GetState(ServableId{"bar", 7}));
   EXPECT_EQ(state_2, *monitor.GetState(ServableId{"bar", 7}));
+  EXPECT_EQ(state_2, notified_state);
   EXPECT_FALSE(monitor.GetState(ServableId{"bar", 42}));
   EXPECT_THAT(
       monitor.GetVersionStates("foo"),

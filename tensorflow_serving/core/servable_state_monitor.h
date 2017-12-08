@@ -150,6 +150,11 @@ class ServableStateMonitor {
       std::map<ServableId, ServableState::ManagerState>* states_reached =
           nullptr) LOCKS_EXCLUDED(mu_) TF_MUST_USE_RESULT;
 
+  // Subscribes to all servable state changes hitting this monitor. This is
+  // called after the monitor updates its own state based on the event.
+  using NotifyFn = std::function<void(const ServableState&)>;
+  void Notify(const NotifyFn& notify_fn) LOCKS_EXCLUDED(notify_mu_);
+
  private:
   optional<ServableStateMonitor::ServableStateAndTime> GetStateAndTimeInternal(
       const ServableId& servable_id) const EXCLUSIVE_LOCKS_REQUIRED(mu_);
@@ -166,13 +171,18 @@ class ServableStateMonitor {
   // If so, returns the 'reached_goal_state' bool and the 'states_reached' by
   // each servable.  Oterwise returns nullopt.
   optional<std::pair<bool, std::map<ServableId, ServableState::ManagerState>>>
-  ShouldSendNotification(
+  ShouldSendStateReachedNotification(
       const ServableStateNotificationRequest& notification_request)
       EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Goes through the notification requests and tries to see if any of them can
   // be sent. If a notification is sent, the corresponding request is removed.
-  void MaybeSendNotifications() EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void MaybeSendStateReachedNotifications() EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
+  // Goes through the notify_fns list and calls each one with the currently
+  // received ServableState.
+  void SendNotifications(const ServableState& servable_state)
+      LOCKS_EXCLUDED(notify_mu_);
 
   // This method is called when an event comes in, but before we update our
   // state with the contents of the event. Subclasses may override this method
@@ -183,7 +193,7 @@ class ServableStateMonitor {
 
   // Handles a bus event.
   void HandleEvent(const EventBus<ServableState>::EventAndTime& state_and_time)
-      LOCKS_EXCLUDED(mu_);
+      LOCKS_EXCLUDED(mu_, notify_mu_);
 
   const Options options_;
 
@@ -206,6 +216,13 @@ class ServableStateMonitor {
 
   std::vector<ServableStateNotificationRequest>
       servable_state_notification_requests_ GUARDED_BY(mu_);
+
+  // Separate mutex to protect the notify_fns_ so that they can be updated
+  // independently. This also allows these notify_fns_ to call other methods
+  // in ServableStateMonitor which don't depend on this mutex without being
+  // deadlocked.
+  mutable mutex notify_mu_;
+  std::vector<NotifyFn> notify_fns_ GUARDED_BY(notify_mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(ServableStateMonitor);
 };
