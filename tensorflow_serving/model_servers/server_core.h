@@ -166,7 +166,7 @@ class ServerCore : public Manager {
       LOCKS_EXCLUDED(config_mu_);
 
   /// Returns ServableStateMonitor that can be used to query servable states.
-  virtual const ServableStateMonitor* servable_state_monitor() const {
+  virtual ServableStateMonitor* servable_state_monitor() const {
     return servable_state_monitor_.get();
   }
 

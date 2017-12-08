@@ -15,3 +15,6 @@ test --spawn_strategy=standalone --genrule_strategy=standalone
 run --spawn_strategy=standalone --genrule_strategy=standalone
 
 build --define=grpc_no_ares=true
+
+# TODO(b/69809703): Remove once no longer required for TensorFlow to build.
+build --copt=-DGEMMLOWP_ALLOW_SLOW_SCALAR_FALLBACK
