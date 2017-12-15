@@ -351,7 +351,7 @@ int main(int argc, char** argv) {
                        "--enable_batching is ignored.)"),
       tensorflow::Flag("per_process_gpu_memory_fraction", &per_process_gpu_memory_fraction,
                        "Fraction that each process occupies gpu memory space "
-                       "the value is between 0. and 1.0 "
+                       "the value is between 0.0 and 1.0 (with 0.0 as the default) "
                        "If 1.0, the server will allocate all the memory when the server starts, "
                        "If 0.0, Tensorflow will automatically select a value.")};
 
