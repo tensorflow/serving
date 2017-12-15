@@ -398,11 +398,6 @@ int main(int argc, char** argv) {
              "--enable_batching";
     }
 
-    //tensorflow::ConfigProto* session_config = session_bundle_config.mutable_session_config();
-    //tensorflow::GPUOptions* gpu_options = session_config->mutable_gpu_options();
-    //gpu_options->set_per_process_gpu_memory_fraction(per_process_gpu_memory_fraction/100.);
-
-
     session_bundle_config.mutable_session_config()
         ->mutable_gpu_options()
         ->set_per_process_gpu_memory_fraction(per_process_gpu_memory_fraction);
