@@ -40,8 +40,8 @@ message ModelConfig {
 
   reserved 5;
 
-  // Version policy for the model indicating how many versions of the model to
-  // be served at the same time.
+  // Version policy for the model indicating which version(s) of the model to
+  // load and make available for serving simultaneously.
   // The default option is to serve only the latest version of the model.
   //
   // (This can be changed once a model is in serving.)
