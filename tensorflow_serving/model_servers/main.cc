@@ -76,13 +76,15 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/multi_inference.h"
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 
 namespace grpc {
 class ServerCompletionQueue;
 }  // namespace grpc
 
-using tensorflow::serving::AspiredVersionsManager;
+using tensorflow::string;
 using tensorflow::serving::AspiredVersionPolicy;
+using tensorflow::serving::AspiredVersionsManager;
 using tensorflow::serving::AvailabilityPreservingPolicy;
 using tensorflow::serving::BatchingParameters;
 using tensorflow::serving::EventBus;
@@ -93,10 +95,9 @@ using tensorflow::serving::ServableState;
 using tensorflow::serving::ServerCore;
 using tensorflow::serving::SessionBundleConfig;
 using tensorflow::serving::TensorflowClassificationServiceImpl;
-using tensorflow::serving::TensorflowRegressionServiceImpl;
 using tensorflow::serving::TensorflowPredictor;
+using tensorflow::serving::TensorflowRegressionServiceImpl;
 using tensorflow::serving::UniquePtrWithDeps;
-using tensorflow::string;
 
 using grpc::InsecureServerCredentials;
 using grpc::Server;
@@ -302,6 +303,7 @@ tensorflow::serving::PlatformConfigMap ParsePlatformConfigMap(
 int main(int argc, char** argv) {
   tensorflow::int32 port = 8500;
   bool enable_batching = false;
+  float per_process_gpu_memory_fraction = 0;
   tensorflow::string batching_parameters_file;
   tensorflow::string model_name = "default";
   tensorflow::int32 file_system_poll_wait_seconds = 1;
@@ -346,7 +348,14 @@ int main(int argc, char** argv) {
                        "If non-empty, read an ascii PlatformConfigMap protobuf "
                        "from the supplied file name, and use that platform "
                        "config instead of the Tensorflow platform. (If used, "
-                       "--enable_batching is ignored.)")};
+                       "--enable_batching is ignored.)"),
+      tensorflow::Flag(
+          "per_process_gpu_memory_fraction", &per_process_gpu_memory_fraction,
+          "Fraction that each process occupies of the GPU memory space "
+          "the value is between 0.0 and 1.0 (with 0.0 as the default) "
+          "If 1.0, the server will allocate all the memory when the server "
+          "starts, If 0.0, Tensorflow will automatically select a value.")};
+
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
   if (!parse_result || (model_base_path.empty() && model_config_file.empty())) {
@@ -390,6 +399,9 @@ int main(int argc, char** argv) {
              "--enable_batching";
     }
 
+    session_bundle_config.mutable_session_config()
+        ->mutable_gpu_options()
+        ->set_per_process_gpu_memory_fraction(per_process_gpu_memory_fraction);
     session_bundle_config.mutable_session_config()
         ->set_intra_op_parallelism_threads(tensorflow_session_parallelism);
     session_bundle_config.mutable_session_config()

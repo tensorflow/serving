@@ -72,6 +72,8 @@ the `tensorflow-serving-api` PIP package using:
 pip install tensorflow-serving-api
 ```
 
+Note: The TensorFlow Serving Python API only supports Python 2.7. It does not support Python 3.
+
 ## Installing using apt-get
 
 ### Available binaries
