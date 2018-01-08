@@ -117,6 +117,9 @@ class ServerCore : public Manager {
     // Time interval between file-system polls, in seconds.
     int32 file_system_poll_wait_seconds = 30;
 
+    // Timeout for waiting on a servale to reach state.
+    int64 servable_state_monitor_timeout = -1;
+
     // Configuration for the supported platforms.
     PlatformConfigMap platform_config_map;
 

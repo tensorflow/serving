@@ -291,7 +291,7 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
   std::map<ServableId, ServableState::ManagerState> states_reached;
   const bool all_models_available = monitor->WaitUntilServablesReachState(
       awaited_servables, ServableState::ManagerState::kAvailable,
-      &states_reached);
+      &states_reached, options_.servable_state_monitor_timeout);
   if (!all_models_available) {
     string message = "Some models did not become available: {";
     for (const auto& id_and_state : states_reached) {

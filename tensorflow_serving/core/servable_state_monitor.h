@@ -148,7 +148,8 @@ class ServableStateMonitor {
       const std::vector<ServableRequest>& servables,
       ServableState::ManagerState goal_state,
       std::map<ServableId, ServableState::ManagerState>* states_reached =
-          nullptr) LOCKS_EXCLUDED(mu_) TF_MUST_USE_RESULT;
+          nullptr,
+      const int64 timeout_in_us = -1) LOCKS_EXCLUDED(mu_) TF_MUST_USE_RESULT;
 
   // Subscribes to all servable state changes hitting this monitor. This is
   // called after the monitor updates its own state based on the event.
