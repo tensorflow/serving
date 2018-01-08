@@ -197,7 +197,7 @@ bool ServableStateMonitor::WaitUntilServablesReachState(
     const std::vector<ServableRequest>& servables,
     const ServableState::ManagerState goal_state,
     std::map<ServableId, ServableState::ManagerState>* const states_reached,
-    const int timeout) {
+    const int64 timeout_in_us) {
   bool reached_goal_state;
   Notification notified;
   NotifyWhenServablesReachState(
@@ -212,7 +212,7 @@ bool ServableStateMonitor::WaitUntilServablesReachState(
         notified.Notify();
       });
   if (timeout > 0) {
-    WaitUntilServablesReachState(&notified, timeout)
+    WaitForNotificationWithTimeout(&notified, timeout_in_us);
   } else {
     notified.WaitForNotification();
   }
