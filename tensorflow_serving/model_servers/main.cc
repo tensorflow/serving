@@ -82,8 +82,9 @@ namespace grpc {
 class ServerCompletionQueue;
 }  // namespace grpc
 
-using tensorflow::serving::AspiredVersionsManager;
+using tensorflow::string;
 using tensorflow::serving::AspiredVersionPolicy;
+using tensorflow::serving::AspiredVersionsManager;
 using tensorflow::serving::AvailabilityPreservingPolicy;
 using tensorflow::serving::BatchingParameters;
 using tensorflow::serving::EventBus;
@@ -96,8 +97,8 @@ using tensorflow::serving::SessionBundleConfig;
 using tensorflow::serving::TensorflowClassificationServiceImpl;
 using tensorflow::serving::TensorflowRegressionServiceImpl;
 using tensorflow::serving::TensorflowPredictor;
+using tensorflow::serving::TensorflowRegressionServiceImpl;
 using tensorflow::serving::UniquePtrWithDeps;
-using tensorflow::string;
 
 using grpc::InsecureServerCredentials;
 using grpc::Server;
@@ -303,10 +304,11 @@ tensorflow::serving::PlatformConfigMap ParsePlatformConfigMap(
 int main(int argc, char** argv) {
   tensorflow::int32 port = 8500;
   bool enable_batching = false;
-  float per_process_gpu_memory_fraction = 0.;
+  float per_process_gpu_memory_fraction = 0;
   tensorflow::string batching_parameters_file;
   tensorflow::string model_name = "default";
   tensorflow::int32 file_system_poll_wait_seconds = 1;
+  bool flush_filesystem_caches = true;
   tensorflow::string model_base_path;
   const bool use_saved_model = true;
   // Tensorflow session parallelism of zero means that both inter and intra op
@@ -338,6 +340,14 @@ int main(int argc, char** argv) {
                        &file_system_poll_wait_seconds,
                        "interval in seconds between each poll of the file "
                        "system for new model version"),
+      tensorflow::Flag("flush_filesystem_caches", &flush_filesystem_caches,
+                       "If true (the default), filesystem caches will be "
+                       "flushed after the initial load of all servables, and "
+                       "after each subsequent individual servable reload (if "
+                       "the number of load threads is 1). This reduces memory "
+                       "consumption of the model server, at the potential cost "
+                       "of cache misses if model files are accessed after "
+                       "servables are loaded."),
       tensorflow::Flag("tensorflow_session_parallelism",
                        &tensorflow_session_parallelism,
                        "Number of threads to use for running a "
@@ -349,11 +359,12 @@ int main(int argc, char** argv) {
                        "from the supplied file name, and use that platform "
                        "config instead of the Tensorflow platform. (If used, "
                        "--enable_batching is ignored.)"),
-      tensorflow::Flag("per_process_gpu_memory_fraction", &per_process_gpu_memory_fraction,
-                       "Fraction that each process occupies gpu memory space "
-                       "the value is between 0.0 and 1.0 (with 0.0 as the default) "
-                       "If 1.0, the server will allocate all the memory when the server starts, "
-                       "If 0.0, Tensorflow will automatically select a value.")};
+      tensorflow::Flag(
+          "per_process_gpu_memory_fraction", &per_process_gpu_memory_fraction,
+          "Fraction that each process occupies of the GPU memory space "
+          "the value is between 0.0 and 1.0 (with 0.0 as the default) "
+          "If 1.0, the server will allocate all the memory when the server "
+          "starts, If 0.0, Tensorflow will automatically select a value.")};
 
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
@@ -416,6 +427,7 @@ int main(int argc, char** argv) {
   options.aspired_version_policy =
       std::unique_ptr<AspiredVersionPolicy>(new AvailabilityPreservingPolicy);
   options.file_system_poll_wait_seconds = file_system_poll_wait_seconds;
+  options.flush_filesystem_caches = flush_filesystem_caches;
 
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(std::move(options), &core));

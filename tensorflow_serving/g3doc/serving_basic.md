@@ -35,7 +35,7 @@ further optimize the build, refer to the
 
 As you can see in `mnist_saved_model.py`, the training is done the same way it
 is in the
-[MNIST For ML Beginners tutorial](https://www.tensorflow.org/get_started/mnist/beginners). 
+[MNIST For ML Beginners tutorial](https://www.tensorflow.org/get_started/mnist/beginners).
 The TensorFlow graph is launched in TensorFlow session `sess`, with the input
 tensor (image) as `x` and output tensor (Softmax score) as `y`.
 

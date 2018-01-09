@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_CORE_BASIC_MANAGER_H_
 #define TENSORFLOW_SERVING_CORE_BASIC_MANAGER_H_
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -138,6 +139,12 @@ class BasicManager : public Manager {
     // negative, we don't wait.
     // Default: 1 minute.
     int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
+
+    // If true, and there are not multiple load threads, filesystem caches will
+    // be flushed after each servable is loaded. (Cache flush is skipped when
+    // multiple load threads are active, in order to avoid setting back a
+    // concurrent load on another thread.)
+    bool flush_filesystem_caches = false;
 
     // The environment to use for starting threads in the thread-pool.
     Env* env = Env::Default();
@@ -263,6 +270,7 @@ class BasicManager : public Manager {
 
   BasicManager(Env* env, uint32 num_load_threads, uint32 num_unload_threads,
                uint32 max_num_load_retries, int64 load_retry_interval_micros,
+               bool flush_filesystem_caches,
                std::unique_ptr<ResourceTracker> resource_tracker,
                EventBus<ServableState>* servable_event_bus,
                PreLoadHook pre_load_hook);
@@ -380,8 +388,8 @@ class BasicManager : public Manager {
   // the old thread pool blocks until all threads are done, so it could block
   // for a long time.
   void SetNumLoadThreads(uint32 num_load_threads)
-      LOCKS_EXCLUDED(num_load_threads_mu_);
-  uint32 num_load_threads() const LOCKS_EXCLUDED(num_load_threads_mu_);
+      LOCKS_EXCLUDED(load_executor_mu_);
+  uint32 num_load_threads() const;
 
   // Keys are the servable names.
   // Values are the harnesses for each servable version. The values when
@@ -474,12 +482,14 @@ class BasicManager : public Manager {
 
   Env* const env_;
 
-  // The number of load threads and the associated executor. They can be changed
-  // after instantiation of the manager via SetNumLoadThreads().
-  mutable mutex num_load_threads_mu_;
-  uint32 num_load_threads_ GUARDED_BY(num_load_threads_mu_);
-  // The executor used for executing loads of servables.
-  std::unique_ptr<Executor> load_executor_ GUARDED_BY(num_load_threads_mu_);
+  // The number of load threads. Can be changed after instantiation of the
+  // manager via SetNumLoadThreads().
+  std::atomic<uint32> num_load_threads_;
+  // Whether to flush filesystem caches (if num_load_threads_ == 1)
+  const bool flush_filesystem_caches_ = false;
+  // The executor (and associated mutex) used for executing loads of servables.
+  mutable mutex load_executor_mu_;
+  std::unique_ptr<Executor> load_executor_ GUARDED_BY(load_executor_mu_);
 
   // The executor used for executing unloads of servables. (Unlike for loads,
   // the unload executor is fixed for the lifetime of the manager.)
