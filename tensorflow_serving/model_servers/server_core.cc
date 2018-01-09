@@ -459,6 +459,10 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   }
   TF_RETURN_IF_ERROR(MaybeUpdateServerRequestLogger());
 
+  if (options_.flush_filesystem_caches) {
+    return Env::Default()->FlushFileSystemCaches();
+  }
+
   return Status::OK();
 }
 
@@ -632,6 +636,7 @@ Status ServerCore::CreateAspiredVersionsManager(
   manager_options.num_unload_threads = options_.num_unload_threads;
   manager_options.max_num_load_retries = options_.max_num_load_retries;
   manager_options.pre_load_hook = std::move(options_.pre_load_hook);
+  manager_options.flush_filesystem_caches = options_.flush_filesystem_caches;
   const tensorflow::Status status =
       AspiredVersionsManager::Create(std::move(manager_options), manager);
   if (!status.ok()) {

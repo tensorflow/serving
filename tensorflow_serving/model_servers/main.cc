@@ -307,6 +307,7 @@ int main(int argc, char** argv) {
   tensorflow::string batching_parameters_file;
   tensorflow::string model_name = "default";
   tensorflow::int32 file_system_poll_wait_seconds = 1;
+  bool flush_filesystem_caches = true;
   tensorflow::string model_base_path;
   const bool use_saved_model = true;
   // Tensorflow session parallelism of zero means that both inter and intra op
@@ -338,6 +339,14 @@ int main(int argc, char** argv) {
                        &file_system_poll_wait_seconds,
                        "interval in seconds between each poll of the file "
                        "system for new model version"),
+      tensorflow::Flag("flush_filesystem_caches", &flush_filesystem_caches,
+                       "If true (the default), filesystem caches will be "
+                       "flushed after the initial load of all servables, and "
+                       "after each subsequent individual servable reload (if "
+                       "the number of load threads is 1). This reduces memory "
+                       "consumption of the model server, at the potential cost "
+                       "of cache misses if model files are accessed after "
+                       "servables are loaded."),
       tensorflow::Flag("tensorflow_session_parallelism",
                        &tensorflow_session_parallelism,
                        "Number of threads to use for running a "
@@ -417,6 +426,7 @@ int main(int argc, char** argv) {
   options.aspired_version_policy =
       std::unique_ptr<AspiredVersionPolicy>(new AvailabilityPreservingPolicy);
   options.file_system_poll_wait_seconds = file_system_poll_wait_seconds;
+  options.flush_filesystem_caches = flush_filesystem_caches;
 
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(std::move(options), &core));

@@ -117,6 +117,17 @@ class ServerCore : public Manager {
     // Time interval between file-system polls, in seconds.
     int32 file_system_poll_wait_seconds = 30;
 
+    // If true, filesystem caches are flushed in the following cases:
+    //
+    // 1) After the initial models are loaded.
+    // 2) After a new config is supplied and a changed set of models are loaded.
+    // 3) After each new model version is loaded, if num_load_threads == 1.
+    //
+    // In the common scenario where the number of load threads is set to 1 after
+    // the initial load, this will take care of flushing the cache once after
+    // the initial load, and after every subsequent load of every model version.
+    bool flush_filesystem_caches = false;
+
     // Configuration for the supported platforms.
     PlatformConfigMap platform_config_map;
 
