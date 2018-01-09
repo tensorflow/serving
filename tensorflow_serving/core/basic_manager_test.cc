@@ -938,6 +938,73 @@ TEST_F(SetNumLoadThreadsBasicManagerTest, FastLoad) {
   }
 }
 
+// This filesystem detects a call to FlushCaches(), which is triggered by the
+// BasicManager's call to Env::Default()->FlushFileSystemCaches() after loading
+// a servable.
+class FlushDetectingFileSystem : public NullFileSystem {
+ public:
+  void FlushCaches() override { flushed = true; }
+  static std::atomic<bool> flushed;
+};
+
+std::atomic<bool> FlushDetectingFileSystem::flushed;
+
+REGISTER_FILE_SYSTEM("flush", FlushDetectingFileSystem);
+
+// This test loads servables with BasicManager::Options::flush_filesystem_caches
+// true or false, and verifies that filesystem caches were flushed (or not
+// flushed) as expected.
+class FlushFileSystemCachesTest : public ::testing::TestWithParam<bool> {
+ protected:
+  FlushFileSystemCachesTest() : flush_filesystem_caches_(GetParam()) {
+    BasicManager::Options options;
+    options.flush_filesystem_caches = flush_filesystem_caches_;
+    TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
+  }
+
+  std::unique_ptr<BasicManager> basic_manager_;
+  bool flush_filesystem_caches_;
+};
+
+TEST_P(FlushFileSystemCachesTest, Load) {
+  test_util::BasicManagerTestAccess manager_test_access(basic_manager_.get());
+  // The number of load threads is initially zero, so filesystems should be
+  // flushed if flush_filesystem_caches_ is true.
+  FlushDetectingFileSystem::flushed.store(false);
+  const ServableId id0 = {kServableName3, 0};
+  TF_CHECK_OK(basic_manager_->ManageServable(CreateServable(id0)));
+  basic_manager_->LoadServable(id0, [&](const Status& status) {
+    TF_ASSERT_OK(status);
+    EXPECT_EQ(flush_filesystem_caches_,
+              FlushDetectingFileSystem::flushed.load());
+  });
+  // Load another servable with two load threads. Filesystem caches should not
+  // be flushed.
+  manager_test_access.SetNumLoadThreads(2);
+  FlushDetectingFileSystem::flushed.store(false);
+  const ServableId id1 = {kServableName3, 1};
+  TF_CHECK_OK(basic_manager_->ManageServable(CreateServable(id1)));
+  basic_manager_->LoadServable(id1, [&](const Status& status) {
+    TF_ASSERT_OK(status);
+    EXPECT_FALSE(FlushDetectingFileSystem::flushed.load());
+  });
+  // Now move to a single load thread and load a third servable. Filesystem
+  // caches should once again be flushed if flush_filesystem_caches_ is true.
+  manager_test_access.SetNumLoadThreads(1);
+  FlushDetectingFileSystem::flushed.store(false);
+  const ServableId id2 = {kServableName3, 2};
+  TF_CHECK_OK(basic_manager_->ManageServable(CreateServable(id2)));
+  basic_manager_->LoadServable(id2, [&](const Status& status) {
+    TF_ASSERT_OK(status);
+    EXPECT_EQ(flush_filesystem_caches_,
+              FlushDetectingFileSystem::flushed.load());
+  });
+  basic_manager_.reset();
+}
+
+INSTANTIATE_TEST_CASE_P(WithOrWithoutFlush, FlushFileSystemCachesTest,
+                        ::testing::Bool());
+
 TEST_P(BasicManagerTest, ConcurrentLoadsOnlyOneSucceeds) {
   const ServableId id = {kServableName3, 0};
   mutex status_mu;

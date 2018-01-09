@@ -123,6 +123,12 @@ class AspiredVersionsManager : public Manager,
     /// Default: 1 minute.
     int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
 
+    // If true, and there are not multiple load threads, filesystem caches will
+    // be flushed after each servable is loaded. (Cache flush is skipped when
+    // multiple load threads are active, in order to avoid setting back a
+    // concurrent load on another thread.)
+    bool flush_filesystem_caches = false;
+
     /// The environment to use for starting threads in the thread-pool or for
     /// sleeping.
     Env* env = Env::Default();

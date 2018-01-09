@@ -156,6 +156,8 @@ Status AspiredVersionsManager::Create(
   basic_manager_options.max_num_load_retries = options.max_num_load_retries;
   basic_manager_options.load_retry_interval_micros =
       options.load_retry_interval_micros;
+  basic_manager_options.flush_filesystem_caches =
+      options.flush_filesystem_caches;
   basic_manager_options.servable_event_bus = options.servable_event_bus;
   basic_manager_options.pre_load_hook = std::move(options.pre_load_hook);
   std::unique_ptr<BasicManager> basic_manager;
