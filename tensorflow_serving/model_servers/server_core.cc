@@ -388,20 +388,25 @@ Status ServerCore::AddModelsViaCustomModelConfig() {
       config_.custom_model_config(), servable_event_bus_.get(), &manager_);
 }
 
-Status ServerCore::MaybeUpdateServerRequestLogger() {
+Status ServerCore::MaybeUpdateServerRequestLogger(
+    const ModelServerConfig::ConfigCase config_case) {
   if (options_.server_request_logger_updater) {
     return options_.server_request_logger_updater(
         config_, options_.server_request_logger.get());
   }
 
-  std::map<string, LoggingConfig> logging_config_map;
-  for (const auto& model_config : config_.model_config_list().config()) {
-    if (model_config.has_logging_config()) {
-      logging_config_map.insert(
-          {model_config.name(), model_config.logging_config()});
+  if (config_case == ModelServerConfig::kModelConfigList) {
+    std::map<string, LoggingConfig> logging_config_map;
+    for (const auto& model_config : config_.model_config_list().config()) {
+      if (model_config.has_logging_config()) {
+        logging_config_map.insert(
+            {model_config.name(), model_config.logging_config()});
+      }
     }
+    return options_.server_request_logger->Update(logging_config_map);
   }
-  return options_.server_request_logger->Update(logging_config_map);
+
+  return Status::OK();
 }
 
 Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
@@ -457,7 +462,7 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
     default:
       return errors::InvalidArgument("Invalid ServerModelConfig");
   }
-  TF_RETURN_IF_ERROR(MaybeUpdateServerRequestLogger());
+  TF_RETURN_IF_ERROR(MaybeUpdateServerRequestLogger(config_.config_case()));
 
   if (options_.flush_filesystem_caches) {
     return Env::Default()->FlushFileSystemCaches();

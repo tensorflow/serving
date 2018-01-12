@@ -312,7 +312,9 @@ class ServerCore : public Manager {
   Status AddModelsViaCustomModelConfig() EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // Updates the ServerRequestLogger based on the ModelConfigList.
-  Status MaybeUpdateServerRequestLogger() EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+  Status MaybeUpdateServerRequestLogger(
+      ModelServerConfig::ConfigCase config_case)
+      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // ************************************************************************
   // Request Processing.
