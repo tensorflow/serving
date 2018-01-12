@@ -27,7 +27,7 @@ def parse_cmd_line_args():
   parser.add_argument("--proto_dir", default='/workspace',
                       help="Input can be a folder with sentence objects as protobufs (data preprocessed with segmenter).")
   parser.add_argument("--processes", default=multiprocessing.cpu_count(),
-                      help="Amount of processses to spawn (by default, equals to number of CPUs in the system).")
+                      help="Amount of processes to spawn (by default, equals to number of CPUs in the system).")
 
   return parser.parse_args()
 
