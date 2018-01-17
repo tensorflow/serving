@@ -51,6 +51,10 @@ message SessionBundleConfig {
   // Remove it once resource estimates are moved inside SavedModel.
   uint64 experimental_transient_ram_bytes_during_load = 5;
 
+  // Set of SavedModel tags identifying the specific meta graph def to be
+  // loaded.
+  repeated string saved_model_tags = 6;
+
   // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
   //
   // Input tensors to append to every Session::Run() call.
