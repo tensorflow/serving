@@ -539,15 +539,24 @@ void BatchingSession::ProcessBatch(
       signature.output_tensors.begin(), signature.output_tensors.end());
   std::vector<Tensor> combined_outputs;
   RunMetadata run_metadata;
+
+  const uint64 start_time_micros = Env::Default()->NowMicros();
+
   status = wrapped_->Run(run_options, merged_inputs, output_tensor_names,
                          {} /* target node names */, &combined_outputs,
                          &run_metadata);
+
+  const uint64 end_time_micros = Env::Default()->NowMicros();
+
   for (int i = 0; i < batch->num_tasks(); ++i) {
     *(batch->mutable_task(i)->run_metadata) = run_metadata;
   }
   if (!status.ok()) {
     return;
   }
+
+  const auto processing_time_ms = (end_time_micros - start_time_micros) / 1000.0;
+  LOG(INFO) << "Batch processing time: " << processing_time_ms;
 
   status = SplitOutputTensors(signature, combined_outputs, batch.get());
 }
