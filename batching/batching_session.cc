@@ -555,8 +555,8 @@ void BatchingSession::ProcessBatch(
     return;
   }
 
-  const auto processing_time_ms = (end_time_micros - start_time_micros) / 1000.0;
-  LOG(INFO) << "Batch processing time: " << processing_time_ms;
+  const auto processing_time_ms = (end_time_micros - start_time_micros) / 1000;
+  LOG(INFO) << "Batch processing time: " << processing_time_ms << " ms";
 
   status = SplitOutputTensors(signature, combined_outputs, batch.get());
 }
