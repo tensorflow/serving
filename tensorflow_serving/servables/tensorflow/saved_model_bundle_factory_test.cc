@@ -24,6 +24,7 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/loader.h"
+#include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -74,6 +75,7 @@ TEST_F(SavedModelBundleFactoryTest, FixedInputTensors) {
   fixed_input.AsProtoField(fixed_input_proto.mutable_tensor());
 
   SessionBundleConfig config;
+  *config.add_saved_model_tags() = kSavedModelTagServe;
   *config.add_experimental_fixed_input_tensors() = fixed_input_proto;
   std::unique_ptr<Session> session;
   TF_ASSERT_OK(CreateSession(config, &session));
