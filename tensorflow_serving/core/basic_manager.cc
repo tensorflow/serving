@@ -205,8 +205,8 @@ Status BasicManager::Create(Options options,
   manager->reset(new BasicManager(
       options.env, options.num_load_threads, options.num_unload_threads,
       options.max_num_load_retries, options.load_retry_interval_micros,
-      options.flush_filesystem_caches, std::move(options.resource_tracker),
-      options.servable_event_bus, std::move(options.pre_load_hook)));
+      std::move(options.resource_tracker), options.servable_event_bus,
+      std::move(options.pre_load_hook)));
   return Status::OK();
 }
 
@@ -214,14 +214,12 @@ BasicManager::BasicManager(Env* const env, const uint32 num_load_threads,
                            const uint32 num_unload_threads,
                            uint32 max_num_load_retries,
                            int64 load_retry_interval_micros,
-                           bool flush_filesystem_caches,
                            std::unique_ptr<ResourceTracker> resource_tracker,
                            EventBus<ServableState>* servable_event_bus,
                            std::function<void(const ServableId&)> pre_load_hook)
     : servable_event_bus_(servable_event_bus),
       env_(env),
       num_load_threads_(num_load_threads),
-      flush_filesystem_caches_(flush_filesystem_caches),
       pre_load_hook_(std::move(pre_load_hook)) {
   harness_options_.max_num_load_retries = max_num_load_retries;
   harness_options_.load_retry_interval_micros = load_retry_interval_micros;
@@ -231,7 +229,7 @@ BasicManager::BasicManager(Env* const env, const uint32 num_load_threads,
   };
 
   {
-    mutex_lock l(load_executor_mu_);
+    mutex_lock l(num_load_threads_mu_);
     load_executor_ =
         CreateExecutor(env_, num_load_threads, "BasicManager_Load_ThreadPool");
   }
@@ -243,7 +241,7 @@ BasicManager::BasicManager(Env* const env, const uint32 num_load_threads,
 BasicManager::~BasicManager() {
   // Reset the executors first to finish all pending loads/unloads.
   {
-    mutex_lock l(load_executor_mu_);
+    mutex_lock l(num_load_threads_mu_);
     load_executor_.reset();
   }
   unload_executor_.reset();
@@ -464,18 +462,7 @@ Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
   }
 
   // We don't hold the lock while calling Load() as it may block.
-  const Status status = harness->Load();
-
-  // Whether the load succeeded or failed, flush filesystem caches if there is
-  // only one load thread.
-  if (flush_filesystem_caches_ && num_load_threads() <= 1) {
-    const Status flush_status = Env::Default()->FlushFileSystemCaches();
-    if (!flush_status.ok()) {
-      LOG(WARNING) << "flushing filesystem caches failed: " << flush_status;
-    }
-  }
-
-  TF_RETURN_IF_ERROR(status);
+  TF_RETURN_IF_ERROR(harness->Load());
 
   {
     mutex_lock l(mu_);
@@ -559,16 +546,18 @@ Status BasicManager::ExecuteLoadOrUnload(const LoadOrUnloadRequest& request,
 }
 
 void BasicManager::SetNumLoadThreads(const uint32 num_load_threads) {
-  mutex_lock l(load_executor_mu_);
+  mutex_lock l(num_load_threads_mu_);
 
   load_executor_.reset();
-  num_load_threads_.store(num_load_threads);
+  num_load_threads_ = num_load_threads;
   load_executor_ =
-      CreateExecutor(env_, num_load_threads, "BasicManager_Load_ThreadPool");
+      CreateExecutor(env_, num_load_threads_, "BasicManager_Load_ThreadPool");
 }
 
 uint32 BasicManager::num_load_threads() const {
-  return num_load_threads_.load();
+  mutex_lock l(num_load_threads_mu_);
+
+  return num_load_threads_;
 }
 
 void BasicManager::LoadOrUnloadServable(const LoadOrUnloadRequest& request,
@@ -596,7 +585,7 @@ void BasicManager::LoadOrUnloadServable(const LoadOrUnloadRequest& request,
 
   switch (request.kind) {
     case LoadOrUnloadRequest::Kind::kLoad: {
-      mutex_lock l(load_executor_mu_);
+      mutex_lock l(num_load_threads_mu_);
       load_executor_->Schedule([this, request, done_callback]() {
         HandleLoadOrUnloadRequest(request, done_callback);
       });
