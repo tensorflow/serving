@@ -57,7 +57,9 @@ limitations under the License.
 #include "grpc++/support/status.h"
 #include "grpc++/support/status_code_enum.h"
 #include "grpc/grpc.h"
+#include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/platform/protobuf.h"
@@ -311,6 +313,7 @@ int main(int argc, char** argv) {
   bool flush_filesystem_caches = true;
   tensorflow::string model_base_path;
   const bool use_saved_model = true;
+  tensorflow::string saved_model_tags = tensorflow::kSavedModelTagServe;
   // Tensorflow session parallelism of zero means that both inter and intra op
   // thread pools will be auto configured.
   tensorflow::int64 tensorflow_session_parallelism = 0;
@@ -364,7 +367,10 @@ int main(int argc, char** argv) {
           "Fraction that each process occupies of the GPU memory space "
           "the value is between 0.0 and 1.0 (with 0.0 as the default) "
           "If 1.0, the server will allocate all the memory when the server "
-          "starts, If 0.0, Tensorflow will automatically select a value.")};
+          "starts, If 0.0, Tensorflow will automatically select a value."),
+      tensorflow::Flag("saved_model_tags", &saved_model_tags,
+                       "Comma-separated set of tags corresponding to the meta "
+                       "graph def to load from SavedModel.")};
 
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
@@ -416,6 +422,11 @@ int main(int argc, char** argv) {
         ->set_intra_op_parallelism_threads(tensorflow_session_parallelism);
     session_bundle_config.mutable_session_config()
         ->set_inter_op_parallelism_threads(tensorflow_session_parallelism);
+    const std::vector<string> tags =
+        tensorflow::str_util::Split(saved_model_tags, ",");
+    for (const string& tag : tags) {
+      *session_bundle_config.add_saved_model_tags() = tag;
+    }
     options.platform_config_map = CreateTensorFlowPlatformConfigMap(
         session_bundle_config, use_saved_model);
   } else {

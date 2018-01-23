@@ -188,8 +188,9 @@ $ gcloud auth login --project tensorflow-serving
 
 ### Create a container cluster
 
-First we create a [Google Container Engine](https://cloud.google.com/container-engine/)
-cluster for service deployment.
+First we create a
+[Google Kubernetes Engine](https://cloud.google.com/container-engine/) cluster
+for service deployment.
 
 ```shell
 $ gcloud container clusters create inception-serving-cluster --num-nodes 5
