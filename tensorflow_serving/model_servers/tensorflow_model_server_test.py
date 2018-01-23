@@ -38,6 +38,7 @@ from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2
 from tensorflow_serving.apis import regression_pb2
 from tensorflow_serving.apis import inference_pb2
+from tensorflow.python.saved_model import signature_constants
 
 FLAGS = flags.FLAGS
 
@@ -156,8 +157,12 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def VerifyPredictRequest(self,
                            model_server_address,
                            expected_output,
+                           expected_version,
                            model_name='default',
-                           specify_output=True):
+                           specify_output=True,
+                           signature_name=
+                           signature_constants.
+                           DEFAULT_SERVING_SIGNATURE_DEF_KEY):
     """Send PredictionService.Predict request and verify output."""
     print 'Sending Predict request...'
     # Prepare request
@@ -180,11 +185,27 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.assertIs(types_pb2.DT_FLOAT, result.outputs['y'].dtype)
     self.assertEquals(1, len(result.outputs['y'].float_val))
     self.assertEquals(expected_output, result.outputs['y'].float_val[0])
+    self._VerifyModelSpec(result.model_spec, request.model_spec.name,
+                          signature_name, expected_version)
 
   def _GetSavedModelBundlePath(self):
     """Returns a path to a model in SavedModel format."""
     return os.path.join(os.environ['TEST_SRCDIR'], 'tf_serving/external/org_tensorflow/tensorflow/',
                         'cc/saved_model/testdata/half_plus_two')
+
+  def _GetModelVersion(self, model_path):
+    """Returns version of SavedModel/SessionBundle in given path.
+
+    This method assumes there is exactly one directory with an 'int' valued
+    directory name under `model_path`.
+
+    Args:
+      model_path: A string representing path to the SavedModel/SessionBundle.
+
+    Returns:
+      version of SavedModel/SessionBundle in given path.
+    """
+    return int(os.listdir(model_path)[0])
 
   def _GetSavedModelHalfPlusThreePath(self):
     """Returns a path to a half_plus_three model in SavedModel format."""
@@ -209,6 +230,26 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def _GetBatchingParametersFile(self):
     """Returns a path to a batching configuration file."""
     return os.path.join(self.testdata_dir, 'batching_config.txt')
+
+  def _VerifyModelSpec(self,
+                       actual_model_spec,
+                       exp_model_name,
+                       exp_signature_name,
+                       exp_version):
+    """Verifies model_spec matches expected model name, signature, version.
+
+    Args:
+      actual_model_spec: An instance of ModelSpec proto.
+      exp_model_name: A string that represents expected model name.
+      exp_signature_name: A string that represents expected signature.
+      exp_version: An integer that represents expected version.
+
+    Returns:
+      None.
+    """
+    self.assertEquals(actual_model_spec.name, exp_model_name)
+    self.assertEquals(actual_model_spec.signature_name, exp_signature_name)
+    self.assertEquals(actual_model_spec.version.value, exp_version)
 
   def testClassify(self):
     """Test PredictionService.Classify implementation."""
@@ -238,6 +279,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
     expected_output = 3.0
     self.assertEquals(expected_output,
                       result.result.classifications[0].classes[0].score)
+    self._VerifyModelSpec(result.model_spec, request.model_spec.name,
+                          request.model_spec.signature_name,
+                          self._GetModelVersion(model_path))
 
   def testRegress(self):
     """Test PredictionService.Regress implementation."""
@@ -265,6 +309,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.assertEquals(1, len(result.result.regressions))
     expected_output = 3.0
     self.assertEquals(expected_output, result.result.regressions[0].value)
+    self._VerifyModelSpec(result.model_spec, request.model_spec.name,
+                          request.model_spec.signature_name,
+                          self._GetModelVersion(model_path))
 
   def testMultiInference(self):
     """Test PredictionService.MultiInference implementation."""
@@ -302,23 +349,35 @@ class TensorflowModelServerTest(tf.test.TestCase):
                       result.results[0].regression_result.regressions[0].value)
     self.assertEquals(expected_output, result.results[
         1].classification_result.classifications[0].classes[0].score)
+    for i in xrange(2):
+      self._VerifyModelSpec(result.results[i].model_spec,
+                            request.tasks[i].model_spec.name,
+                            request.tasks[i].model_spec.signature_name,
+                            self._GetModelVersion(model_path))
 
   def _TestPredict(self,
                    model_path,
-                   batching_parameters_file=''):
+                   batching_parameters_file='',
+                   signature_name=
+                   signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY):
     """Helper method to test prediction.
 
     Args:
       model_path:      Path to the model on disk.
       batching_parameters_file: Batching parameters file to use (if left empty,
                                 batching is not enabled).
+      signature_name: Signature name to expect in the PredictResponse.
     """
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
                                           model_path, batching_parameters_file)
-    self.VerifyPredictRequest(model_server_address, expected_output=3.0)
+    expected_version = self._GetModelVersion(model_path)
+    self.VerifyPredictRequest(model_server_address, expected_output=3.0,
+                              expected_version=expected_version,
+                              signature_name=signature_name)
     self.VerifyPredictRequest(
-        model_server_address, expected_output=3.0, specify_output=False)
+        model_server_address, expected_output=3.0, specify_output=False,
+        expected_version=expected_version, signature_name=signature_name)
 
   def testPredictBatching(self):
     """Test PredictionService.Predict implementation with SessionBundle."""
@@ -344,13 +403,15 @@ class TensorflowModelServerTest(tf.test.TestCase):
     # case of SavedModel, the export will get up-converted to a SavedModel.
     # As the bad model will prevent the server from becoming ready, we set the
     # wait_for_server_ready param to False to avoid blocking/timing out.
-    model_server_address = self.RunServer(
-        PickUnusedPort(),
-        'default',
-        os.path.join(self.testdata_dir, 'bad_half_plus_two'),
-        wait_for_server_ready=False)
+    model_path = os.path.join(self.testdata_dir, 'bad_half_plus_two'),
+    model_server_address = self.RunServer(PickUnusedPort(), 'default',
+                                          model_path,
+                                          wait_for_server_ready=False)
     with self.assertRaises(face.AbortionError) as error:
-      self.VerifyPredictRequest(model_server_address, expected_output=3.0)
+      self.VerifyPredictRequest(
+          model_server_address, expected_output=3.0,
+          expected_version=self._GetModelVersion(model_path),
+          signature_name='')
     self.assertIs(beta_interfaces.StatusCode.FAILED_PRECONDITION,
                   error.exception.code)
 
@@ -365,20 +426,22 @@ class TensorflowModelServerTest(tf.test.TestCase):
         PickUnusedPort(), self._GetGoodModelConfigFile())
 
     self.VerifyPredictRequest(
-        model_server_address, model_name='half_plus_two', expected_output=3.0)
+        model_server_address, model_name='half_plus_two', expected_output=3.0,
+        expected_version=self._GetModelVersion(self._GetSavedModelBundlePath()))
     self.VerifyPredictRequest(
-        model_server_address,
-        model_name='half_plus_two',
-        expected_output=3.0,
-        specify_output=False)
+        model_server_address, model_name='half_plus_two',
+        expected_output=3.0, specify_output=False,
+        expected_version=self._GetModelVersion(self._GetSavedModelBundlePath()))
 
     self.VerifyPredictRequest(
-        model_server_address, model_name='half_plus_three', expected_output=4.0)
+        model_server_address, model_name='half_plus_three', expected_output=4.0,
+        expected_version=self._GetModelVersion(
+            self._GetSavedModelHalfPlusThreePath()))
     self.VerifyPredictRequest(
-        model_server_address,
-        model_name='half_plus_three',
-        expected_output=4.0,
-        specify_output=False)
+        model_server_address, model_name='half_plus_three', expected_output=4.0,
+        specify_output=False,
+        expected_version=self._GetModelVersion(
+            self._GetSavedModelHalfPlusThreePath()))
 
   def testBadModelConfig(self):
     """Test server model configuration from file fails for invalid file."""

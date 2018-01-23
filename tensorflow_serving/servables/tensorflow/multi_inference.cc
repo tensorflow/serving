@@ -121,6 +121,10 @@ Status TensorFlowMultiInferenceRunner::Infer(
       return errors::InvalidArgument("Unrecognized signature method_name: ",
                                      task.method_name());
     }
+    MakeModelSpec(task.model_spec().name(), task.model_spec().signature_name(),
+                  servable_version_,
+                  response->mutable_results(response->results_size() - 1)
+                      ->mutable_model_spec());
   }
   return Status::OK();
 }
@@ -144,8 +148,8 @@ Status RunMultiInference(const RunOptions& run_options, ServerCore* core,
   TF_RETURN_IF_ERROR(
       core->GetServableHandle(GetModelSpecFromRequest(request), &bundle));
 
-  TensorFlowMultiInferenceRunner inference_runner(bundle->session.get(),
-                                                  &bundle->meta_graph_def);
+  TensorFlowMultiInferenceRunner inference_runner(
+      bundle->session.get(), &bundle->meta_graph_def, bundle.id().version);
   return inference_runner.Infer(run_options, request, response);
 }
 

@@ -38,6 +38,9 @@ message ClassificationRequest {
 }
 
 message ClassificationResponse {
+  // Effective Model Specification used for classification.
+  ModelSpec model_spec = 2;
+
   // Result of the classification.
   ClassificationResult result = 1;
 }

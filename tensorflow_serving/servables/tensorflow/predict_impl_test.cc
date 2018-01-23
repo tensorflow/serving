@@ -278,6 +278,12 @@ TEST_P(PredictImplTest, PredictionSuccess) {
   output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
   output_tensor_proto.mutable_tensor_shape();
   PredictResponse expected_response;
+  *expected_response.mutable_model_spec() = *model_spec;
+  // signature_name in ModelSpec is populated only for SavedModels.
+  if (GetParam()) {
+    expected_response.mutable_model_spec()->set_signature_name(
+        kDefaultServingSignatureDefKey);
+  }
   (*expected_response.mutable_outputs())[kOutputTensorKey] =
       output_tensor_proto;
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
@@ -315,6 +321,7 @@ TEST_P(PredictImplTest, PredictionWithNamedRegressionSignature) {
   output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
   output_tensor_proto.mutable_tensor_shape();
   PredictResponse expected_response;
+  *expected_response.mutable_model_spec() = *model_spec;
   (*expected_response.mutable_outputs())[kRegressOutputs] = output_tensor_proto;
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
@@ -353,6 +360,7 @@ TEST_P(PredictImplTest, PredictionWithNamedClassificationSignature) {
   output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
   output_tensor_proto.mutable_tensor_shape();
   PredictResponse expected_response;
+  *expected_response.mutable_model_spec() = *model_spec;
   (*expected_response.mutable_outputs())[kClassifyOutputScores] =
       output_tensor_proto;
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));

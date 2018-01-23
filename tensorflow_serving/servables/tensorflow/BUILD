@@ -422,6 +422,7 @@ cc_library(
         "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/servables/tensorflow:util",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
@@ -574,9 +575,32 @@ cc_library(
         "//tensorflow_serving/apis:classifier",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/servables/tensorflow:util",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
         "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "classification_service_test",
+    srcs = ["classification_service_test.cc"],
+    data = [
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
+    deps = [
+        ":classification_service",
+        ":session_bundle_config_proto",
+        "//tensorflow_serving/config:model_server_config_proto",
+        "//tensorflow_serving/core:availability_preserving_policy",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/model_servers:model_platform_types",
+        "//tensorflow_serving/model_servers:platform_config_util",
+        "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
     ],
 )
 
@@ -593,9 +617,32 @@ cc_library(
         "//tensorflow_serving/apis:regressor",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/servables/tensorflow:util",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
         "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "regression_service_test",
+    srcs = ["regression_service_test.cc"],
+    data = [
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
+    deps = [
+        ":regression_service",
+        ":session_bundle_config_proto",
+        "//tensorflow_serving/config:model_server_config_proto",
+        "//tensorflow_serving/core:availability_preserving_policy",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/model_servers:model_platform_types",
+        "//tensorflow_serving/model_servers:platform_config_util",
+        "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
     ],
 )
 
@@ -703,7 +750,10 @@ cc_library(
     ],
     deps = [
         "//tensorflow_serving/apis:input_proto",
+        "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/apis/internal:serialized_input_proto",
+        "//tensorflow_serving/util:optional",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
@@ -719,6 +769,7 @@ cc_test(
         ":util",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
+        "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",

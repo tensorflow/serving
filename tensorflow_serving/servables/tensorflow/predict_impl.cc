@@ -29,6 +29,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow_serving/core/servable_handle.h"
+#include "tensorflow_serving/servables/tensorflow/util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -110,6 +111,9 @@ Status SessionBundlePredict(const RunOptions& run_options, ServerCore* core,
       output_aliases.emplace_back(iter.first);
     }
   }
+
+  MakeModelSpec(request.model_spec().name(), /*signature_name=*/{},
+                bundle.id().version, response->mutable_model_spec());
 
   // Run session.
   std::vector<Tensor> outputs;
@@ -258,6 +262,9 @@ Status SavedModelPredict(const RunOptions& run_options, ServerCore* core,
         "Serving signature key \"", signature_name, "\" not found."));
   }
   SignatureDef signature = iter->second;
+
+  MakeModelSpec(request.model_spec().name(), signature_name,
+                bundle.id().version, response->mutable_model_spec());
 
   std::vector<std::pair<string, Tensor>> input_tensors;
   std::vector<string> output_tensor_names;

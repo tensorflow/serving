@@ -20,6 +20,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -30,7 +31,15 @@ class TensorFlowMultiInferenceRunner {
  public:
   TensorFlowMultiInferenceRunner(Session* session,
                                  const MetaGraphDef* meta_graph_def)
-      : session_(session), meta_graph_def_(meta_graph_def) {}
+      : TensorFlowMultiInferenceRunner(session, meta_graph_def,
+                                       /*servable_version*/ {}) {}
+
+  TensorFlowMultiInferenceRunner(Session* session,
+                                 const MetaGraphDef* meta_graph_def,
+                                 optional<int64> servable_version)
+      : session_(session),
+        meta_graph_def_(meta_graph_def),
+        servable_version_(servable_version) {}
 
   // Run inference and return the inference results in the same order as the
   // InferenceTasks in the request.
@@ -43,6 +52,9 @@ class TensorFlowMultiInferenceRunner {
  private:
   Session* const session_;
   const MetaGraphDef* const meta_graph_def_;
+  // If available, servable_version is used to set the ModelSpec version in the
+  // InferenceResults of the MultiInferenceResponse.
+  const optional<int64> servable_version_;
 };
 
 Status RunMultiInference(const RunOptions& run_options, ServerCore* core,
