@@ -1,19 +1,31 @@
 workspace(name = "tf_serving")
 
-local_repository(
+# To update TensorFlow to a new revision.
+# 1. Update the 'urls' and 'strip_prefix' args below to include the new git hash.
+# 2. Get the sha256 hash of the archive with a command such as...
+#    curl -L https://github.com/tensorflow/tensorflow/archive/<git hash>.tar.gz | sha256sum
+#    and update the 'sha256' arg with the result.
+# 3. Request the new archive to be mirrored on mirror.bazel.build for more
+#    reliable downloads.
+http_archive(
     name = "org_tensorflow",
-    path = "tensorflow",
+    sha256 = "9c3db796b2c6bc24ebff94d689c442f2cf1d8955f122a277e4ad893c0ce96aac",
+    strip_prefix = "tensorflow-57b32eabca4597241120cb4aba8308a431853c30",
+    urls = [
+        "https://mirror.bazel.build/github.com/tensorflow/tensorflow/archive/57b32eabca4597241120cb4aba8308a431853c30.tar.gz",
+        "https://github.com/tensorflow/tensorflow/archive/57b32eabca4597241120cb4aba8308a431853c30.tar.gz",
+    ],
 )
 
 # TensorFlow depends on "io_bazel_rules_closure" so we need this here.
 # Needs to be kept in sync with the same target in TensorFlow's WORKSPACE file.
 http_archive(
     name = "io_bazel_rules_closure",
-    sha256 = "110fe68753413777944b473c25eed6368c4a0487cee23a7bac1b13cc49d3e257",
-    strip_prefix = "rules_closure-4af89ef1db659eb41f110df189b67d4cf14073e1",
+    sha256 = "dbe0da2cca88194d13dc5a7125a25dd7b80e1daec7839f33223de654d7a1bcc8",
+    strip_prefix = "rules_closure-ba3e07cb88be04a2d4af7009caa0ff3671a79d06",
     urls = [
-        "http://mirror.bazel.build/github.com/bazelbuild/rules_closure/archive/4af89ef1db659eb41f110df189b67d4cf14073e1.tar.gz",
-        "https://github.com/bazelbuild/rules_closure/archive/4af89ef1db659eb41f110df189b67d4cf14073e1.tar.gz",  # 2017-08-28
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_closure/archive/ba3e07cb88be04a2d4af7009caa0ff3671a79d06.tar.gz",
+        "https://github.com/bazelbuild/rules_closure/archive/ba3e07cb88be04a2d4af7009caa0ff3671a79d06.tar.gz",  # 2017-10-31
     ],
 )
 
