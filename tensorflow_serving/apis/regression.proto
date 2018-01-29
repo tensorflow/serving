@@ -21,7 +21,8 @@ message RegressionResult {
 // RPC interfaces.
 
 message RegressionRequest {
-  // Model Specification.
+  // Model Specification. If version is not specified, will use the latest
+  // (numerical) version.
   ModelSpec model_spec = 1;
 
   // Input data.

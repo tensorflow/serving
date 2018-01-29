@@ -157,6 +157,31 @@ serving_go_grpc_library(
 )
 
 serving_proto_library(
+    name = "get_model_status_proto",
+    srcs = ["get_model_status.proto"],
+    cc_api_version = 2,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":model_proto",
+        "//tensorflow_serving/util:status_proto",
+    ],
+)
+
+serving_proto_library(
+    name = "model_service_proto",
+    srcs = ["model_service.proto"],
+    has_services = 1,
+    cc_api_version = 2,
+    cc_grpc_version = 1,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":get_model_status_proto",
+    ],
+)
+
+serving_proto_library(
     name = "classification_proto",
     srcs = ["classification.proto"],
     cc_api_version = 2,

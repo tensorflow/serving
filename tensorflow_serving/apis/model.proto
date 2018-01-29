@@ -10,10 +10,7 @@ message ModelSpec {
   // Required servable name.
   string name = 1;
 
-  // Optional version. If unspecified, will use the latest (numerical) version.
-  // Typically not needed unless coordinating across multiple models that were
-  // co-trained and/or have inter-dependencies on the versions used at inference
-  // time.
+  // Optional version.
   google.protobuf.Int64Value version = 2;
 
   // A named signature to evaluate. If unspecified, the default signature will

@@ -10,7 +10,8 @@ import "tensorflow_serving/apis/model.proto";
 // how inputs are mapped to tensors and how outputs are filtered before
 // returning to user.
 message PredictRequest {
-  // Model Specification.
+  // Model Specification. If version is not specified, will use the latest
+  // (numerical) version.
   ModelSpec model_spec = 1;
 
   // Input tensors.

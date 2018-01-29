@@ -298,6 +298,25 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "status_util",
+    srcs = ["status_util.cc"],
+    hdrs = ["status_util.h"],
+    deps = [
+        "//tensorflow_serving/util:status_proto",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "status_util_test",
+    srcs = ["status_util_test.cc"],
+    deps = [
+        ":status_util",
+        "//tensorflow_serving/core/test_util:test_main",
+    ],
+)
+
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 serving_proto_library(
@@ -307,5 +326,17 @@ serving_proto_library(
     cc_api_version = 2,
     deps = [
         "@protobuf_archive//:cc_wkt_protos",
+    ],
+)
+
+serving_proto_library(
+    name = "status_proto",
+    srcs = ["status.proto"],
+    cc_api_version = 2,
+    go_api_version = 2,
+    java_api_version = 2,
+    visibility = ["//visibility:public"],
+    deps = [
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
 )
