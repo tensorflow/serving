@@ -17,7 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_MODEL_SERVERS_GET_MODEL_STATUS_IMPL_H_
 
 #include "tensorflow/core/lib/core/status.h"
-#include "tensorflow_serving/apis/get_model_status.proto.h"
+#include "tensorflow_serving/apis/get_model_status.pb.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 
 namespace tensorflow {

@@ -102,11 +102,11 @@ TEST_F(RegressionServiceTest, InvalidModelSpec) {
 // Verifies that Regress() returns an error for an invalid signature_name in
 // RegressionRequests's model_spec.
 TEST_F(RegressionServiceTest, InvalidSignature) {
-  auto request = test_util::CreateProto<RegressionRequest>(R"(
-    model_spec {
-      name: "test_model"
-      signature_name: "invalid_signature_name"
-    })");
+  auto request = test_util::CreateProto<RegressionRequest>(
+      "model_spec {"
+      "    name: \"test_model\""
+      "    signature_name: \"invalid_signature_name\""
+      "}");
   RegressionResponse response;
   EXPECT_EQ(TensorflowRegressionServiceImpl::Regress(
                 RunOptions(), server_core_.get(), request, &response)
@@ -118,53 +118,53 @@ TEST_F(RegressionServiceTest, InvalidSignature) {
 // RegressionRequest against the half_plus_two SavedModel's regress_x_to_y
 // signature.
 TEST_F(RegressionServiceTest, RegressionSuccess) {
-  auto request = test_util::CreateProto<RegressionRequest>(R"(
-    model_spec {
-      name: "test_model"
-      signature_name: "regress_x_to_y"
-    }
-    input {
-      example_list {
-        examples {
-          features {
-            feature: {
-              key  : "x"
-              value: {
-                float_list: {
-                  value: [ 80.0 ]
-                }
-              }
-            }
-            feature: {
-              key  : "locale"
-              value: {
-                bytes_list: {
-                  value: [ "pt_BR" ]
-                }
-              }
-            }
-            feature: {
-              key  : "age"
-              value: {
-                float_list: {
-                  value: [ 19.0 ]
-                }
-              }
-            }
-          }
-        }
-      }
-    })");
+  auto request = test_util::CreateProto<RegressionRequest>(
+      "model_spec {"
+      "  name: \"test_model\""
+      "  signature_name: \"regress_x_to_y\""
+      "}"
+      "input {"
+      "  example_list {"
+      "    examples {"
+      "      features {"
+      "        feature: {"
+      "          key  : \"x\""
+      "          value: {"
+      "            float_list: {"
+      "              value: [ 80.0 ]"
+      "            }"
+      "          }"
+      "        }"
+      "        feature: {"
+      "          key  : \"locale\""
+      "          value: {"
+      "            bytes_list: {"
+      "              value: [ \"pt_BR\" ]"
+      "            }"
+      "          }"
+      "        }"
+      "        feature: {"
+      "          key  : \"age\""
+      "          value: {"
+      "            float_list: {"
+      "              value: [ 19.0 ]"
+      "            }"
+      "          }"
+      "        }"
+      "      }"
+      "    }"
+      "  }"
+      "}");
   RegressionResponse response;
   TF_EXPECT_OK(TensorflowRegressionServiceImpl::Regress(
       RunOptions(), server_core_.get(), request, &response));
-  EXPECT_THAT(response, test_util::EqualsProto(R"(
-              result { regressions { value: 42 } }
-              model_spec {
-                name: "test_model"
-                signature_name: "regress_x_to_y"
-                version { value: 123 }
-              })"));
+  EXPECT_THAT(response,
+              test_util::EqualsProto("result { regressions { value: 42 } }"
+                                     "model_spec {"
+                                     "  name: \"test_model\""
+                                     "  signature_name: \"regress_x_to_y\""
+                                     "  version { value: 123 }"
+                                     "}"));
 }
 
 }  // namespace

@@ -102,11 +102,11 @@ TEST_F(ClassificationServiceTest, InvalidModelSpec) {
 // Verifies that Classify() returns an error for an invalid signature_name in
 // ClassificationRequests's model_spec.
 TEST_F(ClassificationServiceTest, InvalidSignature) {
-  auto request = test_util::CreateProto<ClassificationRequest>(R"(
-    model_spec {
-      name: "test_model"
-      signature_name: "invalid_signature_name"
-    })");
+  auto request = test_util::CreateProto<ClassificationRequest>(
+      "model_spec {"
+      "  name: \"test_model\""
+      "  signature_name: \"invalid_signature_name\""
+      "}");
   ClassificationResponse response;
   EXPECT_EQ(TensorflowClassificationServiceImpl::Classify(
                 RunOptions(), server_core_.get(), request, &response)
@@ -118,53 +118,54 @@ TEST_F(ClassificationServiceTest, InvalidSignature) {
 // ClassificationRequest against the half_plus_two SavedModel's classify_x_to_y
 // signature.
 TEST_F(ClassificationServiceTest, ClassificationSuccess) {
-  auto request = test_util::CreateProto<ClassificationRequest>(R"(
-    model_spec {
-      name: "test_model"
-      signature_name: "classify_x_to_y"
-    }
-    input {
-      example_list {
-        examples {
-          features {
-            feature: {
-              key  : "x"
-              value: {
-                float_list: {
-                  value: [ 80.0 ]
-                }
-              }
-            }
-            feature: {
-              key  : "locale"
-              value: {
-                bytes_list: {
-                  value: [ "pt_BR" ]
-                }
-              }
-            }
-            feature: {
-              key  : "age"
-              value: {
-                float_list: {
-                  value: [ 19.0 ]
-                }
-              }
-            }
-          }
-        }
-      }
-    })");
+  auto request = test_util::CreateProto<ClassificationRequest>(
+      "model_spec {"
+      "  name: \"test_model\""
+      "  signature_name: \"classify_x_to_y\""
+      "}"
+      "input {"
+      "  example_list {"
+      "    examples {"
+      "      features {"
+      "        feature: {"
+      "          key  : \"x\""
+      "          value: {"
+      "            float_list: {"
+      "              value: [ 80.0 ]"
+      "            }"
+      "          }"
+      "        }"
+      "        feature: {"
+      "          key  : \"locale\""
+      "          value: {"
+      "            bytes_list: {"
+      "              value: [ \"pt_BR\" ]"
+      "            }"
+      "          }"
+      "        }"
+      "        feature: {"
+      "          key  : \"age\""
+      "          value: {"
+      "            float_list: {"
+      "              value: [ 19.0 ]"
+      "            }"
+      "          }"
+      "        }"
+      "      }"
+      "    }"
+      "  }"
+      "}");
   ClassificationResponse response;
   TF_EXPECT_OK(TensorflowClassificationServiceImpl::Classify(
       RunOptions(), server_core_.get(), request, &response));
-  EXPECT_THAT(response, test_util::EqualsProto(R"(
-              result { classifications { classes { score: 42 } } }
-              model_spec {
-                name: "test_model"
-                signature_name: "classify_x_to_y"
-                version { value: 123 }
-              })"));
+  EXPECT_THAT(response,
+              test_util::EqualsProto(
+                  "result { classifications { classes { score: 42 } } }"
+                  "model_spec {"
+                  "  name: \"test_model\""
+                  "  signature_name: \"classify_x_to_y\""
+                  "  version { value: 123 }"
+                  "}"));
 }
 
 }  // namespace

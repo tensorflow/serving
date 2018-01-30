@@ -19,7 +19,7 @@ limitations under the License.
 
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
-#include "tensorflow_serving/util/status.proto.h"
+#include "tensorflow_serving/util/status.pb.h"
 #include "tensorflow_serving/util/status_util.h"
 
 namespace tensorflow {
