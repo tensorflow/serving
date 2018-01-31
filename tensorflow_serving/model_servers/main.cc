@@ -265,7 +265,7 @@ class PredictionServiceImpl final : public PredictionService::Service {
 };
 
 void RunServer(int port, std::unique_ptr<ServerCore> core,
-               bool use_saved_model) {
+               bool use_saved_model, string channel_arguments_str) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
   tensorflow::serving::ModelServiceImpl model_service(core.get());
@@ -276,6 +276,17 @@ void RunServer(int port, std::unique_ptr<ServerCore> core,
   builder.RegisterService(&model_service);
   builder.RegisterService(&prediction_service);
   builder.SetMaxMessageSize(tensorflow::kint32max);
+  const std::vector<string> channel_arguments =
+      tensorflow::str_util::Split(channel_arguments_str, ",");
+  for (const string& channel_argument : channel_arguments) {
+    const std::vector<string> key_val =
+        tensorflow::str_util::Split(channel_argument, "=");
+    try { // Attempt to add as int, otherwise assume string.
+      builder.AddChannelArgument(key_val[0], std::stoi(key_val[1]));
+    } catch (const std::invalid_argument& e) {
+      builder.AddChannelArgument(key_val[0], key_val[1]);
+    }
+  }
   std::unique_ptr<Server> server(builder.BuildAndStart());
   LOG(INFO) << "Running ModelServer at " << server_address << " ...";
   server->Wait();
@@ -307,6 +318,7 @@ int main(int argc, char** argv) {
   tensorflow::int64 tensorflow_session_parallelism = 0;
   string platform_config_file = "";
   string model_config_file;
+  string grpc_channel_arguments = "";
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &port, "port to listen on"),
       tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
@@ -358,7 +370,12 @@ int main(int argc, char** argv) {
           "starts, If 0.0, Tensorflow will automatically select a value."),
       tensorflow::Flag("saved_model_tags", &saved_model_tags,
                        "Comma-separated set of tags corresponding to the meta "
-                       "graph def to load from SavedModel.")};
+                       "graph def to load from SavedModel."),
+      tensorflow::Flag(
+                       "grpc_channel_arguments", &grpc_channel_arguments,
+                       "A comma separated list of arguments to be passed to "
+                       "the grpc server. (e.g. "
+                       "grpc.max_connection_age_ms=2000)")};
 
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
@@ -430,7 +447,7 @@ int main(int argc, char** argv) {
 
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(std::move(options), &core));
-  RunServer(port, std::move(core), use_saved_model);
+  RunServer(port, std::move(core), use_saved_model, grpc_channel_arguments);
 
   return 0;
 }
