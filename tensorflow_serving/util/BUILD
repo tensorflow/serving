@@ -318,6 +318,7 @@ cc_test(
 )
 
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 
 serving_proto_library(
     name = "class_registration_test_proto",
@@ -338,5 +339,14 @@ serving_proto_library(
     visibility = ["//visibility:public"],
     deps = [
         "@org_tensorflow//tensorflow/core:protos_all_cc",
+    ],
+)
+
+serving_proto_library_py(
+    name = "status_proto_py_pb2",
+    srcs = ["status.proto"],
+    proto_library = "status_proto",
+    deps = [
+        "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
 )

@@ -26,6 +26,7 @@ import time
 
 # This is a placeholder for a Google-internal import.
 
+import grpc
 from grpc.beta import implementations
 from grpc.beta import interfaces as beta_interfaces
 from grpc.framework.interfaces.face import face
@@ -34,6 +35,8 @@ import tensorflow as tf
 from tensorflow.core.framework import types_pb2
 from tensorflow.python.platform import flags
 from tensorflow_serving.apis import classification_pb2
+from tensorflow_serving.apis import get_model_status_pb2
+from tensorflow_serving.apis import model_service_pb2_grpc
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2
 from tensorflow_serving.apis import regression_pb2
@@ -250,6 +253,27 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.assertEquals(actual_model_spec.name, exp_model_name)
     self.assertEquals(actual_model_spec.signature_name, exp_signature_name)
     self.assertEquals(actual_model_spec.version.value, exp_version)
+
+  def testGetModelStatus(self):
+    """Test ModelService.GetModelStatus implementation."""
+    model_path = self._GetSavedModelBundlePath()
+
+    atexit.register(self.TerminateProcs)
+    model_server_address = self.RunServer(PickUnusedPort(), 'default',
+                                          model_path)
+
+    print 'Sending GetModelStatus request...'
+    # Send request
+    request = get_model_status_pb2.GetModelStatusRequest()
+    request.model_spec.name = 'default'
+    channel = grpc.insecure_channel(model_server_address)
+    stub = model_service_pb2_grpc.ModelServiceStub(channel)
+    result = stub.GetModelStatus(request, RPC_TIMEOUT)  # 5 secs timeout
+    # Verify response
+    self.assertEquals(1, len(result.model_version_status))
+    self.assertEquals(123, result.model_version_status[0].version)
+    # OK error code (0) indicates no error occurred
+    self.assertEquals(0, result.model_version_status[0].status.error_code)
 
   def testClassify(self):
     """Test PredictionService.Classify implementation."""

@@ -157,6 +157,35 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "model_service_impl",
+    srcs = ["model_service_impl.cc"],
+    hdrs = ["model_service_impl.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":get_model_status_impl",
+        ":grpc_status_util",
+        ":server_core",
+        "//tensorflow_serving/apis:model_service_proto",
+        "@grpc//:grpc++_unsecure",
+    ],
+)
+
+cc_library(
+    name = "grpc_status_util",
+    srcs = ["grpc_status_util.cc"],
+    hdrs = ["grpc_status_util.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "@grpc//:grpc++_unsecure",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
 SUPPORTED_TENSORFLOW_OPS = [
     "@org_tensorflow//tensorflow/contrib:contrib_kernels",
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
@@ -183,6 +212,8 @@ cc_binary(
         ":model_platform_types",
         ":platform_config_util",
         ":server_core",
+        ":grpc_status_util",
+        ":model_service_impl",
         "@protobuf_archive//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
@@ -216,6 +247,7 @@ py_test(
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
     deps = [
+        "//tensorflow_serving/apis:model_service_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
