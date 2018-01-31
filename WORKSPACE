@@ -1,20 +1,18 @@
 workspace(name = "tf_serving")
 
 # To update TensorFlow to a new revision.
-# 1. Update the 'urls' and 'strip_prefix' args below to include the new git hash.
+# 1. Update the 'git_commit' args below to include the new git hash.
 # 2. Get the sha256 hash of the archive with a command such as...
 #    curl -L https://github.com/tensorflow/tensorflow/archive/<git hash>.tar.gz | sha256sum
 #    and update the 'sha256' arg with the result.
 # 3. Request the new archive to be mirrored on mirror.bazel.build for more
 #    reliable downloads.
-http_archive(
+load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
+
+tensorflow_http_archive(
     name = "org_tensorflow",
     sha256 = "9c3db796b2c6bc24ebff94d689c442f2cf1d8955f122a277e4ad893c0ce96aac",
-    strip_prefix = "tensorflow-57b32eabca4597241120cb4aba8308a431853c30",
-    urls = [
-        "https://mirror.bazel.build/github.com/tensorflow/tensorflow/archive/57b32eabca4597241120cb4aba8308a431853c30.tar.gz",
-        "https://github.com/tensorflow/tensorflow/archive/57b32eabca4597241120cb4aba8308a431853c30.tar.gz",
-    ],
+    git_commit = "57b32eabca4597241120cb4aba8308a431853c30",
 )
 
 # TensorFlow depends on "io_bazel_rules_closure" so we need this here.
