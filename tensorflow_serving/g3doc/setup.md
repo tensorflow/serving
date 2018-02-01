@@ -144,7 +144,16 @@ to the `git clone` command.
 
 ### Install prerequisites
 
-Follow the Prerequisites section above to install all dependencies. Consult the
+Follow the Prerequisites section above to install all dependencies.
+To configure TensorFlow, run
+
+```shell
+cd tensorflow
+./configure
+cd ..
+```
+
+Consult the
 [TensorFlow install instructions](https://www.tensorflow.org/install/)
 if you encounter any issues with setting up TensorFlow or its dependencies.
 
