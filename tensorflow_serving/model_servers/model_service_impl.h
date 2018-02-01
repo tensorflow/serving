@@ -25,7 +25,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-class ModelServiceImpl final : public grpc::ModelService::Service {
+class ModelServiceImpl final : public ModelService::Service {
  public:
   explicit ModelServiceImpl(ServerCore* core) : core_(core) {}
 

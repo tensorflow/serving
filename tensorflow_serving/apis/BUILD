@@ -198,10 +198,7 @@ py_library(
         "model_service_pb2_grpc.py",
     ],
     srcs_version = "PY2AND3",
-    deps = [
-        ":get_model_status_proto_py_pb2",
-        "//net/grpc/python:grpc",
-    ],
+    deps = [":get_model_status_proto_py_pb2"],
 )
 
 serving_go_grpc_library(
