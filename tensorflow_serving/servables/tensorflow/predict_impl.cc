@@ -164,14 +164,6 @@ Status PreProcessPrediction(const SignatureDef& signature,
         kPredictMethodName, ", ", kClassifyMethodName, ", ", kRegressMethodName,
         "}. Was: ", signature.method_name()));
   }
-  if (signature.inputs().empty()) {
-    return errors::Internal(strings::StrCat(
-        "Expected at least one input Tensor in prediction signature."));
-  }
-  if (signature.outputs().empty()) {
-    return errors::Internal(strings::StrCat(
-        "Expected at least one output Tensor in prediction signature."));
-  }
 
   // Verify and prepare input.
   if (request.inputs().size() != signature.inputs().size()) {
