@@ -55,7 +55,6 @@ limitations under the License.
 #include "grpc++/server_builder.h"
 #include "grpc++/server_context.h"
 #include "grpc++/support/status.h"
-#include "grpc++/support/status_code_enum.h"
 #include "grpc/grpc.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -70,7 +69,9 @@ limitations under the License.
 #include "tensorflow_serving/apis/prediction_service.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
+#include "tensorflow_serving/model_servers/grpc_status_util.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
+#include "tensorflow_serving/model_servers/model_service_impl.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/classification_service.h"
@@ -173,24 +174,10 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
                    gpr_now(GPR_CLOCK_MONOTONIC)));
 }
 
-grpc::Status ToGRPCStatus(const tensorflow::Status& status) {
-  const int kErrorMessageLimit = 1024;
-  string error_message;
-  if (status.error_message().length() > kErrorMessageLimit) {
-    error_message =
-        status.error_message().substr(0, kErrorMessageLimit) + "...TRUNCATED";
-  } else {
-    error_message = status.error_message();
-  }
-  return grpc::Status(static_cast<grpc::StatusCode>(status.code()),
-                      error_message);
-}
-
 class PredictionServiceImpl final : public PredictionService::Service {
  public:
-  explicit PredictionServiceImpl(std::unique_ptr<ServerCore> core,
-                                 bool use_saved_model)
-      : core_(std::move(core)),
+  explicit PredictionServiceImpl(ServerCore* core, bool use_saved_model)
+      : core_(core),
         predictor_(new TensorflowPredictor(use_saved_model)),
         use_saved_model_(use_saved_model) {}
 
@@ -200,8 +187,8 @@ class PredictionServiceImpl final : public PredictionService::Service {
     // By default, this is infinite which is the same default as RunOptions.
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
-    const grpc::Status status = ToGRPCStatus(
-        predictor_->Predict(run_options, core_.get(), *request, response));
+    const grpc::Status status = tensorflow::serving::ToGRPCStatus(
+        predictor_->Predict(run_options, core_, *request, response));
     if (!status.ok()) {
       VLOG(1) << "Predict failed: " << status.error_message();
     }
@@ -212,13 +199,13 @@ class PredictionServiceImpl final : public PredictionService::Service {
                                 const GetModelMetadataRequest* request,
                                 GetModelMetadataResponse* response) override {
     if (!use_saved_model_) {
-      return ToGRPCStatus(tensorflow::errors::InvalidArgument(
-          "GetModelMetadata API is only available when use_saved_model is "
-          "set to true"));
+      return tensorflow::serving::ToGRPCStatus(
+          tensorflow::errors::InvalidArgument(
+              "GetModelMetadata API is only available when use_saved_model is "
+              "set to true"));
     }
-    const grpc::Status status =
-        ToGRPCStatus(GetModelMetadataImpl::GetModelMetadata(
-            core_.get(), *request, response));
+    const grpc::Status status = tensorflow::serving::ToGRPCStatus(
+        GetModelMetadataImpl::GetModelMetadata(core_, *request, response));
     if (!status.ok()) {
       VLOG(1) << "GetModelMetadata failed: " << status.error_message();
     }
@@ -232,25 +219,24 @@ class PredictionServiceImpl final : public PredictionService::Service {
     // By default, this is infinite which is the same default as RunOptions.
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
-    const grpc::Status status =
-        ToGRPCStatus(TensorflowClassificationServiceImpl::Classify(
-            run_options, core_.get(), *request, response));
+    const grpc::Status status = tensorflow::serving::ToGRPCStatus(
+        TensorflowClassificationServiceImpl::Classify(run_options, core_,
+                                                      *request, response));
     if (!status.ok()) {
       VLOG(1) << "Classify request failed: " << status.error_message();
     }
     return status;
   }
 
-  grpc::Status Regress(ServerContext* context,
-                       const RegressionRequest* request,
+  grpc::Status Regress(ServerContext* context, const RegressionRequest* request,
                        RegressionResponse* response) override {
     tensorflow::RunOptions run_options = tensorflow::RunOptions();
     // By default, this is infinite which is the same default as RunOptions.
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
-    const grpc::Status status =
-        ToGRPCStatus(TensorflowRegressionServiceImpl::Regress(
-            run_options, core_.get(), *request, response));
+    const grpc::Status status = tensorflow::serving::ToGRPCStatus(
+        TensorflowRegressionServiceImpl::Regress(run_options, core_, *request,
+                                                 response));
     if (!status.ok()) {
       VLOG(1) << "Regress request failed: " << status.error_message();
     }
@@ -264,8 +250,8 @@ class PredictionServiceImpl final : public PredictionService::Service {
     // By default, this is infinite which is the same default as RunOptions.
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
-    const grpc::Status status = ToGRPCStatus(
-        RunMultiInference(run_options, core_.get(), *request, response));
+    const grpc::Status status = tensorflow::serving::ToGRPCStatus(
+        RunMultiInference(run_options, core_, *request, response));
     if (!status.ok()) {
       VLOG(1) << "MultiInference request failed: " << status.error_message();
     }
@@ -273,7 +259,7 @@ class PredictionServiceImpl final : public PredictionService::Service {
   }
 
  private:
-  std::unique_ptr<ServerCore> core_;
+  ServerCore* core_;
   std::unique_ptr<TensorflowPredictor> predictor_;
   bool use_saved_model_;
 };
@@ -282,11 +268,13 @@ void RunServer(int port, std::unique_ptr<ServerCore> core,
                bool use_saved_model) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
-  PredictionServiceImpl service(std::move(core), use_saved_model);
+  tensorflow::serving::ModelServiceImpl model_service(core.get());
+  PredictionServiceImpl prediction_service(core.get(), use_saved_model);
   ServerBuilder builder;
   std::shared_ptr<grpc::ServerCredentials> creds = InsecureServerCredentials();
   builder.AddListeningPort(server_address, creds);
-  builder.RegisterService(&service);
+  builder.RegisterService(&model_service);
+  builder.RegisterService(&prediction_service);
   builder.SetMaxMessageSize(tensorflow::kint32max);
   std::unique_ptr<Server> server(builder.BuildAndStart());
   LOG(INFO) << "Running ModelServer at " << server_address << " ...";

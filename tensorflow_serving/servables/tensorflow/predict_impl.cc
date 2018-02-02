@@ -29,6 +29,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow_serving/core/servable_handle.h"
+#include "tensorflow_serving/servables/tensorflow/util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -111,6 +112,9 @@ Status SessionBundlePredict(const RunOptions& run_options, ServerCore* core,
     }
   }
 
+  MakeModelSpec(request.model_spec().name(), /*signature_name=*/{},
+                bundle.id().version, response->mutable_model_spec());
+
   // Run session.
   std::vector<Tensor> outputs;
   RunMetadata run_metadata;
@@ -159,14 +163,6 @@ Status PreProcessPrediction(const SignatureDef& signature,
         "Expected prediction signature method_name to be one of {",
         kPredictMethodName, ", ", kClassifyMethodName, ", ", kRegressMethodName,
         "}. Was: ", signature.method_name()));
-  }
-  if (signature.inputs().empty()) {
-    return errors::Internal(strings::StrCat(
-        "Expected at least one input Tensor in prediction signature."));
-  }
-  if (signature.outputs().empty()) {
-    return errors::Internal(strings::StrCat(
-        "Expected at least one output Tensor in prediction signature."));
   }
 
   // Verify and prepare input.
@@ -258,6 +254,9 @@ Status SavedModelPredict(const RunOptions& run_options, ServerCore* core,
         "Serving signature key \"", signature_name, "\" not found."));
   }
   SignatureDef signature = iter->second;
+
+  MakeModelSpec(request.model_spec().name(), signature_name,
+                bundle.id().version, response->mutable_model_spec());
 
   std::vector<std::pair<string, Tensor>> input_tensors;
   std::vector<string> output_tensor_names;

@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/util.h"
 
+#include "google/protobuf/wrappers.pb.h"
+#include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -22,6 +24,8 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/internal/serialized_input.pb.h"
+#include "tensorflow_serving/apis/model.pb.h"
+#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -117,6 +121,21 @@ Status PerformOneShotTensorComputation(
   RunMetadata run_metadata;
   return session->Run(run_options, {{input_tensor_name, input_tensor}},
                       output_tensor_names, {}, outputs, &run_metadata);
+}
+
+void MakeModelSpec(const string& model_name,
+                   const optional<string>& signature_name,
+                   const optional<int64>& version, ModelSpec* model_spec) {
+  model_spec->Clear();
+  model_spec->set_name(model_name);
+  if (signature_name) {
+    model_spec->set_signature_name(signature_name->empty()
+                                       ? kDefaultServingSignatureDefKey
+                                       : *signature_name);
+  }
+  if (version) {
+    model_spec->mutable_version()->set_value(*version);
+  }
 }
 
 }  // namespace serving

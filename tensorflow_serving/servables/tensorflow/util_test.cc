@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/util.h"
 
+#include "google/protobuf/wrappers.pb.h"
+#include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/example/feature.pb.h"
 #include "tensorflow/core/framework/tensor_shape.h"
@@ -27,8 +29,9 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-using ::testing::HasSubstr;
 using test_util::EqualsProto;
+using ::testing::Eq;
+using ::testing::HasSubstr;
 
 class InputUtilTest : public ::testing::Test {
  protected:
@@ -112,18 +115,18 @@ TEST_F(InputUtilTest, ExampleListWithContext) {
   {
     Example serialized_example;
     ASSERT_TRUE(serialized_example.ParseFromString(vec(0)));
-    EXPECT_THAT(serialized_example.features().feature().at("c"), EqualsProto(
-        example_C().features().feature().at("c")));
-    EXPECT_THAT(serialized_example.features().feature().at("a"), EqualsProto(
-        example_A().features().feature().at("a")));
+    EXPECT_THAT(serialized_example.features().feature().at("c"),
+                EqualsProto(example_C().features().feature().at("c")));
+    EXPECT_THAT(serialized_example.features().feature().at("a"),
+                EqualsProto(example_A().features().feature().at("a")));
   }
   {
     Example serialized_example;
     ASSERT_TRUE(serialized_example.ParseFromString(vec(1)));
-    EXPECT_THAT(serialized_example.features().feature().at("c"), EqualsProto(
-        example_C().features().feature().at("c")));
-    EXPECT_THAT(serialized_example.features().feature().at("b"), EqualsProto(
-        example_B().features().feature().at("b")));
+    EXPECT_THAT(serialized_example.features().feature().at("c"),
+                EqualsProto(example_C().features().feature().at("c")));
+    EXPECT_THAT(serialized_example.features().feature().at("b"),
+                EqualsProto(example_B().features().feature().at("b")));
   }
 }
 
@@ -214,6 +217,48 @@ TEST(ExampleCountsTest, Simple) {
   ASSERT_GE(before_histogram.bucket().size(), 3);
   ASSERT_GE(after_histogram.bucket().size(), 3);
   EXPECT_EQ(1, after_histogram.bucket(2) - before_histogram.bucket(2));
+}
+
+TEST(ModelSpecTest, NoOptional) {
+  ModelSpec model_spec;
+  MakeModelSpec("foo", /*signature_name=*/{}, /*version=*/{}, &model_spec);
+  EXPECT_THAT(model_spec.name(), Eq("foo"));
+  EXPECT_THAT(model_spec.signature_name(), ::testing::IsEmpty());
+  EXPECT_FALSE(model_spec.has_version());
+}
+
+TEST(ModelSpecTest, OptionalSignature) {
+  ModelSpec model_spec;
+  MakeModelSpec("foo", /*signature_name=*/{"classify"}, /*version=*/{},
+                &model_spec);
+  EXPECT_THAT(model_spec.name(), Eq("foo"));
+  EXPECT_THAT(model_spec.signature_name(), Eq("classify"));
+  EXPECT_FALSE(model_spec.has_version());
+}
+
+TEST(ModelSpecTest, EmptySignature) {
+  ModelSpec model_spec;
+  MakeModelSpec("foo", /*signature_name=*/{""}, /*version=*/{1}, &model_spec);
+  EXPECT_THAT(model_spec.name(), Eq("foo"));
+  EXPECT_THAT(model_spec.signature_name(), Eq(kDefaultServingSignatureDefKey));
+  EXPECT_THAT(model_spec.version().value(), Eq(1));
+}
+
+TEST(ModelSpecTest, OptionalVersion) {
+  ModelSpec model_spec;
+  MakeModelSpec("foo", /*signature_name=*/{}, /*version=*/{1}, &model_spec);
+  EXPECT_THAT(model_spec.name(), Eq("foo"));
+  EXPECT_THAT(model_spec.signature_name(), ::testing::IsEmpty());
+  EXPECT_THAT(model_spec.version().value(), Eq(1));
+}
+
+TEST(ModelSpecTest, AllOptionalSet) {
+  ModelSpec model_spec;
+  MakeModelSpec("foo", /*signature_name=*/{"classify"}, /*version=*/{1},
+                &model_spec);
+  EXPECT_THAT(model_spec.name(), Eq("foo"));
+  EXPECT_THAT(model_spec.signature_name(), Eq("classify"));
+  EXPECT_THAT(model_spec.version().value(), Eq(1));
 }
 
 }  // namespace

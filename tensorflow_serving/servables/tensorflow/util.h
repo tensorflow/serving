@@ -21,6 +21,8 @@ limitations under the License.
 #include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/input.pb.h"
+#include "tensorflow_serving/apis/model.pb.h"
+#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -58,6 +60,14 @@ Status PerformOneShotTensorComputation(
     const string& input_tensor_name,
     const std::vector<string>& output_tensor_names, Session* session,
     std::vector<Tensor>* outputs, int* num_input_examples);
+
+// Populates given model_spec based on the model name and optional
+// signature/version information.
+// If signature_name has a value and is empty, model_spec's signature_name is
+// set to tensorflow::kDefaultServingSignatureDefKey.
+void MakeModelSpec(const string& model_name,
+                   const optional<string>& signature_name,
+                   const optional<int64>& version, ModelSpec* model_spec);
 
 }  // namespace serving
 }  // namespace tensorflow

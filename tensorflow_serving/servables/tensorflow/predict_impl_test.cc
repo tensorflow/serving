@@ -57,6 +57,10 @@ class PredictImplTest : public ::testing::TestWithParam<bool> {
                                   true, &saved_model_server_core_));
     TF_ASSERT_OK(CreateServerCore(bad_half_plus_two_path, true,
                                   &saved_model_server_core_bad_model_));
+    TF_ASSERT_OK(CreateServerCore(
+        test_util::TestSrcDirPath(
+            "/servables/tensorflow/testdata/saved_model_counter"),
+        true, &saved_model_server_core_counter_model_));
   }
 
   static void TearDownTestCase() {
@@ -64,6 +68,7 @@ class PredictImplTest : public ::testing::TestWithParam<bool> {
     server_core_bad_model_.reset();
     saved_model_server_core_.reset();
     saved_model_server_core_bad_model_.reset();
+    saved_model_server_core_counter_model_.reset();
   }
 
  protected:
@@ -103,6 +108,10 @@ class PredictImplTest : public ::testing::TestWithParam<bool> {
     return server_core_bad_model_.get();
   }
 
+  ServerCore* GetServerCoreWithCounterModel() {
+    return saved_model_server_core_counter_model_.get();
+  }
+
   RunOptions GetRunOptions() { return RunOptions(); }
 
  private:
@@ -110,12 +119,15 @@ class PredictImplTest : public ::testing::TestWithParam<bool> {
   static std::unique_ptr<ServerCore> server_core_bad_model_;
   static std::unique_ptr<ServerCore> saved_model_server_core_;
   static std::unique_ptr<ServerCore> saved_model_server_core_bad_model_;
+  static std::unique_ptr<ServerCore> saved_model_server_core_counter_model_;
 };
 
 std::unique_ptr<ServerCore> PredictImplTest::server_core_;
 std::unique_ptr<ServerCore> PredictImplTest::server_core_bad_model_;
 std::unique_ptr<ServerCore> PredictImplTest::saved_model_server_core_;
 std::unique_ptr<ServerCore> PredictImplTest::saved_model_server_core_bad_model_;
+std::unique_ptr<ServerCore>
+    PredictImplTest::saved_model_server_core_counter_model_;
 
 TEST_P(PredictImplTest, MissingOrEmptyModelSpec) {
   PredictRequest request;
@@ -278,6 +290,12 @@ TEST_P(PredictImplTest, PredictionSuccess) {
   output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
   output_tensor_proto.mutable_tensor_shape();
   PredictResponse expected_response;
+  *expected_response.mutable_model_spec() = *model_spec;
+  // signature_name in ModelSpec is populated only for SavedModels.
+  if (GetParam()) {
+    expected_response.mutable_model_spec()->set_signature_name(
+        kDefaultServingSignatureDefKey);
+  }
   (*expected_response.mutable_outputs())[kOutputTensorKey] =
       output_tensor_proto;
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
@@ -315,6 +333,7 @@ TEST_P(PredictImplTest, PredictionWithNamedRegressionSignature) {
   output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
   output_tensor_proto.mutable_tensor_shape();
   PredictResponse expected_response;
+  *expected_response.mutable_model_spec() = *model_spec;
   (*expected_response.mutable_outputs())[kRegressOutputs] = output_tensor_proto;
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
@@ -353,9 +372,116 @@ TEST_P(PredictImplTest, PredictionWithNamedClassificationSignature) {
   output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
   output_tensor_proto.mutable_tensor_shape();
   PredictResponse expected_response;
+  *expected_response.mutable_model_spec() = *model_spec;
   (*expected_response.mutable_outputs())[kClassifyOutputScores] =
       output_tensor_proto;
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
+}
+
+// Test querying a counter model with signatures. Predict calls work with
+// customized signatures. It calls get_counter, incr_counter,
+// reset_counter, incr_counter, and incr_counter_by(3) in order.
+//
+// *Notes*: These signatures are stateful and over-simplied only to demonstrate
+// Predict calls with only inputs or outputs. State is not supported in
+// TensorFlow Serving on most scalable or production hosting environments.
+TEST_P(PredictImplTest, PredictionWithCustomizedSignatures) {
+  PredictRequest request;
+  PredictResponse response;
+  TensorflowPredictor predictor(GetParam());
+
+  // Call get_counter. Expected result 0.
+  ModelSpec* model_spec = request.mutable_model_spec();
+  model_spec->set_name(kTestModelName);
+  model_spec->mutable_version()->set_value(kTestModelVersion);
+  model_spec->set_signature_name("get_counter");
+
+  // This request is expected to work with SavedModel, but not SessionBundle.
+  const bool using_session_bundle = !GetParam();
+  if (using_session_bundle) {
+    ASSERT_EQ(tensorflow::error::INVALID_ARGUMENT,
+              predictor
+                  .Predict(GetRunOptions(), GetServerCoreWithCounterModel(),
+                           request, &response)
+                  .code());
+    return;
+  }
+
+  TF_ASSERT_OK(predictor.Predict(
+      GetRunOptions(), GetServerCoreWithCounterModel(), request, &response));
+
+  PredictResponse expected_get_counter;
+  *expected_get_counter.mutable_model_spec() = *model_spec;
+  TensorProto output_get_counter;
+  output_get_counter.add_float_val(0);
+  output_get_counter.set_dtype(tensorflow::DT_FLOAT);
+  output_get_counter.mutable_tensor_shape();
+  (*expected_get_counter.mutable_outputs())["output"] = output_get_counter;
+  EXPECT_THAT(response, test_util::EqualsProto(expected_get_counter));
+
+  // Call incr_counter. Expect: 1.
+  model_spec->set_signature_name("incr_counter");
+  TF_ASSERT_OK(predictor.Predict(
+      GetRunOptions(), GetServerCoreWithCounterModel(), request, &response));
+
+  PredictResponse expected_incr_counter;
+  *expected_incr_counter.mutable_model_spec() = *model_spec;
+  TensorProto output_incr_counter;
+  output_incr_counter.add_float_val(1);
+  output_incr_counter.set_dtype(tensorflow::DT_FLOAT);
+  output_incr_counter.mutable_tensor_shape();
+  (*expected_incr_counter.mutable_outputs())["output"] = output_incr_counter;
+  EXPECT_THAT(response, test_util::EqualsProto(expected_incr_counter));
+
+  // Call reset_counter. Expect: 0.
+  model_spec->set_signature_name("reset_counter");
+  TF_ASSERT_OK(predictor.Predict(
+      GetRunOptions(), GetServerCoreWithCounterModel(), request, &response));
+
+  PredictResponse expected_reset_counter;
+  *expected_reset_counter.mutable_model_spec() = *model_spec;
+  TensorProto output_reset_counter;
+  output_reset_counter.add_float_val(0);
+  output_reset_counter.set_dtype(tensorflow::DT_FLOAT);
+  output_reset_counter.mutable_tensor_shape();
+  (*expected_reset_counter.mutable_outputs())["output"] = output_reset_counter;
+  EXPECT_THAT(response, test_util::EqualsProto(expected_reset_counter));
+
+  // Call incr_counter. Expect: 1.
+  model_spec->set_signature_name("incr_counter");
+  request.add_output_filter("output");
+  TF_ASSERT_OK(predictor.Predict(
+      GetRunOptions(), GetServerCoreWithCounterModel(), request, &response));
+  request.clear_output_filter();
+
+  PredictResponse expected_incr_counter2;
+  *expected_incr_counter2.mutable_model_spec() = *model_spec;
+  TensorProto output_incr_counter2;
+  output_incr_counter2.add_float_val(1);
+  output_incr_counter2.set_dtype(tensorflow::DT_FLOAT);
+  output_incr_counter2.mutable_tensor_shape();
+  (*expected_incr_counter2.mutable_outputs())["output"] = output_incr_counter2;
+  EXPECT_THAT(response, test_util::EqualsProto(expected_incr_counter2));
+
+  // Call incr_counter_by. Expect: 4.
+  model_spec->set_signature_name("incr_counter_by");
+  TensorProto tensor_proto;
+  tensor_proto.add_float_val(3);
+  tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  (*request.mutable_inputs())["delta"] = tensor_proto;
+
+  TF_ASSERT_OK(predictor.Predict(
+      GetRunOptions(), GetServerCoreWithCounterModel(), request, &response));
+
+  PredictResponse expected_incr_counter_by;
+  *expected_incr_counter_by.mutable_model_spec() = *model_spec;
+  TensorProto output_incr_counter_by;
+  output_incr_counter_by.add_float_val(4);
+  output_incr_counter_by.set_dtype(tensorflow::DT_FLOAT);
+  output_incr_counter_by.mutable_tensor_shape();
+  (*expected_incr_counter_by.mutable_outputs())["output"] =
+      output_incr_counter_by;
+  EXPECT_THAT(response, test_util::EqualsProto(expected_incr_counter_by));
 }
 
 // Test all PredictImplTest test cases with both SessionBundle and SavedModel.

@@ -46,6 +46,17 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "export_counter",
+    srcs = [
+        "export_counter.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        "@org_tensorflow//tensorflow:tensorflow_py",
+    ],
+)
+
 # Note: re-generate these files with :export_half_plus_two whenever model
 # changes.
 exports_files([
@@ -58,6 +69,9 @@ exports_files([
     "saved_model_half_plus_three/00000123/variables/variables.index",
     "bad_half_plus_two/00000123/export",
     "bad_half_plus_two/00000123/export.meta",
+    "saved_model_counter/00000123/saved_model.pb",
+    "saved_model_counter/00000123/variables/variables.data-00000-of-00001",
+    "saved_model_counter/00000123/variables/variables.index",
     "good_model_config.txt",
     "bad_model_config.txt",
     "batching_config.txt",

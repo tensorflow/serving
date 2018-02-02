@@ -157,6 +157,57 @@ serving_go_grpc_library(
 )
 
 serving_proto_library(
+    name = "get_model_status_proto",
+    srcs = ["get_model_status.proto"],
+    cc_api_version = 2,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":model_proto",
+        "//tensorflow_serving/util:status_proto",
+    ],
+)
+
+serving_proto_library_py(
+    name = "get_model_status_proto_py_pb2",
+    srcs = ["get_model_status.proto"],
+    proto_library = "get_model_status_proto",
+    deps = [
+        ":model_proto_py_pb2",
+        "//tensorflow_serving/util:status_proto_py_pb2",
+    ],
+)
+
+serving_proto_library(
+    name = "model_service_proto",
+    srcs = ["model_service.proto"],
+    has_services = 1,
+    cc_api_version = 2,
+    cc_grpc_version = 1,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":get_model_status_proto",
+    ],
+)
+
+py_library(
+    name = "model_service_proto_py_pb2",
+    srcs = [
+        "model_service_pb2.py",
+        "model_service_pb2_grpc.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [":get_model_status_proto_py_pb2"],
+)
+
+serving_go_grpc_library(
+    name = "model_service_grpc",
+    srcs = [":model_service_proto"],
+    deps = [":model_service_go_proto"],
+)
+
+serving_proto_library(
     name = "classification_proto",
     srcs = ["classification.proto"],
     cc_api_version = 2,

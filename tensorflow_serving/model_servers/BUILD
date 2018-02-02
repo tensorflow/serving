@@ -106,6 +106,86 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "get_model_status_impl",
+    srcs = ["get_model_status_impl.cc"],
+    hdrs = ["get_model_status_impl.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":server_core",
+        "//tensorflow_serving/apis:get_model_status_proto",
+        "//tensorflow_serving/core:servable_state",
+        "//tensorflow_serving/core:servable_state_monitor",
+        "//tensorflow_serving/util:status_proto",
+        "//tensorflow_serving/util:status_util",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "get_model_status_impl_test",
+    size = "medium",
+    srcs = ["get_model_status_impl_test.cc"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000123/assets/foo.txt",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000123/saved_model.pb",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000123/variables/variables.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000123/variables/variables.index",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000124/assets/foo.txt",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000124/saved_model.pb",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000124/variables/variables.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000124/variables/variables.index",
+    ],
+    deps = [
+        ":get_model_status_impl",
+        ":model_platform_types",
+        ":platform_config_util",
+        ":server_core",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/core:availability_preserving_policy",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_proto",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
+    name = "model_service_impl",
+    srcs = ["model_service_impl.cc"],
+    hdrs = ["model_service_impl.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":get_model_status_impl",
+        ":grpc_status_util",
+        ":server_core",
+        "//tensorflow_serving/apis:model_service_proto",
+        "@grpc//:grpc++_unsecure",
+    ],
+)
+
+cc_library(
+    name = "grpc_status_util",
+    srcs = ["grpc_status_util.cc"],
+    hdrs = ["grpc_status_util.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "@grpc//:grpc++_unsecure",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
 SUPPORTED_TENSORFLOW_OPS = [
     "@org_tensorflow//tensorflow/contrib:contrib_kernels",
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
@@ -132,6 +212,8 @@ cc_binary(
         ":model_platform_types",
         ":platform_config_util",
         ":server_core",
+        ":grpc_status_util",
+        ":model_service_impl",
         "@protobuf_archive//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
@@ -165,6 +247,7 @@ py_test(
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
     deps = [
+        "//tensorflow_serving/apis:model_service_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
@@ -184,7 +267,7 @@ load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
 
 pkg_tar(
     name = "tensorflow_model_server_tar",
-    files = [
+    srcs = [
         ":tensorflow_model_server",
     ],
     package_dir = "/usr/bin",
