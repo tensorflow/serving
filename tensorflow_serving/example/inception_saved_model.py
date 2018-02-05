@@ -20,6 +20,8 @@ The model is exported as SavedModel with proper signatures that can be loaded by
 standard tensorflow_model_server.
 """
 
+from __future__ import print_function
+
 import os.path
 
 # This is a placeholder for a Google-internal import.
@@ -105,17 +107,17 @@ def export():
         #   /my-favorite-path/imagenet_train/model.ckpt-0,
         # extract global_step from it.
         global_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
-        print 'Successfully loaded model from %s at step=%s.' % (
-            ckpt.model_checkpoint_path, global_step)
+        print('Successfully loaded model from %s at step=%s.' % (
+            ckpt.model_checkpoint_path, global_step))
       else:
-        print 'No checkpoint file found at %s' % FLAGS.checkpoint_dir
+        print('No checkpoint file found at %s' % FLAGS.checkpoint_dir)
         return
 
       # Export inference model.
       output_path = os.path.join(
           tf.compat.as_bytes(FLAGS.output_dir),
           tf.compat.as_bytes(str(FLAGS.model_version)))
-      print 'Exporting trained model to', output_path
+      print('Exporting trained model to', output_path)
       builder = tf.saved_model.builder.SavedModelBuilder(output_path)
 
       # Build the signature_def_map.
@@ -165,7 +167,7 @@ def export():
           legacy_init_op=legacy_init_op)
 
       builder.save()
-      print 'Successfully exported model to %s' % FLAGS.output_dir
+      print('Successfully exported model to %s' % FLAGS.output_dir)
 
 
 def preprocess_image(image_buffer):
