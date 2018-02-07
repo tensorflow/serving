@@ -87,11 +87,6 @@ RUN mkdir /usr/lib/x86_64-linux-gnu/include/ && \
   ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so /usr/local/cuda/lib64/libcudnn.so && \
   ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so.6 /usr/local/cuda/lib64/libcudnn.so.6
 
-
-# Configure Tensorflow to use the GPU
-WORKDIR /serving/tensorflow
-RUN tensorflow/tools/ci_build/builds/configured GPU
-
 # Build TensorFlow Serving and Install it in /usr/local/bin
 WORKDIR /serving
 RUN bazel build -c opt --config=cuda \
