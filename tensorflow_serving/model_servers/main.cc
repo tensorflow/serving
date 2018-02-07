@@ -265,16 +265,21 @@ class PredictionServiceImpl final : public PredictionService::Service {
   bool use_saved_model_;
 };
 
+struct ChannelArgument {
+  string key;
+  string value;
+};
+
 // Parses a comma separated list of gRPC channel arguments into list of pairs.
-std::vector<std::pair<string, string>> parseChannelArgs(
+std::vector<ChannelArgument> parseChannelArgs(
     const string& channel_arguments_str) {
   const std::vector<string> channel_arguments =
         tensorflow::str_util::Split(channel_arguments_str, ",");
-  std::vector<std::pair<string, string>> result;
+  std::vector<ChannelArgument> result;
   for (const string& channel_argument : channel_arguments) {
     const std::vector<string> key_val =
         tensorflow::str_util::Split(channel_argument, "=");
-    result.push_back(std::make_pair(key_val[0], key_val[1]));
+    result.push_back({key_val[0], key_val[1]});
   }
   return result;
 }
@@ -291,19 +296,17 @@ void RunServer(int port, std::unique_ptr<ServerCore> core,
   builder.RegisterService(&model_service);
   builder.RegisterService(&prediction_service);
   builder.SetMaxMessageSize(tensorflow::kint32max);
-  const std::vector<std::pair<string, string>> channel_arguments =
+  const std::vector<ChannelArgument> channel_arguments =
       parseChannelArgs(channel_arguments_str);
-  for (std::pair<string, string> channel_argument : channel_arguments) {
+  for (ChannelArgument channel_argument : channel_arguments) {
     // gRPC accept arguments of two types, int and string. We will attempt to
     // parse each arg as int and pass it on as such if successful. Otherwise we
     // will pass it as a string. gRPC will log arguments that were not accepted.
-    int second_as_int;
-    if(tensorflow::strings::safe_strto32(
-        channel_argument.second, &second_as_int)) {
-      builder.AddChannelArgument(channel_argument.first, second_as_int);
+    int value;
+    if(tensorflow::strings::safe_strto32(channel_argument.key, &value)) {
+      builder.AddChannelArgument(channel_argument.key, value);
     } else {
-      builder.AddChannelArgument(
-          channel_argument.first, channel_argument.second);
+      builder.AddChannelArgument(channel_argument.key, channel_argument.value);
     }
   }
   std::unique_ptr<Server> server(builder.BuildAndStart());
