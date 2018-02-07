@@ -270,7 +270,8 @@ struct ChannelArgument {
   string value;
 };
 
-// Parses a comma separated list of gRPC channel arguments into list of pairs.
+// Parses a comma separated list of gRPC channel arguments into list of
+// ChannelArgument.
 std::vector<ChannelArgument> parseChannelArgs(
     const string& channel_arguments_str) {
   const std::vector<string> channel_arguments =
