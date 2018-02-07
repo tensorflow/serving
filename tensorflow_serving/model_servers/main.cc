@@ -59,6 +59,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/strings/str_util.h"
+#include "tensorflow/core/lib/strings/numbers.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/platform/protobuf.h"
@@ -264,8 +265,22 @@ class PredictionServiceImpl final : public PredictionService::Service {
   bool use_saved_model_;
 };
 
+// Parses a comma separated list of gRPC channel arguments into list of pairs.
+std::vector<std::pair<string, string>> parseChannelArgs(
+    const string& channel_arguments_str) {
+  const std::vector<string> channel_arguments =
+        tensorflow::str_util::Split(channel_arguments_str, ",");
+  std::vector<std::pair<string, string>> result;
+  for (const string& channel_argument : channel_arguments) {
+    const std::vector<string> key_val =
+        tensorflow::str_util::Split(channel_argument, "=");
+    result.push_back(std::make_pair(key_val[0], key_val[1]));
+  }
+  return result;
+}
+
 void RunServer(int port, std::unique_ptr<ServerCore> core,
-               bool use_saved_model, string channel_arguments_str) {
+               bool use_saved_model, const string& channel_arguments_str) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
   tensorflow::serving::ModelServiceImpl model_service(core.get());
@@ -276,15 +291,19 @@ void RunServer(int port, std::unique_ptr<ServerCore> core,
   builder.RegisterService(&model_service);
   builder.RegisterService(&prediction_service);
   builder.SetMaxMessageSize(tensorflow::kint32max);
-  const std::vector<string> channel_arguments =
-      tensorflow::str_util::Split(channel_arguments_str, ",");
-  for (const string& channel_argument : channel_arguments) {
-    const std::vector<string> key_val =
-        tensorflow::str_util::Split(channel_argument, "=");
-    try { // Attempt to add as int, otherwise assume string.
-      builder.AddChannelArgument(key_val[0], std::stoi(key_val[1]));
-    } catch (const std::invalid_argument& e) {
-      builder.AddChannelArgument(key_val[0], key_val[1]);
+  const std::vector<std::pair<string, string>> channel_arguments =
+      parseChannelArgs(channel_arguments_str);
+  for (std::pair<string, string> channel_argument : channel_arguments) {
+    // gRPC accept arguments of two types, int and string. We will attempt to
+    // parse each arg as int and pass it on as such if successful. Otherwise we
+    // will pass it as a string. gRPC will log arguments that were not accepted.
+    int second_as_int;
+    if(tensorflow::strings::safe_strto32(
+        channel_argument.second, &second_as_int)) {
+      builder.AddChannelArgument(channel_argument.first, second_as_int);
+    } else {
+      builder.AddChannelArgument(
+          channel_argument.first, channel_argument.second);
     }
   }
   std::unique_ptr<Server> server(builder.BuildAndStart());

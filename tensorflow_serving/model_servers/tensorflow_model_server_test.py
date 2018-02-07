@@ -122,8 +122,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
                 model_name,
                 model_path,
                 batching_parameters_file='',
-                wait_for_server_ready=True,
-                grpc_channel_arguments=''):
+                grpc_channel_arguments='',
+                wait_for_server_ready=True):
     """Run tensorflow_model_server using test config."""
     print 'Starting test server...'
     command = os.path.join(self.binary_dir, 'tensorflow_model_server')
