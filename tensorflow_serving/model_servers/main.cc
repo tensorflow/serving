@@ -265,18 +265,19 @@ class PredictionServiceImpl final : public PredictionService::Service {
   bool use_saved_model_;
 };
 
-struct ChannelArgument {
+// gRPC Channel Arguments to be passed from command line to gRPC ServerBuilder.
+struct GrpcChannelArgument {
   string key;
   string value;
 };
 
 // Parses a comma separated list of gRPC channel arguments into list of
 // ChannelArgument.
-std::vector<ChannelArgument> parseChannelArgs(
+std::vector<GrpcChannelArgument> parseGrpcChannelArgs(
     const string& channel_arguments_str) {
   const std::vector<string> channel_arguments =
         tensorflow::str_util::Split(channel_arguments_str, ",");
-  std::vector<ChannelArgument> result;
+  std::vector<GrpcChannelArgument> result;
   for (const string& channel_argument : channel_arguments) {
     const std::vector<string> key_val =
         tensorflow::str_util::Split(channel_argument, "=");
@@ -286,7 +287,7 @@ std::vector<ChannelArgument> parseChannelArgs(
 }
 
 void RunServer(int port, std::unique_ptr<ServerCore> core,
-               bool use_saved_model, const string& channel_arguments_str) {
+               bool use_saved_model, const string& grpc_channel_arguments) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
   tensorflow::serving::ModelServiceImpl model_service(core.get());
@@ -297,9 +298,9 @@ void RunServer(int port, std::unique_ptr<ServerCore> core,
   builder.RegisterService(&model_service);
   builder.RegisterService(&prediction_service);
   builder.SetMaxMessageSize(tensorflow::kint32max);
-  const std::vector<ChannelArgument> channel_arguments =
-      parseChannelArgs(channel_arguments_str);
-  for (ChannelArgument channel_argument : channel_arguments) {
+  const std::vector<GrpcChannelArgument> channel_arguments =
+      parseGrpcChannelArgs(grpc_channel_arguments);
+  for (GrpcChannelArgument channel_argument : channel_arguments) {
     // gRPC accept arguments of two types, int and string. We will attempt to
     // parse each arg as int and pass it on as such if successful. Otherwise we
     // will pass it as a string. gRPC will log arguments that were not accepted.
