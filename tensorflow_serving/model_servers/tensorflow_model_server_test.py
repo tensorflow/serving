@@ -122,6 +122,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
                 model_name,
                 model_path,
                 batching_parameters_file='',
+                grpc_channel_arguments='',
                 wait_for_server_ready=True):
     """Run tensorflow_model_server using test config."""
     print 'Starting test server...'
@@ -132,6 +133,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     if batching_parameters_file:
       command += ' --enable_batching'
       command += ' --batching_parameters_file=' + batching_parameters_file
+    if grpc_channel_arguments:
+      command += ' --grpc_channel_arguments=' + grpc_channel_arguments
     print command
     self.server_proc = subprocess.Popen(shlex.split(command))
     print 'Server started'
@@ -481,6 +484,19 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.assertNotEqual(self.server_proc.stderr, None)
     self.assertGreater(self.server_proc.stderr.read().find(error_message), -1)
 
+  def testGoodGrpcChannelArgs(self):
+    """Test server starts with grpc_channel_arguments specified."""
+    atexit.register(self.TerminateProcs)
+    model_server_address = self.RunServer(
+      PickUnusedPort(),
+      'default',
+      self._GetSavedModelBundlePath(),
+      grpc_channel_arguments=
+      'grpc.max_connection_age_ms=2000,grpc.lb_policy_name=grpclb'
+    )
+    self.VerifyPredictRequest(model_server_address, expected_output=3.0,
+        specify_output=False, expected_version=self._GetModelVersion(
+            self._GetSavedModelHalfPlusThreePath()))
 
 if __name__ == '__main__':
   tf.test.main()
