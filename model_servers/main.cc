@@ -114,9 +114,9 @@ using grpc::ServerAsyncResponseWriter;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::ServerCompletionQueue;
-using tensorflow::serving::SyntaxNetRequest;
-using tensorflow::serving::SyntaxNetResponse;
-using tensorflow::serving::SyntaxNetService;
+using syntaxnet::SyntaxNetRequest;
+using syntaxnet::SyntaxNetResponse;
+using syntaxnet::SyntaxNetService;
 
 namespace {
 
@@ -268,7 +268,7 @@ class SyntaxNetServiceImpl final : public SyntaxNetService::Service {
         parser_(new SyntaxNetParser()) {}
 
   grpc::Status Parse(ServerContext *context, const SyntaxNetRequest *request,
-                     ::tensorflow::serving::SyntaxNetResponse *response) override {
+                     SyntaxNetResponse *response) override {
     tensorflow::RunOptions run_options = tensorflow::RunOptions();
 //    run_options.set_trace_level(tensorflow::RunOptions::SOFTWARE_TRACE);
     // By default, this is infinite which is the same default as RunOptions.

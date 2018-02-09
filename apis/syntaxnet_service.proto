@@ -1,12 +1,15 @@
 syntax = "proto3";
 
-package tensorflow.serving;
+package syntaxnet;
+
+option java_package = "com.clarabridge.fx.module.syntaxnet.proto";
+option java_outer_classname = "SyntaxNetServiceProtos";
 
 import "syntaxnet/sentence.proto";
 import "tensorflow_serving/apis/model.proto";
 
 message SyntaxNetRequest {
-    ModelSpec model_spec = 1;
+    tensorflow.serving.ModelSpec model_spec = 1;
     repeated syntaxnet.Sentence inputs = 2;
 };
 
@@ -15,5 +18,5 @@ message SyntaxNetResponse {
 };
 
 service SyntaxNetService {
-    rpc Parse(SyntaxNetRequest) returns (SyntaxNetResponse);
+    rpc Parse (SyntaxNetRequest) returns (SyntaxNetResponse);
 }
