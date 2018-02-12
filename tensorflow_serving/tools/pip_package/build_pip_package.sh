@@ -39,7 +39,10 @@ function main() {
   cp bazel-genfiles/tensorflow_serving/apis/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/apis"
 
-  cp bazel-serving/tensorflow_serving/apis/prediction_service_pb2.py \
+  cp bazel-serving/tensorflow_serving/apis/*_pb2.py \
+    "${TMPDIR}/tensorflow_serving/apis"
+
+  cp bazel-serving/tensorflow_serving/apis/*_grpc.py \
     "${TMPDIR}/tensorflow_serving/apis"
 
   touch "${TMPDIR}/tensorflow_serving/apis/__init__.py"
