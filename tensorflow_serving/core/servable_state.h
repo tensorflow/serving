@@ -62,6 +62,22 @@ struct ServableState {
     // some point in its lifecycle.
     kEnd,
   };
+
+  static string ManagerStateString(ManagerState state) {
+    switch (state) {
+      case ManagerState::kStart:
+        return "Start";
+      case ManagerState::kLoading:
+        return "Loading";
+      case ManagerState::kAvailable:
+        return "Available";
+      case ManagerState::kUnloading:
+        return "Unloading";
+      case ManagerState::kEnd:
+        return "End";
+    }
+  }
+
   ManagerState manager_state;
 
   // Whether anything has gone wrong with this servable. If not OK, the error
@@ -73,8 +89,8 @@ struct ServableState {
   // Returns a string representation of this object. Useful in logging.
   string DebugString() const {
     return strings::StrCat("id: ", id.DebugString(), " manager_state: ",
-                           static_cast<int>(manager_state), " health: ",
-                           health.ToString());
+                           ManagerStateString(manager_state),
+                           " health: ", health.ToString());
   }
 };
 
