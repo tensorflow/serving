@@ -30,6 +30,7 @@ limitations under the License.
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
+#include "tensorflow_serving/servables/selector/model_selector.h"
 
 namespace tensorflow {
 namespace serving {
@@ -242,19 +243,32 @@ Status SavedModelPredict(const RunOptions& run_options, ServerCore* core,
                          const PredictRequest& request,
                          PredictResponse* response) {
   // Validate signatures.
+  std::unique_ptr<UntypedServableHandle> untyped_handle;
+  TF_RETURN_IF_ERROR(core->GetUntypedServableHandle(request.model_spec(), &untyped_handle));
   ServableHandle<SavedModelBundle> bundle;
-  TF_RETURN_IF_ERROR(core->GetServableHandle(request.model_spec(), &bundle));
+  string signature_name;
+  if (untyped_handle.get()->servable().isType<ModelSelector>()) {
+    ServableHandle<ModelSelector> handle{std::move(untyped_handle)};
+    ModelSpec model_spec;
+    TF_RETURN_IF_ERROR(handle->GetModelSpec(request.model_spec().signature_name(), &model_spec));
+    TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &bundle));
+    signature_name = model_spec.signature_name().empty() ?
+                     request.model_spec().signature_name() : model_spec.signature_name();
+  } else {
+    bundle = ServableHandle<SavedModelBundle>(std::move(untyped_handle));
+    signature_name = request.model_spec().signature_name();
+  }
 
-  const string signature_name = request.model_spec().signature_name().empty()
-                                    ? kDefaultServingSignatureDefKey
-                                    : request.model_spec().signature_name();
+  if (signature_name.empty()) {
+    signature_name = kDefaultServingSignatureDefKey;
+  }
   auto iter = bundle->meta_graph_def.signature_def().find(signature_name);
   if (iter == bundle->meta_graph_def.signature_def().end()) {
     return errors::FailedPrecondition(strings::StrCat(
         "Serving signature key \"", signature_name, "\" not found."));
   }
-  SignatureDef signature = iter->second;
 
+  SignatureDef signature = iter->second;
   MakeModelSpec(request.model_spec().name(), signature_name,
                 bundle.id().version, response->mutable_model_spec());
 

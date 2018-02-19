@@ -81,6 +81,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
+#include "tensorflow_serving/util/proto_util.h"
 
 namespace grpc {
 class ServerCompletionQueue;
@@ -122,23 +123,6 @@ using tensorflow::serving::PredictionService;
 
 namespace {
 
-tensorflow::Status ParseProtoTextFile(const string& file,
-                                      google::protobuf::Message* message) {
-  std::unique_ptr<tensorflow::ReadOnlyMemoryRegion> file_data;
-  TF_RETURN_IF_ERROR(
-      tensorflow::Env::Default()->NewReadOnlyMemoryRegionFromFile(file,
-                                                                  &file_data));
-  string file_data_str(static_cast<const char*>(file_data->data()),
-                       file_data->length());
-  if (tensorflow::protobuf::TextFormat::ParseFromString(file_data_str,
-                                                        message)) {
-    return tensorflow::Status::OK();
-  } else {
-    return tensorflow::errors::InvalidArgument("Invalid protobuf file: '", file,
-                                               "'");
-  }
-}
-
 tensorflow::Status LoadCustomModelConfig(
     const ::google::protobuf::Any& any,
     EventBus<ServableState>* servable_event_bus,
@@ -160,13 +144,6 @@ ModelServerConfig BuildSingleModelConfig(const string& model_name,
   single_model->set_model_platform(
       tensorflow::serving::kTensorFlowModelPlatform);
   return config;
-}
-
-template <typename ProtoType>
-ProtoType ReadProtoFromFile(const string& file) {
-  ProtoType proto;
-  TF_CHECK_OK(ParseProtoTextFile(file, &proto));
-  return proto;
 }
 
 int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
@@ -422,7 +399,7 @@ int main(int argc, char** argv) {
         BuildSingleModelConfig(model_name, model_base_path);
   } else {
     options.model_server_config =
-        ReadProtoFromFile<ModelServerConfig>(model_config_file);
+        tensorflow::serving::ReadProtoFromFile<ModelServerConfig>(model_config_file);
   }
 
   if (platform_config_file.empty()) {
@@ -436,7 +413,7 @@ int main(int argc, char** argv) {
             "model_server_batch_threads");
       } else {
         *batching_parameters =
-            ReadProtoFromFile<BatchingParameters>(batching_parameters_file);
+            tensorflow::serving::ReadProtoFromFile<BatchingParameters>(batching_parameters_file);
       }
     } else if (!batching_parameters_file.empty()) {
       LOG(FATAL)  // Crash ok
@@ -456,7 +433,7 @@ int main(int argc, char** argv) {
     for (const string& tag : tags) {
       *session_bundle_config.add_saved_model_tags() = tag;
     }
-    options.platform_config_map = CreateTensorFlowPlatformConfigMap(
+    options.platform_config_map = CreateDefaultPlatformConfigMap(
         session_bundle_config, use_saved_model);
   } else {
     options.platform_config_map = ParsePlatformConfigMap(platform_config_file);

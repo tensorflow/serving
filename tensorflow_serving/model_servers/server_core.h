@@ -206,6 +206,19 @@ class ServerCore : public Manager {
     return Status::OK();
   }
 
+
+  Status GetUntypedServableHandle(const ModelSpec& model_spec,
+                                  std::unique_ptr<UntypedServableHandle>* untyped_handle) {
+    ServableRequest servable_request;
+    tensorflow::Status status =
+            ServableRequestFromModelSpec(model_spec, &servable_request);
+    if (!status.ok()) {
+      VLOG(1) << "Unable to get servable handle due to: " << status;
+      return status;
+    }
+    return GetUntypedServableHandle(servable_request, untyped_handle);
+  }
+
   /// Writes the log for the particular request, response and metadata, if we
   /// decide to sample it and if request-logging was configured for the
   /// particular model.

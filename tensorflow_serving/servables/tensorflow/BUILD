@@ -422,6 +422,7 @@ cc_library(
         "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/servables/selector:model_selector",
         "//tensorflow_serving/servables/tensorflow:util",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",

@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option cc_enable_arenas = true;
+
+import "google/protobuf/wrappers.proto";
+import "tensorflow_serving/apis/model.proto";
+
+package tensorflow.serving;
+
+message Candidate {
+    string name = 1;
+    google.protobuf.Int64Value version = 2;
+    float weight = 3;
+}
+
+message SignatureGroup {
+    map<string, string> signatures = 1;
+}
+
+message ModelSelectorConfig {
+    repeated Candidate candidates = 1;
+    map<string, SignatureGroup> signatureGroups = 2;
+}
