@@ -18,3 +18,5 @@ build --define=grpc_no_ares=true
 
 # TODO(b/69809703): Remove once no longer required for TensorFlow to build.
 build --copt=-DGEMMLOWP_ALLOW_SLOW_SCALAR_FALLBACK
+
+build:mkl --define=using_mkl=true
