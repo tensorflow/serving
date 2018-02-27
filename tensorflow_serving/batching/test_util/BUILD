@@ -41,3 +41,11 @@ cc_test(
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
+
+# script that generates saved_model for matrix_half_plus_two model.
+py_binary(
+    name = "matrix_half_plus_two_saved_model",
+    srcs = ["matrix_half_plus_two_saved_model.py"],
+    srcs_version = "PY2AND3",
+    deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
+)
