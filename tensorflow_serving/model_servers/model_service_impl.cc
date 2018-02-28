@@ -54,7 +54,7 @@ namespace tensorflow {
           break;
         }
         default:
-          status = errors::InvalidArgument("Invalid ServerModelConfig. Expecting ModelConfigList");
+          status = errors::InvalidArgument("ServerModelConfig type not supported by HandleReloadConfigRequest. Only ModelConfigList is currently supported");
       }
 
       if (!status.ok()) {
