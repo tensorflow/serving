@@ -7,8 +7,8 @@ import "tensorflow_serving/apis/model_management.proto";
 
 package tensorflow.serving;
 
-// ModelService provides access to information about model versions
-// that have been handled by the model server.
+// ModelService provides methods to query and update the state of the server, e.g.
+// which models/versions are being served.
 service ModelService {
   // Gets status of model. If the ModelSpec in the request does not specify
   // version, information about all versions of the model will be returned. If
@@ -16,7 +16,7 @@ service ModelService {
   // that version will be returned.
   rpc GetModelStatus(GetModelStatusRequest) returns (GetModelStatusResponse);
 
-  // Reloads model definition config. If existing model will not be added to
-  // request - it would be unloaded from server
+  // Reloads the set of served models. The new config supersedes the old one, so if a
+  // model is omitted from the new config it will be unloaded and no longer served.
   rpc HandleReloadConfigRequest(ReloadConfigRequest) returns (ReloadConfigResponse);
 }
