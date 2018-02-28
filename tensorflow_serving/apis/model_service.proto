@@ -3,6 +3,7 @@ syntax = "proto3";
 option cc_enable_arenas = true;
 
 import "tensorflow_serving/apis/get_model_status.proto";
+import "tensorflow_serving/apis/model_management.proto";
 
 package tensorflow.serving;
 
@@ -14,4 +15,8 @@ service ModelService {
   // the ModelSpec in the request does specify a version, the status of only
   // that version will be returned.
   rpc GetModelStatus(GetModelStatusRequest) returns (GetModelStatusResponse);
+
+  // Reloads model definition config. If existing model will not be added to
+  // request - it would be unloaded from server
+  rpc HandleReloadConfigRequest(ReloadConfigRequest) returns (ReloadConfigResponse);
 }
