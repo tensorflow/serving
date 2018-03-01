@@ -209,3 +209,18 @@ CI_TENSORFLOW_SUBMODULE_PATH=tensorflow tensorflow/tensorflow/tools/ci_build/ci_
 Note: The `serving` directory is mapped into the container. You can develop
 outside the docker container (in your favourite editor) and when you run this
 build it will build with your changes.
+
+### Build with secure gRPC (SSL support)
+
+TensorFlow Serving builds are linked to a version of gRPC with SSL support
+disabled. This means that any use of [the secure sever credentials](https://github.com/grpc/grpc/blob/master/include/grpcpp/security/server_credentials.h)
+will silently fail - the server will listen on the port indicated, but will only
+accept unencrypted connections.
+
+To enable SSL support, remove the `_unsecure` prefix from the `grpc_lib` bind in
+`workspace.bzl` and in the model server dependencies before building:
+
+```shell
+sed -i '' 's/c\+\+_unsecure/c++/g' tensorflow_serving/workspace.bzl \
+    tensorflow_serving/model_servers/BUILD
+```

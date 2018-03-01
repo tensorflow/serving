@@ -36,3 +36,12 @@ def tf_serving_workspace():
       name = "cares",
       actual = "@grpc//third_party/nanopb:nanopb",
   )
+
+  # gRPC requires a bind() for linking; see
+  # https://github.com/grpc/grpc/issues/13590 for a discussion.  This can be
+  # re-bound to target `grcp++` if you wish to build TensorFlow Serving with SSL
+  # support enabled.
+  native.bind(
+      name = "grpc_lib",
+      actual = "@grpc//:grpc++_unsecure",
+  )
