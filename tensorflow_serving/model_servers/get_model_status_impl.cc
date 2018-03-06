@@ -111,7 +111,7 @@ Status GetModelStatusImpl::ListModels(ServerCore* core,
 
   const ServableStateMonitor& monitor = *core->servable_state_monitor();
   for(const auto&  servable: monitor.GetAllServableStates()) {
-	  AddModelNameToResponse(response, servable.first)
+	  AddModelNameToResponse(response, servable.first);
   }
   return tensorflow::Status::OK();
 }
