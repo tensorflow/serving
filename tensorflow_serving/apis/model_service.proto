@@ -19,4 +19,6 @@ service ModelService {
   // Reloads the set of served models. The new config supersedes the old one, so if a
   // model is omitted from the new config it will be unloaded and no longer served.
   rpc HandleReloadConfigRequest(ReloadConfigRequest) returns (ReloadConfigResponse);
+
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
 }

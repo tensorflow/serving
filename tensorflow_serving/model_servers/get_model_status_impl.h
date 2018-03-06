@@ -32,6 +32,10 @@ class GetModelStatusImpl {
   static Status GetModelStatus(ServerCore* core,
                                const GetModelStatusRequest& request,
                                GetModelStatusResponse* response);
+
+  static Status ListModels(ServerCore* core,
+                               const ListModelsRequest& request,
+                               ListModelsResponse* response);
 };
 
 }  // namespace serving
