@@ -278,6 +278,17 @@ cc_test(
 )
 
 cc_library(
+    name = "servable_metrics",
+    hdrs = ["servable_metrics.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
     name = "servable_state",
     hdrs = ["servable_state.h"],
     visibility = [
@@ -376,6 +387,19 @@ cc_test(
         "//tensorflow_serving/core/test_util:fake_storage_path_source_adapter",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:event_bus",
+    ],
+)
+
+cc_library(
+    name = "servable_metrics_monitor",
+    srcs = ["servable_metrics_monitor.cc"],
+    hdrs = ["servable_metrics_monitor.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":servable_metrics",
+        ":servable_state_monitor",
     ],
 )
 

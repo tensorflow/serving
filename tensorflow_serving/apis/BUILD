@@ -202,6 +202,26 @@ serving_go_grpc_library(
 )
 
 serving_proto_library(
+    name = "get_model_metrics_proto",
+    srcs = ["get_model_metrics.proto"],
+    cc_api_version = 2,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":model_proto"
+    ],
+)
+
+serving_proto_library_py(
+    name = "get_model_metrics_proto_py_pb2",
+    srcs = ["get_model_metrics.proto"],
+    proto_library = "get_model_metadata_proto",
+    deps = [
+        ":model_proto_py_pb2",
+    ]
+)
+
+serving_proto_library(
     name = "model_management_proto",
     srcs = ["model_management.proto"],
     cc_api_version = 2,
@@ -251,6 +271,7 @@ serving_proto_library(
     cc_grpc_version = 1,
     java_api_version = 2,
     deps = [
+        ":get_model_metrics_proto",
         ":get_model_status_proto",
         ":model_management_proto",
     ],
@@ -265,6 +286,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":get_model_status_proto_py_pb2",
+        ":get_model_metrics_proto_py_pb2",
         ":model_management_proto_py_pb2",
     ],
 )

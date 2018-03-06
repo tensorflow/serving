@@ -30,6 +30,10 @@ class ModelServiceImpl final : public ModelService::Service {
  public:
   explicit ModelServiceImpl(ServerCore *core) : core_(core) {}
 
+  ::grpc::Status GetModelMetrics(::grpc::ServerContext* context,
+                                  const GetModelMetricsRequest* request,
+                                  GetModelMetricsResponse* response) override;
+
   ::grpc::Status GetModelStatus(::grpc::ServerContext *context,
                                 const GetModelStatusRequest *request,
                                 GetModelStatusResponse *response) override;

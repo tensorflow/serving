@@ -66,6 +66,7 @@ cc_library(
         "//tensorflow_serving/core:aspired_versions_manager",
         "//tensorflow_serving/core:dynamic_source_router",
         "//tensorflow_serving/core:load_servables_fast",
+        "//tensorflow_serving/core:servable_metrics_monitor",
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/core:server_request_logger",
         "//tensorflow_serving/core:source",
@@ -80,6 +81,7 @@ cc_library(
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:optional",
         "//tensorflow_serving/util:unique_ptr_with_deps",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
         "@protobuf_archive//:cc_wkt_protos",
     ],
@@ -109,6 +111,20 @@ cc_test(
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
         "@protobuf_archive//:cc_wkt_protos",
+    ],
+)
+
+cc_library(
+    name = "get_model_metrics_impl",
+    srcs = ["get_model_metrics_impl.cc"],
+    hdrs = ["get_model_metrics_impl.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "server_core",
+        "//tensorflow_serving/apis:get_model_metrics_proto",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
@@ -151,7 +167,6 @@ cc_test(
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
-        "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
@@ -191,6 +206,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":get_model_metrics_impl",
         ":get_model_status_impl",
         ":grpc_status_util",
         ":server_core",

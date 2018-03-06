@@ -188,10 +188,22 @@ class PredictionServiceImpl final : public PredictionService::Service {
     // By default, this is infinite which is the same default as RunOptions.
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
+
+    tensorflow::serving::ServableMetricsRequest servable_request = { 1, 0 };
     const grpc::Status status = tensorflow::serving::ToGRPCStatus(
         predictor_->Predict(run_options, core_, *request, response));
     if (!status.ok()) {
+      servable_request.error_value = 1;
       VLOG(1) << "Predict failed: " << status.error_message();
+    }
+
+    const tensorflow::Status tf_status =
+        core_->PublishMetricsEvent(
+            request->model_spec(),
+            tensorflow::serving::ServableMetricsMonitor::MethodType::kPredict,
+            servable_request);
+    if (!tf_status.ok()) {
+      LOG(INFO) << "Publish metrics in Predict failed: " << tf_status;
     }
     return status;
   }
@@ -220,11 +232,23 @@ class PredictionServiceImpl final : public PredictionService::Service {
     // By default, this is infinite which is the same default as RunOptions.
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
+
+    tensorflow::serving::ServableMetricsRequest servable_request = { 1, 0 };
     const grpc::Status status = tensorflow::serving::ToGRPCStatus(
         TensorflowClassificationServiceImpl::Classify(run_options, core_,
                                                       *request, response));
     if (!status.ok()) {
+      servable_request.error_value = 1;
       VLOG(1) << "Classify request failed: " << status.error_message();
+    }
+
+    const tensorflow::Status tf_status =
+            core_->PublishMetricsEvent(
+                    request->model_spec(),
+                    tensorflow::serving::ServableMetricsMonitor::MethodType::kClassify,
+                    servable_request);
+    if (!tf_status.ok()) {
+      LOG(INFO) << "Publish metrics in Classify failed: " << tf_status;
     }
     return status;
   }
@@ -235,11 +259,23 @@ class PredictionServiceImpl final : public PredictionService::Service {
     // By default, this is infinite which is the same default as RunOptions.
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
+
+    tensorflow::serving::ServableMetricsRequest servable_request = { 1, 0 };
     const grpc::Status status = tensorflow::serving::ToGRPCStatus(
         TensorflowRegressionServiceImpl::Regress(run_options, core_, *request,
                                                  response));
     if (!status.ok()) {
+      servable_request.error_value = 1;
       VLOG(1) << "Regress request failed: " << status.error_message();
+    }
+
+    const tensorflow::Status tf_status =
+            core_->PublishMetricsEvent(
+                    request->model_spec(),
+                    tensorflow::serving::ServableMetricsMonitor::MethodType::kRegress,
+                    servable_request);
+    if (!tf_status.ok()) {
+      LOG(INFO) << "Publish metrics in Regress failed: " << tf_status;
     }
     return status;
   }

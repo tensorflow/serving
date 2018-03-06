@@ -23,6 +23,7 @@ limitations under the License.
 #include <utility>
 
 #include "google/protobuf/any.pb.h"
+#include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow/core/platform/macros.h"
@@ -34,6 +35,7 @@ limitations under the License.
 #include "tensorflow_serving/config/platform_config.pb.h"
 #include "tensorflow_serving/core/aspired_versions_manager.h"
 #include "tensorflow_serving/core/dynamic_source_router.h"
+#include "tensorflow_serving/core/servable_metrics_monitor.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/server_request_logger.h"
 #include "tensorflow_serving/core/source.h"
@@ -70,6 +72,9 @@ class ServerCore : public Manager {
   using ServableStateMonitorCreator =
       std::function<Status(EventBus<ServableState>* event_bus,
                            std::unique_ptr<ServableStateMonitor>* monitor)>;
+
+  using ServableMetricsMonitorCreator =
+      std::function<Status(std::unique_ptr<ServableMetricsMonitor>* monitor)>;
 
   /// A function that's responsible for instantiating and connecting the
   /// necessary custom sources and source adapters to the manager based on a
@@ -136,6 +141,8 @@ class ServerCore : public Manager {
     // creator that creates ServableStateMonitor will be used.
     ServableStateMonitorCreator servable_state_monitor_creator;
 
+    ServableMetricsMonitorCreator servable_metrics_monitor_creator;
+
     // A function for instantiating and connecting custom sources and source
     // adapters to the manager.
     CustomModelConfigLoader custom_model_config_loader;
@@ -182,6 +189,11 @@ class ServerCore : public Manager {
     return servable_state_monitor_.get();
   }
 
+  /// Returns ServableMetricsMonitor that can be used to manage servable metrics.
+  virtual ServableMetricsMonitor* servable_metrics_monitor() const {
+    return servable_metrics_monitor_.get();
+  }
+
   /// Returns a ServableHandle given a ServableRequest. Returns error if no such
   /// Servable is available -- e.g. not yet loaded, has been quiesced/unloaded,
   /// etc. Callers may assume that an OK status indicates a non-null handle.
@@ -213,6 +225,29 @@ class ServerCore : public Manager {
   Status Log(const google::protobuf::Message& request, const google::protobuf::Message& response,
              const LogMetadata& log_metadata) {
     return options_.server_request_logger->Log(request, response, log_metadata);
+  }
+
+  /// Publishes the event of ServableState to measure metrics.
+  Status PublishMetricsEvent(const ModelSpec& model_spec,
+                             const ServableMetricsMonitor::MethodType& method_type,
+                             const ServableMetricsRequest& request) {
+    int64 model_version;
+    TF_RETURN_IF_ERROR(ServerCore::GetModelVersion(model_spec, model_version));
+
+    ServableId servable_id = {model_spec.name(), model_version};
+    ServableState servable_state = {servable_id, ServableState::ManagerState::kEnd, Status::OK() };
+
+    ServableStateMonitor::ServableStateNotifierFn notifier_fn =
+        servable_metrics_monitor_->CreateNotifier(servable_id, method_type, request);
+
+    std::vector<ServableRequest> servables;
+    servables.push_back(ServableRequest::FromId(servable_id));
+
+    servable_state_monitor_->NotifyWhenServablesReachState(servables,
+                                                           ServableState::ManagerState::kEnd,
+                                                           notifier_fn);
+    servable_event_bus_->Publish(servable_state);
+    return Status::OK();
   }
 
  protected:
@@ -336,6 +371,8 @@ class ServerCore : public Manager {
     return manager_->GetAvailableUntypedServableHandles();
   }
 
+  Status GetModelVersion(const ModelSpec& model_spec, int64& model_version);
+
   // The options passed to the ctor, minus the AspiredVersionPolicy.
   Options options_;
 
@@ -347,6 +384,8 @@ class ServerCore : public Manager {
   std::shared_ptr<EventBus<ServableState>> servable_event_bus_;
   std::shared_ptr<ServableStateMonitor> servable_state_monitor_;
   UniquePtrWithDeps<AspiredVersionsManager> manager_;
+
+  std::shared_ptr<ServableMetricsMonitor> servable_metrics_monitor_;
 
   // The most recent config supplied to ReloadConfig().
   ModelServerConfig config_ GUARDED_BY(config_mu_);
