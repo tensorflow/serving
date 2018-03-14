@@ -177,7 +177,8 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
     batching_session_options.allowed_batch_sizes.push_back(allowed_batch_size);
   }
 
-  batching_session_options.pad_variable_length_inputs = batching_config.pad_variable_length_inputs();
+  batching_session_options.pad_variable_length_inputs =
+      batching_config.pad_variable_length_inputs();
 
   auto create_queue = [batch_scheduler, queue_options](
       std::function<void(std::unique_ptr<Batch<BatchingSessionTask>>)>

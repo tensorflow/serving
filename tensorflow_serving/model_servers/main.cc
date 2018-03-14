@@ -58,6 +58,7 @@ limitations under the License.
 #include "grpc/grpc.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/lib/strings/numbers.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/lib/strings/numbers.h"
 #include "tensorflow/core/platform/env.h"
@@ -276,7 +277,7 @@ struct GrpcChannelArgument {
 std::vector<GrpcChannelArgument> parseGrpcChannelArgs(
     const string& channel_arguments_str) {
   const std::vector<string> channel_arguments =
-        tensorflow::str_util::Split(channel_arguments_str, ",");
+      tensorflow::str_util::Split(channel_arguments_str, ",");
   std::vector<GrpcChannelArgument> result;
   for (const string& channel_argument : channel_arguments) {
     const std::vector<string> key_val =
@@ -286,8 +287,8 @@ std::vector<GrpcChannelArgument> parseGrpcChannelArgs(
   return result;
 }
 
-void RunServer(int port, std::unique_ptr<ServerCore> core,
-               bool use_saved_model, const string& grpc_channel_arguments) {
+void RunServer(int port, std::unique_ptr<ServerCore> core, bool use_saved_model,
+               const string& grpc_channel_arguments) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
   tensorflow::serving::ModelServiceImpl model_service(core.get());
@@ -305,7 +306,7 @@ void RunServer(int port, std::unique_ptr<ServerCore> core,
     // parse each arg as int and pass it on as such if successful. Otherwise we
     // will pass it as a string. gRPC will log arguments that were not accepted.
     int value;
-    if(tensorflow::strings::safe_strto32(channel_argument.key, &value)) {
+    if (tensorflow::strings::safe_strto32(channel_argument.key, &value)) {
       builder.AddChannelArgument(channel_argument.key, value);
     } else {
       builder.AddChannelArgument(channel_argument.key, channel_argument.value);
@@ -395,8 +396,7 @@ int main(int argc, char** argv) {
       tensorflow::Flag("saved_model_tags", &saved_model_tags,
                        "Comma-separated set of tags corresponding to the meta "
                        "graph def to load from SavedModel."),
-      tensorflow::Flag(
-                       "grpc_channel_arguments", &grpc_channel_arguments,
+      tensorflow::Flag("grpc_channel_arguments", &grpc_channel_arguments,
                        "A comma separated list of arguments to be passed to "
                        "the grpc server. (e.g. "
                        "grpc.max_connection_age_ms=2000)")};
