@@ -59,7 +59,6 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/util:cleanup",
         "//tensorflow_serving/util:hash",
-        "//tensorflow_serving/batching:batching_util",
         "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/contrib/batching:basic_batch_scheduler",
         "@org_tensorflow//tensorflow/contrib/batching:batch_scheduler",
@@ -78,7 +77,6 @@ cc_test(
     data = [
         "//tensorflow_serving/batching/testdata:matrix_half_plus_two",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
-        "//tensorflow_serving/batching/testdata:matrix_half_plus_two"
     ],
     deps = [
         ":batching_session",
