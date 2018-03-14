@@ -23,8 +23,6 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/status.h"
 
-
-
 namespace tensorflow {
 namespace serving {
 
@@ -61,8 +59,8 @@ std::map<string, std::vector<int>> CalculateMaxDimSizes(
 //
 // Supported tensor ranks: from 1 to 6.
 
-Status AddPadding(const Tensor& tensor,
-    const std::vector<int>& max_dim_sizes, Tensor* padded_tensor);
+Status AddPadding(const Tensor& tensor, const std::vector<int>& max_dim_sizes,
+                  Tensor* padded_tensor);
 }  // namespace serving
 }  // namespace tensorflow
 #endif  // TENSORFLOW_SERVING_BATCHING_BATCHING_UTIL_H_

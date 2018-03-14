@@ -732,7 +732,6 @@ serving_proto_library(
     name = "logging_proto",
     srcs = ["logging.proto"],
     cc_api_version = 2,
-    go_api_version = 2,
     visibility = [
         "//visibility:public",
     ],

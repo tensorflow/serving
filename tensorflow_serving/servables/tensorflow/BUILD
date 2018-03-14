@@ -375,6 +375,9 @@ cc_library(
     name = "serving_session",
     srcs = ["serving_session.cc"],
     hdrs = ["serving_session.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",

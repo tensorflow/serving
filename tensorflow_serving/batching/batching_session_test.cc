@@ -95,11 +95,11 @@ std::unique_ptr<Session> CreateHalfPlusTwoSession() {
 std::unique_ptr<Session> CreateMatrixHalfPlusTwoSession() {
   tensorflow::SessionOptions session_options;
   tensorflow::RunOptions run_options;
-  const string export_dir = test_util::TestSrcDirPath(
-          "batching/testdata/matrix_half_plus_two/1");
+  const string export_dir =
+      test_util::TestSrcDirPath("batching/testdata/matrix_half_plus_two/1");
   SavedModelBundle bundle;
   TF_CHECK_OK(LoadSavedModel(session_options, run_options, export_dir,
-      {kSavedModelTagServe}, &bundle));
+                             {kSavedModelTagServe}, &bundle));
   return std::move(bundle.session);
 }
 
@@ -119,8 +119,9 @@ void TestSingleRequest(float input_0, float input_1, Session* session) {
 }
 
 void TestRequestToMatrixHalfPlusTwo(const std::vector<float>& x_values,
-      TensorShape x_shape, const std::vector<float>& y_values,
-      TensorShape y_shape, Session* session) {
+                                    TensorShape x_shape,
+                                    const std::vector<float>& y_values,
+                                    TensorShape y_shape, Session* session) {
   Tensor input = test::AsTensor<float>(x_values, x_shape);
   Tensor expected_output = test::AsTensor<float>(y_values, y_shape);
   std::vector<Tensor> output;
@@ -128,7 +129,6 @@ void TestRequestToMatrixHalfPlusTwo(const std::vector<float>& x_values,
   ASSERT_EQ(1, output.size());
   test::ExpectTensorEqual<float>(expected_output, output[0]);
 }
-
 
 // Invoke Run() with the supplied arguments, and expect a particular error.
 void ExpectError(const string& error_message,
@@ -212,24 +212,25 @@ TEST(BatchingSessionTest, BatchingWithPadding) {
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
   batching_session_options.pad_variable_length_inputs = true;
-  TF_ASSERT_OK(CreateBasicBatchingSession(schedule_options,
-        batching_session_options, {{"x"}, {"y"}},
-        CreateMatrixHalfPlusTwoSession(), &batching_session));
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, {{"x"}, {"y"}},
+      CreateMatrixHalfPlusTwoSession(), &batching_session));
   // two requests form a batch and first input gets padded with zeros to match
   // [1, 3, 3] shape that is accepted by the model.
   // if padding doesn't work, test will fail.
   std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
-          ThreadOptions(), "first_request", [&batching_session] {
-              TestRequestToMatrixHalfPlusTwo({1, 2, 3, 4}, {1, 2, 2},
-              {2.5, 3, 2.5, 3.5, 4, 2.5, 2.5, 2.5, 2.5}, {1, 3, 3},
-              batching_session.get());
-          }));
+      ThreadOptions(), "first_request", [&batching_session] {
+        TestRequestToMatrixHalfPlusTwo(
+            {1, 2, 3, 4}, {1, 2, 2}, {2.5, 3, 2.5, 3.5, 4, 2.5, 2.5, 2.5, 2.5},
+            {1, 3, 3}, batching_session.get());
+      }));
   std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
-          ThreadOptions(), "second_request", [&batching_session] {
-              TestRequestToMatrixHalfPlusTwo({5, 6, 7, 8, 9, 10, 11, 12, 13},
-                  {1, 3, 3}, {4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5}, {1, 3, 3},
-                  batching_session.get());
-          }));
+      ThreadOptions(), "second_request", [&batching_session] {
+        TestRequestToMatrixHalfPlusTwo({5, 6, 7, 8, 9, 10, 11, 12, 13},
+                                       {1, 3, 3},
+                                       {4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5},
+                                       {1, 3, 3}, batching_session.get());
+      }));
 }
 
 TEST(BatchingSessionTest, UnequalTensorShapesWithPaddingTurnedOff) {
@@ -240,31 +241,31 @@ TEST(BatchingSessionTest, UnequalTensorShapesWithPaddingTurnedOff) {
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
   batching_session_options.pad_variable_length_inputs = false;
-  TF_ASSERT_OK(CreateBasicBatchingSession(schedule_options,
-               batching_session_options, {{"x"}, {"y"}},
-               CreateMatrixHalfPlusTwoSession(), &batching_session));
-  string expected_error_msg = "Tensors with name 'x' from different tasks"
-              " have different shapes and padding is turned off."
-              "Set pad_variable_length_inputs to true, or ensure that "
-              "all tensors with the same name"
-              "have equal dimensions starting with the first dim.";
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, {{"x"}, {"y"}},
+      CreateMatrixHalfPlusTwoSession(), &batching_session));
+  string expected_error_msg =
+      "Tensors with name 'x' from different tasks"
+      " have different shapes and padding is turned off."
+      "Set pad_variable_length_inputs to true, or ensure that "
+      "all tensors with the same name"
+      "have equal dimensions starting with the first dim.";
   std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
-      ThreadOptions(), "first_request", [&batching_session,
-                                         &expected_error_msg] {
-          ExpectError(expected_error_msg,
-              {{"x", test::AsTensor<float>({1, 2, 3, 4}, {1, 2, 2})}},
-              {"y"}, batching_session.get());
+      ThreadOptions(), "first_request",
+      [&batching_session, &expected_error_msg] {
+        ExpectError(expected_error_msg,
+                    {{"x", test::AsTensor<float>({1, 2, 3, 4}, {1, 2, 2})}},
+                    {"y"}, batching_session.get());
       }));
   std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
-      ThreadOptions(), "first_request", [&batching_session,
-                                         &expected_error_msg] {
-          ExpectError(expected_error_msg,
-              {{"x", test::AsTensor<float>({5, 6, 7, 8, 9, 10, 11, 12, 13},
-                                           {1, 3, 3})}},
-              {"y"}, batching_session.get());
+      ThreadOptions(), "first_request",
+      [&batching_session, &expected_error_msg] {
+        ExpectError(expected_error_msg,
+                    {{"x", test::AsTensor<float>(
+                               {5, 6, 7, 8, 9, 10, 11, 12, 13}, {1, 3, 3})}},
+                    {"y"}, batching_session.get());
       }));
 }
-
 
 TEST(BatchingSessionTest, SingletonBatch) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
