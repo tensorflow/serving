@@ -22,6 +22,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/model_service.pb.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/apis/model_management.pb.h"
+#include "tensorflow_serving/apis/model.pb.h"
 
 namespace tensorflow {
   namespace serving {
@@ -37,6 +38,10 @@ namespace tensorflow {
       ::grpc::Status HandleReloadConfigRequest(::grpc::ServerContext *context,
                                                const ReloadConfigRequest *request,
                                                ReloadConfigResponse *response);
+
+      ::grpc::Status HandleGetConfigRequest(::grpc::ServerContext *context,
+                                            const GetConfigRequest *request,
+                                            GetConfigResponse *response);
 
     private:
       ServerCore *core_;

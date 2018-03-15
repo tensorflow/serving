@@ -66,5 +66,12 @@ namespace tensorflow {
       return ToGRPCStatus(status);
     }
 
+    ::grpc::Status ModelServiceImpl::HandleGetConfigRequest(::grpc::ServerContext *context,
+                                                            const GetConfigRequest *request,
+                                                            GetConfigResponse *response) {
+      ModelServerConfig config = core_->GetConfig();
+      *response->mutable_config() = config;
+      return ToGRPCStatus(Status::OK());
+    }
   }  // namespace serving
 }  // namespace tensorflow

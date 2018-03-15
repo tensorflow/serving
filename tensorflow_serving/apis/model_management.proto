@@ -13,3 +13,10 @@ message ReloadConfigRequest {
 message ReloadConfigResponse {
     StatusProto status = 1;
 }
+
+message GetConfigRequest {
+}
+
+message GetConfigResponse {
+    ModelServerConfig config = 1;
+}
