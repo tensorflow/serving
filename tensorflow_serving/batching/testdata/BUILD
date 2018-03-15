@@ -10,5 +10,6 @@ licenses(["notice"])  # Apache 2.0
 filegroup(
     name = "matrix_half_plus_two",
     srcs = glob(
-        ["matrix_half_plus_two/**/*"]),
+        ["matrix_half_plus_two/**/*"],
+    ),
 )

@@ -7,8 +7,6 @@ build --python2_path=/usr/bin/python
 build --action_env PYTHON_BIN_PATH="/usr/bin/python"
 
 build --define PYTHON_BIN_PATH=/usr/bin/python
-test --define PYTHON_BIN_PATH=/usr/bin/python
-run --define PYTHON_BIN_PATH=/usr/bin/python
 
 build --spawn_strategy=standalone --genrule_strategy=standalone
 test --spawn_strategy=standalone --genrule_strategy=standalone

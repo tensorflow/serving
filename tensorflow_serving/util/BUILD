@@ -334,7 +334,6 @@ serving_proto_library(
     name = "status_proto",
     srcs = ["status.proto"],
     cc_api_version = 2,
-    go_api_version = 2,
     java_api_version = 2,
     visibility = ["//visibility:public"],
     deps = [
