@@ -500,6 +500,5 @@ class TensorflowModelServerTest(tf.test.TestCase):
         expected_version=self._GetModelVersion(
             self._GetSavedModelHalfPlusThreePath()))
 
-
 if __name__ == '__main__':
   tf.test.main()
