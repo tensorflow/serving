@@ -471,6 +471,14 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   return Status::OK();
 }
 
+ModelServerConfig ServerCore::GetConfig() {
+  mutex_lock l(config_mu_);
+  ModelServerConfig config;
+  config = config_.operator=(config_);
+  VLOG(1) << "Sending server config: " << config.SerializeAsString();
+  return config;
+}
+
 Status ServerCore::CreateAdapter(
     const string& model_platform,
     std::unique_ptr<StoragePathSourceAdapter>* adapter) const {
