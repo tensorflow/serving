@@ -51,7 +51,7 @@ root@c97d8e820ced:/serving# bazel build -c opt tensorflow_serving/example/...
 ```
 
 Next we can either install a TensorFlow ModelServer with apt-get using the
-[instructions here](setup.md#installing-using-apt-get), or build a ModelServer
+[instructions here](setup.md#installing_using_apt-get), or build a ModelServer
 binary using:
 
 ```shell
