@@ -488,14 +488,16 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Test server starts with grpc_channel_arguments specified."""
     atexit.register(self.TerminateProcs)
     model_server_address = self.RunServer(
-      PickUnusedPort(),
-      'default',
-      self._GetSavedModelBundlePath(),
-      grpc_channel_arguments=
-      'grpc.max_connection_age_ms=2000,grpc.lb_policy_name=grpclb'
-    )
-    self.VerifyPredictRequest(model_server_address, expected_output=3.0,
-        specify_output=False, expected_version=self._GetModelVersion(
+        PickUnusedPort(),
+        'default',
+        self._GetSavedModelBundlePath(),
+        grpc_channel_arguments=
+        'grpc.max_connection_age_ms=2000,grpc.lb_policy_name=grpclb')
+    self.VerifyPredictRequest(
+        model_server_address,
+        expected_output=3.0,
+        specify_output=False,
+        expected_version=self._GetModelVersion(
             self._GetSavedModelHalfPlusThreePath()))
 
 if __name__ == '__main__':
