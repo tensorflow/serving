@@ -107,8 +107,8 @@ def export():
         #   /my-favorite-path/imagenet_train/model.ckpt-0,
         # extract global_step from it.
         global_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
-        print('Successfully loaded model from %s at step=%s.' % (
-            ckpt.model_checkpoint_path, global_step))
+        print('Successfully loaded model from %s at step=%s.' %
+              (ckpt.model_checkpoint_path, global_step))
       else:
         print('No checkpoint file found at %s' % FLAGS.checkpoint_dir)
         return
