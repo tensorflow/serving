@@ -317,6 +317,16 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "proto_util",
+    srcs = ["proto_util.cc"],
+    hdrs = ["proto_util.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@org_tensorflow//tensorflow/core:lib",
+    ]
+)
+
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 

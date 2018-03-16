@@ -81,6 +81,12 @@ class ServableHandle {
   /// ServableHandle is null by default.
   ServableHandle() = default;
 
+  explicit ServableHandle(std::unique_ptr<UntypedServableHandle> untyped_handle)
+      : untyped_handle_(std::move(untyped_handle)),
+        servable_(untyped_handle_ == nullptr
+                  ? nullptr
+                  : untyped_handle_->servable().get<T>()) {}
+
   const ServableId& id() const { return untyped_handle_->id(); }
 
   // Smart pointer operations.
@@ -98,12 +104,6 @@ class ServableHandle {
 
  private:
   friend class Manager;
-
-  explicit ServableHandle(std::unique_ptr<UntypedServableHandle> untyped_handle)
-      : untyped_handle_(std::move(untyped_handle)),
-        servable_(untyped_handle_ == nullptr
-                      ? nullptr
-                      : untyped_handle_->servable().get<T>()) {}
 
   std::unique_ptr<UntypedServableHandle> untyped_handle_;
   T* servable_ = nullptr;

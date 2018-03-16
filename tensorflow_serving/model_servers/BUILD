@@ -41,6 +41,8 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_proto",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
         "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_proto",
+        "//tensorflow_serving/servables/selector:model_selector_source_adapter_proto",
+        "//tensorflow_serving/servables/selector:model_selector_source_adapter", # For REGISTER_STORAGE_PATH_SOURCE_ADAPTER
     ],
 )
 
@@ -222,6 +224,7 @@ cc_binary(
         "//tensorflow_serving/apis:prediction_service_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
+        "//tensorflow_serving/util:proto_util",
         "@grpc//:grpc++_unsecure",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
 )

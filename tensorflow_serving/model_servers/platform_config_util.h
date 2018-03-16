@@ -26,7 +26,7 @@ namespace serving {
 // kTensorFlowModelPlatform and the value as a SourceAdapter config proto for
 // one of {SessionBundleSourceAdapter, SavedModelBundleSourceAdapter} (based
 // on 'use_saved_model' using 'session_bundle_config'.
-PlatformConfigMap CreateTensorFlowPlatformConfigMap(
+PlatformConfigMap CreateDefaultPlatformConfigMap(
     const SessionBundleConfig& session_bundle_config, bool use_saved_model);
 
 }  // namespace serving

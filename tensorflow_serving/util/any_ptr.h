@@ -89,6 +89,11 @@ class AnyPtr {
     return reinterpret_cast<T*>(ptr_);
   }
 
+  template <typename T>
+  bool isType() const {
+    return type_id_ == FastTypeId<T>();
+  }
+
  private:
   template <typename Type>
   static size_t FastTypeId() {
