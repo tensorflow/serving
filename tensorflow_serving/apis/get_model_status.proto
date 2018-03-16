@@ -16,6 +16,14 @@ message GetModelStatusRequest {
   ModelSpec model_spec = 1;
 }
 
+//request to get all models
+message ListModelsRequest{
+
+}
+//response contains all models
+message ListModelsResponse{
+  repeated string model_names = 1;
+}
 // Version number, state, and status for a single version of a model.
 message ModelVersionStatus {
   // Model version.
