@@ -27,7 +27,6 @@ serving_proto_library(
     name = "get_model_metadata_proto",
     srcs = ["get_model_metadata.proto"],
     cc_api_version = 2,
-    go_api_version = 2,
     java_api_version = 2,
     deps = [
         ":model_proto",
@@ -50,7 +49,6 @@ serving_proto_library(
     name = "input_proto",
     srcs = ["input.proto"],
     cc_api_version = 2,
-    go_api_version = 2,
     java_api_version = 2,
     deps = [
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -77,7 +75,6 @@ serving_proto_library(
     name = "model_proto",
     srcs = ["model.proto"],
     cc_api_version = 2,
-    go_api_version = 2,
     java_api_version = 2,
     js_api_version = 2,
     deps = [
@@ -102,7 +99,6 @@ serving_proto_library(
     name = "predict_proto",
     srcs = ["predict.proto"],
     cc_api_version = 2,
-    go_api_version = 2,
     java_api_version = 2,
     deps = [
         ":model_proto",
@@ -126,7 +122,6 @@ serving_proto_library(
     has_services = 1,
     cc_api_version = 2,
     cc_grpc_version = 1,
-    go_api_version = 2,
     java_api_version = 2,
     deps = [
         ":classification_proto",
@@ -157,10 +152,71 @@ serving_go_grpc_library(
 )
 
 serving_proto_library(
+    name = "model_management_proto",
+    srcs = ["model_management.proto"],
+    cc_api_version = 2,
+    go_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        "//tensorflow_serving/config:model_server_config_proto",
+        "//tensorflow_serving/util:status_proto",
+    ],
+)
+
+serving_proto_library(
+    name = "get_model_status_proto",
+    srcs = ["get_model_status.proto"],
+    cc_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":model_proto",
+        "//tensorflow_serving/util:status_proto",
+    ],
+)
+
+serving_proto_library_py(
+    name = "get_model_status_proto_py_pb2",
+    srcs = ["get_model_status.proto"],
+    proto_library = "get_model_status_proto",
+    deps = [
+        ":model_proto_py_pb2",
+        "//tensorflow_serving/util:status_proto_py_pb2",
+    ],
+)
+
+serving_proto_library(
+    name = "model_service_proto",
+    srcs = ["model_service.proto"],
+    has_services = 1,
+    cc_api_version = 2,
+    cc_grpc_version = 1,
+    java_api_version = 2,
+    deps = [
+        ":get_model_status_proto",
+        ":model_management_proto",
+    ],
+)
+
+py_library(
+    name = "model_service_proto_py_pb2",
+    srcs = [
+        "model_service_pb2.py",
+        "model_service_pb2_grpc.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [":get_model_status_proto_py_pb2"],
+)
+
+serving_go_grpc_library(
+    name = "model_service_grpc",
+    srcs = [":model_service_proto"],
+    deps = [":model_service_go_proto"],
+)
+
+serving_proto_library(
     name = "classification_proto",
     srcs = ["classification.proto"],
     cc_api_version = 2,
-    go_api_version = 2,
     java_api_version = 2,
     deps = [
         ":input_proto",
@@ -189,7 +245,6 @@ serving_proto_library(
     name = "inference_proto",
     srcs = ["inference.proto"],
     cc_api_version = 2,
-    go_api_version = 2,
     java_api_version = 2,
     deps = [
         ":classification_proto",
@@ -221,7 +276,6 @@ serving_proto_library(
     name = "regression_proto",
     srcs = ["regression.proto"],
     cc_api_version = 2,
-    go_api_version = 2,
     java_api_version = 2,
     deps = [
         ":input_proto",

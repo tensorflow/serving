@@ -17,11 +17,10 @@ limitations under the License.
 
 #include <string>
 
+#include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/types.h"
-#include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/lib/core/errors.h"
-
 
 namespace tensorflow {
 namespace serving {
@@ -33,7 +32,7 @@ namespace serving {
 // It requires padding to be an array of elements that have fields
 // "first" and "second".
 struct OneDimPadding {
-  int64 first;  // pad before
+  int64 first;   // pad before
   int64 second;  // pad after
 };
 
@@ -47,10 +46,10 @@ struct OneDimPadding {
 // after each dimension, so its shape matches max_dim_sizes,
 // First entry of max_dim_sizes, which is maximum size of zeroth dimension,
 // is ignored, because we don't perform padding in that dimension.
-template<int num_dims>
-std::array<OneDimPadding, num_dims> CreatePadding(Tensor tensor,
-        const std::vector<int>& max_dim_sizes) {
-  std::array<OneDimPadding, num_dims> padding;
+template <int num_dims>
+Eigen::array<OneDimPadding, num_dims> CreatePadding(
+    Tensor tensor, const std::vector<int>& max_dim_sizes) {
+  Eigen::array<OneDimPadding, num_dims> padding;
   for (unsigned int i = 0; i < max_dim_sizes.size(); ++i) {
     if (i > 0 && max_dim_sizes[i] - tensor.dim_size(i) > 0) {
       padding[i] = {0, max_dim_sizes[i] - tensor.dim_size(i)};
@@ -69,8 +68,8 @@ std::array<OneDimPadding, num_dims> CreatePadding(Tensor tensor,
 template <typename T, int num_dims>
 struct PadTensor {
   Status operator()(Tensor input,
-      const std::array<OneDimPadding, num_dims>& padding,
-      Tensor* output) {
+                    const Eigen::array<OneDimPadding, num_dims>& padding,
+                    Tensor* output) {
     TensorShape output_shape;
     for (int d = 0; d < num_dims; ++d) {
       // Pad before existing elements.
@@ -100,58 +99,58 @@ struct PadTensor {
 
 // Invokes padding procedure for specific tensor ranks.
 // Only ranks from 1 to 6 are supported (like in PadOp).
-template<typename T>
+template <typename T>
 Status PadTensorOfSpecificType(const Tensor& tensor,
                                const std::vector<int>& max_dim_sizes,
                                Tensor* output_tensor) {
   int num_dims = tensor.dims();
   switch (num_dims) {
     case 1: {
-      std::array<OneDimPadding, 1> padding;
+      Eigen::array<OneDimPadding, 1> padding;
       padding = CreatePadding<1>(tensor, max_dim_sizes);
       PadTensor<T, 1> padding_functor = PadTensor<T, 1>();
       return padding_functor(tensor, padding, output_tensor);
     }
     case 2: {
-      std::array<OneDimPadding, 2> padding;
+      Eigen::array<OneDimPadding, 2> padding;
       padding = CreatePadding<2>(tensor, max_dim_sizes);
       PadTensor<T, 2> padding_functor = PadTensor<T, 2>();
       return padding_functor(tensor, padding, output_tensor);
     }
     case 3: {
-      std::array<OneDimPadding, 3> padding;
+      Eigen::array<OneDimPadding, 3> padding;
       padding = CreatePadding<3>(tensor, max_dim_sizes);
       PadTensor<T, 3> padding_functor = PadTensor<T, 3>();
       return padding_functor(tensor, padding, output_tensor);
     }
     case 4: {
-      std::array<OneDimPadding, 4> padding;
+      Eigen::array<OneDimPadding, 4> padding;
       padding = CreatePadding<4>(tensor, max_dim_sizes);
       PadTensor<T, 4> padding_functor = PadTensor<T, 4>();
       return padding_functor(tensor, padding, output_tensor);
     }
     case 5: {
-      std::array<OneDimPadding, 5> padding;
+      Eigen::array<OneDimPadding, 5> padding;
       padding = CreatePadding<5>(tensor, max_dim_sizes);
       PadTensor<T, 5> padding_functor = PadTensor<T, 5>();
       return padding_functor(tensor, padding, output_tensor);
     }
     case 6: {
-      std::array<OneDimPadding, 6> padding;
+      Eigen::array<OneDimPadding, 6> padding;
       padding = CreatePadding<6>(tensor, max_dim_sizes);
       PadTensor<T, 6> padding_functor = PadTensor<T, 6>();
       return padding_functor(tensor, padding, output_tensor);
     }
     default:
-    // only ranks from 1 to 6 are supported
-    // (like in tensorflow/core/kernels/pad_op.cc)
+      // only ranks from 1 to 6 are supported
+      // (like in tensorflow/core/kernels/pad_op.cc)
       return errors::InvalidArgument(
-            "Only tensors with rank from 1 to 6 can be padded.");
+          "Only tensors with rank from 1 to 6 can be padded.");
   }
 }
 
 std::map<string, std::vector<int>> CalculateMaxDimSizes(
-     const std::vector<std::vector<std::pair<string, Tensor>>>& batch) {
+    const std::vector<std::vector<std::pair<string, Tensor>>>& batch) {
   std::map<string, std::vector<int>> max_dim_sizes;
   // Populate 'max_dim_sizes'
   // init
@@ -181,27 +180,25 @@ std::map<string, std::vector<int>> CalculateMaxDimSizes(
   return max_dim_sizes;
 }
 
-Status AddPadding(const Tensor& tensor,
-                  const std::vector<int>& max_dim_sizes,
+Status AddPadding(const Tensor& tensor, const std::vector<int>& max_dim_sizes,
                   Tensor* padded_tensor) {
   const DataType input_dtype = tensor.dtype();
   Status padding_status;
-#define CASE(type) \
-        case DataTypeToEnum<type>::value: { \
-          padding_status = PadTensorOfSpecificType<type>(tensor, \
-                                                         max_dim_sizes, \
-                                                         padded_tensor); \
-          break; \
-        }
-       switch (input_dtype) {
-         TF_CALL_ALL_TYPES(CASE);
-         TF_CALL_QUANTIZED_TYPES(CASE);
-         // quantized types macro doesn't include these types
-         TF_CALL_quint16(CASE);
-         TF_CALL_qint16(CASE);
-         default:
-           padding_status = errors::InvalidArgument("Unsupported type");
-       }
+#define CASE(type)                                                           \
+  case DataTypeToEnum<type>::value: {                                        \
+    padding_status =                                                         \
+        PadTensorOfSpecificType<type>(tensor, max_dim_sizes, padded_tensor); \
+    break;                                                                   \
+  }
+  switch (input_dtype) {
+    TF_CALL_ALL_TYPES(CASE);
+    TF_CALL_QUANTIZED_TYPES(CASE);
+    // quantized types macro doesn't include these types
+    TF_CALL_quint16(CASE);
+    TF_CALL_qint16(CASE);
+    default:
+      padding_status = errors::InvalidArgument("Unsupported type");
+  }
 #undef CASE
   return padding_status;
 }

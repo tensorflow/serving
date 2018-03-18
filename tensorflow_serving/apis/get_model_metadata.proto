@@ -14,6 +14,7 @@ message SignatureDefMap {
 
 message GetModelMetadataRequest {
   // Model Specification indicating which model we are querying for metadata.
+  // If version is not specified, will use the latest (numerical) version.
   ModelSpec model_spec = 1;
   // Metadata fields to get. Currently supported: "signature_def".
   repeated string metadata_field = 2;
