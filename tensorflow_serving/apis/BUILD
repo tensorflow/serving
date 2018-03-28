@@ -120,6 +120,7 @@ serving_proto_library(
     name = "prediction_log_proto",
     srcs = ["prediction_log.proto"],
     cc_api_version = 2,
+    java_api_version = 2,
     deps = [
         ":classification_proto",
         ":inference_proto",
