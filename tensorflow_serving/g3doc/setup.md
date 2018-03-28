@@ -63,7 +63,7 @@ instructions](https://www.tensorflow.org/install/install_sources). Pay
 particular attention to `apt-get install` and `pip install` commands which you
 may need to run.
 
-### TensorFlow Serving Python API PIP package
+### TensorFlow Serving Python API PIP package {#pip}
 
 To run Python client code without the need to install Bazel, you can install
 the `tensorflow-serving-api` PIP package using:
@@ -79,7 +79,7 @@ Python 2 version, unzip it, and copy it into your Python 3 path. There is a
 [feature request](https://github.com/tensorflow/serving/issues/700) to publish
 the Python 3 package as well.
 
-## Installing using apt-get
+## Installing using apt-get {#aptget}
 
 ### Available binaries
 
@@ -176,7 +176,7 @@ bazel test -c opt tensorflow_serving/...
 See the [basic tutorial](serving_basic.md) and [advanced tutorial](serving_advanced.md)
 for more in-depth examples of running TensorFlow Serving.
 
-### Optimized build
+### Optimized build {#optimized}
 
 It's possible to compile using some platform specific instruction sets (e.g.
 AVX) that can significantly improve performance. Wherever you see 'bazel build'

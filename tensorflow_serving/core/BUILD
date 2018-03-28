@@ -699,7 +699,12 @@ cc_library(
     ],
     deps = [
         ":aspired_versions_manager",
+        ":loader",
+        ":manager",
+        ":servable_state",
         ":servable_state_monitor",
+        ":source",
+        ":target",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

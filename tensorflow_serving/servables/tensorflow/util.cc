@@ -20,6 +20,8 @@ limitations under the License.
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/lib/monitoring/counter.h"
+#include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/input.pb.h"
@@ -37,6 +39,10 @@ auto* example_counts = monitoring::Sampler<1>::New(
     // It's 15 buckets with the last bucket being 2^14 to DBL_MAX;
     // so the limits are [1, 2, 4, 8, ..., 16 * 1024, DBL_MAX].
     monitoring::Buckets::Exponential(1, 2, 15));
+
+auto* example_count_total = monitoring::Counter<1>::New(
+    "/tensorflow/serving/request_example_count_total",
+    "The total number of tensorflow.Examples.", "model");
 
 // Returns the number of examples in the Input.
 int NumInputExamples(const internal::SerializedInput& input) {
@@ -57,10 +63,13 @@ namespace internal {
 
 monitoring::Sampler<1>* GetExampleCounts() { return example_counts; }
 
+monitoring::Counter<1>* GetExampleCountTotal() { return example_count_total; }
+
 }  // namespace internal
 
 void RecordRequestExampleCount(const string& model_name, size_t count) {
   example_counts->GetCell(model_name)->Add(count);
+  example_count_total->GetCell(model_name)->IncrementBy(count);
 }
 
 Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {

@@ -764,6 +764,7 @@ cc_library(
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@protobuf_archive//:wrappers",
     ],
 )
 
@@ -773,12 +774,14 @@ cc_test(
     srcs = ["util_test.cc"],
     deps = [
         ":util",
-        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/core/test_util:test_main",  # buildcleaner: keep
         "//tensorflow_serving/test_util",
-        "//tensorflow_serving/util:optional",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
+        "@protobuf_archive//:wrappers",
     ],
 )
