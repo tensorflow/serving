@@ -320,12 +320,6 @@ serving_proto_library(
     ],
 )
 
-java_proto_library(
-    name = "session_service_java_proto",
-    strict_deps = 0,
-    deps = [":session_service_proto"],
-)
-
 tf_pyclif_proto_library(
     name = "regression_pyclif",
     proto_lib = ":regression_proto",

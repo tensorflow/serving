@@ -764,7 +764,7 @@ cc_library(
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@protobuf_archive//:wrappers",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -782,6 +782,6 @@ cc_test(
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
-        "@protobuf_archive//:wrappers",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
