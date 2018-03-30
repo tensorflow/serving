@@ -20,6 +20,7 @@ limitations under the License.
 #include <memory>
 
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow_serving/core/aspired_versions_manager.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/manager.h"
