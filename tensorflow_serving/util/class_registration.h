@@ -99,7 +99,7 @@ limitations under the License.
 //
 // This mechanism also allows additional parameter passing into the Create()
 // factory method.  Consider the following example in which Create() takes an
-// int and a string, in addition to the config proto:
+// int, a string and an int->string map, in addition to the config proto:
 //
 //   class MyParameterizedBaseClass {
 //     ...
