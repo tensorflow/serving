@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <map>
 #include <string>
+#include <utility>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow_serving/core/servable_state.h"
@@ -28,18 +29,27 @@ namespace serving {
 
 namespace internal {
 
+uint32 GetManagerNumLoadThreads(AspiredVersionsManager* manager) {
+  return manager->num_load_threads();
+}
+
+void SetManagerNumLoadThreads(uint32 num_load_threads,
+                              AspiredVersionsManager* manager) {
+  manager->SetNumLoadThreads(num_load_threads);
+}
+
 Status ConnectSourcesWithFastInitialLoad(
     AspiredVersionsManager* manager,
     std::vector<Source<std::unique_ptr<Loader>>*> sources,
     const std::function<Status()>& wait_until_loaded_fn,
     const uint32 num_threads) {
-  const uint32 prev_num_load_threads = manager->num_load_threads();
-  manager->SetNumLoadThreads(num_threads);
+  const uint32 prev_num_load_threads = GetManagerNumLoadThreads(manager);
+  SetManagerNumLoadThreads(num_threads, manager);
   for (Source<std::unique_ptr<Loader>>* source : sources) {
     ConnectSourceToTarget(source, manager);
   }
   const Status status = wait_until_loaded_fn();
-  manager->SetNumLoadThreads(prev_num_load_threads);
+  SetManagerNumLoadThreads(prev_num_load_threads, manager);
   return status;
 }
 

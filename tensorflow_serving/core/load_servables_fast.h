@@ -58,6 +58,10 @@ Status ConnectSourcesWithFastInitialLoad(
     std::vector<Source<std::unique_ptr<Loader>>*> sources,
     const std::function<Status()>& wait_until_loaded_fn, uint32 num_threads);
 
+uint32 GetManagerNumLoadThreads(AspiredVersionsManager* manager);
+void SetManagerNumLoadThreads(uint32 num_load_threads,
+                              AspiredVersionsManager* manager);
+
 }  // namespace internal
 
 }  // namespace serving
