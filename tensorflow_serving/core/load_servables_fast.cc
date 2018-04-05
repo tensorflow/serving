@@ -33,9 +33,9 @@ uint32 GetManagerNumLoadThreads(AspiredVersionsManager* manager) {
   return manager->num_load_threads();
 }
 
-void SetManagerNumLoadThreads(uint32 num_load_threads,
-                              AspiredVersionsManager* manager) {
-  manager->SetNumLoadThreads(num_load_threads);
+std::function<void(const uint32)> SetManagerNumLoadThreadsNotifier(
+    AspiredVersionsManager* manager) {
+  return manager->set_num_load_threads_observer_->Notifier();
 }
 
 Status ConnectSourcesWithFastInitialLoad(
@@ -44,12 +44,14 @@ Status ConnectSourcesWithFastInitialLoad(
     const std::function<Status()>& wait_until_loaded_fn,
     const uint32 num_threads) {
   const uint32 prev_num_load_threads = GetManagerNumLoadThreads(manager);
-  SetManagerNumLoadThreads(num_threads, manager);
+  std::function<void(const uint32)> set_manager_num_load_threads =
+      SetManagerNumLoadThreadsNotifier(manager);
+  set_manager_num_load_threads(num_threads);
   for (Source<std::unique_ptr<Loader>>* source : sources) {
     ConnectSourceToTarget(source, manager);
   }
   const Status status = wait_until_loaded_fn();
-  SetManagerNumLoadThreads(prev_num_load_threads, manager);
+  set_manager_num_load_threads(prev_num_load_threads);
   return status;
 }
 

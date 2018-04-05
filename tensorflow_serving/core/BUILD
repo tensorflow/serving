@@ -501,8 +501,9 @@ cc_library(
         ":source",
         ":target",
         "//tensorflow_serving/util:event_bus",
+        "//tensorflow_serving/util:observer",
         "//tensorflow_serving/util:optional",
-        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
+        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function_dynamic",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

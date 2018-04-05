@@ -59,8 +59,8 @@ Status ConnectSourcesWithFastInitialLoad(
     const std::function<Status()>& wait_until_loaded_fn, uint32 num_threads);
 
 uint32 GetManagerNumLoadThreads(AspiredVersionsManager* manager);
-void SetManagerNumLoadThreads(uint32 num_load_threads,
-                              AspiredVersionsManager* manager);
+std::function<void(const uint32)> SetManagerNumLoadThreadsNotifier(
+    AspiredVersionsManager* manager);
 
 }  // namespace internal
 
