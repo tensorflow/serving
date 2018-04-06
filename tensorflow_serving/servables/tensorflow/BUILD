@@ -422,16 +422,61 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":predict_util",
         "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/model_servers:server_core",
         "//tensorflow_serving/servables/tensorflow:util",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
+    ],
+)
+
+cc_library(
+    name = "predict_util",
+    srcs = ["predict_util.cc"],
+    hdrs = ["predict_util.h"],
+    deps = [
+        "//tensorflow_serving/apis:predict_proto",
+        "//tensorflow_serving/servables/tensorflow:util",
+        "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
+    ],
+)
+
+cc_test(
+    name = "predict_util_test",
+    size = "medium",
+    srcs = ["predict_util_test.cc"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
+        "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/saved_model.pb",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/variables/variables.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/variables/variables.index",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
+    deps = [
+        ":predict_util",
+        ":saved_model_bundle_source_adapter_proto",
+        ":session_bundle_config_proto",
+        ":session_bundle_source_adapter_proto",
+        "//tensorflow_serving/core:availability_preserving_policy",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/model_servers:model_platform_types",
+        "//tensorflow_serving/model_servers:platform_config_util",
+        "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/contrib/session_bundle",
+        "@org_tensorflow//tensorflow/core:test",
     ],
 )
 
@@ -534,6 +579,7 @@ cc_library(
         "//tensorflow_serving/apis:classifier",
         "//tensorflow_serving/apis:input_proto",
         "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/cc/saved_model:loader_lite",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/contrib/session_bundle:session_bundle_lite",
@@ -665,6 +711,7 @@ cc_library(
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/apis:regression_proto",
         "//tensorflow_serving/apis:regressor",
+        "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/cc/saved_model:loader_lite",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/contrib/session_bundle:session_bundle_lite",
@@ -709,7 +756,6 @@ cc_library(
         "//tensorflow_serving/apis:inference_proto",
         "//tensorflow_serving/apis:input_proto",
         "//tensorflow_serving/apis:model_proto",
-        "//tensorflow_serving/model_servers:server_core",
         "//tensorflow_serving/servables/tensorflow:classifier",
         "//tensorflow_serving/servables/tensorflow:regressor",
         "//tensorflow_serving/servables/tensorflow:util",
@@ -730,6 +776,53 @@ cc_test(
     ],
     deps = [
         ":multi_inference",
+        "//tensorflow_serving/apis:classification_proto",
+        "//tensorflow_serving/apis:input_proto",
+        "//tensorflow_serving/apis:regression_proto",
+        "//tensorflow_serving/core:availability_preserving_policy",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/model_servers:model_platform_types",
+        "//tensorflow_serving/model_servers:platform_config_util",
+        "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
+    name = "multi_inference_helper",
+    srcs = ["multi_inference_helper.cc"],
+    hdrs = ["multi_inference_helper.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":multi_inference",
+        "//tensorflow_serving/apis:inference_proto",
+        "//tensorflow_serving/apis:input_proto",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/model_servers:server_core",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@protobuf_archive//:protobuf",
+    ],
+)
+
+cc_test(
+    name = "multi_inference_helper_test",
+    size = "medium",
+    srcs = ["multi_inference_helper_test.cc"],
+    data = [
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
+    deps = [
+        ":multi_inference_helper",
         "//tensorflow_serving/apis:classification_proto",
         "//tensorflow_serving/apis:input_proto",
         "//tensorflow_serving/apis:regression_proto",

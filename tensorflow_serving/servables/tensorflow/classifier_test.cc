@@ -314,6 +314,12 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
     }
   }
 
+  RunOptions GetRunOptions() const {
+    RunOptions run_options;
+    run_options.set_timeout_in_ms(42);
+    return run_options;
+  }
+
   // Variables used to create the classifier.
   tensorflow::MetaGraphDef* meta_graph_def_;
   FakeSession* fake_session_;
@@ -325,13 +331,6 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
   // Convenience variables.
   ClassificationRequest request_;
   ClassificationResult result_;
-
- private:
-  RunOptions GetRunOptions() const {
-    RunOptions run_options;
-    run_options.set_timeout_in_ms(42);
-    return run_options;
-  }
 };
 
 TEST_P(ClassifierTest, ExampleList) {
@@ -361,6 +360,35 @@ TEST_P(ClassifierTest, ExampleList) {
                                    "     score: 3 "
                                    "   } "
                                    " } "));
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                             fake_session_, request_, &response));
+    EXPECT_THAT(response.result(), EqualsProto(" classifications { "
+                                               "   classes { "
+                                               "     label: 'dos' "
+                                               "     score: 2 "
+                                               "   } "
+                                               "   classes { "
+                                               "     label: 'uno' "
+                                               "     score: 1 "
+                                               "   } "
+                                               " } "
+                                               " classifications { "
+                                               "   classes { "
+                                               "     label: 'cuatro' "
+                                               "     score: 4 "
+                                               "   } "
+                                               "   classes { "
+                                               "     label: 'tres' "
+                                               "     score: 3 "
+                                               "   } "
+                                               " } "));
+  }
 }
 
 TEST_P(ClassifierTest, ExampleListWithContext) {
@@ -393,6 +421,36 @@ TEST_P(ClassifierTest, ExampleListWithContext) {
                                    "     score: 1 "
                                    "   } "
                                    " } "));
+
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                             fake_session_, request_, &response));
+    EXPECT_THAT(response.result(), EqualsProto(" classifications { "
+                                               "   classes { "
+                                               "     label: 'dos' "
+                                               "     score: 2 "
+                                               "   } "
+                                               "   classes { "
+                                               "     label: 'uno' "
+                                               "     score: 1 "
+                                               "   } "
+                                               " } "
+                                               " classifications { "
+                                               "   classes { "
+                                               "     label: 'dos' "
+                                               "     score: 2 "
+                                               "   } "
+                                               "   classes { "
+                                               "     label: 'uno' "
+                                               "     score: 1 "
+                                               "   } "
+                                               " } "));
+  }
 }
 
 TEST_P(ClassifierTest, ExampleListWithContext_DuplicateFeatures) {
@@ -427,6 +485,36 @@ TEST_P(ClassifierTest, ExampleListWithContext_DuplicateFeatures) {
                                    "     score: 4 "
                                    "   } "
                                    " } "));
+
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                             fake_session_, request_, &response));
+    EXPECT_THAT(response.result(), EqualsProto(" classifications { "
+                                               "   classes { "
+                                               "     label: 'uno' "
+                                               "     score: 1 "
+                                               "   } "
+                                               "   classes { "
+                                               "     label: 'dos' "
+                                               "     score: 2 "
+                                               "   } "
+                                               " } "
+                                               " classifications { "
+                                               "   classes { "
+                                               "     label: 'tres' "
+                                               "     score: 3 "
+                                               "   } "
+                                               "   classes { "
+                                               "     label: 'cuatro' "
+                                               "     score: 4 "
+                                               "   } "
+                                               " } "));
+  }
 }
 
 TEST_P(ClassifierTest, ClassesOnly) {
@@ -459,6 +547,31 @@ TEST_P(ClassifierTest, ClassesOnly) {
                                    "     label: 'tres' "
                                    "   } "
                                    " } "));
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                             fake_session_, request_, &response));
+    EXPECT_THAT(response.result(), EqualsProto(" classifications { "
+                                               "   classes { "
+                                               "     label: 'dos' "
+                                               "   } "
+                                               "   classes { "
+                                               "     label: 'uno' "
+                                               "   } "
+                                               " } "
+                                               " classifications { "
+                                               "   classes { "
+                                               "     label: 'cuatro' "
+                                               "   } "
+                                               "   classes { "
+                                               "     label: 'tres' "
+                                               "   } "
+                                               " } "));
+  }
 }
 
 TEST_P(ClassifierTest, ScoresOnly) {
@@ -491,6 +604,31 @@ TEST_P(ClassifierTest, ScoresOnly) {
                                    "     score: 3 "
                                    "   } "
                                    " } "));
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                             fake_session_, request_, &response));
+    EXPECT_THAT(response.result(), EqualsProto(" classifications { "
+                                               "   classes { "
+                                               "     score: 2 "
+                                               "   } "
+                                               "   classes { "
+                                               "     score: 1 "
+                                               "   } "
+                                               " } "
+                                               " classifications { "
+                                               "   classes { "
+                                               "     score: 4 "
+                                               "   } "
+                                               "   classes { "
+                                               "     score: 3 "
+                                               "   } "
+                                               " } "));
+  }
 }
 
 TEST_P(ClassifierTest, ZeroScoresArePresent) {
@@ -515,6 +653,24 @@ TEST_P(ClassifierTest, ZeroScoresArePresent) {
 
   for (int i = 0; i < 3; ++i) {
     EXPECT_NEAR(classification.classes(i).score(), expected_outputs[i], 1e-7);
+  }
+
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                             fake_session_, request_, &response));
+    // Parse the protos and compare the results with expected scores.
+    ASSERT_EQ(response.result().classifications_size(), 1);
+    auto& classification = result_.classifications(0);
+    ASSERT_EQ(classification.classes_size(), 3);
+
+    for (int i = 0; i < 3; ++i) {
+      EXPECT_NEAR(classification.classes(i).score(), expected_outputs[i], 1e-7);
+    }
   }
 }
 
@@ -573,6 +729,35 @@ TEST_P(ClassifierTest, ValidNamedSignature) {
                                      "   } "
                                      " } "));
   }
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                             fake_session_, request_, &response));
+    EXPECT_THAT(response.result(), EqualsProto(" classifications { "
+                                               "   classes { "
+                                               "     label: 'dos' "
+                                               "     score: 3 "
+                                               "   } "
+                                               "   classes { "
+                                               "     label: 'uno' "
+                                               "     score: 2 "
+                                               "   } "
+                                               " } "
+                                               " classifications { "
+                                               "   classes { "
+                                               "     label: 'cuatro' "
+                                               "     score: 5 "
+                                               "   } "
+                                               "   classes { "
+                                               "     label: 'tres' "
+                                               "     score: 4 "
+                                               "   } "
+                                               " } "));
+  }
 }
 
 TEST_P(ClassifierTest, InvalidNamedSignature) {
@@ -613,6 +798,18 @@ TEST_P(ClassifierTest, InvalidNamedSignature) {
                                      "   } "
                                      " } "));
   }
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    const Status status =
+        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                    fake_session_, request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  }
 }
 
 TEST_P(ClassifierTest, MalformedScores) {
@@ -633,6 +830,18 @@ TEST_P(ClassifierTest, MalformedScores) {
 
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    const Status status =
+        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                    fake_session_, request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  }
 }
 
 TEST_P(ClassifierTest, MissingClassificationSignature) {
@@ -655,6 +864,18 @@ TEST_P(ClassifierTest, MissingClassificationSignature) {
     EXPECT_EQ(::tensorflow::error::FAILED_PRECONDITION, status.code())
         << status;
   }
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    const Status status =
+        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                    fake_session_, request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  }
 }
 
 TEST_P(ClassifierTest, EmptyInput) {
@@ -665,6 +886,19 @@ TEST_P(ClassifierTest, EmptyInput) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Invalid argument: Input is empty"));
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    const Status status =
+        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                    fake_session_, request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(),
+                ::testing::HasSubstr("Invalid argument: Input is empty"));
+  }
 }
 
 TEST_P(ClassifierTest, EmptyExampleList) {
@@ -675,6 +909,19 @@ TEST_P(ClassifierTest, EmptyExampleList) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Invalid argument: Input is empty"));
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    const Status status =
+        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                    fake_session_, request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(),
+                ::testing::HasSubstr("Invalid argument: Input is empty"));
+  }
 }
 
 TEST_P(ClassifierTest, EmptyExampleListWithContext) {
@@ -687,6 +934,19 @@ TEST_P(ClassifierTest, EmptyExampleListWithContext) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Invalid argument: Input is empty"));
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    const Status status =
+        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+                    fake_session_, request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(),
+                ::testing::HasSubstr("Invalid argument: Input is empty"));
+  }
 }
 
 TEST_P(ClassifierTest, RunsFails) {
@@ -708,6 +968,18 @@ TEST_P(ClassifierTest, RunsFails) {
   const Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    const Status status =
+        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
+                    request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
+  }
 }
 
 TEST_P(ClassifierTest, ClassesIncorrectTensorBatchSize) {
@@ -735,6 +1007,18 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorBatchSize) {
   const Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    const Status status =
+        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
+                    request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
+  }
 }
 
 TEST_P(ClassifierTest, ClassesIncorrectTensorType) {
@@ -763,6 +1047,19 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorType) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Expected classes Tensor of DT_STRING"));
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    const Status status =
+        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
+                    request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(),
+                ::testing::HasSubstr("Expected classes Tensor of DT_STRING"));
+  }
 }
 
 TEST_P(ClassifierTest, ScoresIncorrectTensorBatchSize) {
@@ -790,6 +1087,18 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorBatchSize) {
   const Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    const Status status =
+        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
+                    request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
+  }
 }
 
 TEST_P(ClassifierTest, ScoresIncorrectTensorType) {
@@ -818,6 +1127,19 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorType) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Expected scores Tensor of DT_FLOAT"));
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    const Status status =
+        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
+                    request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(),
+                ::testing::HasSubstr("Expected scores Tensor of DT_FLOAT"));
+  }
 }
 
 TEST_P(ClassifierTest, MismatchedNumberOfTensorClasses) {
@@ -848,6 +1170,20 @@ TEST_P(ClassifierTest, MismatchedNumberOfTensorClasses) {
       status.ToString(),
       ::testing::HasSubstr(
           "Tensors class and score should match in dim_size(1). Got 2 vs. 3"));
+  // Test RunClassify
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    ClassificationResponse response;
+    const Status status =
+        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
+                    request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(),
+                ::testing::HasSubstr("Tensors class and score should match in "
+                                     "dim_size(1). Got 2 vs. 3"));
+  }
 }
 
 // Test all ClassifierTest test cases with both SessionBundle and SavedModel.
