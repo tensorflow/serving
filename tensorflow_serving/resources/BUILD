@@ -46,7 +46,6 @@ cc_library(
     deps = [
         ":resources_proto",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf_archive//:wrappers",
     ],
 )
 
