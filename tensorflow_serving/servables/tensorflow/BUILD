@@ -261,6 +261,7 @@ cc_library(
     deps = [
         ":saved_model_bundle_factory",
         ":saved_model_bundle_source_adapter_proto",
+        ":saved_model_warmup",
         ":session_bundle_source_adapter_proto",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:simple_loader",
@@ -876,5 +877,49 @@ cc_test(
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
         "@protobuf_archive//:cc_wkt_protos",
+    ],
+)
+
+cc_library(
+    name = "saved_model_warmup",
+    srcs = ["saved_model_warmup.cc"],
+    hdrs = ["saved_model_warmup.h"],
+    deps = [
+        ":classifier",
+        ":multi_inference",
+        ":predict_util",
+        ":regressor",
+        "//tensorflow_serving/apis:classification_proto",
+        "//tensorflow_serving/apis:inference_proto",
+        "//tensorflow_serving/apis:predict_proto",
+        "//tensorflow_serving/apis:prediction_log_proto",
+        "//tensorflow_serving/apis:regression_proto",
+        "//tensorflow_serving/core:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+    ],
+)
+
+cc_test(
+    name = "saved_model_warmup_test",
+    size = "small",
+    srcs = ["saved_model_warmup_test.cc"],
+    deps = [
+        ":saved_model_warmup",
+        "//tensorflow_serving/apis:input_proto",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/apis:prediction_log_proto",
+        "//tensorflow_serving/core/test_util:mock_session",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
+        "@org_tensorflow//tensorflow/contrib/session_bundle:manifest_proto_cc",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
     ],
 )
