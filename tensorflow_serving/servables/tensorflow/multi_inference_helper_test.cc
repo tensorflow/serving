@@ -1,4 +1,4 @@
-/* Copyright 2017 Google Inc. All Rights Reserved.
+/* Copyright 2018 Google Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/servables/tensorflow/multi_inference.h"
+#include "tensorflow_serving/servables/tensorflow/multi_inference_helper.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -71,25 +71,7 @@ class MultiInferenceTest : public ::testing::Test {
 
   ServerCore* GetServerCore() { return server_core_.get(); }
 
-  Status GetInferenceRunner(
-      std::unique_ptr<TensorFlowMultiInferenceRunner>* inference_runner) {
-    ServableHandle<SavedModelBundle> bundle;
-    ModelSpec model_spec;
-    model_spec.set_name(kTestModelName);
-    TF_RETURN_IF_ERROR(GetServerCore()->GetServableHandle(model_spec, &bundle));
-
-    inference_runner->reset(new TensorFlowMultiInferenceRunner(
-        bundle->session.get(), &bundle->meta_graph_def, {servable_version_}));
-    return Status::OK();
-  }
-
-  Status GetServableHandle(ServableHandle<SavedModelBundle>* bundle) {
-    ModelSpec model_spec;
-    model_spec.set_name(kTestModelName);
-    return GetServerCore()->GetServableHandle(model_spec, bundle);
-  }
-
-  const int64 servable_version_ = 1;
+  const int64 servable_version_ = kTestModelVersion;
 
  private:
   static std::unique_ptr<ServerCore> server_core_;
@@ -111,9 +93,12 @@ void AddInput(const std::vector<std::pair<string, float>>& feature_kv,
 }
 
 void PopulateTask(const string& signature_name, const string& method_name,
-                  InferenceTask* task) {
+                  int64 version, InferenceTask* task) {
   ModelSpec model_spec;
   model_spec.set_name(kTestModelName);
+  if (version > 0) {
+    model_spec.mutable_version()->set_value(version);
+  }
   model_spec.set_signature_name(signature_name);
   *task->mutable_model_spec() = model_spec;
   task->set_method_name(method_name);
@@ -130,56 +115,35 @@ void ExpectStatusError(const Status& status,
 // Tests
 
 TEST_F(MultiInferenceTest, MissingInputTest) {
-  std::unique_ptr<TensorFlowMultiInferenceRunner> inference_runner;
-  TF_ASSERT_OK(GetInferenceRunner(&inference_runner));
-
   MultiInferenceRequest request;
-  PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
+  PopulateTask("regress_x_to_y", kRegressMethodName, -1, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
+  ExpectStatusError(RunMultiInferenceWithServerCore(RunOptions(),
+                                                    GetServerCore(),
+                                                    request, &response),
                     tensorflow::error::INVALID_ARGUMENT, "Input is empty");
-
-  // MultiInference testing
-  ServableHandle<SavedModelBundle> bundle;
-  TF_ASSERT_OK(GetServableHandle(&bundle));
-  ExpectStatusError(
-      RunMultiInference(RunOptions(), bundle->meta_graph_def, servable_version_,
-                        bundle->session.get(), request, &response),
-      tensorflow::error::INVALID_ARGUMENT, "Input is empty");
 }
 
 TEST_F(MultiInferenceTest, UndefinedSignatureTest) {
-  std::unique_ptr<TensorFlowMultiInferenceRunner> inference_runner;
-  TF_ASSERT_OK(GetInferenceRunner(&inference_runner));
-
   MultiInferenceRequest request;
   AddInput({{"x", 2}}, &request);
-  PopulateTask("ThisSignatureDoesNotExist", kRegressMethodName,
+  PopulateTask("ThisSignatureDoesNotExist", kRegressMethodName, -1,
                request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
+  ExpectStatusError(RunMultiInferenceWithServerCore(RunOptions(),
+                                                    GetServerCore(),
+                                                    request, &response),
                     tensorflow::error::INVALID_ARGUMENT, "signature not found");
-
-  // MultiInference testing
-  ServableHandle<SavedModelBundle> bundle;
-  TF_ASSERT_OK(GetServableHandle(&bundle));
-  ExpectStatusError(
-      RunMultiInference(RunOptions(), bundle->meta_graph_def, servable_version_,
-                        bundle->session.get(), request, &response),
-      tensorflow::error::INVALID_ARGUMENT, "signature not found");
 }
 
 // Two ModelSpecs, accessing different models.
 TEST_F(MultiInferenceTest, InconsistentModelSpecsInRequestTest) {
-  std::unique_ptr<TensorFlowMultiInferenceRunner> inference_runner;
-  TF_ASSERT_OK(GetInferenceRunner(&inference_runner));
-
   MultiInferenceRequest request;
   AddInput({{"x", 2}}, &request);
   // Valid signature.
-  PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
+  PopulateTask("regress_x_to_y", kRegressMethodName, -1, request.add_tasks());
 
   // Add invalid Task to request.
   ModelSpec model_spec;
@@ -190,95 +154,59 @@ TEST_F(MultiInferenceTest, InconsistentModelSpecsInRequestTest) {
   task->set_method_name(kRegressMethodName);
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
+  ExpectStatusError(RunMultiInferenceWithServerCore(RunOptions(),
+                                                    GetServerCore(),
+                                                    request, &response),
                     tensorflow::error::INVALID_ARGUMENT,
                     "must access the same model name");
-
-  // MultiInference testing
-  ServableHandle<SavedModelBundle> bundle;
-  TF_ASSERT_OK(GetServableHandle(&bundle));
-  ExpectStatusError(
-      RunMultiInference(RunOptions(), bundle->meta_graph_def, servable_version_,
-                        bundle->session.get(), request, &response),
-      tensorflow::error::INVALID_ARGUMENT, "must access the same model name");
 }
 
 TEST_F(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
-  std::unique_ptr<TensorFlowMultiInferenceRunner> inference_runner;
-  TF_ASSERT_OK(GetInferenceRunner(&inference_runner));
-
   MultiInferenceRequest request;
   AddInput({{"x", 2}}, &request);
-  PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
+  PopulateTask("regress_x_to_y", kRegressMethodName, -1, request.add_tasks());
   // Add the same task again (error).
-  PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
+  PopulateTask("regress_x_to_y", kRegressMethodName, -1, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
+  ExpectStatusError(RunMultiInferenceWithServerCore(RunOptions(),
+                                                    GetServerCore(),
+                                                    request, &response),
                     tensorflow::error::INVALID_ARGUMENT,
                     "Duplicate evaluation of signature: regress_x_to_y");
-
-  // MultiInference testing
-  ServableHandle<SavedModelBundle> bundle;
-  TF_ASSERT_OK(GetServableHandle(&bundle));
-  ExpectStatusError(
-      RunMultiInference(RunOptions(), bundle->meta_graph_def, servable_version_,
-                        bundle->session.get(), request, &response),
-      tensorflow::error::INVALID_ARGUMENT,
-      "Duplicate evaluation of signature: regress_x_to_y");
 }
 
 TEST_F(MultiInferenceTest, UsupportedSignatureTypeTest) {
-  std::unique_ptr<TensorFlowMultiInferenceRunner> inference_runner;
-  TF_ASSERT_OK(GetInferenceRunner(&inference_runner));
-
   MultiInferenceRequest request;
   AddInput({{"x", 2}}, &request);
-  PopulateTask("serving_default", kPredictMethodName, request.add_tasks());
+  PopulateTask("serving_default", kPredictMethodName, -1, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
+  ExpectStatusError(RunMultiInferenceWithServerCore(RunOptions(),
+                                                    GetServerCore(),
+                                                    request, &response),
                     tensorflow::error::UNIMPLEMENTED, "Unsupported signature");
-
-  // MultiInference testing
-  ServableHandle<SavedModelBundle> bundle;
-  TF_ASSERT_OK(GetServableHandle(&bundle));
-  ExpectStatusError(
-      RunMultiInference(RunOptions(), bundle->meta_graph_def, servable_version_,
-                        bundle->session.get(), request, &response),
-      tensorflow::error::UNIMPLEMENTED, "Unsupported signature");
 }
 
 TEST_F(MultiInferenceTest, SignaturesWithDifferentInputsTest) {
-  std::unique_ptr<TensorFlowMultiInferenceRunner> inference_runner;
-  TF_ASSERT_OK(GetInferenceRunner(&inference_runner));
-
   MultiInferenceRequest request;
   AddInput({{"x", 2}, {"x2", 2}}, &request);
-  PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
-  PopulateTask("regress_x2_to_y3", kRegressMethodName, request.add_tasks());
+  PopulateTask("regress_x_to_y", kRegressMethodName, -1, request.add_tasks());
+  PopulateTask("regress_x2_to_y3", kRegressMethodName, -1, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
+  ExpectStatusError(RunMultiInferenceWithServerCore(RunOptions(),
+                                                    GetServerCore(),
+                                                    request, &response),
                     tensorflow::error::INVALID_ARGUMENT,
                     "Input tensor must be the same");
-
-  // MultiInference testing
-  ServableHandle<SavedModelBundle> bundle;
-  TF_ASSERT_OK(GetServableHandle(&bundle));
-  ExpectStatusError(
-      RunMultiInference(RunOptions(), bundle->meta_graph_def, servable_version_,
-                        bundle->session.get(), request, &response),
-      tensorflow::error::INVALID_ARGUMENT, "Input tensor must be the same");
 }
 
 TEST_F(MultiInferenceTest, ValidSingleSignatureTest) {
-  std::unique_ptr<TensorFlowMultiInferenceRunner> inference_runner;
-  TF_ASSERT_OK(GetInferenceRunner(&inference_runner));
-
   MultiInferenceRequest request;
   AddInput({{"x", 2}}, &request);
-  PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
+  PopulateTask("regress_x_to_y", kRegressMethodName, servable_version_,
+               request.add_tasks());
 
   MultiInferenceResponse expected_response;
   auto* inference_result = expected_response.add_results();
@@ -289,27 +217,18 @@ TEST_F(MultiInferenceTest, ValidSingleSignatureTest) {
   regression_result->add_regressions()->set_value(3.0);
 
   MultiInferenceResponse response;
-  TF_ASSERT_OK(inference_runner->Infer(RunOptions(), request, &response));
-  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
-
-  // MultiInference testing
-  response.Clear();
-  ServableHandle<SavedModelBundle> bundle;
-  TF_ASSERT_OK(GetServableHandle(&bundle));
-  TF_ASSERT_OK(RunMultiInference(RunOptions(), bundle->meta_graph_def,
-                                 servable_version_, bundle->session.get(),
-                                 request, &response));
+  TF_ASSERT_OK(RunMultiInferenceWithServerCore(RunOptions(), GetServerCore(),
+                                               request, &response));
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 
 TEST_F(MultiInferenceTest, MultipleValidRegressSignaturesTest) {
-  std::unique_ptr<TensorFlowMultiInferenceRunner> inference_runner;
-  TF_ASSERT_OK(GetInferenceRunner(&inference_runner));
-
   MultiInferenceRequest request;
   AddInput({{"x", 2}}, &request);
-  PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
-  PopulateTask("regress_x_to_y2", kRegressMethodName, request.add_tasks());
+  PopulateTask("regress_x_to_y", kRegressMethodName, servable_version_,
+               request.add_tasks());
+  PopulateTask("regress_x_to_y2", kRegressMethodName, servable_version_,
+               request.add_tasks());
 
   MultiInferenceResponse expected_response;
 
@@ -330,27 +249,18 @@ TEST_F(MultiInferenceTest, MultipleValidRegressSignaturesTest) {
   regression_result_2->add_regressions()->set_value(4.0);
 
   MultiInferenceResponse response;
-  TF_ASSERT_OK(inference_runner->Infer(RunOptions(), request, &response));
-  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
-
-  // MultiInference testing
-  response.Clear();
-  ServableHandle<SavedModelBundle> bundle;
-  TF_ASSERT_OK(GetServableHandle(&bundle));
-  TF_ASSERT_OK(RunMultiInference(RunOptions(), bundle->meta_graph_def,
-                                 servable_version_, bundle->session.get(),
-                                 request, &response));
+  TF_ASSERT_OK(RunMultiInferenceWithServerCore(RunOptions(), GetServerCore(),
+                                               request, &response));
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 
 TEST_F(MultiInferenceTest, RegressAndClassifySignaturesTest) {
-  std::unique_ptr<TensorFlowMultiInferenceRunner> inference_runner;
-  TF_ASSERT_OK(GetInferenceRunner(&inference_runner));
-
   MultiInferenceRequest request;
   AddInput({{"x", 2}}, &request);
-  PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
-  PopulateTask("classify_x_to_y", kClassifyMethodName, request.add_tasks());
+  PopulateTask("regress_x_to_y", kRegressMethodName, servable_version_,
+               request.add_tasks());
+  PopulateTask("classify_x_to_y", kClassifyMethodName, servable_version_,
+               request.add_tasks());
 
   MultiInferenceResponse expected_response;
   auto* inference_result_1 = expected_response.add_results();
@@ -369,16 +279,8 @@ TEST_F(MultiInferenceTest, RegressAndClassifySignaturesTest) {
   classification_result->add_classifications()->add_classes()->set_score(3.0);
 
   MultiInferenceResponse response;
-  TF_ASSERT_OK(inference_runner->Infer(RunOptions(), request, &response));
-  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
-
-  // MultiInference testing
-  response.Clear();
-  ServableHandle<SavedModelBundle> bundle;
-  TF_ASSERT_OK(GetServableHandle(&bundle));
-  TF_ASSERT_OK(RunMultiInference(RunOptions(), bundle->meta_graph_def,
-                                 servable_version_, bundle->session.get(),
-                                 request, &response));
+  TF_ASSERT_OK(RunMultiInferenceWithServerCore(RunOptions(), GetServerCore(),
+                                               request, &response));
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 

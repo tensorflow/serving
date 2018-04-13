@@ -65,7 +65,7 @@ class UntypedServableHandle {
 ///     };
 ///
 ///     // Get your handle from a manager.
-///     ServableHandle&lt;MyServable> handle;
+///     ServableHandle<MyServable> handle;
 ///     TF_RETURN_IF_ERROR(manager->GetServableHandle(id, &handle));
 ///
 ///     // Use your handle as a smart-pointer:

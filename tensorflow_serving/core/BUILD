@@ -501,8 +501,9 @@ cc_library(
         ":source",
         ":target",
         "//tensorflow_serving/util:event_bus",
+        "//tensorflow_serving/util:observer",
         "//tensorflow_serving/util:optional",
-        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
+        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function_dynamic",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -699,7 +700,12 @@ cc_library(
     ],
     deps = [
         ":aspired_versions_manager",
+        ":loader",
+        ":manager",
+        ":servable_state",
         ":servable_state_monitor",
+        ":source",
+        ":target",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -732,6 +738,7 @@ serving_proto_library(
     name = "logging_proto",
     srcs = ["logging.proto"],
     cc_api_version = 2,
+    java_api_version = 2,
     visibility = [
         "//visibility:public",
     ],

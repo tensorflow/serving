@@ -24,6 +24,7 @@ limitations under the License.
 #include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/apis/classifier.h"
+#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -83,6 +84,13 @@ Status PostProcessClassificationResult(
     const SignatureDef& signature, int num_examples,
     const std::vector<string>& output_tensor_names,
     const std::vector<Tensor>& output_tensors, ClassificationResult* result);
+
+// Creates SavedModelTensorflowClassifier and runs Classification on it.
+Status RunClassify(const RunOptions& run_options,
+                   const MetaGraphDef& meta_graph_def,
+                   const optional<int64>& servable_version, Session* session,
+                   const ClassificationRequest& request,
+                   ClassificationResponse* response);
 
 }  // namespace serving
 }  // namespace tensorflow

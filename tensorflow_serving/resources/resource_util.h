@@ -136,6 +136,20 @@ class ResourceUtil {
   // (because it binds resources redundantly to all device instances).
   ResourceAllocation Overbind(const ResourceAllocation& allocation) const;
 
+  // Gets the max of the two ResourceAllocations by taking the max of every
+  // paired entry and keep all the unpaired entries in the max. Like the Add()
+  // and Subtract() methods, this keeps the bound and unbound resources
+  // separate.
+  //
+  // E.g.
+  // Max({(GPU/instance_0/RAM/8),
+  // (CPU/instance_0/processing_in_millicores/100)},
+  // {(GPU/instance_0/RAM/16), (CPU/<no_instance>/RAM/4)}) returns
+  // {(GPU/instance_0/RAM/16), (CPU/instance_0/processing_in_millicores/100),
+  // (CPU/<no_instance>/RAM/4)}
+  ResourceAllocation Max(const ResourceAllocation& lhs,
+                         const ResourceAllocation& rhs) const;
+
  private:
   enum class DCHECKFailOption { kDoDCHECKFail, kDoNotDCHECKFail };
 
@@ -187,6 +201,11 @@ class ResourceUtil {
   // normalized output.
   ResourceAllocation OverbindNormalized(
       const ResourceAllocation& allocation) const;
+
+  // Like Max(), but assumes the input are normalized and produces a normalized
+  // result.
+  ResourceAllocation MaxNormalized(const ResourceAllocation& lhs,
+                                   const ResourceAllocation& rhs) const;
 
   const std::map<string, uint32> devices_;
 

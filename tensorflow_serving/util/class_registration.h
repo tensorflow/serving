@@ -99,18 +99,18 @@ limitations under the License.
 //
 // This mechanism also allows additional parameter passing into the Create()
 // factory method.  Consider the following example in which Create() takes an
-// int and a string, in addition to the config proto:
+// int, a string and an int->string map, in addition to the config proto:
 //
 //   class MyParameterizedBaseClass {
 //     ...
 //   };
 //   DEFINE_CLASS_REGISTRY(MyParameterizedBaseClassRegistry,
 //                            MyParameterizedBaseClass, int, const string&
-//                            const std::map<int COMMA string>&);
+//                            const std::map<int TFS_COMMA string>&);
 //   #define REGISTER_MY_BASE_CLASS(ClassCreator, ConfigProto)
 //     REGISTER_CLASS(MyBaseClassRegistry, MyBaseClass, ClassCreator,
 //                       ConfigProto, int, const string&,
-//                       const std::map<int COMMA string>&);
+//                       const std::map<int TFS_COMMA string>&);
 //
 //   class OneClass : public MyParameterizedBaseClass {
 //    public:
@@ -138,9 +138,9 @@ limitations under the License.
 // registries for the same base class, potentially with different factory
 // signatures.
 //
-// Note that types containing a comma, e.g. std::map<string, int> must use COMMA
-// in place of ','.
-// TODO(b/24472377): Eliminate the requirement to use COMMA.
+// Note that types containing a comma, e.g. std::map<string, int> must use
+// TFS_COMMA in place of ','.
+// TODO(b/24472377): Eliminate the requirement to use TFS_COMMA.
 
 #ifndef TENSORFLOW_SERVING_UTIL_CLASS_REGISTRATION_H_
 #define TENSORFLOW_SERVING_UTIL_CLASS_REGISTRATION_H_
@@ -330,9 +330,9 @@ class ClassRegistry {
 
 // Used to enable the following macros to work with types containing commas
 // (e.g. map<string, int>).
-// TODO(b/24472377): Eliminate the requirement to use COMMA, via some fancy
+// TODO(b/24472377): Eliminate the requirement to use TFS_COMMA, via some fancy
 // macro gymnastics.
-#define COMMA ,
+#define TFS_COMMA ,
 
 // Given a base class BaseClass, creates a registry named RegistryName.
 #define DEFINE_CLASS_REGISTRY(RegistryName, BaseClass, ...)                   \

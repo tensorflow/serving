@@ -129,14 +129,7 @@ cc_test(
     size = "medium",
     srcs = ["get_model_status_impl_test.cc"],
     data = [
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000123/assets/foo.txt",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000123/saved_model.pb",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000123/variables/variables.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000123/variables/variables.index",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000124/assets/foo.txt",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000124/saved_model.pb",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000124/variables/variables.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000124/variables/variables.index",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions",
     ],
     deps = [
         ":get_model_status_impl",
@@ -168,7 +161,9 @@ cc_library(
         ":get_model_status_impl",
         ":grpc_status_util",
         ":server_core",
+        "//tensorflow_serving/apis:model_management_proto",
         "//tensorflow_serving/apis:model_service_proto",
+        "//tensorflow_serving/util:status_util",
         "@grpc//:grpc++_unsecure",
     ],
 )
@@ -222,6 +217,7 @@ cc_binary(
         "//tensorflow_serving/apis:prediction_service_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
+        "//tensorflow_serving/servables/tensorflow:multi_inference_helper",
         "@grpc//:grpc++_unsecure",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
 )
