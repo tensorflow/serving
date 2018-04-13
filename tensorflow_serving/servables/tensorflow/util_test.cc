@@ -23,6 +23,8 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/histogram/histogram.h"
+#include "tensorflow/core/lib/monitoring/counter.h"
+#include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
@@ -210,13 +212,18 @@ TEST(ExampleCountsTest, Simple) {
 
   const HistogramProto before_histogram =
       internal::GetExampleCounts()->GetCell("model-name")->value();
+  const int before_count =
+      internal::GetExampleCountTotal()->GetCell("model-name")->value();
   RecordRequestExampleCount("model-name", 3);
   const HistogramProto after_histogram =
       internal::GetExampleCounts()->GetCell("model-name")->value();
+  const int after_count =
+      internal::GetExampleCountTotal()->GetCell("model-name")->value();
 
   ASSERT_GE(before_histogram.bucket().size(), 3);
   ASSERT_GE(after_histogram.bucket().size(), 3);
   EXPECT_EQ(1, after_histogram.bucket(2) - before_histogram.bucket(2));
+  EXPECT_EQ(3, after_count - before_count);
 }
 
 TEST(ModelSpecTest, NoOptional) {

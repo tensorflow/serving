@@ -20,6 +20,7 @@ limitations under the License.
 #include <memory>
 
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow_serving/core/aspired_versions_manager.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/manager.h"
@@ -56,6 +57,10 @@ Status ConnectSourcesWithFastInitialLoad(
     AspiredVersionsManager* manager,
     std::vector<Source<std::unique_ptr<Loader>>*> sources,
     const std::function<Status()>& wait_until_loaded_fn, uint32 num_threads);
+
+uint32 GetManagerNumLoadThreads(AspiredVersionsManager* manager);
+std::function<void(const uint32)> SetManagerNumLoadThreadsNotifier(
+    AspiredVersionsManager* manager);
 
 }  // namespace internal
 

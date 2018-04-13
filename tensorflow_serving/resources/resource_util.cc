@@ -220,6 +220,11 @@ ResourceAllocation ResourceUtil::Overbind(
   return OverbindNormalized(Normalize(allocation));
 }
 
+ResourceAllocation ResourceUtil::Max(const ResourceAllocation& lhs,
+                                     const ResourceAllocation& rhs) const {
+  return MaxNormalized(Normalize(lhs), Normalize(rhs));
+}
+
 bool ResourceUtil::IsBoundNormalized(
     const ResourceAllocation& allocation) const {
   DCHECK(IsNormalized(allocation));
@@ -485,6 +490,22 @@ ResourceAllocation ResourceUtil::OverbindNormalized(
   }
   DCHECK(IsNormalized(result));
   return result;
+}
+
+ResourceAllocation ResourceUtil::MaxNormalized(
+    const ResourceAllocation& lhs, const ResourceAllocation& rhs) const {
+  DCHECK(IsNormalized(lhs));
+  DCHECK(IsNormalized(rhs));
+
+  ResourceAllocation max_resource_allocation = rhs;
+  for (const ResourceAllocation::Entry& lhs_entry : lhs.resource_quantities()) {
+    ResourceAllocation::Entry* max_entry = FindOrInsertMutableEntry(
+        lhs_entry.resource(), &max_resource_allocation);
+    if (lhs_entry.quantity() >= max_entry->quantity()) {
+      max_entry->set_quantity(lhs_entry.quantity());
+    }
+  }
+  return max_resource_allocation;
 }
 
 }  // namespace serving

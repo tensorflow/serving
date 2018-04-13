@@ -24,6 +24,7 @@ limitations under the License.
 
 #include "google/protobuf/any.pb.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/types.h"

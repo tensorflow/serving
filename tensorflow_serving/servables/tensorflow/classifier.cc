@@ -444,5 +444,26 @@ Status PostProcessClassificationResult(
   return Status::OK();
 }
 
+Status RunClassify(const RunOptions& run_options,
+                   const MetaGraphDef& meta_graph_def,
+                   const optional<int64>& servable_version, Session* session,
+                   const ClassificationRequest& request,
+                   ClassificationResponse* response) {
+  SignatureDef signature;
+  TF_RETURN_IF_ERROR(GetClassificationSignatureDef(request.model_spec(),
+                                                   meta_graph_def, &signature));
+
+  std::unique_ptr<ClassifierInterface> classifier_interface;
+  TF_RETURN_IF_ERROR(CreateFlyweightTensorFlowClassifier(
+      run_options, session, &signature, &classifier_interface));
+
+  MakeModelSpec(request.model_spec().name(),
+                request.model_spec().signature_name(), servable_version,
+                response->mutable_model_spec());
+
+  // Run classification.
+  return classifier_interface->Classify(request, response->mutable_result());
+}
+
 }  // namespace serving
 }  // namespace tensorflow

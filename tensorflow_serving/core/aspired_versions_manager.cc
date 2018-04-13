@@ -177,6 +177,10 @@ AspiredVersionsManager::AspiredVersionsManager(
     : aspired_version_policy_(std::move(aspired_version_policy)),
       target_impl_(new internal::AspiredVersionsManagerTargetImpl(this)),
       basic_manager_(std::move(basic_manager)) {
+  set_num_load_threads_observer_.reset(
+      new Observer<const uint32>([this](const uint32 num_load_threads) {
+        this->SetNumLoadThreads(num_load_threads);
+      }));
   if (manage_state_interval_micros > 0) {
     PeriodicFunction::Options pf_options;
     pf_options.env = env;
