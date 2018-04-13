@@ -35,8 +35,8 @@ Before getting started, please complete the
 [prerequisites](setup.md#prerequisites).
 
 Note: All `bazel build` commands below use the standard `-c opt` flag. To
-further optimize the build, refer to the
-[instructions here](setup.md#optimized-build).
+further optimize the build, refer to the [instructions
+here](setup.md#optimized).
 
 ## Train And Export TensorFlow Model
 

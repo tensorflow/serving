@@ -18,31 +18,31 @@ limitations under the License.
 
 #include "grpc++/server_context.h"
 #include "grpc++/support/status.h"
+#include "tensorflow_serving/apis/model_management.pb.h"
 #include "tensorflow_serving/apis/model_service.grpc.pb.h"
 #include "tensorflow_serving/apis/model_service.pb.h"
 #include "tensorflow_serving/model_servers/server_core.h"
-#include "tensorflow_serving/apis/model_management.pb.h"
 
 namespace tensorflow {
-  namespace serving {
+namespace serving {
 
-    class ModelServiceImpl final : public ModelService::Service {
-    public:
-      explicit ModelServiceImpl(ServerCore *core) : core_(core) {}
+class ModelServiceImpl final : public ModelService::Service {
+ public:
+  explicit ModelServiceImpl(ServerCore *core) : core_(core) {}
 
-      ::grpc::Status GetModelStatus(::grpc::ServerContext *context,
-                                    const GetModelStatusRequest *request,
-                                    GetModelStatusResponse *response) override;
+  ::grpc::Status GetModelStatus(::grpc::ServerContext *context,
+                                const GetModelStatusRequest *request,
+                                GetModelStatusResponse *response) override;
 
-      ::grpc::Status HandleReloadConfigRequest(::grpc::ServerContext *context,
-                                               const ReloadConfigRequest *request,
-                                               ReloadConfigResponse *response);
+  ::grpc::Status HandleReloadConfigRequest(::grpc::ServerContext *context,
+                                           const ReloadConfigRequest *request,
+                                           ReloadConfigResponse *response);
 
-    private:
-      ServerCore *core_;
-    };
+ private:
+  ServerCore *core_;
+};
 
-  }  // namespace serving
+}  // namespace serving
 }  // namespace tensorflow
 
 #endif  // TENSORFLOW_SERVING_MODEL_SERVERS_MODEL_SERVICE_IMPL_H_

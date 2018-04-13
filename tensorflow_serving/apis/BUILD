@@ -117,6 +117,21 @@ serving_proto_library_py(
 )
 
 serving_proto_library(
+    name = "prediction_log_proto",
+    srcs = ["prediction_log.proto"],
+    cc_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":classification_proto",
+        ":inference_proto",
+        ":predict_proto",
+        ":regression_proto",
+        ":session_service_proto",
+        "//tensorflow_serving/core:logging_proto",
+    ],
+)
+
+serving_proto_library(
     name = "prediction_service_proto",
     srcs = ["prediction_service.proto"],
     has_services = 1,
@@ -155,7 +170,6 @@ serving_proto_library(
     name = "model_management_proto",
     srcs = ["model_management.proto"],
     cc_api_version = 2,
-    go_api_version = 2,
     java_api_version = 2,
     deps = [
         "//tensorflow_serving/config:model_server_config_proto",
@@ -291,6 +305,18 @@ serving_proto_library_py(
         ":input_proto_py_pb2",
         ":model_proto_py_pb2",
         "@org_tensorflow//tensorflow/core:protos_all_py",
+    ],
+)
+
+serving_proto_library(
+    name = "session_service_proto",
+    srcs = ["session_service.proto"],
+    has_services = 1,
+    cc_api_version = 2,
+    java_api_version = 2,
+    deps = [
+        ":model_proto",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
 )
 

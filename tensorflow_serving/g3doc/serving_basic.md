@@ -28,8 +28,8 @@ Before getting started, please complete the
 [prerequisites](setup.md#prerequisites).
 
 Note: All `bazel build` commands below use the standard `-c opt` flag. To
-further optimize the build, refer to the
-[instructions here](setup.md#optimized-build).
+further optimize the build, refer to the [instructions
+here](setup.md#optimized).
 
 ## Train And Export TensorFlow Model
 
@@ -152,12 +152,10 @@ $>rm -rf /tmp/mnist_model
 
 If you would like to install the `tensorflow` and `tensorflow-serving-api` PIP
 packages, you can run all Python code (export and client) using a simple
-`python` command. To install the PIP package, follow the
-[instructions here](setup.md#tensorflow-serving-python-api-pip-package).
-It's also possible to
-use Bazel to build the necessary dependencies and run all code without
-installing those packages. The rest of the codelab will have instructions for
-both the Bazel and PIP options.
+`python` command. To install the PIP package, follow the [instructions
+here](setup.md#pip). It's also possible to use Bazel to build the necessary
+dependencies and run all code without installing those packages. The rest of the
+codelab will have instructions for both the Bazel and PIP options.
 
 Bazel:
 
@@ -215,8 +213,8 @@ $>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000
 ```
 
 If you'd prefer to skip compilation and install using apt-get, follow the
-[instructions here](setup.md#installing-using-apt-get). Then run the server with
-the following command:
+[instructions here](setup.md#aptget). Then run the server with the following
+command:
 
 ```shell
 tensorflow_model_server --port=9000 --model_name=mnist --model_base_path=/tmp/mnist_model/

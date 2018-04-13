@@ -39,6 +39,7 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/target.h"
 #include "tensorflow_serving/util/event_bus.h"
+#include "tensorflow_serving/util/observer.h"
 #include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
@@ -50,10 +51,13 @@ namespace internal {
 
 class AspiredVersionsManagerTargetImpl;
 
-Status ConnectSourcesWithFastInitialLoad(
-    AspiredVersionsManager* manager,
-    std::vector<Source<std::unique_ptr<Loader>>*> sources,
-    const std::function<Status()>& wait_until_loaded_fn, uint32 num_threads);
+uint32 GetManagerNumLoadThreads(AspiredVersionsManager* manager);
+
+// Returns the Notifier function of the manager's Observer, which forwards
+// SetNumLoadThreads().  This indirection is to prevent callers from using
+// SetNumLoadThreads() on a deleted manager.
+std::function<void(uint32)> SetManagerNumLoadThreadsNotifier(
+    AspiredVersionsManager* manager);
 
 }  // namespace internal
 
@@ -204,10 +208,10 @@ class AspiredVersionsManager : public Manager,
   friend class internal::AspiredVersionsManagerTargetImpl;
   friend class test_util::AspiredVersionsManagerTestAccess;
   friend class ServerCore;
-  friend Status internal::ConnectSourcesWithFastInitialLoad(
-      AspiredVersionsManager* manager,
-      std::vector<Source<std::unique_ptr<Loader>>*> sources,
-      const std::function<Status()>& wait_until_loaded_fn, uint32 num_threads);
+  friend uint32 internal::GetManagerNumLoadThreads(
+      AspiredVersionsManager* manager);
+  friend std::function<void(uint32)> internal::SetManagerNumLoadThreadsNotifier(
+      AspiredVersionsManager* manager);
 
   AspiredVersionsManager(
       int64 manage_state_interval_micros, Env* env,
@@ -306,6 +310,10 @@ class AspiredVersionsManager : public Manager,
 
   // This is where the servables "live" while they are being managed.
   std::unique_ptr<BasicManager> basic_manager_;
+
+  // An observer object that forwards to SetNumLoadThreads(), if not detached.
+  // This is declared last here so that it is deleted before basic_manager_.
+  std::unique_ptr<Observer<const uint32>> set_num_load_threads_observer_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(AspiredVersionsManager);
 };

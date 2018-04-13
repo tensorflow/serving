@@ -24,6 +24,8 @@ limitations under the License.
 #include "tensorflow_serving/resources/resource_util.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/resources/resources.pb.h"
+#include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_warmup.h"
 #include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
@@ -50,7 +52,12 @@ Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
   std::shared_ptr<SavedModelBundleFactory> bundle_factory = bundle_factory_;
   auto servable_creator = [bundle_factory,
                            path](std::unique_ptr<SavedModelBundle>* bundle) {
-    return bundle_factory->CreateSavedModelBundle(path, bundle);
+    TF_RETURN_IF_ERROR(bundle_factory->CreateSavedModelBundle(path, bundle));
+    if (bundle_factory->config().enable_model_warmup()) {
+      return RunSavedModelWarmup(GetRunOptions(bundle_factory->config()), path,
+                                 bundle->get());
+    }
+    return Status::OK();
   };
   auto resource_estimator = [bundle_factory,
                              path](ResourceAllocation* estimate) {

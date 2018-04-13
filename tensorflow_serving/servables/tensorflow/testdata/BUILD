@@ -23,6 +23,17 @@ filegroup(
     ),
 )
 
+filegroup(
+    name = "saved_model_half_plus_two_2_versions",
+    srcs = glob(
+        ["saved_model_half_plus_two_2_versions/**/*"],
+        exclude = [
+            "**/METADATA",
+            "**/OWNERS",
+        ],
+    ),
+)
+
 py_binary(
     name = "export_half_plus_two",
     srcs = [

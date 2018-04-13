@@ -20,6 +20,7 @@ limitations under the License.
 #include <string>
 #include <vector>
 
+#include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/core/source_router.h"
 
@@ -80,7 +81,7 @@ template <typename T>
 int StaticSourceRouter<T>::Route(const StringPiece servable_name,
                                  const std::vector<ServableData<T>>& versions) {
   for (int i = 0; i < routes_except_default_.size(); ++i) {
-    if (servable_name.contains(routes_except_default_[i])) {
+    if (str_util::StrContains(servable_name, routes_except_default_[i])) {
       LOG(INFO) << "Routing servable(s) from stream " << servable_name
                 << " to route " << i;
       return i;
