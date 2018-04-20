@@ -50,6 +50,7 @@ serving_proto_library(
     srcs = ["input.proto"],
     cc_api_version = 2,
     java_api_version = 2,
+    js_api_version = 2,
     deps = [
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@protobuf_archive//:cc_wkt_protos",
