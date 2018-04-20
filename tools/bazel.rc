@@ -1,11 +1,7 @@
 build:cuda --crosstool_top=@org_tensorflow//third_party/gpus/crosstool
 build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
 
-build --force_python=py2
-build --python2_path=/usr/bin/python
-
 build --action_env PYTHON_BIN_PATH="/usr/bin/python"
-
 build --define PYTHON_BIN_PATH=/usr/bin/python
 
 build --spawn_strategy=standalone --genrule_strategy=standalone
