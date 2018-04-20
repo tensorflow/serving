@@ -53,7 +53,6 @@ serving_proto_library(
     js_api_version = 2,
     deps = [
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
