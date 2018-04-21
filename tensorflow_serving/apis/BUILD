@@ -160,6 +160,12 @@ py_library(
     ],
 )
 
+tf_pyclif_proto_library(
+    name = "predict_pyclif",
+    proto_lib = ":predict_proto",
+    proto_srcfile = "predict.proto",
+)
+
 serving_go_grpc_library(
     name = "prediction_service_grpc",
     srcs = [":prediction_service_proto"],
