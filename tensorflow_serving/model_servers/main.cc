@@ -60,7 +60,6 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/strings/numbers.h"
 #include "tensorflow/core/lib/strings/str_util.h"
-#include "tensorflow/core/lib/strings/numbers.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/platform/protobuf.h"
@@ -100,7 +99,6 @@ using tensorflow::serving::ServableState;
 using tensorflow::serving::ServerCore;
 using tensorflow::serving::SessionBundleConfig;
 using tensorflow::serving::TensorflowClassificationServiceImpl;
-using tensorflow::serving::TensorflowRegressionServiceImpl;
 using tensorflow::serving::TensorflowPredictor;
 using tensorflow::serving::TensorflowRegressionServiceImpl;
 using tensorflow::serving::UniquePtrWithDeps;
