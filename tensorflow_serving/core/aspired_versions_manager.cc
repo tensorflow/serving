@@ -240,7 +240,7 @@ void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
     mutex_lock l(pending_aspired_versions_requests_mu_);
     VLOG(1) << "Enqueueing aspired versions request: "
             << ServableVersionsDebugString(versions);
-    pending_aspired_versions_requests_[servable_name.ToString()] =
+    pending_aspired_versions_requests_[std::string(servable_name)] =
         std::move(versions);
   }
 }
@@ -260,7 +260,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
   std::set<int64> current_aspired_versions;
   const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
       basic_manager_->GetManagedServableStateSnapshots<Aspired>(
-          servable_name.ToString());
+          std::string(servable_name));
   for (const ServableStateSnapshot<Aspired> state_snapshot : state_snapshots) {
     if (state_snapshot.additional_state->is_aspired) {
       current_aspired_versions.insert(state_snapshot.id.version);
@@ -309,7 +309,7 @@ bool AspiredVersionsManager::ContainsAnyReaspiredVersions(
     const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) const {
   const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
       basic_manager_->GetManagedServableStateSnapshots<Aspired>(
-          servable_name.ToString());
+          std::string(servable_name));
   const std::set<int64> version_numbers = GetVersionNumbers(versions);
   for (const ServableStateSnapshot<Aspired>& state_snapshot : state_snapshots) {
     if (!state_snapshot.additional_state->is_aspired &&
