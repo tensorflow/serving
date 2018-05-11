@@ -53,7 +53,6 @@ serving_proto_library(
     js_api_version = 2,
     deps = [
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -159,6 +158,12 @@ py_library(
         ":predict_proto_py_pb2",
         ":regression_proto_py_pb2",
     ],
+)
+
+tf_pyclif_proto_library(
+    name = "predict_pyclif",
+    proto_lib = ":predict_proto",
+    proto_srcfile = "predict.proto",
 )
 
 serving_go_grpc_library(

@@ -107,7 +107,7 @@ int DynamicSourceRouter<T>::Route(
     const StringPiece servable_name,
     const std::vector<ServableData<T>>& versions) {
   mutex_lock l(routes_mu_);
-  auto it = routes_.find(servable_name.ToString());
+  auto it = routes_.find(std::string(servable_name));
   if (it == routes_.end()) {
     LOG(INFO) << "Routing servable(s) from stream " << servable_name
               << " to default output port " << num_output_ports_ - 1;

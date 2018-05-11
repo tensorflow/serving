@@ -25,7 +25,7 @@ limitations under the License.
 // main() is supplied by gunit_main
 #else
 #include "gtest/gtest.h"
-#include "tensorflow/core/lib/core/stringpiece.h"
+#include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/test_benchmark.h"
 
 GTEST_API_ int main(int argc, char** argv) {
@@ -33,7 +33,7 @@ GTEST_API_ int main(int argc, char** argv) {
 
   testing::InitGoogleTest(&argc, argv);
   for (int i = 1; i < argc; i++) {
-    if (tensorflow::StringPiece(argv[i]).starts_with("--benchmarks=")) {
+    if (tensorflow::str_util::StartsWith(argv[i], "--benchmarks=")) {
       const char* pattern = argv[i] + strlen("--benchmarks=");
       tensorflow::testing::Benchmark::Run(pattern);
       return 0;
