@@ -196,7 +196,8 @@ class ClassRegistrationFactory
   // expected type.
   Status Create(const protobuf::Message& config, AdditionalFactoryArgs... args,
                 std::unique_ptr<BaseClass>* result) const override {
-    if (config.GetDescriptor() != config_descriptor_) {
+    if (config.GetDescriptor()->full_name() !=
+        config_descriptor_->full_name()) {
       return errors::InvalidArgument(
           "Supplied config proto of type ", config.GetDescriptor()->full_name(),
           " does not match expected type ", config_descriptor_->full_name());
