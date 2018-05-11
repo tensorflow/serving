@@ -569,7 +569,7 @@ TEST_P(AspiredVersionsManagerTest, ManagerPrefersUnloadOverLoad) {
   for (const auto& servable_aspired : servable_aspired_list) {
     std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
     for (int i = servable_aspired.start; i <= servable_aspired.end; ++i) {
-      const ServableId id = {servable_aspired.name.ToString(), i};
+      const ServableId id = {std::string(servable_aspired.name), i};
       aspired_versions.push_back(CreateAspiredVersion(id));
     }
     manager_->GetAspiredVersionsCallback()(servable_aspired.name,

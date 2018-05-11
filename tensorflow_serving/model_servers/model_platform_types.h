@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
-#define TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
+#ifndef TENSORFLOW_SERVING_MODEL_SERVERS_MODEL_PLATFORM_TYPES_H_
+#define TENSORFLOW_SERVING_MODEL_SERVERS_MODEL_PLATFORM_TYPES_H_
 
 namespace tensorflow {
 namespace serving {
@@ -24,4 +24,4 @@ constexpr char kTensorFlowModelPlatform[] = "tensorflow";
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_MODEL_SERVERS_PLATFORM_TYPES_H_
+#endif  // TENSORFLOW_SERVING_MODEL_SERVERS_MODEL_PLATFORM_TYPES_H_
