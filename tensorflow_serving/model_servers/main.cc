@@ -304,8 +304,8 @@ void RunServer(int port, std::unique_ptr<ServerCore> core, bool use_saved_model,
     // gRPC accept arguments of two types, int and string. We will attempt to
     // parse each arg as int and pass it on as such if successful. Otherwise we
     // will pass it as a string. gRPC will log arguments that were not accepted.
-    int value;
-    if (tensorflow::strings::safe_strto32(channel_argument.key, &value)) {
+    tensorflow::int32 value;
+    if (tensorflow::strings::safe_strto32(channel_argument.value, &value)) {
       builder.AddChannelArgument(channel_argument.key, value);
     } else {
       builder.AddChannelArgument(channel_argument.key, channel_argument.value);
