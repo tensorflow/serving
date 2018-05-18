@@ -70,6 +70,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/prediction_service.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
+#include "tensorflow_serving/model_servers/config_reloader.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/model_service_impl.h"
@@ -91,6 +92,7 @@ using tensorflow::serving::AspiredVersionPolicy;
 using tensorflow::serving::AspiredVersionsManager;
 using tensorflow::serving::AvailabilityPreservingPolicy;
 using tensorflow::serving::BatchingParameters;
+using tensorflow::serving::ConfigReloader;
 using tensorflow::serving::EventBus;
 using tensorflow::serving::FileSystemStoragePathSourceConfig;
 using tensorflow::serving::GetModelMetadataImpl;
@@ -176,10 +178,27 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
 
 class PredictionServiceImpl final : public PredictionService::Service {
  public:
-  explicit PredictionServiceImpl(ServerCore* core, bool use_saved_model)
+  explicit PredictionServiceImpl(ServerCore* core,
+		                 bool use_saved_model,
+				 const string& model_config_file)
       : core_(core),
         predictor_(new TensorflowPredictor(use_saved_model)),
-        use_saved_model_(use_saved_model) {}
+        use_saved_model_(use_saved_model) {
+    if (!model_config_file.empty()) {
+      InitConfigReloaderThread(model_config_file);
+    }
+  }
+
+  void InitConfigReloaderThread(const string& model_config_file) {
+    loader_.reset(new ConfigReloader(model_config_file));
+    loader_->SetReloadFunc([this]() {
+      LOG(INFO) << "Ready to update model config file";
+      const ModelServerConfig& model_file_config =
+	  ReadProtoFromFile<ModelServerConfig>(loader_->GetFilePath());
+      this->core_->ReloadConfig(model_file_config);
+    });
+    loader_->Start();
+  }
 
   grpc::Status Predict(ServerContext* context, const PredictRequest* request,
                        PredictResponse* response) override {
@@ -263,6 +282,7 @@ class PredictionServiceImpl final : public PredictionService::Service {
   ServerCore* core_;
   std::unique_ptr<TensorflowPredictor> predictor_;
   bool use_saved_model_;
+  std::unique_ptr<ConfigReloader> loader_;
 };
 
 // gRPC Channel Arguments to be passed from command line to gRPC ServerBuilder.
@@ -287,11 +307,12 @@ std::vector<GrpcChannelArgument> parseGrpcChannelArgs(
 }
 
 void RunServer(int port, std::unique_ptr<ServerCore> core, bool use_saved_model,
-               const string& grpc_channel_arguments) {
+               const string& grpc_channel_arguments,
+	       const string& model_config_file) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
   tensorflow::serving::ModelServiceImpl model_service(core.get());
-  PredictionServiceImpl prediction_service(core.get(), use_saved_model);
+  PredictionServiceImpl prediction_service(core.get(), use_saved_model, model_config_file);
   ServerBuilder builder;
   std::shared_ptr<grpc::ServerCredentials> creds = InsecureServerCredentials();
   builder.AddListeningPort(server_address, creds);
@@ -470,7 +491,6 @@ int main(int argc, char** argv) {
 
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(std::move(options), &core));
-  RunServer(port, std::move(core), use_saved_model, grpc_channel_arguments);
-
+  RunServer(port, std::move(core), use_saved_model, grpc_channel_arguments, model_config_file);
   return 0;
 }
