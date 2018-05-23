@@ -55,10 +55,10 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "//tensorflow_serving/batching:batching_util",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/util:cleanup",
         "//tensorflow_serving/util:hash",
-        "//tensorflow_serving/batching:batching_util",
         "//tensorflow_serving/util:optional",
         "@org_tensorflow//tensorflow/contrib/batching:basic_batch_scheduler",
         "@org_tensorflow//tensorflow/contrib/batching:batch_scheduler",
@@ -75,8 +75,8 @@ cc_test(
         "batching_session_test.cc",
     ],
     data = [
+        "//tensorflow_serving/batching/testdata:matrix_half_plus_two",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
-        "//tensorflow_serving/batching/testdata:matrix_half_plus_two"
     ],
     deps = [
         ":batching_session",
@@ -132,12 +132,13 @@ cc_library(
 cc_test(
     name = "batching_util_test",
     srcs = [
-        "batching_util_test.cc"
+        "batching_util_test.cc",
     ],
     deps = [
         ":batching_util",
         "//tensorflow_serving/core/test_util:test_main",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
 )

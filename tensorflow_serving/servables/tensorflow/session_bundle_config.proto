@@ -59,6 +59,9 @@ message SessionBundleConfig {
   //
   // Input tensors to append to every Session::Run() call.
   repeated NamedTensorProto experimental_fixed_input_tensors = 778;
+
+  // Enables model warmup.
+  bool enable_model_warmup = 779;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

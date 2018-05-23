@@ -25,31 +25,28 @@ Status Retry(const string& description, const uint32 max_num_retries,
              const int64 retry_interval_micros,
              const std::function<Status()>& retried_fn,
              const std::function<bool()>& is_cancelled) {
-  return [&]() {
-    Status status;
-    int num_tries = 0;
-    do {
-      if (num_tries > 0) {
-        Env::Default()->SleepForMicroseconds(retry_interval_micros);
-        LOG(INFO) << "Retrying of " << description << " retry: " << num_tries;
-      }
-      status = retried_fn();
-      if (!status.ok()) {
-        LOG(ERROR) << description << " failed: " << status;
-      }
-      ++num_tries;
-    } while (!is_cancelled() && !status.ok() &&
-             num_tries < max_num_retries + 1);
+  Status status;
+  int num_tries = 0;
+  do {
+    if (num_tries > 0) {
+      Env::Default()->SleepForMicroseconds(retry_interval_micros);
+      LOG(INFO) << "Retrying of " << description << " retry: " << num_tries;
+    }
+    status = retried_fn();
+    if (!status.ok()) {
+      LOG(ERROR) << description << " failed: " << status;
+    }
+    ++num_tries;
+  } while (!is_cancelled() && !status.ok() && num_tries < max_num_retries + 1);
 
-    if (is_cancelled()) {
-      LOG(INFO) << "Retrying of " << description << " was cancelled.";
-    }
-    if (num_tries == max_num_retries + 1) {
-      LOG(INFO) << "Retrying of " << description
-                << " exhausted max_num_retries: " << max_num_retries;
-    }
-    return status;
-  }();
+  if (is_cancelled()) {
+    LOG(INFO) << "Retrying of " << description << " was cancelled.";
+  }
+  if (num_tries == max_num_retries + 1) {
+    LOG(INFO) << "Retrying of " << description
+              << " exhausted max_num_retries: " << max_num_retries;
+  }
+  return status;
 }
 
 }  // namespace serving

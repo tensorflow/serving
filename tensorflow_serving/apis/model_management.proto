@@ -7,9 +7,9 @@ package tensorflow.serving;
 option cc_enable_arenas = true;
 
 message ReloadConfigRequest {
-    ModelServerConfig config = 1;
+  ModelServerConfig config = 1;
 }
 
 message ReloadConfigResponse {
-    StatusProto status = 1;
+  StatusProto status = 1;
 }

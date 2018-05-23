@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_TEST_UTIL_MOCK_SESSION_H_
-#define TENSORFLOW_SERVING_TEST_UTIL_MOCK_SESSION_H_
+#ifndef TENSORFLOW_SERVING_CORE_TEST_UTIL_MOCK_SESSION_H_
+#define TENSORFLOW_SERVING_CORE_TEST_UTIL_MOCK_SESSION_H_
 
 #include <gmock/gmock.h>
 #include "tensorflow/core/public/session.h"
@@ -65,4 +65,4 @@ class MockSession : public tensorflow::Session {
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_TEST_UTIL_MOCK_SESSION_H_
+#endif  // TENSORFLOW_SERVING_CORE_TEST_UTIL_MOCK_SESSION_H_

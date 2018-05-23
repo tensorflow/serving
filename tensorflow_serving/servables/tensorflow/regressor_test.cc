@@ -239,6 +239,10 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
         tensorflow::serving::SetSignatures(signatures, meta_graph_def_));
   }
 
+  // Whether or not to use SavedModel for this test. Simply wraps GetParam()
+  // with a more meaningful name.
+  bool UseSavedModel() { return GetParam(); }
+
  protected:
   // Return an example with the feature "output" = [output].
   Example example_with_output(const float output) {
@@ -250,7 +254,7 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
   }
 
   Status Create() {
-    if (GetParam()) {
+    if (UseSavedModel()) {
       std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
       TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
           *bundle_, saved_model.get()));
@@ -259,6 +263,12 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
     } else {
       return CreateRegressorFromBundle(std::move(bundle_), &regressor_);
     }
+  }
+
+  RunOptions GetRunOptions() const {
+    RunOptions run_options;
+    run_options.set_timeout_in_ms(42);
+    return run_options;
   }
 
   // Variables used to create the regression model
@@ -272,13 +282,6 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
   // Convenience variables.
   RegressionRequest request_;
   RegressionResult result_;
-
- private:
-  RunOptions GetRunOptions() const {
-    RunOptions run_options;
-    run_options.set_timeout_in_ms(42);
-    return run_options;
-  }
 };
 
 TEST_P(RegressorTest, BasicExampleList) {
@@ -294,6 +297,22 @@ TEST_P(RegressorTest, BasicExampleList) {
                                    " regressions { "
                                    "   value: 3.0 "
                                    " } "));
+
+  // Test RunRegress
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    RegressionResponse response;
+    TF_ASSERT_OK(RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
+                            fake_session_, request_, &response));
+    EXPECT_THAT(response.result(), EqualsProto(" regressions { "
+                                               "   value: 2.0 "
+                                               " } "
+                                               " regressions { "
+                                               "   value: 3.0 "
+                                               " } "));
+  }
 }
 
 TEST_P(RegressorTest, BasicExampleListWithContext) {
@@ -312,6 +331,21 @@ TEST_P(RegressorTest, BasicExampleListWithContext) {
                                    " regressions { "
                                    "   value: 3.0 "
                                    " } "));
+  // Test RunRegress
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    RegressionResponse response;
+    TF_ASSERT_OK(RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
+                            fake_session_, request_, &response));
+    EXPECT_THAT(response.result(), EqualsProto(" regressions { "
+                                               "   value: 3.0 "
+                                               " } "
+                                               " regressions { "
+                                               "   value: 3.0 "
+                                               " } "));
+  }
 }
 
 TEST_P(RegressorTest, ValidNamedSignature) {
@@ -341,6 +375,21 @@ TEST_P(RegressorTest, ValidNamedSignature) {
                                      "   value: 3.0 "
                                      " } "));
   }
+  // Test RunRegress
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    RegressionResponse response;
+    TF_ASSERT_OK(RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
+                            fake_session_, request_, &response));
+    EXPECT_THAT(response.result(), EqualsProto(" regressions { "
+                                               "   value: 3.0 "
+                                               " } "
+                                               " regressions { "
+                                               "   value: 4.0 "
+                                               " } "));
+  }
 }
 
 TEST_P(RegressorTest, InvalidNamedSignature) {
@@ -368,6 +417,18 @@ TEST_P(RegressorTest, InvalidNamedSignature) {
                                      "   value: 3.0 "
                                      " } "));
   }
+  // Test RunRegress
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    RegressionResponse response;
+    const Status status =
+        RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
+                   fake_session_, request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  }
 }
 
 TEST_P(RegressorTest, MalformedOutputs) {
@@ -384,8 +445,17 @@ TEST_P(RegressorTest, MalformedOutputs) {
       request_.mutable_input()->mutable_example_list()->mutable_examples();
   *examples->Add() = example_with_output(2.0);
   *examples->Add() = example_with_output(3.0);
-  const Status status = regressor_->Regress(request_, &result_);
+  Status status = regressor_->Regress(request_, &result_);
 
+  ASSERT_FALSE(status.ok());
+  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  // Test RunRegress
+  std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+  TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+      *bundle_, saved_model.get()));
+  RegressionResponse response;
+  status = RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
+                      fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
 }
@@ -398,6 +468,19 @@ TEST_P(RegressorTest, EmptyInput) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Invalid argument: Input is empty"));
+  // Test RunRegress
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    RegressionResponse response;
+    const Status status =
+        RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
+                   fake_session_, request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(),
+                ::testing::HasSubstr("Invalid argument: Input is empty"));
+  }
 }
 
 TEST_P(RegressorTest, EmptyExampleList) {
@@ -407,6 +490,19 @@ TEST_P(RegressorTest, EmptyExampleList) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Invalid argument: Input is empty"));
+  // Test RunRegress
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    RegressionResponse response;
+    const Status status =
+        RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
+                   fake_session_, request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(),
+                ::testing::HasSubstr("Invalid argument: Input is empty"));
+  }
 }
 
 TEST_P(RegressorTest, EmptyExampleListWithContext) {
@@ -419,6 +515,19 @@ TEST_P(RegressorTest, EmptyExampleListWithContext) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Invalid argument: Input is empty"));
+  // Test RunRegress
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    RegressionResponse response;
+    const Status status =
+        RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
+                   fake_session_, request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(),
+                ::testing::HasSubstr("Invalid argument: Input is empty"));
+  }
 }
 
 TEST_P(RegressorTest, RunsFails) {
@@ -439,6 +548,18 @@ TEST_P(RegressorTest, RunsFails) {
   const Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
+  // Test RunRegress
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    RegressionResponse response;
+    const Status status =
+        RunRegress(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
+                   request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
+  }
 }
 
 TEST_P(RegressorTest, UnexpectedOutputTensorSize) {
@@ -460,6 +581,21 @@ TEST_P(RegressorTest, UnexpectedOutputTensorSize) {
   const Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("output batch size"));
+  // Test RunRegress
+  if (UseSavedModel()) {
+    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+        .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                   ::testing::Return(Status::OK())));
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    RegressionResponse response;
+    const Status status =
+        RunRegress(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
+                   request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(), ::testing::HasSubstr("output batch size"));
+  }
 }
 
 TEST_P(RegressorTest, UnexpectedOutputTensorType) {
@@ -483,6 +619,22 @@ TEST_P(RegressorTest, UnexpectedOutputTensorType) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Expected output Tensor of DT_FLOAT"));
+  // Test RunRegress
+  if (UseSavedModel()) {
+    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+        .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                   ::testing::Return(Status::OK())));
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    RegressionResponse response;
+    const Status status =
+        RunRegress(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
+                   request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(),
+                ::testing::HasSubstr("Expected output Tensor of DT_FLOAT"));
+  }
 }
 
 TEST_P(RegressorTest, MissingRegressionSignature) {
@@ -507,6 +659,18 @@ TEST_P(RegressorTest, MissingRegressionSignature) {
   } else {
     EXPECT_EQ(::tensorflow::error::FAILED_PRECONDITION, status.code())
         << status;
+  }
+  // Test RunRegress
+  if (UseSavedModel()) {
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+        *bundle_, saved_model.get()));
+    RegressionResponse response;
+    const Status status =
+        RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
+                   fake_session_, request_, &response);
+    ASSERT_FALSE(status.ok());
+    EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
   }
 }
 

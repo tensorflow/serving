@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_SERVING_APIS_REGRESSOR_H
-#define TENSORFLOW_SERVING_APIS_REGRESSOR_H
+#ifndef TENSORFLOW_SERVING_APIS_REGRESSOR_H_
+#define TENSORFLOW_SERVING_APIS_REGRESSOR_H_
 
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/apis/regression.pb.h"
