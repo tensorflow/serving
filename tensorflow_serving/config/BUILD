@@ -57,6 +57,14 @@ serving_proto_library(
     ],
 )
 
+serving_proto_library_py(
+    name = "log_collector_config_proto_py_pb2",
+    srcs = ["log_collector_config.proto"],
+    proto_library = "log_collector_config_proto",
+    deps = [
+    ],
+)
+
 serving_proto_library(
     name = "logging_config_proto",
     srcs = ["logging_config.proto"],
@@ -64,5 +72,14 @@ serving_proto_library(
     java_api_version = 2,
     deps = [
         ":log_collector_config_proto",
+    ],
+)
+
+serving_proto_library_py(
+    name = "logging_config_proto_py_pb2",
+    srcs = ["logging_config.proto"],
+    proto_library = "logging_config_proto",
+    deps = [
+        ":log_collector_config_proto_py_pb2",
     ],
 )
