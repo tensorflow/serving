@@ -263,6 +263,7 @@ cc_library(
     srcs = ["class_registration_util.cc"],
     hdrs = ["class_registration_util.h"],
     deps = [
+        "@com_google_absl//absl/strings",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
