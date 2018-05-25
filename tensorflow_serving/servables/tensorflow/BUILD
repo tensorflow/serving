@@ -436,6 +436,9 @@ cc_library(
     name = "predict_util",
     srcs = ["predict_util.cc"],
     hdrs = ["predict_util.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/servables/tensorflow:util",
