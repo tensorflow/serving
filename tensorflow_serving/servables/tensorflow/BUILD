@@ -871,7 +871,7 @@ cc_test(
     srcs = ["util_test.cc"],
     deps = [
         ":util",
-        "//tensorflow_serving/core/test_util:test_main",  # buildcleaner: keep
+        "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:framework",
