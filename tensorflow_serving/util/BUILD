@@ -2,6 +2,7 @@
 
 package(
     default_visibility = [
+        "//learning/serving:internal",
         "//tensorflow_serving:internal",
     ],
     features = ["-layering_check"],
