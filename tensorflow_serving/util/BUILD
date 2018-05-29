@@ -2,7 +2,6 @@
 
 package(
     default_visibility = [
-        "//learning/serving:internal",
         "//tensorflow_serving:internal",
     ],
     features = ["-layering_check"],
@@ -121,6 +120,7 @@ cc_test(
 cc_test(
     name = "fast_read_dynamic_ptr_benchmark",
     srcs = ["fast_read_dynamic_ptr_benchmark.cc"],
+    visibility = ["//visibility:public"],
     deps = [
         ":fast_read_dynamic_ptr",
         "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
