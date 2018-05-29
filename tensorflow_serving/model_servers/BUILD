@@ -209,6 +209,24 @@ cc_library(
 )
 
 cc_library(
+    name = "http_server",
+    srcs = ["http_server.cc"],
+    hdrs = ["http_server.h"],
+    visibility = ["//tensorflow_serving:internal"],
+    deps = [
+        ":http_rest_prediction_handler",
+        ":server_core",
+        "//tensorflow_serving/util:threadpool_executor",
+        "//tensorflow_serving/util/net_http/server/public:http_server",
+        "//tensorflow_serving/util/net_http/server/public:http_server_api",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/strings",
+        "@com_googlesource_code_re2//:re2",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
     name = "http_rest_prediction_handler",
     srcs = ["http_rest_prediction_handler.cc"],
     hdrs = ["http_rest_prediction_handler.h"],
@@ -256,6 +274,7 @@ cc_binary(
     ],
     visibility = ["//tensorflow_serving:internal"],
     deps = [
+        ":http_server",
         ":model_platform_types",
         ":platform_config_util",
         ":server_core",

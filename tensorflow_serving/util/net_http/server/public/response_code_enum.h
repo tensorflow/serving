@@ -59,35 +59,36 @@ enum class HTTPStatusCode {
   RESUME_INCOMPLETE = 308,  // Resume Incomplete
 
   // Client Error
-  BAD_REQUEST = 400,          // Bad Request
-  UNAUTHORIZED = 401,         // Unauthorized
-  PAYMENT = 402,              // Payment Required
-  FORBIDDEN = 403,            // Forbidden
-  NOT_FOUND = 404,            // Not Found
-  METHOD_NA = 405,            // Method Not Allowed
-  NONE_ACC = 406,             // Not Acceptable
-  PROXY = 407,                // Proxy Authentication Required
-  REQUEST_TO = 408,           // Request Time-out
-  CONFLICT = 409,             // Conflict
-  GONE = 410,                 // Gone
-  LEN_REQUIRED = 411,         // Length Required
-  PRECOND_FAILED = 412,       // Precondition Failed
-  ENTITY_TOO_BIG = 413,       // Request Entity Too Large
-  URI_TOO_BIG = 414,          // Request-URI Too Large
-  UNKNOWN_MEDIA = 415,        // Unsupported Media Type
-  BAD_RANGE = 416,            // Requested range not satisfiable
-  BAD_EXPECTATION = 417,      // Expectation Failed
-  IM_A_TEAPOT = 418,          // I'm a Teapot (RFC 2324, 7168)
-  MISDIRECTED_REQUEST = 421,  // Misdirected Request (RFC 7540)
-  UNPROC_ENTITY = 422,        // Unprocessable Entity (RFC 2518, sec 10.3)
-  LOCKED = 423,               // Locked (RFC 2518, sec 10.4)
-  FAILED_DEP = 424,           // Failed Dependency (RFC 2518, sec 10.5)
-  UPGRADE_REQUIRED = 426,     // Upgrade Required (RFC 7231, sec 6.5.14)
-  PRECOND_REQUIRED = 428,     // Precondition Required (RFC 6585, sec 3)
-  TOO_MANY_REQUESTS = 429,    // Too Many Requests (RFC 6585, sec 4)
-  HEADER_TOO_LARGE = 431,     // Request Header Fields Too Large
-                              // (RFC 6585, sec 5)
-  UNAVAILABLE_LEGAL = 451,    // Unavailable For Legal Reasons (RFC 7725)
+  BAD_REQUEST = 400,            // Bad Request
+  UNAUTHORIZED = 401,           // Unauthorized
+  PAYMENT = 402,                // Payment Required
+  FORBIDDEN = 403,              // Forbidden
+  NOT_FOUND = 404,              // Not Found
+  METHOD_NA = 405,              // Method Not Allowed
+  NONE_ACC = 406,               // Not Acceptable
+  PROXY = 407,                  // Proxy Authentication Required
+  REQUEST_TO = 408,             // Request Time-out
+  CONFLICT = 409,               // Conflict
+  GONE = 410,                   // Gone
+  LEN_REQUIRED = 411,           // Length Required
+  PRECOND_FAILED = 412,         // Precondition Failed
+  ENTITY_TOO_BIG = 413,         // Request Entity Too Large
+  URI_TOO_BIG = 414,            // Request-URI Too Large
+  UNKNOWN_MEDIA = 415,          // Unsupported Media Type
+  BAD_RANGE = 416,              // Requested range not satisfiable
+  BAD_EXPECTATION = 417,        // Expectation Failed
+  IM_A_TEAPOT = 418,            // I'm a Teapot (RFC 2324, 7168)
+  MISDIRECTED_REQUEST = 421,    // Misdirected Request (RFC 7540)
+  UNPROC_ENTITY = 422,          // Unprocessable Entity (RFC 2518, sec 10.3)
+  LOCKED = 423,                 // Locked (RFC 2518, sec 10.4)
+  FAILED_DEP = 424,             // Failed Dependency (RFC 2518, sec 10.5)
+  UPGRADE_REQUIRED = 426,       // Upgrade Required (RFC 7231, sec 6.5.14)
+  PRECOND_REQUIRED = 428,       // Precondition Required (RFC 6585, sec 3)
+  TOO_MANY_REQUESTS = 429,      // Too Many Requests (RFC 6585, sec 4)
+  HEADER_TOO_LARGE = 431,       // Request Header Fields Too Large
+                                // (RFC 6585, sec 5)
+  UNAVAILABLE_LEGAL = 451,      // Unavailable For Legal Reasons (RFC 7725)
+  CLIENT_CLOSED_REQUEST = 499,  // Client Closed Request (Nginx)
 
   // Server Error
   ERROR = 500,               // Internal Server Error
