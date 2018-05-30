@@ -733,6 +733,7 @@ cc_test(
 )
 
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 
 serving_proto_library(
     name = "logging_proto",
@@ -745,6 +746,19 @@ serving_proto_library(
     deps = [
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:logging_config_proto",
+    ],
+)
+
+serving_proto_library_py(
+    name = "logging_proto_py_pb2",
+    srcs = ["logging.proto"],
+    proto_library = "logging_proto",
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "//tensorflow_serving/apis:model_proto_py_pb2",
+        "//tensorflow_serving/config:logging_config_proto_py_pb2",
     ],
 )
 
