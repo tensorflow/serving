@@ -26,6 +26,7 @@ cc_library(
     testonly = 1,
     srcs = ["test_main.cc"],
     linkopts = ["-lm"],
+    tags = ["keep_dep"],  # Tell build_cleaner to keep dependencies on this.
     deps = [
         "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:testlib",
