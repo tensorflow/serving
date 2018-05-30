@@ -101,6 +101,7 @@ cc_test(
 cc_library(
     name = "fast_read_dynamic_ptr",
     hdrs = ["fast_read_dynamic_ptr.h"],
+    visibility = ["//visibility:public"],
     deps = [
         "@org_tensorflow//tensorflow/core:lib",
     ],
@@ -120,7 +121,6 @@ cc_test(
 cc_test(
     name = "fast_read_dynamic_ptr_benchmark",
     srcs = ["fast_read_dynamic_ptr_benchmark.cc"],
-    visibility = ["//visibility:public"],
     deps = [
         ":fast_read_dynamic_ptr",
         "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
