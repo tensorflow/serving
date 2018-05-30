@@ -150,6 +150,33 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "http_rest_prediction_handler_test",
+    size = "medium",
+    srcs = ["http_rest_prediction_handler_test.cc"],
+    data = ["@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two"],
+    deps = [
+        ":http_rest_prediction_handler",
+        ":model_platform_types",
+        ":platform_config_util",
+        ":server_core",
+        "//tensorflow_serving/core:availability_preserving_policy",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_proto",
+        "//tensorflow_serving/test_util",
+        "@com_github_tencent_rapidjson//:rapidjson",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+        "@com_googlesource_code_re2//:re2",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
 cc_library(
     name = "model_service_impl",
     srcs = ["model_service_impl.cc"],
@@ -181,6 +208,49 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "http_server",
+    srcs = ["http_server.cc"],
+    hdrs = ["http_server.h"],
+    visibility = ["//tensorflow_serving:internal"],
+    deps = [
+        ":http_rest_prediction_handler",
+        ":server_core",
+        "//tensorflow_serving/util:threadpool_executor",
+        "//tensorflow_serving/util/net_http/server/public:http_server",
+        "//tensorflow_serving/util/net_http/server/public:http_server_api",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/strings",
+        "@com_googlesource_code_re2//:re2",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
+    name = "http_rest_prediction_handler",
+    srcs = ["http_rest_prediction_handler.cc"],
+    hdrs = ["http_rest_prediction_handler.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":server_core",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/apis:predict_proto",
+        "//tensorflow_serving/core:servable_handle",
+        "//tensorflow_serving/servables/tensorflow:classification_service",
+        "//tensorflow_serving/servables/tensorflow:predict_impl",
+        "//tensorflow_serving/servables/tensorflow:regression_service",
+        "//tensorflow_serving/util:json_tensor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:optional",
+        "@com_googlesource_code_re2//:re2",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+    ],
+)
+
 SUPPORTED_TENSORFLOW_OPS = [
     "@org_tensorflow//tensorflow/contrib:contrib_kernels",
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
@@ -204,6 +274,7 @@ cc_binary(
     ],
     visibility = ["//tensorflow_serving:internal"],
     deps = [
+        ":http_server",
         ":model_platform_types",
         ":platform_config_util",
         ":server_core",

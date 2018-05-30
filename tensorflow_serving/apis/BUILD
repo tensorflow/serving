@@ -146,6 +146,20 @@ serving_proto_library(
     ],
 )
 
+serving_proto_library_py(
+    name = "prediction_log_proto_py_pb2",
+    srcs = ["prediction_log.proto"],
+    proto_library = "prediction_log_proto",
+    deps = [
+        ":classification_proto_py_pb2",
+        ":inference_proto_py_pb2",
+        ":predict_proto_py_pb2",
+        ":regression_proto_py_pb2",
+        ":session_service_proto_py_pb2",
+        "//tensorflow_serving/core:logging_proto_py_pb2",
+    ],
+)
+
 serving_proto_library(
     name = "prediction_service_proto",
     srcs = ["prediction_service.proto"],
@@ -348,6 +362,16 @@ serving_proto_library(
     deps = [
         ":model_proto",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
+    ],
+)
+
+serving_proto_library_py(
+    name = "session_service_proto_py_pb2",
+    srcs = ["session_service.proto"],
+    proto_library = "session_service_proto",
+    deps = [
+        ":model_proto_py_pb2",
+        "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
 )
 
