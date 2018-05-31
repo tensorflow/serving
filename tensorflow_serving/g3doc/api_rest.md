@@ -36,7 +36,7 @@ details.
 In case of error, all APIs will return a JSON object in the response body with
 `error` as key and the error message as the value:
 
-```json
+```javascript
 {
   "error": <error message string>
 }
@@ -49,7 +49,7 @@ In case of error, all APIs will return a JSON object in the response body with
 The request body for the `classify` and `regress` APIs must be a JSON object
 formatted as follows:
 
-```json
+```javascript
 {
   // Optional: serving signature to use.
   // If unspecifed default serving signature is used.
@@ -94,7 +94,7 @@ objects.
 A `classify` request returns a JSON object in the response body, formatted as
 follows:
 
-```json
+```javascript
 {
   "result": [
     // List of class label/score pairs for first Example (in request)
@@ -114,7 +114,7 @@ number.
 The `regress` request returns a JSON object in the response body, formatted as
 follows:
 
-```json
+```javascript
 {
   // One regression value for each example in the request in the same order.
   "result": [ <value1>, <value2>, <value3>, ...]
@@ -132,7 +132,7 @@ Users of gRPC API will notice the similarity of this format with
 
 The request body for `predict` API must be JSON object formatted as follows:
 
-```json
+```javascript
 {
   // Optional: serving signature to use.
   // If unspecifed default serving signature is used.
@@ -149,7 +149,7 @@ predict API](https://cloud.google.com/ml-engine/docs/v1/predict-request).
 When there is only one named input, the list items are expected to be scalars
 (number/string):
 
-```json
+```javascript
 {
   "instances": [ "foo", "bar", "baz" ]
 }
@@ -157,7 +157,7 @@ When there is only one named input, the list items are expected to be scalars
 
 or lists of these primitive types.
 
-```json
+```javascript
 {
   // List of 2 tensors each of [1, 2] shape
   "instances": [ [[1, 2]], [[3, 4]] ]
@@ -172,7 +172,7 @@ input name/tensor value pair, one for each named input. As an example, the
 following is a request with two instances, each with a set of three named input
 tensors:
 
-```json
+```javascript
 {
  "instances": [
    {
@@ -197,7 +197,7 @@ details on how to represent a binary (stream of bytes) value.
 The `predict` request returns a JSON object in response body, formatted as
 follows:
 
-```json
+```javascript
 {
   "predictions": [ <value>|<(nested)list>|<object>, ...]
 }
@@ -232,7 +232,7 @@ JSON uses UTF-8 encoding. If you have input feature or tensor values that need
 to be binary (like image bytes), you *must* Base64 encode the data and
 encapsulate it in a JSON object having `b64` as the key as follows:
 
-```json
+```javascript
 { "b64": <base64 encoded string> }
 ```
 
@@ -242,7 +242,7 @@ format is used to encode output response as well.
 A classification request with `image` (binary data) and `caption` features is
 shown below:
 
-```json
+```javascript
 {
   "signature_name": "classify_objects",
   "examples": [
@@ -269,7 +269,7 @@ values (e.g. 3.14, 1.0 etc.) these can have `NaN` and non-finite (`Infinity` and
 The REST API described on this page allows request/response JSON objects to have
 such values. This implies that requests like the following one are valid:
 
-```json
+```javascript
 {
   "example": [
     {
