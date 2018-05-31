@@ -71,6 +71,7 @@ limitations under the License.
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
+#include "tensorflow_serving/model_servers/http_server.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/model_service_impl.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
@@ -286,8 +287,15 @@ std::vector<GrpcChannelArgument> parseGrpcChannelArgs(
   return result;
 }
 
+struct HttpServerOptions {
+  tensorflow::int32 port;
+  tensorflow::int32 num_threads;
+  tensorflow::int32 timeout_in_ms;
+};
+
 void RunServer(int port, std::unique_ptr<ServerCore> core, bool use_saved_model,
-               const string& grpc_channel_arguments) {
+               const string& grpc_channel_arguments,
+               const HttpServerOptions& http_options) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
   tensorflow::serving::ModelServiceImpl model_service(core.get());
@@ -313,6 +321,26 @@ void RunServer(int port, std::unique_ptr<ServerCore> core, bool use_saved_model,
   }
   std::unique_ptr<Server> server(builder.BuildAndStart());
   LOG(INFO) << "Running ModelServer at " << server_address << " ...";
+
+  if (http_options.port != 0) {
+    if (http_options.port != port) {
+      const string server_address =
+          "localhost:" + std::to_string(http_options.port);
+      auto http_server =
+          CreateAndStartHttpServer(http_options.port, http_options.num_threads,
+                                   http_options.timeout_in_ms, core.get());
+      if (http_server != nullptr) {
+        LOG(INFO) << "Exporting HTTP/REST API at:" << server_address << " ...";
+        http_server->WaitForTermination();
+      } else {
+        LOG(ERROR) << "Failed to start HTTP Server at " << server_address;
+      }
+    } else {
+      LOG(ERROR) << "--rest_api_port cannot be same as --port. "
+                 << "Please use a different port for HTTP/REST API. "
+                 << "Skipped exporting HTTP/REST API.";
+    }
+  }
   server->Wait();
 }
 
@@ -328,6 +356,10 @@ tensorflow::serving::PlatformConfigMap ParsePlatformConfigMap(
 
 int main(int argc, char** argv) {
   tensorflow::int32 port = 8500;
+  HttpServerOptions http_options;
+  http_options.port = 0;
+  http_options.num_threads = 4 * tensorflow::port::NumSchedulableCPUs();
+  http_options.timeout_in_ms = 30000;  // 30 seconds.
   bool enable_batching = false;
   float per_process_gpu_memory_fraction = 0;
   tensorflow::string batching_parameters_file;
@@ -344,7 +376,16 @@ int main(int argc, char** argv) {
   string model_config_file;
   string grpc_channel_arguments = "";
   std::vector<tensorflow::Flag> flag_list = {
-      tensorflow::Flag("port", &port, "port to listen on"),
+      tensorflow::Flag("port", &port, "Port to listen on for gRPC API"),
+      tensorflow::Flag("rest_api_port", &http_options.port,
+                       "Port to listen on for HTTP/REST API. If set to zero "
+                       "HTTP/REST API will not be exported. This port must be "
+                       "different than the one specified in --port."),
+      tensorflow::Flag("rest_api_num_threads", &http_options.num_threads,
+                       "Number of threads for HTTP/REST API processing. If not "
+                       "set, will be auto set based on number of CPUs."),
+      tensorflow::Flag("rest_api_timeout_in_ms", &http_options.timeout_in_ms,
+                       "Timeout for HTTP/REST API calls."),
       tensorflow::Flag("enable_batching", &enable_batching, "enable batching"),
       tensorflow::Flag("batching_parameters_file", &batching_parameters_file,
                        "If non-empty, read an ascii BatchingParameters "
@@ -470,7 +511,8 @@ int main(int argc, char** argv) {
 
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(std::move(options), &core));
-  RunServer(port, std::move(core), use_saved_model, grpc_channel_arguments);
+  RunServer(port, std::move(core), use_saved_model, grpc_channel_arguments,
+            http_options);
 
   return 0;
 }
