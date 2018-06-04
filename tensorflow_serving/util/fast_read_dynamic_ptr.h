@@ -204,7 +204,7 @@ std::unique_ptr<T> FastReadDynamicPtr<T>::Update(std::unique_ptr<T> object) {
 
 template <typename T>
 typename FastReadDynamicPtr<T>::ReadPtr FastReadDynamicPtr<T>::get() const {
-  mutex_lock lock(mutex_);
+  tf_shared_lock lock(mutex_);
   return object_->reference();
 }
 
