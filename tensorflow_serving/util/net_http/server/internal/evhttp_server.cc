@@ -210,14 +210,19 @@ bool EvHTTPServer::StartAcceptingRequests() {
 
   const int port = server_options_->ports().front();
 
-  ev_listener_ = evhttp_bind_socket_with_handle(ev_http_,
-                                                "::",  // in6addr_any
-                                                static_cast<ev_uint16_t>(port));
+  // "::"  =>  in6addr_any
+  ev_uint16_t ev_port = static_cast<ev_uint16_t>(port);
+  ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, "::", ev_port);
   if (ev_listener_ == nullptr) {
-    ABSL_RAW_LOG(FATAL, "Couldn't bind to port %d", port);
-    return false;
+    // in case ipv6 is not supported, fallback to inaddr_any
+    ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, nullptr, ev_port);
+    if (ev_listener_ == nullptr) {
+      ABSL_RAW_LOG(FATAL, "Couldn't bind to port %d", port);
+      return false;
+    }
   }
 
+  // Listener counts as an active operation
   IncOps();
 
   port_ = port;
