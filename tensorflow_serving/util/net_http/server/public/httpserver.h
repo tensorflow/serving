@@ -24,7 +24,7 @@ limitations under the License.
 #include "absl/memory/memory.h"
 
 #include "tensorflow_serving/util/net_http/server/internal/evhttp_server.h"
-#include "tensorflow_serving/util/net_http/server/public/httpserverinterface.h"
+#include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
 
 namespace tensorflow {
 namespace serving {

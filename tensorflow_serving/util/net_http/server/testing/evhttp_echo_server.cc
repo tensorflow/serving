@@ -30,8 +30,8 @@ limitations under the License.
 #include "absl/strings/string_view.h"
 
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
-#include "tensorflow_serving/util/net_http/server/public/httpserverinterface.h"
-#include "tensorflow_serving/util/net_http/server/public/serverrequestinterface.h"
+#include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
+#include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
 
 namespace {
 

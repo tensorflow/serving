@@ -21,11 +21,12 @@ limitations under the License.
 
 #include "absl/memory/memory.h"
 #include "absl/synchronization/internal/thread_pool.h"
+#include "absl/synchronization/notification.h"
 
 #include "tensorflow_serving/util/net_http/client/evhttp_connection.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
-#include "tensorflow_serving/util/net_http/server/public/httpserverinterface.h"
-#include "tensorflow_serving/util/net_http/server/public/serverrequestinterface.h"
+#include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
+#include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
 
 namespace tensorflow {
 namespace serving {
@@ -97,9 +98,9 @@ TEST_F(EvHTTPServerTest, ExactPathMatching) {
   ASSERT_TRUE(connection != nullptr);
 
   ClientRequest request = {"/ok?a=foo", "GET", {}, nullptr};
-  ClientResponse response;
+  ClientResponse response = {};
 
-  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, 200);
   EXPECT_EQ(response.body, "OK");
 
@@ -107,7 +108,7 @@ TEST_F(EvHTTPServerTest, ExactPathMatching) {
   request = {"/ok/", "GET", {}, nullptr};
   response = {};
 
-  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, 404);
 
   server->Terminate();
@@ -136,9 +137,9 @@ TEST_F(EvHTTPServerTest, RequestHandlerOverwriting) {
   ASSERT_TRUE(connection != nullptr);
 
   ClientRequest request = {"/ok", "GET", {}, nullptr};
-  ClientResponse response;
+  ClientResponse response = {};
 
-  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, 200);
   EXPECT_EQ(response.body, "OK2");
 
@@ -166,9 +167,9 @@ TEST_F(EvHTTPServerTest, SingleRequestDispather) {
   ASSERT_TRUE(connection != nullptr);
 
   ClientRequest request = {"/ok", "GET", {}, nullptr};
-  ClientResponse response;
+  ClientResponse response = {};
 
-  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, 200);
   EXPECT_EQ(response.body, "OK");
 
@@ -204,16 +205,16 @@ TEST_F(EvHTTPServerTest, UriPrecedesOverRequestDispather) {
   ASSERT_TRUE(connection != nullptr);
 
   ClientRequest request = {"/ok", "GET", {}, nullptr};
-  ClientResponse response;
+  ClientResponse response = {};
 
-  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, 200);
   EXPECT_EQ(response.body, "OK1");
 
   request = {"/okxx", "GET", {}, nullptr};
   response = {};
 
-  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, 200);
   EXPECT_EQ(response.body, "OK2");
 
@@ -249,9 +250,9 @@ TEST_F(EvHTTPServerTest, InOrderRequestDispather) {
   ASSERT_TRUE(connection != nullptr);
 
   ClientRequest request = {"/ok", "GET", {}, nullptr};
-  ClientResponse response;
+  ClientResponse response = {};
 
-  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, 200);
   EXPECT_EQ(response.body, "OK1");
 
@@ -259,7 +260,84 @@ TEST_F(EvHTTPServerTest, InOrderRequestDispather) {
   server->WaitForTermination();
 }
 
-// TODO(wenboz): More tests on clean shutdown
+// Test handler interaction
+TEST_F(EvHTTPServerTest, RequestHandlerInteraction) {
+  absl::Notification handler1_start;
+  auto handler1 = [&handler1_start](ServerRequestInterface* request) {
+    handler1_start.WaitForNotification();
+    request->WriteResponseString("OK1");
+    request->Reply();
+  };
+
+  server->RegisterRequestHandler("/ok", std::move(handler1),
+                                 RequestHandlerOptions());
+
+  server->StartAcceptingRequests();
+
+  auto connection =
+      EvHTTPConnection::Connect("localhost", server->listen_port());
+  ASSERT_TRUE(connection != nullptr);
+  connection->SetExecutor(absl::make_unique<ThreadPool>(4));
+
+  absl::Notification response_done;
+  ClientRequest request = {"/ok", "GET", {}, nullptr};
+  ClientResponse response = {};
+  response.done = [&response_done]() { response_done.Notify(); };
+
+  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_FALSE(
+      response_done.WaitForNotificationWithTimeout(absl::Milliseconds(50)));
+
+  handler1_start.Notify();
+  response_done.WaitForNotification();
+
+  EXPECT_EQ(response.status, 200);
+  EXPECT_EQ(response.body, "OK1");
+
+  connection->Terminate();
+
+  server->Terminate();
+  server->WaitForTermination();
+}
+
+// Test active-request count during shutdown
+TEST_F(EvHTTPServerTest, ActiveRequestCountInShutdown) {
+  absl::Notification handler_enter;
+  absl::Notification handler_start;
+  auto handler = [&handler_enter,
+                  &handler_start](ServerRequestInterface* request) {
+    handler_enter.Notify();
+    handler_start.WaitForNotification();
+    request->WriteResponseString("OK1");
+    request->Reply();
+  };
+
+  server->RegisterRequestHandler("/ok", std::move(handler),
+                                 RequestHandlerOptions());
+
+  server->StartAcceptingRequests();
+
+  auto connection =
+      EvHTTPConnection::Connect("localhost", server->listen_port());
+  ASSERT_TRUE(connection != nullptr);
+  connection->SetExecutor(absl::make_unique<ThreadPool>(4));
+
+  ClientRequest request = {"/ok", "GET", {}, nullptr};
+  ClientResponse response = {};
+
+  EXPECT_TRUE(connection->SendRequest(request, &response));
+  handler_enter.WaitForNotification();
+
+  server->Terminate();
+  EXPECT_FALSE(server->WaitForTerminationWithTimeout(absl::Milliseconds(50)));
+
+  handler_start.Notify();
+  EXPECT_TRUE(server->WaitForTerminationWithTimeout(absl::Milliseconds(5000)));
+
+  connection->Terminate();
+
+  // response.status etc are undefined as the server is terminated
+}
 
 }  // namespace
 }  // namespace net_http

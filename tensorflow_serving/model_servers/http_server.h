@@ -17,7 +17,7 @@ limitations under the License.
 
 #include <memory>
 
-#include "tensorflow_serving/util/net_http/server/public/httpserverinterface.h"
+#include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
 
 namespace tensorflow {
 namespace serving {

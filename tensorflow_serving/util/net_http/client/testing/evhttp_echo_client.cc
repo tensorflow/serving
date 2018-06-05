@@ -33,9 +33,9 @@ bool SendRequest(const char* url) {
   }
 
   ClientRequest request = {url, "GET", {}, nullptr};
-  ClientResponse response;
+  ClientResponse response = {};
 
-  if (!connection->SendRequest(request, &response)) {
+  if (!connection->BlockingSendRequest(request, &response)) {
     std::cerr << "Request failed.";
     return false;
   }

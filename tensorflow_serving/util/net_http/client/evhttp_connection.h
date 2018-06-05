@@ -18,12 +18,14 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_UTIL_NET_HTTP_CLIENT_EVHTTP_CONNECTION_H_
 #define TENSORFLOW_SERVING_UTIL_NET_HTTP_CLIENT_EVHTTP_CONNECTION_H_
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 
 #include "libevent/include/event2/buffer.h"
 #include "libevent/include/event2/bufferevent.h"
@@ -31,6 +33,9 @@ limitations under the License.
 #include "libevent/include/event2/http.h"
 #include "libevent/include/event2/keyvalq_struct.h"
 #include "libevent/include/event2/util.h"
+
+// TODO(wenboz): move EventExecutor to net_http/common
+#include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
 
 namespace tensorflow {
 namespace serving {
@@ -55,6 +60,8 @@ struct ClientResponse {
   int status = 0;
   std::vector<HeaderKeyValue> headers;
   std::string body;
+
+  std::function<void()> done;  // callback
 };
 
 class EvHTTPConnection final {
@@ -63,6 +70,9 @@ class EvHTTPConnection final {
 
   EvHTTPConnection(const EvHTTPConnection& other) = delete;
   EvHTTPConnection& operator=(const EvHTTPConnection& other) = delete;
+
+  // Terminates the connection.
+  void Terminate();
 
   // Returns a new connection given an absolute URL.
   // Always treat the URL scheme as "http" for now.
@@ -83,14 +93,28 @@ class EvHTTPConnection final {
   // Sends a request and blocks the caller till a response is received
   // or any error has happened.
   // Returns false if any error.
+  bool BlockingSendRequest(const ClientRequest& request,
+                           ClientResponse* response);
+
+  // Sends a request and returns immediately. The response will be handled
+  // asynchronously via the response->done callback.
+  // Returns false if any error in sending the request, or if the executor
+  // has not been configured.
   bool SendRequest(const ClientRequest& request, ClientResponse* response);
+
+  // Sets the executor for processing requests asynchronously.
+  void SetExecutor(std::unique_ptr<EventExecutor> executor);
 
  private:
   EvHTTPConnection() = default;
 
-  struct event_base* ev_base;
-  struct evhttp_uri* http_uri;
-  struct evhttp_connection* evcon;
+  struct event_base* ev_base_;
+  struct evhttp_uri* http_uri_;
+  struct evhttp_connection* evcon_;
+
+  std::unique_ptr<EventExecutor> executor_;
+
+  std::unique_ptr<absl::Notification> loop_exit_;
 };
 
 }  // namespace net_http

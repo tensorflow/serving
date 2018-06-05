@@ -210,32 +210,34 @@ bool EvHTTPServer::StartAcceptingRequests() {
 
   const int port = server_options_->ports().front();
 
-  ev_listener_ = evhttp_bind_socket_with_handle(ev_http_,
-                                                "::",  // in6addr_any
-                                                static_cast<ev_uint16_t>(port));
+  // "::"  =>  in6addr_any
+  ev_uint16_t ev_port = static_cast<ev_uint16_t>(port);
+  ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, "::", ev_port);
   if (ev_listener_ == nullptr) {
-    ABSL_RAW_LOG(FATAL, "Couldn't bind to port %d", port);
-    return false;
+    // in case ipv6 is not supported, fallback to inaddr_any
+    ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, nullptr, ev_port);
+    if (ev_listener_ == nullptr) {
+      ABSL_RAW_LOG(FATAL, "Couldn't bind to port %d", port);
+      return false;
+    }
   }
+
+  // Listener counts as an active operation
+  IncOps();
 
   port_ = port;
   if (port_ == 0) {
     ResolveEphemeralPort(ev_listener_, &port_);
   }
 
+  IncOps();
   server_options_->executor()->Schedule([this]() {
-    // This may race with event_base_loopexit if terminate()
-    // is called concurrently; and may block even after terminate() is called.
-    // This is to be addressed with a more rigid shutdown routine which
-    // will close all incoming connections after listener is deleted.
     ABSL_RAW_LOG(INFO, "Entering the event loop ...");
     int result = event_base_dispatch(ev_base_);
     ABSL_RAW_LOG(INFO, "event_base_dispatch() exits with value %d", result);
 
-    DecOps();  // Unblock ~ctor
+    DecOps();
   });
-
-  IncOps();
 
   accepting_requests_.Notify();
 
@@ -261,11 +263,13 @@ void EvHTTPServer::Terminate() {
 
   terminating_.Notify();
 
-  // stop the listener first, which will delete ev_listener_
-  evhttp_del_accept_socket(ev_http_, ev_listener_);
-
-  int result = event_base_loopexit(ev_base_, nullptr);
-  ABSL_RAW_LOG(INFO, "event_base_loopexit() exits with value %d", result);
+  // call exit-loop from the event loop
+  this->EventLoopSchedule([this]() {
+    // Stop the listener first, which will delete ev_listener_
+    // This may cause the loop to exit, so need be scheduled from within
+    evhttp_del_accept_socket(ev_http_, ev_listener_);
+    DecOps();
+  });
 
   // Current shut-down behavior:
   // - we don't proactively delete/close any HTTP connections as part of
@@ -290,17 +294,48 @@ void EvHTTPServer::DecOps() {
 }
 
 void EvHTTPServer::WaitForTermination() {
-  absl::MutexLock l(&ops_mu_);
-  ops_mu_.Await(absl::Condition(+[](int64_t* count) { return *count == 0; },
-                                &num_pending_ops_));
+  {
+    absl::MutexLock l(&ops_mu_);
+    ops_mu_.Await(absl::Condition(+[](int64_t* count) { return *count <= 1; },
+                                  &num_pending_ops_));
+  }
+
+  int result = event_base_loopexit(ev_base_, nullptr);
+  ABSL_RAW_LOG(INFO, "event_base_loopexit() exits with value %d", result);
+
+  {
+    absl::MutexLock l(&ops_mu_);
+    ops_mu_.Await(absl::Condition(+[](int64_t* count) { return *count == 0; },
+                                  &num_pending_ops_));
+  }
 }
 
 bool EvHTTPServer::WaitForTerminationWithTimeout(absl::Duration timeout) {
-  absl::MutexLock l(&ops_mu_);
-  return ops_mu_.AwaitWithTimeout(
-      absl::Condition(+[](int64_t* count) { return *count == 0; },
-                      &num_pending_ops_),
-      timeout);
+  bool wait_result = true;
+
+  {
+    absl::MutexLock l(&ops_mu_);
+    wait_result = ops_mu_.AwaitWithTimeout(
+        absl::Condition(+[](int64_t* count) { return *count <= 1; },
+                        &num_pending_ops_),
+        timeout);
+  }
+
+  if (wait_result) {
+    int result = event_base_loopexit(ev_base_, nullptr);
+    ABSL_RAW_LOG(INFO, "event_base_loopexit() exits with value %d", result);
+
+    // This should pass immediately
+    {
+      absl::MutexLock l(&ops_mu_);
+      wait_result = ops_mu_.AwaitWithTimeout(
+          absl::Condition(+[](int64_t* count) { return *count == 0; },
+                          &num_pending_ops_),
+          timeout);
+    }
+  }
+
+  return wait_result;
 }
 
 EvHTTPServer::UriHandlerInfo::UriHandlerInfo(

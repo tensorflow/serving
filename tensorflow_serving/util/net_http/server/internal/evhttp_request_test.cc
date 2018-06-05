@@ -25,8 +25,8 @@ limitations under the License.
 
 #include "tensorflow_serving/util/net_http/client/evhttp_connection.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
-#include "tensorflow_serving/util/net_http/server/public/httpserverinterface.h"
-#include "tensorflow_serving/util/net_http/server/public/serverrequestinterface.h"
+#include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
+#include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
 
 namespace tensorflow {
 namespace serving {
@@ -80,9 +80,9 @@ TEST_F(EvHTTPRequestTest, SimpleGETNotFound) {
   ASSERT_TRUE(connection != nullptr);
 
   ClientRequest request = {"/noop", "GET", {}, nullptr};
-  ClientResponse response;
+  ClientResponse response = {};
 
-  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, 404);
   EXPECT_FALSE(response.body.empty());
 
@@ -105,9 +105,9 @@ TEST_F(EvHTTPRequestTest, SimpleGETOK) {
   ASSERT_TRUE(connection != nullptr);
 
   ClientRequest request = {"/ok", "GET", {}, nullptr};
-  ClientResponse response;
+  ClientResponse response = {};
 
-  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, 200);
   EXPECT_EQ(response.body, "OK");
 
@@ -135,9 +135,9 @@ TEST_F(EvHTTPRequestTest, SimplePOST) {
   ASSERT_TRUE(connection != nullptr);
 
   ClientRequest request = {"/ok", "POST", {}, "abcde"};
-  ClientResponse response;
+  ClientResponse response = {};
 
-  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, 200);
   EXPECT_EQ(response.body, "abcde");
 
@@ -168,9 +168,9 @@ TEST_F(EvHTTPRequestTest, RequestHeaders) {
                            {ClientRequest::HeaderKeyValue("H1", "v1"),
                             ClientRequest::HeaderKeyValue("H2", "v2")},
                            nullptr};
-  ClientResponse response;
+  ClientResponse response = {};
 
-  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, 200);
   EXPECT_EQ(response.body, "OK");
 
@@ -196,9 +196,9 @@ TEST_F(EvHTTPRequestTest, ResponseHeaders) {
   ASSERT_TRUE(connection != nullptr);
 
   ClientRequest request = {"/ok", "GET", {}, nullptr};
-  ClientResponse response;
+  ClientResponse response = {};
 
-  EXPECT_TRUE(connection->SendRequest(request, &response));
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   for (auto keyvalue : response.headers) {
     if (keyvalue.first == "H1") {
       EXPECT_EQ(keyvalue.second, "V1");
