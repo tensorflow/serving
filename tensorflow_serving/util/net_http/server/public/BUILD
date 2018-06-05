@@ -12,9 +12,9 @@ licenses(["notice"])  # Apache 2.0
 cc_library(
     name = "http_server_api",
     hdrs = [
-        "httpserverinterface.h",
+        "httpserver_interface.h",
         "response_code_enum.h",
-        "serverrequestinterface.h",
+        "server_request_interface.h",
     ],
     deps = [
         "@com_google_absl//absl/strings",

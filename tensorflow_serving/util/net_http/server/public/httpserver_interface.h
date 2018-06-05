@@ -15,8 +15,8 @@ limitations under the License.
 
 // APIs for the HTTP server.
 
-#ifndef TENSORFLOW_SERVING_UTIL_NET_HTTP_SERVER_PUBLIC_HTTPSERVERINTERFACE_H_
-#define TENSORFLOW_SERVING_UTIL_NET_HTTP_SERVER_PUBLIC_HTTPSERVERINTERFACE_H_
+#ifndef TENSORFLOW_SERVING_UTIL_NET_HTTP_SERVER_PUBLIC_HTTPSERVER_INTERFACE_H_
+#define TENSORFLOW_SERVING_UTIL_NET_HTTP_SERVER_PUBLIC_HTTPSERVER_INTERFACE_H_
 
 #include <cassert>
 
@@ -27,14 +27,13 @@ limitations under the License.
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 
-#include "tensorflow_serving/util/net_http/server/public/serverrequestinterface.h"
+#include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
 
 namespace tensorflow {
 namespace serving {
 namespace net_http {
 
-// A strictly non-blocking executor for processing I/O polling or callback
-// events.
+// A non-blocking executor for processing I/O polling or callback events.
 class EventExecutor {
  public:
   virtual ~EventExecutor() = default;
@@ -56,6 +55,7 @@ class ServerOptions {
   ServerOptions() = default;
 
   // At least one port has to be configured.
+  // Port 0 will start the server using an ephemeral port.
   void AddPort(int port) {
     assert(port >= 0);
     ports_.emplace_back(port);
@@ -173,4 +173,4 @@ class HTTPServerInterface {
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_UTIL_NET_HTTP_SERVER_PUBLIC_HTTPSERVERINTERFACE_H_
+#endif  // TENSORFLOW_SERVING_UTIL_NET_HTTP_SERVER_PUBLIC_HTTPSERVER_INTERFACE_H_

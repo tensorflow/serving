@@ -3,11 +3,13 @@ FROM ubuntu:16.04
 MAINTAINER Jeremiah Harmsen <jeremiah@google.com>
 
 RUN apt-get update && apt-get install -y \
+        automake \
         build-essential \
         curl \
         git \
         libfreetype6-dev \
         libpng12-dev \
+        libtool \
         libzmq3-dev \
         mlocate \
         pkg-config \
@@ -34,7 +36,7 @@ RUN pip install mock grpcio
 
 ENV BAZELRC /root/.bazelrc
 # Install the most recent bazel release.
-ENV BAZEL_VERSION 0.5.4
+ENV BAZEL_VERSION 0.10.0
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \

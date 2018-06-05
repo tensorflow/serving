@@ -41,6 +41,7 @@ cc_test(
         "//tensorflow_serving/util/net_http/server/public:http_server",
         "//tensorflow_serving/util/net_http/server/public:http_server_api",
         "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/synchronization:thread_pool",
     ],
 )

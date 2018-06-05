@@ -22,7 +22,7 @@ limitations under the License.
 #include <memory>
 
 #include "tensorflow_serving/util/net_http/server/internal/server_support.h"
-#include "tensorflow_serving/util/net_http/server/public/serverrequestinterface.h"
+#include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
 
 struct evbuffer;
 struct evhttp_request;

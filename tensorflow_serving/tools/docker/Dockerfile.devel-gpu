@@ -1,11 +1,13 @@
 FROM nvidia/cuda:8.0-cudnn6-devel-ubuntu16.04
 
 RUN apt-get update && apt-get install -y \
+        automake \
         build-essential \
         curl \
         git \
         libfreetype6-dev \
         libpng12-dev \
+        libtool \
         libzmq3-dev \
         pkg-config \
         python-dev \
@@ -56,7 +58,7 @@ RUN echo "build --spawn_strategy=standalone --genrule_strategy=standalone" \
     >>/root/.bazelrc
 ENV BAZELRC /root/.bazelrc
 # Install the most recent bazel release.
-ENV BAZEL_VERSION 0.5.4
+ENV BAZEL_VERSION 0.10.0
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \
