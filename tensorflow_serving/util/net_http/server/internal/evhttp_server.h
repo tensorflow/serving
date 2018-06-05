@@ -31,7 +31,7 @@ limitations under the License.
 
 #include "tensorflow_serving/util/net_http/server/internal/evhttp_request.h"
 #include "tensorflow_serving/util/net_http/server/internal/server_support.h"
-#include "tensorflow_serving/util/net_http/server/public/httpserverinterface.h"
+#include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
 
 struct event_base;
 struct evhttp;
