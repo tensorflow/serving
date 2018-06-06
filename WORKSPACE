@@ -11,19 +11,19 @@ load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "876f800cf9605375c4a05daf44bc280bcb85ef5b302a9c01592a828c61647574",
-    git_commit = "694892d4c0fba6bd4322e943f8b1483b36f1ae99",
+    sha256 = "21445b2a7e0c4f0ba24e80425a26e1f59c98f818bdebe89b9274e73eff52b12d",
+    git_commit = "93bc2e2072e0daccbcff7a90d397b704a9e8f778",
 )
 
 # TensorFlow depends on "io_bazel_rules_closure" so we need this here.
 # Needs to be kept in sync with the same target in TensorFlow's WORKSPACE file.
 http_archive(
     name = "io_bazel_rules_closure",
-    sha256 = "a38539c5b5c358548e75b44141b4ab637bba7c4dc02b46b1f62a96d6433f56ae",
-    strip_prefix = "rules_closure-dbb96841cc0a5fb2664c37822803b06dab20c7d1",
+    sha256 = "6691c58a2cd30a86776dd9bb34898b041e37136f2dc7e24cadaeaf599c95c657",
+    strip_prefix = "rules_closure-08039ba8ca59f64248bb3b6ae016460fe9c9914f",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_closure/archive/dbb96841cc0a5fb2664c37822803b06dab20c7d1.tar.gz",
-        "https://github.com/bazelbuild/rules_closure/archive/dbb96841cc0a5fb2664c37822803b06dab20c7d1.tar.gz",  # 2018-04-13
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_closure/archive/08039ba8ca59f64248bb3b6ae016460fe9c9914f.tar.gz",
+        "https://github.com/bazelbuild/rules_closure/archive/08039ba8ca59f64248bb3b6ae016460fe9c9914f.tar.gz",  # 2018-01-16
     ],
 )
 

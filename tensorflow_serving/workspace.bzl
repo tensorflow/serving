@@ -37,6 +37,13 @@ def tf_serving_workspace():
       actual = "@grpc//third_party/nanopb:nanopb",
   )
 
+  # ===== CCTZ (Time-zone framework). Used by ABSL.
+  native.http_archive(
+      name = "com_googlesource_code_cctz",
+      strip_prefix = "cctz-master",
+      url = "https://github.com/google/cctz/archive/master.zip",
+  )
+
   # ===== RapidJSON (rapidjson.org) dependencies =====
   native.new_http_archive(
       name = "com_github_tencent_rapidjson",
