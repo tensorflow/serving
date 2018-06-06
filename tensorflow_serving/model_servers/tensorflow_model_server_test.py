@@ -17,12 +17,14 @@
 """Tests for tensorflow_model_server."""
 
 import atexit
+import json
 import os
 import shlex
 import socket
 import subprocess
 import sys
 import time
+import urllib2
 
 # This is a placeholder for a Google-internal import.
 
@@ -34,18 +36,19 @@ import tensorflow as tf
 
 from tensorflow.core.framework import types_pb2
 from tensorflow.python.platform import flags
+from tensorflow.python.saved_model import signature_constants
 from tensorflow_serving.apis import classification_pb2
 from tensorflow_serving.apis import get_model_status_pb2
+from tensorflow_serving.apis import inference_pb2
 from tensorflow_serving.apis import model_service_pb2_grpc
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2
 from tensorflow_serving.apis import regression_pb2
-from tensorflow_serving.apis import inference_pb2
-from tensorflow.python.saved_model import signature_constants
 
 FLAGS = flags.FLAGS
 
 RPC_TIMEOUT = 5.0
+HTTP_REST_TIMEOUT_MS = 5000
 CHANNEL_WAIT_TIMEOUT = 5.0
 WAIT_FOR_SERVER_READY_INT_SECS = 60
 
@@ -75,6 +78,16 @@ def WaitForServerReady(port):
       if 'Servable' in error.details:
         print 'Server is ready'
         break
+
+
+def CallREST(name, url, req):
+  """Returns HTTP response body from a REST API call."""
+  print 'Sending {} request to {} with data:\n{}'.format(name, url, req)
+  resp = urllib2.urlopen(urllib2.Request(url, data=json.dumps(req)))
+  resp_data = resp.read()
+  print 'Received response:\n{}'.format(resp_data)
+  resp.close()
+  return resp_data
 
 
 class TensorflowModelServerTest(tf.test.TestCase):
@@ -123,7 +136,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
                 model_path,
                 batching_parameters_file='',
                 grpc_channel_arguments='',
-                wait_for_server_ready=True):
+                wait_for_server_ready=True,
+                rest_api_port=None):
     """Run tensorflow_model_server using test config."""
     print 'Starting test server...'
     command = os.path.join(self.binary_dir, 'tensorflow_model_server')
@@ -135,6 +149,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
       command += ' --batching_parameters_file=' + batching_parameters_file
     if grpc_channel_arguments:
       command += ' --grpc_channel_arguments=' + grpc_channel_arguments
+    if rest_api_port:
+      command += ' --rest_api_port=' + str(rest_api_port)
+      command += ' --rest_api_timeout_in_ms=' + str(HTTP_REST_TIMEOUT_MS)
     print command
     self.server_proc = subprocess.Popen(shlex.split(command))
     print 'Server started'
@@ -499,6 +516,79 @@ class TensorflowModelServerTest(tf.test.TestCase):
         specify_output=False,
         expected_version=self._GetModelVersion(
             self._GetSavedModelHalfPlusThreePath()))
+
+  def testClassifyREST(self):
+    """Test Classify implementation over REST API."""
+    model_path = self._GetSavedModelBundlePath()
+
+    atexit.register(self.TerminateProcs)
+    rest_api_port = PickUnusedPort()
+    model_server_address = self.RunServer(
+        PickUnusedPort(), 'default', model_path, rest_api_port=rest_api_port)
+
+    # Prepare request
+    url = 'http://{}:{}/v1/models/default:classify'.format(
+        model_server_address.split(':')[0], rest_api_port)
+    json_req = {'signature_name': 'classify_x_to_y', 'examples': [{'x': 2.0}]}
+
+    # Send request
+    resp_data = None
+    try:
+      resp_data = CallREST('Classify', url, json_req)
+    except Exception as e:  # pylint: disable=broad-except
+      self.fail('Request failed with error: {}'.format(e))
+
+    # Verify response
+    self.assertEquals(json.loads(resp_data), {'results': [[['', 3.0]]]})
+
+  def testRegressREST(self):
+    """Test Regress implementation over REST API."""
+    model_path = self._GetSavedModelBundlePath()
+
+    atexit.register(self.TerminateProcs)
+    rest_api_port = PickUnusedPort()
+    model_server_address = self.RunServer(
+        PickUnusedPort(), 'default', model_path, rest_api_port=rest_api_port)
+
+    # Prepare request
+    url = 'http://{}:{}/v1/models/default:regress'.format(
+        model_server_address.split(':')[0], rest_api_port)
+    json_req = {'signature_name': 'regress_x_to_y', 'examples': [{'x': 2.0}]}
+
+    # Send request
+    resp_data = None
+    try:
+      resp_data = CallREST('Regress', url, json_req)
+    except Exception as e:  # pylint: disable=broad-except
+      self.fail('Request failed with error: {}'.format(e))
+
+    # Verify response
+    self.assertEquals(json.loads(resp_data), {'results': [3.0]})
+
+  def testPredictREST(self):
+    """Test Predict implementation over REST API."""
+    model_path = self._GetSavedModelBundlePath()
+
+    atexit.register(self.TerminateProcs)
+    rest_api_port = PickUnusedPort()
+    model_server_address = self.RunServer(
+        PickUnusedPort(), 'default', model_path, rest_api_port=rest_api_port)
+
+    # Prepare request
+    url = 'http://{}:{}/v1/models/default:predict'.format(
+        model_server_address.split(':')[0], rest_api_port)
+    json_req = {'instances': [2.0, 3.0, 4.0]}
+
+    # Send request
+    resp_data = None
+    try:
+      resp_data = CallREST('Predict', url, json_req)
+    except Exception as e:  # pylint: disable=broad-except
+      self.fail('Request failed with error: {}'.format(e))
+
+    # Verify response
+    self.assertEquals(json.loads(resp_data), {'predictions': [3.0, 3.5, 4.0]})
+
 
 if __name__ == '__main__':
   tf.test.main()
