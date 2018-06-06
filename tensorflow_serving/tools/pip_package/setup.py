@@ -20,8 +20,8 @@ from setuptools import setup
 _VERSION = '1.8.0'
 
 REQUIRED_PACKAGES = [
-    'tensorflow>=1.8.0,<2',
-    'grpcio>=1.0<2',
+    'tensorflow>=1.8.0',
+    'grpcio>=1.0',
 ]
 
 setup(
