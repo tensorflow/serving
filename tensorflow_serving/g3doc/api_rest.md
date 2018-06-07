@@ -288,3 +288,65 @@ tokens.
 [proto3](https://developers.google.com/protocol-buffers/docs/proto3#json),
 Python [JSON](https://docs.python.org/3/library/json.html) module and JavaScript
 language.
+
+## Example
+
+We can use the toy
+[half_plus_three](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_three/00000123)
+model to see REST APIs in action.
+
+### Start ModelServer with REST API endpoint
+
+Follow [setup instructions](https://www.tensorflow.org/serving/setup) to install
+TensorFlow ModelServer on your system. Then download the `half_plus_three` model
+from [git repository](https://github.com/tensorflow/serving):
+
+```shell
+$ mkdir -p /tmp/tfserving
+$ cd /tmp/tfserving
+$ git clone --recursive https://github.com/tensorflow/serving
+```
+
+Start the ModelServer with `--rest_api_port` option to export REST API endpoint:
+
+```shell
+$ tensorflow_model_server --rest_api_port=8501 \
+   --model_name=half_plus_three \
+   --model_base_path=$(pwd)/serving/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_three/
+```
+
+### Do REST API calls on ModelServer
+
+In a different terminal, use `curl` tool to make REST API calls on the command
+line. A `predict` call would look as follows:
+
+```shell
+$ curl -d '{"instances": [1.0,2.0,5.0]}' -X POST http://localhost:8501/v1/models/half_plus_three:predict
+{
+    "predictions": [3.5, 4.0, 5.5]
+}
+```
+
+And a `regress` call looks as follows:
+
+```shell
+$ curl -d '{"signature_name": "tensorflow/serving/regress", "examples": [{"x": 1.0}, {"x": 2.0}]}' \
+  -X POST http://localhost:8501/v1/models/half_plus_three:regress
+{
+    "results": [3.5, 4.0]
+}
+```
+
+Note, `regress` is available on a non-default signature name and must be
+specified explicitly. Incorrect request URL or body returns a HTTP error status.
+
+```shell
+$ curl -i -d '{"instances": [1.0,5.0]}' -X POST http://localhost:8501/v1/models/half:predict
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+Date: Wed, 06 Jun 2018 23:20:12 GMT
+Content-Length: 65
+
+{ "error": "Servable not found for request: Latest(half)" }
+$
+```
