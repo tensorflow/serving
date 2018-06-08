@@ -3,11 +3,13 @@ FROM ubuntu:16.04
 MAINTAINER Jeremiah Harmsen <jeremiah@google.com>
 
 RUN apt-get update && apt-get install -y \
+        automake \
         build-essential \
         curl \
         git \
         libfreetype6-dev \
         libpng12-dev \
+        libtool \
         libzmq3-dev \
         mlocate \
         pkg-config \
