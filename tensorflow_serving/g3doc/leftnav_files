@@ -3,6 +3,7 @@ index.md
 architecture_overview.md
 setup.md
 serving_basic.md
+api_rest.md
 serving_advanced.md
 serving_inception.md
 custom_servable.md
