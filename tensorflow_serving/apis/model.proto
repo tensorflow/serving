@@ -10,7 +10,13 @@ message ModelSpec {
   // Required servable name.
   string name = 1;
 
-  // Optional version.
+  // Optional version. Recommended to be left unset in the common case. Should
+  // be specified only when there is a strong version consistency requirement.
+  //
+  // When left unspecified, the system will serve the best available version.
+  // This is typically the latest version, though during version transitions,
+  // notably when serving on a fleet of instances, may be either the previous or
+  // new version.
   google.protobuf.Int64Value version = 2;
 
   // A named signature to evaluate. If unspecified, the default signature will
