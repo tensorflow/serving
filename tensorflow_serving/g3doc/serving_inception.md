@@ -43,10 +43,8 @@ In the running container, we clone, configure and build TensorFlow Serving
 example code.
 
 ```shell
-root@c97d8e820ced:/# git clone -b r1.6 --recurse-submodules https://github.com/tensorflow/serving
-root@c97d8e820ced:/# cd serving/tensorflow
-root@c97d8e820ced:/serving/tensorflow# ./configure
-root@c97d8e820ced:/serving# cd ..
+root@c97d8e820ced:/# git clone -b r1.6 https://github.com/tensorflow/serving
+root@c97d8e820ced:/# cd serving
 root@c97d8e820ced:/serving# bazel build -c opt tensorflow_serving/example/...
 ```
 
