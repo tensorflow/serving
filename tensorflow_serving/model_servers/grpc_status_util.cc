@@ -15,7 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 
-#include "grpc++/support/status_code_enum.h"
+#include "grpcpp/support/status_code_enum.h"
 
 namespace tensorflow {
 namespace serving {

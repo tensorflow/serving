@@ -50,12 +50,12 @@ limitations under the License.
 #include <vector>
 
 #include "google/protobuf/wrappers.pb.h"
-#include "grpc++/security/server_credentials.h"
-#include "grpc++/server.h"
-#include "grpc++/server_builder.h"
-#include "grpc++/server_context.h"
-#include "grpc++/support/status.h"
 #include "grpc/grpc.h"
+#include "grpcpp/security/server_credentials.h"
+#include "grpcpp/server.h"
+#include "grpcpp/server_builder.h"
+#include "grpcpp/server_context.h"
+#include "grpcpp/support/status.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/strings/numbers.h"

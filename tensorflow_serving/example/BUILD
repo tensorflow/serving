@@ -86,6 +86,7 @@ cc_binary(
         "//tensorflow_serving/apis:prediction_service_proto",
         "@grpc//:grpc++_unsecure",
         "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
         "@protobuf_archive//:protobuf_lite",
     ],
 )
