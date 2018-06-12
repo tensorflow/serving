@@ -40,10 +40,12 @@ To install TensorFlow Serving dependencies, execute the following:
 
 ```shell
 sudo apt-get update && sudo apt-get install -y \
+        automake \
         build-essential \
         curl \
         libcurl3-dev \
         git \
+        libtool \
         libfreetype6-dev \
         libpng12-dev \
         libzmq3-dev \
@@ -65,19 +67,19 @@ may need to run.
 
 ### TensorFlow Serving Python API PIP package {#pip}
 
-To run Python client code without the need to install Bazel, you can install
-the `tensorflow-serving-api` PIP package using:
+To run Python client code without the need to install Bazel, you can install the
+`tensorflow-serving-api` PIP package using:
 
 ```shell
 pip install tensorflow-serving-api
 ```
 
-Note: The TensorFlow Serving Python API
-[is only published for Python 2](https://pypi.python.org/pypi/tensorflow-serving-api),
-but will work for Python 3 if you either build it yourself, or download the
-Python 2 version, unzip it, and copy it into your Python 3 path. There is a
-[feature request](https://github.com/tensorflow/serving/issues/700) to publish
-the Python 3 package as well.
+Note: The TensorFlow Serving Python API [is only published for Python
+2](https://pypi.python.org/pypi/tensorflow-serving-api), but will work for
+Python 3 if you either build it yourself, or download the Python 2 version,
+unzip it, and copy it into your Python 3 path. There is a [feature
+request](https://github.com/tensorflow/serving/issues/700) to publish the Python
+3 package as well.
 
 ## Installing using apt-get {#aptget}
 
@@ -115,7 +117,8 @@ sudo apt-get remove tensorflow-model-server
     sudo apt-get update && sudo apt-get install tensorflow-model-server
     </pre>
 
-Once installed, the binary can be invoked using the command `tensorflow_model_server`.
+Once installed, the binary can be invoked using the command
+`tensorflow_model_server`.
 
 You can upgrade to a newer version of tensorflow-model-server with:
 
@@ -132,22 +135,19 @@ instructions.
 ### Clone the TensorFlow Serving repository
 
 ```shell
-git clone --recurse-submodules https://github.com/tensorflow/serving
+git clone https://github.com/tensorflow/serving
 cd serving
 ```
 
-`--recurse-submodules` is required to fetch TensorFlow, gRPC, and other
-libraries that TensorFlow Serving depends on. Note that these instructions
-will install the latest master branch of TensorFlow Serving. If you want to
-install a specific branch (such as a release branch), pass `-b <branchname>`
-to the `git clone` command.
+Note that these instructions will install the latest master branch of TensorFlow
+Serving. If you want to install a specific branch (such as a release branch),
+pass `-b <branchname>` to the `git clone` command.
 
 ### Install prerequisites
 
 Follow the Prerequisites section above to install all dependencies. Consult the
-[TensorFlow install instructions](https://www.tensorflow.org/install/)
-if you encounter any issues with setting up TensorFlow or its dependencies.
-
+[TensorFlow install instructions](https://www.tensorflow.org/install/) if you
+encounter any issues with setting up TensorFlow or its dependencies.
 
 ### Build
 
@@ -173,19 +173,21 @@ To test your installation, execute:
 bazel test -c opt tensorflow_serving/...
 ```
 
-See the [basic tutorial](serving_basic.md) and [advanced tutorial](serving_advanced.md)
-for more in-depth examples of running TensorFlow Serving.
+See the [basic tutorial](serving_basic.md) and [advanced
+tutorial](serving_advanced.md) for more in-depth examples of running TensorFlow
+Serving.
 
 ### Optimized build {#optimized}
 
 It's possible to compile using some platform specific instruction sets (e.g.
 AVX) that can significantly improve performance. Wherever you see 'bazel build'
 in the documentation, you can add the flags `-c opt --copt=-msse4.1
---copt=-msse4.2 --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-O3` (or some
-subset of these flags). For example:
+--copt=-msse4.2 --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-O3
+--cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0"` (or some subset of these flags). For
+example:
 
 ```shell
-bazel build -c opt --copt=-msse4.1 --copt=-msse4.2 --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-O3 tensorflow_serving/...
+bazel build -c opt --copt=-msse4.1 --copt=-msse4.2 --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-O3 --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" tensorflow_serving/...
 ```
 
 Note: These instruction sets are not available on all machines, especially with
@@ -193,19 +195,3 @@ older processors, so it may not work with all flags. You can try some subset of
 them, or revert to just the basic '-c opt' which is guaranteed to work on all
 machines.
 
-### Continuous integration build
-
-Our [continuous integration build](http://ci.tensorflow.org/view/Serving/job/serving-master-cpu/)
-using TensorFlow [ci_build](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/ci_build)
-infrastructure offers you simplified development using docker. All you need is
-git and docker. No need to install all other dependencies manually.
-
-```shell
-git clone --recursive https://github.com/tensorflow/serving
-cd serving
-CI_TENSORFLOW_SUBMODULE_PATH=tensorflow tensorflow/tensorflow/tools/ci_build/ci_build.sh CPU bazel test //tensorflow_serving/...
-```
-
-Note: The `serving` directory is mapped into the container. You can develop
-outside the docker container (in your favourite editor) and when you run this
-build it will build with your changes.
