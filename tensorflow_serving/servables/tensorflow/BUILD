@@ -443,6 +443,7 @@ cc_library(
         "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/servables/tensorflow:util",
         "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/strings",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/contrib/session_bundle:signature",
