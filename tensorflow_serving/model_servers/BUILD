@@ -9,6 +9,12 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
+# Visibility group for clients that link in custom ops, while using the
+# vanilla TensorFlow ModelServer without any other modifications. Exclusively
+# for adding custom TensorFlow ops. Does not grant access to private headers
+# or other implementation details.
+package_group(name = "tensorflow_model_server_custom_op_clients")
+
 filegroup(
     name = "all_files",
     srcs = glob(
@@ -267,12 +273,15 @@ TENSORFLOW_DEPS = [
     "//tensorflow_serving/servables/tensorflow:predict_impl",
 ]
 
-cc_binary(
-    name = "tensorflow_model_server",
+cc_library(
+    name = "tensorflow_model_server_main_lib",
     srcs = [
         "main.cc",
     ],
-    visibility = ["//tensorflow_serving:internal"],
+    visibility = [
+        ":tensorflow_model_server_custom_op_clients",
+        "//tensorflow_serving:internal",
+    ],
     deps = [
         ":http_server",
         ":model_platform_types",
@@ -294,6 +303,14 @@ cc_binary(
         "@grpc//:grpc++_unsecure",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
+)
+
+cc_binary(
+    name = "tensorflow_model_server",
+    visibility = ["//tensorflow_serving:internal"],
+    deps = [
+        ":tensorflow_model_server_main_lib",
+    ],
 )
 
 py_test(
