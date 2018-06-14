@@ -102,19 +102,20 @@ RUN mkdir /usr/lib/nccl && \
 # Download, build, and install TensorFlow Serving
 ARG TF_SERVING_VERSION_GIT_BRANCH=r1.7
 WORKDIR /tensorflow-serving
-RUN git clone --recurse-submodules --depth=1 --branch=${TF_SERVING_VERSION_GIT_BRANCH} \
+RUN git clone --depth=1 --branch=${TF_SERVING_VERSION_GIT_BRANCH} \
         https://github.com/tensorflow/serving .
 
 ARG TF_SERVING_BUILD_OPTIONS="--copt=-mavx --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0"
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
-    bazel build -c opt --config=cuda \
+    bazel build -c opt --color=yes --curses=yes --config=cuda \
+    --output_filter=DONT_MATCH_ANYTHING \
     --crosstool_top=@local_config_cuda//crosstool:toolchain \
     ${TF_SERVING_BUILD_OPTIONS} \
     tensorflow_serving/model_servers:tensorflow_model_server && \
     cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server /usr/local/bin/ && \
     rm /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
-    bazel clean --expunge
+    bazel clean --expunge --color=yes
 # Clean up Bazel cache when done.
 
 CMD ["/bin/bash"]
