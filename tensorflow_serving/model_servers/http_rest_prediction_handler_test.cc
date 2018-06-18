@@ -302,9 +302,7 @@ TEST_F(HttpRestPredictionHandlerTest, Predict) {
       "POST",
       absl::StrCat("/v1/models/", kTestModelName, "/versions/",
                    kTestModelVersion1, ":predict"),
-      R"({
-          "signature_name": "serving_default",
-          "instances": [3.0, 4.0]})",
+      R"({"signature_name": "serving_default", "instances": [3.0, 4.0]})",
       &headers, &output));
   TF_EXPECT_OK(CompareJson(output, R"({ "predictions": [3.5, 4.0] })"));
   EXPECT_THAT(headers, UnorderedElementsAreArray(
@@ -318,10 +316,7 @@ TEST_F(HttpRestPredictionHandlerTest, Regress) {
   // Query latest version.
   TF_EXPECT_OK(handler_.ProcessRequest(
       "POST", absl::StrCat("/v1/models/", kTestModelName, ":regress"),
-      R"({
-        "signature_name": "regress_x_to_y",
-        "examples": [ { "x": 80.0 } ]
-        })",
+      R"({"signature_name": "regress_x_to_y", "examples": [ { "x": 80.0 } ] })",
       &headers, &output));
   TF_EXPECT_OK(CompareJson(output, R"({ "results": [42] })"));
   EXPECT_THAT(headers, UnorderedElementsAreArray(
@@ -332,10 +327,7 @@ TEST_F(HttpRestPredictionHandlerTest, Regress) {
       "POST",
       absl::StrCat("/v1/models/", kTestModelName, "/versions/",
                    kTestModelVersion1, ":regress"),
-      R"({
-        "signature_name": "regress_x_to_y",
-        "examples": [ { "x": 80.0 } ]
-        })",
+      R"({"signature_name": "regress_x_to_y", "examples": [ { "x": 80.0 } ] })",
       &headers, &output));
   TF_EXPECT_OK(CompareJson(output, R"({ "results": [42] })"));
   EXPECT_THAT(headers, UnorderedElementsAreArray(
@@ -349,10 +341,7 @@ TEST_F(HttpRestPredictionHandlerTest, Classify) {
   // Query latest version.
   TF_EXPECT_OK(handler_.ProcessRequest(
       "POST", absl::StrCat("/v1/models/", kTestModelName, ":classify"),
-      R"({
-        "signature_name": "classify_x_to_y",
-        "examples": [ { "x": 20.0 } ]
-        })",
+      R"({"signature_name": "classify_x_to_y", "examples": [ { "x": 20.0 } ] })",
       &headers, &output));
   TF_EXPECT_OK(CompareJson(output, R"({ "results": [[["", 12]]] })"));
   EXPECT_THAT(headers, UnorderedElementsAreArray(
@@ -363,10 +352,7 @@ TEST_F(HttpRestPredictionHandlerTest, Classify) {
       "POST",
       absl::StrCat("/v1/models/", kTestModelName, "/versions/",
                    kTestModelVersion1, ":classify"),
-      R"({
-        "signature_name": "classify_x_to_y",
-        "examples": [ { "x": 10.0 } ]
-        })",
+      R"({"signature_name": "classify_x_to_y", "examples": [ { "x": 10.0 } ] })",
       &headers, &output));
   TF_EXPECT_OK(CompareJson(output, R"({ "results": [[["", 7]]] })"));
   EXPECT_THAT(headers, UnorderedElementsAreArray(
