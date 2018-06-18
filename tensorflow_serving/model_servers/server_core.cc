@@ -223,12 +223,12 @@ Status UpdateModelConfigListRelativePaths(
 Status ServerCore::Create(Options options,
                           std::unique_ptr<ServerCore>* server_core) {
   if (options.servable_state_monitor_creator == nullptr) {
-    options.servable_state_monitor_creator = [](
-        EventBus<ServableState>* event_bus,
-        std::unique_ptr<ServableStateMonitor>* monitor) {
-      monitor->reset(new ServableStateMonitor(event_bus));
-      return Status::OK();
-    };
+    options.servable_state_monitor_creator =
+        [](EventBus<ServableState>* event_bus,
+           std::unique_ptr<ServableStateMonitor>* monitor) {
+          monitor->reset(new ServableStateMonitor(event_bus));
+          return Status::OK();
+        };
   }
 
   if (options.server_request_logger == nullptr) {
@@ -296,7 +296,14 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
     string message = "Some models did not become available: {";
     for (const auto& id_and_state : states_reached) {
       if (id_and_state.second != ServableState::ManagerState::kAvailable) {
-        strings::StrAppend(&message, id_and_state.first.DebugString(), ", ");
+        optional<ServableState> maybe_state =
+            monitor->GetState(id_and_state.first);
+        const string error_msg =
+            maybe_state && !maybe_state.value().health.ok()
+                ? " due to error: " + maybe_state.value().health.ToString()
+                : "";
+        strings::StrAppend(&message, "{", id_and_state.first.DebugString(),
+                           error_msg, "}, ");
       }
     }
     strings::StrAppend(&message, "}");
