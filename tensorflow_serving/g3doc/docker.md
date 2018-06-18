@@ -47,6 +47,13 @@ docker build --pull -t $USER/tensorflow-serving-devel -f Dockerfile.devel .
 ```shell
 docker build --pull -t $USER/tensorflow-serving-devel-gpu -f Dockerfile.devel-gpu .
 ```
+TIP: By default, building TensorFlow Serving from sources consumes a lot of RAM.
+If RAM is an issue on your system, you may limit RAM usage by specifying
+`--local_resources 2048,.5,1.0` while invoking bazel. You can use this same
+mechanism to tweak the optmizations you're building TensorFlow Serving with. Ex:
+`docker build --pull --build-arg TF_SERVING_BUILD_OPTIONS="--copt=-mavx
+--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --local_resources 2048,.5,1.0" -t
+$USER/tensorflow-serving-devel -f Dockerfile.devel .`
 
 ## Running a container
 
