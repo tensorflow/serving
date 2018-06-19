@@ -294,7 +294,7 @@ TEST_P(ServerCoreTest, ErroringModel) {
   Status status = ServerCore::Create(std::move(options), &server_core);
   EXPECT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("Some servables did not become available"));
+              ::testing::HasSubstr("1 servable(s) did not become available"));
 }
 
 TEST_P(ServerCoreTest, IllegalReconfigurationToCustomConfig) {

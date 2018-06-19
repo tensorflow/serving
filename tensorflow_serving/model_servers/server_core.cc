@@ -21,6 +21,7 @@ limitations under the License.
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/path.h"
+#include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow_serving/core/load_servables_fast.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
@@ -293,7 +294,14 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
       awaited_servables, ServableState::ManagerState::kAvailable,
       &states_reached);
   if (!all_models_available) {
-    string message = "Some models did not become available: {";
+    const int num_unavailable_models = std::count_if(
+        states_reached.begin(), states_reached.end(),
+        [](const std::pair<ServableId, ServableState::ManagerState>&
+               id_and_state) {
+          return id_and_state.second != ServableState::ManagerState::kAvailable;
+        });
+    string message = strings::StrCat(num_unavailable_models,
+                                     " model(s) did not become available: {");
     for (const auto& id_and_state : states_reached) {
       if (id_and_state.second != ServableState::ManagerState::kAvailable) {
         optional<ServableState> maybe_state =
