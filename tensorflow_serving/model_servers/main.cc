@@ -375,6 +375,7 @@ int main(int argc, char** argv) {
   string platform_config_file = "";
   string model_config_file;
   string grpc_channel_arguments = "";
+  bool enable_model_warmup = true;
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &port, "Port to listen on for gRPC API"),
       tensorflow::Flag("rest_api_port", &http_options.port,
@@ -439,7 +440,11 @@ int main(int argc, char** argv) {
       tensorflow::Flag("grpc_channel_arguments", &grpc_channel_arguments,
                        "A comma separated list of arguments to be passed to "
                        "the grpc server. (e.g. "
-                       "grpc.max_connection_age_ms=2000)")};
+                       "grpc.max_connection_age_ms=2000)"),
+      tensorflow::Flag("enable_model_warmup", &enable_model_warmup,
+                       "Enables model warmup, which triggers lazy "
+                       "initializations (such as TF optimizations) at load "
+                       "time, to reduce first request latency.")};
 
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
@@ -496,6 +501,7 @@ int main(int argc, char** argv) {
     for (const string& tag : tags) {
       *session_bundle_config.add_saved_model_tags() = tag;
     }
+    session_bundle_config.set_enable_model_warmup(enable_model_warmup);
     options.platform_config_map = CreateTensorFlowPlatformConfigMap(
         session_bundle_config, use_saved_model);
   } else {
