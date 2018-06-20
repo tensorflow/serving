@@ -19,16 +19,13 @@ RUN apt-get update && apt-get install -y \
         curl \
         gnupg
 
-# Add TensorFlow Serving repo
-
-RUN echo "deb [arch=amd64] http://storage.googleapis.com/tensorflow-serving-apt stable tensorflow-model-server tensorflow-model-server-universal" | tee /etc/apt/sources.list.d/tensorflow-serving.list
-# Ignore the warning about using apt-key output - we are not
-ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
-RUN curl -s https://storage.googleapis.com/tensorflow-serving-apt/tensorflow-serving.release.pub.gpg | apt-key add -
-
-# Get the model-server, use tensorflow-model-server-universal for older hardware
-RUN apt-get update && apt-get install -y \
-        tensorflow-model-server
+# Install TF Serving pkg.
+ARG TF_SERVING_VERSION=1.8.0
+# Use tensorflow-model-server-universal for older hardware
+ARG TF_SERVING_PKGNAME=tensorflow-model-server
+RUN curl -LO https://storage.googleapis.com/tensorflow-serving-apt/pool/${TF_SERVING_PKGNAME}-${TF_SERVING_VERSION}/t/${TF_SERVING_PKGNAME}/${TF_SERVING_PKGNAME}_${TF_SERVING_VERSION}_all.deb ; \
+        dpkg -i ${TF_SERVING_PKGNAME}_${TF_SERVING_VERSION}_all.deb ; \
+        rm ${TF_SERVING_PKGNAME}_${TF_SERVING_VERSION}_all.deb
 
 # Cleanup to reduce the size of the image
 # See https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#run
@@ -49,4 +46,3 @@ RUN mkdir -p ${MODEL_BASE_PATH}
 # The only required piece is the model name in order to differentiate endpoints
 ENV MODEL_NAME=model
 ENTRYPOINT tensorflow_model_server --port=8500 --rest_api_port=8501 --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME}
-
