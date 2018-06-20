@@ -74,13 +74,6 @@ To run Python client code without the need to install Bazel, you can install the
 pip install tensorflow-serving-api
 ```
 
-Note: The TensorFlow Serving Python API [is only published for Python
-2](https://pypi.python.org/pypi/tensorflow-serving-api), but will work for
-Python 3 if you either build it yourself, or download the Python 2 version,
-unzip it, and copy it into your Python 3 path. There is a [feature
-request](https://github.com/tensorflow/serving/issues/700) to publish the Python
-3 package as well.
-
 ## Installing using apt-get {#aptget}
 
 ### Available binaries
