@@ -9,6 +9,12 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
+# Visibility group for clients that link in custom ops, while using the
+# vanilla TensorFlow ModelServer without any other modifications. Exclusively
+# for adding custom TensorFlow ops. Does not grant access to private headers
+# or other implementation details.
+package_group(name = "tensorflow_model_server_custom_op_clients")
+
 filegroup(
     name = "all_files",
     srcs = glob(
@@ -267,12 +273,15 @@ TENSORFLOW_DEPS = [
     "//tensorflow_serving/servables/tensorflow:predict_impl",
 ]
 
-cc_binary(
-    name = "tensorflow_model_server",
+cc_library(
+    name = "tensorflow_model_server_main_lib",
     srcs = [
         "main.cc",
     ],
-    visibility = ["//tensorflow_serving:internal"],
+    visibility = [
+        ":tensorflow_model_server_custom_op_clients",
+        "//tensorflow_serving:internal",
+    ],
     deps = [
         ":http_server",
         ":model_platform_types",
@@ -281,16 +290,27 @@ cc_binary(
         ":grpc_status_util",
         ":model_service_impl",
         "@protobuf_archive//:cc_wkt_protos",
+        "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
         "@org_tensorflow//tensorflow/core/platform/hadoop:hadoop_file_system",
         "@org_tensorflow//tensorflow/core/platform/s3:s3_file_system",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
         "//tensorflow_serving/apis:prediction_service_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/servables/tensorflow:multi_inference_helper",
         "@grpc//:grpc++_unsecure",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
+)
+
+cc_binary(
+    name = "tensorflow_model_server",
+    visibility = ["//tensorflow_serving:internal"],
+    deps = [
+        ":tensorflow_model_server_main_lib",
+    ],
 )
 
 py_test(

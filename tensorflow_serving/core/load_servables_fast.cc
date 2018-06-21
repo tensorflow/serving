@@ -20,6 +20,7 @@ limitations under the License.
 #include <utility>
 
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/target.h"
@@ -82,12 +83,29 @@ Status ConnectSourcesWithFastInitialLoad(
                 initial_servables, ServableState::ManagerState::kAvailable,
                 &states_reached);
         if (!all_servables_available) {
-          string message = "Some servables did not become available: {";
+          const int num_unavailable_servables = std::count_if(
+              states_reached.begin(), states_reached.end(),
+              [](const std::pair<ServableId, ServableState::ManagerState>&
+                     id_and_state) {
+                return id_and_state.second !=
+                       ServableState::ManagerState::kAvailable;
+              });
+          string message =
+              strings::StrCat(num_unavailable_servables,
+                              " servable(s) did not become available: {");
           for (const auto& id_and_state : states_reached) {
             if (id_and_state.second !=
                 ServableState::ManagerState::kAvailable) {
-              strings::StrAppend(&message, id_and_state.first.DebugString(),
-                                 ", ");
+              optional<ServableState> maybe_state =
+                  servable_state_monitor->GetState(id_and_state.first);
+              const string error_msg =
+                  maybe_state && !maybe_state.value().health.ok()
+                      ? " due to error: " +
+                            maybe_state.value().health.ToString()
+                      : "";
+              strings::StrAppend(&message, "{",
+                                 id_and_state.first.DebugString(), error_msg,
+                                 "}, ");
             }
           }
           strings::StrAppend(&message, "}");

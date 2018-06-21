@@ -21,6 +21,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/strings/str_join.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/contrib/session_bundle/signature.h"
 #include "tensorflow/core/framework/tensor.pb.h"
@@ -47,13 +48,7 @@ string MapKeysToString(const google::protobuf::Map<string, tensorflow::TensorInf
   return result;
 }
 
-// Validate a SignatureDef to make sure it's compatible with prediction, and
-// if so, populate the input and output tensor names.
-Status PreProcessPrediction(const SignatureDef& signature,
-                            const PredictRequest& request,
-                            std::vector<std::pair<string, Tensor>>* inputs,
-                            std::vector<string>* output_tensor_names,
-                            std::vector<string>* output_tensor_aliases) {
+Status VerifySignature(const SignatureDef& signature) {
   if (signature.method_name() != kPredictMethodName &&
       signature.method_name() != kClassifyMethodName &&
       signature.method_name() != kRegressMethodName) {
@@ -62,12 +57,41 @@ Status PreProcessPrediction(const SignatureDef& signature,
         kPredictMethodName, ", ", kClassifyMethodName, ", ", kRegressMethodName,
         "}. Was: ", signature.method_name()));
   }
+  return Status::OK();
+}
 
-  // Verify and prepare input.
-  if (request.inputs().size() != signature.inputs().size()) {
-    return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
-                              "input size does not match signature");
+template <typename T>
+std::vector<string> get_map_keys(const T& proto_map) {
+  std::vector<string> keys;
+  for (auto it : proto_map) {
+    keys.push_back(it.first);
   }
+  return keys;
+}
+
+Status VerifyRequestInputsSize(const SignatureDef& signature,
+                               const PredictRequest& request) {
+  if (request.inputs().size() != signature.inputs().size()) {
+    return tensorflow::Status(
+        tensorflow::error::INVALID_ARGUMENT,
+        absl::StrCat(
+            "input size does not match signature: ", request.inputs().size(),
+            "!=", signature.inputs().size(), " len([",
+            absl::StrJoin(get_map_keys(request.inputs()), ","), "]) != len([",
+            absl::StrJoin(get_map_keys(signature.inputs()), ","), "])"));
+  }
+  return Status::OK();
+}
+
+// Validate a SignatureDef to make sure it's compatible with prediction, and
+// if so, populate the input and output tensor names.
+Status PreProcessPrediction(const SignatureDef& signature,
+                            const PredictRequest& request,
+                            std::vector<std::pair<string, Tensor>>* inputs,
+                            std::vector<string>* output_tensor_names,
+                            std::vector<string>* output_tensor_aliases) {
+  TF_RETURN_IF_ERROR(VerifySignature(signature));
+  TF_RETURN_IF_ERROR(VerifyRequestInputsSize(signature, request));
   for (auto& input : request.inputs()) {
     const string& alias = input.first;
     auto iter = signature.inputs().find(alias);
@@ -139,10 +163,8 @@ Status PostProcessPredictionResult(
 
 Status RunPredict(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
-                  const optional<int64>& servable_version,
-                  Session* session,
-                  const PredictRequest& request,
-                  PredictResponse* response) {
+                  const optional<int64>& servable_version, Session* session,
+                  const PredictRequest& request, PredictResponse* response) {
   // Validate signatures.
   const string signature_name = request.model_spec().signature_name().empty()
                                     ? kDefaultServingSignatureDefKey
@@ -154,8 +176,8 @@ Status RunPredict(const RunOptions& run_options,
   }
   SignatureDef signature = iter->second;
 
-  MakeModelSpec(request.model_spec().name(), signature_name,
-                servable_version, response->mutable_model_spec());
+  MakeModelSpec(request.model_spec().name(), signature_name, servable_version,
+                response->mutable_model_spec());
 
   std::vector<std::pair<string, Tensor>> input_tensors;
   std::vector<string> output_tensor_names;
