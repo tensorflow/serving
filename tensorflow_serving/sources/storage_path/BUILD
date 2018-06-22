@@ -38,6 +38,7 @@ cc_library(
 )
 
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 
 serving_proto_library(
     name = "static_storage_path_source_proto",
@@ -86,6 +87,12 @@ serving_proto_library(
     cc_api_version = 2,
     java_api_version = 2,
     visibility = ["//visibility:public"],
+)
+
+serving_proto_library_py(
+    name = "file_system_storage_path_source_proto_py_pb2",
+    srcs = ["file_system_storage_path_source.proto"],
+    proto_library = "file_system_storage_path_source_proto",
 )
 
 cc_test(

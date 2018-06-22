@@ -212,6 +212,16 @@ serving_proto_library(
     ],
 )
 
+serving_proto_library_py(
+    name = "model_management_proto_py_pb2",
+    srcs = ["model_management.proto"],
+    proto_library = "model_management_proto",
+    deps = [
+        "//tensorflow_serving/config:model_server_config_proto_py_pb2",
+        "//tensorflow_serving/util:status_proto_py_pb2",
+    ],
+)
+
 serving_proto_library(
     name = "get_model_status_proto",
     srcs = ["get_model_status.proto"],
@@ -253,7 +263,10 @@ py_library(
         "model_service_pb2_grpc.py",
     ],
     srcs_version = "PY2AND3",
-    deps = [":get_model_status_proto_py_pb2"],
+    deps = [
+        ":get_model_status_proto_py_pb2",
+        ":model_management_proto_py_pb2",
+    ],
 )
 
 serving_go_grpc_library(

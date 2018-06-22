@@ -37,6 +37,10 @@ serving_proto_library_py(
     name = "model_server_config_proto_py_pb2",
     srcs = ["model_server_config.proto"],
     proto_library = "model_server_config_proto",
+    deps = [
+        ":logging_config_proto_py_pb2",
+        "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto_py_pb2",
+    ],
 )
 
 serving_proto_library(
