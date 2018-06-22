@@ -1,7 +1,7 @@
 # Using TensorFlow Serving via Docker
 
-This directory contains Dockerfiles to make it easy to get up and running with
-TensorFlow Serving via [Docker](http://www.docker.com/).
+One of the easiest ways to get started using TensorFlow Serving is via
+[Docker](http://www.docker.com/).
 
 ## Installing Docker
 
@@ -13,69 +13,44 @@ quick links here:
     toolbox](https://www.docker.com/toolbox)
 *   [Ubuntu](https://docs.docker.com/installation/ubuntulinux/)
 
-## Which containers exist?
+## Getting started
 
-We currently maintain the following Dockerfiles:
+### Pulling an image
 
-*   [`Dockerfile`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile),
-    which is a minimal VM with TensorFlow Serving installed.
-
-*   [`Dockerfile.devel`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel),
-    which is a minimal VM with all of the dependencies needed to build
-    TensorFlow Serving.
-
-*   [`Dockerfile.devel-gpu`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel),
-    which is a minimal VM with all of the dependencies needed to build
-    TensorFlow Serving with GPU support.
-
-## Building a container
-
-`Dockerfile`:
+Once you have Docker installed, you can pull the latest TensorFlow Serving
+docker image by running:
 
 ```shell
-docker build --pull -t $USER/tensorflow-serving .
+docker pull tensorflow/serving
 ```
 
-`Dockerfile.devel`:
+This will pull down an minimal Docker image with TensorFlow Serving installed.
+See the Docker Hub [tensorflow/serving
+repo](http://hub.docker.com/r/tensorflow/serving/tags/) for other versions of
+images you can pull.
 
-```shell
-docker build --pull -t $USER/tensorflow-serving-devel -f Dockerfile.devel .
-```
+### Serving example
 
-`Dockerfile.devel-gpu`:
+Once you have pulled the serving image, you can try serving an example model.
 
-```shell
-docker build --pull -t $USER/tensorflow-serving-devel-gpu -f Dockerfile.devel-gpu .
-```
-TIP: By default, building TensorFlow Serving from sources consumes a lot of RAM.
-If RAM is an issue on your system, you may limit RAM usage by specifying
-`--local_resources 2048,.5,1.0` while invoking bazel. You can use this same
-mechanism to tweak the optmizations you're building TensorFlow Serving with. Ex:
-`docker build --pull --build-arg TF_SERVING_BUILD_OPTIONS="--copt=-mavx
---cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --local_resources 2048,.5,1.0" -t
-$USER/tensorflow-serving-devel -f Dockerfile.devel .`
+We will use a toy model called `Half Plus Three`, which will predict values `0.5
+* x + 3` for the values we provide for prediction.
 
-## Running a container
-
-### Serving Example
-
-This assumes you have built the `Dockerfile` container.
-
-First you will need a model. Clone the TensorFlow Serving repo.
+To get this model, first clone the TensorFlow Serving repo.
 
 ```shell
 mkdir -p /tmp/tfserving
 cd /tmp/tfserving
-git clone --recursive https://github.com/tensorflow/serving
+git clone --depth=1 https://github.com/tensorflow/serving
 ```
 
-We will use a toy model called Half Plus Three, which will predict values 0.5\*x
-+ 3 for the values we provide for prediction.
+Next, run the TensorFlow Serving container pointing it to this model and opening
+the REST API port (8501):
 
 ```shell
 docker run -p 8501:8501 \
 -v /tmp/tfserving/serving/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_three:/models/half_plus_three \
--e MODEL_NAME=half_plus_three -t $USER/tensorflow-serving &
+-e MODEL_NAME=half_plus_three -t tensorflow/serving &
 ```
 
 This will run the docker container and launch the TensorFlow Serving Model
@@ -97,11 +72,62 @@ This should return a set of values:
 
 More information on using the RESTful API can be found [here](api_rest.md).
 
-### Development Example
+## What Dockerfiles do you maintain?
+
+We currently maintain the following Dockerfiles:
+
+*   [`Dockerfile`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile),
+    which is a minimal VM with TensorFlow Serving installed.
+
+*   [`Dockerfile.devel`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel),
+    which is a minimal VM with all of the dependencies needed to build
+    TensorFlow Serving.
+
+*   [`Dockerfile.devel-gpu`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel),
+    which is a minimal VM with all of the dependencies needed to build
+    TensorFlow Serving with GPU support.
+
+### Building a container from a Dockerfile
+
+`Dockerfile`:
+
+```shell
+docker build --pull -t $USER/tensorflow-serving .
+```
+
+`Dockerfile.devel`:
+
+```shell
+docker build --pull -t $USER/tensorflow-serving-devel -f Dockerfile.devel .
+```
+
+`Dockerfile.devel-gpu`:
+
+```shell
+docker build --pull -t $USER/tensorflow-serving-devel-gpu -f Dockerfile.devel-gpu .
+```
+
+TIP: Before attempting to build an image, check the Docker Hub
+[tensorflow/serving repo](http://hub.docker.com/r/tensorflow/serving/tags/) to
+make sure an image that meets your needs doesn't already exist.
+
+By default, building TensorFlow Serving from sources consumes a lot of RAM. If
+RAM is an issue on your system, you may limit RAM usage by specifying
+`--local_resources 2048,.5,1.0` while invoking bazel. You can use this same
+mechanism to tweak the optmizations you're building TensorFlow Serving with. For
+example:
+
+```shell
+docker build --pull --build-arg TF_SERVING_BUILD_OPTIONS="--copt=-mavx \
+--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --local_resources 2048,.5,1.0" -t \
+$USER/tensorflow-serving-devel -f Dockerfile.devel .
+```
+
+### Running a container
 
 This assumes you have built the `Dockerfile.devel` container.
 
-To run the container:
+To run the container opening the gRPC port (8500):
 
 ```shell
 docker run -it -p 8500:8500 $USER/tensorflow-serving-devel
@@ -110,7 +136,7 @@ docker run -it -p 8500:8500 $USER/tensorflow-serving-devel
 This will pull the latest TensorFlow Serving release with a prebuilt binary and
 working development environment. To test a model, from inside the container try:
 
-``````shell
+```shell
 bazel build -c opt //tensorflow_serving/example:mnist_saved_model
 # train the mnist model
 bazel-bin/tensorflow_serving/example/mnist_saved_model /tmp/mnist_model
@@ -120,5 +146,4 @@ tensorflow_model_server --port=8500 --model_name=mnist --model_base_path=/tmp/mn
 bazel build -c opt //tensorflow_serving/example:mnist_client
 # test the client
 bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:8500
-`````
-``````
+```
