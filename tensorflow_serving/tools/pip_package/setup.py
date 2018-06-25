@@ -38,7 +38,7 @@ REQUIRED_PACKAGES = [
 
 setup(
     name='tensorflow-serving-api',
-    version=_VERSION,
+    version=_VERSION.replace('-', ''),
     author='Google Inc.',
     author_email='tensorflow-serving-dev@googlegroups.com',
     packages=find_packages(),
