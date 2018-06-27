@@ -68,12 +68,12 @@ RUN mkdir /bazel && \
     rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
 
 # Download, build, and install TensorFlow Serving
-ARG TF_SERVING_VERSION_GIT_BRANCH=r1.8
+ARG TF_SERVING_VERSION_GIT_BRANCH=master
 WORKDIR /tensorflow-serving
 RUN git clone --depth=1 --branch=${TF_SERVING_VERSION_GIT_BRANCH} \
         https://github.com/tensorflow/serving .
 
-ARG TF_SERVING_BUILD_OPTIONS="--copt=-mavx --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0"
+ARG TF_SERVING_BUILD_OPTIONS="--copt=-mavx --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --verbose_failures"
 RUN bazel build -c opt --color=yes --curses=yes ${TF_SERVING_BUILD_OPTIONS} \
     --output_filter=DONT_MATCH_ANYTHING \
     tensorflow_serving/model_servers:tensorflow_model_server && \
