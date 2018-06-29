@@ -622,17 +622,13 @@ void Queue<TaskType>::ProcessBatch(std::unique_ptr<Batch<TaskType>> batch) {
   }
 }
 
-// Parsed by fluentd, format is important!
-auto LOG_STRING_NUM_BATCHES_IN_QUEUE = "Number of batches in a queue: ";
-auto LOG_STRING_BATCH_SIZE_TO_PROCESS = "Batch size to process: ";
-
 template <typename TaskType>
 bool Queue<TaskType>::IsEmpty() const {
   mutex_lock l(mu_);
   bool is_empty = IsEmptyInternal();
   if (is_empty) {
-    LOG(INFO) << LOG_STRING_NUM_BATCHES_IN_QUEUE << batches_.size() - 1;
-    LOG(INFO) << LOG_STRING_BATCH_SIZE_TO_PROCESS << batches_.back()->size();
+    LOG(INFO) << "Number of batches in a queue: " << batches_.size() - 1; // FLUENTD
+    LOG(INFO) << "Batch size to process: " << batches_.back()->size(); // FLUENTD
   }
   return is_empty;
 }
@@ -662,8 +658,8 @@ bool Queue<TaskType>::IsEmptyInternal() const {
 template <typename TaskType>
 void Queue<TaskType>::StartNewBatch() {
   batches_.back()->Close();
-  LOG(INFO) << LOG_STRING_NUM_BATCHES_IN_QUEUE << batches_.size() - 1;
-  LOG(INFO) << LOG_STRING_BATCH_SIZE_TO_PROCESS << batches_.back()->size();
+  LOG(INFO) << "Number of batches in a queue: " << batches_.size() - 1; // FLUENTD
+  LOG(INFO) << "Batch size to process: " << batches_.back()->size(); // FLUENTD
   batches_.emplace_back(new Batch<TaskType>);
 }
 
