@@ -8,14 +8,19 @@ sh_binary(
     data = [
         "setup.py",
 
-        # Scripts.
-        "//tensorflow_serving/apis:get_model_metadata_proto_py_pb2",
-        "//tensorflow_serving/apis:input_proto_py_pb2",
-        "//tensorflow_serving/apis:model_proto_py_pb2",
-        "//tensorflow_serving/apis:predict_proto_py_pb2",
-        "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        # Python scripts needed for the Python TF Serving API
         "//tensorflow_serving/apis:classification_proto_py_pb2",
+        "//tensorflow_serving/apis:get_model_metadata_proto_py_pb2",
+        "//tensorflow_serving/apis:get_model_status_proto_py_pb2",
         "//tensorflow_serving/apis:inference_proto_py_pb2",
+        "//tensorflow_serving/apis:input_proto_py_pb2",
+        "//tensorflow_serving/apis:model_management_proto_py_pb2",
+        "//tensorflow_serving/apis:model_proto_py_pb2",
+        "//tensorflow_serving/apis:model_service_proto_py_pb2",
+        "//tensorflow_serving/apis:prediction_log_proto_py_pb2",
+        "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        "//tensorflow_serving/apis:predict_proto_py_pb2",
         "//tensorflow_serving/apis:regression_proto_py_pb2",
+        "//tensorflow_serving/apis:session_service_proto_py_pb2",
     ],
 )
