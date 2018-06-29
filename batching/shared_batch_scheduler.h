@@ -626,10 +626,10 @@ template <typename TaskType>
 bool Queue<TaskType>::IsEmpty() const {
   mutex_lock l(mu_);
   bool is_empty = IsEmptyInternal();
-  if (is_empty) {
-    LOG(INFO) << "Number of batches in a queue: " << batches_.size() - 1; // FLUENTD
-    LOG(INFO) << "Batch size to process: " << batches_.back()->size(); // FLUENTD
-  }
+//  if (is_empty) {
+//    LOG(INFO) << "Number of batches in a queue: " << batches_.size() - 1; // FLUENTD
+//    LOG(INFO) << "Batch size to process: " << batches_.back()->size(); // FLUENTD
+//  }
   return is_empty;
 }
 
