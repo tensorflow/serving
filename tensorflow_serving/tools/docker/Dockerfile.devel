@@ -68,7 +68,7 @@ RUN mkdir /bazel && \
     rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
 
 # Download, build, and install TensorFlow Serving
-ARG TF_SERVING_VERSION_GIT_BRANCH=master
+ARG TF_SERVING_VERSION_GIT_BRANCH=1.8.0
 WORKDIR /tensorflow-serving
 RUN git clone --depth=1 --branch=${TF_SERVING_VERSION_GIT_BRANCH} \
         https://github.com/tensorflow/serving .
