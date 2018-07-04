@@ -125,7 +125,7 @@ TEST(DynamicSourceRouterTest, Reconfigure) {
   router->SetAspiredVersions("bar",
                              {ServableData<StoragePath>({"bar", 7}, "data")});
 
-  TF_CHECK_OK(router->UpdateRoutes({{"bar", 0}}));
+  TF_ASSERT_OK(router->UpdateRoutes({{"bar", 0}}));
 
   // Now, the routes of "foo" and "bar" should be swapped.
   EXPECT_CALL(*targets[1], SetAspiredVersions(

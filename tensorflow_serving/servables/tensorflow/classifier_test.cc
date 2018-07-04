@@ -305,7 +305,7 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
   Status Create() {
     if (UseSavedModel()) {
       std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-      TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+      TF_RETURN_IF_ERROR(internal::ConvertSessionBundleToSavedModelBundle(
           *bundle_, saved_model.get()));
       return CreateClassifierFromSavedModelBundle(
           GetRunOptions(), std::move(saved_model), &classifier_);

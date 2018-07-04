@@ -256,7 +256,7 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
   Status Create() {
     if (UseSavedModel()) {
       std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-      TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+      TF_RETURN_IF_ERROR(internal::ConvertSessionBundleToSavedModelBundle(
           *bundle_, saved_model.get()));
       return CreateRegressorFromSavedModelBundle(
           GetRunOptions(), std::move(saved_model), &regressor_);
@@ -301,7 +301,7 @@ TEST_P(RegressorTest, BasicExampleList) {
   // Test RunRegress
   if (UseSavedModel()) {
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
         *bundle_, saved_model.get()));
     RegressionResponse response;
     TF_ASSERT_OK(RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
@@ -334,7 +334,7 @@ TEST_P(RegressorTest, BasicExampleListWithContext) {
   // Test RunRegress
   if (UseSavedModel()) {
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
         *bundle_, saved_model.get()));
     RegressionResponse response;
     TF_ASSERT_OK(RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
@@ -378,7 +378,7 @@ TEST_P(RegressorTest, ValidNamedSignature) {
   // Test RunRegress
   if (UseSavedModel()) {
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
         *bundle_, saved_model.get()));
     RegressionResponse response;
     TF_ASSERT_OK(RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
@@ -420,7 +420,7 @@ TEST_P(RegressorTest, InvalidNamedSignature) {
   // Test RunRegress
   if (UseSavedModel()) {
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
         *bundle_, saved_model.get()));
     RegressionResponse response;
     const Status status =
@@ -451,7 +451,7 @@ TEST_P(RegressorTest, MalformedOutputs) {
   EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
   // Test RunRegress
   std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-  TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+  TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
       *bundle_, saved_model.get()));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model->meta_graph_def, {},
@@ -471,7 +471,7 @@ TEST_P(RegressorTest, EmptyInput) {
   // Test RunRegress
   if (UseSavedModel()) {
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
         *bundle_, saved_model.get()));
     RegressionResponse response;
     const Status status =
@@ -493,7 +493,7 @@ TEST_P(RegressorTest, EmptyExampleList) {
   // Test RunRegress
   if (UseSavedModel()) {
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
         *bundle_, saved_model.get()));
     RegressionResponse response;
     const Status status =
@@ -518,7 +518,7 @@ TEST_P(RegressorTest, EmptyExampleListWithContext) {
   // Test RunRegress
   if (UseSavedModel()) {
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
         *bundle_, saved_model.get()));
     RegressionResponse response;
     const Status status =
@@ -551,7 +551,7 @@ TEST_P(RegressorTest, RunsFails) {
   // Test RunRegress
   if (UseSavedModel()) {
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
         *bundle_, saved_model.get()));
     RegressionResponse response;
     const Status status =
@@ -587,7 +587,7 @@ TEST_P(RegressorTest, UnexpectedOutputTensorSize) {
         .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
                                    ::testing::Return(Status::OK())));
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
         *bundle_, saved_model.get()));
     RegressionResponse response;
     const Status status =
@@ -625,7 +625,7 @@ TEST_P(RegressorTest, UnexpectedOutputTensorType) {
         .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
                                    ::testing::Return(Status::OK())));
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
         *bundle_, saved_model.get()));
     RegressionResponse response;
     const Status status =
@@ -663,7 +663,7 @@ TEST_P(RegressorTest, MissingRegressionSignature) {
   // Test RunRegress
   if (UseSavedModel()) {
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_CHECK_OK(internal::ConvertSessionBundleToSavedModelBundle(
+    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
         *bundle_, saved_model.get()));
     RegressionResponse response;
     const Status status =
