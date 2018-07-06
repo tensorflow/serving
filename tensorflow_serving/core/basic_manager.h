@@ -375,7 +375,7 @@ class BasicManager : public Manager {
   Status ExecuteUnload(LoaderHarness* harness) LOCKS_EXCLUDED(mu_);
 
   // Unloads all the managed servables.
-  void UnloadAllServables() LOCKS_EXCLUDED(mu_);
+  Status UnloadAllServables() LOCKS_EXCLUDED(mu_);
 
   // Updates the serving map by copying servables from the managed map, which
   // are ready to be served.

@@ -248,33 +248,37 @@ BasicManager::~BasicManager() {
   }
   unload_executor_.reset();
 
-  UnloadAllServables();
+  const Status unload_status = UnloadAllServables();
+  if (!unload_status.ok()) {
+    LOG(ERROR) << "Error unloading all servables in BasicManager destructor: "
+               << unload_status;
+  }
 }
 
-void BasicManager::UnloadAllServables() {
+Status BasicManager::UnloadAllServables() {
   LOG(INFO) << "Unload all remaining servables in the manager.";
+  Status status = Status::OK();
   {
     mutex_lock l(mu_);
     for (auto it = managed_map_.begin(); it != managed_map_.end(); ++it) {
       LoaderHarness* const harness = it->second.get();
       if (harness->state() == LoaderHarness::State::kReady) {
-        // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
-        harness->UnloadRequested().IgnoreError();
-        harness->StartQuiescing().IgnoreError();
-        harness->DoneQuiescing().IgnoreError();
-        harness->Unload().IgnoreError();
+        status.Update(harness->UnloadRequested());
+        status.Update(harness->StartQuiescing());
+        status.Update(harness->DoneQuiescing());
+        status.Update(harness->Unload());
       }
       if (harness->state() == LoaderHarness::State::kQuiescing) {
-        // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
-        harness->DoneQuiescing().IgnoreError();
-        harness->Unload().IgnoreError();
+        status.Update(harness->DoneQuiescing());
+        status.Update(harness->Unload());
       }
       if (harness->state() == LoaderHarness::State::kQuiesced) {
-        // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
-        harness->Unload().IgnoreError();
+        status.Update(harness->Unload());
       }
     }
   }
+
+  return status;
 }
 
 std::vector<ServableId> BasicManager::ListAvailableServableIds() const {
@@ -688,10 +692,8 @@ Status BasicManager::ApproveUnload(LoaderHarness* harness) {
 Status BasicManager::ReserveResources(LoaderHarness* harness,
                                       mutex_lock* mu_lock) {
   while (true) {
-    // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
-    resource_tracker_
-        ->RecomputeUsedResources(GetLoadersCurrentlyUsingResources())
-        .IgnoreError();
+    TF_RETURN_IF_ERROR(resource_tracker_->RecomputeUsedResources(
+        GetLoadersCurrentlyUsingResources()));
     bool resources_reserved;
     // We retry reserving resources because it may involve transiently failing
     // operations like file-reads.

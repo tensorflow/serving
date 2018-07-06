@@ -474,18 +474,23 @@ TEST_P(BasicManagerTest, GetManagedServableStateSnapshotsWithAdditionalState) {
 
 TEST_P(BasicManagerTest, MultipleManageCallsUsesFirstServable) {
   const ServableId id = {kServableName, 1};
-  std::unique_ptr<Loader> first_loader(
-      new FakeLoader(1, errors::Internal("An error.")));
 
-  basic_manager_
-      ->ManageServable(CreateServableData(id, std::move(first_loader)))
-      .IgnoreError();
-  // Different servable returned.
-  std::unique_ptr<Loader> second_loader(
+  // Servable 'id' is already managed, so further ManageServable() calls should
+  // fail (and not affect the status of the already-managed servable).
+  std::unique_ptr<Loader> first_ignored_loader(
+      new FakeLoader(1, errors::Internal("An error.")));
+  EXPECT_FALSE(basic_manager_
+                   ->ManageServable(
+                       CreateServableData(id, std::move(first_ignored_loader)))
+                   .ok());
+
+  // Same thing, but this time using a loader for a different servable version.
+  std::unique_ptr<Loader> second_ignored_loader(
       new FakeLoader(2, errors::Internal("An error.")));
-  basic_manager_
-      ->ManageServable(CreateServableData(id, std::move(second_loader)))
-      .IgnoreError();
+  EXPECT_FALSE(basic_manager_
+                   ->ManageServable(
+                       CreateServableData(id, std::move(second_ignored_loader)))
+                   .ok());
 
   ServableHandle<int64> handle;
   TF_ASSERT_OK(basic_manager_->GetServableHandle(
@@ -539,7 +544,7 @@ TEST_P(BasicManagerTest, DestructOnNonServingThread) {
         WaitUntilServableManagerStateIsOneOf(
             servable_state_monitor_, id, {ServableState::ManagerState::kEnd});
         // TODO(b/35997855): Don't just ignore this status!
-        basic_manager_->StopManagingServable(id).IgnoreError();
+        TF_ASSERT_OK(basic_manager_->StopManagingServable(id));
         // The servable has been deleted in this thread if there is no
         // thread-pool for load/unload.
         if (thread_pool_sizes_.num_load_threads == 0) {
@@ -1015,6 +1020,7 @@ TEST_P(BasicManagerTest, ConcurrentLoadsOnlyOneSucceeds) {
                                      kNumThreads);
     for (int i = 0; i < 4; ++i) {
       load_executor.Schedule([this, id, i, &statuses, &status_mu]() {
+        // (Suppress a possible "this servable is already managed" error.)
         basic_manager_->ManageServable(CreateServable(id)).IgnoreError();
         basic_manager_->LoadServable(
             id, [i, &statuses, &status_mu](const Status& status) {

@@ -382,9 +382,18 @@ void AspiredVersionsManager::FlushServables() {
            state_snapshot.state == LoaderHarness::State::kDisabled ||
            state_snapshot.state == LoaderHarness::State::kError) &&
           !state_snapshot.additional_state->is_aspired) {
-        VLOG(1) << "Removing " << state_snapshot.id << "from BasicManager";
-        // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
-        basic_manager_->StopManagingServable(state_snapshot.id).IgnoreError();
+        const Status status =
+            basic_manager_->StopManagingServable(state_snapshot.id);
+        if (status.ok()) {
+          VLOG(1) << "Removed " << state_snapshot.id << "from BasicManager";
+        } else {
+          // This scenario is likely a bug, perhaps a race (either here in
+          // AspiredVersionsManager, or in BasicManager). We'll wind up retrying
+          // StopManagingServable() on the next FlushServables() call, so just
+          // log the error and move on for now.
+          LOG(ERROR) << "Error removing " << state_snapshot.id
+                     << "from BasicManager: " << status << " will retry later";
+        }
       }
     }
   }
