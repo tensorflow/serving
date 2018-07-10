@@ -34,8 +34,8 @@ images you can pull.
 
 Once you have pulled the serving image, you can try serving an example model.
 
-We will use a toy model called `Half Plus Three`, which will predict values `0.5
-* x + 3` for the values we provide for prediction.
+We will use a toy model called `Half Plus Three`, which will predict values `0.5 * x + 3`
+for the values we provide for prediction.
 
 To get this model, first clone the TensorFlow Serving repo.
 
