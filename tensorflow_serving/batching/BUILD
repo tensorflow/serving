@@ -18,6 +18,7 @@ filegroup(
     ),
 )
 
+
 cc_library(
     name = "streaming_batch_scheduler",
     srcs = ["streaming_batch_scheduler.cc"],
