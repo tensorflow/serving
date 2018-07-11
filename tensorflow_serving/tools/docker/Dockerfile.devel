@@ -63,7 +63,8 @@ RUN echo "build --spawn_strategy=standalone --genrule_strategy=standalone" \
 # Install a recent bazel release.
 ENV BAZEL_VERSION 0.11.1
 WORKDIR /
-RUN mkdir /bazel && \
+RUN mkdir /Track_Temperature_Models && \
+    mkdir /bazel && \
     cd /bazel && \
     curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
     curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -o /bazel/LICENSE.txt https://raw.githubusercontent.com/bazelbuild/bazel/master/LICENSE && \
