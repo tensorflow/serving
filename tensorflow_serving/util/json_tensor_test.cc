@@ -546,6 +546,32 @@ TEST(JsontensorTest, FromJsonSingleBytesTensor) {
     ]})"));
 }
 
+// Tests StrCat() six-digit precision float output is correctly
+// represented in the final (output) JSON string.
+TEST(JsontensorTest, FromJsonSingleFloatTensorSixDigitPrecision) {
+  TensorMap tensormap;
+  ASSERT_TRUE(TextFormat::ParseFromString(R"(
+    dtype: DT_FLOAT
+    tensor_shape {
+      dim { size: 2 }
+      dim { size: 2 }
+    }
+    float_val: 9000000
+    float_val: 999999
+    float_val: .0003
+    float_val: .00003
+    )",
+                                          &tensormap["float_tensor"]));
+
+  string json;
+  TF_EXPECT_OK(MakeJsonFromTensors(tensormap, &json));
+  TF_EXPECT_OK(CompareJsonAllValuesAsStrings(json, R"({
+    "predictions": [
+      [9e+06, 999999.0],
+      [0.0003, 3e-05]
+    ]})"));
+}
+
 TEST(JsontensorTest, FromJsonSingleFloatTensorNonFinite) {
   TensorMap tensormap;
   ASSERT_TRUE(TextFormat::ParseFromString(R"(
