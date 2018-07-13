@@ -6,12 +6,14 @@ One of the easiest ways to get started using TensorFlow Serving is via
 ## Installing Docker
 
 General installation instructions are
-[on the Docker site](https://docs.docker.com/installation/), but we give some
-quick links here:
+[on the Docker site](https://docs.docker.com/install/), but we give some quick
+links here:
 
-*   [OSX](https://docs.docker.com/installation/mac/): [docker
-    toolbox](https://www.docker.com/toolbox)
-*   [Ubuntu](https://docs.docker.com/installation/ubuntulinux/)
+*   [Docker for macOS](https://docs.docker.com/docker-for-mac/install/)
+*   [Docker for Windows](https://docs.docker.com/docker-for-windows/install/)
+    for Windows 10 Pro or later
+*   [Docker Toolbox](https://docs.docker.com/toolbox/) for much older versions
+    of macOS, or versions of Windows before Windows 10 Pro
 
 ## Serving with Docker
 
@@ -64,6 +66,9 @@ To query the model using the predict API, you can run
 ```shell
 curl -d '{"instances": [1.0, 2.0, 5.0]}' -X POST http://localhost:8501/v1/models/half_plus_three:predict
 ```
+
+NOTE: Older versions of Windows and other systems without curl can download it
+[here](https://curl.haxx.se/download.html).
 
 This should return a set of values:
 
@@ -184,5 +189,5 @@ To run the container opening the gRPC port (8500):
 docker run -it -p 8500:8500 $USER/tensorflow-serving-devel
 ```
 
-From here, you can follow the instructions for [testing a devlopment
-environment](#testing-the-development-environment).
+From here, you can follow the instructions for
+[testing a development environment](#testing-the-development-environment).
