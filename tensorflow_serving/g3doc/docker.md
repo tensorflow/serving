@@ -9,10 +9,10 @@ General installation instructions are
 [on the Docker site](https://docs.docker.com/install/), but we give some quick
 links here:
 
-*   [Docker for macOS](https://docs.docker.com/docker-for-mac/install/)
-*   [Docker for Windows](https://docs.docker.com/docker-for-windows/install/)
+* [Docker for macOS](https://docs.docker.com/docker-for-mac/install/)
+* [Docker for Windows](https://docs.docker.com/docker-for-windows/install/)
     for Windows 10 Pro or later
-*   [Docker Toolbox](https://docs.docker.com/toolbox/) for much older versions
+* [Docker Toolbox](https://docs.docker.com/toolbox/) for much older versions
     of macOS, or versions of Windows before Windows 10 Pro
 
 ## Serving with Docker
@@ -129,14 +129,14 @@ bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=loca
 
 We currently maintain the following Dockerfiles:
 
-*   [`Dockerfile`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile),
+* [`Dockerfile`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile),
     which is a minimal VM with TensorFlow Serving installed.
 
-*   [`Dockerfile.devel`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel),
+* [`Dockerfile.devel`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel),
     which is a minimal VM with all of the dependencies needed to build
     TensorFlow Serving.
 
-*   [`Dockerfile.devel-gpu`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel),
+* [`Dockerfile.devel-gpu`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel-gpu),
     which is a minimal VM with all of the dependencies needed to build
     TensorFlow Serving with GPU support.
 
