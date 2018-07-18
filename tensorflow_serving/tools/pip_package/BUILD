@@ -22,5 +22,6 @@ sh_binary(
         "//tensorflow_serving/apis:predict_proto_py_pb2",
         "//tensorflow_serving/apis:regression_proto_py_pb2",
         "//tensorflow_serving/apis:session_service_proto_py_pb2",
+        "//tensorflow_serving/util:status_proto_py_pb2",
     ],
 )
