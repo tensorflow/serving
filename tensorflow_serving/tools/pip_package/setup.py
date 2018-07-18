@@ -34,6 +34,7 @@ _VERSION = '1.9.0'
 REQUIRED_PACKAGES = [
     'tensorflow>=1.2.0,<2',
     'grpcio>=1.0<2',
+    'protobuf==3.6.0',
 ]
 
 setup(
