@@ -34,6 +34,8 @@ function main() {
 
   echo $(date) : "=== Using tmpdir: ${TMPDIR}"
   mkdir -p ${TMPDIR}/tensorflow_serving/apis
+  mkdir -p ${TMPDIR}/tensorflow_serving/config
+  mkdir -p ${TMPDIR}/tensorflow_serving/sources/storage_path
   mkdir -p ${TMPDIR}/tensorflow_serving/util
   mkdir -p ${TMPDIR}/tensorflow/core/lib/core
 
@@ -46,7 +48,13 @@ function main() {
 
   cp bazel-serving/tensorflow_serving/apis/*_grpc.py \
     "${TMPDIR}/tensorflow_serving/apis"
+
+  cp bazel-genfiles/tensorflow_serving/config/*_pb2.py \
+    "${TMPDIR}/tensorflow_serving/config"
   
+  cp bazel-genfiles/tensorflow_serving/sources/storage_path/*_pb2.py \
+    "${TMPDIR}/tensorflow_serving/sources/storage_path"
+
   cp bazel-genfiles/tensorflow_serving/util/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/util"
 
@@ -54,6 +62,9 @@ function main() {
     "${TMPDIR}/tensorflow/core/lib/core"
 
   touch "${TMPDIR}/tensorflow_serving/apis/__init__.py"
+  touch "${TMPDIR}/tensorflow_serving/config/__init__.py"
+  touch "${TMPDIR}/tensorflow_serving/sources/__init__.py"
+  touch "${TMPDIR}/tensorflow_serving/sources/storage_path/__init__.py"
   touch "${TMPDIR}/tensorflow_serving/util/__init__.py"
   touch "${TMPDIR}/tensorflow_serving/__init__.py"
   touch "${TMPDIR}/tensorflow/__init__.py"
