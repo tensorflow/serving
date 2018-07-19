@@ -22,9 +22,10 @@ limitations under the License.
 #include "tensorflow_serving/apis/model_service.grpc.pb.h"
 #include "tensorflow_serving/apis/model_service.pb.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/apis/model_management.pb.h"
 
 namespace tensorflow {
-namespace serving {
+  namespace serving {
 
 class ModelServiceImpl final : public ModelService::Service {
  public:
