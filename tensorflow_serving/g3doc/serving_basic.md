@@ -144,10 +144,18 @@ def structure and how to set up them up can be found [here](signature_defs.md).
 
 Let's run it!
 
+First, if you haven't done so yet, clone this repository to your local machine:
+```shell
+$ git clone https://github.com/tensorflow/serving.git
+Cloning into 'serving'...
+[...]
+$ cd serving
+```
+
 Clear the export directory if it already exists:
 
 ```shell
-$>rm -rf /tmp/mnist_model
+$ rm -rf /tmp/mnist_model
 ```
 
 If you would like to install the `tensorflow` and `tensorflow-serving-api` PIP
@@ -160,8 +168,8 @@ codelab will have instructions for both the Bazel and PIP options.
 Bazel:
 
 ```shell
-$>bazel build -c opt //tensorflow_serving/example:mnist_saved_model
-$>bazel-bin/tensorflow_serving/example/mnist_saved_model /tmp/mnist_model
+$ bazel build -c opt //tensorflow_serving/example:mnist_saved_model
+$ bazel-bin/tensorflow_serving/example/mnist_saved_model /tmp/mnist_model
 Training model...
 
 ...
@@ -174,13 +182,13 @@ Done exporting!
 Or if you have `tensorflow-serving-api` installed, you can run:
 
 ```shell
-python tensorflow_serving/example/mnist_saved_model.py /tmp/mnist_model
+$ python tensorflow_serving/example/mnist_saved_model.py /tmp/mnist_model
 ```
 
 Now let's take a look at the export directory.
 
 ```shell
-$>ls /tmp/mnist_model
+$ ls /tmp/mnist_model
 1
 ```
 
@@ -189,7 +197,7 @@ of the model. `FLAGS.model_version` has the default value of 1, therefore
 the corresponding sub-directory `1` is created.
 
 ```shell
-$>ls /tmp/mnist_model/1
+$ ls /tmp/mnist_model/1
 saved_model.pb variables
 ```
 
@@ -208,8 +216,8 @@ With that, your TensorFlow model is exported and ready to be loaded!
 If you'd like to use a locally compiled ModelServer, run the following:
 
 ```shell
-$>bazel build -c opt //tensorflow_serving/model_servers:tensorflow_model_server
-$>bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000 --model_name=mnist --model_base_path=/tmp/mnist_model/
+$ bazel build -c opt //tensorflow_serving/model_servers:tensorflow_model_server
+$ bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000 --model_name=mnist --model_base_path=/tmp/mnist_model/
 ```
 
 If you'd prefer to skip compilation and install using apt-get, follow the
@@ -217,7 +225,7 @@ If you'd prefer to skip compilation and install using apt-get, follow the
 command:
 
 ```shell
-tensorflow_model_server --port=9000 --model_name=mnist --model_base_path=/tmp/mnist_model/
+$ tensorflow_model_server --port=9000 --model_name=mnist --model_base_path=/tmp/mnist_model/
 ```
 
 ## Test The Server
@@ -230,8 +238,8 @@ requests to the server, and calculates the inference error rate.
 To run it with Bazel:
 
 ```shell
-$>bazel build -c opt //tensorflow_serving/example:mnist_client
-$>bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:9000
+$ bazel build -c opt //tensorflow_serving/example:mnist_client
+$ bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:9000
 ...
 Inference error rate: 10.5%
 ```
@@ -239,7 +247,7 @@ Inference error rate: 10.5%
 Alternatively if you installed the PIP package, run:
 
 ```shell
-python tensorflow_serving/example/mnist_client.py --num_tests=1000 --server=localhost:9000
+$ python tensorflow_serving/example/mnist_client.py --num_tests=1000 --server=localhost:9000
 ```
 
 We expect around 91% accuracy for the trained Softmax model and we get
