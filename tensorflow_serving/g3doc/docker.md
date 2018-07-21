@@ -136,7 +136,7 @@ We currently maintain the following Dockerfiles:
     which is a minimal VM with all of the dependencies needed to build
     TensorFlow Serving.
 
-*  [`Dockerfile.devel-gpu`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel-gpu),
+*   [`Dockerfile.devel-gpu`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel-gpu),
     which is a minimal VM with all of the dependencies needed to build
     TensorFlow Serving with GPU support.
 
