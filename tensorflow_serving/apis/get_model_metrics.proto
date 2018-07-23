@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+option cc_enable_arenas = true;
+
+import "tensorflow_serving/apis/model.proto";
+
+// GetModelMetricsRequest contains a ModelSpec indicating the model for which
+// to get metrics.
+message GetModelMetricsRequest {
+  // Model Specification. If version is not specified, information about all
+  // versions of the model will be returned. If a version is specified, the
+  // status of only that version will be returned.
+  ModelSpec model_spec = 1;
+}
+
+message ModelVersionMetrics {
+  // MethodType that map to ServableMetricsMonitor::MethodType enum in
+  // tensorflow_serving/core/servable_metrics_monitor.h
+  enum MethodType {
+    UNKNOWN = 0;
+    CLASSIFY = 10;
+    REGRESS = 20;
+    PREDICT = 30;
+  }
+
+  // Model method type.
+  MethodType method_type = 1;
+  // Model version.
+  int64 version = 2;
+  // Model metrics.
+  Metrics metrics = 3;
+}
+
+message Metrics {
+  int64 request_count = 1;
+  int64 error_count = 2;
+}
+
+// Response for ModelMetricsResponse on successful run.
+message GetModelMetricsResponse {
+  // Version number, method type and metrics information for applocxable model
+  // version(s).
+  repeated ModelVersionMetrics model_version_metrics = 1;
+}

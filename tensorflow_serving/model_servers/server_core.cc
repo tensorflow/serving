@@ -232,6 +232,14 @@ Status ServerCore::Create(Options options,
         };
   }
 
+  if(options.servable_metrics_monitor_creator == nullptr) {
+    options.servable_metrics_monitor_creator = [](
+      std::unique_ptr<ServableMetricsMonitor>* monitor) {
+      monitor->reset(new ServableMetricsMonitor());
+      return Status::OK();
+    };
+  }
+
   if (options.server_request_logger == nullptr) {
     TF_RETURN_IF_ERROR(
         ServerRequestLogger::Create(nullptr, &options.server_request_logger));
@@ -266,7 +274,7 @@ ServerCore::ServerCore(Options options)
 
 Status ServerCore::Initialize(std::unique_ptr<AspiredVersionPolicy> policy) {
   std::unique_ptr<ServableStateMonitor> servable_state_monitor;
-  const tensorflow::Status status = options_.servable_state_monitor_creator(
+  tensorflow::Status status = options_.servable_state_monitor_creator(
       servable_event_bus_.get(), &servable_state_monitor);
   if (!status.ok()) {
     VLOG(1) << "Servable state monitor creation failed: " << status;
@@ -274,6 +282,16 @@ Status ServerCore::Initialize(std::unique_ptr<AspiredVersionPolicy> policy) {
   }
 
   servable_state_monitor_ = std::move(servable_state_monitor);
+
+  std::unique_ptr<ServableMetricsMonitor> servable_metrics_monitor;
+  status = options_.servable_metrics_monitor_creator(
+          &servable_metrics_monitor);
+  if (!status.ok()) {
+    VLOG(1) << "Servable metrics monitor creation failed" << status;
+    return status;
+  }
+
+  servable_metrics_monitor_ = std::move(servable_metrics_monitor);
 
   std::unique_ptr<AspiredVersionsManager> aspired_versions_manager;
   TF_RETURN_IF_ERROR(CreateAspiredVersionsManager(std::move(policy),
@@ -698,6 +716,22 @@ Status ServerCore::ServableRequestFromModelSpec(
                                                   model_spec.version().value());
   } else {
     *servable_request = ServableRequest::Latest(model_spec.name());
+  }
+  return Status::OK();
+}
+
+Status ServerCore::GetModelVersion(
+    const ModelSpec& model_spec, int64& model_version) {
+  if (model_spec.has_version()) {
+    model_version = model_spec.version().value();
+  } else {
+    ServableHandle<SavedModelBundle> bundle;
+    tensorflow::Status status = ServerCore::GetServableHandle(model_spec, &bundle);
+    if (!status.ok()) {
+      VLOG(1) << "Unable to get model version due to: " << status;
+      return status;
+    }
+    model_version = bundle.id().version;
   }
   return Status::OK();
 }

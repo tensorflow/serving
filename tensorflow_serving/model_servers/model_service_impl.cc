@@ -15,12 +15,24 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/model_service_impl.h"
 
+#include "tensorflow_serving/model_servers/get_model_metrics_impl.h"
 #include "tensorflow_serving/model_servers/get_model_status_impl.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 #include "tensorflow_serving/util/status_util.h"
 
 namespace tensorflow {
 namespace serving {
+
+::grpc::Status ModelServiceImpl::GetModelMetrics(
+        ::grpc::ServerContext* context, const GetModelMetricsRequest* request,
+        GetModelMetricsResponse* response) {
+  const ::grpc::Status status = tensorflow::serving::ToGRPCStatus(
+          GetModelMetricsImpl::GetModelMetrics(core_, *request, response));
+  if (!status.ok()) {
+    VLOG(1) << "GetModelMetrics failed: " << status.error_message();
+  }
+  return status;
+}
 
 ::grpc::Status ModelServiceImpl::GetModelStatus(
     ::grpc::ServerContext *context, const GetModelStatusRequest *request,
