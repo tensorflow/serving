@@ -70,10 +70,15 @@ class ServerRequestLoggerTest : public ::testing::Test {
           const string& filename_prefix =
               logging_config.log_collector_config().filename_prefix();
           log_collector_map_[filename_prefix] = new FakeLogCollector();
+          increment_created_logger_counter();
+          auto logger_destruction_notifier = [this]() {
+            increment_deleted_logger_counter();
+          };
           auto mock_request_logger =
               std::unique_ptr<NiceMock<MockRequestLogger>>(
                   new NiceMock<MockRequestLogger>(
-                      logging_config, log_collector_map_[filename_prefix]));
+                      logging_config, log_collector_map_[filename_prefix],
+                      logger_destruction_notifier));
           ON_CALL(*mock_request_logger, CreateLogMessage(_, _, _, _))
               .WillByDefault(Invoke([&](const google::protobuf::Message& actual_request,
                                         const google::protobuf::Message& actual_response,
@@ -89,6 +94,29 @@ class ServerRequestLoggerTest : public ::testing::Test {
         &server_request_logger_));
   }
 
+  void increment_created_logger_counter() {
+    mutex_lock l(m_);
+    created_logger_counter_++;
+  }
+
+  int created_logger_counter() const {
+    mutex_lock sl(m_);
+    return created_logger_counter_;
+  }
+
+  void increment_deleted_logger_counter() {
+    mutex_lock l(m_);
+    deleted_logger_counter_++;
+  }
+
+  int deleted_logger_counter() const {
+    mutex_lock sl(m_);
+    return deleted_logger_counter_;
+  }
+
+  mutable mutex m_;
+  int created_logger_counter_ = 0;
+  int deleted_logger_counter_ = 0;
   std::unordered_map<string, FakeLogCollector*> log_collector_map_;
   std::unique_ptr<ServerRequestLogger> server_request_logger_;
 };
@@ -137,6 +165,60 @@ TEST_F(ServerRequestLoggerTest, MultipleModels) {
   ASSERT_EQ(2, log_collector_map_.size());
   EXPECT_EQ(1, log_collector_map_["/file/model0"]->collect_count());
   EXPECT_EQ(1, log_collector_map_["/file/model1"]->collect_count());
+}
+
+TEST_F(ServerRequestLoggerTest, CreateAndDeleteLogger) {
+  std::map<string, LoggingConfig> model_logging_configs;
+  model_logging_configs.insert(CreateLoggingConfigForModel("model0"));
+  TF_ASSERT_OK(server_request_logger_->Update(model_logging_configs));
+  EXPECT_EQ(1, created_logger_counter());
+  EXPECT_EQ(0, deleted_logger_counter());
+
+  model_logging_configs.clear();
+  TF_ASSERT_OK(server_request_logger_->Update(model_logging_configs));
+  EXPECT_EQ(1, created_logger_counter());
+  EXPECT_EQ(1, deleted_logger_counter());
+}
+
+TEST_F(ServerRequestLoggerTest, CreateAndModifyLogger) {
+  std::map<string, LoggingConfig> model_logging_configs;
+  model_logging_configs.insert(CreateLoggingConfigForModel("model0"));
+  TF_ASSERT_OK(server_request_logger_->Update(model_logging_configs));
+  EXPECT_EQ(1, created_logger_counter());
+  EXPECT_EQ(0, deleted_logger_counter());
+
+  model_logging_configs["model0"].mutable_sampling_config()->set_sampling_rate(
+      0.17);
+
+  TF_ASSERT_OK(server_request_logger_->Update(model_logging_configs));
+  EXPECT_EQ(2, created_logger_counter());
+  EXPECT_EQ(1, deleted_logger_counter());
+}
+
+TEST_F(ServerRequestLoggerTest, SameConfigForTwoModelsCreatesOneLogger) {
+  std::map<string, LoggingConfig> model_logging_configs;
+  std::pair<string, LoggingConfig> model_and_config1 =
+      CreateLoggingConfigForModel("model");
+  std::pair<string, LoggingConfig> model_and_config2 = {
+      "model2", model_and_config1.second};
+  model_logging_configs.insert(model_and_config1);
+  model_logging_configs.insert(model_and_config2);
+  TF_ASSERT_OK(server_request_logger_->Update(model_logging_configs));
+
+  EXPECT_EQ(1, created_logger_counter());
+  EXPECT_EQ(0, deleted_logger_counter());
+}
+
+TEST_F(ServerRequestLoggerTest, MultipleUpdatesSingleCreation) {
+  std::map<string, LoggingConfig> model_logging_configs;
+  model_logging_configs.insert(CreateLoggingConfigForModel("model0"));
+  model_logging_configs.insert(CreateLoggingConfigForModel("model1"));
+  for (int i = 0; i < 100; i++) {
+    TF_ASSERT_OK(server_request_logger_->Update(model_logging_configs));
+  }
+
+  EXPECT_EQ(2, created_logger_counter());
+  EXPECT_EQ(0, deleted_logger_counter());
 }
 
 }  // namespace

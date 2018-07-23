@@ -38,15 +38,15 @@ namespace serving {
 // sampling config.
 class ServerRequestLogger {
  public:
+  using LoggerCreator = std::function<Status(
+      const LoggingConfig& logging_config, std::unique_ptr<RequestLogger>*)>;
   // Creates the ServerRequestLogger based on a custom request_logger_creator
   // method.
   //
   // You can create an empty ServerRequestLogger with an empty
   // request_logger_creator.
   static Status Create(
-      const std::function<Status(const LoggingConfig& logging_config,
-                                 std::unique_ptr<RequestLogger>*)>&
-          request_logger_creator,
+      LoggerCreator request_logger_creator,
       std::unique_ptr<ServerRequestLogger>* server_request_logger);
 
   virtual ~ServerRequestLogger() = default;
@@ -65,20 +65,37 @@ class ServerRequestLogger {
                      const LogMetadata& log_metadata);
 
  protected:
-  explicit ServerRequestLogger(
-      const std::function<Status(const LoggingConfig& logging_config,
-                                 std::unique_ptr<RequestLogger>*)>&
-          request_logger_creator);
+  explicit ServerRequestLogger(LoggerCreator request_logger_creator);
 
  private:
-  // A map from model_name to its corresponding RequestLogger.
-  using RequestLoggerMap =
+  using StringToRequestLoggerMap = std::unordered_map<string, RequestLogger*>;
+  using StringToUniqueRequestLoggerMap =
       std::unordered_map<string, std::unique_ptr<RequestLogger>>;
-  FastReadDynamicPtr<RequestLoggerMap> request_logger_map_;
 
-  std::function<Status(const LoggingConfig& logging_config,
-                       std::unique_ptr<RequestLogger>*)>
-      request_logger_creator_;
+  // Find a logger for config in either config_to_logger_map_ or
+  // new_config_to_logger_map. If the logger was found in
+  // config_to_logger_map_ move it to new_config_to_logger_map and erase the
+  // entry from config_to_logger_map_. If such a logger does not exist,
+  // create a new logger and insert it into new_config_to_logger_map. Return the
+  // logger in result.
+  Status FindOrCreateLogger(
+      const LoggingConfig& config,
+      StringToUniqueRequestLoggerMap* new_config_to_logger_map,
+      RequestLogger** result);
+
+  // Mutex to ensure concurrent calls to Update() are serialized.
+  mutable mutex update_mu_;
+  // A map from serialized model config to its corresponding RequestLogger.
+  // If two models have the same logging config, they will share the
+  // RequestLogger.
+  // This is only used during calls to Update().
+  StringToUniqueRequestLoggerMap config_to_logger_map_;
+
+  // A map from model_name to its corresponding RequestLogger.
+  // The RequestLoggers are owned by config_to_logger_map_.
+  FastReadDynamicPtr<StringToRequestLoggerMap> model_to_logger_map_;
+
+  LoggerCreator request_logger_creator_;
 };
 
 }  // namespace serving
