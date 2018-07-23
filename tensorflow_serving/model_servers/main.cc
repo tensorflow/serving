@@ -56,6 +56,7 @@ limitations under the License.
 #include "grpcpp/server_builder.h"
 #include "grpcpp/server_context.h"
 #include "grpcpp/support/status.h"
+#include "tensorflow/c/c_api.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/strings/numbers.h"
@@ -76,6 +77,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/model_service_impl.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/model_servers/version.h"
 #include "tensorflow_serving/servables/tensorflow/classification_service.h"
 #include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
 #include "tensorflow_serving/servables/tensorflow/multi_inference_helper.h"
@@ -376,6 +378,7 @@ int main(int argc, char** argv) {
   string model_config_file;
   string grpc_channel_arguments = "";
   bool enable_model_warmup = true;
+  bool display_version = false;
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &port, "Port to listen on for gRPC API"),
       tensorflow::Flag("rest_api_port", &http_options.port,
@@ -444,10 +447,16 @@ int main(int argc, char** argv) {
       tensorflow::Flag("enable_model_warmup", &enable_model_warmup,
                        "Enables model warmup, which triggers lazy "
                        "initializations (such as TF optimizations) at load "
-                       "time, to reduce first request latency.")};
-
+                       "time, to reduce first request latency."),
+      tensorflow::Flag("version", &display_version, "Display version")};
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
+  if (parse_result && display_version) {
+    std::cout << "TensorFlow ModelServer: " << TF_MODELSERVER_VERSION_STRING
+              << "\n"
+              << "TensorFlow Library: " << TF_Version() << "\n";
+    return 0;
+  }
   if (!parse_result || (model_base_path.empty() && model_config_file.empty())) {
     std::cout << usage;
     return -1;

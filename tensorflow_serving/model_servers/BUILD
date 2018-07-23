@@ -278,6 +278,7 @@ cc_library(
     srcs = [
         "main.cc",
     ],
+    hdrs = ["version.h"],
     visibility = [
         ":tensorflow_model_server_custom_op_clients",
         "//tensorflow_serving:internal",
@@ -290,6 +291,7 @@ cc_library(
         ":grpc_status_util",
         ":model_service_impl",
         "@protobuf_archive//:cc_wkt_protos",
+        "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
