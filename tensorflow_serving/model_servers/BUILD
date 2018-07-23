@@ -197,7 +197,7 @@ cc_library(
         "//tensorflow_serving/apis:model_management_proto",
         "//tensorflow_serving/apis:model_service_proto",
         "//tensorflow_serving/util:status_util",
-        "@grpc//:grpc++_unsecure",
+        "@grpc//:grpc++",
     ],
 )
 
@@ -209,7 +209,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@grpc//:grpc++_unsecure",
+        "@grpc//:grpc++",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -300,7 +300,7 @@ cc_library(
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/servables/tensorflow:multi_inference_helper",
-        "@grpc//:grpc++_unsecure",
+        "@grpc//:grpc++",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
 )
