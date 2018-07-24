@@ -217,6 +217,9 @@ Status UpdateModelConfigListRelativePaths(
 
 }  // namespace
 
+constexpr char ServerCore::kStableVersionLabel[];
+constexpr char ServerCore::kCanaryVersionLabel[];
+
 // ************************************************************************
 // Public Methods.
 // ************************************************************************
@@ -693,11 +696,33 @@ Status ServerCore::ServableRequestFromModelSpec(
   if (model_spec.name().empty()) {
     return errors::InvalidArgument("ModelSpec has no name specified.");
   }
-  if (model_spec.has_version()) {
-    *servable_request = ServableRequest::Specific(model_spec.name(),
-                                                  model_spec.version().value());
-  } else {
-    *servable_request = ServableRequest::Latest(model_spec.name());
+
+  switch (model_spec.version_choice_case()) {
+    case ModelSpec::kVersion: {
+      *servable_request = ServableRequest::Specific(
+          model_spec.name(), model_spec.version().value());
+      break;
+    }
+    case ModelSpec::kVersionLabel: {
+      if (!options_.allow_version_labels) {
+        return errors::InvalidArgument(
+            "ModelSpec has 'version_label' set, but it is not currently "
+            "allowed by the server.");
+      }
+      if (model_spec.version_label() == kStableVersionLabel) {
+        *servable_request = ServableRequest::Earliest(model_spec.name());
+      } else if (model_spec.version_label() == kCanaryVersionLabel) {
+        *servable_request = ServableRequest::Latest(model_spec.name());
+      } else {
+        return errors::InvalidArgument(strings::StrCat(
+            "Unrecognized version label: ", model_spec.version_label()));
+      }
+      break;
+    }
+    case ModelSpec::VERSION_CHOICE_NOT_SET: {
+      *servable_request = ServableRequest::Latest(model_spec.name());
+      break;
+    }
   }
   return Status::OK();
 }

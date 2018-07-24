@@ -116,6 +116,9 @@ void ServerCoreTest::SwitchToHalfPlusTwoWith2Versions(
   auto model = config->mutable_model_config_list()->mutable_config(0);
   model->set_base_path(test_util::TestSrcDirPath(
       "/servables/tensorflow/testdata/half_plus_two_2_versions"));
+  // Request loading both versions simultaneously.
+  model->clear_model_version_policy();
+  model->mutable_model_version_policy()->mutable_all();
   if (PrefixPathsWithURIScheme()) {
     model->set_base_path(io::CreateURI("file", "", model->base_path()));
   }

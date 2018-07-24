@@ -150,6 +150,15 @@ TEST_P(BasicManagerTest, ServableHandleNotFoundMissingVersion) {
   EXPECT_EQ(error::NOT_FOUND, status.code());
 }
 
+TEST_P(BasicManagerTest, ServableHandleEarliest) {
+  ASSERT_GT(kNumVersionsPerServable, 1);
+  ServableHandle<int64> handle;
+  const Status status = basic_manager_->GetServableHandle(
+      ServableRequest::Earliest(kServableName), &handle);
+  TF_ASSERT_OK(status);
+  EXPECT_EQ(1, *handle);
+}
+
 TEST_P(BasicManagerTest, ServableHandleLatest) {
   const ServableId id = {kServableName, kNumVersionsPerServable + 1};
   TF_ASSERT_OK(basic_manager_->ManageServable(CreateServable(id)));

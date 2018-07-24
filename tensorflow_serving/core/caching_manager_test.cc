@@ -71,11 +71,23 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
     return ServableData<std::unique_ptr<Loader>>(id, std::move(loader));
   }
 
-  // Returns the latest version corresponding to the servable name.
-  int64 GetLatestVersion(const string& request_name) const override {
-    // Increment the current latest version until a maximum of 42.
+  // Returns the earliest/latest version corresponding to the servable name.
+  int64 GetServableVersion(
+      const string& request_name,
+      ServableRequest::AutoVersionPolicy policy) const override {
     mutex_lock l(mu_);
-    return latest_version_;
+    switch (policy) {
+      case ServableRequest::AutoVersionPolicy::kEarliest:
+        return earliest_version_;
+      case ServableRequest::AutoVersionPolicy::kLatest:
+        return latest_version_;
+    }
+  }
+
+  // Update the earliest available version.
+  void set_earliest_version(int64 version) {
+    mutex_lock l(mu_);
+    earliest_version_ = version;
   }
 
   // Update the latest available version.
@@ -91,8 +103,11 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
   }
 
  private:
-  // Used to protect updates to the latest_version_.
+  // Used to protect updates to 'earliest_version_' and 'latest_version_'.
   mutable mutex mu_;
+
+  // The current earliest version.
+  int64 earliest_version_ GUARDED_BY(mu_) = 0;
 
   // The current latest version.
   int64 latest_version_ GUARDED_BY(mu_) = 0;
@@ -121,8 +136,10 @@ class ErrorLoaderFactory : public CachingManager::LoaderFactory {
     return ServableData<std::unique_ptr<Loader>>(id, std::move(loader));
   }
 
-  int64 GetLatestVersion(const string& request_name) const override {
-    // A simple "latest" interpretation that always returns version 42.
+  int64 GetServableVersion(
+      const string& request_name,
+      ServableRequest::AutoVersionPolicy policy) const override {
+    // A simple policy interpretation that always returns version 42.
     return 42;
   }
 
@@ -239,6 +256,18 @@ TEST_P(CachingManagerTest, ServableHandleMultipleRequests) {
   }
 }
 
+// Tests functionality when the version corresponding to the "earliest" needs to
+// be newly managed and loaded by the manager.
+TEST_P(CachingManagerTest, ServableHandleSingleRequestEarliest) {
+  string_loader_factory_->set_earliest_version(30);
+  ServableHandle<string> handle;
+  TF_ASSERT_OK(manager_->GetServableHandle(
+      ServableRequest::Earliest({kServableName}), &handle));
+  EXPECT_EQ("kServableName-30", *handle);
+  const ServableId id = {kServableName, 30};
+  EXPECT_EQ(id, handle.id());
+}
+
 // Tests functionality when the version corresponding to the "latest" needs to
 // be newly managed and loaded by the manager.
 TEST_P(CachingManagerTest, ServableHandleSingleRequestLatest) {
@@ -249,6 +278,36 @@ TEST_P(CachingManagerTest, ServableHandleSingleRequestLatest) {
   EXPECT_EQ("kServableName-30", *handle);
   const ServableId id = {kServableName, 30};
   EXPECT_EQ(id, handle.id());
+}
+
+// Tests functionality when the version corresponding to the "earliest" is
+// already managed and loaded by the caching-manager.
+TEST_P(CachingManagerTest, ServableHandleMultipleRequestsEarliest) {
+  const ServableId id = {kServableName, 42};
+  {
+    // Make an explicit request for version 42.
+    ServableHandle<string> handle;
+    TF_ASSERT_OK(
+        manager_->GetServableHandle(ServableRequest::FromId(id), &handle));
+    EXPECT_EQ("kServableName-42", *handle);
+    EXPECT_EQ(id, handle.id());
+    // We expect a new loader to be created for this request.
+    EXPECT_EQ(1, string_loader_factory_->num_loaders_dispensed());
+    // Update the earliest available version.
+    string_loader_factory_->set_earliest_version(42);
+  }
+  {
+    // Now request for the earliest. The returned handle should have an id
+    // corresponding to version 42.
+    ServableHandle<string> handle;
+    TF_ASSERT_OK(manager_->GetServableHandle(
+        ServableRequest::Earliest({kServableName}), &handle));
+    EXPECT_EQ("kServableName-42", *handle);
+    EXPECT_EQ(id, handle.id());
+    // We do not expect a new loader to be created for this request, since it is
+    // identical to the previous request.
+    EXPECT_EQ(1, string_loader_factory_->num_loaders_dispensed());
+  }
 }
 
 // Tests functionality when the version corresponding to the "latest" is
@@ -533,7 +592,10 @@ TEST(PathPrefixLoaderFactoryTest, Basic) {
   TF_ASSERT_OK(loader->Load());
   EXPECT_EQ("prefix/servable_name/suffix", *loader->servable().get<string>());
 
-  EXPECT_EQ(0, factory.GetLatestVersion("blah"));
+  EXPECT_EQ(0, factory.GetServableVersion(
+                   "blah", ServableRequest::AutoVersionPolicy::kEarliest));
+  EXPECT_EQ(0, factory.GetServableVersion(
+                   "blah", ServableRequest::AutoVersionPolicy::kLatest));
 }
 
 TEST(PathPrefixLoaderFactoryTest, VersionOtherThanZeroYieldsError) {
