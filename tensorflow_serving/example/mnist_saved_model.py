@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-#!/usr/bin/env python2.7
+#! /usr/bin/env python
 r"""Train and export a simple Softmax Regression TensorFlow model.
 
 The model is from the TensorFlow "MNIST For ML Beginner" tutorial. This program
@@ -72,7 +72,7 @@ def main(_):
   train_step = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)
   values, indices = tf.nn.top_k(y, 10)
   table = tf.contrib.lookup.index_to_string_table_from_tensor(
-      tf.constant([str(i) for i in xrange(10)]))
+      tf.constant([str(i) for i in range(10)]))
   prediction_classes = table.lookup(tf.to_int64(indices))
   for _ in range(FLAGS.training_iteration):
     batch = mnist.train.next_batch(50)
