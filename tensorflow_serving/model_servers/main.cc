@@ -71,6 +71,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 #include "tensorflow_serving/apis/prediction_service.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
+#include "tensorflow_serving/config/ssl_config.pb.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 #include "tensorflow_serving/model_servers/http_server.h"
@@ -101,6 +102,7 @@ using tensorflow::serving::ModelServerConfig;
 using tensorflow::serving::ServableState;
 using tensorflow::serving::ServerCore;
 using tensorflow::serving::SessionBundleConfig;
+using tensorflow::serving::SSLConfig;
 using tensorflow::serving::TensorflowClassificationServiceImpl;
 using tensorflow::serving::TensorflowPredictor;
 using tensorflow::serving::TensorflowRegressionServiceImpl;
@@ -354,20 +356,42 @@ tensorflow::serving::PlatformConfigMap ParsePlatformConfigMap(
   return platform_config_map;
 }
 
-tensorflow::Status readkey( const tensorflow::string& filename, tensorflow::string& data )
+// Parses an ascii SSLConfig protobuf from 'file'.
+SSLConfig ParseSSLConfig(
+    const string& file) {
+  SSLConfig ssl_config;
+  TF_CHECK_OK(ParseProtoTextFile(file, &ssl_config));
+  return ssl_config;
+}
+
+// If 'ssl_config_file' is non-empty, build secure server credentials otherwise insecure channel
+std::shared_ptr<grpc::ServerCredentials> BuildServerCredentialsFromSSLConfigFile(const string &ssl_config_file)
 {
-    std::ifstream file(filename.c_str (), std::ios::in);
+  if (ssl_config_file.empty()) {
+    return InsecureServerCredentials();
+  } else {
+    SSLConfig ssl_config = ParseSSLConfig(ssl_config_file);
 
-    if (file.is_open()) {
-        std::stringstream ss;
-        ss << file.rdbuf ();
+    grpc::SslServerCredentialsOptions sslOps(ssl_config.client_verify() ?
+        GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY:
+        GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE);
 
-        file.close ();
+    sslOps.force_client_auth = ssl_config.client_verify();
 
-        data = ss.str ();
-        return tensorflow::Status::OK();
+    if (ssl_config.custom_ca().size() > 0) {
+      sslOps.pem_root_certs = ssl_config.custom_ca();
     }
-    return tensorflow::errors::InvalidArgument("Cannot read file: '", filename, "'");
+
+    grpc::SslServerCredentialsOptions::PemKeyCertPair keycert =
+    {
+        ssl_config.server_key(),
+        ssl_config.server_cert()
+    };
+
+    sslOps.pem_key_cert_pairs.push_back(keycert);
+
+    return grpc::SslServerCredentials(sslOps);
+  }
 }
 
 }  // namespace
@@ -382,9 +406,6 @@ int main(int argc, char** argv) {
   float per_process_gpu_memory_fraction = 0;
   tensorflow::string batching_parameters_file;
   tensorflow::string model_name = "default";
-  tensorflow::string server_key_path;
-  tensorflow::string server_cert_path;
-  tensorflow::string custom_root_path;
   tensorflow::int32 file_system_poll_wait_seconds = 1;
   bool flush_filesystem_caches = true;
   tensorflow::string model_base_path;
@@ -394,8 +415,8 @@ int main(int argc, char** argv) {
   // thread pools will be auto configured.
   tensorflow::int64 tensorflow_session_parallelism = 0;
   string platform_config_file = "";
+  string ssl_config_file = "";
   string model_config_file;
-  bool client_verify;
   std::shared_ptr<grpc::ServerCredentials> creds;
   string grpc_channel_arguments = "";
   bool enable_model_warmup = true;
@@ -446,17 +467,9 @@ int main(int argc, char** argv) {
                        "Tensorflow session. Auto-configured by default."
                        "Note that this option is ignored if "
                        "--platform_config_file is non-empty."),
-      tensorflow::Flag("server_key", &server_key_path,
-                       "path to private server key for SSL, "
-                       "implies using SSL to connect"),
-      tensorflow::Flag("server_cert", &server_cert_path,
-                       "path to public server certificate for SSL, "
-                       "implies using SSL to connect"),
-      tensorflow::Flag("custom_ca", &custom_root_path,
-                       "path to custom certificate authorities for SSL, "
-                       "implies using SSL to connect"),
-      tensorflow::Flag("client_verify", &client_verify,
-                       "When using SSL, require a valid client certificate"),
+      tensorflow::Flag("ssl_config_file", &ssl_config_file,
+                       "If non-empty, read an ascii SSLConfig protobuf from "
+                       "the supplied file name and set up a secure gRPC channel"),
       tensorflow::Flag("platform_config_file", &platform_config_file,
                        "If non-empty, read an ascii PlatformConfigMap protobuf "
                        "from the supplied file name, and use that platform "
@@ -491,48 +504,7 @@ int main(int argc, char** argv) {
     std::cout << "unknown argument: " << argv[1] << "\n" << usage;
   }
 
-  if (server_key_path.size() > 0 && server_cert_path.size() > 0) {
-    tensorflow::string key;
-    tensorflow::string cert;
-    tensorflow::string root;
-
-    TF_CHECK_OK(readkey(server_cert_path, cert));
-    TF_CHECK_OK(readkey(server_key_path, key));
-
-    grpc::SslServerCredentialsOptions sslOps(client_verify == true ?
-        GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY:
-        GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE);
-
-    if (client_verify == true) {
-        sslOps.force_client_auth = true;
-    }
-
-    if (custom_root_path.size() > 0) {
-      TF_CHECK_OK(readkey ( custom_root_path, root));
-      sslOps.pem_root_certs = root;
-    }
-
-    grpc::SslServerCredentialsOptions::PemKeyCertPair keycert =
-    {
-        key,
-        cert
-    };
-
-    sslOps.pem_key_cert_pairs.push_back (keycert);
-
-    creds = grpc::SslServerCredentials(sslOps);
-
-  } else {
-      if (! server_key_path.empty() && server_cert_path.empty()) {
-        std::cout << "When you specify --server_key you must specify --server_cert as well";
-        return -1;
-      }
-      if (server_key_path.empty() && ! server_cert_path.empty()) {
-        std::cout << "When you specify --server_cert you must specify --server_key as well";
-        return -1;
-      }
-      creds = InsecureServerCredentials();
-  }
+  creds = BuildServerCredentialsFromSSLConfigFile(ssl_config_file);
 
   // For ServerCore Options, we leave servable_state_monitor_creator unspecified
   // so the default servable_state_monitor_creator will be used.

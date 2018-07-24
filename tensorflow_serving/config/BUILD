@@ -87,3 +87,11 @@ serving_proto_library_py(
         ":log_collector_config_proto_py_pb2",
     ],
 )
+
+serving_proto_library(
+    name = "ssl_config_proto",
+    srcs = ["ssl_config.proto"],
+    cc_api_version = 2,
+    deps = [
+    ],
+)

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+option cc_enable_arenas = true;
+
+// Configuration for a secure gRPC channel
+message SSLConfig {
+  // private server key for SSL
+  string server_key = 1;
+  // public server certificate
+  string server_cert = 2;
+  //  custom certificate authority
+  string custom_ca = 3;
+  // valid client certificate required ?
+  bool client_verify = 4;
+};
