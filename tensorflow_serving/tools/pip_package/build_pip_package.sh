@@ -51,7 +51,7 @@ function main() {
 
   cp bazel-genfiles/tensorflow_serving/config/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/config"
-  
+
   cp bazel-genfiles/tensorflow_serving/sources/storage_path/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/sources/storage_path"
 
