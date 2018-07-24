@@ -799,15 +799,6 @@ cc_test(
 )
 
 cc_library(
-    name = "proto_serialization",
-    srcs = ["proto_serialization.cc"],
-    hdrs = ["proto_serialization.h"],
-    deps = [
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
-cc_library(
     name = "server_request_logger",
     srcs = ["server_request_logger.cc"],
     hdrs = ["server_request_logger.h"],
@@ -815,7 +806,6 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        ":proto_serialization",
         ":request_logger",
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:logging_config_proto",

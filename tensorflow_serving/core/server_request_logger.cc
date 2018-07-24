@@ -17,10 +17,10 @@ limitations under the License.
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/gtl/map_util.h"
+#include "tensorflow/core/lib/strings/proto_serialization.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/core/logging.pb.h"
-#include "tensorflow_serving/core/proto_serialization.h"
 
 namespace tensorflow {
 namespace serving {
