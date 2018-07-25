@@ -367,29 +367,29 @@ std::shared_ptr<grpc::ServerCredentials> BuildServerCredentialsFromSSLConfigFile
 {
   if (ssl_config_file.empty()) {
     return InsecureServerCredentials();
-  } else {
-    SSLConfig ssl_config = ParseSSLConfig(ssl_config_file);
-
-    grpc::SslServerCredentialsOptions sslOps(ssl_config.client_verify() ?
-        GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY:
-        GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE);
-
-    sslOps.force_client_auth = ssl_config.client_verify();
-
-    if (ssl_config.custom_ca().size() > 0) {
-      sslOps.pem_root_certs = ssl_config.custom_ca();
-    }
-
-    grpc::SslServerCredentialsOptions::PemKeyCertPair keycert =
-    {
-        ssl_config.server_key(),
-        ssl_config.server_cert()
-    };
-
-    sslOps.pem_key_cert_pairs.push_back(keycert);
-
-    return grpc::SslServerCredentials(sslOps);
   }
+
+  SSLConfig ssl_config = ParseSSLConfig(ssl_config_file);
+
+  grpc::SslServerCredentialsOptions ssl_ops(ssl_config.client_verify() ?
+    GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY:
+    GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE);
+
+  ssl_ops.force_client_auth = ssl_config.client_verify();
+
+  if (ssl_config.custom_ca().size() > 0) {
+    ssl_ops.pem_root_certs = ssl_config.custom_ca();
+  }
+
+  grpc::SslServerCredentialsOptions::PemKeyCertPair keycert =
+  {
+    ssl_config.server_key(),
+    ssl_config.server_cert()
+  };
+
+  ssl_ops.pem_key_cert_pairs.push_back(keycert);
+
+  return grpc::SslServerCredentials(ssl_ops);
 }
 
 }  // namespace
