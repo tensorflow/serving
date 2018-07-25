@@ -25,33 +25,31 @@ RUN apt-get update && apt-get install -y \
         build-essential \
         curl \
         git \
+        libcurl3-dev \
         libfreetype6-dev \
         libpng12-dev \
         libtool \
         libzmq3-dev \
         mlocate \
+        openjdk-8-jdk\
+        openjdk-8-jre-headless \
         pkg-config \
         python-dev \
         python-numpy \
         python-pip \
         software-properties-common \
         swig \
+        wget \
         zip \
         zlib1g-dev \
-        libcurl3-dev \
-        openjdk-8-jdk\
-        openjdk-8-jre-headless \
-        wget \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Set up grpc
-
 RUN pip install mock grpcio
 
-# Set up Bazel.
-
+# Set up Bazel
 # Need >= 0.15.0 so bazel compiles work with docker bind mounts.
 ENV BAZEL_VERSION 0.15.0
 WORKDIR /
