@@ -70,6 +70,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 #include "tensorflow_serving/apis/prediction_service.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
+#include "tensorflow_serving/config/ssl_config.pb.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 #include "tensorflow_serving/model_servers/http_server.h"
@@ -101,6 +102,7 @@ using tensorflow::serving::ModelServerConfig;
 using tensorflow::serving::ServableState;
 using tensorflow::serving::ServerCore;
 using tensorflow::serving::SessionBundleConfig;
+using tensorflow::serving::SSLConfig;
 using tensorflow::serving::TensorflowClassificationServiceImpl;
 using tensorflow::serving::TensorflowPredictor;
 using tensorflow::serving::TensorflowRegressionServiceImpl;
@@ -297,13 +299,13 @@ struct HttpServerOptions {
 
 void RunServer(int port, std::unique_ptr<ServerCore> core, bool use_saved_model,
                const string& grpc_channel_arguments,
-               const HttpServerOptions& http_options) {
+               const HttpServerOptions& http_options,
+               std::shared_ptr<grpc::ServerCredentials> creds) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
   tensorflow::serving::ModelServiceImpl model_service(core.get());
   PredictionServiceImpl prediction_service(core.get(), use_saved_model);
   ServerBuilder builder;
-  std::shared_ptr<grpc::ServerCredentials> creds = InsecureServerCredentials();
   builder.AddListeningPort(server_address, creds);
   builder.RegisterService(&model_service);
   builder.RegisterService(&prediction_service);
@@ -354,6 +356,42 @@ tensorflow::serving::PlatformConfigMap ParsePlatformConfigMap(
   return platform_config_map;
 }
 
+// Parses an ascii SSLConfig protobuf from 'file'.
+SSLConfig ParseSSLConfig(const string& file) {
+  SSLConfig ssl_config;
+  TF_CHECK_OK(ParseProtoTextFile(file, &ssl_config));
+  return ssl_config;
+}
+
+// If 'ssl_config_file' is non-empty, build secure server credentials otherwise
+// insecure channel
+std::shared_ptr<grpc::ServerCredentials>
+BuildServerCredentialsFromSSLConfigFile(const string& ssl_config_file) {
+  if (ssl_config_file.empty()) {
+    return InsecureServerCredentials();
+  }
+
+  SSLConfig ssl_config = ParseSSLConfig(ssl_config_file);
+
+  grpc::SslServerCredentialsOptions ssl_ops(
+      ssl_config.client_verify()
+          ? GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY
+          : GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE);
+
+  ssl_ops.force_client_auth = ssl_config.client_verify();
+
+  if (ssl_config.custom_ca().size() > 0) {
+    ssl_ops.pem_root_certs = ssl_config.custom_ca();
+  }
+
+  grpc::SslServerCredentialsOptions::PemKeyCertPair keycert = {
+      ssl_config.server_key(), ssl_config.server_cert()};
+
+  ssl_ops.pem_key_cert_pairs.push_back(keycert);
+
+  return grpc::SslServerCredentials(ssl_ops);
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -375,7 +413,9 @@ int main(int argc, char** argv) {
   // thread pools will be auto configured.
   tensorflow::int64 tensorflow_session_parallelism = 0;
   string platform_config_file = "";
+  string ssl_config_file = "";
   string model_config_file;
+  std::shared_ptr<grpc::ServerCredentials> creds;
   string grpc_channel_arguments = "";
   bool enable_model_warmup = true;
   bool display_version = false;
@@ -426,6 +466,10 @@ int main(int argc, char** argv) {
                        "Tensorflow session. Auto-configured by default."
                        "Note that this option is ignored if "
                        "--platform_config_file is non-empty."),
+      tensorflow::Flag(
+          "ssl_config_file", &ssl_config_file,
+          "If non-empty, read an ascii SSLConfig protobuf from "
+          "the supplied file name and set up a secure gRPC channel"),
       tensorflow::Flag("platform_config_file", &platform_config_file,
                        "If non-empty, read an ascii PlatformConfigMap protobuf "
                        "from the supplied file name, and use that platform "
@@ -465,6 +509,8 @@ int main(int argc, char** argv) {
   if (argc != 1) {
     std::cout << "unknown argument: " << argv[1] << "\n" << usage;
   }
+
+  creds = BuildServerCredentialsFromSSLConfigFile(ssl_config_file);
 
   // For ServerCore Options, we leave servable_state_monitor_creator unspecified
   // so the default servable_state_monitor_creator will be used.
@@ -527,7 +573,7 @@ int main(int argc, char** argv) {
   std::unique_ptr<ServerCore> core;
   TF_CHECK_OK(ServerCore::Create(std::move(options), &core));
   RunServer(port, std::move(core), use_saved_model, grpc_channel_arguments,
-            http_options);
+            http_options, creds);
 
   return 0;
 }
