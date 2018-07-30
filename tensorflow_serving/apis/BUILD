@@ -178,7 +178,10 @@ serving_proto_library(
 
 py_library(
     name = "prediction_service_proto_py_pb2",
-    srcs = ["prediction_service_pb2.py"],
+    srcs = [
+        "prediction_service_pb2.py",
+        "prediction_service_pb2_grpc.py",
+    ],
     srcs_version = "PY2AND3",
     deps = [
         ":classification_proto_py_pb2",

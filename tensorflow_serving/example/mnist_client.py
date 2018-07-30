@@ -32,12 +32,12 @@ import threading
 
 # This is a placeholder for a Google-internal import.
 
-from grpc.beta import implementations
+import grpc
 import numpy
 import tensorflow as tf
 
 from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_service_pb2
+from tensorflow_serving.apis import prediction_service_pb2_grpc
 import mnist_input_data
 
 
@@ -137,9 +137,8 @@ def do_inference(hostport, work_dir, concurrency, num_tests):
     IOError: An error occurred processing test data set.
   """
   test_data_set = mnist_input_data.read_data_sets(work_dir).test
-  host, port = hostport.split(':')
-  channel = implementations.insecure_channel(host, int(port))
-  stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+  channel = grpc.insecure_channel(hostport)
+  stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
   result_counter = _ResultCounter(num_tests, concurrency)
   for _ in range(num_tests):
     request = predict_pb2.PredictRequest()

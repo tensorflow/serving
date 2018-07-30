@@ -29,9 +29,6 @@ import urllib2
 # This is a placeholder for a Google-internal import.
 
 import grpc
-from grpc.beta import implementations
-from grpc.beta import interfaces as beta_interfaces
-from grpc.framework.interfaces.face import face
 import tensorflow as tf
 
 from tensorflow.core.framework import types_pb2
@@ -42,7 +39,7 @@ from tensorflow_serving.apis import get_model_status_pb2
 from tensorflow_serving.apis import inference_pb2
 from tensorflow_serving.apis import model_service_pb2_grpc
 from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_service_pb2
+from tensorflow_serving.apis import prediction_service_pb2_grpc
 from tensorflow_serving.apis import regression_pb2
 
 FLAGS = flags.FLAGS
@@ -70,12 +67,12 @@ def WaitForServerReady(port):
 
     try:
       # Send empty request to missing model
-      channel = implementations.insecure_channel('localhost', port)
-      stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+      channel = grpc.insecure_channel('localhost:{}'.format(port))
+      stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
       stub.Predict(request, RPC_TIMEOUT)
-    except face.AbortionError as error:
+    except grpc.RpcError as error:
       # Missing model error will have details containing 'Servable'
-      if 'Servable' in error.details:
+      if 'Servable' in error.details():
         print 'Server is ready'
         break
 
@@ -199,9 +196,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     if specify_output:
       request.output_filter.append('y')
     # Send request
-    host, port = model_server_address.split(':')
-    channel = implementations.insecure_channel(host, int(port))
-    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    channel = grpc.insecure_channel(model_server_address)
+    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
     result = stub.Predict(request, RPC_TIMEOUT)  # 5 secs timeout
     # Verify response
     self.assertTrue('y' in result.outputs)
@@ -313,9 +309,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     example.features.feature['x'].float_list.value.extend([2.0])
 
     # Send request
-    host, port = model_server_address.split(':')
-    channel = implementations.insecure_channel(host, int(port))
-    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    channel = grpc.insecure_channel(model_server_address)
+    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
     result = stub.Classify(request, RPC_TIMEOUT)  # 5 secs timeout
     # Verify response
     self.assertEquals(1, len(result.result.classifications))
@@ -345,9 +340,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     example.features.feature['x'].float_list.value.extend([2.0])
 
     # Send request
-    host, port = model_server_address.split(':')
-    channel = implementations.insecure_channel(host, int(port))
-    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    channel = grpc.insecure_channel(model_server_address)
+    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
     result = stub.Regress(request, RPC_TIMEOUT)  # 5 secs timeout
     # Verify response
     self.assertEquals(1, len(result.result.regressions))
@@ -381,9 +375,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     example.features.feature['x'].float_list.value.extend([2.0])
 
     # Send request
-    host, port = model_server_address.split(':')
-    channel = implementations.insecure_channel(host, int(port))
-    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    channel = grpc.insecure_channel(model_server_address)
+    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
     result = stub.MultiInference(request, RPC_TIMEOUT)  # 5 secs timeout
 
     # Verify response
@@ -451,13 +444,13 @@ class TensorflowModelServerTest(tf.test.TestCase):
     model_server_address = self.RunServer(PickUnusedPort(), 'default',
                                           model_path,
                                           wait_for_server_ready=False)
-    with self.assertRaises(face.AbortionError) as error:
+    with self.assertRaises(grpc.RpcError) as ectxt:
       self.VerifyPredictRequest(
           model_server_address, expected_output=3.0,
           expected_version=self._GetModelVersion(model_path),
           signature_name='')
-    self.assertIs(beta_interfaces.StatusCode.FAILED_PRECONDITION,
-                  error.exception.code)
+    self.assertIs(grpc.StatusCode.FAILED_PRECONDITION,
+                  ectxt.exception.code())
 
   def _TestBadModelUpconvertedSavedModel(self):
     """Test Predict against a bad upconverted SavedModel model export."""
