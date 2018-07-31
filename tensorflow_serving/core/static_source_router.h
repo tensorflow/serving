@@ -82,14 +82,14 @@ int StaticSourceRouter<T>::Route(const StringPiece servable_name,
                                  const std::vector<ServableData<T>>& versions) {
   for (int i = 0; i < routes_except_default_.size(); ++i) {
     if (str_util::StrContains(servable_name, routes_except_default_[i])) {
-      LOG(INFO) << "Routing servable(s) from stream " << servable_name
-                << " to route " << i;
+      VLOG(2) << "Routing servable(s) from stream " << servable_name
+              << " to route " << i;
       return i;
     }
   }
   // None of the substrings matched, so return the "default" Nth route.
-  LOG(INFO) << "Routing servable(s) from stream " << servable_name
-            << " to default route " << routes_except_default_.size();
+  VLOG(2) << "Routing servable(s) from stream " << servable_name
+          << " to default route " << routes_except_default_.size();
   return routes_except_default_.size();
 }
 
