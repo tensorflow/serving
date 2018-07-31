@@ -464,6 +464,8 @@ void SharedBatchScheduler<TaskType>::ThreadLogic() {
       // Ask '*next_queue_to_schedule_' if it wants us to process a batch.
       batch_to_process = (*next_queue_to_schedule_)->ScheduleBatch();
       if (batch_to_process != nullptr) {
+        auto num_enqueued_tasks = (*next_queue_to_schedule_)->NumEnqueuedTasks();
+        LOG(INFO) << "Number of batches in a queue (" << (num_queues_tried + 1) << "/" << num_queues << ") : " << num_enqueued_tasks; // FLUENTD
         queue_for_batch = next_queue_to_schedule_->get();
       }
 
@@ -626,10 +628,6 @@ template <typename TaskType>
 bool Queue<TaskType>::IsEmpty() const {
   mutex_lock l(mu_);
   bool is_empty = IsEmptyInternal();
-//  if (is_empty) {
-//    LOG(INFO) << "Number of batches in a queue: " << batches_.size() - 1; // FLUENTD
-//    LOG(INFO) << "Batch size to process: " << batches_.back()->size(); // FLUENTD
-//  }
   return is_empty;
 }
 
@@ -658,7 +656,6 @@ bool Queue<TaskType>::IsEmptyInternal() const {
 template <typename TaskType>
 void Queue<TaskType>::StartNewBatch() {
   batches_.back()->Close();
-  LOG(INFO) << "Number of batches in a queue: " << batches_.size() - 1; // FLUENTD
   LOG(INFO) << "Batch size to process: " << batches_.back()->size(); // FLUENTD
   batches_.emplace_back(new Batch<TaskType>);
 }
