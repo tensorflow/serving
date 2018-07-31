@@ -186,6 +186,8 @@ class SharedBatchScheduler
   //  - have been removed but are not yet empty.
   QueueList queues_ GUARDED_BY(mu_);
 
+  const uint64 logging_rate_ = 1000000;
+
   // An iterator over 'queues_', pointing to the queue from which the next
   // available batch thread should grab work.
   typename QueueList::iterator next_queue_to_schedule_ GUARDED_BY(mu_);
@@ -268,6 +270,8 @@ class Queue {
     mutex_lock l(mu_);
     return closed_;
   }
+
+  uint64 last_log_time_micros GUARDED_BY(mu_);
 
  private:
   // Same as IsEmpty(), but assumes the caller already holds a lock on 'mu_'.
@@ -455,6 +459,12 @@ void SharedBatchScheduler<TaskType>::ThreadLogic() {
          ++num_queues_tried) {
       DCHECK(next_queue_to_schedule_ != queues_.end());
 
+      if (options_.env->NowMicros() >= (*next_queue_to_schedule_)->last_log_time_micros + logging_rate_) {
+        auto num_enqueued_tasks = (*next_queue_to_schedule_)->NumEnqueuedTasks();
+        LOG(INFO) << "Number of batches in a queue (" << (num_queues_tried + 1) << "/" << num_queues << ") : " << num_enqueued_tasks; // FLUENTD
+        (*next_queue_to_schedule_)->last_log_time_micros = options_.env->NowMicros();
+      }
+
       // If a closed queue responds to ScheduleBatch() with nullptr, the queue
       // will never yield any further batches so we can drop it. To avoid a
       // race, we take a snapshot of the queue's closedness state *before*
@@ -464,8 +474,6 @@ void SharedBatchScheduler<TaskType>::ThreadLogic() {
       // Ask '*next_queue_to_schedule_' if it wants us to process a batch.
       batch_to_process = (*next_queue_to_schedule_)->ScheduleBatch();
       if (batch_to_process != nullptr) {
-        auto num_enqueued_tasks = (*next_queue_to_schedule_)->NumEnqueuedTasks();
-        LOG(INFO) << "Number of batches in a queue (" << (num_queues_tried + 1) << "/" << num_queues << ") : " << num_enqueued_tasks; // FLUENTD
         queue_for_batch = next_queue_to_schedule_->get();
       }
 
