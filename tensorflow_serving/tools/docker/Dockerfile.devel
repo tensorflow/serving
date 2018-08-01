@@ -25,43 +25,33 @@ RUN apt-get update && apt-get install -y \
         build-essential \
         curl \
         git \
+        libcurl3-dev \
         libfreetype6-dev \
         libpng12-dev \
         libtool \
         libzmq3-dev \
         mlocate \
+        openjdk-8-jdk\
+        openjdk-8-jre-headless \
         pkg-config \
         python-dev \
         python-numpy \
         python-pip \
         software-properties-common \
         swig \
+        wget \
         zip \
         zlib1g-dev \
-        libcurl3-dev \
-        openjdk-8-jdk\
-        openjdk-8-jre-headless \
-        wget \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Set up grpc
-
 RUN pip install mock grpcio
 
-# Set up Bazel.
-
-# Running bazel inside a `docker build` command causes trouble, cf:
-#   https://github.com/bazelbuild/bazel/issues/134
-# The easiest solution is to set up a bazelrc file forcing --batch.
-RUN echo "startup --batch" >>/etc/bazel.bazelrc
-# Similarly, we need to workaround sandboxing issues:
-#   https://github.com/bazelbuild/bazel/issues/418
-RUN echo "build --spawn_strategy=standalone --genrule_strategy=standalone" \
-    >>/etc/bazel.bazelrc
-# Install a recent bazel release.
-ENV BAZEL_VERSION 0.11.1
+# Set up Bazel
+# Need >= 0.15.0 so bazel compiles work with docker bind mounts.
+ENV BAZEL_VERSION 0.15.0
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \
@@ -74,13 +64,17 @@ RUN mkdir /bazel && \
 
 # Download TF Serving sources (optionally at specific commit).
 WORKDIR /tensorflow-serving
-RUN git clone --depth=1 --branch=${TF_SERVING_VERSION_GIT_BRANCH} https://github.com/tensorflow/serving .
-RUN if [ "${TF_SERVING_VERSION_GIT_COMMIT}" != "head" ]; then git checkout ${TF_SERVING_VERSION_GIT_COMMIT} ; fi
+RUN git clone --branch=${TF_SERVING_VERSION_GIT_BRANCH} https://github.com/tensorflow/serving . && \
+    git remote add upstream https://github.com/tensorflow/serving.git && \
+    if [ "${TF_SERVING_VERSION_GIT_COMMIT}" != "head" ]; then git checkout ${TF_SERVING_VERSION_GIT_COMMIT} ; fi
 
 # Build, and install TensorFlow Serving
-ARG TF_SERVING_BUILD_OPTIONS="--copt=-mavx --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --verbose_failures"
-RUN bazel build -c opt --color=yes --curses=yes ${TF_SERVING_BUILD_OPTIONS} \
+ARG TF_SERVING_BUILD_OPTIONS="--copt=-mavx --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0"
+ARG TF_SERVING_BAZEL_OPTIONS="--verbose_failures --local_resources=4096,1.0,1.0"
+RUN bazel build -c opt --color=yes --curses=yes \
+    ${TF_SERVING_BAZEL_OPTIONS} \
     --output_filter=DONT_MATCH_ANYTHING \
+    ${TF_SERVING_BUILD_OPTIONS} \
     tensorflow_serving/model_servers:tensorflow_model_server && \
     cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server /usr/local/bin/ && \
     bazel clean --expunge --color=yes && \
