@@ -254,7 +254,7 @@ shown below:
       "image": { "b64": "YXdlc29tZSBpbWFnZSBieXRlcw==" },
       "caption": "mountains"
     }
-  }
+  ]
 }
 ```
 
