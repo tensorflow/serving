@@ -222,7 +222,7 @@ unsupported.
 [TF Data Type](https://www.tensorflow.org/versions/r1.1/programmers_guide/dims_types#data_types) | [JSON Value](http://json.org/) | JSON example                       | Notes
 ------------------------------------------------------------------------------------------------ | ------------------------------ | ---------------------------------- | -----
 DT_BOOL                                                                                          | true, false                    | *true, false*                      |
-DT_STRING                                                                                        | string                         | *"Hello World!"*                   |
+DT_STRING                                                                                        | string                         | *"Hello World!"*                   | If `DT_STRING` represents binary bytes (e.g. serialized image bytes or protobuf), encode these in Base64. See [Encoding binary values](#encoding-binary-values) for more info.
 DT_INT8, DT_UINT8, DT_INT16, DT_INT32, DT_UINT32, DT_INT64, DT_UINT64                            | number                         | *1, -10, 0*                        | JSON value will be a decimal number.
 DT_FLOAT, DT_DOUBLE                                                                              | number                         | *1.1, -10.0, 0, `NaN`, `Infinity`* | JSON value will be a number or one of the special token values - `NaN`, `Infinity`, and `-Infinity`. See [JSON conformance](#json-conformance) for more info. Exponent notation is also accepted.
 
