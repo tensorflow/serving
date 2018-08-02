@@ -700,12 +700,16 @@ bool WriteDecimal(RapidJsonWriter* writer, dtype val) {
   string decimal_str;
   if (std::isfinite(val)) {
     decimal_str = absl::StrCat(val);
-    // Add trailing '.0' for whole numbers. StrCat() formats whole numbers
-    // without one. This can lead to lists containing mix of decimal and
-    // whole numbers -- making it difficult for consumers to pick the
-    // correct type to store these numbers (note, JSON does not have
-    // metadata to describe types. These are inferred from the tokens).
-    if (decimal_str.find('.') == string::npos) {
+    // Add trailing '.0' for whole numbers and those not in scientific notation.
+    // StrCat() formats numbers in six-digit (printf "%g"), numbers like 9000000
+    // and .00003 get written as 9e+06 and 3e-05 (scientific notation).
+    //
+    // Not adding '.0' can lead to lists containing mix of decimal and whole
+    // numbers -- making it difficult for consumers to pick the correct type to
+    // store these numbers (note, JSON does not have metadata to describe types.
+    // These are inferred from the tokens).
+    if (decimal_str.find('.') == string::npos &&
+        decimal_str.find('e') == string::npos) {
       absl::StrAppend(&decimal_str, ".0");
     }
   } else if (std::isnan(val)) {
