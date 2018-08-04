@@ -1,0 +1,121 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+FROM ubuntu:16.04 as build_env
+
+ARG TF_SERVING_VERSION_GIT_BRANCH=r1.9
+ARG TF_SERVING_VERSION_GIT_COMMIT=head
+
+LABEL maintainer=gvasudevan@google.com
+LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
+LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
+
+RUN apt-get update && apt-get install -y \
+        automake \
+        build-essential \
+        curl \
+        git \
+        libcurl3-dev \
+        libfreetype6-dev \
+        libpng12-dev \
+        libtool \
+        libzmq3-dev \
+        mlocate \
+        openjdk-8-jdk\
+        openjdk-8-jre-headless \
+        pkg-config \
+        python-dev \
+        python-numpy \
+        python-pip \
+        software-properties-common \
+        swig \
+        wget \
+        zip \
+        zlib1g-dev \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set up grpc
+RUN pip install mock grpcio
+
+# Set up Bazel
+# Need >= 0.15.0 so bazel compiles work with docker bind mounts.
+ENV BAZEL_VERSION 0.15.0
+WORKDIR /
+RUN mkdir /bazel && \
+    cd /bazel && \
+    curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
+    curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -o /bazel/LICENSE.txt https://raw.githubusercontent.com/bazelbuild/bazel/master/LICENSE && \
+    chmod +x bazel-*.sh && \
+    ./bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
+    cd / && \
+    rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
+
+COPY . /tensorflow-serving
+# Download TF Serving sources (optionally at specific commit).
+WORKDIR /tensorflow-serving
+
+# Build, and install TensorFlow Serving
+ARG TF_SERVING_BUILD_OPTIONS="--copt=-mavx --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0"
+ARG TF_SERVING_BAZEL_OPTIONS="--verbose_failures --local_resources=4096,1.0,1.0"
+RUN bazel build -c opt --define with_s3_support=true --color=yes --curses=yes \
+    ${TF_SERVING_BAZEL_OPTIONS} \
+    --output_filter=DONT_MATCH_ANYTHING \
+    ${TF_SERVING_BUILD_OPTIONS} \
+    tensorflow_serving/model_servers:tensorflow_model_server && \
+    cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server /usr/local/bin/ && \
+    bazel clean --expunge --color=yes && \
+    rm -rf /root/.cache
+
+FROM ubuntu:16.04
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+        curl \
+        libcurl3-dev \
+        zip \
+        unzip \
+        jq \
+        gcc \
+        software-properties-common \
+        python-dev && \
+        apt-get clean && \
+        apt-get autoremove
+
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
+    apt-get update && \
+    apt-get install -y libstdc++6
+
+# Add scripts, in future liveness and readiness scripts too
+ADD scripts/startup.sh startup.sh
+COPY --from=build_env /usr/local/bin/tensorflow_model_server /usr/bin/tensorflow_model_server
+
+
+RUN chmod +x /usr/bin/tensorflow_model_server
+RUN ls -la /usr/bin/tensorflow_model_server
+
+# Expose ports
+# gRPC
+EXPOSE 8500
+
+# REST
+EXPOSE 8501
+
+# Set where models should be stored in the container
+ENV MODEL_BASE_PATH=/models
+RUN mkdir -p ${MODEL_BASE_PATH}
+
+# The only required piece is the model name in order to differentiate endpoints
+ENV MODEL_NAME=model
+ENTRYPOINT tensorflow_model_server --port=8500 --rest_api_port=8501 --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME}
