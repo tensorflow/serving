@@ -45,7 +45,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libnccl-dev=${NCCL_VERSION}-1+cuda9.0 \
         libzmq3-dev \
         mlocate \
-        openjdk-8-jdk\
+        openjdk-8-jdk \
         openjdk-8-jre-headless \
         pkg-config \
         python-dev \
