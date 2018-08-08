@@ -187,6 +187,7 @@ class SharedBatchScheduler
   QueueList queues_ GUARDED_BY(mu_);
 
   const uint64 logging_rate_ = 1000000;
+  const uint64 prometheus_scrape_timeout_ = 5000000;
 
   // An iterator over 'queues_', pointing to the queue from which the next
   // available batch thread should grab work.
@@ -271,7 +272,10 @@ class Queue {
     return closed_;
   }
 
-  uint64 last_log_time_micros GUARDED_BY(mu_);
+  uint64 last_log_time_length_micros GUARDED_BY(mu_);
+  uint64 last_log_time_size_micros GUARDED_BY(mu_);
+
+  GUARDED_BY(mu_);
 
  private:
   // Same as IsEmpty(), but assumes the caller already holds a lock on 'mu_'.
@@ -459,10 +463,15 @@ void SharedBatchScheduler<TaskType>::ThreadLogic() {
          ++num_queues_tried) {
       DCHECK(next_queue_to_schedule_ != queues_.end());
 
-      if (options_.env->NowMicros() >= (*next_queue_to_schedule_)->last_log_time_micros + logging_rate_) {
+      if (options_.env->NowMicros() >= (*next_queue_to_schedule_)->last_log_time_length_micros + logging_rate_) {
         auto num_enqueued_tasks = (*next_queue_to_schedule_)->NumEnqueuedTasks();
         LOG(INFO) << "Number of batches in a queue (" << (num_queues_tried + 1) << "/" << num_queues << ") : " << num_enqueued_tasks; // FLUENTD
-        (*next_queue_to_schedule_)->last_log_time_micros = options_.env->NowMicros();
+        (*next_queue_to_schedule_)->last_log_time_length_micros = options_.env->NowMicros();
+      }
+
+      if (options_.env->NowMicros() >= (*next_queue_to_schedule_)->last_log_time_size_micros + prometheus_scrape_timeout_) {
+        LOG(INFO) << "Batch size to process: " << "NaN"; // FLUENTD
+        (*next_queue_to_schedule_)->last_log_time_size_micros = options_.env->NowMicros();
       }
 
       // If a closed queue responds to ScheduleBatch() with nullptr, the queue
@@ -664,7 +673,10 @@ bool Queue<TaskType>::IsEmptyInternal() const {
 template <typename TaskType>
 void Queue<TaskType>::StartNewBatch() {
   batches_.back()->Close();
+
   LOG(INFO) << "Batch size to process: " << batches_.back()->size(); // FLUENTD
+  last_log_time_size_micros = env_->NowMicros();
+
   batches_.emplace_back(new Batch<TaskType>);
 }
 

@@ -533,8 +533,6 @@ void BatchingSession::ProcessBatch(
     return;
   }
 
-//  LOG(INFO) << "Batch size to process: " << batch->size();
-
   const std::vector<string> output_tensor_names(
       signature.output_tensors.begin(), signature.output_tensors.end());
   std::vector<Tensor> combined_outputs;
