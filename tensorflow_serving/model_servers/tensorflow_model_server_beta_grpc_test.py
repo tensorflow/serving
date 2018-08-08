@@ -14,38 +14,33 @@
 # ==============================================================================
 
 #!/usr/bin/env python2.7
-"""Tests for tensorflow_model_server."""
+"""Minimal sanity tests for tensorflow_model_server with beta gRPC APIs."""
 
 import atexit
-import json
 import os
 import shlex
 import socket
 import subprocess
 import sys
 import time
-import urllib2
 
 # This is a placeholder for a Google-internal import.
 
-import grpc
+from grpc.beta import implementations
 import tensorflow as tf
 
 from tensorflow.core.framework import types_pb2
 from tensorflow.python.platform import flags
 from tensorflow.python.saved_model import signature_constants
 from tensorflow_serving.apis import classification_pb2
-from tensorflow_serving.apis import get_model_status_pb2
 from tensorflow_serving.apis import inference_pb2
-from tensorflow_serving.apis import model_service_pb2_grpc
 from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_service_pb2_grpc
+from tensorflow_serving.apis import prediction_service_pb2
 from tensorflow_serving.apis import regression_pb2
 
 FLAGS = flags.FLAGS
 
 RPC_TIMEOUT = 5.0
-HTTP_REST_TIMEOUT_MS = 5000
 CHANNEL_WAIT_TIMEOUT = 5.0
 WAIT_FOR_SERVER_READY_INT_SECS = 60
 
@@ -67,33 +62,14 @@ def WaitForServerReady(port):
 
     try:
       # Send empty request to missing model
-      channel = grpc.insecure_channel('localhost:{}'.format(port))
-      stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
+      channel = implementations.insecure_channel('localhost', port)
+      stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
       stub.Predict(request, RPC_TIMEOUT)
-    except grpc.RpcError as error:
+    except Exception as e:  # pylint: disable=broad-except
       # Missing model error will have details containing 'Servable'
-      if 'Servable' in error.details():
+      if 'Servable' in e.details():
         print 'Server is ready'
         break
-
-
-def CallREST(name, url, req, max_attempts=60):
-  """Returns HTTP response body from a REST API call."""
-  for attempt in range(max_attempts):
-    try:
-      print 'Attempt {}: Sending {} request to {} with data:\n{}'.format(
-          attempt, name, url, req)
-      resp = urllib2.urlopen(urllib2.Request(url, data=json.dumps(req)))
-      resp_data = resp.read()
-      print 'Received response:\n{}'.format(resp_data)
-      resp.close()
-      return resp_data
-    except Exception as e:  # pylint: disable=broad-except
-      print 'Failed attempt {}. Error: {}'.format(attempt, e)
-      if attempt == max_attempts - 1:
-        raise
-      print 'Retrying...'
-      time.sleep(1)
 
 
 class TensorflowModelServerTest(tf.test.TestCase):
@@ -144,7 +120,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
     if args_key in TensorflowModelServerTest.model_servers_dict:
       return TensorflowModelServerTest.model_servers_dict[args_key]
     port = PickUnusedPort()
-    rest_api_port = PickUnusedPort()
     print('Starting test server on port: {} for model_name: '
           '{}/model_config_file: {}'.format(port, model_name,
                                             model_config_file))
@@ -152,8 +127,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
         TensorflowModelServerTest.__TestSrcDirPath('model_servers'),
         'tensorflow_model_server')
     command += ' --port=' + str(port)
-    command += ' --rest_api_port=' + str(rest_api_port)
-    command += ' --rest_api_timeout_in_ms=' + str(HTTP_REST_TIMEOUT_MS)
 
     if model_config_file:
       command += ' --model_config_file=' + model_config_file
@@ -174,11 +147,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     print 'Server started'
     if wait_for_server_ready:
       WaitForServerReady(port)
-    hostports = (
-        proc,
-        'localhost:' + str(port),
-        'localhost:' + str(rest_api_port),
-    )
+    hostports = (proc, 'localhost:' + str(port), None)
     TensorflowModelServerTest.model_servers_dict[args_key] = hostports
     return hostports
 
@@ -209,6 +178,12 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Deletes created configuration file."""
     os.remove(self._GetGoodModelConfigFile())
 
+  def _MakeStub(self, hostport):
+    """Returns a gRPC stub using beta gRPC API."""
+    host, port = hostport.split(':')
+    channel = implementations.insecure_channel(host, int(port))
+    return prediction_service_pb2.beta_create_PredictionService_stub(channel)
+
   def VerifyPredictRequest(self,
                            model_server_address,
                            expected_output,
@@ -231,9 +206,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     if specify_output:
       request.output_filter.append('y')
     # Send request
-    channel = grpc.insecure_channel(model_server_address)
-    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
-    result = stub.Predict(request, RPC_TIMEOUT)  # 5 secs timeout
+    result = self._MakeStub(model_server_address).Predict(request, RPC_TIMEOUT)
+
     # Verify response
     self.assertTrue('y' in result.outputs)
     self.assertIs(types_pb2.DT_FLOAT, result.outputs['y'].dtype)
@@ -277,14 +251,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Returns a path to a working configuration file."""
     return os.path.join(self.temp_dir, 'good_model_config.conf')
 
-  def _GetBadModelConfigFile(self):
-    """Returns a path to a improperly formatted configuration file."""
-    return os.path.join(self.testdata_dir, 'bad_model_config.txt')
-
-  def _GetBatchingParametersFile(self):
-    """Returns a path to a batching configuration file."""
-    return os.path.join(self.testdata_dir, 'batching_config.txt')
-
   def _VerifyModelSpec(self,
                        actual_model_spec,
                        exp_model_name,
@@ -305,25 +271,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.assertEquals(actual_model_spec.signature_name, exp_signature_name)
     self.assertEquals(actual_model_spec.version.value, exp_version)
 
-  def testGetModelStatus(self):
-    """Test ModelService.GetModelStatus implementation."""
-    model_path = self._GetSavedModelBundlePath()
-    model_server_address = TensorflowModelServerTest.RunServer(
-        'default', model_path)[1]
-
-    print 'Sending GetModelStatus request...'
-    # Send request
-    request = get_model_status_pb2.GetModelStatusRequest()
-    request.model_spec.name = 'default'
-    channel = grpc.insecure_channel(model_server_address)
-    stub = model_service_pb2_grpc.ModelServiceStub(channel)
-    result = stub.GetModelStatus(request, RPC_TIMEOUT)  # 5 secs timeout
-    # Verify response
-    self.assertEquals(1, len(result.model_version_status))
-    self.assertEquals(123, result.model_version_status[0].version)
-    # OK error code (0) indicates no error occurred
-    self.assertEquals(0, result.model_version_status[0].status.error_code)
-
   def testClassify(self):
     """Test PredictionService.Classify implementation."""
     model_path = self._GetSavedModelBundlePath()
@@ -340,9 +287,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     example.features.feature['x'].float_list.value.extend([2.0])
 
     # Send request
-    channel = grpc.insecure_channel(model_server_address)
-    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
-    result = stub.Classify(request, RPC_TIMEOUT)  # 5 secs timeout
+    result = self._MakeStub(model_server_address).Classify(request, RPC_TIMEOUT)
+
     # Verify response
     self.assertEquals(1, len(result.result.classifications))
     self.assertEquals(1, len(result.result.classifications[0].classes))
@@ -369,9 +315,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     example.features.feature['x'].float_list.value.extend([2.0])
 
     # Send request
-    channel = grpc.insecure_channel(model_server_address)
-    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
-    result = stub.Regress(request, RPC_TIMEOUT)  # 5 secs timeout
+    result = self._MakeStub(model_server_address).Regress(request, RPC_TIMEOUT)
+
     # Verify response
     self.assertEquals(1, len(result.result.regressions))
     expected_output = 3.0
@@ -400,9 +345,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     example.features.feature['x'].float_list.value.extend([2.0])
 
     # Send request
-    channel = grpc.insecure_channel(model_server_address)
-    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
-    result = stub.MultiInference(request, RPC_TIMEOUT)  # 5 secs timeout
+    result = self._MakeStub(model_server_address).MultiInference(
+        request, RPC_TIMEOUT)
 
     # Verify response
     self.assertEquals(2, len(result.results))
@@ -417,179 +361,19 @@ class TensorflowModelServerTest(tf.test.TestCase):
                             request.tasks[i].model_spec.signature_name,
                             self._GetModelVersion(model_path))
 
-  def _TestPredict(
-      self,
-      model_path,
-      batching_parameters_file=None,
-      signature_name=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY):
-    """Helper method to test prediction.
-
-    Args:
-      model_path:      Path to the model on disk.
-      batching_parameters_file: Batching parameters file to use (if None
-                                batching is not enabled).
-      signature_name: Signature name to expect in the PredictResponse.
-    """
+  def testPredict(self):
+    """Test PredictionService.Predict implementation with SavedModel."""
+    model_path = self._GetSavedModelBundlePath()
     model_server_address = TensorflowModelServerTest.RunServer(
-        'default',
-        model_path,
-        batching_parameters_file=batching_parameters_file)[1]
+        'default', model_path)[1]
     expected_version = self._GetModelVersion(model_path)
+    signature_name = signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
     self.VerifyPredictRequest(model_server_address, expected_output=3.0,
                               expected_version=expected_version,
                               signature_name=signature_name)
     self.VerifyPredictRequest(
         model_server_address, expected_output=3.0, specify_output=False,
         expected_version=expected_version, signature_name=signature_name)
-
-  def testPredictBatching(self):
-    """Test PredictionService.Predict implementation with SessionBundle."""
-    self._TestPredict(
-        self._GetSessionBundlePath(),
-        batching_parameters_file=self._GetBatchingParametersFile())
-
-  def testPredictSavedModel(self):
-    """Test PredictionService.Predict implementation with SavedModel."""
-    self._TestPredict(self._GetSavedModelBundlePath())
-
-  def testPredictUpconvertedSavedModel(self):
-    """Test PredictionService.Predict implementation.
-
-    Using a SessionBundle converted to a SavedModel.
-    """
-    self._TestPredict(self._GetSessionBundlePath())
-
-  def _TestBadModel(self):
-    """Helper method to test against a bad model export."""
-    # Both SessionBundle and SavedModel use the same bad model path, but in the
-    # case of SavedModel, the export will get up-converted to a SavedModel.
-    # As the bad model will prevent the server from becoming ready, we set the
-    # wait_for_server_ready param to False to avoid blocking/timing out.
-    model_path = os.path.join(self.testdata_dir, 'bad_half_plus_two'),
-    model_server_address = TensorflowModelServerTest.RunServer(
-        'default', model_path, wait_for_server_ready=False)[1]
-    with self.assertRaises(grpc.RpcError) as ectxt:
-      self.VerifyPredictRequest(
-          model_server_address, expected_output=3.0,
-          expected_version=self._GetModelVersion(model_path),
-          signature_name='')
-    self.assertIs(grpc.StatusCode.FAILED_PRECONDITION,
-                  ectxt.exception.code())
-
-  def _TestBadModelUpconvertedSavedModel(self):
-    """Test Predict against a bad upconverted SavedModel model export."""
-    self._TestBadModel()
-
-  def testGoodModelConfig(self):
-    """Test server configuration from file works with valid configuration."""
-    model_server_address = TensorflowModelServerTest.RunServer(
-        None, None, model_config_file=self._GetGoodModelConfigFile())[1]
-
-    self.VerifyPredictRequest(
-        model_server_address, model_name='half_plus_two', expected_output=3.0,
-        expected_version=self._GetModelVersion(self._GetSavedModelBundlePath()))
-    self.VerifyPredictRequest(
-        model_server_address, model_name='half_plus_two',
-        expected_output=3.0, specify_output=False,
-        expected_version=self._GetModelVersion(self._GetSavedModelBundlePath()))
-
-    self.VerifyPredictRequest(
-        model_server_address, model_name='half_plus_three', expected_output=4.0,
-        expected_version=self._GetModelVersion(
-            self._GetSavedModelHalfPlusThreePath()))
-    self.VerifyPredictRequest(
-        model_server_address, model_name='half_plus_three', expected_output=4.0,
-        specify_output=False,
-        expected_version=self._GetModelVersion(
-            self._GetSavedModelHalfPlusThreePath()))
-
-  def testBadModelConfig(self):
-    """Test server model configuration from file fails for invalid file."""
-    proc = TensorflowModelServerTest.RunServer(
-        None,
-        None,
-        model_config_file=self._GetBadModelConfigFile(),
-        pipe=subprocess.PIPE,
-        wait_for_server_ready=False)[0]
-
-    error_message = (
-        'Invalid protobuf file: \'%s\'') % self._GetBadModelConfigFile()
-    self.assertNotEqual(proc.stderr, None)
-    self.assertGreater(proc.stderr.read().find(error_message), -1)
-
-  def testGoodGrpcChannelArgs(self):
-    """Test server starts with grpc_channel_arguments specified."""
-    model_server_address = TensorflowModelServerTest.RunServer(
-        'default',
-        self._GetSavedModelBundlePath(),
-        grpc_channel_arguments=
-        'grpc.max_connection_age_ms=2000,grpc.lb_policy_name=grpclb')[1]
-    self.VerifyPredictRequest(
-        model_server_address,
-        expected_output=3.0,
-        specify_output=False,
-        expected_version=self._GetModelVersion(
-            self._GetSavedModelHalfPlusThreePath()))
-
-  def testClassifyREST(self):
-    """Test Classify implementation over REST API."""
-    model_path = self._GetSavedModelBundlePath()
-    host, port = TensorflowModelServerTest.RunServer('default',
-                                                     model_path)[2].split(':')
-
-    # Prepare request
-    url = 'http://{}:{}/v1/models/default:classify'.format(host, port)
-    json_req = {'signature_name': 'classify_x_to_y', 'examples': [{'x': 2.0}]}
-
-    # Send request
-    resp_data = None
-    try:
-      resp_data = CallREST('Classify', url, json_req)
-    except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
-
-    # Verify response
-    self.assertEquals(json.loads(resp_data), {'results': [[['', 3.0]]]})
-
-  def testRegressREST(self):
-    """Test Regress implementation over REST API."""
-    model_path = self._GetSavedModelBundlePath()
-    host, port = TensorflowModelServerTest.RunServer('default',
-                                                     model_path)[2].split(':')
-
-    # Prepare request
-    url = 'http://{}:{}/v1/models/default:regress'.format(host, port)
-    json_req = {'signature_name': 'regress_x_to_y', 'examples': [{'x': 2.0}]}
-
-    # Send request
-    resp_data = None
-    try:
-      resp_data = CallREST('Regress', url, json_req)
-    except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
-
-    # Verify response
-    self.assertEquals(json.loads(resp_data), {'results': [3.0]})
-
-  def testPredictREST(self):
-    """Test Predict implementation over REST API."""
-    model_path = self._GetSavedModelBundlePath()
-    host, port = TensorflowModelServerTest.RunServer('default',
-                                                     model_path)[2].split(':')
-
-    # Prepare request
-    url = 'http://{}:{}/v1/models/default:predict'.format(host, port)
-    json_req = {'instances': [2.0, 3.0, 4.0]}
-
-    # Send request
-    resp_data = None
-    try:
-      resp_data = CallREST('Predict', url, json_req)
-    except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
-
-    # Verify response
-    self.assertEquals(json.loads(resp_data), {'predictions': [3.0, 3.5, 4.0]})
 
 
 if __name__ == '__main__':
