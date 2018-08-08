@@ -186,7 +186,7 @@ class SharedBatchScheduler
   //  - have been removed but are not yet empty.
   QueueList queues_ GUARDED_BY(mu_);
 
-  const uint64 logging_rate_ = 1000000;
+  const uint64 logging_rate_ = 5000000;
   const uint64 prometheus_scrape_timeout_ = 5000000;
 
   // An iterator over 'queues_', pointing to the queue from which the next
