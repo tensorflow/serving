@@ -187,7 +187,8 @@ class SharedBatchScheduler
   QueueList queues_ GUARDED_BY(mu_);
 
   const uint64 logging_rate_ = 5000000;
-  const uint64 prometheus_scrape_timeout_ = 5000000;
+
+  uint64 last_log_time_size_micros_ GUARDED_BY(mu_);
 
   // An iterator over 'queues_', pointing to the queue from which the next
   // available batch thread should grab work.
@@ -273,7 +274,6 @@ class Queue {
   }
 
   uint64 last_log_time_length_micros GUARDED_BY(mu_);
-  uint64 last_log_time_size_micros GUARDED_BY(mu_);
 
   GUARDED_BY(mu_);
 
@@ -469,9 +469,9 @@ void SharedBatchScheduler<TaskType>::ThreadLogic() {
         (*next_queue_to_schedule_)->last_log_time_length_micros = options_.env->NowMicros();
       }
 
-      if (options_.env->NowMicros() >= (*next_queue_to_schedule_)->last_log_time_size_micros + prometheus_scrape_timeout_) {
+      if (options_.env->NowMicros() >= last_log_time_size_micros_ + logging_rate_) {
         LOG(INFO) << "Batch size to process: " << "NaN"; // FLUENTD
-        (*next_queue_to_schedule_)->last_log_time_size_micros = options_.env->NowMicros();
+        last_log_time_size_micros_ = options_.env->NowMicros();
       }
 
       // If a closed queue responds to ScheduleBatch() with nullptr, the queue
@@ -482,8 +482,12 @@ void SharedBatchScheduler<TaskType>::ThreadLogic() {
 
       // Ask '*next_queue_to_schedule_' if it wants us to process a batch.
       batch_to_process = (*next_queue_to_schedule_)->ScheduleBatch();
+
       if (batch_to_process != nullptr) {
         queue_for_batch = next_queue_to_schedule_->get();
+
+        LOG(INFO) << "Batch size to process: " << batch_to_process->size(); // FLUENTD
+        last_log_time_size_micros_ = options_.env->NowMicros();
       }
 
       // Advance 'next_queue_to_schedule_'.
@@ -673,9 +677,6 @@ bool Queue<TaskType>::IsEmptyInternal() const {
 template <typename TaskType>
 void Queue<TaskType>::StartNewBatch() {
   batches_.back()->Close();
-
-  LOG(INFO) << "Batch size to process: " << batches_.back()->size(); // FLUENTD
-  last_log_time_size_micros = env_->NowMicros();
 
   batches_.emplace_back(new Batch<TaskType>);
 }
