@@ -284,6 +284,28 @@ TEST_F(MultiInferenceTest, RegressAndClassifySignaturesTest) {
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 
+// Verifies that RunMultiInferenceWithServerCoreWithModelSpec() uses the model
+// spec override rather than the one in the request.
+TEST_F(MultiInferenceTest, ModelSpecOverride) {
+  MultiInferenceRequest request;
+  AddInput({{"x", 2}}, &request);
+  PopulateTask("regress_x_to_y", kRegressMethodName, servable_version_,
+               request.add_tasks());
+  auto model_spec_override =
+      test_util::CreateProto<ModelSpec>("name: \"nonexistent_model\"");
+
+  MultiInferenceResponse response;
+  EXPECT_NE(tensorflow::error::NOT_FOUND,
+            RunMultiInferenceWithServerCore(RunOptions(), GetServerCore(),
+                                            request, &response)
+                .code());
+  EXPECT_EQ(tensorflow::error::NOT_FOUND,
+            RunMultiInferenceWithServerCoreWithModelSpec(
+                RunOptions(), GetServerCore(), model_spec_override, request,
+                &response)
+                .code());
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

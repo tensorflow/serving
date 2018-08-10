@@ -38,9 +38,16 @@ Status RunMultiInferenceWithServerCore(const RunOptions& run_options,
                                        ServerCore* core,
                                        const MultiInferenceRequest& request,
                                        MultiInferenceResponse* response) {
+  return RunMultiInferenceWithServerCoreWithModelSpec(
+      run_options, core, GetModelSpecFromRequest(request), request, response);
+}
+
+Status RunMultiInferenceWithServerCoreWithModelSpec(
+    const RunOptions& run_options, ServerCore* core,
+    const ModelSpec& model_spec, const MultiInferenceRequest& request,
+    MultiInferenceResponse* response) {
   ServableHandle<SavedModelBundle> bundle;
-  TF_RETURN_IF_ERROR(
-      core->GetServableHandle(GetModelSpecFromRequest(request), &bundle));
+  TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &bundle));
 
   return RunMultiInference(run_options, bundle->meta_graph_def,
                            bundle.id().version, bundle->session.get(),

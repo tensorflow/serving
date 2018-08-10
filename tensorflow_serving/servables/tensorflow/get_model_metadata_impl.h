@@ -28,6 +28,13 @@ class GetModelMetadataImpl {
   static Status GetModelMetadata(ServerCore* core,
                                  const GetModelMetadataRequest& request,
                                  GetModelMetadataResponse* response);
+
+  // Like GetModelMetadata(), but uses 'model_spec' instead of the one embedded
+  // in 'request'.
+  static Status GetModelMetadataWithModelSpec(
+      ServerCore* core, const ModelSpec& model_spec,
+      const GetModelMetadataRequest& request,
+      GetModelMetadataResponse* response);
 };
 
 }  // namespace serving

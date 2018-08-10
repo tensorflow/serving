@@ -31,6 +31,14 @@ class TensorflowRegressionServiceImpl final {
   static Status Regress(const RunOptions& run_options, ServerCore* core,
                         const RegressionRequest& request,
                         RegressionResponse* response);
+
+  // Like Regress(), but uses 'model_spec' instead of the one embedded in
+  // 'request'.
+  static Status RegressWithModelSpec(const RunOptions& run_options,
+                                     ServerCore* core,
+                                     const ModelSpec& model_spec,
+                                     const RegressionRequest& request,
+                                     RegressionResponse* response);
 };
 
 }  // namespace serving

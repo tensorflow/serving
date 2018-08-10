@@ -135,14 +135,23 @@ Status TensorflowPredictor::Predict(const RunOptions& run_options,
     return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
                               "Missing ModelSpec");
   }
+  return PredictWithModelSpec(run_options, core, request.model_spec(), request,
+                              response);
+}
+
+Status TensorflowPredictor::PredictWithModelSpec(const RunOptions& run_options,
+                                                 ServerCore* core,
+                                                 const ModelSpec& model_spec,
+                                                 const PredictRequest& request,
+                                                 PredictResponse* response) {
   if (use_saved_model_) {
     ServableHandle<SavedModelBundle> bundle;
-    TF_RETURN_IF_ERROR(core->GetServableHandle(request.model_spec(), &bundle));
+    TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &bundle));
     return RunPredict(run_options, bundle->meta_graph_def, bundle.id().version,
                       bundle->session.get(), request, response);
   }
   ServableHandle<SessionBundle> bundle;
-  TF_RETURN_IF_ERROR(core->GetServableHandle(request.model_spec(), &bundle));
+  TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &bundle));
   return SessionBundlePredict(run_options, bundle->meta_graph_def,
                               bundle.id().version, request, response,
                               bundle->session.get());

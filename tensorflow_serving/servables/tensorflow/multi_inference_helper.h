@@ -31,6 +31,13 @@ Status RunMultiInferenceWithServerCore(const RunOptions& run_options,
                                        const MultiInferenceRequest& request,
                                        MultiInferenceResponse* response);
 
+// Like RunMultiInferenceWithServerCore(), but uses 'model_spec' instead of the
+// one(s) embedded in 'request'.
+Status RunMultiInferenceWithServerCoreWithModelSpec(
+    const RunOptions& run_options, ServerCore* core,
+    const ModelSpec& model_spec, const MultiInferenceRequest& request,
+    MultiInferenceResponse* response);
+
 }  // namespace serving
 }  // namespace tensorflow
 

@@ -484,6 +484,28 @@ TEST_P(PredictImplTest, PredictionWithCustomizedSignatures) {
   EXPECT_THAT(response, test_util::EqualsProto(expected_incr_counter_by));
 }
 
+// Verifies that PredictWithModelSpec() uses the model spec override rather than
+// the one in the request.
+TEST_P(PredictImplTest, ModelSpecOverride) {
+  auto request = test_util::CreateProto<PredictRequest>(
+      "model_spec {"
+      "  name: \"test_model\""
+      "}");
+  auto model_spec_override =
+      test_util::CreateProto<ModelSpec>("name: \"nonexistent_model\"");
+
+  TensorflowPredictor predictor(GetParam());
+  PredictResponse response;
+  EXPECT_NE(tensorflow::error::NOT_FOUND,
+            predictor.Predict(RunOptions(), GetServerCore(), request, &response)
+                .code());
+  EXPECT_EQ(tensorflow::error::NOT_FOUND,
+            predictor
+                .PredictWithModelSpec(RunOptions(), GetServerCore(),
+                                      model_spec_override, request, &response)
+                .code());
+}
+
 // Test all PredictImplTest test cases with both SessionBundle and SavedModel.
 INSTANTIATE_TEST_CASE_P(UseSavedModel, PredictImplTest, ::testing::Bool());
 
