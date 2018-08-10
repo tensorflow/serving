@@ -464,7 +464,7 @@ void SharedBatchScheduler<TaskType>::ThreadLogic() {
     }
 
     if (options_.env->NowMicros() >= last_log_time_proctime_micros_ + logging_rate_) {
-      LOG(INFO) << "Batch processing time: " << "NaN"; // FLUENTD
+      LOG(INFO) << "Batch processing time: " << "NaN" << " ms"; // FLUENTD
       last_log_time_proctime_micros_ = options_.env->NowMicros();
     }
 
