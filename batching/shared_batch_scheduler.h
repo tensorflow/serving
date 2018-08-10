@@ -189,6 +189,7 @@ class SharedBatchScheduler
   const uint64 logging_rate_ = 5000000;
 
   uint64 last_log_time_size_micros_ GUARDED_BY(mu_);
+  uint64 last_log_time_proctime_micros_ GUARDED_BY(mu_);
 
   // An iterator over 'queues_', pointing to the queue from which the next
   // available batch thread should grab work.
@@ -457,6 +458,16 @@ void SharedBatchScheduler<TaskType>::ThreadLogic() {
   {
     mutex_lock l(mu_);
 
+    if (options_.env->NowMicros() >= last_log_time_size_micros_ + logging_rate_) {
+      LOG(INFO) << "Batch size to process: " << "NaN"; // FLUENTD
+      last_log_time_size_micros_ = options_.env->NowMicros();
+    }
+
+    if (options_.env->NowMicros() >= last_log_time_proctime_micros_ + logging_rate_) {
+      LOG(INFO) << "Batch processing time: " << "NaN"; // FLUENTD
+      last_log_time_proctime_micros_ = options_.env->NowMicros();
+    }
+
     const int num_queues = queues_.size();
     for (int num_queues_tried = 0;
          batch_to_process == nullptr && num_queues_tried < num_queues;
@@ -467,11 +478,6 @@ void SharedBatchScheduler<TaskType>::ThreadLogic() {
         auto num_enqueued_tasks = (*next_queue_to_schedule_)->NumEnqueuedTasks();
         LOG(INFO) << "Number of batches in a queue (" << (num_queues_tried + 1) << "/" << num_queues << ") : " << num_enqueued_tasks; // FLUENTD
         (*next_queue_to_schedule_)->last_log_time_length_micros = options_.env->NowMicros();
-      }
-
-      if (options_.env->NowMicros() >= last_log_time_size_micros_ + logging_rate_) {
-        LOG(INFO) << "Batch size to process: " << "NaN"; // FLUENTD
-        last_log_time_size_micros_ = options_.env->NowMicros();
       }
 
       // If a closed queue responds to ScheduleBatch() with nullptr, the queue
@@ -514,7 +520,15 @@ void SharedBatchScheduler<TaskType>::ThreadLogic() {
     }
   }
 
+  const uint64 start_time_micros = Env::Default()->NowMicros();
+
   queue_for_batch->ProcessBatch(std::move(batch_to_process));
+
+  const uint64 end_time_micros = Env::Default()->NowMicros();
+
+  const auto processing_time_ms = (end_time_micros - start_time_micros) / 1000;
+  LOG(INFO) << "Batch processing time: " << processing_time_ms << " ms"; // FLUENTD
+  last_log_time_proctime_micros_ = options_.env->NowMicros();
 }
 
 namespace internal {

@@ -538,13 +538,9 @@ void BatchingSession::ProcessBatch(
   std::vector<Tensor> combined_outputs;
   RunMetadata run_metadata;
 
-  const uint64 start_time_micros = Env::Default()->NowMicros();
-
   status = wrapped_->Run(run_options, merged_inputs, output_tensor_names,
                          {} /* target node names */, &combined_outputs,
                          &run_metadata);
-
-  const uint64 end_time_micros = Env::Default()->NowMicros();
 
   for (int i = 0; i < batch->num_tasks(); ++i) {
     *(batch->mutable_task(i)->run_metadata) = run_metadata;
@@ -552,9 +548,6 @@ void BatchingSession::ProcessBatch(
   if (!status.ok()) {
     return;
   }
-
-  const auto processing_time_ms = (end_time_micros - start_time_micros) / 1000;
-  LOG(INFO) << "Batch processing time: " << processing_time_ms << " ms"; // FLUENTD
 
   status = SplitOutputTensors(signature, combined_outputs, batch.get());
 }
