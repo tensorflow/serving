@@ -62,13 +62,14 @@ IMAGE="tensorflow/serving:nightly-devel"
 [[ "$1" = "-d" ]] && IMAGE=$2 && shift 2 || true
 [[ "${IMAGE}" = "" ]] && usage
 
-RUN_OPTS=(--rm -it)
-if [[ "$1" = "bazel" ]]; then
+RUN_OPTS=(--rm -it --network=host)
+if [[ "$1" = "bazel"* ]]; then
   CMD="sh -c '$(get_bazel_cmd) $@'"
   RUN_OPTS+=("-v $(pwd):$(pwd)")
 else
   CMD="$@"
 fi
+
 [[ "${CMD}" = "" ]] && usage
 [[ ! -x $(command -v docker) ]] && echo "ERROR: 'docker' command missing from PATH." && usage
 
