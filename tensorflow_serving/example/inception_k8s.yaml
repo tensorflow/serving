@@ -27,14 +27,8 @@ spec:
       containers:
       - name: inception-container
         image: gcr.io/tensorflow-serving/inception
-        command:
-        - /bin/sh
-        - -c
-        args:
-        - serving/bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server
-          --port=9000 --model_name=inception --model_base_path=serving/inception-export
         ports:
-        - containerPort: 9000
+        - containerPort: 8500
 ---
 apiVersion: v1
 kind: Service
@@ -44,8 +38,8 @@ metadata:
   name: inception-service
 spec:
   ports:
-  - port: 9000
-    targetPort: 9000
+  - port: 8500
+    targetPort: 8500
   selector:
     app: inception-server
   type: LoadBalancer

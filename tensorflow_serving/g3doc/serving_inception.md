@@ -11,106 +11,123 @@ To learn more about TensorFlow Serving, we recommend
 To learn more about TensorFlow Inception model, we recommend
 [Inception in TensorFlow](https://github.com/tensorflow/models/tree/master/research/inception).
 
--   [Part 0](#part_0_create_a_docker_image) shows how to create a TensorFlow
-    Serving Docker image for deployment
--   [Part 1](#part_1_run_in_local_docker_container) shows how to run the image
-    in local containers.
+-   [Part 1](#part_1_export_the_inception_model) shows how to export the
+    Inception model
+-   [Part 1](#part_2_run_in_local_docker_container) shows how to run the local
+    Docker serving image
 -   [Part 2](#part_2_deploy_in_kubernetes) shows how to deploy in Kubernetes.
 
-## Part 0: Create a Docker image
+## Part 1: Export the Inception model
 
-Please refer to [Using TensorFlow Serving via Docker](docker.md) for details
-about building a TensorFlow Serving Docker image.
+Before getting started, first [install Docker](docker.md#installing-docker)
 
-### Run container
+### Clone Tensorflow Serving
 
-We build a based image `$USER/tensorflow-serving-devel` using
-[Dockerfile.devel](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/tools/docker/Dockerfile.devel).
-And then start a container locally using the built image.
+First we want to clone the TensorFlow Serving source to our local machine:
 
 ```shell
-$ docker build --pull -t $USER/tensorflow-serving-devel -f tensorflow_serving/tools/docker/Dockerfile.devel .
-$ docker run --name=inception_container -it $USER/tensorflow-serving-devel
+git clone https://github.com/tensorflow/serving
+cd serving
 ```
 
-### Clone, configure, and build TensorFlow Serving in a container
+Clear our local models directory in case we already have one
+
+```shell
+rm -rf ./models/inception
+```
+
+### Build TensorFlow Serving Inception model exporter
+
+Next, we will build the Inception model exporter using a docker container.
 
 Note: All `bazel build` commands below use the standard `-c opt` flag. To
 further optimize the build, refer to the
-[instructions here](setup.md#optimized).
-
-In the running container, we clone, configure and build TensorFlow Serving
-example code.
+[instructions here](setup.md#optimized-build).
 
 ```shell
-root@c97d8e820ced:/# git clone -b r1.6 https://github.com/tensorflow/serving
-root@c97d8e820ced:/# cd serving
-root@c97d8e820ced:/serving# bazel build -c opt tensorflow_serving/example/...
+tools/bazel_in_docker.sh bazel build -c opt \
+  tensorflow_serving/example:inception_saved_model
 ```
 
-Next we can either install a TensorFlow ModelServer with apt-get using the
-[instructions here](setup.md#aptget), or build a ModelServer binary using:
+### Export Inception model
 
-```shell
-root@c97d8e820ced:/serving# bazel build -c opt tensorflow_serving/model_servers:tensorflow_model_server
-```
-
-The rest of this tutorial assumes you compiled the ModelServer locally, in which
-case the command to run it is
-`bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server`. If however
-you installed the ModelServer using apt-get, simply replace that command with
-`tensorflow_model_server`.
-
-### Export Inception model in container
-
-In the running container, we run
+With the inception model built, we run
 [inception_saved_model.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/inception_saved_model.py)
-to export the inception model using the released
+to export the Inception model using the released
 [Inception model training checkpoint](http://download.tensorflow.org/models/image/imagenet/inception-v3-2016-03-01.tar.gz).
-Instead of training from scratch, we use the readily available checkpoints
-of well trained variables to restore the inference graph and export it
-directly.
+Instead of training from scratch, we use the readily available checkpoints of
+well trained variables to restore the inference graph and export it directly.
 
 ```shell
-root@c97d8e820ced:/serving# curl -O http://download.tensorflow.org/models/image/imagenet/inception-v3-2016-03-01.tar.gz
-root@c97d8e820ced:/serving# tar xzf inception-v3-2016-03-01.tar.gz
-root@c97d8e820ced:/serving# ls inception-v3
-README.txt  checkpoint  model.ckpt-157585
-root@c97d8e820ced:/serving# bazel-bin/tensorflow_serving/example/inception_saved_model --checkpoint_dir=inception-v3 --output_dir=/tmp/inception-export
-Successfully loaded model from inception-v3/model.ckpt-157585 at step=157585.
-Successfully exported model to /tmp/inception-export
-root@c97d8e820ced:/serving# ls /tmp/inception-export
-1
-root@c97d8e820ced:/serving# [Ctrl-p] + [Ctrl-q]
+curl -O http://download.tensorflow.org/models/image/imagenet/inception-v3-2016-03-01.tar.gz
+tar xzf inception-v3-2016-03-01.tar.gz
 ```
+
+We can verify we have the checkpoint:
+
+```console
+$ ls inception-v3
+README.txt  checkpoint  model.ckpt-157585
+```
+
+Now let's export the Inception model:
+
+```shell
+tools/bazel_in_docker.sh \
+  bazel-bin/tensorflow_serving/example/inception_saved_model \
+  --checkpoint_dir=inception-v3 --output_dir=models/inception
+```
+
+This should result in output like:
+
+```console
+Successfully loaded model from inception-v3/model.ckpt-157585 at step=157585.
+Exporting trained moedl to models/inception/1
+Successfully exported model to models/inception
+$ ls models/inception
+1
+```
+
+## Part 2: Run in local Docker container
 
 ### Commit image for deployment
 
-Note that we detach from the container at the end of above instructions
-instead of terminating it, as we want to [commit](https://docs.docker.com/engine/reference/commandline/commit/)
-all changes to a new image `$USER/inception_serving` for Kubernetes deployment.
+Now we want to take a serving image and
+[commit](https://docs.docker.com/engine/reference/commandline/commit/) all
+changes to a new image `$USER/inception_serving` for Kubernetes deployment.
+
+First we run a serving image, but change the entry point to just run `bash`:
 
 ```shell
-$ docker commit inception_container $USER/inception_serving
-$ docker stop inception_container
+docker run -d --name serving_base tensorflow/serving
 ```
 
-## Part 1: Run in local Docker container
-
-Let's test the serving workflow locally using the built image.
+Next, we copy the Inception model data to the container's model folder:
 
 ```shell
-$ docker run -it $USER/inception_serving
+docker cp models/inception serving_base:/models/inception
+```
+
+Finally we commit the container to serving the Inception model:
+
+```shell
+docker commit --change "ENV MODEL_NAME inception" serving_base \
+  $USER/inception_serving
+```
+
+Now let's stop the serving base container
+
+```shell
+docker kill serving_base
 ```
 
 ### Start the server
 
-Run the [gRPC]( http://www.grpc.io/) `tensorflow_model_server` in the container.
+Now let's start the container with the Inception model so it's ready for
+serving, exposing the gRPC port 8500:
 
 ```shell
-root@f07eec53fd95:/# cd serving
-root@f07eec53fd95:/serving# bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000 --model_name=inception --model_base_path=/tmp/inception-export &> inception_log &
-[1] 45
+docker run -p 8500:8500 -t $USER/inception_serving &
 ```
 
 ### Query the server
@@ -120,8 +137,19 @@ The client sends an image specified by the command line parameter to the server
 over gRPC for classification into human readable descriptions of the
 [ImageNet](http://www.image-net.org/) categories.
 
+Note: We leave it as an exercise to the reader to find an image of a cat on the
+Internet.
+
 ```shell
-root@f07eec53fd95:/serving# bazel-bin/tensorflow_serving/example/inception_client --server=localhost:9000 --image=/path/to/my_cat_image.jpg
+tools/bazel_in_docker.sh bazel build -c opt \
+  tensorflow_serving/example:inception_client
+tools/bazel_in_docker.sh bazel-bin/tensorflow_serving/example/inception_client \
+  --server=127.0.0.1:8500 --image=local/path/to/my_cat_image.jpg
+```
+
+This should result in output like:
+
+```console
 outputs {
   key: "classes"
   value {
@@ -160,13 +188,11 @@ outputs {
     float_val: 3.93207240105
   }
 }
-
-root@f07eec53fd95:/serving# exit
 ```
 
 It works! The server successfully classifies your cat image!
 
-## Part 2: Deploy in Kubernetes
+## Part 3: Deploy in Kubernetes
 
 In this section we use the container image built in Part 0 to deploy a serving
 cluster with [Kubernetes](http://kubernetes.io) in the
@@ -180,7 +206,7 @@ Here we assume you have created and logged in a
 `tensorflow-serving`.
 
 ```shell
-$ gcloud auth login --project tensorflow-serving
+gcloud auth login --project tensorflow-serving
 ```
 
 ### Create a container cluster
@@ -191,6 +217,11 @@ for service deployment.
 
 ```shell
 $ gcloud container clusters create inception-serving-cluster --num-nodes 5
+```
+
+Which should output something like:
+
+```console
 Creating cluster inception-serving-cluster...done.
 Created [https://container.googleapis.com/v1/projects/tensorflow-serving/zones/us-central1-f/clusters/inception-serving-cluster].
 kubeconfig entry generated for inception-serving-cluster.
@@ -202,8 +233,13 @@ Set the default cluster for gcloud container command and pass cluster
 credentials to [kubectl](http://kubernetes.io/docs/user-guide/kubectl-overview/).
 
 ```shell
-$ gcloud config set container/cluster inception-serving-cluster
-$ gcloud container clusters get-credentials inception-serving-cluster
+gcloud config set container/cluster inception-serving-cluster
+gcloud container clusters get-credentials inception-serving-cluster
+```
+
+which should result in:
+
+```console
 Fetching cluster endpoint and auth data.
 kubeconfig entry generated for inception-serving-cluster.
 ```
@@ -218,13 +254,13 @@ First we tag the `$USER/inception_serving` image using the Container Registry
 format and our project name,
 
 ```shell
-$ docker tag $USER/inception_serving gcr.io/tensorflow-serving/inception
+docker tag $USER/inception_serving gcr.io/tensorflow-serving/inception
 ```
 
 Next we push the image to the Registry,
 
 ```shell
-$ gcloud docker -- push gcr.io/tensorflow-serving/inception
+gcloud docker -- push gcr.io/tensorflow-serving/inception
 ```
 
 ### Create Kubernetes Deployment and Service
@@ -241,20 +277,25 @@ We create them using the example Kubernetes config
 [inception_k8s.yaml](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/inception_k8s.yaml).
 
 ```shell
-$ kubectl create -f tensorflow_serving/example/inception_k8s.yaml
+kubectl create -f tensorflow_serving/example/inception_k8s.yaml
+```
+
+With output:
+
+```console
 deployment "inception-deployment" created
 service "inception-service" created
 ```
 
 To view status of the deployment and pods:
 
-```shell
+```console
 $ kubectl get deployments
 NAME                    DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
 inception-deployment    3         3         3            3           5s
 ```
 
-```shell
+```console
 $ kubectl get pods
 NAME                         READY     STATUS    RESTARTS   AGE
 inception-deployment-bbcbc   1/1       Running   0          10s
@@ -264,32 +305,32 @@ inception-deployment-t1uep   1/1       Running   0          10s
 
 To view status of the service:
 
-```shell
+```console
 $ kubectl get services
 NAME                    CLUSTER-IP       EXTERNAL-IP       PORT(S)     AGE
-inception-service       10.239.240.227   104.155.184.157   9000/TCP    1m
+inception-service       10.239.240.227   104.155.184.157   8500/TCP    1m
 ```
 
 It can take a while for everything to be up and running.
 
-```shell
+```console
 $ kubectl describe service inception-service
-Name:			inception-service
-Namespace:		default
-Labels:			run=inception-service
-Selector:		run=inception-service
-Type:			LoadBalancer
-IP:			10.239.240.227
-LoadBalancer Ingress:	104.155.184.157
-Port:			<unset>	9000/TCP
-NodePort:		<unset>	30334/TCP
-Endpoints:		<none>
-Session Affinity:	None
+Name:           inception-service
+Namespace:      default
+Labels:         run=inception-service
+Selector:       run=inception-service
+Type:           LoadBalancer
+IP:         10.239.240.227
+LoadBalancer Ingress:   104.155.184.157
+Port:           <unset> 8500/TCP
+NodePort:       <unset> 30334/TCP
+Endpoints:      <none>
+Session Affinity:   None
 Events:
-  FirstSeen	LastSeen	Count	From			SubobjectPath	Type		Reason		Message
-  ---------	--------	-----	----			-------------	--------	------		-------
-  1m		1m		1	{service-controller }			Normal		CreatingLoadBalancer	Creating load balancer
-  1m		1m		1	{service-controller }			Normal		CreatedLoadBalancer	Created load balancer
+  FirstSeen LastSeen    Count   From            SubobjectPath   Type        Reason      Message
+  --------- --------    -----   ----            -------------   --------    ------      -------
+  1m        1m      1   {service-controller }           Normal      CreatingLoadBalancer    Creating load balancer
+  1m        1m      1   {service-controller }           Normal      CreatedLoadBalancer Created load balancer
 ```
 
 The service external IP address is listed next to LoadBalancer Ingress.
@@ -298,8 +339,10 @@ The service external IP address is listed next to LoadBalancer Ingress.
 
 We can now query the service at its external address from our local host.
 
-```shell
-$ bazel-bin/tensorflow_serving/example/inception_client --server=104.155.184.157:9000 --image=/path/to/my_cat_image.jpg
+```console
+$ tools/bazel_in_docker.sh \
+  bazel-bin/tensorflow_serving/example/inception_client \
+  --server=104.155.184.157:8500 --image=local/path/to/my_cat_image.jpg
 outputs {
   key: "classes"
   value {
