@@ -37,7 +37,6 @@ function main() {
   mkdir -p ${TMPDIR}/tensorflow_serving/config
   mkdir -p ${TMPDIR}/tensorflow_serving/sources/storage_path
   mkdir -p ${TMPDIR}/tensorflow_serving/util
-  mkdir -p ${TMPDIR}/tensorflow/core/lib/core
 
   echo "Adding python files"
   cp bazel-genfiles/tensorflow_serving/apis/*_pb2.py \
@@ -58,19 +57,12 @@ function main() {
   cp bazel-genfiles/tensorflow_serving/util/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/util"
 
-  cp bazel-genfiles/external/org_tensorflow/tensorflow/core/lib/core/*.py \
-    "${TMPDIR}/tensorflow/core/lib/core"
-
   touch "${TMPDIR}/tensorflow_serving/apis/__init__.py"
   touch "${TMPDIR}/tensorflow_serving/config/__init__.py"
   touch "${TMPDIR}/tensorflow_serving/sources/__init__.py"
   touch "${TMPDIR}/tensorflow_serving/sources/storage_path/__init__.py"
   touch "${TMPDIR}/tensorflow_serving/util/__init__.py"
   touch "${TMPDIR}/tensorflow_serving/__init__.py"
-  touch "${TMPDIR}/tensorflow/__init__.py"
-  touch "${TMPDIR}/tensorflow/core/__init__.py"
-  touch "${TMPDIR}/tensorflow/core/lib/__init__.py"
-  touch "${TMPDIR}/tensorflow/core/lib/core/__init__.py"
 
   echo "Adding package setup files"
   cp ${PIP_SRC_DIR}/setup.py "${TMPDIR}"
