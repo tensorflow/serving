@@ -18,20 +18,19 @@ The code for this tutorial consists of two parts:
     [mnist_saved_model.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_saved_model.py),
     that trains and exports the model.
 
-*   A ModelServer binary which can be either installed using apt-get, or
-    compiled from a C++ file
+*   A ModelServer binary which can be either installed using Apt, or compiled
+    from a C++ file
     ([main.cc](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/model_servers/main.cc)).
     The TensorFlow Serving ModelServer discovers new exported models and runs a
     [gRPC](http://www.grpc.io) service for serving them.
 
-Before getting started, please complete the
-[prerequisites](setup.md#prerequisites).
+Before getting started, first [install Docker](docker.md#installing-docker)
 
 Note: All `bazel build` commands below use the standard `-c opt` flag. To
-further optimize the build, refer to the [instructions
-here](setup.md#optimized).
+further optimize the build, refer to the
+[instructions here](setup.md#optimized-build).
 
-## Train And Export TensorFlow Model
+## Train and export TensorFlow model
 
 As you can see in `mnist_saved_model.py`, the training is done the same way it
 is in the
@@ -145,50 +144,61 @@ def structure and how to set up them up can be found [here](signature_defs.md).
 Let's run it!
 
 First, if you haven't done so yet, clone this repository to your local machine:
+
 ```shell
-$ git clone https://github.com/tensorflow/serving.git
-Cloning into 'serving'...
-[...]
-$ cd serving
+git clone https://github.com/tensorflow/serving.git
+cd serving
 ```
 
 Clear the export directory if it already exists:
 
 ```shell
-$ rm -rf /tmp/mnist_model
+rm -rf models/mnist
 ```
 
 If you would like to install the `tensorflow` and `tensorflow-serving-api` PIP
 packages, you can run all Python code (export and client) using a simple
-`python` command. To install the PIP package, follow the [instructions
-here](setup.md#pip). It's also possible to use Bazel to build the necessary
-dependencies and run all code without installing those packages. The rest of the
-codelab will have instructions for both the Bazel and PIP options.
+`python` command. To install the PIP package, follow the
+[instructions here](setup.md#tensorflow-serving-python-api-pip-package). It's
+also possible to use Bazel to build the necessary dependencies and run all code
+without installing those packages. The rest of the codelab will have
+instructions for both the Bazel and PIP options.
 
-Bazel:
+*   **PIP**:
 
-```shell
-$ bazel build -c opt //tensorflow_serving/example:mnist_saved_model
-$ bazel-bin/tensorflow_serving/example/mnist_saved_model /tmp/mnist_model
+    ```shell
+    python tensorflow_serving/example/mnist_saved_model.py models/mnist
+    ```
+
+*   **Bazel**:
+
+    ```shell
+    tools/build_in_docker.sh bazel build -c opt tensorflow_serving/example:mnist_saved_model
+    tools/build_in_docker.sh bazel-bin/tensorflow_serving/example/mnist_saved_model models/mnist
+    ```
+
+    TIP: Building from sources consumes a lot of RAM. If RAM is an issue on your
+    system, you may limit RAM usage by specifying
+    `--local_resources=2048,.5,1.0` while invoking Bazel. See the
+    [Bazel docs](https://docs.bazel.build/versions/master/user-manual.html#flag--local_resources)
+    for more information.
+
+This should result in output that looks like:
+
+```console
 Training model...
 
 ...
 
 Done training!
-Exporting trained model to /tmp/mnist_model
+Exporting trained model to models/mnist
 Done exporting!
-```
-
-Or if you have `tensorflow-serving-api` installed, you can run:
-
-```shell
-$ python tensorflow_serving/example/mnist_saved_model.py /tmp/mnist_model
 ```
 
 Now let's take a look at the export directory.
 
-```shell
-$ ls /tmp/mnist_model
+```console
+$ ls models/mnist
 1
 ```
 
@@ -196,8 +206,8 @@ As mentioned above, a sub-directory will be created for exporting each version
 of the model. `FLAGS.model_version` has the default value of 1, therefore
 the corresponding sub-directory `1` is created.
 
-```shell
-$ ls /tmp/mnist_model/1
+```console
+$ ls models/mnist/1
 saved_model.pb variables
 ```
 
@@ -211,45 +221,45 @@ Each version sub-directory contains the following files:
 
 With that, your TensorFlow model is exported and ready to be loaded!
 
-## Load Exported Model With Standard TensorFlow ModelServer
+## Load exported model with standard TensorFlow ModelServer
 
-If you'd like to use a locally compiled ModelServer, run the following:
-
-```shell
-$ bazel build -c opt //tensorflow_serving/model_servers:tensorflow_model_server
-$ bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server --port=9000 --model_name=mnist --model_base_path=/tmp/mnist_model/
-```
-
-If you'd prefer to skip compilation and install using apt-get, follow the
-[instructions here](setup.md#aptget). Then run the server with the following
-command:
+Use a Docker serving image to easily load the model for serving:
 
 ```shell
-$ tensorflow_model_server --port=9000 --model_name=mnist --model_base_path=/tmp/mnist_model/
+docker run -p 8500:8500 \
+--mount type=bind,source=$(pwd)/models/mnist,target=/models/mnist \
+-e MODEL_NAME=mnist -t tensorflow/serving &
 ```
 
-## Test The Server
+## Test the server
 
 We can use the provided
 [mnist_client](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_client.py)
 utility to test the server. The client downloads MNIST test data, sends them as
 requests to the server, and calculates the inference error rate.
 
-To run it with Bazel:
+*   **PIP**:
 
-```shell
-$ bazel build -c opt //tensorflow_serving/example:mnist_client
-$ bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:9000
-...
-Inference error rate: 10.5%
+    ```shell
+    python tensorflow_serving/example/mnist_client.py --num_tests=1000 --server=127.0.0.1:8500
+    ```
+
+*   **Bazel**:
+
+    ```shell
+    tools/bazel_in_docker.sh bazel build -c opt \
+    tensorflow_serving/example:mnist_client
+    tools/bazel_in_docker.sh bazel-bin/tensorflow_serving/example/mnist_client \
+    --num_tests=1000 --server=127.0.0.1:8500
+    ```
+
+This should output something like
+
+```console
+    ...
+    Inference error rate: 11.13%
 ```
 
-Alternatively if you installed the PIP package, run:
-
-```shell
-$ python tensorflow_serving/example/mnist_client.py --num_tests=1000 --server=localhost:9000
-```
-
-We expect around 91% accuracy for the trained Softmax model and we get
-10.5% inference error rate for the first 1000 test images. This confirms that
-the server loads and runs the trained model successfully!
+We expect around 90% accuracy for the trained Softmax model and we get 11%
+inference error rate for the first 1000 test images. This confirms that the
+server loads and runs the trained model successfully!

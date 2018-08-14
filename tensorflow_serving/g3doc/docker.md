@@ -272,16 +272,17 @@ TIP: Before attempting to build an image, check the Docker Hub
 [tensorflow/serving repo](http://hub.docker.com/r/tensorflow/serving/tags/) to
 make sure an image that meets your needs doesn't already exist.
 
-By default, building TensorFlow Serving from sources consumes a lot of RAM. If
-RAM is an issue on your system, you may limit RAM usage by specifying
-`--local_resources 2048,.5,1.0` while invoking bazel. You can use this same
-mechanism to tweak the optmizations you're building TensorFlow Serving with. For
-example:
+Building from sources consumes a lot of RAM. If RAM is an issue on your system,
+you may limit RAM usage by specifying `--local_resources=2048,.5,1.0` while
+invoking Bazel. See the
+[Bazel docs](https://docs.bazel.build/versions/master/user-manual.html#flag--local_resources)
+for more information. You can use this same mechanism to tweak the optmizations
+you're building TensorFlow Serving with. For example:
 
 ```shell
 docker build --pull --build-arg TF_SERVING_BUILD_OPTIONS="--copt=-mavx \
---cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --local_resources 2048,.5,1.0" -t \
-$USER/tensorflow-serving-devel -f Dockerfile.devel .
+  --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --local_resources 2048,.5,1.0" -t \
+  $USER/tensorflow-serving-devel -f Dockerfile.devel .
 ```
 
 ### Running a container

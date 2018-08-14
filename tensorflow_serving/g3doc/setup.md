@@ -1,82 +1,16 @@
 # Installation
 
-## Prerequisites
+## Installing ModelServer
 
-To compile and use TensorFlow Serving, you need to set up some prerequisites.
+### Installing using Docker
 
-### Bazel (only if compiling source code)
+The easiest and most straight-forward way of using TensorFlow Serving is via
+[Docker images](docker.md). We highly recommend this route unless you have
+specific needs that are not addressed by running in a container.
 
-TensorFlow Serving requires Bazel 0.5.4 or higher. You can find the Bazel
-installation instructions [here](http://bazel.build/docs/install.html).
+### Installing using APT
 
-If you have the prerequisites for Bazel, those instructions consist of the
-following steps:
-
-1.  Download the relevant binary from
-    [here](https://github.com/bazelbuild/bazel/releases). Let's say you
-    downloaded bazel-0.5.4-installer-linux-x86_64.sh. You would execute:
-
-    <pre>
-    cd ~/Downloads
-    chmod +x bazel-0.5.4-installer-linux-x86_64.sh
-    ./bazel-0.5.4-installer-linux-x86_64.sh --user
-    </pre>
-
-2.  Set up your environment. Put this in your ~/.bashrc.
-
-    <pre>
-    export PATH="$PATH:$HOME/bin"
-    </pre>
-
-### gRPC
-
-Our tutorials use [gRPC](http://www.grpc.io) (1.0.0 or higher) as our RPC
-framework. You can find the installation instructions
-[here](https://github.com/grpc/grpc/tree/master/src/python/grpcio).
-
-### Packages
-
-To install TensorFlow Serving dependencies, execute the following:
-
-```shell
-sudo apt-get update && sudo apt-get install -y \
-        automake \
-        build-essential \
-        curl \
-        libcurl3-dev \
-        git \
-        libtool \
-        libfreetype6-dev \
-        libpng12-dev \
-        libzmq3-dev \
-        pkg-config \
-        python-dev \
-        python-numpy \
-        python-pip \
-        software-properties-common \
-        swig \
-        zip \
-        zlib1g-dev
-```
-
-The list of packages needed to build TensorFlow changes over time, so if you
-encounter any issues, refer TensorFlow's [build
-instructions](https://www.tensorflow.org/install/install_sources). Pay
-particular attention to `apt-get install` and `pip install` commands which you
-may need to run.
-
-### TensorFlow Serving Python API PIP package {#pip}
-
-To run Python client code without the need to install Bazel, you can install the
-`tensorflow-serving-api` PIP package using:
-
-```shell
-pip install tensorflow-serving-api
-```
-
-## Installing using apt-get {#aptget}
-
-### Available binaries
+#### Available binaries
 
 The TensorFlow Serving ModelServer binary is available in two variants:
 
@@ -90,67 +24,92 @@ not all machines out there. Use this if `tensorflow-model-server` does not work
 for you. Note that the binary name is the same for both packages, so if you
 already installed tensorflow-model-server, you should first uninstall it using
 
+<!-- common_typos_disable -->
+
 ```shell
-sudo apt-get remove tensorflow-model-server
+apt-get remove tensorflow-model-server
 ```
 
-### Installing the ModelServer
+<!-- common_typos_enable -->
+
+#### Installation
 
 1.  Add TensorFlow Serving distribution URI as a package source (one time setup)
 
-    <pre>
-    echo "deb [arch=amd64] http://storage.googleapis.com/tensorflow-serving-apt stable tensorflow-model-server tensorflow-model-server-universal" | sudo tee /etc/apt/sources.list.d/tensorflow-serving.list
-
+    ```shell
+    echo "deb [arch=amd64] http://storage.googleapis.com/tensorflow-serving-apt stable tensorflow-model-server tensorflow-model-server-universal" | sudo tee /etc/apt/sources.list.d/tensorflow-serving.list && \
     curl https://storage.googleapis.com/tensorflow-serving-apt/tensorflow-serving.release.pub.gpg | sudo apt-key add -
-    </pre>
+    ```
 
 2.  Install and update TensorFlow ModelServer
 
-    <pre>
-    sudo apt-get update && sudo apt-get install tensorflow-model-server
-    </pre>
+<!-- common_typos_disable -->
 
-Once installed, the binary can be invoked using the command
-`tensorflow_model_server`.
+    ```shell
+    apt-get install tensorflow-model-server
+    ```
+
+<!-- common_typos_enable -->
+
+    Once installed, the binary can be invoked using the command
+    `tensorflow_model_server`.
 
 You can upgrade to a newer version of tensorflow-model-server with:
 
+<!-- common_typos_disable -->
+
 ```shell
-sudo apt-get upgrade tensorflow-model-server
+apt-get upgrade tensorflow-model-server
 ```
+
+<!-- common_typos_enable -->
 
 Note: In the above commands, replace tensorflow-model-server with
 tensorflow-model-server-universal if your processor does not support AVX
 instructions.
 
-## Installing from source
+## Building from source
 
-### Clone the TensorFlow Serving repository
+The recommended approach to building from source is to use Docker. The
+TensorFlow Serving Docker development images encapsulate all the dependencies
+you need to build your own version of TensorFlow Serving.
+
+For a listing of what these dependencies are, see the TensorFlow Serving
+Development Dockerfiles
+[[CPU](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel),
+[GPU](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel-gpu)].
+
+Note: Currently we only support building binaries that run on Linux.
+
+#### Installing Docker
+
+General installation instructions are
+[on the Docker site](https://docs.docker.com/install/).
+
+#### Clone the build script
+
+After installing Docker, we need to get the source we want to build from. We
+will use Git to clone the master branch of TensorFlow Serving:
 
 ```shell
-git clone https://github.com/tensorflow/serving
+git clone https://github.com/tensorflow/serving.git
 cd serving
 ```
 
-Note that these instructions will install the latest master branch of TensorFlow
-Serving. If you want to install a specific branch (such as a release branch),
-pass `-b <branchname>` to the `git clone` command.
+#### Build
 
-### Install prerequisites
+In order to build in a hermetic environment with all dependencies taken care of,
+we will use the `bazel_in_docker.sh` script. This script passes build commands
+through to a Docker container. By default, the script will build with the latest
+nightly Docker development image.
 
-Follow the Prerequisites section above to install all dependencies. Consult the
-[TensorFlow install instructions](https://www.tensorflow.org/install/) if you
-encounter any issues with setting up TensorFlow or its dependencies.
-
-### Build
-
-TensorFlow Serving uses Bazel to build. Use Bazel commands to build individual
-targets or the entire source tree.
+TensorFlow Serving uses Bazel as its build tool. You can use Bazel commands to
+build individual targets or the entire source tree.
 
 To build the entire tree, execute:
 
 ```shell
-bazel build -c opt tensorflow_serving/...
+tools/bazel_in_docker.sh bazel build -c opt tensorflow_serving/...
 ```
 
 Binaries are placed in the bazel-bin directory, and can be run using a command
@@ -160,17 +119,37 @@ like:
 bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server
 ```
 
-To test your installation, execute:
+To test your build, execute:
 
 ```shell
-bazel test -c opt tensorflow_serving/...
+tools/bazel_in_docker.sh bazel test -c opt tensorflow_serving/...
 ```
 
 See the [basic tutorial](serving_basic.md) and [advanced
 tutorial](serving_advanced.md) for more in-depth examples of running TensorFlow
 Serving.
 
-### Optimized build {#optimized}
+##### Building specific versions of TensorFlow Serving
+
+If you want to build from a specific branch (such as a release branch), pass `-b
+<branchname>` to the `git clone` command.
+
+We will also want to match the build environment for that branch of code, by
+passing the `bazel_in_docker.sh` script the Docker development image we'd like
+to use.
+
+For example, to build version 1.10 of TensorFlow Serving:
+
+```console
+$ git clone -b r1.10 https://github.com/tensorflow/serving.git
+...
+$ cd serving
+$ tools/bazel_in_docker.sh -d tensorflow/serving:1.10-devel \
+  bazel build -c opt tensorflow_serving/...
+...
+```
+
+##### Optimized build
 
 It's possible to compile using some platform specific instruction sets (e.g.
 AVX) that can significantly improve performance. Wherever you see 'bazel build'
@@ -180,7 +159,9 @@ in the documentation, you can add the flags `-c opt --copt=-msse4.1
 example:
 
 ```shell
-bazel build -c opt --copt=-msse4.1 --copt=-msse4.2 --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-O3 --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" tensorflow_serving/...
+tools/bazel_in_docker.sh bazel build -c opt --copt=-msse4.1 --copt=-msse4.2 \
+  --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-O3 \
+  --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" tensorflow_serving/...
 ```
 
 Note: These instruction sets are not available on all machines, especially with
@@ -188,3 +169,11 @@ older processors, so it may not work with all flags. You can try some subset of
 them, or revert to just the basic '-c opt' which is guaranteed to work on all
 machines.
 
+## TensorFlow Serving Python API PIP package
+
+To run Python client code without the need to build the API, you can install the
+`tensorflow-serving-api` PIP package using:
+
+```shell
+pip install tensorflow-serving-api
+```

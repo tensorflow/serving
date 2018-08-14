@@ -127,7 +127,6 @@ def main(_):
           outputs={'scores': tensor_info_y},
           method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
 
-  legacy_init_op = tf.group(tf.tables_initializer(), name='legacy_init_op')
   builder.add_meta_graph_and_variables(
       sess, [tf.saved_model.tag_constants.SERVING],
       signature_def_map={
@@ -136,7 +135,8 @@ def main(_):
           tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
               classification_signature,
       },
-      legacy_init_op=legacy_init_op)
+      main_op=tf.tables_initializer(),
+      strip_default_attrs=True)
 
   builder.save()
 
