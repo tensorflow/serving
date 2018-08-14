@@ -11,8 +11,8 @@ load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "630e35e1846208af99fb8ec82031e153e106895245d3ff13af8552a07d8b0ea7",
-    git_commit = "e9002c077f14b8048c48e9670879fbe3fb7801e9",
+    sha256 = "b87abe099f820c450120e1346c95ab34e90947ca1bb171419f7082cf7d0ad225",
+    git_commit = "8202d1c154d21a42ee7343f2bcab64c909c95c76",
 )
 
 # TensorFlow depends on "io_bazel_rules_closure" so we need this here.
