@@ -202,6 +202,27 @@ cc_library(
 )
 
 cc_library(
+    name = "prediction_service_impl",
+    srcs = ["prediction_service_impl.cc"],
+    hdrs = ["prediction_service_impl.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":grpc_status_util",
+        ":server_core",
+        "//tensorflow_serving/apis:prediction_service_proto",
+        "//tensorflow_serving/servables/tensorflow:classification_service",
+        "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
+        "//tensorflow_serving/servables/tensorflow:multi_inference_helper",
+        "//tensorflow_serving/servables/tensorflow:predict_impl",
+        "//tensorflow_serving/servables/tensorflow:regression_service",
+        "//tensorflow_serving/util:status_util",
+        "@grpc//:grpc++",
+    ],
+)
+
+cc_library(
     name = "grpc_status_util",
     srcs = ["grpc_status_util.cc"],
     hdrs = ["grpc_status_util.h"],
@@ -287,10 +308,12 @@ cc_library(
         ":http_server",
         ":model_platform_types",
         ":platform_config_util",
+        ":prediction_service_impl",
         ":server_core",
         ":grpc_status_util",
         ":model_service_impl",
         "@protobuf_archive//:cc_wkt_protos",
+        "@grpc//:grpc++",
         "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
@@ -298,12 +321,9 @@ cc_library(
         "@org_tensorflow//tensorflow/core/platform/hadoop:hadoop_file_system",
         "@org_tensorflow//tensorflow/core/platform/s3:s3_file_system",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "//tensorflow_serving/apis:prediction_service_proto",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/config:ssl_config_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
-        "//tensorflow_serving/servables/tensorflow:multi_inference_helper",
-        "@grpc//:grpc++",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
 )
