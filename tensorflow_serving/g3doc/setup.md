@@ -8,6 +8,9 @@ The easiest and most straight-forward way of using TensorFlow Serving is via
 [Docker images](docker.md). We highly recommend this route unless you have
 specific needs that are not addressed by running in a container.
 
+TIP: This is also the easiest way to get TensorFlow Serving working with [GPU
+support](docker.md#serving-with-docker-using-your-gpu).
+
 ### Installing using APT
 
 #### Available binaries
@@ -168,6 +171,13 @@ Note: These instruction sets are not available on all machines, especially with
 older processors, so it may not work with all flags. You can try some subset of
 them, or revert to just the basic '-c opt' which is guaranteed to work on all
 machines.
+
+##### Building with GPU Support
+
+In order to build a custom version of TensorFlow Serving with GPU support, we
+recommend either building with the [provided Docker images](docker.md#developing-with-docker), or
+following the approach in the
+[GPU Dockerfile](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel-gpu).
 
 ## TensorFlow Serving Python API PIP package
 
