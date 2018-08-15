@@ -62,6 +62,8 @@ def export():
       texts[parts[0]] = parts[1]
 
   with tf.Graph().as_default():
+    ### Initialize the variables
+    sess.run(tf.global_variables_initializer())
     # Build inference model.
     # Please refer to Tensorflow inception model for details.
 
