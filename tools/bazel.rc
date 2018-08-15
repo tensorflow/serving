@@ -7,6 +7,10 @@ build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
 build:mkl --define=using_mkl=true
 build:mkl -c opt
 
+# This config option is used to enable MKL-DNN open source library only,
+# without depending on MKL binary version.
+build:mkl_open_source_only --define=using_mkl_dnn_only=true
+
 build --action_env PYTHON_BIN_PATH="/usr/bin/python"
 build --define PYTHON_BIN_PATH=/usr/bin/python
 
