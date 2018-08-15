@@ -167,6 +167,28 @@ TEST_F(RegressionServiceTest, RegressionSuccess) {
                                      "}"));
 }
 
+// Verifies that RegressWithModelSpec() uses the model spec override rather than
+// the one in the request.
+TEST_F(RegressionServiceTest, ModelSpecOverride) {
+  auto request = test_util::CreateProto<RegressionRequest>(
+      "model_spec {"
+      "  name: \"test_model\""
+      "}");
+  auto model_spec_override =
+      test_util::CreateProto<ModelSpec>("name: \"nonexistent_model\"");
+
+  RegressionResponse response;
+  EXPECT_NE(tensorflow::error::NOT_FOUND,
+            TensorflowRegressionServiceImpl::Regress(
+                RunOptions(), server_core_.get(), request, &response)
+                .code());
+  EXPECT_EQ(tensorflow::error::NOT_FOUND,
+            TensorflowRegressionServiceImpl::RegressWithModelSpec(
+                RunOptions(), server_core_.get(), model_spec_override, request,
+                &response)
+                .code());
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

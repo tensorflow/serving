@@ -34,15 +34,34 @@ function main() {
 
   echo $(date) : "=== Using tmpdir: ${TMPDIR}"
   mkdir -p ${TMPDIR}/tensorflow_serving/apis
+  mkdir -p ${TMPDIR}/tensorflow_serving/config
+  mkdir -p ${TMPDIR}/tensorflow_serving/sources/storage_path
+  mkdir -p ${TMPDIR}/tensorflow_serving/util
 
   echo "Adding python files"
   cp bazel-genfiles/tensorflow_serving/apis/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/apis"
 
-  cp bazel-serving/tensorflow_serving/apis/prediction_service_pb2.py \
+  cp bazel-serving/tensorflow_serving/apis/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/apis"
 
+  cp bazel-serving/tensorflow_serving/apis/*_grpc.py \
+    "${TMPDIR}/tensorflow_serving/apis"
+
+  cp bazel-genfiles/tensorflow_serving/config/*_pb2.py \
+    "${TMPDIR}/tensorflow_serving/config"
+
+  cp bazel-genfiles/tensorflow_serving/sources/storage_path/*_pb2.py \
+    "${TMPDIR}/tensorflow_serving/sources/storage_path"
+
+  cp bazel-genfiles/tensorflow_serving/util/*_pb2.py \
+    "${TMPDIR}/tensorflow_serving/util"
+
   touch "${TMPDIR}/tensorflow_serving/apis/__init__.py"
+  touch "${TMPDIR}/tensorflow_serving/config/__init__.py"
+  touch "${TMPDIR}/tensorflow_serving/sources/__init__.py"
+  touch "${TMPDIR}/tensorflow_serving/sources/storage_path/__init__.py"
+  touch "${TMPDIR}/tensorflow_serving/util/__init__.py"
   touch "${TMPDIR}/tensorflow_serving/__init__.py"
 
   echo "Adding package setup files"
@@ -50,7 +69,7 @@ function main() {
 
   pushd "${TMPDIR}"
   echo $(date) : "=== Building wheel"
-  python setup.py bdist_wheel # >/dev/null
+  python setup.py bdist_wheel --universal # >/dev/null
   mkdir -p "${DEST}"
   cp dist/* "${DEST}"
   popd

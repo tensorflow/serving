@@ -24,6 +24,7 @@ limitations under the License.
 #include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/apis/regressor.h"
+#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -82,6 +83,13 @@ Status PostProcessRegressionResult(
     const SignatureDef& signature, int num_examples,
     const std::vector<string>& output_tensor_names,
     const std::vector<Tensor>& output_tensors, RegressionResult* result);
+
+// Creates SavedModelTensorflowRegressor and runs Regression on it.
+Status RunRegress(const RunOptions& run_options,
+                  const MetaGraphDef& meta_graph_def,
+                  const optional<int64>& servable_version, Session* session,
+                  const RegressionRequest& request,
+                  RegressionResponse* response);
 
 }  // namespace serving
 }  // namespace tensorflow

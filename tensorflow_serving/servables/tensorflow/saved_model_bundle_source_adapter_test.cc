@@ -41,7 +41,8 @@ namespace {
 
 using test_util::EqualsProto;
 
-class SavedModelBundleSourceAdapterTest : public ::testing::Test {
+class SavedModelBundleSourceAdapterTest
+    : public ::testing::TestWithParam<bool> {
  protected:
   SavedModelBundleSourceAdapterTest() {
     ResourceUtil::Options resource_util_options;
@@ -51,15 +52,14 @@ class SavedModelBundleSourceAdapterTest : public ::testing::Test {
 
     ram_resource_ = resource_util_->CreateBoundResource(
         device_types::kMain, resource_kinds::kRamBytes);
+    config_.mutable_config()->set_enable_model_warmup(EnableWarmup());
   }
 
-  void TestSavedModelBundleSourceAdapter(
-      const SessionBundleSourceAdapterConfig& config,
-      const string& export_dir) const {
+  void TestSavedModelBundleSourceAdapter(const string& export_dir) const {
     std::unique_ptr<Loader> loader;
     {
       std::unique_ptr<SavedModelBundleSourceAdapter> adapter;
-      TF_CHECK_OK(SavedModelBundleSourceAdapter::Create(config, &adapter));
+      TF_CHECK_OK(SavedModelBundleSourceAdapter::Create(config_, &adapter));
       ServableData<std::unique_ptr<Loader>> loader_data =
           adapter->AdaptOneVersion(
               ServableData<StoragePath>({"", 0}, export_dir));
@@ -87,7 +87,7 @@ class SavedModelBundleSourceAdapterTest : public ::testing::Test {
     resource_util_->SetQuantity(
         ram_resource_,
         resource_util_->GetQuantity(ram_resource_, first_resource_estimate) -
-            config.config().experimental_transient_ram_bytes_during_load(),
+            config_.config().experimental_transient_ram_bytes_during_load(),
         &expected_post_load_resource_estimate);
     ResourceAllocation actual_post_load_resource_estimate;
     TF_ASSERT_OK(
@@ -101,21 +101,29 @@ class SavedModelBundleSourceAdapterTest : public ::testing::Test {
     loader->Unload();
   }
 
+  bool EnableWarmup() { return GetParam(); }
+
   std::unique_ptr<ResourceUtil> resource_util_;
   Resource ram_resource_;
+  SessionBundleSourceAdapterConfig config_;
 };
 
-TEST_F(SavedModelBundleSourceAdapterTest, Basic) {
-  SessionBundleSourceAdapterConfig config;
-  config.mutable_config()->set_experimental_transient_ram_bytes_during_load(42);
-  TestSavedModelBundleSourceAdapter(config, test_util::GetTestSavedModelPath());
+TEST_P(SavedModelBundleSourceAdapterTest, Basic) {
+  config_.mutable_config()->set_experimental_transient_ram_bytes_during_load(
+      42);
+
+  TestSavedModelBundleSourceAdapter(test_util::GetTestSavedModelPath());
 }
 
-TEST_F(SavedModelBundleSourceAdapterTest, BackwardCompatibility) {
-  const SessionBundleSourceAdapterConfig config;
+TEST_P(SavedModelBundleSourceAdapterTest, BackwardCompatibility) {
   TestSavedModelBundleSourceAdapter(
-      config, test_util::GetTestSessionBundleExportPath());
+      test_util::GetTestSessionBundleExportPath());
 }
+
+// Test all SavedModelBundleSourceAdapterTest test cases with
+// warmup enabled/disabled.
+INSTANTIATE_TEST_CASE_P(EnableWarmup, SavedModelBundleSourceAdapterTest,
+                        ::testing::Bool());
 
 }  // namespace
 }  // namespace serving

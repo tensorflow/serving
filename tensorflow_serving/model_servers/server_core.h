@@ -24,6 +24,7 @@ limitations under the License.
 
 #include "google/protobuf/any.pb.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/types.h"
@@ -139,6 +140,11 @@ class ServerCore : public Manager {
     // adapters to the manager.
     CustomModelConfigLoader custom_model_config_loader;
 
+    // Whether to permit incoming ModelSpec requests to use the 'version_label'
+    // field.
+    // TODO(b/65245500): Flip the default to true.
+    bool allow_version_labels = false;
+
     // Logger used for logging requests hitting the server.
     std::unique_ptr<ServerRequestLogger> server_request_logger;
 
@@ -181,13 +187,21 @@ class ServerCore : public Manager {
     return servable_state_monitor_.get();
   }
 
-  /// Returns a ServableHandle given a ServableRequest. Returns error if no such
+  // Model version labels ServerCore recognizes.
+  static constexpr char kStableVersionLabel[] = "stable";
+  static constexpr char kCanaryVersionLabel[] = "canary";
+
+  /// Returns a ServableHandle given a ModelSpec. Returns error if no such
   /// Servable is available -- e.g. not yet loaded, has been quiesced/unloaded,
   /// etc. Callers may assume that an OK status indicates a non-null handle.
   ///
   /// IMPORTANT: The caller should only hold on to a handle for a short time,
   /// for example for the duration of a single request. Holding a handle for a
   /// long period of time will prevent servable loading and unloading.
+  ///
+  /// If 'options_.allow_version_labels==true', recognizes two specific model
+  /// version labels -- "stable" and "canary" -- and resolves them to the
+  /// smallest and largest available version, respectively.
   template <typename T>
   Status GetServableHandle(const ModelSpec& model_spec,
                            ServableHandle<T>* const handle) {

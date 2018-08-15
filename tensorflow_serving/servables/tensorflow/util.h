@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/lib/monitoring/counter.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/input.pb.h"
@@ -31,6 +32,8 @@ namespace serving {
 namespace internal {
 
 monitoring::Sampler<1>* GetExampleCounts();
+
+monitoring::Counter<1>* GetExampleCountTotal();
 
 }  // namespace internal
 

@@ -129,27 +129,15 @@ Status TensorFlowMultiInferenceRunner::Infer(
   return Status::OK();
 }
 
-namespace {
-
-const ModelSpec& GetModelSpecFromRequest(const MultiInferenceRequest& request) {
-  if (request.tasks_size() > 0 && request.tasks(0).has_model_spec()) {
-    return request.tasks(0).model_spec();
-  }
-  return ModelSpec::default_instance();
-}
-
-}  // namespace
-
-Status RunMultiInference(const RunOptions& run_options, ServerCore* core,
-                         const MultiInferenceRequest& request,
+Status RunMultiInference(const RunOptions& run_options,
+                         const MetaGraphDef& meta_graph_def,
+                         const optional<int64>& servable_version,
+                         Session* session, const MultiInferenceRequest& request,
                          MultiInferenceResponse* response) {
   TRACELITERAL("RunMultiInference");
-  ServableHandle<SavedModelBundle> bundle;
-  TF_RETURN_IF_ERROR(
-      core->GetServableHandle(GetModelSpecFromRequest(request), &bundle));
 
-  TensorFlowMultiInferenceRunner inference_runner(
-      bundle->session.get(), &bundle->meta_graph_def, bundle.id().version);
+  TensorFlowMultiInferenceRunner inference_runner(session, &meta_graph_def,
+                                                  servable_version);
   return inference_runner.Infer(run_options, request, response);
 }
 

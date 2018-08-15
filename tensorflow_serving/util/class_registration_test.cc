@@ -192,11 +192,11 @@ class MyParameterizedBaseClass {
 };
 DEFINE_CLASS_REGISTRY(MyParameterizedBaseClassRegistry,
                       MyParameterizedBaseClass, int, const string&,
-                      const std::map<string COMMA int>&);
+                      const std::map<string TFS_COMMA int>&);
 #define REGISTER_MY_PARAMETERIZED_BASE_CLASS(SubClassCreator, ConfigProto)   \
   REGISTER_CLASS(MyParameterizedBaseClassRegistry, MyParameterizedBaseClass, \
                  SubClassCreator, ConfigProto, int, const string&,           \
-                 const std::map<string COMMA int>&);
+                 const std::map<string TFS_COMMA int>&);
 
 // A subclass of MyParameterizedBaseClass that should be instantiated via
 // Config1.

@@ -35,10 +35,6 @@ namespace {
 const string kSignatureDef = "signature_def";
 
 Status ValidateGetModelMetadataRequest(const GetModelMetadataRequest& request) {
-  if (!request.has_model_spec()) {
-    return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
-                              "Missing ModelSpec");
-  }
   if (request.metadata_field_size() == 0) {
     return tensorflow::Status(
         tensorflow::error::INVALID_ARGUMENT,
@@ -53,19 +49,19 @@ Status ValidateGetModelMetadataRequest(const GetModelMetadataRequest& request) {
   return tensorflow::Status::OK();
 }
 
-Status SavedModelGetSignatureDef(ServerCore* core,
+Status SavedModelGetSignatureDef(ServerCore* core, const ModelSpec& model_spec,
                                  const GetModelMetadataRequest& request,
                                  GetModelMetadataResponse* response) {
   ServableHandle<SavedModelBundle> bundle;
-  TF_RETURN_IF_ERROR(core->GetServableHandle(request.model_spec(), &bundle));
+  TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &bundle));
   SignatureDefMap signature_def_map;
   for (const auto& signature : bundle->meta_graph_def.signature_def()) {
     (*signature_def_map.mutable_signature_def())[signature.first] =
         signature.second;
   }
-  auto model_spec = response->mutable_model_spec();
-  model_spec->set_name(bundle.id().name);
-  model_spec->mutable_version()->set_value(bundle.id().version);
+  auto response_model_spec = response->mutable_model_spec();
+  response_model_spec->set_name(bundle.id().name);
+  response_model_spec->mutable_version()->set_value(bundle.id().version);
 
   (*response->mutable_metadata())[kSignatureDef].PackFrom(signature_def_map);
   return tensorflow::Status::OK();
@@ -76,10 +72,23 @@ Status SavedModelGetSignatureDef(ServerCore* core,
 Status GetModelMetadataImpl::GetModelMetadata(
     ServerCore* core, const GetModelMetadataRequest& request,
     GetModelMetadataResponse* response) {
+  if (!request.has_model_spec()) {
+    return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
+                              "Missing ModelSpec");
+  }
+  return GetModelMetadataWithModelSpec(core, request.model_spec(), request,
+                                       response);
+}
+
+Status GetModelMetadataImpl::GetModelMetadataWithModelSpec(
+    ServerCore* core, const ModelSpec& model_spec,
+    const GetModelMetadataRequest& request,
+    GetModelMetadataResponse* response) {
   TF_RETURN_IF_ERROR(ValidateGetModelMetadataRequest(request));
   for (const auto& metadata_field : request.metadata_field()) {
     if (metadata_field == kSignatureDef) {
-      TF_RETURN_IF_ERROR(SavedModelGetSignatureDef(core, request, response));
+      TF_RETURN_IF_ERROR(
+          SavedModelGetSignatureDef(core, model_spec, request, response));
     } else {
       return tensorflow::errors::InvalidArgument(
           "MetadataField %s is not supported", metadata_field);

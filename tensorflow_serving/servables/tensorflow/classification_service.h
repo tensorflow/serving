@@ -31,6 +31,14 @@ class TensorflowClassificationServiceImpl {
   static Status Classify(const RunOptions& run_options, ServerCore* core,
                          const ClassificationRequest& request,
                          ClassificationResponse* response);
+
+  // Like Classify(), but uses 'model_spec' instead of the one embedded in
+  // 'request'.
+  static Status ClassifyWithModelSpec(const RunOptions& run_options,
+                                      ServerCore* core,
+                                      const ModelSpec& model_spec,
+                                      const ClassificationRequest& request,
+                                      ClassificationResponse* response);
 };
 
 }  // namespace serving

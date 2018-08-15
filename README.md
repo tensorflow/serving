@@ -1,6 +1,6 @@
 # TensorFlow Serving
 
-[![Build Status](http://ci.tensorflow.org/buildStatus/icon?job=serving-master-cpu)](http://ci.tensorflow.org/job/serving-master-cpu)
+![Build Status](https://storage.googleapis.com/tensorflow-serving-kokoro-build-badges/ubuntu.png)
 
 TensorFlow Serving is an open-source software library for serving
 machine learning models. It deals with the *inference* aspect of machine

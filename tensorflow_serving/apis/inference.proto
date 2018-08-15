@@ -23,6 +23,7 @@ package tensorflow.serving;
 message InferenceTask {
   // Model Specification. If version is not specified, will use the latest
   // (numerical) version.
+  // All ModelSpecs in a MultiInferenceRequest must access the same model name.
   ModelSpec model_spec = 1;
 
   // Signature's method_name. Should be one of the method names defined in

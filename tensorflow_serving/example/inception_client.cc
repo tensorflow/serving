@@ -16,8 +16,8 @@ limitations under the License.
 #include <fstream>
 #include <iostream>
 
-#include "grpc++/create_channel.h"
-#include "grpc++/security/credentials.h"
+#include "grpcpp/create_channel.h"
+#include "grpcpp/security/credentials.h"
 #include "google/protobuf/map.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/platform/types.h"

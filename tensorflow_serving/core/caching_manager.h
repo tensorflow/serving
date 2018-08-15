@@ -90,8 +90,11 @@ class CachingManager : public Manager {
     virtual ServableData<std::unique_ptr<Loader>> CreateLoader(
         const ServableId& servable_id) = 0;
 
-    /// Returns the latest version corresponding to the servable name.
-    virtual int64 GetLatestVersion(const string& servable_name) const = 0;
+    /// Returns a version corresponding to the servable name, for the given
+    /// policy.
+    virtual int64 GetServableVersion(
+        const string& servable_name,
+        ServableRequest::AutoVersionPolicy policy) const = 0;
   };
 
   static Status Create(Options options,
@@ -170,7 +173,9 @@ class PathPrefixLoaderFactory : public CachingManager::LoaderFactory {
   ServableData<std::unique_ptr<Loader>> CreateLoader(
       const ServableId& id) override;
 
-  int64 GetLatestVersion(const string& servable_name) const override;
+  int64 GetServableVersion(
+      const string& servable_name,
+      ServableRequest::AutoVersionPolicy policy) const override;
 
  private:
   // The prefix of the path to the servables.

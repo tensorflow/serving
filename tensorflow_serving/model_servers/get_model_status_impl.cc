@@ -68,13 +68,19 @@ Status GetModelStatusImpl::GetModelStatus(ServerCore* core,
   if (!request.has_model_spec()) {
     return tensorflow::errors::InvalidArgument("Missing ModelSpec");
   }
+  return GetModelStatusWithModelSpec(core, request.model_spec(), request,
+                                     response);
+}
 
-  const string& model_name = request.model_spec().name();
+Status GetModelStatusImpl::GetModelStatusWithModelSpec(
+    ServerCore* core, const ModelSpec& model_spec,
+    const GetModelStatusRequest& request, GetModelStatusResponse* response) {
+  const string& model_name = model_spec.name();
   const ServableStateMonitor& monitor = *core->servable_state_monitor();
 
-  if (request.model_spec().has_version()) {
+  if (model_spec.has_version()) {
     // Only gets status for specified version of specified model.
-    const int64 version = request.model_spec().version().value();
+    const int64 version = model_spec.version().value();
     const ServableId id = {model_name, version};
     const optional<ServableState> opt_servable_state = monitor.GetState(id);
     if (!opt_servable_state) {

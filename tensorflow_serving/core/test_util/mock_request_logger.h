@@ -32,14 +32,26 @@ class MockRequestLogger : public RequestLogger {
   // Unfortunately NiceMock doesn't support ctors with move-only types, so we
   // have to do this workaround.
   MockRequestLogger(const LoggingConfig& logging_config,
-                    LogCollector* log_collector)
+                    LogCollector* log_collector,
+                    std::function<void(void)> notify_destruction =
+                        std::function<void(void)>())
       : RequestLogger(logging_config,
-                      std::unique_ptr<LogCollector>(log_collector)) {}
+                      std::unique_ptr<LogCollector>(log_collector)),
+        notify_destruction_(std::move(notify_destruction)) {}
+
+  virtual ~MockRequestLogger() {
+    if (notify_destruction_) {
+      notify_destruction_();
+    }
+  }
 
   MOCK_METHOD4(CreateLogMessage, Status(const google::protobuf::Message& request,
                                         const google::protobuf::Message& response,
                                         const LogMetadata& log_metadata,
                                         std::unique_ptr<google::protobuf::Message>* log));
+
+ private:
+  std::function<void(void)> notify_destruction_;
 };
 
 }  // namespace serving

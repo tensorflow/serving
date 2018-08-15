@@ -11,19 +11,19 @@ load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "21d6ac553adcfc9d089925f6d6793fee6a67264a0ce717bc998636662df4ca7e",
-    git_commit = "bc69c4ceed6544c109be5693eb40ddcf3a4eb95d",
+    sha256 = "2a8d5dd452adb3aeb6ca6aff0192ba2c8f64f5ac917f084bc45d6d8f8f7a82c6",
+    git_commit = "b4e6098db6e707bccdb3ea9027365ddd9b38fb72",
 )
 
 # TensorFlow depends on "io_bazel_rules_closure" so we need this here.
 # Needs to be kept in sync with the same target in TensorFlow's WORKSPACE file.
 http_archive(
     name = "io_bazel_rules_closure",
-    sha256 = "dbe0da2cca88194d13dc5a7125a25dd7b80e1daec7839f33223de654d7a1bcc8",
-    strip_prefix = "rules_closure-ba3e07cb88be04a2d4af7009caa0ff3671a79d06",
+    sha256 = "a38539c5b5c358548e75b44141b4ab637bba7c4dc02b46b1f62a96d6433f56ae",
+    strip_prefix = "rules_closure-dbb96841cc0a5fb2664c37822803b06dab20c7d1",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_closure/archive/ba3e07cb88be04a2d4af7009caa0ff3671a79d06.tar.gz",
-        "https://github.com/bazelbuild/rules_closure/archive/ba3e07cb88be04a2d4af7009caa0ff3671a79d06.tar.gz",  # 2017-10-31
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_closure/archive/dbb96841cc0a5fb2664c37822803b06dab20c7d1.tar.gz",
+        "https://github.com/bazelbuild/rules_closure/archive/dbb96841cc0a5fb2664c37822803b06dab20c7d1.tar.gz",  # 2018-04-13
     ],
 )
 
@@ -33,6 +33,6 @@ load("//tensorflow_serving:workspace.bzl", "tf_serving_workspace")
 tf_serving_workspace()
 
 # Specify the minimum required bazel version.
-load("@org_tensorflow//tensorflow:workspace.bzl", "check_bazel_version_at_least")
+load("@org_tensorflow//tensorflow:version_check.bzl", "check_bazel_version_at_least")
 
-check_bazel_version_at_least("0.5.4")
+check_bazel_version_at_least("0.15.0")

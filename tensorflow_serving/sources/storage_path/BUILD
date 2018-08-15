@@ -38,6 +38,7 @@ cc_library(
 )
 
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 
 serving_proto_library(
     name = "static_storage_path_source_proto",
@@ -74,7 +75,7 @@ cc_library(
             "//tensorflow_serving/core:servable_id",
             "//tensorflow_serving/core:source",
             "//tensorflow_serving/core:storage_path",
-            "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
+            "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function_dynamic",
             "@org_tensorflow//tensorflow/core:lib",
             "@org_tensorflow//tensorflow/core:tensorflow",
         ],
@@ -84,8 +85,14 @@ serving_proto_library(
     name = "file_system_storage_path_source_proto",
     srcs = ["file_system_storage_path_source.proto"],
     cc_api_version = 2,
-    go_api_version = 2,
+    java_api_version = 2,
     visibility = ["//visibility:public"],
+)
+
+serving_proto_library_py(
+    name = "file_system_storage_path_source_proto_py_pb2",
+    srcs = ["file_system_storage_path_source.proto"],
+    proto_library = "file_system_storage_path_source_proto",
 )
 
 cc_test(

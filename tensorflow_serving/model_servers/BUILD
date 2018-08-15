@@ -9,6 +9,12 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
+# Visibility group for clients that link in custom ops, while using the
+# vanilla TensorFlow ModelServer without any other modifications. Exclusively
+# for adding custom TensorFlow ops. Does not grant access to private headers
+# or other implementation details.
+package_group(name = "tensorflow_model_server_custom_op_clients")
+
 filegroup(
     name = "all_files",
     srcs = glob(
@@ -129,14 +135,7 @@ cc_test(
     size = "medium",
     srcs = ["get_model_status_impl_test.cc"],
     data = [
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000123/assets/foo.txt",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000123/saved_model.pb",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000123/variables/variables.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000123/variables/variables.index",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000124/assets/foo.txt",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000124/saved_model.pb",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000124/variables/variables.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions/00000124/variables/variables.index",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions",
     ],
     deps = [
         ":get_model_status_impl",
@@ -157,6 +156,33 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "http_rest_prediction_handler_test",
+    size = "medium",
+    srcs = ["http_rest_prediction_handler_test.cc"],
+    data = ["@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two"],
+    deps = [
+        ":http_rest_prediction_handler",
+        ":model_platform_types",
+        ":platform_config_util",
+        ":server_core",
+        "//tensorflow_serving/core:availability_preserving_policy",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_proto",
+        "//tensorflow_serving/test_util",
+        "@com_github_tencent_rapidjson//:rapidjson",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+        "@com_googlesource_code_re2//:re2",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
 cc_library(
     name = "model_service_impl",
     srcs = ["model_service_impl.cc"],
@@ -168,8 +194,31 @@ cc_library(
         ":get_model_status_impl",
         ":grpc_status_util",
         ":server_core",
+        "//tensorflow_serving/apis:model_management_proto",
         "//tensorflow_serving/apis:model_service_proto",
-        "@grpc//:grpc++_unsecure",
+        "//tensorflow_serving/util:status_util",
+        "@grpc//:grpc++",
+    ],
+)
+
+cc_library(
+    name = "prediction_service_impl",
+    srcs = ["prediction_service_impl.cc"],
+    hdrs = ["prediction_service_impl.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":grpc_status_util",
+        ":server_core",
+        "//tensorflow_serving/apis:prediction_service_proto",
+        "//tensorflow_serving/servables/tensorflow:classification_service",
+        "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
+        "//tensorflow_serving/servables/tensorflow:multi_inference_helper",
+        "//tensorflow_serving/servables/tensorflow:predict_impl",
+        "//tensorflow_serving/servables/tensorflow:regression_service",
+        "//tensorflow_serving/util:status_util",
+        "@grpc//:grpc++",
     ],
 )
 
@@ -181,8 +230,51 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "@grpc//:grpc++_unsecure",
+        "@grpc//:grpc++",
         "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
+    name = "http_server",
+    srcs = ["http_server.cc"],
+    hdrs = ["http_server.h"],
+    visibility = ["//tensorflow_serving:internal"],
+    deps = [
+        ":http_rest_prediction_handler",
+        ":server_core",
+        "//tensorflow_serving/util:threadpool_executor",
+        "//tensorflow_serving/util/net_http/server/public:http_server",
+        "//tensorflow_serving/util/net_http/server/public:http_server_api",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/strings",
+        "@com_googlesource_code_re2//:re2",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
+    name = "http_rest_prediction_handler",
+    srcs = ["http_rest_prediction_handler.cc"],
+    hdrs = ["http_rest_prediction_handler.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":server_core",
+        "//tensorflow_serving/apis:model_proto",
+        "//tensorflow_serving/apis:predict_proto",
+        "//tensorflow_serving/core:servable_handle",
+        "//tensorflow_serving/servables/tensorflow:classification_service",
+        "//tensorflow_serving/servables/tensorflow:predict_impl",
+        "//tensorflow_serving/servables/tensorflow:regression_service",
+        "//tensorflow_serving/util:json_tensor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:optional",
+        "@com_googlesource_code_re2//:re2",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
 )
 
@@ -202,28 +294,61 @@ TENSORFLOW_DEPS = [
     "//tensorflow_serving/servables/tensorflow:predict_impl",
 ]
 
-cc_binary(
-    name = "tensorflow_model_server",
+cc_library(
+    name = "server_lib",
     srcs = [
-        "main.cc",
+        "server.cc",
     ],
-    visibility = ["//tensorflow_serving:internal"],
+    hdrs = ["server.h"],
+    visibility = ["//visibility:public"],
     deps = [
+        ":http_server",
         ":model_platform_types",
         ":platform_config_util",
+        ":prediction_service_impl",
         ":server_core",
         ":grpc_status_util",
         ":model_service_impl",
         "@protobuf_archive//:cc_wkt_protos",
+        "@grpc//:grpc++",
+        "@org_tensorflow//tensorflow/c:c_api",
+        "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
+        "@com_google_absl//absl/memory",
         "@org_tensorflow//tensorflow/core/platform/hadoop:hadoop_file_system",
         "@org_tensorflow//tensorflow/core/platform/s3:s3_file_system",
-        "//tensorflow_serving/apis:prediction_service_proto",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
         "//tensorflow_serving/config:model_server_config_proto",
+        "//tensorflow_serving/config:ssl_config_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
-        "@grpc//:grpc++_unsecure",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
+)
+
+cc_library(
+    name = "tensorflow_model_server_main_lib",
+    srcs = [
+        "main.cc",
+    ],
+    hdrs = ["version.h"],
+    visibility = [
+        ":tensorflow_model_server_custom_op_clients",
+        "//tensorflow_serving:internal",
+    ],
+    deps = [
+        ":server_lib",
+        "@org_tensorflow//tensorflow/c:c_api",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_binary(
+    name = "tensorflow_model_server",
+    visibility = ["//tensorflow_serving:internal"],
+    deps = [
+        ":tensorflow_model_server_main_lib",
+    ],
 )
 
 py_test(
@@ -248,6 +373,27 @@ py_test(
     ],
     deps = [
         "//tensorflow_serving/apis:model_service_proto_py_pb2",
+        "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+    ],
+)
+
+py_test(
+    name = "tensorflow_model_server_beta_grpc_test",
+    size = "medium",
+    srcs = ["tensorflow_model_server_beta_grpc_test.py"],
+    data = [
+        ":tensorflow_model_server",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+        #"//tensorflow_serving/servables/tensorflow/testdata:batching_config.txt",
+        "//tensorflow_serving/servables/tensorflow/testdata:good_model_config.txt",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/assets/foo.txt",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/saved_model.pb",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.index",
+    ],
+    tags = ["notsan"],
+    deps = [
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],

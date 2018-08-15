@@ -294,7 +294,7 @@ TEST_P(ServerCoreTest, ErroringModel) {
   Status status = ServerCore::Create(std::move(options), &server_core);
   EXPECT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("Some servables did not become available"));
+              ::testing::HasSubstr("1 servable(s) did not become available"));
 }
 
 TEST_P(ServerCoreTest, IllegalReconfigurationToCustomConfig) {
@@ -633,6 +633,95 @@ TEST_P(ServerCoreTest, RequestLoggingOn) {
       server_core->Log(PredictRequest(), PredictResponse(), log_metadata0));
   ASSERT_EQ(1, log_collector_map.size());
   EXPECT_EQ(1, log_collector_map[test_util::kTestModelName]->collect_count());
+}
+
+TEST_P(ServerCoreTest, ModelSpecMultipleVersionsAvailable) {
+  ModelServerConfig two_version_config =
+      GetTestModelServerConfigForFakePlatform();
+  SwitchToHalfPlusTwoWith2Versions(&two_version_config);
+  ServerCore::Options server_core_options = GetDefaultOptions();
+  server_core_options.allow_version_labels = true;
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(two_version_config,
+                                std::move(server_core_options), &server_core));
+
+  // Wait until both versions of the servable have been loaded.
+  for (const int64 version :
+       {test_util::kTestModelVersion, test_util::kTestModelLargerVersion}) {
+    const auto servable_id = ServableId{test_util::kTestModelName, version};
+    test_util::WaitUntilServableManagerStateIsOneOf(
+        *server_core->servable_state_monitor(), servable_id,
+        {ServableState::ManagerState::kAvailable});
+  }
+
+  // Do not specify any version number; we should be given the latest version.
+  {
+    ModelSpec model_spec;
+    model_spec.set_name(test_util::kTestModelName);
+    ServableHandle<string> servable_handle;
+    TF_ASSERT_OK(
+        server_core->GetServableHandle<string>(model_spec, &servable_handle));
+    EXPECT_EQ(
+        (ServableId{test_util::kTestModelName,
+                    test_util::kTestModelLargerVersion /* larger version */}),
+        servable_handle.id());
+  }
+
+  // Use ModelSpec::version to request a specific version number.
+  {
+    ModelSpec model_spec;
+    model_spec.set_name(test_util::kTestModelName);
+    model_spec.mutable_version()->set_value(test_util::kTestModelVersion);
+    ServableHandle<string> servable_handle;
+    TF_ASSERT_OK(
+        server_core->GetServableHandle<string>(model_spec, &servable_handle));
+    EXPECT_EQ(
+        (ServableId{test_util::kTestModelName, test_util::kTestModelVersion}),
+        servable_handle.id());
+  }
+
+  // Use ModelSpec::version_label to request the version labeled "stable".
+  {
+    ModelSpec model_spec;
+    model_spec.set_name(test_util::kTestModelName);
+    model_spec.set_version_label(ServerCore::kStableVersionLabel);
+    ServableHandle<string> servable_handle;
+    TF_ASSERT_OK(
+        server_core->GetServableHandle<string>(model_spec, &servable_handle));
+    EXPECT_EQ((ServableId{test_util::kTestModelName,
+                          test_util::kTestModelVersion /* smaller version */}),
+              servable_handle.id());
+  }
+
+  // Use ModelSpec::version_label to request the version labeled "canary".
+  {
+    ModelSpec model_spec;
+    model_spec.set_name(test_util::kTestModelName);
+    model_spec.set_version_label(ServerCore::kCanaryVersionLabel);
+    ServableHandle<string> servable_handle;
+    TF_ASSERT_OK(
+        server_core->GetServableHandle<string>(model_spec, &servable_handle));
+    EXPECT_EQ(
+        (ServableId{test_util::kTestModelName,
+                    test_util::kTestModelLargerVersion /* larger version */}),
+        servable_handle.id());
+  }
+}
+
+TEST_P(ServerCoreTest, ModelSpecVersionLabelsNotAllowed) {
+  ServerCore::Options server_core_options = GetDefaultOptions();
+  server_core_options.allow_version_labels = false;
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(GetTestModelServerConfigForFakePlatform(),
+                                std::move(server_core_options), &server_core));
+
+  ModelSpec model_spec;
+  model_spec.set_name(test_util::kTestModelName);
+  model_spec.set_version_label(ServerCore::kStableVersionLabel);
+  ServableHandle<string> servable_handle;
+  EXPECT_FALSE(
+      server_core->GetServableHandle<string>(model_spec, &servable_handle)
+          .ok());
 }
 
 INSTANTIATE_TEST_CASE_P(

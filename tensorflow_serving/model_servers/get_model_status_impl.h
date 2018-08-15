@@ -32,6 +32,12 @@ class GetModelStatusImpl {
   static Status GetModelStatus(ServerCore* core,
                                const GetModelStatusRequest& request,
                                GetModelStatusResponse* response);
+
+  // Like GetModelStatus(), but uses 'model_spec' instead of the one embedded in
+  // 'request'.
+  static Status GetModelStatusWithModelSpec(
+      ServerCore* core, const ModelSpec& model_spec,
+      const GetModelStatusRequest& request, GetModelStatusResponse* response);
 };
 
 }  // namespace serving

@@ -83,6 +83,12 @@ class MultiInferenceTest : public ::testing::Test {
     return Status::OK();
   }
 
+  Status GetServableHandle(ServableHandle<SavedModelBundle>* bundle) {
+    ModelSpec model_spec;
+    model_spec.set_name(kTestModelName);
+    return GetServerCore()->GetServableHandle(model_spec, bundle);
+  }
+
   const int64 servable_version_ = 1;
 
  private:
@@ -133,6 +139,14 @@ TEST_F(MultiInferenceTest, MissingInputTest) {
   MultiInferenceResponse response;
   ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT, "Input is empty");
+
+  // MultiInference testing
+  ServableHandle<SavedModelBundle> bundle;
+  TF_ASSERT_OK(GetServableHandle(&bundle));
+  ExpectStatusError(
+      RunMultiInference(RunOptions(), bundle->meta_graph_def, servable_version_,
+                        bundle->session.get(), request, &response),
+      tensorflow::error::INVALID_ARGUMENT, "Input is empty");
 }
 
 TEST_F(MultiInferenceTest, UndefinedSignatureTest) {
@@ -147,6 +161,14 @@ TEST_F(MultiInferenceTest, UndefinedSignatureTest) {
   MultiInferenceResponse response;
   ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT, "signature not found");
+
+  // MultiInference testing
+  ServableHandle<SavedModelBundle> bundle;
+  TF_ASSERT_OK(GetServableHandle(&bundle));
+  ExpectStatusError(
+      RunMultiInference(RunOptions(), bundle->meta_graph_def, servable_version_,
+                        bundle->session.get(), request, &response),
+      tensorflow::error::INVALID_ARGUMENT, "signature not found");
 }
 
 // Two ModelSpecs, accessing different models.
@@ -171,6 +193,14 @@ TEST_F(MultiInferenceTest, InconsistentModelSpecsInRequestTest) {
   ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT,
                     "must access the same model name");
+
+  // MultiInference testing
+  ServableHandle<SavedModelBundle> bundle;
+  TF_ASSERT_OK(GetServableHandle(&bundle));
+  ExpectStatusError(
+      RunMultiInference(RunOptions(), bundle->meta_graph_def, servable_version_,
+                        bundle->session.get(), request, &response),
+      tensorflow::error::INVALID_ARGUMENT, "must access the same model name");
 }
 
 TEST_F(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
@@ -187,6 +217,15 @@ TEST_F(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
   ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT,
                     "Duplicate evaluation of signature: regress_x_to_y");
+
+  // MultiInference testing
+  ServableHandle<SavedModelBundle> bundle;
+  TF_ASSERT_OK(GetServableHandle(&bundle));
+  ExpectStatusError(
+      RunMultiInference(RunOptions(), bundle->meta_graph_def, servable_version_,
+                        bundle->session.get(), request, &response),
+      tensorflow::error::INVALID_ARGUMENT,
+      "Duplicate evaluation of signature: regress_x_to_y");
 }
 
 TEST_F(MultiInferenceTest, UsupportedSignatureTypeTest) {
@@ -200,6 +239,14 @@ TEST_F(MultiInferenceTest, UsupportedSignatureTypeTest) {
   MultiInferenceResponse response;
   ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
                     tensorflow::error::UNIMPLEMENTED, "Unsupported signature");
+
+  // MultiInference testing
+  ServableHandle<SavedModelBundle> bundle;
+  TF_ASSERT_OK(GetServableHandle(&bundle));
+  ExpectStatusError(
+      RunMultiInference(RunOptions(), bundle->meta_graph_def, servable_version_,
+                        bundle->session.get(), request, &response),
+      tensorflow::error::UNIMPLEMENTED, "Unsupported signature");
 }
 
 TEST_F(MultiInferenceTest, SignaturesWithDifferentInputsTest) {
@@ -215,6 +262,14 @@ TEST_F(MultiInferenceTest, SignaturesWithDifferentInputsTest) {
   ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT,
                     "Input tensor must be the same");
+
+  // MultiInference testing
+  ServableHandle<SavedModelBundle> bundle;
+  TF_ASSERT_OK(GetServableHandle(&bundle));
+  ExpectStatusError(
+      RunMultiInference(RunOptions(), bundle->meta_graph_def, servable_version_,
+                        bundle->session.get(), request, &response),
+      tensorflow::error::INVALID_ARGUMENT, "Input tensor must be the same");
 }
 
 TEST_F(MultiInferenceTest, ValidSingleSignatureTest) {
@@ -235,6 +290,15 @@ TEST_F(MultiInferenceTest, ValidSingleSignatureTest) {
 
   MultiInferenceResponse response;
   TF_ASSERT_OK(inference_runner->Infer(RunOptions(), request, &response));
+  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
+
+  // MultiInference testing
+  response.Clear();
+  ServableHandle<SavedModelBundle> bundle;
+  TF_ASSERT_OK(GetServableHandle(&bundle));
+  TF_ASSERT_OK(RunMultiInference(RunOptions(), bundle->meta_graph_def,
+                                 servable_version_, bundle->session.get(),
+                                 request, &response));
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 
@@ -268,6 +332,15 @@ TEST_F(MultiInferenceTest, MultipleValidRegressSignaturesTest) {
   MultiInferenceResponse response;
   TF_ASSERT_OK(inference_runner->Infer(RunOptions(), request, &response));
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
+
+  // MultiInference testing
+  response.Clear();
+  ServableHandle<SavedModelBundle> bundle;
+  TF_ASSERT_OK(GetServableHandle(&bundle));
+  TF_ASSERT_OK(RunMultiInference(RunOptions(), bundle->meta_graph_def,
+                                 servable_version_, bundle->session.get(),
+                                 request, &response));
+  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 
 TEST_F(MultiInferenceTest, RegressAndClassifySignaturesTest) {
@@ -297,6 +370,15 @@ TEST_F(MultiInferenceTest, RegressAndClassifySignaturesTest) {
 
   MultiInferenceResponse response;
   TF_ASSERT_OK(inference_runner->Infer(RunOptions(), request, &response));
+  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
+
+  // MultiInference testing
+  response.Clear();
+  ServableHandle<SavedModelBundle> bundle;
+  TF_ASSERT_OK(GetServableHandle(&bundle));
+  TF_ASSERT_OK(RunMultiInference(RunOptions(), bundle->meta_graph_def,
+                                 servable_version_, bundle->session.get(),
+                                 request, &response));
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 

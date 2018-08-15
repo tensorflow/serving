@@ -168,6 +168,28 @@ TEST_F(ClassificationServiceTest, ClassificationSuccess) {
                   "}"));
 }
 
+// Verifies that ClassifyWithModelSpec() uses the model spec override rather
+// than the one in the request.
+TEST_F(ClassificationServiceTest, ModelSpecOverride) {
+  auto request = test_util::CreateProto<ClassificationRequest>(
+      "model_spec {"
+      "  name: \"test_model\""
+      "}");
+  auto model_spec_override =
+      test_util::CreateProto<ModelSpec>("name: \"nonexistent_model\"");
+
+  ClassificationResponse response;
+  EXPECT_NE(tensorflow::error::NOT_FOUND,
+            TensorflowClassificationServiceImpl::Classify(
+                RunOptions(), server_core_.get(), request, &response)
+                .code());
+  EXPECT_EQ(tensorflow::error::NOT_FOUND,
+            TensorflowClassificationServiceImpl::ClassifyWithModelSpec(
+                RunOptions(), server_core_.get(), model_spec_override, request,
+                &response)
+                .code());
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

@@ -34,22 +34,41 @@ namespace tensorflow {
 namespace serving {
 
 /// A query for a specific loaded servable object. The request can either
-/// specify a specific version number, or simply opt to use the latest loaded
-/// version.
+/// specify a specific version number, or simply opt to use the earliest or
+/// latest loaded version.
 struct ServableRequest {
   // Initialization factories, for convenience and readability.
   static ServableRequest Specific(const string& name, const int64 version);
+  static ServableRequest Earliest(const string& name);
   static ServableRequest Latest(const string& name);
   static ServableRequest FromId(const ServableId& id);
 
   // The name of a servable stream.
   string name;
 
-  // The version number to use. If unset, the largest loaded version is used.
+  // An optional specific version number to use.
   optional<int64> version;
+
+  // How to choose a version number automatically, if 'version' is left unset.
+  enum class AutoVersionPolicy {
+    // Choose the loaded version with the smallest version number.
+    kEarliest,
+
+    // Choose the loaded version with the largest version number.
+    kLatest,
+  };
+  AutoVersionPolicy auto_version_policy = AutoVersionPolicy::kLatest;
 
   // Emits a string representation; for logging and debugging use only.
   string DebugString() const;
+
+  ////////
+  // Legacy constructors. Do not use in new code.
+  ServableRequest() = default;
+  ServableRequest(const string& name_in, const optional<int64>& version_in)
+      : name(name_in),
+        version(version_in),
+        auto_version_policy(AutoVersionPolicy::kLatest) {}
 };
 
 /// Manager is responsible for loading, unloading, lookup and lifetime
@@ -102,11 +121,24 @@ class Manager {
 
 inline ServableRequest ServableRequest::Specific(const string& name,
                                                  const int64 version) {
-  return ServableRequest{name, version};
+  ServableRequest request;
+  request.name = name;
+  request.version = version;
+  return request;
+}
+
+inline ServableRequest ServableRequest::Earliest(const string& name) {
+  ServableRequest request;
+  request.name = name;
+  request.auto_version_policy = AutoVersionPolicy::kEarliest;
+  return request;
 }
 
 inline ServableRequest ServableRequest::Latest(const string& name) {
-  return ServableRequest{name, nullopt};
+  ServableRequest request;
+  request.name = name;
+  request.auto_version_policy = AutoVersionPolicy::kLatest;
+  return request;
 }
 
 inline ServableRequest ServableRequest::FromId(const ServableId& id) {
@@ -118,7 +150,12 @@ inline string ServableRequest::DebugString() const {
   if (version) {
     return strings::StrCat("Specific(", name, ", ", version.value(), ")");
   } else {
-    return strings::StrCat("Latest(", name, ")");
+    switch (auto_version_policy) {
+      case AutoVersionPolicy::kEarliest:
+        return strings::StrCat("Earliest(", name, ")");
+      case AutoVersionPolicy::kLatest:
+        return strings::StrCat("Latest(", name, ")");
+    }
   }
 }
 

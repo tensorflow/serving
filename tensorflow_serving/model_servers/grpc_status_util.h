@@ -16,7 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_GRPC_STATUS_UTIL_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_GRPC_STATUS_UTIL_H_
 
-#include "grpc++/support/status.h"
+#include "grpcpp/support/status.h"
 #include "tensorflow/core/lib/core/status.h"
 
 namespace tensorflow {

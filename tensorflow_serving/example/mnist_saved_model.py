@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-#!/usr/bin/env python2.7
+#! /usr/bin/env python
 r"""Train and export a simple Softmax Regression TensorFlow model.
 
 The model is from the TensorFlow "MNIST For ML Beginner" tutorial. This program
@@ -72,7 +72,7 @@ def main(_):
   train_step = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)
   values, indices = tf.nn.top_k(y, 10)
   table = tf.contrib.lookup.index_to_string_table_from_tensor(
-      tf.constant([str(i) for i in xrange(10)]))
+      tf.constant([str(i) for i in range(10)]))
   prediction_classes = table.lookup(tf.to_int64(indices))
   for _ in range(FLAGS.training_iteration):
     batch = mnist.train.next_batch(50)
@@ -80,8 +80,10 @@ def main(_):
   correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
   accuracy = tf.reduce_mean(tf.cast(correct_prediction, 'float'))
   print('training accuracy %g' % sess.run(
-      accuracy, feed_dict={x: mnist.test.images,
-                           y_: mnist.test.labels}))
+      accuracy, feed_dict={
+          x: mnist.test.images,
+          y_: mnist.test.labels
+      }))
   print('Done training!')
 
   # Export model
@@ -125,7 +127,6 @@ def main(_):
           outputs={'scores': tensor_info_y},
           method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
 
-  legacy_init_op = tf.group(tf.tables_initializer(), name='legacy_init_op')
   builder.add_meta_graph_and_variables(
       sess, [tf.saved_model.tag_constants.SERVING],
       signature_def_map={
@@ -134,7 +135,8 @@ def main(_):
           tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
               classification_signature,
       },
-      legacy_init_op=legacy_init_op)
+      main_op=tf.tables_initializer(),
+      strip_default_attrs=True)
 
   builder.save()
 

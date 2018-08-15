@@ -17,35 +17,35 @@
 """Tests for tensorflow_model_server."""
 
 import atexit
+import json
 import os
 import shlex
 import socket
 import subprocess
 import sys
 import time
+import urllib2
 
 # This is a placeholder for a Google-internal import.
 
 import grpc
-from grpc.beta import implementations
-from grpc.beta import interfaces as beta_interfaces
-from grpc.framework.interfaces.face import face
 import tensorflow as tf
 
 from tensorflow.core.framework import types_pb2
 from tensorflow.python.platform import flags
+from tensorflow.python.saved_model import signature_constants
 from tensorflow_serving.apis import classification_pb2
 from tensorflow_serving.apis import get_model_status_pb2
+from tensorflow_serving.apis import inference_pb2
 from tensorflow_serving.apis import model_service_pb2_grpc
 from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_service_pb2
+from tensorflow_serving.apis import prediction_service_pb2_grpc
 from tensorflow_serving.apis import regression_pb2
-from tensorflow_serving.apis import inference_pb2
-from tensorflow.python.saved_model import signature_constants
 
 FLAGS = flags.FLAGS
 
 RPC_TIMEOUT = 5.0
+HTTP_REST_TIMEOUT_MS = 5000
 CHANNEL_WAIT_TIMEOUT = 5.0
 WAIT_FOR_SERVER_READY_INT_SECS = 60
 
@@ -67,22 +67,120 @@ def WaitForServerReady(port):
 
     try:
       # Send empty request to missing model
-      channel = implementations.insecure_channel('localhost', port)
-      stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+      channel = grpc.insecure_channel('localhost:{}'.format(port))
+      stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
       stub.Predict(request, RPC_TIMEOUT)
-    except face.AbortionError as error:
+    except grpc.RpcError as error:
       # Missing model error will have details containing 'Servable'
-      if 'Servable' in error.details:
+      if 'Servable' in error.details():
         print 'Server is ready'
         break
+
+
+def CallREST(name, url, req, max_attempts=60):
+  """Returns HTTP response body from a REST API call."""
+  for attempt in range(max_attempts):
+    try:
+      print 'Attempt {}: Sending {} request to {} with data:\n{}'.format(
+          attempt, name, url, req)
+      resp = urllib2.urlopen(urllib2.Request(url, data=json.dumps(req)))
+      resp_data = resp.read()
+      print 'Received response:\n{}'.format(resp_data)
+      resp.close()
+      return resp_data
+    except Exception as e:  # pylint: disable=broad-except
+      print 'Failed attempt {}. Error: {}'.format(attempt, e)
+      if attempt == max_attempts - 1:
+        raise
+      print 'Retrying...'
+      time.sleep(1)
 
 
 class TensorflowModelServerTest(tf.test.TestCase):
   """This class defines integration test cases for tensorflow_model_server."""
 
-  def __TestSrcDirPath(self, relative_path=''):
+  @staticmethod
+  def __TestSrcDirPath(relative_path=''):
     return os.path.join(os.environ['TEST_SRCDIR'],
                         'tf_serving/tensorflow_serving', relative_path)
+
+  @staticmethod
+  def GetArgsKey(*args, **kwargs):
+    return args + tuple(sorted(kwargs.items()))
+
+  # Maps string key -> 2-tuple of 'host:port' string.
+  model_servers_dict = {}
+
+  @staticmethod
+  def RunServer(model_name,
+                model_path,
+                model_config_file=None,
+                batching_parameters_file=None,
+                grpc_channel_arguments='',
+                wait_for_server_ready=True,
+                pipe=None):
+    """Run tensorflow_model_server using test config.
+
+    A unique instance of server is started for each set of arguments.
+    If called with same arguments, handle to an existing server is
+    returned.
+
+    Args:
+      model_name: Name of model.
+      model_path: Path to model.
+      model_config_file: Path to model config file.
+      batching_parameters_file: Path to batching parameters.
+      grpc_channel_arguments: Custom gRPC args for server.
+      wait_for_server_ready: Wait for gRPC port to be ready.
+      pipe: subpipe.PIPE object to read stderr from server.
+
+    Returns:
+      3-tuple (<Popen object>, <grpc host:port>, <rest host:port>).
+
+    Raises:
+      ValueError: when both model_path and config_file is empty.
+    """
+    args_key = TensorflowModelServerTest.GetArgsKey(**locals())
+    if args_key in TensorflowModelServerTest.model_servers_dict:
+      return TensorflowModelServerTest.model_servers_dict[args_key]
+    port = PickUnusedPort()
+    rest_api_port = PickUnusedPort()
+    print('Starting test server on port: {} for model_name: '
+          '{}/model_config_file: {}'.format(port, model_name,
+                                            model_config_file))
+    command = os.path.join(
+        TensorflowModelServerTest.__TestSrcDirPath('model_servers'),
+        'tensorflow_model_server')
+    command += ' --port=' + str(port)
+    command += ' --rest_api_port=' + str(rest_api_port)
+    command += ' --rest_api_timeout_in_ms=' + str(HTTP_REST_TIMEOUT_MS)
+
+    if model_config_file:
+      command += ' --model_config_file=' + model_config_file
+    elif model_path:
+      command += ' --model_name=' + model_name
+      command += ' --model_base_path=' + model_path
+    else:
+      raise ValueError('Both model_config_file and model_path cannot be empty!')
+
+    if batching_parameters_file:
+      command += ' --enable_batching'
+      command += ' --batching_parameters_file=' + batching_parameters_file
+    if grpc_channel_arguments:
+      command += ' --grpc_channel_arguments=' + grpc_channel_arguments
+    print command
+    proc = subprocess.Popen(shlex.split(command), stderr=pipe)
+    atexit.register(proc.kill)
+    print 'Server started'
+    if wait_for_server_ready:
+      WaitForServerReady(port)
+    hostports = (
+        proc,
+        'localhost:' + str(port),
+        'localhost:' + str(rest_api_port),
+    )
+    TensorflowModelServerTest.model_servers_dict[args_key] = hostports
+    return hostports
 
   def __BuildModelConfigFile(self):
     """Write a config file to disk for use in tests.
@@ -101,8 +199,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def setUp(self):
     """Sets up integration test parameters."""
-    self.binary_dir = self.__TestSrcDirPath('model_servers')
-    self.testdata_dir = self.__TestSrcDirPath('servables/tensorflow/testdata')
+    self.testdata_dir = TensorflowModelServerTest.__TestSrcDirPath(
+        'servables/tensorflow/testdata')
     self.temp_dir = tf.test.get_temp_dir()
     self.server_proc = None
     self.__BuildModelConfigFile()
@@ -110,55 +208,6 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def tearDown(self):
     """Deletes created configuration file."""
     os.remove(self._GetGoodModelConfigFile())
-
-  def TerminateProcs(self):
-    """Terminate all processes."""
-    print 'Terminating all processes...'
-    if self.server_proc is not None:
-      self.server_proc.terminate()
-
-  def RunServer(self,
-                port,
-                model_name,
-                model_path,
-                batching_parameters_file='',
-                grpc_channel_arguments='',
-                wait_for_server_ready=True):
-    """Run tensorflow_model_server using test config."""
-    print 'Starting test server...'
-    command = os.path.join(self.binary_dir, 'tensorflow_model_server')
-    command += ' --port=' + str(port)
-    command += ' --model_name=' + model_name
-    command += ' --model_base_path=' + model_path
-    if batching_parameters_file:
-      command += ' --enable_batching'
-      command += ' --batching_parameters_file=' + batching_parameters_file
-    if grpc_channel_arguments:
-      command += ' --grpc_channel_arguments=' + grpc_channel_arguments
-    print command
-    self.server_proc = subprocess.Popen(shlex.split(command))
-    print 'Server started'
-    if wait_for_server_ready:
-      WaitForServerReady(port)
-    return 'localhost:' + str(port)
-
-  def RunServerWithModelConfigFile(self,
-                                   port,
-                                   model_config_file,
-                                   pipe=None,
-                                   wait_for_server_ready=True):
-    """Run tensorflow_model_server using test config."""
-    print 'Starting test server...'
-    command = os.path.join(self.binary_dir, 'tensorflow_model_server')
-    command += ' --port=' + str(port)
-    command += ' --model_config_file=' + model_config_file
-
-    print command
-    self.server_proc = subprocess.Popen(shlex.split(command), stderr=pipe)
-    print 'Server started'
-    if wait_for_server_ready:
-      WaitForServerReady(port)
-    return 'localhost:' + str(port)
 
   def VerifyPredictRequest(self,
                            model_server_address,
@@ -182,9 +231,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     if specify_output:
       request.output_filter.append('y')
     # Send request
-    host, port = model_server_address.split(':')
-    channel = implementations.insecure_channel(host, int(port))
-    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    channel = grpc.insecure_channel(model_server_address)
+    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
     result = stub.Predict(request, RPC_TIMEOUT)  # 5 secs timeout
     # Verify response
     self.assertTrue('y' in result.outputs)
@@ -260,10 +308,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def testGetModelStatus(self):
     """Test ModelService.GetModelStatus implementation."""
     model_path = self._GetSavedModelBundlePath()
-
-    atexit.register(self.TerminateProcs)
-    model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path)
+    model_server_address = TensorflowModelServerTest.RunServer(
+        'default', model_path)[1]
 
     print 'Sending GetModelStatus request...'
     # Send request
@@ -281,10 +327,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def testClassify(self):
     """Test PredictionService.Classify implementation."""
     model_path = self._GetSavedModelBundlePath()
-
-    atexit.register(self.TerminateProcs)
-    model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path)
+    model_server_address = TensorflowModelServerTest.RunServer(
+        'default', model_path)[1]
 
     print 'Sending Classify request...'
     # Prepare request
@@ -296,9 +340,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     example.features.feature['x'].float_list.value.extend([2.0])
 
     # Send request
-    host, port = model_server_address.split(':')
-    channel = implementations.insecure_channel(host, int(port))
-    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    channel = grpc.insecure_channel(model_server_address)
+    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
     result = stub.Classify(request, RPC_TIMEOUT)  # 5 secs timeout
     # Verify response
     self.assertEquals(1, len(result.result.classifications))
@@ -313,10 +356,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def testRegress(self):
     """Test PredictionService.Regress implementation."""
     model_path = self._GetSavedModelBundlePath()
-
-    atexit.register(self.TerminateProcs)
-    model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path)
+    model_server_address = TensorflowModelServerTest.RunServer(
+        'default', model_path)[1]
 
     print 'Sending Regress request...'
     # Prepare request
@@ -328,9 +369,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     example.features.feature['x'].float_list.value.extend([2.0])
 
     # Send request
-    host, port = model_server_address.split(':')
-    channel = implementations.insecure_channel(host, int(port))
-    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    channel = grpc.insecure_channel(model_server_address)
+    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
     result = stub.Regress(request, RPC_TIMEOUT)  # 5 secs timeout
     # Verify response
     self.assertEquals(1, len(result.result.regressions))
@@ -343,12 +383,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def testMultiInference(self):
     """Test PredictionService.MultiInference implementation."""
     model_path = self._GetSavedModelBundlePath()
-    enable_batching = False
-
-    atexit.register(self.TerminateProcs)
-    model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path,
-                                          enable_batching)
+    model_server_address = TensorflowModelServerTest.RunServer(
+        'default', model_path)[1]
 
     print 'Sending MultiInference request...'
     # Prepare request
@@ -364,9 +400,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     example.features.feature['x'].float_list.value.extend([2.0])
 
     # Send request
-    host, port = model_server_address.split(':')
-    channel = implementations.insecure_channel(host, int(port))
-    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    channel = grpc.insecure_channel(model_server_address)
+    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
     result = stub.MultiInference(request, RPC_TIMEOUT)  # 5 secs timeout
 
     # Verify response
@@ -382,22 +417,23 @@ class TensorflowModelServerTest(tf.test.TestCase):
                             request.tasks[i].model_spec.signature_name,
                             self._GetModelVersion(model_path))
 
-  def _TestPredict(self,
-                   model_path,
-                   batching_parameters_file='',
-                   signature_name=
-                   signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY):
+  def _TestPredict(
+      self,
+      model_path,
+      batching_parameters_file=None,
+      signature_name=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY):
     """Helper method to test prediction.
 
     Args:
       model_path:      Path to the model on disk.
-      batching_parameters_file: Batching parameters file to use (if left empty,
+      batching_parameters_file: Batching parameters file to use (if None
                                 batching is not enabled).
       signature_name: Signature name to expect in the PredictResponse.
     """
-    atexit.register(self.TerminateProcs)
-    model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path, batching_parameters_file)
+    model_server_address = TensorflowModelServerTest.RunServer(
+        'default',
+        model_path,
+        batching_parameters_file=batching_parameters_file)[1]
     expected_version = self._GetModelVersion(model_path)
     self.VerifyPredictRequest(model_server_address, expected_output=3.0,
                               expected_version=expected_version,
@@ -425,22 +461,20 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def _TestBadModel(self):
     """Helper method to test against a bad model export."""
-    atexit.register(self.TerminateProcs)
     # Both SessionBundle and SavedModel use the same bad model path, but in the
     # case of SavedModel, the export will get up-converted to a SavedModel.
     # As the bad model will prevent the server from becoming ready, we set the
     # wait_for_server_ready param to False to avoid blocking/timing out.
     model_path = os.path.join(self.testdata_dir, 'bad_half_plus_two'),
-    model_server_address = self.RunServer(PickUnusedPort(), 'default',
-                                          model_path,
-                                          wait_for_server_ready=False)
-    with self.assertRaises(face.AbortionError) as error:
+    model_server_address = TensorflowModelServerTest.RunServer(
+        'default', model_path, wait_for_server_ready=False)[1]
+    with self.assertRaises(grpc.RpcError) as ectxt:
       self.VerifyPredictRequest(
           model_server_address, expected_output=3.0,
           expected_version=self._GetModelVersion(model_path),
           signature_name='')
-    self.assertIs(beta_interfaces.StatusCode.FAILED_PRECONDITION,
-                  error.exception.code)
+    self.assertIs(grpc.StatusCode.FAILED_PRECONDITION,
+                  ectxt.exception.code())
 
   def _TestBadModelUpconvertedSavedModel(self):
     """Test Predict against a bad upconverted SavedModel model export."""
@@ -448,9 +482,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def testGoodModelConfig(self):
     """Test server configuration from file works with valid configuration."""
-    atexit.register(self.TerminateProcs)
-    model_server_address = self.RunServerWithModelConfigFile(
-        PickUnusedPort(), self._GetGoodModelConfigFile())
+    model_server_address = TensorflowModelServerTest.RunServer(
+        None, None, model_config_file=self._GetGoodModelConfigFile())[1]
 
     self.VerifyPredictRequest(
         model_server_address, model_name='half_plus_two', expected_output=3.0,
@@ -472,31 +505,92 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def testBadModelConfig(self):
     """Test server model configuration from file fails for invalid file."""
-    atexit.register(self.TerminateProcs)
-    self.RunServerWithModelConfigFile(
-        PickUnusedPort(),
-        self._GetBadModelConfigFile(),
+    proc = TensorflowModelServerTest.RunServer(
+        None,
+        None,
+        model_config_file=self._GetBadModelConfigFile(),
         pipe=subprocess.PIPE,
-        wait_for_server_ready=False)
+        wait_for_server_ready=False)[0]
 
     error_message = (
         'Invalid protobuf file: \'%s\'') % self._GetBadModelConfigFile()
-    self.assertNotEqual(self.server_proc.stderr, None)
-    self.assertGreater(self.server_proc.stderr.read().find(error_message), -1)
+    self.assertNotEqual(proc.stderr, None)
+    self.assertGreater(proc.stderr.read().find(error_message), -1)
 
   def testGoodGrpcChannelArgs(self):
     """Test server starts with grpc_channel_arguments specified."""
-    atexit.register(self.TerminateProcs)
-    model_server_address = self.RunServer(
-      PickUnusedPort(),
-      'default',
-      self._GetSavedModelBundlePath(),
-      grpc_channel_arguments=
-      'grpc.max_connection_age_ms=2000,grpc.lb_policy_name=grpclb'
-    )
-    self.VerifyPredictRequest(model_server_address, expected_output=3.0,
-        specify_output=False, expected_version=self._GetModelVersion(
+    model_server_address = TensorflowModelServerTest.RunServer(
+        'default',
+        self._GetSavedModelBundlePath(),
+        grpc_channel_arguments=
+        'grpc.max_connection_age_ms=2000,grpc.lb_policy_name=grpclb')[1]
+    self.VerifyPredictRequest(
+        model_server_address,
+        expected_output=3.0,
+        specify_output=False,
+        expected_version=self._GetModelVersion(
             self._GetSavedModelHalfPlusThreePath()))
+
+  def testClassifyREST(self):
+    """Test Classify implementation over REST API."""
+    model_path = self._GetSavedModelBundlePath()
+    host, port = TensorflowModelServerTest.RunServer('default',
+                                                     model_path)[2].split(':')
+
+    # Prepare request
+    url = 'http://{}:{}/v1/models/default:classify'.format(host, port)
+    json_req = {'signature_name': 'classify_x_to_y', 'examples': [{'x': 2.0}]}
+
+    # Send request
+    resp_data = None
+    try:
+      resp_data = CallREST('Classify', url, json_req)
+    except Exception as e:  # pylint: disable=broad-except
+      self.fail('Request failed with error: {}'.format(e))
+
+    # Verify response
+    self.assertEquals(json.loads(resp_data), {'results': [[['', 3.0]]]})
+
+  def testRegressREST(self):
+    """Test Regress implementation over REST API."""
+    model_path = self._GetSavedModelBundlePath()
+    host, port = TensorflowModelServerTest.RunServer('default',
+                                                     model_path)[2].split(':')
+
+    # Prepare request
+    url = 'http://{}:{}/v1/models/default:regress'.format(host, port)
+    json_req = {'signature_name': 'regress_x_to_y', 'examples': [{'x': 2.0}]}
+
+    # Send request
+    resp_data = None
+    try:
+      resp_data = CallREST('Regress', url, json_req)
+    except Exception as e:  # pylint: disable=broad-except
+      self.fail('Request failed with error: {}'.format(e))
+
+    # Verify response
+    self.assertEquals(json.loads(resp_data), {'results': [3.0]})
+
+  def testPredictREST(self):
+    """Test Predict implementation over REST API."""
+    model_path = self._GetSavedModelBundlePath()
+    host, port = TensorflowModelServerTest.RunServer('default',
+                                                     model_path)[2].split(':')
+
+    # Prepare request
+    url = 'http://{}:{}/v1/models/default:predict'.format(host, port)
+    json_req = {'instances': [2.0, 3.0, 4.0]}
+
+    # Send request
+    resp_data = None
+    try:
+      resp_data = CallREST('Predict', url, json_req)
+    except Exception as e:  # pylint: disable=broad-except
+      self.fail('Request failed with error: {}'.format(e))
+
+    # Verify response
+    self.assertEquals(json.loads(resp_data), {'predictions': [3.0, 3.5, 4.0]})
+
 
 if __name__ == '__main__':
   tf.test.main()

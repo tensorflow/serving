@@ -33,6 +33,13 @@ class TensorflowPredictor {
   Status Predict(const RunOptions& run_options, ServerCore* core,
                  const PredictRequest& request, PredictResponse* response);
 
+  // Like Predict(), but uses 'model_spec' instead of the one embedded in
+  // 'request'.
+  Status PredictWithModelSpec(const RunOptions& run_options, ServerCore* core,
+                              const ModelSpec& model_spec,
+                              const PredictRequest& request,
+                              PredictResponse* response);
+
  private:
   // If use_saved_model_ is true, a SavedModelBundle handle will be retrieved
   // from the ServerCore and the new SavedModel SignatureDef format will be

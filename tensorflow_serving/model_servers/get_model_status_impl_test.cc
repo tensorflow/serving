@@ -172,6 +172,25 @@ TEST_F(GetModelStatusImplTest, SingleVersionSuccess) {
   EXPECT_EQ("", response.model_version_status(0).status().error_message());
 }
 
+// Verifies that GetModelStatusWithModelSpec() uses the model spec override
+// rather than the one in the request.
+TEST_F(GetModelStatusImplTest, ModelSpecOverride) {
+  GetModelStatusRequest request;
+  request.mutable_model_spec()->set_name(kTestModelName);
+  auto model_spec_override =
+      test_util::CreateProto<ModelSpec>("name: \"nonexistent_model\"");
+
+  GetModelStatusResponse response;
+  EXPECT_NE(
+      tensorflow::error::NOT_FOUND,
+      GetModelStatusImpl::GetModelStatus(GetServerCore(), request, &response)
+          .code());
+  EXPECT_EQ(tensorflow::error::NOT_FOUND,
+            GetModelStatusImpl::GetModelStatusWithModelSpec(
+                GetServerCore(), model_spec_override, request, &response)
+                .code());
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

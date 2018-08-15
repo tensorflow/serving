@@ -66,16 +66,13 @@ Status StaticManagerBuilder::AddServable(const ServableId& id,
   TF_RETURN_IF_ERROR(health_);
   DCHECK(basic_manager_ != nullptr);
 
-  // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
-  basic_manager_
-      ->ManageServable(CreateServableData(
-          id, std::unique_ptr<Loader>(new SimpleLoader<T>(
-                  [&servable](std::unique_ptr<T>* const returned_servable) {
-                    *returned_servable = std::move(servable);
-                    return Status::OK();
-                  },
-                  SimpleLoader<T>::EstimateNoResources()))))
-      .IgnoreError();
+  TF_RETURN_IF_ERROR(basic_manager_->ManageServable(CreateServableData(
+      id, std::unique_ptr<Loader>(new SimpleLoader<T>(
+              [&servable](std::unique_ptr<T>* const returned_servable) {
+                *returned_servable = std::move(servable);
+                return Status::OK();
+              },
+              SimpleLoader<T>::EstimateNoResources())))));
   Status load_status;
   Notification load_done;
   basic_manager_->LoadServable(id, [&](const Status& status) {

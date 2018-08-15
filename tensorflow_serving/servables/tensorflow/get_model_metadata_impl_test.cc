@@ -207,6 +207,28 @@ TEST_P(GetModelMetadataImplTest, ReturnsSignaturesForValidModel) {
           kDefaultServingSignatureDefKey)));
 }
 
+// Verifies that GetModelMetadataWithModelSpec() uses the model spec override
+// rather than the one in the request.
+TEST_P(GetModelMetadataImplTest, ModelSpecOverride) {
+  auto request = test_util::CreateProto<GetModelMetadataRequest>(
+      "model_spec {"
+      "  name: \"test_model\""
+      "}");
+  request.add_metadata_field(kSignatureDef);
+  auto model_spec_override =
+      test_util::CreateProto<ModelSpec>("name: \"nonexistent_model\"");
+
+  GetModelMetadataResponse response;
+  EXPECT_NE(tensorflow::error::NOT_FOUND,
+            GetModelMetadataImpl::GetModelMetadata(GetServerCore(), request,
+                                                   &response)
+                .code());
+  EXPECT_EQ(tensorflow::error::NOT_FOUND,
+            GetModelMetadataImpl::GetModelMetadataWithModelSpec(
+                GetServerCore(), model_spec_override, request, &response)
+                .code());
+}
+
 // Test all ClassifierTest test cases with both SessionBundle and SavedModel.
 INSTANTIATE_TEST_CASE_P(UseSavedModel, GetModelMetadataImplTest,
                         ::testing::Bool());

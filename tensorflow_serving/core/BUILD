@@ -501,8 +501,9 @@ cc_library(
         ":source",
         ":target",
         "//tensorflow_serving/util:event_bus",
+        "//tensorflow_serving/util:observer",
         "//tensorflow_serving/util:optional",
-        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
+        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function_dynamic",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -699,7 +700,12 @@ cc_library(
     ],
     deps = [
         ":aspired_versions_manager",
+        ":loader",
+        ":manager",
+        ":servable_state",
         ":servable_state_monitor",
+        ":source",
+        ":target",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -727,18 +733,32 @@ cc_test(
 )
 
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 
 serving_proto_library(
     name = "logging_proto",
     srcs = ["logging.proto"],
     cc_api_version = 2,
-    go_api_version = 2,
+    java_api_version = 2,
     visibility = [
         "//visibility:public",
     ],
     deps = [
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/config:logging_config_proto",
+    ],
+)
+
+serving_proto_library_py(
+    name = "logging_proto_py_pb2",
+    srcs = ["logging.proto"],
+    proto_library = "logging_proto",
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "//tensorflow_serving/apis:model_proto_py_pb2",
+        "//tensorflow_serving/config:logging_config_proto_py_pb2",
     ],
 )
 

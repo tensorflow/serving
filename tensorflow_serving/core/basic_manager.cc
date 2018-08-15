@@ -60,9 +60,12 @@ struct BasicManager::ServingMap::EqRequest {
     if (lhs.version != rhs.version) {
       return false;
     }
-    // Even if there is a small probability that version checking can eliminate
-    // string checking, we should do that since O(string_equality) >>
-    // O(version_equality)
+    if (lhs.auto_version_policy != rhs.auto_version_policy) {
+      return false;
+    }
+    // Even if there is a small probability that version & policy checking can
+    // eliminate string checking, we should do that since O(string_equality) >>
+    // O(version_equality) + O(policy_equality).
     if (lhs.name != rhs.name) {
       return false;
     }
@@ -87,7 +90,12 @@ struct BasicManager::ServingMap::HashRequest {
         return std::hash<int64>()(request.version.value()) *
                0x9E3779B97F4A7C13;  // (sqrt(5) - 1)/2 as a binary fraction.
       } else {
-        return 0xDECAFCAFFE;
+        switch (request.auto_version_policy) {
+          case ServableRequest::AutoVersionPolicy::kEarliest:
+            return 0x01234CAFFE;
+          case ServableRequest::AutoVersionPolicy::kLatest:
+            return 0xDECAFCAFFE;
+        }
       }
     }();
     // Using version_hash as the seed here to combine the hashes.
@@ -141,8 +149,8 @@ BasicManager::ServingMap::GetAvailableUntypedServableHandles() const {
   std::shared_ptr<const HandlesMap> handles_map = handles_map_.get();
   for (const auto& handle : *handles_map) {
     const ServableRequest& request = handle.first;
-    // If the entry is the one for the latest request, skip it. We would already
-    // get it from the entry which has the specific request.
+    // If the entry is one of the auto-versioned request ones, skip it. We would
+    // already get it from the entry which has the specific request.
     if (!request.version) {
       continue;
     }
@@ -180,12 +188,23 @@ void BasicManager::ServingMap::Update(const ManagedMap& managed_map) {
   }
 
   std::unique_ptr<HandlesMap> new_handles_map(new HandlesMap());
+  auto prev_iter = sorted_available_map.end();
   for (auto iter = sorted_available_map.begin();
        iter != sorted_available_map.end(); ++iter) {
     std::shared_ptr<const LoaderHarness> harness = iter->second;
     new_handles_map->emplace(ServableRequest::FromId(harness->id()), harness);
-    // If this is the last harness in the stream, add it again to the
-    // handles_map, marking it as the latest for that stream.
+
+    // If this is the first harness in the stream for a given servable name, add
+    // it again to the handles_map, marking it as the earliest for that stream.
+    if (prev_iter == sorted_available_map.end() ||
+        prev_iter->second->id().name != harness->id().name) {
+      const ServableRequest earliest_request =
+          ServableRequest::Earliest(harness->id().name);
+      new_handles_map->emplace(earliest_request, harness);
+    }
+
+    // If this is the last harness in the stream for a given servable name, add
+    // it again to the handles_map, marking it as the latest for that stream.
     const auto next_iter = std::next(iter);
     if (next_iter == sorted_available_map.end() ||
         next_iter->second->id().name != harness->id().name) {
@@ -193,6 +212,8 @@ void BasicManager::ServingMap::Update(const ManagedMap& managed_map) {
           ServableRequest::Latest(harness->id().name);
       new_handles_map->emplace(latest_request, harness);
     }
+
+    prev_iter = iter;
   }
 
   // This blocks until the last handle given out by the old handles map is
@@ -248,33 +269,37 @@ BasicManager::~BasicManager() {
   }
   unload_executor_.reset();
 
-  UnloadAllServables();
+  const Status unload_status = UnloadAllServables();
+  if (!unload_status.ok()) {
+    LOG(ERROR) << "Error unloading all servables in BasicManager destructor: "
+               << unload_status;
+  }
 }
 
-void BasicManager::UnloadAllServables() {
+Status BasicManager::UnloadAllServables() {
   LOG(INFO) << "Unload all remaining servables in the manager.";
+  Status status = Status::OK();
   {
     mutex_lock l(mu_);
     for (auto it = managed_map_.begin(); it != managed_map_.end(); ++it) {
       LoaderHarness* const harness = it->second.get();
       if (harness->state() == LoaderHarness::State::kReady) {
-        // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
-        harness->UnloadRequested().IgnoreError();
-        harness->StartQuiescing().IgnoreError();
-        harness->DoneQuiescing().IgnoreError();
-        harness->Unload().IgnoreError();
+        status.Update(harness->UnloadRequested());
+        status.Update(harness->StartQuiescing());
+        status.Update(harness->DoneQuiescing());
+        status.Update(harness->Unload());
       }
       if (harness->state() == LoaderHarness::State::kQuiescing) {
-        // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
-        harness->DoneQuiescing().IgnoreError();
-        harness->Unload().IgnoreError();
+        status.Update(harness->DoneQuiescing());
+        status.Update(harness->Unload());
       }
       if (harness->state() == LoaderHarness::State::kQuiesced) {
-        // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
-        harness->Unload().IgnoreError();
+        status.Update(harness->Unload());
       }
     }
   }
+
+  return status;
 }
 
 std::vector<ServableId> BasicManager::ListAvailableServableIds() const {
@@ -688,10 +713,8 @@ Status BasicManager::ApproveUnload(LoaderHarness* harness) {
 Status BasicManager::ReserveResources(LoaderHarness* harness,
                                       mutex_lock* mu_lock) {
   while (true) {
-    // TODO(b/35997855): Don't just ignore the ::tensorflow::Status object!
-    resource_tracker_
-        ->RecomputeUsedResources(GetLoadersCurrentlyUsingResources())
-        .IgnoreError();
+    TF_RETURN_IF_ERROR(resource_tracker_->RecomputeUsedResources(
+        GetLoadersCurrentlyUsingResources()));
     bool resources_reserved;
     // We retry reserving resources because it may involve transiently failing
     // operations like file-reads.

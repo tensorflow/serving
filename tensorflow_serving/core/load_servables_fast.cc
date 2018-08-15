@@ -17,8 +17,10 @@ limitations under the License.
 
 #include <map>
 #include <string>
+#include <utility>
 
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/target.h"
@@ -28,18 +30,29 @@ namespace serving {
 
 namespace internal {
 
+uint32 GetManagerNumLoadThreads(AspiredVersionsManager* manager) {
+  return manager->num_load_threads();
+}
+
+std::function<void(const uint32)> SetManagerNumLoadThreadsNotifier(
+    AspiredVersionsManager* manager) {
+  return manager->set_num_load_threads_observer_->Notifier();
+}
+
 Status ConnectSourcesWithFastInitialLoad(
     AspiredVersionsManager* manager,
     std::vector<Source<std::unique_ptr<Loader>>*> sources,
     const std::function<Status()>& wait_until_loaded_fn,
     const uint32 num_threads) {
-  const uint32 prev_num_load_threads = manager->num_load_threads();
-  manager->SetNumLoadThreads(num_threads);
+  const uint32 prev_num_load_threads = GetManagerNumLoadThreads(manager);
+  std::function<void(const uint32)> set_manager_num_load_threads =
+      SetManagerNumLoadThreadsNotifier(manager);
+  set_manager_num_load_threads(num_threads);
   for (Source<std::unique_ptr<Loader>>* source : sources) {
     ConnectSourceToTarget(source, manager);
   }
   const Status status = wait_until_loaded_fn();
-  manager->SetNumLoadThreads(prev_num_load_threads);
+  set_manager_num_load_threads(prev_num_load_threads);
   return status;
 }
 
@@ -70,12 +83,29 @@ Status ConnectSourcesWithFastInitialLoad(
                 initial_servables, ServableState::ManagerState::kAvailable,
                 &states_reached);
         if (!all_servables_available) {
-          string message = "Some servables did not become available: {";
+          const int num_unavailable_servables = std::count_if(
+              states_reached.begin(), states_reached.end(),
+              [](const std::pair<ServableId, ServableState::ManagerState>&
+                     id_and_state) {
+                return id_and_state.second !=
+                       ServableState::ManagerState::kAvailable;
+              });
+          string message =
+              strings::StrCat(num_unavailable_servables,
+                              " servable(s) did not become available: {");
           for (const auto& id_and_state : states_reached) {
             if (id_and_state.second !=
                 ServableState::ManagerState::kAvailable) {
-              strings::StrAppend(&message, id_and_state.first.DebugString(),
-                                 ", ");
+              optional<ServableState> maybe_state =
+                  servable_state_monitor->GetState(id_and_state.first);
+              const string error_msg =
+                  maybe_state && !maybe_state.value().health.ok()
+                      ? " due to error: " +
+                            maybe_state.value().health.ToString()
+                      : "";
+              strings::StrAppend(&message, "{",
+                                 id_and_state.first.DebugString(), error_msg,
+                                 "}, ");
             }
           }
           strings::StrAppend(&message, "}");
