@@ -1,6 +1,8 @@
 build:cuda --crosstool_top=@org_tensorflow//third_party/gpus/crosstool
 build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
 
+build:mkl --define=using_mkl=true
+
 build --force_python=py2
 build --python2_path=/usr/bin/python
 
@@ -18,5 +20,3 @@ build --define=grpc_no_ares=true
 
 # TODO(b/69809703): Remove once no longer required for TensorFlow to build.
 build --copt=-DGEMMLOWP_ALLOW_SLOW_SCALAR_FALLBACK
-
-build:mkl --define=using_mkl=true
