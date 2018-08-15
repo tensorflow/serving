@@ -295,15 +295,12 @@ TENSORFLOW_DEPS = [
 ]
 
 cc_library(
-    name = "tensorflow_model_server_main_lib",
+    name = "server_lib",
     srcs = [
-        "main.cc",
+        "server.cc",
     ],
-    hdrs = ["version.h"],
-    visibility = [
-        ":tensorflow_model_server_custom_op_clients",
-        "//tensorflow_serving:internal",
-    ],
+    hdrs = ["server.h"],
+    visibility = ["//visibility:public"],
     deps = [
         ":http_server",
         ":model_platform_types",
@@ -318,6 +315,7 @@ cc_library(
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
+        "@com_google_absl//absl/memory",
         "@org_tensorflow//tensorflow/core/platform/hadoop:hadoop_file_system",
         "@org_tensorflow//tensorflow/core/platform/s3:s3_file_system",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -326,6 +324,23 @@ cc_library(
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
+)
+
+cc_library(
+    name = "tensorflow_model_server_main_lib",
+    srcs = [
+        "main.cc",
+    ],
+    hdrs = ["version.h"],
+    visibility = [
+        ":tensorflow_model_server_custom_op_clients",
+        "//tensorflow_serving:internal",
+    ],
+    deps = [
+        ":server_lib",
+        "@org_tensorflow//tensorflow/c:c_api",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
 )
 
 cc_binary(
