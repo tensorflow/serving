@@ -314,10 +314,7 @@ cc_library(
         "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
         "@com_google_absl//absl/memory",
-        "@org_tensorflow//tensorflow/core/platform/hadoop:hadoop_file_system",
-        "@org_tensorflow//tensorflow/core/platform/s3:s3_file_system",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/config:ssl_config_proto",
@@ -340,6 +337,9 @@ cc_library(
         ":server_lib",
         "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
+        "@org_tensorflow//tensorflow/core/platform/hadoop:hadoop_file_system",
+        "@org_tensorflow//tensorflow/core/platform/s3:s3_file_system",
     ],
 )
 
