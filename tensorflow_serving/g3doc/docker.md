@@ -32,19 +32,112 @@ See the Docker Hub
 [tensorflow/serving repo](http://hub.docker.com/r/tensorflow/serving/tags/) for
 other versions of images you can pull.
 
+### Running a serving image
+
+The serving images (both CPU and GPU) have the following properties:
+
+*   Port 8500 exposed for gRPC
+*   Port 8501 exposed for the REST API
+*   Optional environment variable `MODEL_NAME` (defaults to `model`)
+*   Optional environment variable `MODEL_BASE_PATH` (defaults to `/models`)
+
+When the serving image runs ModelServer, it runs it as follows:
+
+```shell
+tensorflow_model_server --port=8500 --rest_api_port=8501 \
+  --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME}
+```
+
+To serve with Docker, you'll need:
+
+*   An open port on your host to serve on
+*   A SavedModel to serve
+*   A name for your model that your client will refer to
+
+What you'll do is
+[run the Docker](https://docs.docker.com/engine/reference/run/) container,
+[publish](https://docs.docker.com/engine/reference/commandline/run/#publish-or-expose-port--p---expose)
+the container's ports to your host's ports, and mounting your host's path to the
+SavedModel to where the container expects models.
+
+Let's look at an example:
+
+```shell
+docker run -p 8501:8501 \
+  --mount type=bind,source=/path/to/my_model/,target=/models/my_model \
+  -e MODEL_NAME=my_model -t tensorflow/serving
+```
+
+In this case, we've started a Docker container, published the REST API port 8501
+to our host's port 8501, and taken a model we named `my_model` and bound it to
+the default model base path (`${MODEL_BASE_PATH}/${MODEL_NAME}` =
+`/models/my_model`). Finally, we've filled in the environment variable
+`MODEL_NAME` with `my_model`, and left `MODEL_BASE_PATH` to its default value.
+
+This will run in the container:
+
+```shell
+tensorflow_model_server --port=8500 --rest_api_port=8501 \
+  --model_name=my_model --model_base_path=/models/my_model
+```
+
+If we wanted to publish the gRPC port, we would use `-p 8500:8500`. You can have
+both gRPC and REST API ports open at the same time, or choose to only open one
+or the other.
+
+### Creating your own serving image
+
+If you want a serving image that has your model built into the container, you
+can create your own image.
+
+First run a serving image as a daemon:
+
+```shell
+docker run -d --name serving_base tensorflow/serving
+```
+
+Next, copy your SavedModel to the container's model folder:
+
+```shell
+docker cp models/<my model> serving_base:/models/<my model>
+```
+
+Finally, commit the container that's serving your model by changing `MODEL_NAME`
+to match your model's name `<my model>':
+
+```shell
+docker commit --change "ENV MODEL_NAME <my model>" serving_base <my container>
+```
+
+You can now stop `serving_base`
+
+```shell
+docker kill serving_base
+```
+
+This will leave you with a Docker image called `<my container>` that you can
+deploy and will load your model for serving on startup.
+
 ### Serving example
 
-Once you have pulled the serving image, you can try serving an example model.
+Let's run through a full example where we load a SavedModel and call it via the
+REST API. First pull the serving image:
 
-We will use a toy model called `Half Plus Two`, which generates `0.5 * x + 2`
-for the values of `x` we provide for prediction.
+```shell
+docker pull tensorflow/serving
+```
+
+This will pull the latest TensorFlow Serving image with ModelServer installed.
+
+Next, we will use a toy model called `Half Plus Two`, which generates `0.5 * x +
+2` for the values of `x` we provide for prediction.
 
 To get this model, first clone the TensorFlow Serving repo.
 
 ```shell
 mkdir -p /tmp/tfserving
 cd /tmp/tfserving
-git clone --depth=1 https://github.com/tensorflow/serving
+git clone https://github.com/tensorflow/serving
 ```
 
 Next, run the TensorFlow Serving container pointing it to this model and opening
@@ -52,10 +145,10 @@ the REST API port (8501):
 
 ```shell
 docker run -p 8501:8501 \
---mount type=bind,\
-source=/tmp/tfserving/serving/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_two_cpu,\
-target=/models/half_plus_two \
--e MODEL_NAME=half_plus_two -t tensorflow/serving &
+  --mount type=bind,\
+  source=/tmp/tfserving/serving/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_two_cpu,\
+  target=/models/half_plus_two \
+  -e MODEL_NAME=half_plus_two -t tensorflow/serving &
 ```
 
 This will run the docker container and launch the TensorFlow Serving Model
@@ -63,13 +156,11 @@ Server, bind the REST API port 8501, and map our desired model from our host to
 where models are expected in the container. We also pass the name of the model
 as an environment variable, which will be important when we query the model.
 
-Note that if you wanted to use the gRPC API, you should instead bind to port
-8500.
-
 To query the model using the predict API, you can run
 
 ```shell
-curl -d '{"instances": [1.0, 2.0, 5.0]}' -X POST http://localhost:8501/v1/models/half_plus_two:predict
+curl -d '{"instances": [1.0, 2.0, 5.0]}' \
+  -X POST http://localhost:8501/v1/models/half_plus_two:predict
 ```
 
 NOTE: Older versions of Windows and other systems without curl can download it
@@ -94,37 +185,36 @@ Before serving with a GPU, in addition to
 *   `nvidia-docker`: You can follow the
     [installation instructions here](https://github.com/NVIDIA/nvidia-docker#quick-start)
 
-### Pulling a GPU serving image
+### Running a GPU serving image
 
-Once you have `nvidia-docker` installed, you can pull the latest TensorFlow
-Serving GPU docker image by running:
+Running a GPU serving image is identical to running a CPU image. For more
+details, see [running a serving image](#running-a-serving-image).
+
+### GPU Serving example
+
+Let's run through a full example where we load a model with GPU-bound ops and
+call it via the REST API.
+
+First install [`nvidia-docker`](#install-nvidia-docker). Next you can pull the
+latest TensorFlow Serving GPU docker image by running:
 
 ```shell
 docker pull tensorflow/serving:latest-gpu
 ```
 
-This will pull down an minimal Docker image with TensorFlow Serving built for
-running on GPUs installed.
+This will pull down an minimal Docker image with ModelServer built for running
+on GPUs installed.
 
-See the Docker Hub
-[tensorflow/serving repo](http://hub.docker.com/r/tensorflow/serving/tags/) for
-other versions of images you can pull.
-
-### GPU Serving example
-
-Once you have pulled the GPU serving image, you can try serving an example
-model.
-
-We will use a toy model called `Half Plus Two`, which generates `0.5 * x + 2`
-for the values of `x` we provide for prediction. This model will have ops bound
-to the GPU device, and will not run on the CPU.
+Next, we will use a toy model called `Half Plus Two`, which generates `0.5 * x +
+2` for the values of `x` we provide for prediction. This model will have ops
+bound to the GPU device, and will not run on the CPU.
 
 To get this model, first clone the TensorFlow Serving repo.
 
 ```shell
 mkdir -p /tmp/tfserving
 cd /tmp/tfserving
-git clone --depth=1 https://github.com/tensorflow/serving
+git clone https://github.com/tensorflow/serving
 ```
 
 Next, run the TensorFlow Serving container pointing it to this model and opening
@@ -132,17 +222,17 @@ the REST API port (8501):
 
 ```shell
 docker run --runtime=nvidia -p 8501:8501 \
---mount type=bind,\
-source=/tmp/tfserving/serving/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_two_gpu,\
-target=/models/half_plus_two \
--e MODEL_NAME=half_plus_two -t tensorflow/serving:latest-gpu &
+  --mount type=bind,\
+  source=/tmp/tfserving/serving/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_two_gpu,\
+  target=/models/half_plus_two \
+  -e MODEL_NAME=half_plus_two -t tensorflow/serving:latest-gpu &
 ```
 
-This will run the docker container with the GPU build and launch the TensorFlow
-Serving Model Server, bind the REST API port 8501, and map our desired model
-from our host to where models are expected in the container. We also pass the
-name of the model as an environment variable, which will be important when we
-query the model.
+This will run the docker container with the `nvidia-docker` runtime, launch the
+TensorFlow Serving Model Server, bind the REST API port 8501, and map our
+desired model from our host to where models are expected in the container. We
+also pass the name of the model as an environment variable, which will be
+important when we query the model.
 
 TIP: Before querying the model, be sure to wait till you see a message like the
 following, indicating that the server is ready to receive requests:
@@ -155,7 +245,8 @@ Exporting HTTP/REST API at:localhost:8501 ...
 To query the model using the predict API, you can run
 
 ```shell
-$ curl -d '{"instances": [1.0, 2.0, 5.0]}' -X POST http://localhost:8501/v1/models/half_plus_three:predict
+$ curl -d '{"instances": [1.0, 2.0, 5.0]}' \
+  -X POST http://localhost:8501/v1/models/half_plus_three:predict
 ```
 
 NOTE: Older versions of Windows and other systems without curl can download it
@@ -212,6 +303,7 @@ docker run -it -p 8500:8500 tensorflow/serving:latest-devel
 To test a model, from inside the container try:
 
 ```shell
+# build the exporter
 bazel build -c opt //tensorflow_serving/example:mnist_saved_model
 # train the mnist model
 bazel-bin/tensorflow_serving/example/mnist_saved_model /tmp/mnist_model

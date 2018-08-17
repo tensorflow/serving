@@ -96,7 +96,7 @@ Now we want to take a serving image and
 [commit](https://docs.docker.com/engine/reference/commandline/commit/) all
 changes to a new image `$USER/inception_serving` for Kubernetes deployment.
 
-First we run a serving image, but change the entry point to just run `bash`:
+First we run a serving image as a daemon:
 
 ```shell
 docker run -d --name serving_base tensorflow/serving
