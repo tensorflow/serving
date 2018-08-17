@@ -63,6 +63,9 @@ Server, bind the REST API port 8501, and map our desired model from our host to
 where models are expected in the container. We also pass the name of the model
 as an environment variable, which will be important when we query the model.
 
+Note that if you wanted to use the gRPC API, you should instead bind to port
+8500.
+
 To query the model using the predict API, you can run
 
 ```shell
