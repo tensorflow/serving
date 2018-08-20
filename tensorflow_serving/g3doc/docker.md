@@ -246,7 +246,7 @@ To query the model using the predict API, you can run
 
 ```shell
 $ curl -d '{"instances": [1.0, 2.0, 5.0]}' \
-  -X POST http://localhost:8501/v1/models/half_plus_three:predict
+  -X POST http://localhost:8501/v1/models/half_plus_two:predict
 ```
 
 NOTE: Older versions of Windows and other systems without curl can download it
