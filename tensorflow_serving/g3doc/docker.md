@@ -395,3 +395,74 @@ TIP: If you're running a GPU image, be sure to run using the NVIDIA runtime
 
 From here, you can follow the instructions for
 [testing a development environment](#testing-the-development-environment).
+
+### Building an optimized serving binary
+
+When running TensorFlow Serving's ModelServer, you may notice a log message that
+looks like this:
+
+```console
+I external/org_tensorflow/tensorflow/core/platform/cpu_feature_guard.cc:141]
+Your CPU supports instructions that this TensorFlow binary was not compiled to
+use: AVX2 FMA
+```
+
+This indicates that your ModelServer binary isn't fully optimized for the CPU
+its running on. Depending on the model you are serving, further optimizations
+may not be necessary. However, building an optimized binary is straight-forward.
+
+When building a Docker image from the provided `Dockerfile.devel` or
+`Dockerfile.devel-gpu` files, the ModelServer binary will be built with the flag
+`-march=native`. This will cause Bazel to build a ModelServer binary with all of
+the CPU optimizations the host you're building the Docker image on supports.
+
+To create a serving image that's fully optimized for your host, simply:
+
+1.  Clone the TensorFlow Serving project
+
+    ```shell
+    git clone https://github.com/tensorflow/serving
+    cd serving
+    ```
+
+2.  Build an image with an optimized ModelServer
+
+    *   For CPU:
+
+        ```shell
+        docker build --pull -t $USER/tensorflow-serving-devel \
+          -f tools/docker/Dockerfile.devel .
+        ```
+
+    *   For GPU: `
+
+        ```shell
+        docker build --pull -t $USER/tensorflow-serving-devel-gpu \
+          -f tools/docker/Dockerfile.devel-gpu .
+        ```
+
+3.  Build a serving image with the development image as a base
+
+    *   For CPU:
+
+        ```shell
+        docker build -t $USER/tensorflow-serving \
+          --build-arg TF_SERVING_BUILD_IMAGE=$USER/tensorflow-serving-devel \
+          -f tools/docker/Dockerfile .
+        ```
+
+        Your new optimized Docker image is now `$USER/tensorflow-serving`, which
+        you can [use](#running-a-serving-image) just as you would the standard
+        `tensorflow/serving:latest` image.
+
+    *   For GPU:
+
+        ```shell
+        docker build -t $USER/tensorflow-serving-gpu \
+          --build-arg TF_SERVING_BUILD_IMAGE=$USER/tensorflow-serving-devel-gpu \
+          -f tools/docker/Dockerfile.gpu .
+        ```
+
+        Your new optimized Docker image is now `$USER/tensorflow-serving-gpu`,
+        which you can [use](#running-a-gpu-serving-image) just as you would the
+        standard `tensorflow/serving:latest-gpu` image.
