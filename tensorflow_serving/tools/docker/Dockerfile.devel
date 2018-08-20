@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python-dev \
         software-properties-common \
         swig \
+        unzip \
         wget \
         zip \
         zlib1g-dev \
