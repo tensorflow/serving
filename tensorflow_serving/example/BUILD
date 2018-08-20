@@ -90,3 +90,16 @@ cc_binary(
         "@protobuf_archive//:protobuf_lite",
     ],
 )
+
+cc_binary(
+    name = "mnist_client_cc",
+    srcs = [
+        "mnist_client.cc",
+    ],
+    deps = [
+        "//tensorflow_serving/apis:prediction_service_proto",
+        "@grpc//:grpc++_unsecure",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@protobuf_archive//:protobuf_lite",
+    ],
+)
