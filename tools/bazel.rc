@@ -1,6 +1,16 @@
 build:cuda --crosstool_top=@local_config_cuda//crosstool:toolchain
 build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
 
+# Please note that MKL on MacOS or windows is still not supported.
+# If you would like to use a local MKL instead of downloading, please set the
+# environment variable "TF_MKL_ROOT" every time before build.
+build:mkl --define=using_mkl=true
+build:mkl -c opt
+
+# This config option is used to enable MKL-DNN open source library only,
+# without depending on MKL binary version.
+build:mkl_open_source_only --define=using_mkl_dnn_only=true
+
 build --action_env PYTHON_BIN_PATH="/usr/bin/python"
 build --define PYTHON_BIN_PATH=/usr/bin/python
 
