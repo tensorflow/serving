@@ -30,6 +30,14 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+// Format of input tensors in predict request.
+// See comments for FillPredictRequestFromJson() below for more details.
+enum class JsonPredictRequestFormat {
+  kInvalid,
+  kRow,
+  kColumnar,
+};
+
 // Fills PredictRequest proto from a JSON object.
 //
 // `json` string is parsed to create TensorProtos based on the type map returned
@@ -47,15 +55,20 @@ namespace serving {
 //
 // {
 //   "signature_name": <string>
-//   "instances": [ <value>|<(nested)list>|<object>, ... ]
+//   ("instances"|"inputs"): [ <value>|<(nested)list>|<object>, ... ]
 // }
 //
 // The "signature_name" is *optional* (if not specified, default serving
-// signature is used). The "instances" represents list of tensors (read
-// further on the formatting of these tensors below). Any other keys in the
-// top-level JSON object are ignored.
+// signature is used). The "instances" or "inputs" represents list of tensors
+// (read further on the formatting of these tensors below). Any other keys in
+// the top-level JSON object are ignored.
 //
-// === Notes on formatting of "instances" in the JSON ===
+// "instances" is used to format input tensors in "row" format and "inputs"
+// is used to format them in "columnar" format. The former is easy to read
+// but requires all inputs to have same 0-th dimension whereas the latter
+// can represent input tensors with varying sizes.
+//
+// === Notes on formatting of "instances" (row format) in the JSON ===
 //
 // The "instances" represents a list of tensors (all of same shape+type), and
 // this function builds a stack of these tensors (represented as tensor). If the
@@ -78,7 +91,7 @@ namespace serving {
 //   {
 //     "instances": [ "foo", "bar", "baz" ]
 //   }
-//   j
+//
 //   {
 //     "instances": [ [[1, 2]], [[3], [4]] ]
 //   }
@@ -91,15 +104,15 @@ namespace serving {
 //   {
 //     "instances": [
 //       {
-//         "tag": ["foo"]
-//         "signal": [1, 2, 3, 4, 5]
+//         "tag": ["foo"],
+//         "signal": [1, 2, 3, 4, 5],
 //         "sensor": [[1, 2], [3, 4]]
 //       },
 //       {
-//         "tag": ["bar"]
-//         "signal": [3, 4, 1, 2, 5]]
+//         "tag": ["bar"],
+//         "signal": [3, 4, 1, 2, 5],
 //         "sensor": [[4, 5], [6, 8]]
-//       },
+//       }
 //     ]
 //   }
 //
@@ -110,12 +123,31 @@ namespace serving {
 //   {
 //     "instances": [ { "b64" : "aGVsbG8=" }, { "b64": "d29ybGQ=" } ]
 //   }
+//
+// === Notes on formatting of "inputs" (columnar format) in the JSON ===
+//
+// The value for "inputs" key is either a single input tensor or a map
+// of input name to tensor values. Each input can have arbitrary shape
+// and need not share the same 0-th dimension as required by the row
+// format described above.
+//
+// This format is similar to the `inputs` field in request proto of
+// gRPC Predict API. And compact compared to the row format
+//
+// A sample (compare this to "instances" above) is as follows:
+// {
+//   "inputs": {
+//     "tag": ["foo", "bar"],
+//     "signal": [1, 2, 3, 4, 5, 3, 4, 1, 2, 4],
+//     "sensor": [[1, 2], [3, 4], [4, 5], [6, 8]]
+//   }
+// }
 tensorflow::Status FillPredictRequestFromJson(
     const absl::string_view json,
     const std::function<tensorflow::Status(
         const string&, ::google::protobuf::Map<string, tensorflow::TensorInfo>*)>&
         get_tensorinfo_map,
-    PredictRequest* request);
+    PredictRequest* request, JsonPredictRequestFormat* format);
 
 // Fills ClassificationRequest proto from a JSON object.
 //
@@ -167,33 +199,66 @@ tensorflow::Status FillRegressionRequestFromJson(const absl::string_view json,
 //
 // `tensor_map` contains a map of name/alias tensor names (as it appears in the
 // TensorFlow graph) to tensor protos. The output `json` string is JSON object
-// containing all the tensors represented by these tensor protos. The first
-// dimension in each of these tensors is assumed to be the "batch" size and it
-// is expected that all tensors have the *same* batch size -- otherwise we
-// return an error, and the contents of output `json` should not be used.
+// containing all the tensors represented by these tensor protos. The
+// composition of output JSON depends on `format` (read further for details).
 //
-// Tensors appear as list (with "batch" size elements) keyed by "predictions"
-// in the JSON object:
-//
-// {
-//   "predictions": [ <value>|<(nested)list>|<object>, ...]
-// }
-//
-// If `tensor_map` contains only one key/named tensor, the "predictions" key
-// contains a array of <value> or <(nested)list> otherwise it is an array of
-// JSON objects. See comments for MakeTensorsFromJson() above for formatting
-// details (and unit-test of examples).
+// In case of error the contents of output `json` should not be used.
 //
 // Tensors containing binary data (e.g. image bytes) are base64 encoded in the
 // JSON object. The name/alias for these tensors MUST have "_bytes" as suffix,
 // to ensure JSON has correct (base64) encoding, otherwise the resulting JSON
 // may not represent the output correctly and/or may not be parsable.
 //
-// Note, this formatting is similar to CMLE predict API:
-// https://cloud.google.com/ml-engine/docs/v1/predict-request#response-body
+// Formatting when `format` is `kRow`:
+//
+//   Tensors appear as list (with "batch" size elements) keyed by "predictions"
+//   in the JSON object:
+//
+//     {
+//       "predictions": [ <value>|<(nested)list>|<object>, ...]
+//     }
+//
+//   If `tensor_map` contains only one key/named tensor, the "predictions" key
+//   contains a array of <value> or <(nested)list> otherwise it is an array of
+//   JSON objects. See comments for FillPredictRequestFromJson() above for
+//   formatting details (and unit-test of examples).
+//
+//   The first dimension in each of these tensors is assumed to be the "batch"
+//   size and it is expected that all tensors have the *same* batch size --
+//   otherwise we return an error.
+//
+//   Note, this formatting is similar to CMLE predict API:
+//   https://cloud.google.com/ml-engine/docs/v1/predict-request#response-body
+//
+// Formatting when `format` is `kColumnar`
+//
+//   Tensors appear as list (when there is only one named output) or as a JSON
+//   object, with one key-value pair for each named input, keyed by "outputs"
+//   in the JSON object.
+//
+//   Unlike `kRow` format (see above) each named tensor can have different first
+//   dimension. This format is compact and matches closely with the response
+//   proto of the gRPC predict API.
+//
+//   Only one named output:
+//     {
+//       "outputs": [ <value>|<(nested)list> ]
+//     }
+//
+//   Multiple named output:
+//     {
+//       "outputs": {
+//         "named_output_foo": [ <value>|<(nested)list> ],
+//         "named_output_bar": [ <value>|<(nested)list> ],
+//         ...
+//       }
+//     }
+//
+//   See comments for FillPredictRequestFromJson() above for formatting details
+//   (and unit-test of examples).
 tensorflow::Status MakeJsonFromTensors(
     const ::google::protobuf::Map<string, tensorflow::TensorProto>& tensor_map,
-    string* json);
+    JsonPredictRequestFormat format, string* json);
 
 // Make JSON object from ClassificationResult proto.
 //

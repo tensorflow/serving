@@ -134,30 +134,35 @@ The request body for `predict` API must be JSON object formatted as follows:
 
 ```javascript
 {
-  // Optional: serving signature to use.
+  // (Optional) Serving signature to use.
   // If unspecifed default serving signature is used.
   "signature_name": <string>,
 
-  // List of tensors (each element must be of same shape and type)
-  "instances": [ <value>|<(nested)list>|<object>, ... ]
+  // Input Tensors in row ("instances") or columnar ("inputs") format.
+  // A request can have either of them but NOT both.
+  "instances": <value>|<(nested)list>|<list-of-objects>
+  "inputs": <value>|<(nested)list>|<object>
 }
 ```
 
-This format is similar to `PredictRequest` proto of gRPC API and the [CMLE
-predict API](https://cloud.google.com/ml-engine/docs/v1/predict-request).
+#### Specifying input tensors in row format.
 
-When there is only one named input, the list items are expected to be scalars
-(number/string):
+This format is similar to `PredictRequest` proto of gRPC API and the
+[CMLE predict API](https://cloud.google.com/ml-engine/docs/v1/predict-request).
+Use this format if all named input tensors have the **same 0-th dimension**. If
+they don't, use the columnar format described later below.
+
+In the row format, inputs are keyed to **instances** key in the JSON request.
+
+When there is only one named input, specify the value of **instances** key to be
+the value of the input:
 
 ```javascript
 {
+  // List of 3 scalar tensors.
   "instances": [ "foo", "bar", "baz" ]
 }
-```
 
-or lists of these primitive types.
-
-```javascript
 {
   // List of 2 tensors each of [1, 2] shape
   "instances": [ [[1, 2]], [[3, 4]] ]
@@ -176,41 +181,96 @@ tensors:
 {
  "instances": [
    {
-     "tag": ["foo"]
-     "signal": [1, 2, 3, 4, 5]
+     "tag": "foo",
+     "signal": [1, 2, 3, 4, 5],
      "sensor": [[1, 2], [3, 4]]
    },
    {
-     "tag": ["bar"]
-     "signal": [3, 4, 1, 2, 5]]
+     "tag": "bar",
+     "signal": [3, 4, 1, 2, 5]],
      "sensor": [[4, 5], [6, 8]]
-   },
+   }
  ]
 }
 ```
 
-See the [Encoding binary values](#encoding-binary-values) section below for
-details on how to represent a binary (stream of bytes) value.
+Note, each named input ("tag", "signal", "sensor") is implicitly assumed have
+same 0-th dimension (*two* in above example, as there are *two* objects in the
+*instances* list). If you have named inputs that have different 0-th dimension,
+use the columnar format described below.
 
-### Response format
+#### Specifying input tensors in column format.
 
-The `predict` request returns a JSON object in response body, formatted as
-follows:
+Use this format to specify your input tensors, if individual named inputs do not
+have the same 0-th dimension or you want a more compact representation. This
+format is similar to the `inputs` field of the gRPC
+[`Predict`](https://github.com/tensorflow/serving/blob/a52e8181144a5d6acc96b3d57328c7f49f113ea9/tensorflow_serving/apis/predict.proto#L21)
+request.
+
+In the columnar format, inputs are keyed to **inputs** key in the JSON request.
+
+The value for **inputs** key can either a single input tensor or a map of input
+name to tensors (listed in their natural nested form). Each input can have
+arbitrary shape and need not share the/ same 0-th dimension (aka batch size) as
+required by the row format described above.
+
+Columnar representation of the previous example is as follows:
 
 ```javascript
 {
-  "predictions": [ <value>|<(nested)list>|<object>, ...]
+ "inputs": {
+   "tag": ["foo", "bar"],
+   "signal": [[1, 2, 3, 4, 5], [3, 4, 1, 2, 5]],
+   "sensor": [[[1, 2], [3, 4]], [[4, 5], [6, 8]]]
+ }
+}
+```
+
+Note, **inputs** is a JSON object and not a list like **instances** (used in the
+row representation). Also, all the named inputs are specified together, as
+opposed to unrolling them into individual rows done in the row format described
+previously. This makes the representation compact (but maybe less readable).
+
+### Response format
+
+The `predict` request returns a JSON object in response body.
+
+A request in [row format](#specifying-input-tensors-in-row-format) has response
+formatted as follows:
+
+```javascript
+{
+  "predictions": <value>|<(nested)list>|<list-of-objects>
 }
 ```
 
 If the output of the model contains only one named tensor, we omit the name and
 `predictions` key maps to a list of scalar or list values. If the model outputs
 multiple named tensors, we output a list of objects instead, similar to the
-request format mentioned above.
+request in row-format mentioned above.
 
-Named tensors that have `_bytes` as a suffix in their name are considered to
-have binary values. Such values are encoded differently as described in the
-[encoding binary values](#encoding-binary-values) section below.
+A request in [columnar format](#specifying-input-tensors-in-column-format) has
+response formatted as follows:
+
+```javascript
+{
+  "outputs": <value>|<(nested)list>|<object>
+}
+```
+
+If the output of the model contains only one named tensor, we omit the name and
+`outputs` key maps to a list of scalar or list values. If the model outputs
+multiple named tensors, we output an object instead. Each key of this object
+corresponds to a named output tensor. The format is similar to the request in
+column format mentioned above.
+
+#### Output of binary values
+
+TensorFlow does not distinguish between non-binary and binary strings. All are
+`DT_STRING` type. Named tensors that have **`_bytes`** as a suffix in their name
+are considered to have binary values. Such values are encoded differently as
+described in the [encoding binary values](#encoding-binary-values) section
+below.
 
 ## JSON mapping
 

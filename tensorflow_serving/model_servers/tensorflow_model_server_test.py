@@ -591,6 +591,26 @@ class TensorflowModelServerTest(tf.test.TestCase):
     # Verify response
     self.assertEquals(json.loads(resp_data), {'predictions': [3.0, 3.5, 4.0]})
 
+  def testPredictColumnarREST(self):
+    """Test Predict implementation over REST API with columnar inputs."""
+    model_path = self._GetSavedModelBundlePath()
+    host, port = TensorflowModelServerTest.RunServer('default',
+                                                     model_path)[2].split(':')
+
+    # Prepare request
+    url = 'http://{}:{}/v1/models/default:predict'.format(host, port)
+    json_req = {'inputs': [2.0, 3.0, 4.0]}
+
+    # Send request
+    resp_data = None
+    try:
+      resp_data = CallREST('Predict', url, json_req)
+    except Exception as e:  # pylint: disable=broad-except
+      self.fail('Request failed with error: {}'.format(e))
+
+    # Verify response
+    self.assertEquals(json.loads(resp_data), {'outputs': [3.0, 3.5, 4.0]})
+
 
 if __name__ == '__main__':
   tf.test.main()

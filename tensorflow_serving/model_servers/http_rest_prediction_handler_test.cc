@@ -307,6 +307,17 @@ TEST_F(HttpRestPredictionHandlerTest, Predict) {
   TF_EXPECT_OK(CompareJson(output, R"({ "predictions": [3.5, 4.0] })"));
   EXPECT_THAT(headers, UnorderedElementsAreArray(
                            (HeaderList){{"Content-Type", "application/json"}}));
+
+  // Query specific versions with explicit signature_name and columnar inputs.
+  TF_EXPECT_OK(handler_.ProcessRequest(
+      "POST",
+      absl::StrCat("/v1/models/", kTestModelName, "/versions/",
+                   kTestModelVersion1, ":predict"),
+      R"({"signature_name": "serving_default", "inputs": [3.0, 4.0]})",
+      &headers, &output));
+  TF_EXPECT_OK(CompareJson(output, R"({ "outputs": [3.5, 4.0] })"));
+  EXPECT_THAT(headers, UnorderedElementsAreArray(
+                           (HeaderList){{"Content-Type", "application/json"}}));
 }
 
 TEST_F(HttpRestPredictionHandlerTest, Regress) {

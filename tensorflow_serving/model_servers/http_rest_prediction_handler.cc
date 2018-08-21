@@ -158,18 +158,19 @@ Status HttpRestPredictionHandler::ProcessPredictRequest(
     request.mutable_model_spec()->mutable_version()->set_value(
         model_version.value());
   }
+  JsonPredictRequestFormat format;
   TF_RETURN_IF_ERROR(FillPredictRequestFromJson(
       request_body,
       [this, &request](const string& sig,
                        ::google::protobuf::Map<string, TensorInfo>* map) {
         return this->GetInfoMap(request.model_spec(), sig, map);
       },
-      &request));
+      &request, &format));
 
   PredictResponse response;
   TF_RETURN_IF_ERROR(
       predictor_->Predict(run_options_, core_, request, &response));
-  TF_RETURN_IF_ERROR(MakeJsonFromTensors(response.outputs(), output));
+  TF_RETURN_IF_ERROR(MakeJsonFromTensors(response.outputs(), format, output));
   return Status::OK();
 }
 

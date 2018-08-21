@@ -45,8 +45,13 @@ namespace {
 // Signature name is keyed off this in the JSON request object.
 constexpr char kPredictRequestSignatureKey[] = "signature_name";
 
-// All tensors are keyed off this in the JSON request object.
+// All tensors are keyed off this in the JSON request object,
+// when request format is JsonPredictRequestFormat::kRow.
 constexpr char kPredictRequestInstancesKey[] = "instances";
+
+// All tensors are keyed off this in the JSON request object,
+// when request format is JsonPredictRequestFormat::kColumnar.
+constexpr char kPredictRequestInputsKey[] = "inputs";
 
 // All examples are keyed off this in the JSON request object.
 constexpr char kClassifyRegressRequestContextKey[] = "context";
@@ -54,8 +59,13 @@ constexpr char kClassifyRegressRequestContextKey[] = "context";
 // All examples are keyed off this in the JSON request object.
 constexpr char kClassifyRegressRequestExamplesKey[] = "examples";
 
-// All tensors are keyed off this in the JSON response object.
-constexpr char kPredictResponseKey[] = "predictions";
+// All tensors are keyed off this in the JSON response object,
+// when request format is JsonPredictRequestFormat::kRow.
+constexpr char kPredictResponsePredictionsKey[] = "predictions";
+
+// All tensors are keyed off this in the JSON response object,
+// when request format is JsonPredictRequestFormat::kColumnar
+constexpr char kPredictResponseOutputsKey[] = "outputs";
 
 // All classification/regression results are keyed off this
 // in the JSON response object.
@@ -133,8 +143,8 @@ Status Base64FormatError(const rapidjson::Value& val) {
 Status FormatError(const rapidjson::Value& val) {
   return errors::InvalidArgument(
       "JSON Value: ", JsonValueToString(val),
-      " not formatted correctly. Expecting object with 'instances' key and a "
-      "list/array as the value.");
+      " not formatted correctly. Expecting object with 'instances' or 'input'"
+      " key and a list/array or object as the value respectively.");
 }
 
 Status FormatSignatureError(const rapidjson::Value& val) {
@@ -399,32 +409,10 @@ Status FillSignature(const rapidjson::Document& doc,
   return Status::OK();
 }
 
-}  // namespace
-
-Status FillPredictRequestFromJson(
-    const absl::string_view json,
-    const std::function<tensorflow::Status(
-        const string&, ::google::protobuf::Map<string, tensorflow::TensorInfo>*)>&
-        get_tensorinfo_map,
-    PredictRequest* request) {
-  rapidjson::Document doc;
-  TF_RETURN_IF_ERROR(ParseJson(json, &doc));
-  TF_RETURN_IF_ERROR(FillSignature(doc, request));
-
-  ::google::protobuf::Map<string, tensorflow::TensorInfo> tensorinfo_map;
-  const string& signame = request->model_spec().signature_name();
-  TF_RETURN_IF_ERROR(get_tensorinfo_map(signame, &tensorinfo_map));
-  if (tensorinfo_map.empty()) {
-    return errors::InvalidArgument("Failed to get input map for signature: ",
-                                   signame.empty() ? "DEFAULT" : signame);
-  }
-
-  // Fill in tensors from (required) "instances" key.
-  auto itr = doc.FindMember(kPredictRequestInstancesKey);
-  if (itr == doc.MemberEnd()) return FormatError(doc);
-  if (!itr->value.IsArray()) return FormatError(doc);
-  if (!itr->value.Capacity()) return FormatError(doc);
-
+Status FillTensorMapFromInstancesList(
+    const rapidjson::Value::MemberIterator& itr,
+    const ::google::protobuf::Map<string, tensorflow::TensorInfo>& tensorinfo_map,
+    ::google::protobuf::Map<string, TensorProto>* tensor_map) {
   // "instances" array can either be a plain list or list of objects (for named
   // tensors) but not a mix of both. Each object must have one key for each
   // named tensor.
@@ -448,7 +436,6 @@ Status FillPredictRequestFromJson(
   // Each element must yield one tensor of same shape and size. All elements get
   // batched into one tensor with the first dimension equal to the number of
   // elements in the instances array.
-  auto* tensor_map = request->mutable_inputs();
   tensor_map->clear();
   ::google::protobuf::Map<string, int> size_map;
   ::google::protobuf::Map<string, TensorShapeProto> shape_map;
@@ -508,7 +495,92 @@ Status FillPredictRequestFromJson(
     for (const auto& d : shape.dim())
       output_shape->add_dim()->set_size(d.size());
   }
+
   return Status::OK();
+}
+
+Status FillTensorMapFromInputsMap(
+    const rapidjson::Value::MemberIterator& itr,
+    const ::google::protobuf::Map<string, tensorflow::TensorInfo>& tensorinfo_map,
+    ::google::protobuf::Map<string, TensorProto>* tensor_map) {
+  // "inputs" key can hold a value that is one of the following:
+  // - a list or base64 object (when there is only one named input)
+  // - a object of key->value pairs (when there are multiple named inputs)
+  const rapidjson::Value& val = itr->value;
+  if (!val.IsObject() || IsValBase64Object(val)) {
+    if (tensorinfo_map.size() > 1) {
+      return errors::InvalidArgument(
+          "inputs is a plain value/list, but expecting an object as multiple "
+          "input tensors required as per tensorinfo_map");
+    }
+
+    auto* tensor = &(*tensor_map)[tensorinfo_map.begin()->first];
+    tensor->set_dtype(tensorinfo_map.begin()->second.dtype());
+    GetDenseTensorShape(val, tensor->mutable_tensor_shape());
+    int unused_size = 0;
+    TF_RETURN_IF_ERROR(FillTensorProto(val, 0 /* level */, tensor->dtype(),
+                                       &unused_size, tensor));
+  } else {
+    for (const auto& kv : tensorinfo_map) {
+      const auto& name = kv.first;
+      auto item = val.FindMember(name.c_str());
+      if (item == val.MemberEnd()) {
+        return errors::InvalidArgument("Missing named input: ", name,
+                                       " in 'inputs' object.");
+      }
+      const auto dtype = kv.second.dtype();
+      auto* tensor = &(*tensor_map)[name];
+      tensor->set_dtype(dtype);
+      tensor->mutable_tensor_shape()->Clear();
+      GetDenseTensorShape(item->value, tensor->mutable_tensor_shape());
+      int unused_size = 0;
+      TF_RETURN_IF_ERROR(FillTensorProto(item->value, 0 /* level */, dtype,
+                                         &unused_size, tensor));
+    }
+  }
+  return Status::OK();
+}
+
+}  // namespace
+
+Status FillPredictRequestFromJson(
+    const absl::string_view json,
+    const std::function<tensorflow::Status(
+        const string&, ::google::protobuf::Map<string, tensorflow::TensorInfo>*)>&
+        get_tensorinfo_map,
+    PredictRequest* request, JsonPredictRequestFormat* format) {
+  rapidjson::Document doc;
+  *format = JsonPredictRequestFormat::kInvalid;
+  TF_RETURN_IF_ERROR(ParseJson(json, &doc));
+  TF_RETURN_IF_ERROR(FillSignature(doc, request));
+
+  ::google::protobuf::Map<string, tensorflow::TensorInfo> tensorinfo_map;
+  const string& signame = request->model_spec().signature_name();
+  TF_RETURN_IF_ERROR(get_tensorinfo_map(signame, &tensorinfo_map));
+  if (tensorinfo_map.empty()) {
+    return errors::InvalidArgument("Failed to get input map for signature: ",
+                                   signame.empty() ? "DEFAULT" : signame);
+  }
+
+  //
+  // Fill in tensors from either "instances" or "inputs" key.
+  //
+  auto itr_instances = doc.FindMember(kPredictRequestInstancesKey);
+  auto itr_inputs = doc.FindMember(kPredictRequestInputsKey);
+  if (itr_instances != doc.MemberEnd()) {
+    if (itr_inputs != doc.MemberEnd()) return FormatError(doc);
+    if (!itr_instances->value.IsArray()) return FormatError(doc);
+    if (!itr_instances->value.Capacity()) return FormatError(doc);
+    *format = JsonPredictRequestFormat::kRow;
+    return FillTensorMapFromInstancesList(itr_instances, tensorinfo_map,
+                                          request->mutable_inputs());
+  } else if (itr_inputs != doc.MemberEnd()) {
+    if (itr_instances != doc.MemberEnd()) return FormatError(doc);
+    *format = JsonPredictRequestFormat::kColumnar;
+    return FillTensorMapFromInputsMap(itr_inputs, tensorinfo_map,
+                                      request->mutable_inputs());
+  }
+  return errors::InvalidArgument("Missing 'inputs' or 'instances' key");
 }
 
 namespace {
@@ -808,14 +880,8 @@ Status AddTensorValues(const TensorProto& tensor, bool string_as_bytes, int dim,
   return Status::OK();
 }
 
-}  // namespace
-
-Status MakeJsonFromTensors(const ::google::protobuf::Map<string, TensorProto>& tensor_map,
-                           string* json) {
-  if (tensor_map.empty()) {
-    return errors::InvalidArgument("Cannot convert empty tensor map to JSON");
-  }
-
+Status MakeRowFormatJsonFromTensors(
+    const ::google::protobuf::Map<string, TensorProto>& tensor_map, string* json) {
   // Verify if each named tensor has same first dimension. The first dimension
   // is the batchsize and for an output to be consistent, all named tensors must
   // be batched to the same size.
@@ -847,7 +913,7 @@ Status MakeJsonFromTensors(const ::google::protobuf::Map<string, TensorProto>& t
   rapidjson::StringBuffer buffer;
   rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
   writer.StartObject();
-  writer.Key(kPredictResponseKey);
+  writer.Key(kPredictResponsePredictionsKey);
   writer.StartArray();
   const bool elements_are_objects = tensor_map.size() > 1;
   for (int item = 0; item < batch_size; item++) {
@@ -869,6 +935,46 @@ Status MakeJsonFromTensors(const ::google::protobuf::Map<string, TensorProto>& t
   writer.EndObject();
   json->assign(buffer.GetString());
   return Status::OK();
+}
+
+Status MakeColumnarFormatJsonFromTensors(
+    const ::google::protobuf::Map<string, TensorProto>& tensor_map, string* json) {
+  rapidjson::StringBuffer buffer;
+  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+  writer.StartObject();
+  writer.Key(kPredictResponseOutputsKey);
+  const bool elements_are_objects = tensor_map.size() > 1;
+  if (elements_are_objects) writer.StartObject();
+  for (const auto& kv : tensor_map) {
+    const auto& name = kv.first;
+    const auto& tensor = kv.second;
+    if (elements_are_objects) writer.Key(name.c_str());
+    int unused_offset = 0;
+    TF_RETURN_IF_ERROR(AddTensorValues(tensor, IsNamedTensorBytes(name, tensor),
+                                       0, &writer, &unused_offset));
+  }
+  if (elements_are_objects) writer.EndObject();
+  writer.EndObject();
+  json->assign(buffer.GetString());
+  return Status::OK();
+}
+
+}  // namespace
+
+Status MakeJsonFromTensors(const ::google::protobuf::Map<string, TensorProto>& tensor_map,
+                           JsonPredictRequestFormat format, string* json) {
+  if (tensor_map.empty()) {
+    return errors::InvalidArgument("Cannot convert empty tensor map to JSON");
+  }
+
+  switch (format) {
+    case JsonPredictRequestFormat::kInvalid:
+      return errors::InvalidArgument("Invalid request format");
+    case JsonPredictRequestFormat::kRow:
+      return MakeRowFormatJsonFromTensors(tensor_map, json);
+    case JsonPredictRequestFormat::kColumnar:
+      return MakeColumnarFormatJsonFromTensors(tensor_map, json);
+  }
 }
 
 Status MakeJsonFromClassificationResult(const ClassificationResult& result,
