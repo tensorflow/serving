@@ -199,8 +199,8 @@ class RelativePathsServerCoreTest : public ServerCoreTest {
     ModelConfig& relative =
         *result.mutable_model_config_list()->mutable_config(0);
     relative.set_name(strings::StrCat(model_name, "_relative"));
-    const string dirname = Dirname(relative.base_path()).ToString();
-    const string basename = Basename(relative.base_path()).ToString();
+    const string dirname(Dirname(relative.base_path()));
+    const string basename(Basename(relative.base_path()));
     CHECK(!dirname.empty());
     CHECK(!basename.empty());
     relative.set_base_path(basename);
