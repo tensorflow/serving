@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM ubuntu:16.04 as build_env
+FROM nvidia/cuda:9.0-base-ubuntu16.04 as build_env
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=r1.9
 ARG TF_SERVING_VERSION_GIT_COMMIT=head
@@ -20,15 +20,29 @@ LABEL maintainer=srini@karios.com
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
-RUN apt-get update && apt-get install -y \
+ENV NCCL_VERSION=2.2.13
+ENV CUDNN_VERSION=7.1.4.18
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
         automake \
         build-essential \
+        cuda-command-line-tools-9-0 \
+        cuda-cublas-dev-9-0 \
+        cuda-cudart-dev-9-0 \
+        cuda-cufft-dev-9-0 \
+        cuda-curand-dev-9-0 \
+        cuda-cusolver-dev-9-0 \
+        cuda-cusparse-dev-9-0 \
         curl \
         git \
-        libcurl3-dev \
         libfreetype6-dev \
         libpng12-dev \
         libtool \
+        libcudnn7=${CUDNN_VERSION}-1+cuda9.0 \
+        libcudnn7-dev=${CUDNN_VERSION}-1+cuda9.0 \
+        libcurl3-dev \
+        libnccl2=${NCCL_VERSION}-1+cuda9.0 \
+        libnccl-dev=${NCCL_VERSION}-1+cuda9.0 \
         libzmq3-dev \
         mlocate \
         openjdk-8-jdk\
@@ -39,15 +53,20 @@ RUN apt-get update && apt-get install -y \
         python-pip \
         software-properties-common \
         swig \
+        unzip \
         wget \
         zip \
         zlib1g-dev \
         && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    find /usr/local/cuda-9.0/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete && \
+    rm /usr/lib/x86_64-linux-gnu/libcudnn_static_v7.a
 
 # Set up grpc
-RUN pip install mock grpcio
+RUN pip  --no-cache-dir install \
+    mock \
+    grpcio
 
 # Set up Bazel
 # Need >= 0.15.0 so bazel compiles work with docker bind mounts.
@@ -62,6 +81,38 @@ RUN mkdir /bazel && \
     cd / && \
     rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
 
+# Build TensorFlow with the CUDA configuration
+ENV CI_BUILD_PYTHON python
+ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
+ENV TF_NEED_CUDA 1
+ENV TF_CUDA_COMPUTE_CAPABILITIES=3.0,3.5,5.2,6.0,6.1,7.0
+ENV TF_CUDA_VERSION=9.0
+ENV TF_CUDNN_VERSION=7
+
+# Fix paths so that CUDNN can be found: https://github.com/tensorflow/tensorflow/issues/8264
+WORKDIR /
+RUN mkdir /usr/lib/x86_64-linux-gnu/include/ && \
+  ln -s /usr/lib/x86_64-linux-gnu/include/cudnn.h /usr/lib/x86_64-linux-gnu/include/cudnn.h && \
+  ln -s /usr/include/cudnn.h /usr/local/cuda/include/cudnn.h && \
+  ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so /usr/local/cuda/lib64/libcudnn.so && \
+  ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so.${TF_CUDNN_VERSION} /usr/local/cuda/lib64/libcudnn.so.${TF_CUDNN_VERSION}
+
+# NCCL 2.x
+ENV TF_NCCL_VERSION=2
+ENV NCCL_INSTALL_PATH=/usr/lib/nccl/
+
+# Fix paths so that NCCL can be found
+WORKDIR /
+RUN mkdir -p ${NCCL_INSTALL_PATH} && \
+  mkdir ${NCCL_INSTALL_PATH}include/ && \
+  mkdir ${NCCL_INSTALL_PATH}lib/ && \
+  ln -s /usr/include/nccl.h ${NCCL_INSTALL_PATH}include/nccl.h && \
+  ln -s /usr/lib/x86_64-linux-gnu/libnccl.so ${NCCL_INSTALL_PATH}lib/libnccl.so && \
+  ln -s /usr/lib/x86_64-linux-gnu/libnccl.so.${TF_NCCL_VERSION} ${NCCL_INSTALL_PATH}lib/libnccl.so.${TF_NCCL_VERSION}
+
+# Set TMP for nvidia build environment
+ENV TMP="/tmp"
+
 COPY . /tensorflow-serving
 # Download TF Serving sources (optionally at specific commit).
 WORKDIR /tensorflow-serving
@@ -70,16 +121,19 @@ WORKDIR /tensorflow-serving
 ARG TF_SERVING_BUILD_OPTIONS="--copt=-mavx --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0"
 # use "--verbose_failures --local_resources=4096,1.0,1.0" for local build
 ARG TF_SERVING_BAZEL_OPTIONS="--verbose_failures"
-RUN bazel build -c opt --define with_s3_support=true --color=yes --curses=yes \
+RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
+    bazel build -c opt --color=yes --curses=yes --config=cuda \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --output_filter=DONT_MATCH_ANYTHING \
     ${TF_SERVING_BUILD_OPTIONS} \
     tensorflow_serving/model_servers:tensorflow_model_server && \
     cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server /usr/local/bin/ && \
-    bazel clean --expunge --color=yes && \
-    rm -rf /root/.cache
+    rm /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
+    bazel clean --expunge --color=yes
+# Clean up Bazel cache when done.
 
-FROM ubuntu:16.04
+FROM nvidia/cuda:9.0-base-ubuntu16.04
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
