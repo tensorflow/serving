@@ -142,8 +142,7 @@ class ServerCore : public Manager {
 
     // Whether to permit incoming ModelSpec requests to use the 'version_label'
     // field.
-    // TODO(b/65245500): Flip the default to true.
-    bool allow_version_labels = false;
+    bool allow_version_labels = true;
 
     // Logger used for logging requests hitting the server.
     std::unique_ptr<ServerRequestLogger> server_request_logger;
