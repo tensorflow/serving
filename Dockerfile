@@ -44,33 +44,29 @@ RUN apt-get update && apt-get install -y \
         jq \
         gcc \
         software-properties-common \
-        python-dev && \
-        apt-get clean && \
-        apt-get autoremove
+        python-dev \
+        python-pip \
+        && apt-get clean \
+        && apt-get autoremove \
+        && add-apt-repository ppa:ubuntu-toolchain-r/test -y \
+        && apt-get update \
+        && apt-get install -y libstdc++6 \
+        && pip install awscli
 
-RUN add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
-    apt-get update && \
-    apt-get install -y libstdc++6
 
 # Add scripts, in future liveness and readiness scripts too
-ADD scripts/startup.sh startup.sh
+COPY scripts scripts
 COPY --from=build_env /usr/local/bin/tensorflow_model_server /usr/bin/tensorflow_model_server
 
+ENV MODEL_BASE_PATH=/models # Set where models should be stored in the container
+ENV MODEL_NAME=model # The only required piece is the model name in order to differentiate endpoints
+ENV S3_BUCKET="" # if not set, will not sync with s3; e.g.: "s3://mybucket"
 
-RUN chmod +x /usr/bin/tensorflow_model_server
-RUN ls -la /usr/bin/tensorflow_model_server
+RUN \
+    mkdir -p ${MODEL_BASE_PATH} \
+    && chmod +x /usr/bin/tensorflow_model_server scripts/entrypoint.sh \
+    && ls -la /usr/bin/tensorflow_model_server
 
-# Expose ports
-# gRPC
-EXPOSE 8500
-
-# REST
-EXPOSE 8501
-
-# Set where models should be stored in the container
-ENV MODEL_BASE_PATH=/models
-RUN mkdir -p ${MODEL_BASE_PATH}
-
-# The only required piece is the model name in order to differentiate endpoints
-ENV MODEL_NAME=model
-ENTRYPOINT tensorflow_model_server --port=8500 --rest_api_port=8501 --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME}
+EXPOSE 8500 # gRPC
+EXPOSE 8501 # REST
+ENTRYPOINT scripts/entrypoint.sh

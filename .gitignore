@@ -1,3 +1,4 @@
+.idea
 node_modules
 /bazel-bin
 /bazel-ci_build-cache
