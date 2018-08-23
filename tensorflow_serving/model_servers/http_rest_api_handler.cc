@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/model_servers/http_rest_prediction_handler.h"
+#include "tensorflow_serving/model_servers/http_rest_api_handler.h"
 
 #include <string>
 
@@ -39,10 +39,10 @@ namespace serving {
 using tensorflow::serving::ServerCore;
 using tensorflow::serving::TensorflowPredictor;
 
-const char* const HttpRestPredictionHandler::kPathRegex = "(?i)/v1/.*";
+const char* const HttpRestApiHandler::kPathRegex = "(?i)/v1/.*";
 
-HttpRestPredictionHandler::HttpRestPredictionHandler(
-    const RunOptions& run_options, ServerCore* core)
+HttpRestApiHandler::HttpRestApiHandler(const RunOptions& run_options,
+                                       ServerCore* core)
     : run_options_(run_options),
       core_(core),
       predictor_(new TensorflowPredictor(true /* use_saved_model */)),
@@ -50,7 +50,7 @@ HttpRestPredictionHandler::HttpRestPredictionHandler(
           R"((?i)/v1/models/([^/:]+)(?:/versions/(\d+))?:(classify|regress|predict))") {
 }
 
-HttpRestPredictionHandler::~HttpRestPredictionHandler() {}
+HttpRestApiHandler::~HttpRestApiHandler() {}
 
 namespace {
 
@@ -68,7 +68,7 @@ void FillJsonErrorMsg(const string& errmsg, string* output) {
 
 }  // namespace
 
-Status HttpRestPredictionHandler::ProcessRequest(
+Status HttpRestApiHandler::ProcessRequest(
     const absl::string_view http_method, const absl::string_view request_path,
     const absl::string_view request_body,
     std::vector<std::pair<string, string>>* headers, string* output) {
@@ -109,7 +109,7 @@ Status HttpRestPredictionHandler::ProcessRequest(
   return status;
 }
 
-Status HttpRestPredictionHandler::ProcessClassifyRequest(
+Status HttpRestApiHandler::ProcessClassifyRequest(
     const absl::string_view model_name,
     const absl::optional<int64>& model_version,
     const absl::string_view request_body, string* output) {
@@ -129,7 +129,7 @@ Status HttpRestPredictionHandler::ProcessClassifyRequest(
   return Status::OK();
 }
 
-Status HttpRestPredictionHandler::ProcessRegressRequest(
+Status HttpRestApiHandler::ProcessRegressRequest(
     const absl::string_view model_name,
     const absl::optional<int64>& model_version,
     const absl::string_view request_body, string* output) {
@@ -148,7 +148,7 @@ Status HttpRestPredictionHandler::ProcessRegressRequest(
   return Status::OK();
 }
 
-Status HttpRestPredictionHandler::ProcessPredictRequest(
+Status HttpRestApiHandler::ProcessPredictRequest(
     const absl::string_view model_name,
     const absl::optional<int64>& model_version,
     const absl::string_view request_body, string* output) {
@@ -174,7 +174,7 @@ Status HttpRestPredictionHandler::ProcessPredictRequest(
   return Status::OK();
 }
 
-Status HttpRestPredictionHandler::GetInfoMap(
+Status HttpRestApiHandler::GetInfoMap(
     const ModelSpec& model_spec, const string& signature_name,
     ::google::protobuf::Map<string, tensorflow::TensorInfo>* infomap) {
   ServableHandle<SavedModelBundle> bundle;

@@ -12,8 +12,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_SERVING_MODEL_SERVERS_HTTP_REST_PREDICTION_HANDLER_H_
-#define TENSORFLOW_SERVING_MODEL_SERVERS_HTTP_REST_PREDICTION_HANDLER_H_
+#ifndef TENSORFLOW_SERVING_MODEL_SERVERS_HTTP_REST_API_HANDLER_H_
+#define TENSORFLOW_SERVING_MODEL_SERVERS_HTTP_REST_API_HANDLER_H_
 
 #include <memory>
 #include <string>
@@ -37,7 +37,7 @@ class ServerCore;
 class TensorflowPredictor;
 class ModelSpec;
 
-// HttpRestPredictionHandler handles HTTP/REST APIs of TF serving.
+// HttpRestApiHandler handles HTTP/REST APIs of TF serving.
 //
 // Currently supported APIs are as follows:
 //
@@ -57,7 +57,7 @@ class ModelSpec;
 // method.
 //
 // This class is thread safe.
-class HttpRestPredictionHandler {
+class HttpRestApiHandler {
  public:
   // Returns a regex that captures all API paths handled by this handler.
   // Typical use of this method is to register request paths with underlying
@@ -65,11 +65,11 @@ class HttpRestPredictionHandler {
   static const char* const kPathRegex;
 
   // API calls are configured to timeout after `run_optons.timeout_in_ms`.
-  // `core` is not owned and is expected to outlive HttpRestPredictionHandler
+  // `core` is not owned and is expected to outlive HttpRestApiHandler
   // instance.
-  HttpRestPredictionHandler(const RunOptions& run_options, ServerCore* core);
+  HttpRestApiHandler(const RunOptions& run_options, ServerCore* core);
 
-  ~HttpRestPredictionHandler();
+  ~HttpRestApiHandler();
 
   // Process a HTTP request.
   //
@@ -111,4 +111,4 @@ class HttpRestPredictionHandler {
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_SERVING_MODEL_SERVERS_HTTP_REST_PREDICTION_HANDLER_H_
+#endif  // TENSORFLOW_SERVING_MODEL_SERVERS_HTTP_REST_API_HANDLER_H_

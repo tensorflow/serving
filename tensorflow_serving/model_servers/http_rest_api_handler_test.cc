@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/model_servers/http_rest_prediction_handler.h"
+#include "tensorflow_serving/model_servers/http_rest_api_handler.h"
 
 #include <limits>
 #include <string>
@@ -56,7 +56,7 @@ constexpr int kTestModelVersion1 = 123;
 
 using HeaderList = std::vector<std::pair<string, string>>;
 
-class HttpRestPredictionHandlerTest : public ::testing::Test {
+class HttpRestApiHandlerTest : public ::testing::Test {
  public:
   static void SetUpTestCase() {
     TF_ASSERT_OK(CreateServerCore(&server_core_));
@@ -75,7 +75,7 @@ class HttpRestPredictionHandlerTest : public ::testing::Test {
   static void TearDownTestCase() { server_core_.reset(); }
 
  protected:
-  HttpRestPredictionHandlerTest() : handler_(RunOptions(), GetServerCore()) {}
+  HttpRestApiHandlerTest() : handler_(RunOptions(), GetServerCore()) {}
 
   static Status CreateServerCore(std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
@@ -131,13 +131,13 @@ class HttpRestPredictionHandlerTest : public ::testing::Test {
 
   ServerCore* GetServerCore() { return server_core_.get(); }
 
-  HttpRestPredictionHandler handler_;
+  HttpRestApiHandler handler_;
 
  private:
   static std::unique_ptr<ServerCore> server_core_;
 };
 
-std::unique_ptr<ServerCore> HttpRestPredictionHandlerTest::server_core_;
+std::unique_ptr<ServerCore> HttpRestApiHandlerTest::server_core_;
 
 Status CompareJson(const string& json1, const string& json2) {
   rapidjson::Document doc1;
@@ -159,13 +159,13 @@ Status CompareJson(const string& json1, const string& json2) {
   return Status::OK();
 }
 
-TEST_F(HttpRestPredictionHandlerTest, kPathRegex) {
+TEST_F(HttpRestApiHandlerTest, kPathRegex) {
   EXPECT_TRUE(RE2::FullMatch("/v1/models", handler_.kPathRegex));
   EXPECT_FALSE(RE2::FullMatch("/statuspage", handler_.kPathRegex));
   EXPECT_FALSE(RE2::FullMatch("/index", handler_.kPathRegex));
 }
 
-TEST_F(HttpRestPredictionHandlerTest, UnsupportedApiCalls) {
+TEST_F(HttpRestApiHandlerTest, UnsupportedApiCalls) {
   HeaderList headers;
   string output;
   Status status;
@@ -224,7 +224,7 @@ TEST_F(HttpRestPredictionHandlerTest, UnsupportedApiCalls) {
   EXPECT_THAT(status.error_message(), HasSubstr("Failed to convert version"));
 }
 
-TEST_F(HttpRestPredictionHandlerTest, PredictModelNameVersionErrors) {
+TEST_F(HttpRestApiHandlerTest, PredictModelNameVersionErrors) {
   HeaderList headers;
   string output;
   Status status;
@@ -247,7 +247,7 @@ TEST_F(HttpRestPredictionHandlerTest, PredictModelNameVersionErrors) {
   EXPECT_TRUE(errors::IsNotFound(status));
 }
 
-TEST_F(HttpRestPredictionHandlerTest, PredictRequestErrors) {
+TEST_F(HttpRestApiHandlerTest, PredictRequestErrors) {
   HeaderList headers;
   string output;
   Status status;
@@ -274,7 +274,7 @@ TEST_F(HttpRestPredictionHandlerTest, PredictRequestErrors) {
   EXPECT_THAT(status.error_message(), HasSubstr("not of expected type: float"));
 }
 
-TEST_F(HttpRestPredictionHandlerTest, Predict) {
+TEST_F(HttpRestApiHandlerTest, Predict) {
   HeaderList headers;
   string output;
   Status status;
@@ -320,7 +320,7 @@ TEST_F(HttpRestPredictionHandlerTest, Predict) {
                            (HeaderList){{"Content-Type", "application/json"}}));
 }
 
-TEST_F(HttpRestPredictionHandlerTest, Regress) {
+TEST_F(HttpRestApiHandlerTest, Regress) {
   HeaderList headers;
   string output;
   Status status;
@@ -345,7 +345,7 @@ TEST_F(HttpRestPredictionHandlerTest, Regress) {
                            (HeaderList){{"Content-Type", "application/json"}}));
 }
 
-TEST_F(HttpRestPredictionHandlerTest, Classify) {
+TEST_F(HttpRestApiHandlerTest, Classify) {
   HeaderList headers;
   string output;
   Status status;

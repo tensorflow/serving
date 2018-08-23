@@ -157,12 +157,12 @@ cc_test(
 )
 
 cc_test(
-    name = "http_rest_prediction_handler_test",
+    name = "http_rest_api_handler_test",
     size = "medium",
-    srcs = ["http_rest_prediction_handler_test.cc"],
+    srcs = ["http_rest_api_handler_test.cc"],
     data = ["@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two"],
     deps = [
-        ":http_rest_prediction_handler",
+        ":http_rest_api_handler",
         ":model_platform_types",
         ":platform_config_util",
         ":server_core",
@@ -241,7 +241,7 @@ cc_library(
     hdrs = ["http_server.h"],
     visibility = ["//tensorflow_serving:internal"],
     deps = [
-        ":http_rest_prediction_handler",
+        ":http_rest_api_handler",
         ":server_core",
         "//tensorflow_serving/util:threadpool_executor",
         "//tensorflow_serving/util/net_http/server/public:http_server",
@@ -254,9 +254,9 @@ cc_library(
 )
 
 cc_library(
-    name = "http_rest_prediction_handler",
-    srcs = ["http_rest_prediction_handler.cc"],
-    hdrs = ["http_rest_prediction_handler.h"],
+    name = "http_rest_api_handler",
+    srcs = ["http_rest_api_handler.cc"],
+    hdrs = ["http_rest_api_handler.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":server_core",

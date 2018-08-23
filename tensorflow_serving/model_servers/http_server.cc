@@ -20,7 +20,7 @@ limitations under the License.
 #include "re2/re2.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/logging.h"
-#include "tensorflow_serving/model_servers/http_rest_prediction_handler.h"
+#include "tensorflow_serving/model_servers/http_rest_api_handler.h"
 #include "tensorflow_serving/model_servers/http_server.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
@@ -93,10 +93,10 @@ class RequestExecutor final : public net_http::EventExecutor {
 class RestApiRequestDispatcher {
  public:
   RestApiRequestDispatcher(int timeout_in_ms, ServerCore* core)
-      : regex_(HttpRestPredictionHandler::kPathRegex) {
+      : regex_(HttpRestApiHandler::kPathRegex) {
     RunOptions run_options = RunOptions();
     run_options.set_timeout_in_ms(timeout_in_ms);
-    handler_.reset(new HttpRestPredictionHandler(run_options, core));
+    handler_.reset(new HttpRestApiHandler(run_options, core));
   }
 
   net_http::RequestHandler Dispatch(net_http::ServerRequestInterface* req) {
@@ -141,7 +141,7 @@ class RestApiRequestDispatcher {
   }
 
   const RE2 regex_;
-  std::unique_ptr<HttpRestPredictionHandler> handler_;
+  std::unique_ptr<HttpRestApiHandler> handler_;
 };
 
 }  // namespace
