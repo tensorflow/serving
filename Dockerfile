@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM kairosnet/serving-base:latest as build_env
+FROM quay.io/kairosinc/serving-cpu:0.0.2 as build_env
 
 COPY . /tensorflow-serving
 # Download TF Serving sources (optionally at specific commit).
@@ -20,7 +20,7 @@ WORKDIR /tensorflow-serving
 # Build, and install TensorFlow Serving
 ARG TF_SERVING_BUILD_OPTIONS="--copt=-mavx --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0"
 # use "--verbose_failures --local_resources=4096,1.0,1.0" for local build
-ARG TF_SERVING_BAZEL_OPTIONS="--verbose_failures"
+ARG TF_SERVING_BAZEL_OPTIONS="--verbose_failures --local_resources=4096,1.0,1.0"
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
     bazel build -c opt --color=yes --curses=yes --config=cuda \
