@@ -68,6 +68,6 @@ RUN \
     && chmod +x /usr/bin/tensorflow_model_server scripts/entrypoint.sh \
     && ls -la /usr/bin/tensorflow_model_server
 
-EXPOSE 8500 # gRPC
-EXPOSE 8501 # REST
+EXPOSE 8500
+EXPOSE 8501
 ENTRYPOINT scripts/entrypoint.sh
