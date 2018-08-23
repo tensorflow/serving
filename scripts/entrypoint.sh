@@ -1,7 +1,8 @@
 #!/bin/bash
 if [[ $S3_BUCKET ]]; then
-    echo "Syncing with ${S3_BUCKET} to ${MODEL_BASE_PATH} ..."
-    aws s3 sync $S3_BUCKET ${MODEL_BASE_PATH}
+    mkdir -p ${MODEL_BASE_PATH}/${MODEL_NAME}
+    echo "Syncing with ${S3_BUCKET} to ${MODEL_BASE_PATH}/${MODEL_NAME} ..."
+    aws s3 sync $S3_BUCKET ${MODEL_BASE_PATH}/${MODEL_NAME}/
     echo "Sync complete"
 fi
 
