@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_PREDICT_IMPL_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_PREDICT_IMPL_H_
 
+#include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"

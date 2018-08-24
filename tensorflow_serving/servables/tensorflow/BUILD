@@ -429,6 +429,8 @@ cc_library(
         "//tensorflow_serving/model_servers:server_core",
         "//tensorflow_serving/servables/tensorflow:util",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
 )
 
