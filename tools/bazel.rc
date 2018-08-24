@@ -1,3 +1,8 @@
+# Optimizations used for TF Serving release builds.
+build:release --copt=-mavx
+build:release --copt=-msse4.2
+
+# Options used to build with CUDA.
 build:cuda --crosstool_top=@local_config_cuda//crosstool:toolchain
 build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
 
@@ -5,20 +10,27 @@ build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
 # If you would like to use a local MKL instead of downloading, please set the
 # environment variable "TF_MKL_ROOT" every time before build.
 build:mkl --define=using_mkl=true
-build:mkl -c opt
 
 # This config option is used to enable MKL-DNN open source library only,
 # without depending on MKL binary version.
 build:mkl_open_source_only --define=using_mkl_dnn_only=true
 
+# Processor native optimizations (depends on build host capabilities).
+build:nativeopt --copt=-march=native
+build:nativeopt --host_copt=-march=native
+build:nativeopt --copt=-O3
+
 build --action_env PYTHON_BIN_PATH="/usr/bin/python"
 build --define PYTHON_BIN_PATH=/usr/bin/python
 
-build --spawn_strategy=standalone --genrule_strategy=standalone
-test --spawn_strategy=standalone --genrule_strategy=standalone
-run --spawn_strategy=standalone --genrule_strategy=standalone
+build --spawn_strategy=standalone
+build --genrule_strategy=standalone
 
 build --define=grpc_no_ares=true
 
-# TODO(b/69809703): Remove once no longer required for TensorFlow to build.
-build --copt=-DGEMMLOWP_ALLOW_SLOW_SCALAR_FALLBACK
+build -c opt
+
+# Adding --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0" creates parity with TF
+# compilation options. It also addresses memory use due to
+# copy-on-write semantics of std::strings of the older ABI.
+build --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0
