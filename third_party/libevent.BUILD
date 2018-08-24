@@ -54,7 +54,7 @@ genrule(
     outs = include_files + lib_files,
     cmd = "\n".join([
         "export INSTALL_DIR=$$(pwd)/$(@D)/libevent",
-        "export TMP_DIR=$$(mktemp -d -t libevent.XXXXX)",
+        "export TMP_DIR=$$(mktemp -d -t libevent.XXXXXX)",
         "mkdir -p $$TMP_DIR",
         "cp -R $$(pwd)/external/com_github_libevent_libevent/* $$TMP_DIR",
         "cd $$TMP_DIR",
