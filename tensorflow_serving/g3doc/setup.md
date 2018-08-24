@@ -154,29 +154,28 @@ $ tools/bazel_in_docker.sh -d tensorflow/serving:1.10-devel \
 
 ##### Optimized build
 
-It's possible to compile using some platform specific instruction sets (e.g.
-AVX) that may significantly improve performance. Wherever you see 'bazel build'
-in the documentation, simply add the flags you want.
-
-To optimize for all instruction sets your processor supports, you can use the
-`--copt=-march=native` option.
+If you'd like to apply generally recommended optimizations, including utilizing
+platform-specific instruction sets for your processor, you can add
+`--config=nativeopt` to Bazel build commands when building TensorFlow Serving.
 
 For example:
 
 ```shell
-tools/bazel_in_docker.sh bazel build -c opt --copt=-march=native --copt=-O3 \
-  --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" tensorflow_serving/...
+tools/bazel_in_docker.sh bazel build --config=nativeopt tensorflow_serving/...
 ```
 
-For specific instruction sets:
+It's also possible to compile using specific instruction sets (e.g. AVX).
+Wherever you see `bazel build` in the documentation, simply add the
+corresponding flag:
 
-Instruction Set | Flags
---------------- | ----------------
-AVX             | `--copt=mavx`
-AVX2            | `--copt=mavx2`
-FMA             | `--copt=mfma`
-SSE 4.1         | `--copt=msse4.1`
-SSE 4.2         | `--copt=msse4.2`
+Instruction Set            | Flags
+-------------------------- | ----------------------
+AVX                        | `--copt=mavx`
+AVX2                       | `--copt=mavx2`
+FMA                        | `--copt=mfma`
+SSE 4.1                    | `--copt=msse4.1`
+SSE 4.2                    | `--copt=msse4.2`
+All supported by processor | `--copt=-march=native`
 
 Note: These instruction sets are not available on all machines, especially with
 older processors. Use `--copt=-march=native` if you're unsure what you need.
