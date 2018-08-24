@@ -19,7 +19,16 @@ RUN apt-get update && apt-get install -y \
         libcurl3-dev \
         zip \
         unzip \
-        apt-get install -y libstdc++6 \
+        jq \
+        gcc \
+        software-properties-common \
+        python-dev \
+        python-pip \
+        && apt-get clean \
+        && apt-get autoremove \
+        && add-apt-repository ppa:ubuntu-toolchain-r/test -y \
+        && apt-get update \
+        && apt-get install -y libstdc++6 \
         && pip install awscli
 
 # Add scripts, in future liveness and readiness scripts too
