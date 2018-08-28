@@ -41,15 +41,18 @@ class ModelSpec;
 //
 // Currently supported APIs are as follows:
 //
-// o Predict
+// o Inference - Classify/Regress/Predict
 //
-//   Paths:
-//   /v1/models/<model_name>:predict (uses 'latest' version of the model).
-//   /v1/models/<model_name>/versions/<version_number>:predict
+//   POST /v1/models/<model_name>:(classify|regress|predict)
+//   POST /v1/models/<model_name>/versions/<ver>:(classify|regress|predict)
 //
-//   Request/Response format:
-//   https://cloud.google.com/ml-engine/docs/v1/predict-request
+// o Model status
 //
+//   GET /v1/models/<model_name> (status of all versions)
+//   GET /v1/models/<model_name>/versions/<ver> (status of specific version)
+//
+// The API is documented here:
+// tensorflow_serving/g3doc/api_rest.md
 //
 // Users of this class should typically create one instance of it at process
 // startup, register paths defined by kPathRegex with the in-process HTTP
@@ -73,10 +76,6 @@ class HttpRestApiHandler {
 
   // Process a HTTP request.
   //
-  // If `http_method` (e.g. POST) and `request_path` (e.g. /v1/models/m:predict)
-  // match one of the supported APIs, the body (JSON object) is processed and
-  // response (JSON object) is returned in `output` along with output `headers`.
-  //
   // In case of errors, the `headers` and `output` are still relevant as they
   // contain detailed error messages, that can be relayed back to the client.
   Status ProcessRequest(const absl::string_view http_method,
@@ -98,7 +97,9 @@ class HttpRestApiHandler {
                                const absl::optional<int64>& model_version,
                                const absl::string_view request_body,
                                string* output);
-
+  Status ProcessModelStatusRequest(const absl::string_view model_name,
+                                   const absl::string_view model_version_str,
+                                   string* output);
   Status GetInfoMap(const ModelSpec& model_spec, const string& signature_name,
                     ::google::protobuf::Map<string, tensorflow::TensorInfo>* infomap);
 
@@ -106,6 +107,7 @@ class HttpRestApiHandler {
   ServerCore* core_;
   std::unique_ptr<TensorflowPredictor> predictor_;
   const RE2 prediction_api_regex_;
+  const RE2 modelstatus_api_regex_;
 };
 
 }  // namespace serving

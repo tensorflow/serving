@@ -179,19 +179,9 @@ TEST_F(HttpRestApiHandlerTest, UnsupportedApiCalls) {
 
   status = handler_.ProcessRequest("GET", "/v1/models", "", &headers, &output);
   EXPECT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Malformed request"));
+  EXPECT_THAT(status.error_message(), HasSubstr("Missing model name"));
 
   status = handler_.ProcessRequest("POST", "/v1/models", "", &headers, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Malformed request"));
-
-  status =
-      handler_.ProcessRequest("GET", "/v1/models/foo", "", &headers, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Malformed request"));
-
-  status = handler_.ProcessRequest("GET", "/v1/models/foo/version/50", "",
-                                   &headers, &output);
   EXPECT_TRUE(errors::IsInvalidArgument(status));
   EXPECT_THAT(status.error_message(), HasSubstr("Malformed request"));
 
@@ -368,6 +358,52 @@ TEST_F(HttpRestApiHandlerTest, Classify) {
   TF_EXPECT_OK(CompareJson(output, R"({ "results": [[["", 7]]] })"));
   EXPECT_THAT(headers, UnorderedElementsAreArray(
                            (HeaderList){{"Content-Type", "application/json"}}));
+}
+
+TEST_F(HttpRestApiHandlerTest, GetStatus) {
+  HeaderList headers;
+  string output;
+  Status status;
+
+  // Get status for all versions.
+  TF_EXPECT_OK(handler_.ProcessRequest(
+      "GET", absl::StrCat("/v1/models/", kTestModelName), "", &headers,
+      &output));
+  EXPECT_THAT(headers, UnorderedElementsAreArray(
+                           (HeaderList){{"Content-Type", "application/json"}}));
+  TF_EXPECT_OK(CompareJson(output, R"({
+     "model_version_status": [
+      {
+       "version": "123",
+       "state": "AVAILABLE",
+       "status": {
+       "error_code": "OK",
+       "error_message": ""
+       }
+      }
+     ]
+    })"));
+
+  // Get status of specific version.
+  TF_EXPECT_OK(
+      handler_.ProcessRequest("GET",
+                              absl::StrCat("/v1/models/", kTestModelName,
+                                           "/versions/", kTestModelVersion1),
+                              "", &headers, &output));
+  EXPECT_THAT(headers, UnorderedElementsAreArray(
+                           (HeaderList){{"Content-Type", "application/json"}}));
+  TF_EXPECT_OK(CompareJson(output, R"({
+     "model_version_status": [
+      {
+       "version": "123",
+       "state": "AVAILABLE",
+       "status": {
+       "error_code": "OK",
+       "error_message": ""
+       }
+      }
+     ]
+    })"));
 }
 
 }  // namespace

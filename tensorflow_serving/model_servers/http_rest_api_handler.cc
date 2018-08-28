@@ -17,9 +17,11 @@ limitations under the License.
 
 #include <string>
 
+#include "google/protobuf/util/json_util.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_replace.h"
 #include "absl/time/time.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
@@ -27,6 +29,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/core/servable_handle.h"
+#include "tensorflow_serving/model_servers/get_model_status_impl.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/classification_service.h"
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
@@ -36,6 +39,8 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+using protobuf::util::JsonPrintOptions;
+using protobuf::util::MessageToJsonString;
 using tensorflow::serving::ServerCore;
 using tensorflow::serving::TensorflowPredictor;
 
@@ -47,8 +52,9 @@ HttpRestApiHandler::HttpRestApiHandler(const RunOptions& run_options,
       core_(core),
       predictor_(new TensorflowPredictor(true /* use_saved_model */)),
       prediction_api_regex_(
-          R"((?i)/v1/models/([^/:]+)(?:/versions/(\d+))?:(classify|regress|predict))") {
-}
+          R"((?i)/v1/models/([^/:]+)(?:/versions/(\d+))?:(classify|regress|predict))"),
+      modelstatus_api_regex_(
+          R"((?i)/v1/models(?:/([^/:]+))?(?:/versions/(\d+))?)") {}
 
 HttpRestApiHandler::~HttpRestApiHandler() {}
 
@@ -102,7 +108,12 @@ Status HttpRestApiHandler::ProcessRequest(
       status = ProcessPredictRequest(model_name, model_version, request_body,
                                      output);
     }
+  } else if (http_method == "GET" &&
+             RE2::FullMatch(string(request_path), modelstatus_api_regex_,
+                            &model_name, &model_version_str)) {
+    status = ProcessModelStatusRequest(model_name, model_version_str, output);
   }
+
   if (!status.ok()) {
     FillJsonErrorMsg(status.error_message(), output);
   }
@@ -171,6 +182,40 @@ Status HttpRestApiHandler::ProcessPredictRequest(
   TF_RETURN_IF_ERROR(
       predictor_->Predict(run_options_, core_, request, &response));
   TF_RETURN_IF_ERROR(MakeJsonFromTensors(response.outputs(), format, output));
+  return Status::OK();
+}
+
+Status HttpRestApiHandler::ProcessModelStatusRequest(
+    const absl::string_view model_name,
+    const absl::string_view model_version_str, string* output) {
+  GetModelStatusRequest request;
+  // We do not yet support returning status of all models
+  // to be in-sync with the gRPC GetModelStatus API.
+  if (model_name.empty()) {
+    return errors::InvalidArgument("Missing model name in request.");
+  }
+  request.mutable_model_spec()->set_name(string(model_name));
+  if (!model_version_str.empty()) {
+    int64 version;
+    if (!absl::SimpleAtoi(model_version_str, &version)) {
+      return errors::InvalidArgument(
+          "Failed to convert version: ", model_version_str, " to numeric.");
+    }
+    request.mutable_model_spec()->mutable_version()->set_value(version);
+  }
+
+  GetModelStatusResponse response;
+  TF_RETURN_IF_ERROR(
+      GetModelStatusImpl::GetModelStatus(core_, request, &response));
+  JsonPrintOptions opts;
+  opts.add_whitespace = true;
+  opts.always_print_primitive_fields = true;
+  // Note this is protobuf::util::Status (not TF Status) object.
+  const auto& status = MessageToJsonString(response, output, opts);
+  if (!status.ok()) {
+    return errors::Internal("Failed to convert proto to json. Error: ",
+                            status.ToString());
+  }
   return Status::OK();
 }
 

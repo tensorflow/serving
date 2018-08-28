@@ -259,6 +259,7 @@ cc_library(
     hdrs = ["http_rest_api_handler.h"],
     visibility = ["//visibility:public"],
     deps = [
+        ":get_model_status_impl",
         ":server_core",
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/apis:predict_proto",

@@ -1,33 +1,9 @@
 # RESTful API
 
-In addition to [gRPC
-APIs](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/prediction_service.proto)
-TensorFlow ModelServer also supports RESTful APIs for classification, regression
-and prediction on TensorFlow models. This page describes these API endpoints and
-format of request/response involved in using them.
-
-TensorFlow ModelServer running on `host:port` accepts following REST API
-requests:
-
-```
-POST http://host:port/<URI>:<VERB>
-
-URI: /v1/models/${MODEL_NAME}[/versions/${MODEL_VERSION}]
-VERB: classify|regress|predict
-```
-
-`/versions/${MODEL_VERSION}` is optional. If omitted the latest version is used.
-
-This API closely follows the gRPC version of
-[`PredictionService`](https://github.com/tensorflow/serving/blob/5369880e9143aa00d586ee536c12b04e945a977c/tensorflow_serving/apis/prediction_service.proto#L15)
-API.
-
-Examples of request URLs:
-
-```
-http://host:port/v1/models/iris:classify
-http://host:port/v1/models/mnist/versions/314:predict
-```
+In addition to
+[gRPC APIs](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/prediction_service.proto)
+TensorFlow ModelServer also supports RESTful APIs. This page describes these API
+endpoints and an end-to-end [example](#example) on usage.
 
 The request and response is a JSON object. The composition of this object
 depends on the request type or verb. See the API specific sections below for
@@ -42,7 +18,40 @@ In case of error, all APIs will return a JSON object in the response body with
 }
 ```
 
+## Model status API
+
+This API closely follows the
+[`ModelService.GetModelStatus`](https://github.com/tensorflow/serving/blob/5369880e9143aa00d586ee536c12b04e945a977c/tensorflow_serving/apis/model_service.proto#L17)
+gRPC API. It returns the status of a model in the ModelServer.
+
+### URL
+
+```
+GET http://host:port/v1/models/${MODEL_NAME}[/versions/${MODEL_VERSION}]
+```
+
+`/versions/${MODEL_VERSION}` is optional. If omitted status for all versions is
+returned in the response.
+
+### Response format
+
+If successful, returns a JSON representation of
+[`GetModelStatusResponse`](https://github.com/tensorflow/serving/blob/5369880e9143aa00d586ee536c12b04e945a977c/tensorflow_serving/apis/get_model_status.proto#L64)
+protobuf.
+
 ## Classify and Regress API
+
+This API closely follows the `Classify` and `Regress` methods of
+[`PredictionService`](https://github.com/tensorflow/serving/blob/5369880e9143aa00d586ee536c12b04e945a977c/tensorflow_serving/apis/prediction_service.proto#L15)
+gRPC API.
+
+### URL
+
+```
+POST http://host:port/v1/models/${MODEL_NAME}[/versions/${MODEL_VERSION}]:(classify|regress)
+```
+
+`/versions/${MODEL_VERSION}` is optional. If omitted the latest version is used.
 
 ### Request format
 
@@ -127,6 +136,18 @@ Users of gRPC API will notice the similarity of this format with
 `ClassificationResponse` and `RegressionResponse` protos.
 
 ## Predict API
+
+This API closely follows the
+[`PredictionService.Predict`](https://github.com/tensorflow/serving/blob/5369880e9143aa00d586ee536c12b04e945a977c/tensorflow_serving/apis/prediction_service.proto#L23)
+gRPC API.
+
+### URL
+
+```
+POST http://host:port/v1/models/${MODEL_NAME}[/versions/${MODEL_VERSION}]:predict
+```
+
+`/versions/${MODEL_VERSION}` is optional. If omitted the latest version is used.
 
 ### Request format
 
@@ -377,8 +398,27 @@ $ tensorflow_model_server --rest_api_port=8501 \
 
 ### Make REST API calls to ModelServer
 
-In a different terminal, use the `curl` tool to make REST API calls. A `predict`
-call would look as follows:
+In a different terminal, use the `curl` tool to make REST API calls.
+
+Get status of the model as follows:
+
+```
+$ curl http://localhost:8501/v1/models/half_plus_three
+{
+ "model_version_status": [
+  {
+   "version": "123",
+   "state": "AVAILABLE",
+   "status": {
+    "error_code": "OK",
+    "error_message": ""
+   }
+  }
+ ]
+}
+```
+
+A `predict` call would look as follows:
 
 ```shell
 $ curl -d '{"instances": [1.0,2.0,5.0]}' -X POST http://localhost:8501/v1/models/half_plus_three:predict

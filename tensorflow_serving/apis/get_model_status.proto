@@ -63,5 +63,6 @@ message ModelVersionStatus {
 // Response for ModelStatusRequest on successful run.
 message GetModelStatusResponse {
   // Version number and status information for applicable model version(s).
-  repeated ModelVersionStatus model_version_status = 1;
+  repeated ModelVersionStatus model_version_status = 1
+      [json_name = "model_version_status"];
 }

@@ -10,8 +10,8 @@ package tensorflow.serving;
 // third_party/tensorflow/core/lib/core/status.h.
 message StatusProto {
   // Error code.
-  error.Code error_code = 1;
+  error.Code error_code = 1 [json_name = "error_code"];
 
   // Error message. Will only be set if an error was encountered.
-  string error_message = 2;
+  string error_message = 2 [json_name = "error_message"];
 }

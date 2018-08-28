@@ -77,13 +77,15 @@ def WaitForServerReady(port):
         break
 
 
-def CallREST(name, url, req, max_attempts=60):
+def CallREST(url, req, max_attempts=60):
   """Returns HTTP response body from a REST API call."""
   for attempt in range(max_attempts):
     try:
-      print 'Attempt {}: Sending {} request to {} with data:\n{}'.format(
-          attempt, name, url, req)
-      resp = urllib2.urlopen(urllib2.Request(url, data=json.dumps(req)))
+      print 'Attempt {}: Sending request to {} with data:\n{}'.format(
+          attempt, url, req)
+      resp = urllib2.urlopen(
+          urllib2.Request(
+              url, data=json.dumps(req) if req is not None else None))
       resp_data = resp.read()
       print 'Received response:\n{}'.format(resp_data)
       resp.close()
@@ -544,7 +546,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     # Send request
     resp_data = None
     try:
-      resp_data = CallREST('Classify', url, json_req)
+      resp_data = CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
       self.fail('Request failed with error: {}'.format(e))
 
@@ -564,7 +566,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     # Send request
     resp_data = None
     try:
-      resp_data = CallREST('Regress', url, json_req)
+      resp_data = CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
       self.fail('Request failed with error: {}'.format(e))
 
@@ -584,7 +586,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     # Send request
     resp_data = None
     try:
-      resp_data = CallREST('Predict', url, json_req)
+      resp_data = CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
       self.fail('Request failed with error: {}'.format(e))
 
@@ -604,12 +606,41 @@ class TensorflowModelServerTest(tf.test.TestCase):
     # Send request
     resp_data = None
     try:
-      resp_data = CallREST('Predict', url, json_req)
+      resp_data = CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
     self.assertEquals(json.loads(resp_data), {'outputs': [3.0, 3.5, 4.0]})
+
+  def testGetStatusREST(self):
+    """Test ModelStatus implementation over REST API with columnar inputs."""
+    model_path = self._GetSavedModelBundlePath()
+    host, port = TensorflowModelServerTest.RunServer('default',
+                                                     model_path)[2].split(':')
+
+    # Prepare request
+    url = 'http://{}:{}/v1/models/default'.format(host, port)
+
+    # Send request
+    resp_data = None
+    try:
+      resp_data = CallREST(url, None)
+    except Exception as e:  # pylint: disable=broad-except
+      self.fail('Request failed with error: {}'.format(e))
+
+    # Verify response
+    self.assertEquals(
+        json.loads(resp_data), {
+            'model_version_status': [{
+                'version': '123',
+                'state': 'AVAILABLE',
+                'status': {
+                    'error_code': 'OK',
+                    'error_message': ''
+                }
+            }]
+        })
 
 
 if __name__ == '__main__':
