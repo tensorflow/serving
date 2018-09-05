@@ -47,4 +47,9 @@ RUN mkdir -p ${MODEL_BASE_PATH}
 
 # The only required piece is the model name in order to differentiate endpoints
 ENV MODEL_NAME=model
-ENTRYPOINT tensorflow_model_server --port=8500 --rest_api_port=8501 --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME}
+
+# If non-empty, this config file will be used to specify which model(s) to load
+# (note this will ignore MODEL_NAME and MODEL_BASE_PATH).
+ENV MODEL_CONFIG_FILE=""
+
+ENTRYPOINT tensorflow_model_server --port=8500 --rest_api_port=8501 --model_config_file=${MODEL_CONFIG_FILE} --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME}
