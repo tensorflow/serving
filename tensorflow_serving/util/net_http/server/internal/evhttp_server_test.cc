@@ -20,10 +20,10 @@ limitations under the License.
 #include <gtest/gtest.h>
 
 #include "absl/memory/memory.h"
-#include "absl/synchronization/internal/thread_pool.h"
 #include "absl/synchronization/notification.h"
 
 #include "tensorflow_serving/util/net_http/client/evhttp_connection.h"
+#include "tensorflow_serving/util/net_http/internal/fixed_thread_pool.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
 #include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
@@ -33,16 +33,16 @@ namespace serving {
 namespace net_http {
 namespace {
 
-class ThreadPool final : public EventExecutor {
+class MyExecutor final : public EventExecutor {
  public:
-  explicit ThreadPool(int num_threads) : thread_pool_(num_threads) {}
+  explicit MyExecutor(int num_threads) : thread_pool_(num_threads) {}
 
   void Schedule(std::function<void()> fn) override {
     thread_pool_.Schedule(fn);
   }
 
  private:
-  absl::synchronization_internal::ThreadPool thread_pool_;
+  FixedThreadPool thread_pool_;
 };
 
 class EvHTTPServerTest : public ::testing::Test {
@@ -63,7 +63,7 @@ class EvHTTPServerTest : public ::testing::Test {
   void InitServer() {
     auto options = absl::make_unique<ServerOptions>();
     options->AddPort(0);
-    options->SetExecutor(absl::make_unique<ThreadPool>(4));
+    options->SetExecutor(absl::make_unique<MyExecutor>(4));
 
     server = CreateEvHTTPServer(std::move(options));
 
@@ -277,7 +277,7 @@ TEST_F(EvHTTPServerTest, RequestHandlerInteraction) {
   auto connection =
       EvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
-  connection->SetExecutor(absl::make_unique<ThreadPool>(4));
+  connection->SetExecutor(absl::make_unique<MyExecutor>(4));
 
   absl::Notification response_done;
   ClientRequest request = {"/ok", "GET", {}, nullptr};
@@ -320,7 +320,7 @@ TEST_F(EvHTTPServerTest, ActiveRequestCountInShutdown) {
   auto connection =
       EvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
-  connection->SetExecutor(absl::make_unique<ThreadPool>(4));
+  connection->SetExecutor(absl::make_unique<MyExecutor>(4));
 
   ClientRequest request = {"/ok", "GET", {}, nullptr};
   ClientResponse response = {};
