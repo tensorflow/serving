@@ -85,6 +85,22 @@ If we wanted to publish the gRPC port, we would use `-p 8500:8500`. You can have
 both gRPC and REST API ports open at the same time, or choose to only open one
 or the other.
 
+#### Passing additional arguments
+
+`tensorflow_model_server` supports many additional arguments that you could pass
+to the serving docker containers. For example, if we wanted to pass a model
+config file instead of specifying the model name, we could do the following:
+
+```shell
+docker run -p 8500:8500 8501:8501 \
+  --mount type=bind,source=/path/to/my_model/,target=/models/my_model \
+  --mount type=bind,source=/path/to/my/models.config,target=/models/models.config \
+  -t tensorflow/serving --model_config_file=/models/models.config
+```
+
+This approach works for any of the other command line arguments that
+`tensorflow_model_server` supports.
+
 ### Creating your own serving image
 
 If you want a serving image that has your model built into the container, you
