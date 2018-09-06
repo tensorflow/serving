@@ -1,10 +1,7 @@
 # Description: net_http/socket testing utils
 
 package(
-    default_visibility = [
-        "//tensorflow_serving:internal",
-    ],
-    features = ["-layering_check"],
+    default_visibility = ["//visibility:private"],
 )
 
 licenses(["notice"])  # Apache 2.0

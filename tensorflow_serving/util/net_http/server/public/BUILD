@@ -3,8 +3,8 @@
 package(
     default_visibility = [
         "//tensorflow_serving:internal",
+        "//tensorflow_serving/util/net_http:__subpackages__",
     ],
-    features = ["-layering_check"],
 )
 
 licenses(["notice"])  # Apache 2.0

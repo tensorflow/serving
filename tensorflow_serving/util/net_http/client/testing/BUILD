@@ -1,10 +1,7 @@
 # Description: net_http/client/testing
 
 package(
-    default_visibility = [
-        "//tensorflow_serving:internal",
-    ],
-    features = ["-layering_check"],
+    default_visibility = ["//visibility:private"],
 )
 
 licenses(["notice"])  # Apache 2.0

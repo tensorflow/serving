@@ -2,9 +2,8 @@
 
 package(
     default_visibility = [
-        "//tensorflow_serving:internal",
+        "//tensorflow_serving/util/net_http:__subpackages__",
     ],
-    features = ["-layering_check"],
 )
 
 licenses(["notice"])  # Apache 2.0
@@ -34,6 +33,7 @@ cc_test(
     name = "evhttp_server_test",
     size = "medium",
     srcs = ["evhttp_server_test.cc"],
+    features = ["-layering_check"],
     deps = [
         ":evhttp_server",
         "//tensorflow_serving/core/test_util:test_main",
@@ -50,6 +50,7 @@ cc_test(
     name = "evhttp_request_test",
     size = "medium",
     srcs = ["evhttp_request_test.cc"],
+    features = ["-layering_check"],
     deps = [
         ":evhttp_server",
         "//tensorflow_serving/core/test_util:test_main",
