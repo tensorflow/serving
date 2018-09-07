@@ -1,3 +1,35 @@
+# CPU Build instructions
+prerequisite: oen time docker build to get CPU build env; run once for every tensorflow runtime version 
+
+`docker build -t "quay.io/kairosinc/serving-cpu:0.0.1" -f Dockerfile-base-cpu .`
+
+Dockerfile-cpu uses above TFS cpu build environment quay.io/kairosinc/serving-cpu:0.0.1 as base. Buid TF Serving model container using
+
+`docker build -t "quay.io/kairosinc/serving-cpu:latest" -f Dockerfile-cpu .`
+
+Test 
+
+`docker login quay.io`
+
+`docker run --name tfs-cpu -it -e S3_BUCKET=s3://kairosnet-models-dev/models -e AWS_ACCESS_KEY_ID=AKIAJ4SHKRMXJG6AX4FQ -e AWS_SECRET_ACCESS_KEY=<123> quay.io/kairosinc/serving-cpu:latest`
+
+
+# GPU Build instructions
+prerequisite: onn time docker build to get GPU build env; run once for every tensorflow runtime version 
+
+`docker build -t "quay.io/kairosinc/serving-cpu:0.0.2" -f Dockerfile-base .`
+
+Dockerfile uses above TFS gpu build environment quay.io/kairosinc/serving-cpu:0.0.2 as base. Buid TF Serving model container using
+
+`docker build -t "quay.io/kairosinc/serving-cpu:0.0.3" -f Dockerfile .`
+
+Test 
+
+`docker login quay.io`
+
+`docker run --name tfs-gpu -it -e S3_BUCKET=s3://kairosnet-models-dev/models -e AWS_ACCESS_KEY_ID=AKIAJ4SHKRMXJG6AX4FQ -e AWS_SECRET_ACCESS_KEY=<123> quay.io/kairosinc/serving-cpu:0.0.3`
+
+
 # TensorFlow Serving
 
 ![Build Status](https://storage.googleapis.com/tensorflow-serving-kokoro-build-badges/ubuntu.png)
