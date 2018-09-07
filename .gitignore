@@ -1,3 +1,4 @@
+.idea
 node_modules
 /bazel-bin
 /bazel-ci_build-cache
@@ -12,3 +13,4 @@ node_modules
 /third_party/py/numpy/numpy_include
 /util/python/python_include
 /util/python/python_lib
+.history
