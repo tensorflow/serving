@@ -1,6 +1,6 @@
 # TensorFlow Serving
 
-![Ubuntu Build Status](https://storage.googleapis.com/tensorflow-serving-kokoro-build-badges/ubuntu.svg)
+[![Ubuntu Build Status](https://storage.googleapis.com/tensorflow-serving-kokoro-build-badges/ubuntu.svg)](https://storage.googleapis.com/tensorflow-serving-kokoro-build-badges/ubuntu.html)
 ![Docker CPU Nightly Build Status](https://storage.googleapis.com/tensorflow-serving-kokoro-build-badges/docker-cpu-nightly.svg)
 ![Docker GPU Nightly Build Status](https://storage.googleapis.com/tensorflow-serving-kokoro-build-badges/docker-gpu-nightly.svg)
 
