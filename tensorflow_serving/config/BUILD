@@ -89,6 +89,15 @@ serving_proto_library_py(
 )
 
 serving_proto_library(
+    name = "monitoring_config_proto",
+    srcs = ["monitoring_config.proto"],
+    cc_api_version = 2,
+    java_api_version = 2,
+    deps = [
+    ],
+)
+
+serving_proto_library(
     name = "ssl_config_proto",
     srcs = ["ssl_config.proto"],
     cc_api_version = 2,

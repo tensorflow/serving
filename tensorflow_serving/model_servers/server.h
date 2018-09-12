@@ -65,6 +65,7 @@ class Server {
     tensorflow::string ssl_config_file;
     string model_config_file;
     bool enable_model_warmup = true;
+    tensorflow::string monitoring_config_file;
 
     Options();
   };

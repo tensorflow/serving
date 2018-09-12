@@ -14,8 +14,10 @@ limitations under the License.
 ==============================================================================*/
 
 #include <cstdint>
+#include <memory>
 
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "re2/re2.h"
 #include "tensorflow/core/platform/env.h"
@@ -26,6 +28,7 @@ limitations under the License.
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
 #include "tensorflow_serving/util/net_http/server/public/response_code_enum.h"
 #include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
+#include "tensorflow_serving/util/prometheus_exporter.h"
 #include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {
@@ -77,6 +80,35 @@ net_http::HTTPStatusCode ToHTTPStatusCode(const Status& status) {
     case error::Code_INT_MAX_SENTINEL_DO_NOT_USE_:
       return HTTPStatusCode::ERROR;
   }
+}
+
+void ProcessPrometheusRequest(PrometheusExporter* exporter,
+                              const PrometheusConfig& prometheus_config,
+                              net_http::ServerRequestInterface* req) {
+  std::vector<std::pair<string, string>> headers;
+  headers.push_back({"Content-Type", "text/plain"});
+  string output;
+  Status status;
+  // Check if url matches the path.
+  if (req->uri_path() != prometheus_config.path()) {
+    output = absl::StrFormat("Unexpected path: %s. Should be %s",
+                             req->uri_path(), prometheus_config.path());
+    status = Status(error::Code::INVALID_ARGUMENT, output);
+  } else {
+    status = exporter->GeneratePage(&output);
+  }
+  const net_http::HTTPStatusCode http_status = ToHTTPStatusCode(status);
+  // Note: we add headers+output for non successful status too, in case the
+  // output contains details about the error (e.g. error messages).
+  for (const auto& kv : headers) {
+    req->OverwriteResponseHeader(kv.first, kv.second);
+  }
+  req->WriteResponseString(output);
+  if (http_status != net_http::HTTPStatusCode::OK) {
+    VLOG(1) << "Error Processing prometheus metrics request. Error: "
+            << status.ToString();
+  }
+  req->ReplyWithStatus(http_status);
 }
 
 class RequestExecutor final : public net_http::EventExecutor {
@@ -147,7 +179,8 @@ class RestApiRequestDispatcher {
 }  // namespace
 
 std::unique_ptr<net_http::HTTPServerInterface> CreateAndStartHttpServer(
-    int port, int num_threads, int timeout_in_ms, ServerCore* core) {
+    int port, int num_threads, int timeout_in_ms,
+    const MonitoringConfig& monitoring_config, ServerCore* core) {
   auto options = absl::make_unique<net_http::ServerOptions>();
   options->AddPort(static_cast<uint32_t>(port));
   options->SetExecutor(absl::make_unique<RequestExecutor>(num_threads));
@@ -155,6 +188,20 @@ std::unique_ptr<net_http::HTTPServerInterface> CreateAndStartHttpServer(
   auto server = net_http::CreateEvHTTPServer(std::move(options));
   if (server == nullptr) {
     return nullptr;
+  }
+
+  // Register handler for prometheus metric endpoint.
+  if (monitoring_config.prometheus_config().enable()) {
+    std::shared_ptr<PrometheusExporter> exporter =
+        std::make_shared<PrometheusExporter>();
+    net_http::RequestHandlerOptions prometheus_request_options;
+    PrometheusConfig prometheus_config = monitoring_config.prometheus_config();
+    server->RegisterRequestHandler(
+        monitoring_config.prometheus_config().path(),
+        [exporter, prometheus_config](net_http::ServerRequestInterface* req) {
+          ProcessPrometheusRequest(exporter.get(), prometheus_config, req);
+        },
+        prometheus_request_options);
   }
 
   std::shared_ptr<RestApiRequestDispatcher> dispatcher =

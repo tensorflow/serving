@@ -62,6 +62,18 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "prometheus_exporter",
+    srcs = ["prometheus_exporter.cc"],
+    hdrs = ["prometheus_exporter.h"],
+    deps = [
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_googlesource_code_re2//:re2",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
 ###############################################################################
 #                  Internal targets
 ###############################################################################
@@ -83,6 +95,18 @@ cc_test(
         ":observer",
         "//tensorflow_serving/core/test_util:test_main",
         "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "prometheus_exporter_test",
+    size = "small",
+    srcs = ["prometheus_exporter_test.cc"],
+    deps = [
+        ":prometheus_exporter",
+        "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/strings",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

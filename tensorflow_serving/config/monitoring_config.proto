@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+option cc_enable_arenas = true;
+
+// Configuration for Prometheus monitoring.
+message PrometheusConfig {
+  // Whether to expose Prometheus metrics.
+  bool enable = 1;
+
+  // The endpoint to expose Prometheus metrics.
+  // If not specified, PrometheusExporter::kPrometheusPath value is used.
+  string path = 2;
+}
+
+// Configuration for monitoring.
+message MonitoringConfig {
+  PrometheusConfig prometheus_config = 1;
+}

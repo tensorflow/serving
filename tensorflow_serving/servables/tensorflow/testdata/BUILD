@@ -86,4 +86,5 @@ exports_files([
     "good_model_config.txt",
     "bad_model_config.txt",
     "batching_config.txt",
+    "monitoring_config.txt",
 ])

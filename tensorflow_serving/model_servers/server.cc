@@ -36,6 +36,7 @@ limitations under the License.
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
+#include "tensorflow_serving/config/monitoring_config.pb.h"
 #include "tensorflow_serving/config/ssl_config.pb.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
@@ -285,9 +286,15 @@ Status Server::BuildAndStart(const Options& server_options) {
     if (server_options.http_port != server_options.grpc_port) {
       const string server_address =
           "localhost:" + std::to_string(server_options.http_port);
+      MonitoringConfig monitoring_config;
+      if (!server_options.monitoring_config_file.empty()) {
+        monitoring_config = ReadProtoFromFile<MonitoringConfig>(
+            server_options.monitoring_config_file);
+      }
       http_server_ = CreateAndStartHttpServer(
           server_options.http_port, server_options.http_num_threads,
-          server_options.http_timeout_in_ms, server_core_.get());
+          server_options.http_timeout_in_ms, monitoring_config,
+          server_core_.get());
       if (http_server_ != nullptr) {
         LOG(INFO) << "Exporting HTTP/REST API at:" << server_address << " ...";
       } else {

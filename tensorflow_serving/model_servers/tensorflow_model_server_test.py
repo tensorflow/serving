@@ -117,6 +117,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def RunServer(model_name,
                 model_path,
                 model_config_file=None,
+                monitoring_config_file=None,
                 batching_parameters_file=None,
                 grpc_channel_arguments='',
                 wait_for_server_ready=True,
@@ -131,6 +132,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
       model_name: Name of model.
       model_path: Path to model.
       model_config_file: Path to model config file.
+      monitoring_config_file: Path to the monitoring config file.
       batching_parameters_file: Path to batching parameters.
       grpc_channel_arguments: Custom gRPC args for server.
       wait_for_server_ready: Wait for gRPC port to be ready.
@@ -164,6 +166,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
       command += ' --model_base_path=' + model_path
     else:
       raise ValueError('Both model_config_file and model_path cannot be empty!')
+
+    if monitoring_config_file:
+      command += ' --monitoring_config_file=' + monitoring_config_file
 
     if batching_parameters_file:
       command += ' --enable_batching'
@@ -286,6 +291,10 @@ class TensorflowModelServerTest(tf.test.TestCase):
   def _GetBatchingParametersFile(self):
     """Returns a path to a batching configuration file."""
     return os.path.join(self.testdata_dir, 'batching_config.txt')
+
+  def _GetMonitoringConfigFile(self):
+    """Returns a path to a monitoring configuration file."""
+    return os.path.join(self.testdata_dir, 'monitoring_config.txt')
 
   def _VerifyModelSpec(self,
                        actual_model_spec,
@@ -641,6 +650,27 @@ class TensorflowModelServerTest(tf.test.TestCase):
                 }
             }]
         })
+
+  def testPrometheusEndpoint(self):
+    """Test ModelStatus implementation over REST API with columnar inputs."""
+    model_path = self._GetSavedModelBundlePath()
+    host, port = TensorflowModelServerTest.RunServer(
+        'default',
+        model_path,
+        monitoring_config_file=self._GetMonitoringConfigFile())[2].split(':')
+
+    # Prepare request
+    url = 'http://{}:{}/monitoring/prometheus/metrics'.format(host, port)
+
+    # Send request
+    resp_data = None
+    try:
+      resp_data = CallREST(url, None)
+    except Exception as e:  # pylint: disable=broad-except
+      self.fail('Request failed with error: {}'.format(e))
+
+    # Verify that there should be some metric type information.
+    self.assertIn('# TYPE', resp_data)
 
 
 if __name__ == '__main__':

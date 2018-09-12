@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <memory>
 
+#include "tensorflow_serving/config/monitoring_config.pb.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
 
 namespace tensorflow {
@@ -30,7 +31,8 @@ class ServerCore;
 //
 // The returned server is in a state of accepting new requests.
 std::unique_ptr<net_http::HTTPServerInterface> CreateAndStartHttpServer(
-    int port, int num_threads, int timeout_in_ms, ServerCore* core);
+    int port, int num_threads, int timeout_in_ms,
+    const MonitoringConfig& monitoring_config, ServerCore* core);
 
 }  // namespace serving
 }  // namespace tensorflow
