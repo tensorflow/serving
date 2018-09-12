@@ -324,7 +324,7 @@ the test:
 
 ```shell
 cp -r models/mnist/2 models/monitored
-tools/build_in_docker bazel-bin/tensorflow_serving/example/mnist_client \
+tools/bazel_in_docker.sh bazel-bin/tensorflow_serving/example/mnist_client \
   --num_tests=1000 --server=127.0.0.1:8500 --concurrency=10
 ```
 
