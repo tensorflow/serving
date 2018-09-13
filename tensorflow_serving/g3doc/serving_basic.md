@@ -179,8 +179,8 @@ instructions for both the Bazel and PIP options.
 *   **Bazel**:
 
     ```shell
-    tools/build_in_docker.sh bazel build -c opt tensorflow_serving/example:mnist_saved_model
-    tools/build_in_docker.sh bazel-bin/tensorflow_serving/example/mnist_saved_model models/mnist
+    tools/bazel_in_docker.sh bazel build -c opt tensorflow_serving/example:mnist_saved_model
+    tools/bazel_in_docker.sh bazel-bin/tensorflow_serving/example/mnist_saved_model models/mnist
     ```
 
     TIP: Building from sources consumes a lot of RAM. If RAM is an issue on your
