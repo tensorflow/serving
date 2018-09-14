@@ -106,6 +106,7 @@ cc_test(
     deps = [
         ":prometheus_exporter",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/memory",
         "@com_google_absl//absl/strings",
         "@org_tensorflow//tensorflow/core:lib",
     ],
