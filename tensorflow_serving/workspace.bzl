@@ -37,6 +37,17 @@ def tf_serving_workspace():
       actual = "@grpc//third_party/nanopb:nanopb",
   )
 
+  # ===== gzip-hpp dependencies ====
+  native.new_http_archive(
+      name = "com_github_mapbox_gziphpp",
+      urls = [
+          "https://github.com/mapbox/gzip-hpp/archive/v0.1.0.zip"
+      ],
+      sha256 = "e44c89ff6fa5ccb99411dad4a6c47fc84efab5bf13970032af5e67de7f6f09dc",
+      strip_prefix = "gzip-hpp-0.1.0",
+      build_file = "third_party/gzip-hpp.BUILD"
+  )
+
   # ===== RapidJSON (rapidjson.org) dependencies =====
   native.new_http_archive(
       name = "com_github_tencent_rapidjson",

@@ -251,6 +251,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_googlesource_code_re2//:re2",
         "@org_tensorflow//tensorflow/core:lib",
+        "@com_github_mapbox_gziphpp//:gzip"
     ],
 )
 
