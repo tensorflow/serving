@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/util/prometheus_exporter.h"
 
 #include <gtest/gtest.h>
+#include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "tensorflow/core/lib/monitoring/counter.h"
