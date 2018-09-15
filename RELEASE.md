@@ -1,3 +1,24 @@
+# Release 1.11.0-rc0
+
+# Major Features and Improvements
+
+* No major features or improvements
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* Prometheus exporter for TF metrics.=
+* Add new REST API to get status of model(s) from ModelServer
+* Directly import tensor.proto.h (the transitive import will be removed from tensor.h soon)
+* Building optimized TensorFlow Serving binaries is now easier (see https://github.com/tensorflow/serving/g3doc/setup.md)
+* Adds columnar format support for input/output tensors in Predict REST API (fixes #1047)
+* Development Dockerfiles now produce a more optimized ModelServer
+* Fixed TensorFlow Serving API PyPi package overwriting TensorFlow package
+
+
 # Release 1.10.0
 
 # Major Features and Improvements
