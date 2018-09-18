@@ -13,7 +13,7 @@ To get started with TensorFlow Serving:
 * [Set up](setup.md) your environment
 * Do the [basic tutorial](serving_basic.md)
 * Or watch the Talk from TensorFlow Dev Summit 2017:
-<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/q_IkJcPyNl0?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+[![Serving Models in Production with TensorFlow Serving](https://img.youtube.com/vi/q_IkJcPyNl0/0.jpg)](http://www.youtube.com/watch?v=q_IkJcPyNl0)
 
 
 ![TensorFlow Serving Diagram](images/tf_diagram.svg){: width="500"}
