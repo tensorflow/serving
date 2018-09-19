@@ -88,6 +88,16 @@ int main(int argc, char** argv) {
       tensorflow::Flag("model_base_path", &options.model_base_path,
                        "path to export (ignored if --model_config_file flag "
                        "is set, otherwise required)"),
+      tensorflow::Flag("max_num_load_retries", &options.max_num_load_retries,
+                       "maximum number of times it retries loading a model "
+                       "after the first failure, before giving up. "
+                       "If set to 0, a load is attempted only once. "
+                       "Default: 5"),
+      tensorflow::Flag("load_retry_interval_micros",
+                       &options.load_retry_interval_micros,
+                       "The interval, in microseconds, between each servable "
+                       "load retry. If set negative, it doesn't wait. "
+                       "Default: 1 minute"),
       tensorflow::Flag("file_system_poll_wait_seconds",
                        &options.file_system_poll_wait_seconds,
                        "interval in seconds between each poll of the file "
