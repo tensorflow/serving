@@ -244,6 +244,8 @@ Status Server::BuildAndStart(const Options& server_options) {
   options.custom_model_config_loader = &LoadCustomModelConfig;
   options.aspired_version_policy =
       std::unique_ptr<AspiredVersionPolicy>(new AvailabilityPreservingPolicy);
+  options.max_num_load_retries = server_options.max_num_load_retries;
+  options.load_retry_interval_micros = server_options.load_retry_interval_micros;
   options.file_system_poll_wait_seconds =
       server_options.file_system_poll_wait_seconds;
   options.flush_filesystem_caches = server_options.flush_filesystem_caches;
