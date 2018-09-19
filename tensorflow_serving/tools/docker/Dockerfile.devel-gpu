@@ -140,8 +140,21 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
     --output_filter=DONT_MATCH_ANYTHING \
     ${TF_SERVING_BUILD_OPTIONS} \
     tensorflow_serving/model_servers:tensorflow_model_server && \
-    cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server /usr/local/bin/ && \
+    cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server \
+    /usr/local/bin/ && \
     rm /usr/local/cuda/lib64/stubs/libcuda.so.1
+
+# Build and install TensorFlow Serving API
+RUN bazel build --color=yes --curses=yes \
+    ${TF_SERVING_BAZEL_OPTIONS} \
+    --verbose_failures \
+    --output_filter=DONT_MATCH_ANYTHING \
+    ${TF_SERVING_BUILD_OPTIONS} \
+    tensorflow_serving/tools/pip_package:build_pip_package && \
+    bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package \
+    /tmp/pip && \
+    pip --no-cache-dir install --upgrade /tmp/pip/tensorflow_serving*.whl && \
+    rm -rf /tmp/pip
 
 FROM binary_build as clean_build
 # Clean up Bazel cache when done.
