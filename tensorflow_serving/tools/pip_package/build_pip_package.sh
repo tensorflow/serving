@@ -28,6 +28,7 @@ function main() {
     exit 1
   fi
 
+  local BAZEL_PROJECT_DIR="bazel-${PWD##*/}"
   DEST="$1"
   TMPDIR="$(mktemp -d)"
   local PIP_SRC_DIR="tensorflow_serving/tools/pip_package"
@@ -43,10 +44,10 @@ function main() {
   cp bazel-genfiles/tensorflow_serving/apis/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/apis"
 
-  cp bazel-serving/tensorflow_serving/apis/*_pb2.py \
+  cp ${BAZEL_PROJECT_DIR}/tensorflow_serving/apis/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/apis"
 
-  cp bazel-serving/tensorflow_serving/apis/*_grpc.py \
+  cp ${BAZEL_PROJECT_DIR}/tensorflow_serving/apis/*_grpc.py \
     "${TMPDIR}/tensorflow_serving/apis"
 
   cp bazel-genfiles/tensorflow_serving/config/*_pb2.py \
