@@ -217,9 +217,6 @@ Status UpdateModelConfigListRelativePaths(
 
 }  // namespace
 
-constexpr char ServerCore::kStableVersionLabel[];
-constexpr char ServerCore::kCanaryVersionLabel[];
-
 // ************************************************************************
 // Public Methods.
 // ************************************************************************
@@ -459,6 +456,8 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   }
   config_ = new_config;
 
+  TF_RETURN_IF_ERROR(UpdateModelVersionLabelMap());
+
   LOG(INFO) << "Adding/updating models.";
   switch (config_.config_case()) {
     case ModelServerConfig::kModelConfigList: {
@@ -485,6 +484,46 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   if (options_.flush_filesystem_caches) {
     return Env::Default()->FlushFileSystemCaches();
   }
+
+  return Status::OK();
+}
+
+Status ServerCore::UpdateModelVersionLabelMap() {
+  std::unique_ptr<std::map<string, std::map<string, int64>>> new_label_map(
+      new std::map<string, std::map<string, int64>>);
+  for (const ModelConfig& model_config : config_.model_config_list().config()) {
+    ServableStateMonitor::VersionMap serving_states =
+        servable_state_monitor_->GetVersionStates(model_config.name());
+
+    for (const auto& entry : model_config.version_labels()) {
+      const string& label = entry.first;
+      const int64 version = entry.second;
+
+      // Verify that the label points to a version that is currently available.
+      auto serving_states_it = serving_states.find(version);
+      if (serving_states_it == serving_states.end() ||
+          serving_states_it->second.state.manager_state !=
+              ServableState::ManagerState::kAvailable) {
+        return errors::FailedPrecondition(strings::StrCat(
+            "Request to assign label to version ", version, " of model ",
+            model_config.name(),
+            ", which is not currently available for inference"));
+      }
+
+      (*new_label_map)[model_config.name()][label] = version;
+    }
+  }
+
+  if (!options_.allow_version_labels) {
+    if (!new_label_map->empty()) {
+      return errors::FailedPrecondition(
+          "Model version labels are not currently allowed by the server.");
+    }
+    return Status::OK();
+  }
+
+  mutex_lock l(model_labels_to_versions_mu_);
+  model_labels_to_versions_.swap(new_label_map);
 
   return Status::OK();
 }
@@ -709,14 +748,10 @@ Status ServerCore::ServableRequestFromModelSpec(
             "ModelSpec has 'version_label' set, but it is not currently "
             "allowed by the server.");
       }
-      if (model_spec.version_label() == kStableVersionLabel) {
-        *servable_request = ServableRequest::Earliest(model_spec.name());
-      } else if (model_spec.version_label() == kCanaryVersionLabel) {
-        *servable_request = ServableRequest::Latest(model_spec.name());
-      } else {
-        return errors::InvalidArgument(strings::StrCat(
-            "Unrecognized version label: ", model_spec.version_label()));
-      }
+      int64 version;
+      TF_RETURN_IF_ERROR(GetModelVersionForLabel(
+          model_spec.name(), model_spec.version_label(), &version));
+      *servable_request = ServableRequest::Specific(model_spec.name(), version);
       break;
     }
     case ModelSpec::VERSION_CHOICE_NOT_SET: {
@@ -725,6 +760,23 @@ Status ServerCore::ServableRequestFromModelSpec(
     }
   }
   return Status::OK();
+}
+
+Status ServerCore::GetModelVersionForLabel(const string& model_name,
+                                           const string& label,
+                                           int64* version) const {
+  mutex_lock l(model_labels_to_versions_mu_);
+  auto version_map_it = model_labels_to_versions_->find(model_name);
+  if (version_map_it != model_labels_to_versions_->end()) {
+    const std::map<string, int64>& version_map = version_map_it->second;
+    auto version_it = version_map.find(label);
+    if (version_it != version_map.end()) {
+      *version = version_it->second;
+      return Status::OK();
+    }
+  }
+  return errors::InvalidArgument(
+      strings::StrCat("Unrecognized servable version label: ", label));
 }
 
 }  //  namespace serving

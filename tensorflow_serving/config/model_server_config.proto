@@ -48,6 +48,19 @@ message ModelConfig {
   FileSystemStoragePathSourceConfig.ServableVersionPolicy model_version_policy =
       7;
 
+  // String labels to associate with versions of the model, allowing inference
+  // queries to refer to versions by label instead of number. Multiple labels
+  // can map to the same version, but not vice-versa.
+  //
+  // An envisioned use-case for these labels is canarying tentative versions.
+  // For example, one can assign labels "stable" and "canary" to two specific
+  // versions. Perhaps initially "stable" is assigned to version 0 and "canary"
+  // to version 1. Once version 1 passes canary, one can shift the "stable"
+  // label to refer to version 1 (at that point both labels map to the same
+  // version -- version 1 -- which is fine). Later once version 2 is ready to
+  // canary one can move the "canary" label to version 2. And so on.
+  map<string, int64> version_labels = 8;
+
   // Configures logging requests and responses, to the model.
   //
   // (This can be changed once a model is in serving.)
