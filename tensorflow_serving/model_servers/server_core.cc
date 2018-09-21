@@ -552,6 +552,8 @@ FileSystemStoragePathSourceConfig ServerCore::CreateStoragePathSourceConfig(
   FileSystemStoragePathSourceConfig source_config;
   source_config.set_file_system_poll_wait_seconds(
       options_.file_system_poll_wait_seconds);
+  source_config.set_fail_if_zero_versions_at_startup(
+      options_.fail_if_no_model_versions_found);
   for (const auto& model : config.model_config_list().config()) {
     LOG(INFO) << " (Re-)adding model: " << model.name();
     FileSystemStoragePathSourceConfig::ServableToMonitor* servable =

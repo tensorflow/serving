@@ -144,6 +144,11 @@ class ServerCore : public Manager {
     // field.
     bool allow_version_labels = true;
 
+    // If set to true, the server will fail to start up (or fail a config
+    // reload) if, for any configured model, no versions of the model are found
+    // in the file system under the model's base path.
+    bool fail_if_no_model_versions_found = false;
+
     // Logger used for logging requests hitting the server.
     std::unique_ptr<ServerRequestLogger> server_request_logger;
 
