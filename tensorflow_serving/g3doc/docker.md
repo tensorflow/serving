@@ -447,14 +447,14 @@ To create a serving image that's fully optimized for your host, simply:
 
         ```shell
         docker build --pull -t $USER/tensorflow-serving-devel \
-          -f tools/docker/Dockerfile.devel .
+          -f tensorflow_serving/tools/docker/Dockerfile.devel .
         ```
 
     *   For GPU: `
 
         ```shell
         docker build --pull -t $USER/tensorflow-serving-devel-gpu \
-          -f tools/docker/Dockerfile.devel-gpu .
+          -f tensorflow_serving/tools/docker/Dockerfile.devel-gpu .
         ```
 
 3.  Build a serving image with the development image as a base
@@ -464,7 +464,7 @@ To create a serving image that's fully optimized for your host, simply:
         ```shell
         docker build -t $USER/tensorflow-serving \
           --build-arg TF_SERVING_BUILD_IMAGE=$USER/tensorflow-serving-devel \
-          -f tools/docker/Dockerfile .
+          -f tensorflow_serving/tools/docker/Dockerfile .
         ```
 
         Your new optimized Docker image is now `$USER/tensorflow-serving`, which
@@ -476,7 +476,7 @@ To create a serving image that's fully optimized for your host, simply:
         ```shell
         docker build -t $USER/tensorflow-serving-gpu \
           --build-arg TF_SERVING_BUILD_IMAGE=$USER/tensorflow-serving-devel-gpu \
-          -f tools/docker/Dockerfile.gpu .
+          -f tensorflow_serving/tools/docker/Dockerfile.gpu .
         ```
 
         Your new optimized Docker image is now `$USER/tensorflow-serving-gpu`,

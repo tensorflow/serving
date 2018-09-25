@@ -113,7 +113,14 @@ class ServerCore : public Manager {
 
     // Maximum number of times we retry loading a model, after the first
     // failure, before we give up.
+    //
+    // If set to 0, a load is attempted only once.
     int32 max_num_load_retries = 5;
+
+    // The interval, in microseconds, between each servable load retry. If set
+    // negative, we don't wait.
+    // Default: 1 minute.
+    int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
 
     // Time interval between file-system polls, in seconds.
     int32 file_system_poll_wait_seconds = 30;
