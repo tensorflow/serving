@@ -30,8 +30,8 @@ pip_install()
 
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "983770f59db24b9b0d309c81c9f546b1e9785c9d2e97f8813fb07d30943d92f6",
-    git_commit = "7229d08f0b25e24e6dd4833a94a27f404b27a350",
+    sha256 = "1575679875c65cdeaab2e45f56df7acf485e5238300c0c78646066afccadf304",
+    git_commit = "df930015230c1195065e2fd01c61f527b8662efb",
 )
 
 # TensorFlow depends on "io_bazel_rules_closure" so we need this here.
