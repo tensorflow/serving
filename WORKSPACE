@@ -9,10 +9,29 @@ workspace(name = "tf_serving")
 #    reliable downloads.
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 
+# TensorFlow depends on "io_bazel_rules_python" so we need this here.
+# Needs to be kept in sync with the same target in TensorFlow's WORKSPACE file.
+http_archive(
+    name = "io_bazel_rules_python",
+    strip_prefix = "rules_python-8b5d0683a7d878b28fffe464779c8a53659fc645",
+    urls = [
+        "https://github.com/bazelbuild/rules_python/archive/8b5d0683a7d878b28fffe464779c8a53659fc645.tar.gz",
+    ],
+)
+load("@io_bazel_rules_python//python:pip.bzl", "pip_repositories")
+pip_repositories()
+load("@io_bazel_rules_python//python:pip.bzl", "pip_import")
+pip_import(
+    name = "pip_deps",
+    requirements = "//tensorflow_serving:requirements.txt",
+)
+load("@pip_deps//:requirements.bzl", "pip_install")
+pip_install()
+
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "1101892c13cfad4611c61b9d646a8f71e55042a0424cb7806595c8ac61e9a9ed",
-    git_commit = "7af35581b64b7811b2e70f672d1e824886eac16f",
+    sha256 = "983770f59db24b9b0d309c81c9f546b1e9785c9d2e97f8813fb07d30943d92f6",
+    git_commit = "7229d08f0b25e24e6dd4833a94a27f404b27a350",
 )
 
 # TensorFlow depends on "io_bazel_rules_closure" so we need this here.
@@ -26,6 +45,7 @@ http_archive(
         "https://github.com/bazelbuild/rules_closure/archive/dbb96841cc0a5fb2664c37822803b06dab20c7d1.tar.gz",  # 2018-04-13
     ],
 )
+
 
 # Please add all new TensorFlow Serving dependencies in workspace.bzl.
 load("//tensorflow_serving:workspace.bzl", "tf_serving_workspace")
