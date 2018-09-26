@@ -9,25 +9,6 @@ workspace(name = "tf_serving")
 #    reliable downloads.
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 
-# TensorFlow depends on "io_bazel_rules_python" so we need this here.
-# Needs to be kept in sync with the same target in TensorFlow's WORKSPACE file.
-http_archive(
-    name = "io_bazel_rules_python",
-    strip_prefix = "rules_python-8b5d0683a7d878b28fffe464779c8a53659fc645",
-    urls = [
-        "https://github.com/bazelbuild/rules_python/archive/8b5d0683a7d878b28fffe464779c8a53659fc645.tar.gz",
-    ],
-)
-load("@io_bazel_rules_python//python:pip.bzl", "pip_repositories")
-pip_repositories()
-load("@io_bazel_rules_python//python:pip.bzl", "pip_import")
-pip_import(
-    name = "pip_deps",
-    requirements = "//tensorflow_serving:requirements.txt",
-)
-load("@pip_deps//:requirements.bzl", "pip_install")
-pip_install()
-
 tensorflow_http_archive(
     name = "org_tensorflow",
     sha256 = "30a481c90506df66a1c5feffe6446a9eeec75efff765c94d8c5c3a22143f39a2",
@@ -45,7 +26,6 @@ http_archive(
         "https://github.com/bazelbuild/rules_closure/archive/dbb96841cc0a5fb2664c37822803b06dab20c7d1.tar.gz",  # 2018-04-13
     ],
 )
-
 
 # Please add all new TensorFlow Serving dependencies in workspace.bzl.
 load("//tensorflow_serving:workspace.bzl", "tf_serving_workspace")
