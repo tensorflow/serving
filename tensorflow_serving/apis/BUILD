@@ -27,7 +27,6 @@ serving_proto_library(
     name = "get_model_metadata_proto",
     srcs = ["get_model_metadata.proto"],
     cc_api_version = 2,
-    java_api_version = 2,
     deps = [
         ":model_proto",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -49,7 +48,6 @@ serving_proto_library(
     name = "input_proto",
     srcs = ["input.proto"],
     cc_api_version = 2,
-    java_api_version = 2,
     js_api_version = 2,
     deps = [
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -80,7 +78,6 @@ serving_proto_library(
     name = "model_proto",
     srcs = ["model.proto"],
     cc_api_version = 2,
-    java_api_version = 2,
     js_api_version = 2,
     deps = [
         "@protobuf_archive//:cc_wkt_protos",
@@ -109,7 +106,6 @@ serving_proto_library(
     name = "predict_proto",
     srcs = ["predict.proto"],
     cc_api_version = 2,
-    java_api_version = 2,
     deps = [
         ":model_proto",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -135,7 +131,6 @@ serving_proto_library(
     name = "prediction_log_proto",
     srcs = ["prediction_log.proto"],
     cc_api_version = 2,
-    java_api_version = 2,
     deps = [
         ":classification_proto",
         ":inference_proto",
@@ -166,7 +161,6 @@ serving_proto_library(
     has_services = 1,
     cc_api_version = 2,
     cc_grpc_version = 1,
-    java_api_version = 2,
     deps = [
         ":classification_proto",
         ":get_model_metadata_proto",
@@ -208,7 +202,6 @@ serving_proto_library(
     name = "model_management_proto",
     srcs = ["model_management.proto"],
     cc_api_version = 2,
-    java_api_version = 2,
     deps = [
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/util:status_proto",
@@ -229,7 +222,6 @@ serving_proto_library(
     name = "get_model_status_proto",
     srcs = ["get_model_status.proto"],
     cc_api_version = 2,
-    java_api_version = 2,
     deps = [
         ":model_proto",
         "//tensorflow_serving/util:status_proto",
@@ -252,7 +244,6 @@ serving_proto_library(
     has_services = 1,
     cc_api_version = 2,
     cc_grpc_version = 1,
-    java_api_version = 2,
     deps = [
         ":get_model_status_proto",
         ":model_management_proto",
@@ -282,7 +273,6 @@ serving_proto_library(
     name = "classification_proto",
     srcs = ["classification.proto"],
     cc_api_version = 2,
-    java_api_version = 2,
     deps = [
         ":input_proto",
         ":model_proto",
@@ -315,7 +305,6 @@ serving_proto_library(
     name = "inference_proto",
     srcs = ["inference.proto"],
     cc_api_version = 2,
-    java_api_version = 2,
     deps = [
         ":classification_proto",
         ":input_proto",
@@ -346,7 +335,6 @@ serving_proto_library(
     name = "regression_proto",
     srcs = ["regression.proto"],
     cc_api_version = 2,
-    java_api_version = 2,
     deps = [
         ":input_proto",
         ":model_proto",
@@ -374,7 +362,6 @@ serving_proto_library(
     srcs = ["session_service.proto"],
     has_services = 1,
     cc_api_version = 2,
-    java_api_version = 2,
     deps = [
         ":model_proto",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
