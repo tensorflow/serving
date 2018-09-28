@@ -1,0 +1,24 @@
+toc:
+- heading: TensorFlow Serving
+- title: "Introduction"
+  path: /serving/
+- title: "Architecture Overview"
+  path: /serving/architecture_overview
+- title: "Installation"
+  path: /serving/setup
+- title: "Serving a TensorFlow Model"
+  path: /serving/serving_basic
+- title: "RESTful API"
+  path: /serving/api_rest
+- title: "Building Standard TensorFlow ModelServer"
+  path: /serving/serving_advanced
+- title: "Serving Inception Model with TensorFlow Serving and Kubernetes"
+  path: /serving/serving_inception
+- title: "Creating a new kind of servable"
+  path: /serving/custom_servable
+- title: "Creating a module that discovers new servable paths"
+  path: /serving/custom_source
+- title: "SignatureDefs in SavedModel for TensorFlow Serving"
+  path: /serving/signature_defs
+- title: "Using TensorFlow Serving via Docker"
+  path: /serving/docker
