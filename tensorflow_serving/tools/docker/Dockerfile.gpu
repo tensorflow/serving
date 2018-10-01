@@ -32,6 +32,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# The 'apt-get install' of nvinfer-runtime-trt-repo-ubuntu1604-4.0.1-ga-cuda9.0
+# adds a new list which contains libnvinfer library, so it needs another
+# 'apt-get update' to retrieve that list before it can actually install the
+# library.
+# We don't install libnvinfer-dev since we don't need to build against TensorRT,
+# and libnvinfer4 doesn't contain libnvinfer.a static library.
+RUN apt-get update && \
+    apt-get install --no-install-recommends \
+        nvinfer-runtime-trt-repo-ubuntu1604-4.0.1-ga-cuda9.0 && \
+    apt-get update && \
+    apt-get install --no-install-recommends libnvinfer4=4.1.2-1+cuda9.0 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    rm /usr/lib/x86_64-linux-gnu/libnvinfer_plugin* && \
+    rm /usr/lib/x86_64-linux-gnu/libnvcaffe_parser* && \
+    rm /usr/lib/x86_64-linux-gnu/libnvparsers*
+
 # Install TF Serving GPU pkg
 COPY --from=build_image /usr/local/bin/tensorflow_model_server /usr/bin/tensorflow_model_server
 
