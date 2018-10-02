@@ -403,7 +403,7 @@ cc_test(
     deps = [
         ":servable_state_monitor",
         "//tensorflow_serving/core/test_util:test_main",
-        "@org_tensorflow//tensorflow/contrib/batching/test_util:fake_clock_env",
+        "@org_tensorflow//tensorflow/core/kernels/batching_util:fake_clock_env",
     ],
 )
 
@@ -503,8 +503,8 @@ cc_library(
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:observer",
         "//tensorflow_serving/util:optional",
-        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function_dynamic",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core/kernels/batching_util:periodic_function_dynamic",
     ],
 )
 

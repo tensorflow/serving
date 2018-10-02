@@ -18,7 +18,7 @@ limitations under the License.
 #include <limits>
 
 #include <gtest/gtest.h>
-#include "tensorflow/contrib/batching/test_util/fake_clock_env.h"
+#include "tensorflow/core/kernels/batching_util/fake_clock_env.h"
 #include "tensorflow/core/lib/core/error_codes.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"

@@ -94,8 +94,8 @@ cc_test(
     deps = [
         ":observer",
         "//tensorflow_serving/core/test_util:test_main",
-        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core/kernels/batching_util:periodic_function",
     ],
 )
 
@@ -119,7 +119,7 @@ cc_test(
     deps = [
         ":event_bus",
         "//tensorflow_serving/core/test_util:test_main",
-        "@org_tensorflow//tensorflow/contrib/batching/test_util:fake_clock_env",
+        "@org_tensorflow//tensorflow/core/kernels/batching_util:fake_clock_env",
     ],
 )
 
@@ -148,10 +148,10 @@ cc_test(
     srcs = ["fast_read_dynamic_ptr_benchmark.cc"],
     deps = [
         ":fast_read_dynamic_ptr",
-        "@org_tensorflow//tensorflow/contrib/batching/util:periodic_function",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core/kernels/batching_util:periodic_function",
     ],
 )
 

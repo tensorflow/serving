@@ -23,7 +23,7 @@ limitations under the License.
 #include <string>
 #include <utility>
 
-#include "tensorflow/contrib/batching/batch_scheduler.h"
+#include "tensorflow/core/kernels/batching_util/batch_scheduler.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"

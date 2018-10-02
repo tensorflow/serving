@@ -38,7 +38,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 
-#include "tensorflow/contrib/batching/util/periodic_function.h"
+#include "tensorflow/core/kernels/batching_util/periodic_function.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/threadpool.h"
 #include "tensorflow/core/platform/env.h"
