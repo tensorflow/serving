@@ -126,16 +126,16 @@ RUN mkdir /usr/lib/x86_64-linux-gnu/include/ && \
 
 # NCCL 2.x
 ENV TF_NCCL_VERSION=2
-ENV NCCL_INSTALL_PATH=/usr/lib/nccl/
+ENV NCCL_INSTALL_PATH=/usr/lib/nccl/lib
+ENV NCCL_HDR_PATH=/usr/lib/nccl/include
 
 # Fix paths so that NCCL can be found
 WORKDIR /
 RUN mkdir -p ${NCCL_INSTALL_PATH} && \
-  mkdir ${NCCL_INSTALL_PATH}include/ && \
-  mkdir ${NCCL_INSTALL_PATH}lib/ && \
-  ln -s /usr/include/nccl.h ${NCCL_INSTALL_PATH}include/nccl.h && \
-  ln -s /usr/lib/x86_64-linux-gnu/libnccl.so ${NCCL_INSTALL_PATH}lib/libnccl.so && \
-  ln -s /usr/lib/x86_64-linux-gnu/libnccl.so.${TF_NCCL_VERSION} ${NCCL_INSTALL_PATH}lib/libnccl.so.${TF_NCCL_VERSION}
+  mkdir -p ${NCCL_HDR_PATH} && \
+  ln -s /usr/include/nccl.h ${NCCL_HDR_PATH}/nccl.h && \
+  ln -s /usr/lib/x86_64-linux-gnu/libnccl.so ${NCCL_INSTALL_PATH}/libnccl.so && \
+  ln -s /usr/lib/x86_64-linux-gnu/libnccl.so.${TF_NCCL_VERSION} ${NCCL_INSTALL_PATH}/libnccl.so.${TF_NCCL_VERSION}
 
 # Set TMP for nvidia build environment
 ENV TMP="/tmp"
