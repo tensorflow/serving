@@ -338,7 +338,7 @@ We currently maintain the following Dockerfiles:
 *   [`Dockerfile`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile),
     which is a minimal VM with TensorFlow Serving installed.
 
-*   [`Dockerfile.gpu`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile),
+*   [`Dockerfile.gpu`](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.gpu),
     which is a minimal VM with TensorFlow Serving with GPU support to be used
     with `nvidia-docker`.
 
