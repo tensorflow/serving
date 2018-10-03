@@ -77,6 +77,8 @@ constexpr char kBase64Key[] = "b64";
 // Suffix for name of tensors that represent bytes (as opposed to strings).
 constexpr char kBytesTensorNameSuffix[] = "_bytes";
 
+using RapidJsonWriter = rapidjson::PrettyWriter<rapidjson::StringBuffer>;
+
 string JsonTypeString(const rapidjson::Value& val) {
   switch (val.GetType()) {
     case rapidjson::kNullType:
@@ -96,12 +98,57 @@ string JsonTypeString(const rapidjson::Value& val) {
   }
 }
 
+template <typename dtype>
+bool WriteDecimal(RapidJsonWriter* writer, dtype val) {
+  static_assert(
+      std::is_same<dtype, float>::value || std::is_same<dtype, double>::value,
+      "Only floating-point value types are supported.");
+  // We do not use native writer->Double() API as float -> double conversion
+  // causes noise digits to be added (due to the way floating point numbers are
+  // generally represented in binary, nothing to do with the API itself). So a
+  // float value of 0.2 can get written out as 0.2000000012322 (or some such).
+  //
+  // To get around this, we write the string representation of the float number
+  // as a raw JSON value (annotated as kNumberType, to ensure JSON does not
+  // quote the string).
+  string decimal_str;
+  if (std::isfinite(val)) {
+    decimal_str = absl::StrCat(val);
+    // Add trailing '.0' for whole numbers and those not in scientific notation.
+    // StrCat() formats numbers in six-digit (printf "%g"), numbers like 9000000
+    // and .00003 get written as 9e+06 and 3e-05 (scientific notation).
+    //
+    // Not adding '.0' can lead to lists containing mix of decimal and whole
+    // numbers -- making it difficult for consumers to pick the correct type to
+    // store these numbers (note, JSON does not have metadata to describe types.
+    // These are inferred from the tokens).
+    if (decimal_str.find('.') == string::npos &&
+        decimal_str.find('e') == string::npos) {
+      absl::StrAppend(&decimal_str, ".0");
+    }
+  } else if (std::isnan(val)) {
+    decimal_str = "NaN";
+  } else if (std::isinf(val)) {
+    decimal_str = std::signbit(val) ? "-Infinity" : "Infinity";
+  }
+  return writer->RawValue(decimal_str.c_str(), decimal_str.size(),
+                          rapidjson::kNumberType);
+}
+
 // Stringify JSON value (only for use in error reporting or debugging).
 string JsonValueToString(const rapidjson::Value& val) {
   // TODO(b/67042542): Truncate large values.
   rapidjson::StringBuffer buffer;
-  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-  val.Accept(writer);
+  RapidJsonWriter writer(buffer);
+  // Write decimal numbers explicitly so inf/nan's get printed
+  // correctly. RapidJsonWriter() does not write these correctly.
+  if (val.IsFloat()) {
+    WriteDecimal(&writer, val.GetFloat());
+  } else if (val.IsDouble()) {
+    WriteDecimal(&writer, val.GetDouble());
+  } else {
+    val.Accept(writer);
+  }
   return buffer.GetString();
 }
 
@@ -153,19 +200,24 @@ Status FormatSignatureError(const rapidjson::Value& val) {
       " not formatted correctly. 'signature_name' key must be a string value.");
 }
 
-Status FloatRangeError(const rapidjson::Value& val, const string& context) {
-  return errors::InvalidArgument("JSON value: ", val.GetDouble(),
-                                 " is out of range for float. ", context,
-                                 " expects float type.");
+Status LossyDecimalError(const rapidjson::Value& val, const string& target) {
+  return errors::InvalidArgument(
+      "Cannot convert JSON value: ", JsonValueToString(val), " to ", target,
+      " without loss of precision.");
 }
 
-bool OutOfFloatRange(const rapidjson::Value& val) {
-  // Note, JSON specification (RFC4627) does not have a way to represent
-  // non-finite (NaN, -Inf, Inf) numbers unless we loosen the parsing (which
-  // we do not presently). The isfinite() is a defensive check for the parser.
-  return std::isfinite(val.GetDouble()) &&
-         (val.GetDouble() > std::numeric_limits<float>::max() ||
-          val.GetDouble() < std::numeric_limits<float>::lowest());
+template <typename T>
+bool IsLosslessDecimal(const rapidjson::Value& val) {
+  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
+                "Only floating-point value types are supported.");
+
+  // Note, we use GetDouble() for both types as std::isfinite() returns false
+  // for decimal values that do not fit in float (due to the static_cast<> used
+  // in converting double to float in GetFloat() call).
+  if (!std::isfinite(val.GetDouble())) return true;
+
+  if (std::is_same<T, float>::value) return val.IsLosslessFloat();
+  return val.IsLosslessDouble();
 }
 
 // Adds a JSON value to Tensor. Returns error if value cannot be converted
@@ -176,13 +228,18 @@ Status AddValueToTensor(const rapidjson::Value& val, DataType dtype,
                         TensorProto* tensor) {
   switch (dtype) {
     case DT_FLOAT:
-      if (!val.IsDouble()) return TypeError(val, dtype);
-      if (OutOfFloatRange(val)) return FloatRangeError(val, "Tensor");
-      tensor->add_float_val(val.GetDouble());
+      if (!val.IsNumber()) return TypeError(val, dtype);
+      if (!IsLosslessDecimal<float>(val)) {
+        return LossyDecimalError(val, "float");
+      }
+      tensor->add_float_val(val.GetFloat());
       break;
 
     case DT_DOUBLE:
-      if (!val.IsDouble()) return TypeError(val, dtype);
+      if (!val.IsNumber()) return TypeError(val, dtype);
+      if (!IsLosslessDecimal<double>(val)) {
+        return LossyDecimalError(val, "double");
+      }
       tensor->add_double_val(val.GetDouble());
       break;
 
@@ -655,10 +712,10 @@ Status AddValueToFeature(const rapidjson::Value& val,
         if (!IsFeatureOfKind(*feature, Feature::KindCase::kFloatList)) {
           return IncompatibleFeatureKindError(feature_name, *feature);
         }
-        if (OutOfFloatRange(val)) {
-          return FloatRangeError(val, "Example");
+        if (!IsLosslessDecimal<float>(val)) {
+          return LossyDecimalError(val, "float");
         }
-        feature->mutable_float_list()->add_value(val.GetDouble());
+        feature->mutable_float_list()->add_value(val.GetFloat());
       } else {
         if (!IsFeatureOfKind(*feature, Feature::KindCase::kInt64List)) {
           return IncompatibleFeatureKindError(feature_name, *feature);
@@ -744,7 +801,6 @@ Status FillRegressionRequestFromJson(const absl::string_view json,
 
 namespace {
 
-using RapidJsonWriter = rapidjson::PrettyWriter<rapidjson::StringBuffer>;
 
 bool IsNamedTensorBytes(const string& name, const TensorProto& tensor) {
   // TODO(b/67042542): Is DT_STRING the only way to represent bytes?
@@ -756,42 +812,6 @@ bool IsNamedTensorBytes(const string& name, const TensorProto& tensor) {
          absl::EndsWith(name, kBytesTensorNameSuffix);
 }
 
-template <typename dtype>
-bool WriteDecimal(RapidJsonWriter* writer, dtype val) {
-  static_assert(
-      std::is_same<dtype, float>::value || std::is_same<dtype, double>::value,
-      "Only floating-point value types are supported.");
-  // We do not use native writer->Double() API as float -> double conversion
-  // causes noise digits to be added (due to the way floating point numbers are
-  // generally represented in binary, nothing to do with the API itself). So a
-  // float value of 0.2 can get written out as 0.2000000012322 (or some such).
-  //
-  // To get around this, we write the string representation of the float number
-  // as a raw JSON value (annotated as kNumberType, to ensure JSON does not
-  // quote the string).
-  string decimal_str;
-  if (std::isfinite(val)) {
-    decimal_str = absl::StrCat(val);
-    // Add trailing '.0' for whole numbers and those not in scientific notation.
-    // StrCat() formats numbers in six-digit (printf "%g"), numbers like 9000000
-    // and .00003 get written as 9e+06 and 3e-05 (scientific notation).
-    //
-    // Not adding '.0' can lead to lists containing mix of decimal and whole
-    // numbers -- making it difficult for consumers to pick the correct type to
-    // store these numbers (note, JSON does not have metadata to describe types.
-    // These are inferred from the tokens).
-    if (decimal_str.find('.') == string::npos &&
-        decimal_str.find('e') == string::npos) {
-      absl::StrAppend(&decimal_str, ".0");
-    }
-  } else if (std::isnan(val)) {
-    decimal_str = "NaN";
-  } else if (std::isinf(val)) {
-    decimal_str = std::signbit(val) ? "-Infinity" : "Infinity";
-  }
-  return writer->RawValue(decimal_str.c_str(), decimal_str.size(),
-                          rapidjson::kNumberType);
-}
 
 Status AddSingleValueAndAdvance(const TensorProto& tensor, bool string_as_bytes,
                                 RapidJsonWriter* writer, int* offset) {

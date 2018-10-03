@@ -81,6 +81,58 @@ TEST(JsontensorTest, SingleUnnamedTensor) {
     )"));
 }
 
+TEST(JsontensorTest, IntegerInputForFloatTensor) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_FLOAT", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  TF_EXPECT_OK(FillPredictRequestFromJson(R"(
+    {
+      "instances": [1, 2, 3, 4, 5]
+    })",
+                                          getmap(infomap), &req, &format));
+  auto tmap = req.inputs();
+  EXPECT_EQ(tmap.size(), 1);
+  EXPECT_EQ(format, JsonPredictRequestFormat::kRow);
+  EXPECT_THAT(tmap["default"], EqualsProto(R"(
+                dtype: DT_FLOAT
+                tensor_shape { dim { size: 5 } }
+                float_val: 1
+                float_val: 2
+                float_val: 3
+                float_val: 4
+                float_val: 5
+              )"));
+}
+
+TEST(JsontensorTest, IntegerInputForDoubleTensor) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_DOUBLE", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  TF_EXPECT_OK(FillPredictRequestFromJson(R"(
+    {
+      "instances": [1, 2, 3, 4, 5]
+    })",
+                                          getmap(infomap), &req, &format));
+  auto tmap = req.inputs();
+  EXPECT_EQ(tmap.size(), 1);
+  EXPECT_EQ(format, JsonPredictRequestFormat::kRow);
+  EXPECT_THAT(tmap["default"], EqualsProto(R"(
+                dtype: DT_DOUBLE
+                tensor_shape { dim { size: 5 } }
+                double_val: 1
+                double_val: 2
+                double_val: 3
+                double_val: 4
+                double_val: 5
+              )"));
+}
+
 TEST(JsontensorTest, SingleUnnamedTensorWithSignature) {
   TensorInfoMap infomap;
   ASSERT_TRUE(
@@ -232,6 +284,8 @@ TEST(JsontensorTest, MultipleNamedTensor) {
       TextFormat::ParseFromString("dtype: DT_STRING", &infomap["str_tensor"]));
   ASSERT_TRUE(
       TextFormat::ParseFromString("dtype: DT_FLOAT", &infomap["float_tensor"]));
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_DOUBLE", &infomap["dbl_tensor"]));
 
   PredictRequest req;
   JsonPredictRequestFormat format;
@@ -241,19 +295,21 @@ TEST(JsontensorTest, MultipleNamedTensor) {
         {
           "int_tensor": [[1,2],[3,4],[5,6]],
           "str_tensor": ["foo", "bar"],
-          "float_tensor": [1.0]
+          "float_tensor": [1.0, NaN],
+          "dbl_tensor": [NaN]
         },
         {
           "int_tensor": [[7,8],[9,0],[1,2]],
           "str_tensor": ["baz", "bat"],
-          "float_tensor": [2.0]
+          "float_tensor": [2.0, Infinity],
+          "dbl_tensor": [2.0]
         }
       ]
     })",
                                           getmap(infomap), &req, &format));
 
   auto tmap = req.inputs();
-  EXPECT_EQ(tmap.size(), 3);
+  EXPECT_EQ(tmap.size(), 4);
   EXPECT_EQ(format, JsonPredictRequestFormat::kRow);
   EXPECT_THAT(tmap["int_tensor"], EqualsProto(R"(
     dtype: DT_INT32
@@ -287,14 +343,25 @@ TEST(JsontensorTest, MultipleNamedTensor) {
     string_val: "bat"
     )"));
   EXPECT_THAT(tmap["float_tensor"], EqualsProto(R"(
-    dtype: DT_FLOAT
-    tensor_shape {
-      dim { size: 2 }
-      dim { size: 1 }
-    }
-    float_val: 1.0
-    float_val: 2.0
-    )"));
+                dtype: DT_FLOAT
+                tensor_shape {
+                  dim { size: 2 }
+                  dim { size: 2 }
+                }
+                float_val: 1.0
+                float_val: NaN
+                float_val: 2.0
+                float_val: Infinity
+              )"));
+  EXPECT_THAT(tmap["dbl_tensor"], EqualsProto(R"(
+                dtype: DT_DOUBLE
+                tensor_shape {
+                  dim { size: 2 }
+                  dim { size: 1 }
+                }
+                double_val: NaN
+                double_val: 2.0
+              )"));
 }
 
 TEST(JsontensorTest, SingleUnnamedTensorColumnarFormat) {
@@ -479,7 +546,23 @@ TEST(JsontensorTest, SingleUnnamedTensorErrors) {
                        std::numeric_limits<double>::max()),
       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("out of range for float"));
+  EXPECT_THAT(status.error_message(), HasSubstr("loss of precision"));
+
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_FLOAT", &infomap["default"]));
+  status = FillPredictRequestFromJson(
+      absl::Substitute(R"({ "instances": [$0] })", 16777217), getmap(infomap),
+      &req, &format);
+  ASSERT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_THAT(status.error_message(), HasSubstr("loss of precision"));
+
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_DOUBLE", &infomap["default"]));
+  status = FillPredictRequestFromJson(
+      absl::Substitute(R"({ "instances": [$0] })", 9007199254740993ull),
+      getmap(infomap), &req, &format);
+  ASSERT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_THAT(status.error_message(), HasSubstr("loss of precision"));
 }
 
 TEST(JsontensorTest, MultipleNamedTensorErrors) {
@@ -1240,7 +1323,7 @@ TYPED_TEST(ClassifyRegressRequestTest, JsonErrors) {
                        std::numeric_limits<double>::max()),
       &req);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("out of range for float"));
+  EXPECT_THAT(status.error_message(), HasSubstr("loss of precision"));
 }
 
 TEST(ClassifyRegressnResultTest, JsonFromClassificationResult) {

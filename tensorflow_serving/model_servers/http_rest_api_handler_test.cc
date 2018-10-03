@@ -259,7 +259,7 @@ TEST_F(HttpRestApiHandlerTest, PredictRequestErrors) {
 
   // Incorrect type.
   status = handler_.ProcessRequest(
-      "POST", req_path, R"({ "instances": [1, 2] })", &headers, &output);
+      "POST", req_path, R"({ "instances": ["x", "y"] })", &headers, &output);
   EXPECT_TRUE(errors::IsInvalidArgument(status));
   EXPECT_THAT(status.error_message(), HasSubstr("not of expected type: float"));
 }
