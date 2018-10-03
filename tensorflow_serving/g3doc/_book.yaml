@@ -1,0 +1,42 @@
+upper_tabs:
+# Tabs left of dropdown menu
+- include: /_upper_tabs_left.yaml
+- include: /versions/_upper_tabs_versions.yaml
+# Dropdown menu
+- name: Ecosystem
+  path: /ecosystem
+  is_default: true
+  menu:
+  - include: /ecosystem/_menu_toc.yaml
+  lower_tabs:
+    # Subsite tabs
+    other:
+    - name: Guide
+      contents:
+      - title: Overview
+        path: /serving/overview
+      - title: Installation
+        path: /serving/setup
+      - title: Serve a TensorFlow model
+        path: /serving/serving_basic
+      - title: REST API
+        path: /serving/api_rest
+      - title: Build a TensorFlow ModelServer
+        path: /serving/serving_advanced
+      - title: Serve Inception Model with TensorFlow Serving and Kubernetes
+        path: /serving/serving_inception
+      - title: Create a new kind of servable
+        path: /serving/custom_servable
+      - title: Create a module that discovers new servable paths
+        path: /serving/custom_source
+      - title: SignatureDefs in SavedModel for TensorFlow Serving
+        path: /serving/signature_defs
+      - title: Use TensorFlow Serving with Docker
+        path: /serving/docker
+    - name: API
+      skip_translation: true
+      contents:
+      - heading: C++ reference
+      - title: All symbols
+        path: /serving/api_docs/cc/
+      - include: /serving/api_docs/cc/_doxygen.yaml

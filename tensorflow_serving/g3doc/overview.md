@@ -220,8 +220,3 @@ widget that lets clients easily batch their type-specific inferences across
 requests into batch requests that algorithm systems can more efficiently
 process. See the [Batching Guide](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/batching/README.md)
 for more information.
-
-## Next Steps
-
-To get started with TensorFlow Serving, try the
-[Basic Tutorial](serving_basic.md).

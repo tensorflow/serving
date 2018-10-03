@@ -1,0 +1,55 @@
+book_path: /serving/_book.yaml
+project_path: /serving/_project.yaml
+description: <!--no description-->
+landing_page:
+  custom_css_path: /site-assets/css/style.css
+  rows:
+  - heading: TensorFlow Serving for model deployment in production
+    items:
+    - classname: devsite-landing-row-50
+      description: >
+        TensorFlow Serving is a flexible, high-performance serving system for
+        machine learning models, designed for production environments. TensorFlow
+        Serving makes it easy to deploy new algorithms and experiments, while
+        keeping the same server architecture and APIs. TensorFlow Serving
+        provides out-of-the-box integration with TensorFlow models, but can be
+        easily extended to serve other types of models and data.
+      code_block: |
+        <pre class="prettyprint lang-bsh">
+        # Download the TensorFlow Serving Docker image and repo
+        <code class="devsite-terminal">docker pull tensorflow/serving</code><br/>
+        <code class="devsite-terminal">git clone https://github.com/tensorflow/serving</code>
+        # Location of demo models
+        <code class="devsite-terminal">TESTDATA="$(pwd)/serving/tensorflow_serving/servables/tensorflow/testdata"</code>
+
+        # Start TensorFlow Serving container and open the REST API port
+        <code class="devsite-terminal">docker run -t --rm -p 8501:8501 \
+           -v "$TESTDATA/saved_model_half_plus_two_cpu:/models/half_plus_two" \
+           -e MODEL_NAME=half_plus_two \
+           tensorflow/serving &</code>
+
+        # Query the model using the predict API
+        <code class="devsite-terminal">curl -d '{"instances": [1.0, 2.0, 5.0]}' \
+           -X POST http://localhost:8501/v1/models/half_plus_two:predict</code><br/>
+        # Returns => { "predictions": [2.5, 3.0, 4.5] }
+        </pre>
+
+  - classname: devsite-landing-row-cards
+    items:
+    - heading: "TensorFlow Serving at the Dev&nbsp;Summit"
+      youtube_id: q_IkJcPyNl0
+      buttons:
+      - label: Watch the video
+        path: https://www.youtube.com/watch?v=q_IkJcPyNl0
+    - heading: Running your models in production with TensorFlow Serving
+      image_path: /ecosystem/images/google-research-card-16x9.png
+      path: https://ai.googleblog.com/2016/02/running-your-models-in-production-with.html
+      buttons:
+      - label: Read on Google Research blog
+        path: https://ai.googleblog.com/2016/02/running-your-models-in-production-with.html
+    - heading: TensorFlow Serving on GitHub
+      image_path: /ecosystem/images/github-card-16x9.png
+      path: https://github.com/tensorflow/serving
+      buttons:
+      - label: View on GitHub
+        path: https://github.com/tensorflow/serving
