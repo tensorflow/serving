@@ -48,8 +48,7 @@ apt-get remove tensorflow-model-server
 
 
     ```shell
-    apt-get update
-    apt-get install tensorflow-model-server
+    apt-get update && apt-get install tensorflow-model-server
     ```
 
     Once installed, the binary can be invoked using the command
