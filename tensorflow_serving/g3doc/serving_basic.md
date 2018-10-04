@@ -26,10 +26,6 @@ The code for this tutorial consists of two parts:
 
 Before getting started, first [install Docker](docker.md#installing-docker)
 
-Note: All `bazel build` commands below use the standard `-c opt` flag. To
-further optimize the build, refer to the
-[instructions here](setup.md#optimized-build).
-
 ## Train and export TensorFlow model
 
 As you can see in `mnist_saved_model.py`, the training is done the same way it
@@ -179,7 +175,7 @@ instructions for both the Bazel and PIP options.
 *   **Bazel**:
 
     ```shell
-    tools/bazel_in_docker.sh bazel build -c opt tensorflow_serving/example:mnist_saved_model
+    tools/bazel_in_docker.sh bazel build tensorflow_serving/example:mnist_saved_model
     tools/bazel_in_docker.sh bazel-bin/tensorflow_serving/example/mnist_saved_model models/mnist
     ```
 
@@ -253,7 +249,7 @@ requests to the server, and calculates the inference error rate.
 *   **Bazel**:
 
     ```shell
-    tools/bazel_in_docker.sh bazel build -c opt \
+    tools/bazel_in_docker.sh bazel build \
     tensorflow_serving/example:mnist_client
     tools/bazel_in_docker.sh bazel-bin/tensorflow_serving/example/mnist_client \
     --num_tests=1000 --server=127.0.0.1:8500

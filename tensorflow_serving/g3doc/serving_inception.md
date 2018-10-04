@@ -45,7 +45,7 @@ further optimize the build, refer to the
 [instructions here](setup.md#optimized-build).
 
 ```shell
-tools/bazel_in_docker.sh bazel build -c opt \
+tools/bazel_in_docker.sh bazel build \
   tensorflow_serving/example:inception_saved_model
 ```
 
@@ -141,7 +141,7 @@ Note: We leave it as an exercise to the reader to find an image of a cat on the
 Internet.
 
 ```shell
-tools/bazel_in_docker.sh bazel build -c opt \
+tools/bazel_in_docker.sh bazel build \
   tensorflow_serving/example:inception_client
 tools/bazel_in_docker.sh bazel-bin/tensorflow_serving/example/inception_client \
   --server=127.0.0.1:8500 --image=local/path/to/my_cat_image.jpg

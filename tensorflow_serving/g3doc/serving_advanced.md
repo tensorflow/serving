@@ -33,10 +33,6 @@ This tutorial steps through the following tasks:
 
 Before getting started, first [install Docker](docker.md#installing-docker)
 
-Note: All `bazel build` commands below use the standard `-c opt` flag. To
-further optimize the build, refer to the
-[instructions here](setup.md#optimized-build).
-
 ## Train and export TensorFlow Model
 
 First, if you haven't done so yet, clone this repository to your local machine:
@@ -55,7 +51,7 @@ rm -rf ./models
 Build the mnist trainer:
 
 ```shell
-tools/bazel_in_docker.sh bazel build -c opt \
+tools/bazel_in_docker.sh bazel build \
   tensorflow_serving/example:mnist_saved_model
 ```
 
@@ -289,7 +285,7 @@ Then start the server:
 ```shell
 docker run -p 8500:8500 \
   --mount type=bind,source=$(pwd)/models/monitored,target=/models/mnist \
-  -t --entrypoint=tensorflow_model_server tensorflow/serving  --enable_batching \
+  -t --entrypoint=tensorflow_model_server tensorflow/serving --enable_batching \
   --port=8500 --model_name=mnist --model_base_path=/models/mnist &
 ```
 
