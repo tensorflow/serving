@@ -1,3 +1,33 @@
+# Release 1.11.0
+
+## Major Features and Improvements
+
+* Prometheus exporter for TF metrics (see https://github.com/tensorflow/serving/commit/021efbd3281aa815cab0b35eab6d6d25249c12d4 for details).
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* Built against TensorFlow [1.11.0](https://github.com/tensorflow/tensorflow/releases/tag/v1.11.0)
+* Accept integers for float/doubles in JSON REST API requests
+* TF Serving API is now pre-built into Docker development images
+* GPU Docker images are now built against cuDNN 7.2
+* Add `--max_num_load_retries` flag to ModelServer (fixes #1099)
+* Add user-configured model version labels to the stand-alone ModelServer binary.
+* Directly import tensor.proto.h (the transitive import will be removed from tensor.h soon)
+* Building optimized TensorFlow Serving binaries is now easier (see [docs](https://github.com/tensorflow/serving/g3doc/setup.md]) for details)
+* Adds columnar format support for input/output tensors in Predict REST API (fixes #1047)
+* Development Dockerfiles now produce a more optimized ModelServer
+* Fixed TensorFlow Serving API PyPi package overwriting TensorFlow package.
+
+## Thanks to our Contributors
+
+This release contains contributions from many people at Google, as well as:
+
+Feisan, joshua.horowitz, Prashanth Reddy Basani, tianyapiaozi, Vamsi Sripathi, Yu Zheng
+
 # Release 1.11.0-rc0
 
 ## Major Features and Improvements
