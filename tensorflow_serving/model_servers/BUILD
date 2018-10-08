@@ -280,10 +280,16 @@ cc_library(
     ],
 )
 
+load("@local_config_tensorrt//:build_defs.bzl", "if_tensorrt",)
+
+
 SUPPORTED_TENSORFLOW_OPS = [
     "@org_tensorflow//tensorflow/contrib:contrib_kernels",
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
-]
+] + if_tensorrt([
+    "@org_tensorflow//tensorflow/contrib/tensorrt:trt_engine_op_kernel",
+   ])  
+
 
 TENSORFLOW_DEPS = [
     "@org_tensorflow//tensorflow/core:tensorflow",
