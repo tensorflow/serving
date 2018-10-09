@@ -46,16 +46,17 @@ apt-get remove tensorflow-model-server
 
 2.  Install and update TensorFlow ModelServer
 
-<!-- common_typos_disable -->
+    <!-- common_typos_disable -->
 
     ```shell
-    apt-get install tensorflow-model-server
+    apt-get update && apt-get install tensorflow-model-server
     ```
 
-<!-- common_typos_enable -->
+    <!-- common_typos_enable -->
 
-    Once installed, the binary can be invoked using the command
+Once installed, the binary can be invoked using the command
     `tensorflow_model_server`.
+
 
 You can upgrade to a newer version of tensorflow-model-server with:
 
