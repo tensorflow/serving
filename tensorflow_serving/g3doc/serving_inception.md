@@ -82,7 +82,7 @@ This should result in output like:
 
 ```console
 Successfully loaded model from inception-v3/model.ckpt-157585 at step=157585.
-Exporting trained moedl to models/inception/1
+Exporting trained model to models/inception/1
 Successfully exported model to models/inception
 $ ls models/inception
 1
