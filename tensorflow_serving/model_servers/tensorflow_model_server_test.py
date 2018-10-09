@@ -16,6 +16,7 @@
 #!/usr/bin/env python2.7
 """Tests for tensorflow_model_server."""
 
+import zlib
 import atexit
 import json
 import os
@@ -77,15 +78,21 @@ def WaitForServerReady(port):
         break
 
 
-def CallREST(url, req, max_attempts=60):
+def CallREST(url, req, max_attempts=60, gzip=False):
   """Returns HTTP response body from a REST API call."""
   for attempt in range(max_attempts):
     try:
       print 'Attempt {}: Sending request to {} with data:\n{}'.format(
           attempt, url, req)
+      body = req
+      headers = {}
+      if body is not None:
+          body = json.dumps(req)
+          if gzip:
+            body = zlib.compress(req)
+            headers = {'Content-Encoding': 'gzip'}
       resp = urllib2.urlopen(
-          urllib2.Request(
-              url, data=json.dumps(req) if req is not None else None))
+          urllib2.Request(url, data=body, headers=headers))
       resp_data = resp.read()
       print 'Received response:\n{}'.format(resp_data)
       resp.close()
@@ -558,6 +565,26 @@ class TensorflowModelServerTest(tf.test.TestCase):
       resp_data = CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
       self.fail('Request failed with error: {}'.format(e))
+
+    # Verify response
+    self.assertEquals(json.loads(resp_data), {'results': [[['', 3.0]]]})
+
+  def testClassifyRESTWithGzip(self):
+    """Test Classify implementation over REST API."""
+    model_path = self._GetSavedModelBundlePath()
+    host, port = TensorflowModelServerTest.RunServer('default',
+                                                     model_path)[2].split(':')
+
+    # Prepare request
+    url = 'http://{}:{}/v1/models/default:classify'.format(host, port)
+    json_req = {'signature_name': 'classify_x_to_y', 'examples': [{'x': 2.0}]}
+
+    # Send request
+    resp_data = None
+    try:
+        resp_data = CallREST(url, json_req, gzip=True)
+    except Exception as e:  # pylint: disable=broad-except
+        self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
     self.assertEquals(json.loads(resp_data), {'results': [[['', 3.0]]]})

@@ -16,6 +16,7 @@ limitations under the License.
 #include <cstdint>
 #include <memory>
 
+#include "gzip/decompress.hpp"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
@@ -156,6 +157,12 @@ class RestApiRequestDispatcher {
     string output;
     VLOG(1) << "Processing HTTP request: " << req->http_method() << " "
             << req->uri_path() << " body: " << body.size() << " bytes.";
+
+    if (req->GetRequestHeader("Content-Encoding") == "gzip") {
+      const char * compressed_pointer = body.data();
+      body = gzip::decompress(compressed_pointer, body.size());
+    }
+
     const auto status = handler_->ProcessRequest(
         req->http_method(), req->uri_path(), body, &headers, &output);
     const auto http_status = ToHTTPStatusCode(status);
