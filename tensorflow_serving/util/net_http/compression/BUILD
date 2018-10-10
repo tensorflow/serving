@@ -28,7 +28,7 @@ cc_library(
 
 cc_test(
     name = "gzip_zlib_test",
-    size = "medium",
+    size = "large",
     srcs = ["gzip_zlib_test.cc"],
     features = ["-layering_check"],
     deps = [
