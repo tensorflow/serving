@@ -48,7 +48,6 @@ serving_proto_library(
     name = "input_proto",
     srcs = ["input.proto"],
     cc_api_version = 2,
-    js_api_version = 2,
     deps = [
         "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
@@ -78,7 +77,6 @@ serving_proto_library(
     name = "model_proto",
     srcs = ["model.proto"],
     cc_api_version = 2,
-    js_api_version = 2,
     deps = [
         "@protobuf_archive//:cc_wkt_protos",
     ],
