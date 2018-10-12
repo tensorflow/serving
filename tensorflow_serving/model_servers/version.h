@@ -19,12 +19,12 @@ limitations under the License.
 // TF Serving Model Server uses semantic versioning, see http://semver.org/.
 
 #define TF_MODELSERVER_MAJOR_VERSION 1
-#define TF_MODELSERVER_MINOR_VERSION 10
+#define TF_MODELSERVER_MINOR_VERSION 11
 #define TF_MODELSERVER_PATCH_VERSION 0
 
 // TF_MODELSERVER_VERSION_SUFFIX is non-empty for pre-releases
 // (e.g. "-alpha", "-alpha.1", "-beta", "-rc", "-rc.1")
-#define TF_MODELSERVER_VERSION_SUFFIX "-dev"
+#define TF_MODELSERVER_VERSION_SUFFIX ""
 
 #define TF_MODELSERVER_STR_HELPER(x) #x
 #define TF_MODELSERVER_STR(x) TF_MODELSERVER_STR_HELPER(x)
