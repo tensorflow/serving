@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/util/json_tensor.h"
 
+#include <cstdlib>
 #include <limits>
 #include <string>
 #include <type_traits>
@@ -209,15 +210,26 @@ Status LossyDecimalError(const rapidjson::Value& val, const string& target) {
 template <typename T>
 bool IsLosslessDecimal(const rapidjson::Value& val) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
-                "Only floating-point value types are supported.");
+                "Only floating point value types are supported.");
+  static_assert(std::numeric_limits<T>::radix == 2,
+                "Floating point type must have base 2.");
 
   // Note, we use GetDouble() for both types as std::isfinite() returns false
   // for decimal values that do not fit in float (due to the static_cast<> used
   // in converting double to float in GetFloat() call).
   if (!std::isfinite(val.GetDouble())) return true;
 
-  if (std::is_same<T, float>::value) return val.IsLosslessFloat();
-  return val.IsLosslessDouble();
+  // Maximum integer value that can be represented by the floating type.
+  static constexpr int64 kMaxInt = (1LL << std::numeric_limits<T>::digits) - 1;
+
+  if (val.IsUint64()) {
+    return val.GetUint64() <= kMaxInt;
+  }
+  if (val.IsInt64()) {
+    return std::abs(val.GetInt64()) <= kMaxInt;
+  }
+  return val.GetDouble() <= std::numeric_limits<T>::max() &&
+         val.GetDouble() >= std::numeric_limits<T>::lowest();
 }
 
 // Adds a JSON value to Tensor. Returns error if value cannot be converted
