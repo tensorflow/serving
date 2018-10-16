@@ -331,7 +331,10 @@ cc_library(
     srcs = [
         "main.cc",
     ],
-    hdrs = ["version.h"],
+    hdrs = [
+        "version.h",
+    ],
+    linkstamp = "version.cc",
     visibility = [
         ":tensorflow_model_server_custom_op_clients",
         "//tensorflow_serving:internal",
@@ -348,6 +351,7 @@ cc_library(
 
 cc_binary(
     name = "tensorflow_model_server",
+    stamp = 1,
     visibility = ["//tensorflow_serving:internal"],
     deps = [
         ":tensorflow_model_server_main_lib",

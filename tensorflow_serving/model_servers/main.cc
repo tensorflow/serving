@@ -158,8 +158,7 @@ int main(int argc, char** argv) {
   }
 
   if (display_version) {
-    std::cout << "TensorFlow ModelServer: " << TF_MODELSERVER_VERSION_STRING
-              << "\n"
+    std::cout << "TensorFlow ModelServer: " << TF_Serving_Version() << "\n"
               << "TensorFlow Library: " << TF_Version() << "\n";
     return 0;
   }
