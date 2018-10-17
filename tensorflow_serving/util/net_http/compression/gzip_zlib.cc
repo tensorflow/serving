@@ -44,9 +44,7 @@ namespace net_http {
 //     XFL     2-4? DEFLATE flags
 //     OS      ???? Operating system indicator (255 means unknown)
 
-// gzip header, as a macro for sizeof()
-#define GZIP_HEADER "\037\213\010\000\000\000\000\000\002\377"
-
+constexpr char GZIP_HEADER[] = "\037\213\010\000\000\000\000\000\002\377";
 constexpr uint8_t kMagicHeader[2] = {0x1f, 0x8b};  // gzip magic header
 
 GZipHeader::Status GZipHeader::ReadMore(const char *inbuf, int inbuf_len,
@@ -808,8 +806,7 @@ int ZLib::UncompressGzipAndAllocate(Bytef **dest, uLongf *destLen,
   *destLen = uncompress_length;
 
   *dest = (Bytef *)malloc(*destLen);
-  if (*dest == nullptr)  // probably a corrupted gzip buffer
-    return Z_MEM_ERROR;
+  if (*dest == nullptr) return Z_MEM_ERROR;
 
   const int retval = Uncompress(*dest, destLen, source, sourceLen);
   if (retval != Z_OK) {  // just to make life easier for them

@@ -96,6 +96,9 @@ class ZLib {
   ZLib();
   ~ZLib();
 
+  // The max length of the buffer to store uncompressed data
+  static constexpr int64_t kMaxUncompressedBytes = 10 * 1024 * 1024;  // 10MB
+
   // Wipe a ZLib object to a virgin state.  This differs from Reset()
   // in that it also breaks any dictionary, gzip, etc, state.
   void Reinit();

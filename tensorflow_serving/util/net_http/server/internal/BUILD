@@ -20,12 +20,15 @@ cc_library(
         "server_support.h",
     ],
     deps = [
+        "//tensorflow_serving/util/net_http/compression:gzip_zlib",
         "//tensorflow_serving/util/net_http/server/public:http_server_api",
         "@com_github_libevent_libevent//:libevent",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
+        "@zlib_archive//:zlib",
     ],
 )
 
@@ -55,6 +58,7 @@ cc_test(
         ":evhttp_server",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util/net_http/client:evhttp_client",
+        "//tensorflow_serving/util/net_http/compression:gzip_zlib",
         "//tensorflow_serving/util/net_http/internal:fixed_thread_pool",
         "//tensorflow_serving/util/net_http/server/public:http_server",
         "//tensorflow_serving/util/net_http/server/public:http_server_api",

@@ -67,9 +67,9 @@ class ServerOptions {
     executor_ = std::move(executor);
   }
 
-  const std::vector<int>& ports() { return ports_; }
+  const std::vector<int>& ports() const { return ports_; }
 
-  EventExecutor* executor() { return executor_.get(); }
+  EventExecutor* executor() const { return executor_.get(); }
 
  private:
   std::vector<int> ports_;
@@ -82,10 +82,39 @@ class RequestHandlerOptions {
  public:
   RequestHandlerOptions() = default;
 
+  RequestHandlerOptions(const RequestHandlerOptions&) = default;
+  RequestHandlerOptions& operator=(const RequestHandlerOptions&) = default;
+
+  // Sets the max length of uncompressed data when uncompressing a request body
+  inline RequestHandlerOptions& set_auto_uncompress_max_size(int64_t size) {
+    auto_uncompress_max_size_ = size;
+    return *this;
+  }
+
+  // The max length of uncompressed data when doing uncompress. Returns 0 if
+  // not set. See Zlib::kMaxUncompressedBytes for the default config.
+  inline int64_t auto_uncompress_max_size() const {
+    return auto_uncompress_max_size_;
+  }
+
+  // The auto_uncompress_input option specifies whether the request
+  // input data should be uncompressed if the request has the
+  // Content-Encoding: .*gzip.* header. The option defaults to true.
+  inline RequestHandlerOptions& set_auto_uncompress_input(
+      bool should_uncompress) {
+    auto_uncompress_input_ = should_uncompress;
+    return *this;
+  }
+
+  inline bool auto_uncompress_input() const { return auto_uncompress_input_; }
+
  private:
-  // Potential options: compression, CORS rules, streaming control
+  // To be added: compression, CORS rules, streaming control
   // thread executor, admission control, limits ...
-  // with public setter/getters.
+
+  bool auto_uncompress_input_ = true;
+
+  int64_t auto_uncompress_max_size_ = 0;
 };
 
 // A request handler is registered by the application to handle a request

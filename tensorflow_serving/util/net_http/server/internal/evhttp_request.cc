@@ -17,17 +17,23 @@ limitations under the License.
 
 #include "tensorflow_serving/util/net_http/server/internal/evhttp_request.h"
 
+#include <zlib.h>
+
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <string>
 
 #include "absl/base/internal/raw_logging.h"
+#include "absl/strings/string_view.h"
 
 #include "libevent/include/event2/buffer.h"
 #include "libevent/include/event2/event.h"
 #include "libevent/include/event2/http.h"
 #include "libevent/include/event2/keyvalq_struct.h"
+
+#include "tensorflow_serving/util/net_http/compression/gzip_zlib.h"
+#include "tensorflow_serving/util/net_http/server/public/header_names.h"
 
 namespace tensorflow {
 namespace serving {
@@ -145,10 +151,10 @@ std::unique_ptr<char, FreeDeleter> EvHTTPRequest::ReadRequestBytes(
   evbuffer* input_buf =
       evhttp_request_get_input_buffer(parsed_request_->request);
   if (input_buf == nullptr) {
-    return nullptr;  // nobody
+    return nullptr;  // no body
   }
 
-  size_t* buf_size = reinterpret_cast<size_t*>(size);
+  auto buf_size = reinterpret_cast<size_t*>(size);
 
   *buf_size = evbuffer_get_contiguous_space(input_buf);
 
@@ -162,9 +168,57 @@ std::unique_ptr<char, FreeDeleter> EvHTTPRequest::ReadRequestBytes(
   if (ret != *buf_size) {
     ABSL_RAW_LOG(ERROR, "Unexpected: read less than specified num_bytes : %zu",
                  *buf_size);
+    free(block);
+    *buf_size = 0;
+    return nullptr;  // don't return corrupted buffer
+  }
+
+  // Uncompress the entire body
+  if (NeedUncompressGzipContent()) {
+    void* new_block;
+    UncompressGzipContent(block, *buf_size, &new_block, buf_size);
+    free(block);
+    if (new_block != nullptr) {
+      block = new_block;
+    } else {
+      ABSL_RAW_LOG(ERROR, "Failed to uncompress the gzipped body");
+      *buf_size = 0;
+      return nullptr;  // don't return corrupted buffer
+    }
   }
 
   return std::unique_ptr<char, FreeDeleter>(static_cast<char*>(block));
+}
+
+bool EvHTTPRequest::NeedUncompressGzipContent() {
+  if (handler_options_ != nullptr &&
+      handler_options_->auto_uncompress_input()) {
+    auto content_encoding = GetRequestHeader(HTTPHeaders::CONTENT_ENCODING);
+    if (content_encoding != nullptr) {
+      return content_encoding.find("gzip") != absl::string_view::npos;
+    }
+  }
+
+  return false;
+}
+
+void EvHTTPRequest::UncompressGzipContent(void* input, size_t input_size,
+                                          void** uncompressed_input,
+                                          size_t* uncompressed_input_size) {
+  int64_t max = handler_options_->auto_uncompress_max_size() > 0
+                    ? handler_options_->auto_uncompress_max_size()
+                    : ZLib::kMaxUncompressedBytes;
+
+  // our APIs don't need expose the actual content-length
+  *uncompressed_input_size = static_cast<size_t>(max);
+
+  ZLib zlib;
+  int err = zlib.UncompressGzipAndAllocate(
+      reinterpret_cast<Bytef**>(uncompressed_input), uncompressed_input_size,
+      reinterpret_cast<Bytef*>(input), input_size);
+  if (err != Z_OK) {
+    ABSL_RAW_LOG(ERROR, "Got zlib error: %d", err);
+  }
 }
 
 // Note: passing string_view incurs a copy of underlying std::string data
@@ -182,7 +236,7 @@ std::vector<absl::string_view> EvHTTPRequest::request_headers() const {
 
   for (evkeyval* header = ev_headers->tqh_first; header;
        header = header->next.tqe_next) {
-    result.push_back(absl::string_view(header->key));
+    result.emplace_back(header->key);
   }
 
   return result;

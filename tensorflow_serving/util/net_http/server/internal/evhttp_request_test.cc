@@ -23,6 +23,7 @@ limitations under the License.
 #include "absl/memory/memory.h"
 
 #include "tensorflow_serving/util/net_http/client/evhttp_connection.h"
+#include "tensorflow_serving/util/net_http/compression/gzip_zlib.h"
 #include "tensorflow_serving/util/net_http/internal/fixed_thread_pool.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
@@ -210,6 +211,146 @@ TEST_F(EvHTTPRequestTest, ResponseHeaders) {
   }
   EXPECT_EQ(response.status, 200);
   EXPECT_EQ(response.body, "OK");
+
+  server->Terminate();
+  server->WaitForTermination();
+}
+
+// === gzip support ====
+
+// Test invalid gzip body
+TEST_F(EvHTTPRequestTest, InvalidGzipPost) {
+  auto handler = [](ServerRequestInterface* request) {
+    int64_t num_bytes;
+    auto request_body = request->ReadRequestBytes(&num_bytes);
+    EXPECT_TRUE(request_body == nullptr);
+    EXPECT_EQ(0, num_bytes);
+
+    request->Reply();
+  };
+  server->RegisterRequestHandler("/ok", std::move(handler),
+                                 RequestHandlerOptions());
+  server->StartAcceptingRequests();
+
+  auto connection =
+      EvHTTPConnection::Connect("localhost", server->listen_port());
+  ASSERT_TRUE(connection != nullptr);
+
+  ClientRequest request = {"/ok", "POST", {}, "abcde"};
+  request.headers.emplace_back("Content-Encoding", "my_gzip");
+  ClientResponse response = {};
+
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
+  EXPECT_EQ(response.status, 200);
+
+  server->Terminate();
+  server->WaitForTermination();
+}
+
+// Test disabled gzip
+TEST_F(EvHTTPRequestTest, DisableGzipPost) {
+  auto handler = [](ServerRequestInterface* request) {
+    int64_t num_bytes;
+    auto request_body = request->ReadRequestBytes(&num_bytes);
+    EXPECT_EQ(5, num_bytes);
+
+    request->Reply();
+  };
+  RequestHandlerOptions options;
+  options.set_auto_uncompress_input(false);
+  server->RegisterRequestHandler("/ok", std::move(handler), options);
+  server->StartAcceptingRequests();
+
+  auto connection =
+      EvHTTPConnection::Connect("localhost", server->listen_port());
+  ASSERT_TRUE(connection != nullptr);
+
+  ClientRequest request = {"/ok", "POST", {}, "abcde"};
+  request.headers.emplace_back("Content-Encoding", "my_gzip");
+  ClientResponse response = {};
+
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
+  EXPECT_EQ(response.status, 200);
+
+  server->Terminate();
+  server->WaitForTermination();
+}
+
+std::string CompressString(const char* data, size_t size) {
+  ZLib zlib;
+  std::string buf(1000, '\0');
+  size_t compressed_size = buf.size();
+  zlib.Compress((Bytef*)buf.data(), &compressed_size, (Bytef*)data, size);
+
+  return std::string(buf.data(), compressed_size);
+}
+
+// Test valid gzip body
+TEST_F(EvHTTPRequestTest, ValidGzipPost) {
+  constexpr char kBody[] = "abcdefg12345";
+  std::string compressed = CompressString(kBody, sizeof(kBody) - 1);
+
+  auto handler = [&](ServerRequestInterface* request) {
+    int64_t num_bytes;
+    auto request_body = request->ReadRequestBytes(&num_bytes);
+
+    std::string body_str(request_body.get(), static_cast<size_t>(num_bytes));
+    EXPECT_EQ(body_str, std::string(kBody));
+    EXPECT_EQ(sizeof(kBody) - 1, num_bytes);
+
+    request->Reply();
+  };
+  server->RegisterRequestHandler("/ok", std::move(handler),
+                                 RequestHandlerOptions());
+  server->StartAcceptingRequests();
+
+  auto connection =
+      EvHTTPConnection::Connect("localhost", server->listen_port());
+  ASSERT_TRUE(connection != nullptr);
+
+  ClientRequest request = {"/ok", "POST", {}, compressed};
+  request.headers.emplace_back("Content-Encoding", "my_gzip");
+  ClientResponse response = {};
+
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
+  EXPECT_EQ(response.status, 200);
+
+  server->Terminate();
+  server->WaitForTermination();
+}
+
+// Test gzip exceeding the max uncompressed limit
+TEST_F(EvHTTPRequestTest, GzipExceedingLimit) {
+  constexpr char kBody[] = "abcdefg12345";
+  constexpr int bodySize = sizeof(kBody) - 1;
+  std::string compressed = CompressString(kBody, static_cast<size_t>(bodySize));
+
+  auto handler = [&](ServerRequestInterface* request) {
+    int64_t num_bytes;
+    auto request_body = request->ReadRequestBytes(&num_bytes);
+
+    std::string body_str(request_body.get(), static_cast<size_t>(num_bytes));
+    EXPECT_TRUE(request_body == nullptr);
+    EXPECT_EQ(0, num_bytes);
+
+    request->Reply();
+  };
+
+  RequestHandlerOptions options;
+  options.set_auto_uncompress_max_size(bodySize - 1);  // not enough buffer
+  server->RegisterRequestHandler("/ok", std::move(handler), options);
+  server->StartAcceptingRequests();
+
+  auto connection =
+      EvHTTPConnection::Connect("localhost", server->listen_port());
+  ASSERT_TRUE(connection != nullptr);
+
+  ClientRequest request = {"/ok", "POST", {}, compressed};
+  request.headers.emplace_back("Content-Encoding", "my_gzip");
+  ClientResponse response = {};
+
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
+  EXPECT_EQ(response.status, 200);
 
   server->Terminate();
   server->WaitForTermination();

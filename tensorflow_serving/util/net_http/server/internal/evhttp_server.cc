@@ -139,6 +139,7 @@ void EvHTTPServer::DispatchEvRequest(evhttp_request* req) {
 
     auto handler_map_it = uri_handlers_.find(path);
     if (handler_map_it != uri_handlers_.end()) {
+      ev_request->SetHandlerOptions(handler_map_it->second.options);
       IncOps();
       dispatched = true;
       ScheduleHandlerReference(handler_map_it->second.handler,
@@ -151,6 +152,7 @@ void EvHTTPServer::DispatchEvRequest(evhttp_request* req) {
         if (handler == nullptr) {
           continue;
         }
+        ev_request->SetHandlerOptions(dispatcher.options);
         IncOps();
         dispatched = true;
         ScheduleHandler(std::move(handler), ev_request.release());

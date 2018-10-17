@@ -22,6 +22,7 @@ limitations under the License.
 #include <memory>
 
 #include "tensorflow_serving/util/net_http/server/internal/server_support.h"
+#include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
 #include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
 
 struct evbuffer;
@@ -100,10 +101,25 @@ class EvHTTPRequest final : public ServerRequestInterface {
   // Initializes the resource and returns false if any error.
   bool Initialize();
 
+  // Keeps a reference to the registered RequestHandlerOptions
+  void SetHandlerOptions(const RequestHandlerOptions& handler_options) {
+    this->handler_options_ = &handler_options;
+  }
+
  private:
   void EvSendReply(HTTPStatusCode status);
 
+  // Returns true if the data needs be uncompressed
+  bool NeedUncompressGzipContent();
+
+  // Must set uncompressed_input to nullptr if uncompression is failed
+  void UncompressGzipContent(void* input, size_t input_size,
+                             void** uncompressed_input,
+                             size_t* uncompressed_input_size);
+
   ServerSupport* server_;
+
+  const RequestHandlerOptions* handler_options_;
 
   std::unique_ptr<ParsedEvRequest> parsed_request_;
 

@@ -11,7 +11,11 @@ licenses(["notice"])  # Apache 2.0
 
 cc_library(
     name = "http_server_api",
+    srcs = [
+        "header_names.cc",
+    ],
     hdrs = [
+        "header_names.h",
         "httpserver_interface.h",
         "response_code_enum.h",
         "server_request_interface.h",
