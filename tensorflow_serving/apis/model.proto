@@ -24,7 +24,6 @@ message ModelSpec {
     google.protobuf.Int64Value version = 2;
 
     // Use the version associated with the given label.
-    // EXPERIMENTAL. DO NOT USE AT THIS TIME.
     string version_label = 4;
   }
 
