@@ -509,7 +509,7 @@ TEST(JsontensorTest, SingleUnnamedTensorErrors) {
     })",
                                       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("not formatted correctly"));
+  EXPECT_THAT(status.error_message(), HasSubstr("Not formatted correctly"));
 
   status = FillPredictRequestFromJson(R"(
     {

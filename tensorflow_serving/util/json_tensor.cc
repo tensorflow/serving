@@ -188,11 +188,10 @@ Status Base64FormatError(const rapidjson::Value& val) {
                                  " not formatted correctly for base64 data");
 }
 
-Status FormatError(const rapidjson::Value& val) {
-  return errors::InvalidArgument(
-      "JSON Value: ", JsonValueToString(val),
-      " not formatted correctly. Expecting object with 'instances' or 'input'"
-      " key and a list/array or object as the value respectively.");
+template <typename... Args>
+Status FormatError(const rapidjson::Value& val, Args&&... args) {
+  return errors::InvalidArgument("JSON Value: ",
+    JsonValueToString(val), " ", std::forward<Args>(args)...);
 }
 
 Status FormatSignatureError(const rapidjson::Value& val) {
@@ -459,7 +458,9 @@ Status ParseJson(const absl::string_view json, rapidjson::Document* doc) {
   //   "instances" : [ <atlest one element> ]
   //   ...
   // }
-  if (!doc->IsObject()) return FormatError(*doc);
+  if (!doc->IsObject()) {
+    return FormatError(*doc, "Is not object");
+  }
   return Status::OK();
 }
 
@@ -637,14 +638,28 @@ Status FillPredictRequestFromJson(
   auto itr_instances = doc.FindMember(kPredictRequestInstancesKey);
   auto itr_inputs = doc.FindMember(kPredictRequestInputsKey);
   if (itr_instances != doc.MemberEnd()) {
-    if (itr_inputs != doc.MemberEnd()) return FormatError(doc);
-    if (!itr_instances->value.IsArray()) return FormatError(doc);
-    if (!itr_instances->value.Capacity()) return FormatError(doc);
+    if (itr_inputs != doc.MemberEnd()) {
+      return FormatError(doc, "Not formatted correctly expecting only",
+        " one of '", kPredictRequestInputsKey, "' or '",
+        kPredictRequestInstancesKey, "' keys to exist ");
+    }
+    if (!itr_instances->value.IsArray()) {
+      return FormatError(doc, "Excepting '",
+        kPredictRequestInstancesKey, "' to be an list/array");
+    }
+    if (!itr_instances->value.Capacity()) {
+      return FormatError(doc, "No values in '",
+        kPredictRequestInstancesKey, "' array");
+    }
     *format = JsonPredictRequestFormat::kRow;
     return FillTensorMapFromInstancesList(itr_instances, tensorinfo_map,
                                           request->mutable_inputs());
   } else if (itr_inputs != doc.MemberEnd()) {
-    if (itr_instances != doc.MemberEnd()) return FormatError(doc);
+    if (itr_instances != doc.MemberEnd()) {
+      return FormatError(doc, "Not formatted correctly expecting only",
+        " one of '", kPredictRequestInputsKey, "' or '",
+        kPredictRequestInstancesKey, "' keys to exist ");
+    }
     *format = JsonPredictRequestFormat::kColumnar;
     return FillTensorMapFromInputsMap(itr_inputs, tensorinfo_map,
                                       request->mutable_inputs());
@@ -786,9 +801,20 @@ Status FillClassifyRegressRequestFromJson(const absl::string_view json,
 
   // Fill in list of Examples.
   itr = doc.FindMember(kClassifyRegressRequestExamplesKey);
-  if (itr == doc.MemberEnd()) return FormatError(doc);
-  if (!itr->value.IsArray()) return FormatError(doc);
-  if (!itr->value.Capacity()) return FormatError(doc);
+  if (itr == doc.MemberEnd()) {
+    return FormatError(doc, "When method is classify, key '",
+      kClassifyRegressRequestExamplesKey,
+      "' is expected and was not found");
+  }
+  if (!itr->value.IsArray()) {
+    return FormatError(doc, "Expecting '",
+      kClassifyRegressRequestExamplesKey,
+      "' value to be an list/array");
+  }
+  if (!itr->value.Capacity()) {
+    return FormatError(doc, "'", kClassifyRegressRequestExamplesKey,
+      "' value is an empty array");
+  }
   for (const auto& val : itr->value.GetArray()) {
     TF_RETURN_IF_ERROR(MakeExampleFromJsonObject(
         val, has_context
