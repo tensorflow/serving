@@ -103,7 +103,7 @@ cd serving
 #### Build
 
 In order to build in a hermetic environment with all dependencies taken care of,
-we will use the `bazel_in_docker.sh` script. This script passes build commands
+we will use the `run_in_docker.sh` script. This script passes build commands
 through to a Docker container. By default, the script will build with the latest
 nightly Docker development image.
 
@@ -113,7 +113,7 @@ build individual targets or the entire source tree.
 To build the entire tree, execute:
 
 ```shell
-tools/bazel_in_docker.sh bazel build -c opt tensorflow_serving/...
+tools/run_in_docker.sh bazel build -c opt tensorflow_serving/...
 ```
 
 Binaries are placed in the bazel-bin directory, and can be run using a command
@@ -126,7 +126,7 @@ bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server
 To test your build, execute:
 
 ```shell
-tools/bazel_in_docker.sh bazel test -c opt tensorflow_serving/...
+tools/run_in_docker.sh bazel test -c opt tensorflow_serving/...
 ```
 
 See the [basic tutorial](serving_basic.md) and [advanced
@@ -139,8 +139,8 @@ If you want to build from a specific branch (such as a release branch), pass `-b
 <branchname>` to the `git clone` command.
 
 We will also want to match the build environment for that branch of code, by
-passing the `bazel_in_docker.sh` script the Docker development image we'd like
-to use.
+passing the `run_in_docker.sh` script the Docker development image we'd like to
+use.
 
 For example, to build version 1.10 of TensorFlow Serving:
 
@@ -148,8 +148,8 @@ For example, to build version 1.10 of TensorFlow Serving:
 $ git clone -b r1.10 https://github.com/tensorflow/serving.git
 ...
 $ cd serving
-$ tools/bazel_in_docker.sh -d tensorflow/serving:1.10-devel \
-  bazel build -c opt tensorflow_serving/...
+$ tools/run_in_docker.sh -d tensorflow/serving:1.10-devel \
+  bazel build tensorflow_serving/...
 ...
 ```
 
@@ -162,7 +162,7 @@ platform-specific instruction sets for your processor, you can add
 For example:
 
 ```shell
-tools/bazel_in_docker.sh bazel build --config=nativeopt tensorflow_serving/...
+tools/run_in_docker.sh bazel build --config=nativeopt tensorflow_serving/...
 ```
 
 It's also possible to compile using specific instruction sets (e.g. AVX).

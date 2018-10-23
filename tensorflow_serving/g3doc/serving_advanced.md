@@ -45,30 +45,21 @@ cd serving
 Clear the export directory if it already exists:
 
 ```shell
-rm -rf ./models
-```
-
-Build the mnist trainer:
-
-```shell
-tools/bazel_in_docker.sh bazel build \
-  tensorflow_serving/example:mnist_saved_model
+rm -rf /tmp/models
 ```
 
 Train (with 100 iterations) and export the first version of model:
 
 ```shell
-tools/bazel_in_docker.sh \
-  bazel-bin/tensorflow_serving/example/mnist_saved_model \
-  --training_iteration=100 --model_version=1 models/mnist
+tools/run_in_docker.sh python tensorflow_serving/example/mnist_saved_model.py \
+  --training_iteration=100 --model_version=1 /tmp/mnist
 ```
 
 Train (with 2000 iterations) and export the second version of model:
 
 ```shell
-tools/bazel_in_docker.sh \
-  bazel-bin/tensorflow_serving/example/mnist_saved_model \
-  --training_iteration=2000 --model_version=2 models/mnist
+tools/run_in_docker.sh python tensorflow_serving/example/mnist_saved_model.py \
+  --training_iteration=2000 --model_version=2 /tmp/mnist
 ```
 
 As you can see in `mnist_saved_model.py`, the training and exporting is done the
@@ -78,10 +69,10 @@ iterations for the first run and exporting it as v1, while training it normally
 for the second run and exporting it as v2 to the same parent directory -- as we
 expect the latter to achieve better classification accuracy due to more
 intensive training. You should see training data for each training run in your
-`mnist_model` directory:
+`/tmp/mnist` directory:
 
 ```console
-$ ls models/mnist_model
+$ ls /tmp/mnist
 1  2
 ```
 
@@ -276,15 +267,15 @@ To put all these into the context of this tutorial:
 Copy the first version of the export to the monitored folder:
 
 ```shell
-mkdir models/monitored
-cp -r models/mnist/1 models/monitored
+mkdir /tmp/monitored
+cp -r /tmp/mnist/1 /tmp/monitored
 ```
 
 Then start the server:
 
 ```shell
 docker run -p 8500:8500 \
-  --mount type=bind,source=$(pwd)/models/monitored,target=/models/mnist \
+  --mount type=bind,source=/tmp/monitored,target=/models/mnist \
   -t --entrypoint=tensorflow_model_server tensorflow/serving --enable_batching \
   --port=8500 --model_name=mnist --model_base_path=/models/mnist &
 ```
@@ -293,18 +284,11 @@ The server will emit log messages every one second that say
 "Aspiring version for servable ...", which means it has found the export, and is
 tracking its continued existence.
 
-First let's build the client:
+Let's run the client with `--concurrency=10`. This will send concurrent requests
+to the server and thus trigger your batching logic.
 
 ```shell
-tools/bazel_in_docker.sh bazel build -c opt \
-  tensorflow_serving/example:mnist_client
-```
-
-Now run the test with `--concurrency=10`. This will send concurrent requests to
-the server and thus trigger your batching logic.
-
-```shell
-tools/bazel_in_docker.sh bazel-bin/tensorflow_serving/example/mnist_client \
+tools/run_in_docker.sh python tensorflow_serving/example/mnist_client.py \
   --num_tests=1000 --server=127.0.0.1:8500 --concurrency=10
 ```
 
@@ -319,8 +303,8 @@ Then we copy the second version of the export to the monitored folder and re-run
 the test:
 
 ```shell
-cp -r models/mnist/2 models/monitored
-tools/bazel_in_docker.sh bazel-bin/tensorflow_serving/example/mnist_client \
+cp -r /tmp/mnist/2 /tmp/monitored
+tools/run_in_docker.sh python tensorflow_serving/example/mnist_client.py \
   --num_tests=1000 --server=127.0.0.1:8500 --concurrency=10
 ```
 

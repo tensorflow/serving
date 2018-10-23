@@ -23,16 +23,16 @@ upper_tabs:
         path: /serving/api_rest
       - title: Build a TensorFlow ModelServer
         path: /serving/serving_advanced
-      - title: Serve Inception Model with TensorFlow Serving and Kubernetes
-        path: /serving/serving_inception
+      - title: Use TensorFlow Serving with Docker
+        path: /serving/docker
+      - title: Use TensorFlow Serving with Kubernetes
+        path: /serving/serving_kubernetes
       - title: Create a new kind of servable
         path: /serving/custom_servable
       - title: Create a module that discovers new servable paths
         path: /serving/custom_source
       - title: SignatureDefs in SavedModel for TensorFlow Serving
         path: /serving/signature_defs
-      - title: Use TensorFlow Serving with Docker
-        path: /serving/docker
     - name: API
       skip_translation: true
       contents:

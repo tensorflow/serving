@@ -76,7 +76,7 @@ class ServingClient {
 
     proto.mutable_tensor_shape()->add_dim()->set_size(1);
 
-    inputs["images"] = proto;
+    inputs["image_bytes"] = proto;
 
     Status status = stub_->Predict(&context, predictRequest, &response);
 
@@ -116,10 +116,10 @@ class ServingClient {
 };
 
 int main(int argc, char** argv) {
-  tensorflow::string server_port = "localhost:9000";
+  tensorflow::string server_port = "localhost:8500";
   tensorflow::string image_file = "";
-  tensorflow::string model_name = "inception";
-  tensorflow::string model_signature_name = "predict_images";
+  tensorflow::string model_name = "resnet";
+  tensorflow::string model_signature_name = "serving_default";
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("server_port", &server_port,
                        "the IP and port of the server"),

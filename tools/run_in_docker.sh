@@ -14,17 +14,25 @@
 # limitations under the License.
 # ==============================================================================
 #
-# Script to run bazel and do builds in a docker container.
+# Script to run commands (like builds and scripts) in a docker container.
 #
 # Useful to do builds in a hermetic (docker) environment. The script sets
 # up the correct user/group names and docker bind mounts to allow build
-# a source tree.
+# a source tree. Also useful for running python scripts without having to
+# track down dependencies (that are covered by the docker container).
+#
+# Note: This script binds your working directory (via pwd) and /tmp to the
+# Docker container. Any scripts or programs you run will need to have its output
+# routed to one of the above locations in order to persist.
 #
 # Typical usage (to build from lastest upstream source):
 # $ git clone https://github.com/tensorflow/serving.git
 # $ cd serving
-# $ bazel_in_docker.sh bazel build -c opt tensorflow_serving/model_servers:tensorflow_model_server
+# $ ./run_in_docker.sh bazel build tensorflow_serving/model_servers:tensorflow_model_server
 #
+# Running a python script:
+# $ cd tensorflow_serving/example
+# $ ./run_in_docker.sh mnist_saved_model.py /tmp/mnist
 
 set -e
 
@@ -34,8 +42,8 @@ function usage() {
   echo "  ${progname} [-d <docker-image-name>] <command> [args ...]"
   echo ""
   echo "Examples:"
-  echo "  ${progname} bazel build -c opt tensorflow_serving/model_servers:tensorflow_model_server"
-  echo "  ${progname} bazel test tensorflow_serving/..."
+  echo "  ${progname} bazel build tensorflow_serving/model_servers:tensorflow_model_server"
+  echo "  ${progname} python tensorflow_serving/examples/mnist_saved_model.py /tmp/mnist"
   echo "  ${progname} -d tensorflow/serving:latest-devel bazel version"
   exit 1
 }
@@ -55,6 +63,10 @@ function get_bazel_cmd() {
   echo "cd $(pwd); TEST_TMPDIR=.cache"
 }
 
+function get_python_cmd() {
+  echo "cd $(pwd);"
+}
+
 (( $# < 1 )) && usage
 [[ "$1" = "-"* ]] && [[ "$1" != "-d" ]] && usage
 
@@ -63,9 +75,14 @@ IMAGE="tensorflow/serving:nightly-devel"
 [[ "${IMAGE}" = "" ]] && usage
 
 RUN_OPTS=(--rm -it --network=host)
+# Map the working directory and /tmp to allow scripts/binaries to run and also
+# output data that might be used by other scripts/binaries
+RUN_OPTS+=("-v $(pwd):$(pwd)")
+RUN_OPTS+=("-v /tmp:/tmp")
 if [[ "$1" = "bazel"* ]]; then
   CMD="sh -c '$(get_bazel_cmd) $@'"
-  RUN_OPTS+=("-v $(pwd):$(pwd)")
+elif [[ "$1" == "python"* ]]; then
+  CMD="sh -c '$(get_python_cmd) $@'"
 else
   CMD="$@"
 fi

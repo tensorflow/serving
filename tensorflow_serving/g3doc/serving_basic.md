@@ -24,7 +24,7 @@ The code for this tutorial consists of two parts:
     The TensorFlow Serving ModelServer discovers new exported models and runs a
     [gRPC](http://www.grpc.io) service for serving them.
 
-Before getting started, first [install Docker](docker.md#installing-docker)
+Before getting started, first [install Docker](docker.md#installing-docker).
 
 ## Train and export TensorFlow model
 
@@ -155,35 +155,15 @@ cd serving
 Clear the export directory if it already exists:
 
 ```shell
-rm -rf models/mnist
+rm -rf /tmp/mnist
 ```
 
-If you would like to install the `tensorflow` and `tensorflow-serving-api` PIP
-packages, you can run all Python code (export and client) using a simple
-`python` command. To install the PIP package, follow the
-[instructions here](setup.md#tensorflow-serving-python-api-pip-package). It's
-also possible to use Bazel to build the necessary dependencies and run all code
-without installing those packages. The rest of the codelab will have
-instructions for both the Bazel and PIP options.
+Now let's train the model:
 
-*   **PIP**:
-
-    ```shell
-    python tensorflow_serving/example/mnist_saved_model.py models/mnist
-    ```
-
-*   **Bazel**:
-
-    ```shell
-    tools/bazel_in_docker.sh bazel build tensorflow_serving/example:mnist_saved_model
-    tools/bazel_in_docker.sh bazel-bin/tensorflow_serving/example/mnist_saved_model models/mnist
-    ```
-
-    TIP: Building from sources consumes a lot of RAM. If RAM is an issue on your
-    system, you may limit RAM usage by specifying
-    `--local_resources=2048,.5,1.0` while invoking Bazel. See the
-    [Bazel docs](https://docs.bazel.build/versions/master/user-manual.html#flag--local_resources)
-    for more information.
+```shell
+tools/run_in_docker.sh python tensorflow_serving/example/mnist_saved_model.py \
+  /tmp/mnist
+```
 
 This should result in output that looks like:
 
@@ -200,7 +180,7 @@ Done exporting!
 Now let's take a look at the export directory.
 
 ```console
-$ ls models/mnist
+$ ls /tmp/mnist
 1
 ```
 
@@ -209,7 +189,7 @@ of the model. `FLAGS.model_version` has the default value of 1, therefore
 the corresponding sub-directory `1` is created.
 
 ```console
-$ ls models/mnist/1
+$ ls /tmp/mnist/1
 saved_model.pb variables
 ```
 
@@ -229,7 +209,7 @@ Use a Docker serving image to easily load the model for serving:
 
 ```shell
 docker run -p 8500:8500 \
---mount type=bind,source=$(pwd)/models/mnist,target=/models/mnist \
+--mount type=bind,source=/tmp/mnist,target=/models/mnist \
 -e MODEL_NAME=mnist -t tensorflow/serving &
 ```
 
@@ -240,20 +220,10 @@ We can use the provided
 utility to test the server. The client downloads MNIST test data, sends them as
 requests to the server, and calculates the inference error rate.
 
-*   **PIP**:
-
-    ```shell
-    python tensorflow_serving/example/mnist_client.py --num_tests=1000 --server=127.0.0.1:8500
-    ```
-
-*   **Bazel**:
-
-    ```shell
-    tools/bazel_in_docker.sh bazel build \
-    tensorflow_serving/example:mnist_client
-    tools/bazel_in_docker.sh bazel-bin/tensorflow_serving/example/mnist_client \
-    --num_tests=1000 --server=127.0.0.1:8500
-    ```
+```shell
+tools/run_in_docker.sh python tensorflow_serving/example/mnist_client.py \
+  --num_tests=1000 --server=127.0.0.1:8500
+```
 
 This should output something like
 

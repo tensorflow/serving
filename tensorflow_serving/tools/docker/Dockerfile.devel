@@ -56,7 +56,8 @@ RUN pip --no-cache-dir install \
     keras_applications \
     keras_preprocessing \
     mock \
-    numpy
+    numpy \
+    requests
 
 # Set up Bazel
 # Need >= 0.15.0 so bazel compiles work with docker bind mounts.
