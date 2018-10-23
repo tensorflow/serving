@@ -81,7 +81,7 @@ TEST(JsontensorTest, SingleUnnamedTensor) {
     )"));
 }
 
-TEST(JsontensorTest, IntegerInputForFloatTensor) {
+TEST(JsontensorTest, MixedInputForFloatTensor) {
   TensorInfoMap infomap;
   ASSERT_TRUE(
       TextFormat::ParseFromString("dtype: DT_FLOAT", &infomap["default"]));
@@ -90,7 +90,7 @@ TEST(JsontensorTest, IntegerInputForFloatTensor) {
   JsonPredictRequestFormat format;
   TF_EXPECT_OK(FillPredictRequestFromJson(R"(
     {
-      "instances": [1, 2, 3, 4, 5]
+      "instances": [1, 2.0, 3, 4, 5.003, 0.007, 0.0]
     })",
                                           getmap(infomap), &req, &format));
   auto tmap = req.inputs();
@@ -98,16 +98,18 @@ TEST(JsontensorTest, IntegerInputForFloatTensor) {
   EXPECT_EQ(format, JsonPredictRequestFormat::kRow);
   EXPECT_THAT(tmap["default"], EqualsProto(R"(
                 dtype: DT_FLOAT
-                tensor_shape { dim { size: 5 } }
+                tensor_shape { dim { size: 7 } }
                 float_val: 1
-                float_val: 2
+                float_val: 2.0
                 float_val: 3
                 float_val: 4
-                float_val: 5
+                float_val: 5.003
+                float_val: 0.007
+                float_val: 0.0
               )"));
 }
 
-TEST(JsontensorTest, IntegerInputForDoubleTensor) {
+TEST(JsontensorTest, MixedInputForDoubleTensor) {
   TensorInfoMap infomap;
   ASSERT_TRUE(
       TextFormat::ParseFromString("dtype: DT_DOUBLE", &infomap["default"]));
@@ -116,7 +118,7 @@ TEST(JsontensorTest, IntegerInputForDoubleTensor) {
   JsonPredictRequestFormat format;
   TF_EXPECT_OK(FillPredictRequestFromJson(R"(
     {
-      "instances": [1, 2, 3, 4, 5]
+      "instances": [1.0, 2, 3, 4, 0.662, 0, 0.0]
     })",
                                           getmap(infomap), &req, &format));
   auto tmap = req.inputs();
@@ -124,12 +126,14 @@ TEST(JsontensorTest, IntegerInputForDoubleTensor) {
   EXPECT_EQ(format, JsonPredictRequestFormat::kRow);
   EXPECT_THAT(tmap["default"], EqualsProto(R"(
                 dtype: DT_DOUBLE
-                tensor_shape { dim { size: 5 } }
-                double_val: 1
+                tensor_shape { dim { size: 7 } }
+                double_val: 1.0
                 double_val: 2
                 double_val: 3
                 double_val: 4
-                double_val: 5
+                double_val: 0.662
+                double_val: 0
+                double_val: 0.0
               )"));
 }
 
