@@ -1,3 +1,18 @@
+# Release 1.11.1
+
+## Bug Fixes and Other Changes
+
+* Fix version of model server binary (Fixes #1134)
+* Range check floating point numbers correctly (Fixes #1136).
+* Fix docker run script for same user and group name (Fixes #1137).
+* Fix GPU build (Fixes #1150)
+
+## Thanks to our Contributors
+
+This release contains contributions from many people at Google, as well as:
+
+vfdev
+
 # Release 1.11.0
 
 ## Major Features and Improvements
