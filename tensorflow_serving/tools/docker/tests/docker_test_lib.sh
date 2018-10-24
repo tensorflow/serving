@@ -141,13 +141,17 @@ function test_docker_image {
       docker_opts+=" --runtime=nvidia"
   fi
 
-  if [ -z $(docker images -q ${IMAGE}) ]; then
+  if [[ "$IS_MKL_IMAGE" = true ]] ; then
+      docker_opts+=" -e MKLDNN_VERBOSE=1"
+  fi
+
+  if [ -z $(docker images -q ${IMAGE}) ] ; then
     echo "Docker image ${IMAGE} doesn't exist, please create or pull"
     exit 1
   fi
 
   echo "Starting TF ModelServer in Docker container from image:${IMAGE} ..."
-  if [[ "$IS_DEVEL_IMAGE" = true ]]; then
+  if [[ "$IS_DEVEL_IMAGE" = true ]] ; then
     echo "Starting TF ModelServer in Docker container from image:${image} ..."
     # Devel images do not run ModelServer but rather start interative shell.
     # Hence we need to explicitly set entrypoint to modelserver and pass the
@@ -161,10 +165,16 @@ function test_docker_image {
   fi
   _find_container
   _wait_for_http
-
   _query_model
 
+  if [[ "$IS_MKL_IMAGE" = true ]] ; then
+    echo "Checking for mkldnn_verbose in logs of container: ${CONTAINER_ID}"
+    if [[ -z $(docker logs --tail 1 ${CONTAINER_ID} | grep "mkldnn_verbose") ]]; then
+        echo "${IMAGE}: does not use MKL optimizations"
+        exit 1
+    fi
+  fi
+
   _cleanup_test
+
 }
-
-

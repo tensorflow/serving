@@ -30,6 +30,7 @@ source ${PROJDIR}/tools/docker/tests/docker_test_lib.sh || exit 1
 # Values to fill in for test
 # ------------------------------------------------------------------------------
 declare -r USE_NVIDIA_RUNTIME=false
+declare -r IS_MKL_IMAGE=false
 declare -r IS_DEVEL_IMAGE=false
 declare -r MODELDIR="${PROJDIR}/servables/tensorflow/testdata"
 declare -r MODELNAME="saved_model_half_plus_two_cpu"

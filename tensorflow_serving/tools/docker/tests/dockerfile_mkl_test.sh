@@ -14,15 +14,14 @@
 # limitations under the License.
 # ==============================================================================
 #
-# Tests if a Docker image built from Dockerfile.devel basically functions.
+# Tests if a Docker image built from Dockerfile basically functions.
 #
 # It does this by loading up a half plus two toy model in the Docker image
 # and querying it, validating the response.
 #
 # The image passed to this test must be already available locally.
 #
-# Ex: $ bazel test :unittest_Dockerfile.devel \
-#         --test_arg=tensorflow/serving:latest-devel \
+# Ex: $ bazel test :unittest_dockerfile_mkl --test_arg=tensorflow/serving:latest-mkl \
 #         --test_output=streamed --verbose_failures
 
 declare -r PROJDIR=$(pwd)/tensorflow_serving
@@ -31,10 +30,10 @@ source ${PROJDIR}/tools/docker/tests/docker_test_lib.sh || exit 1
 # Values to fill in for test
 # ------------------------------------------------------------------------------
 declare -r USE_NVIDIA_RUNTIME=false
-declare -r IS_MKL_IMAGE=false
-declare -r IS_DEVEL_IMAGE=true
+declare -r IS_MKL_IMAGE=true
+declare -r IS_DEVEL_IMAGE=false
 declare -r MODELDIR="${PROJDIR}/servables/tensorflow/testdata"
-declare -r MODELNAME="saved_model_half_plus_two_cpu"
+declare -r MODELNAME="saved_model_half_plus_two_mkl"
 declare -r REQUEST='{"instances": [1.0,2.0,5.0]}'
 declare -r RESPONSE='{"predictions":[2.5,3.0,4.5]}'
 # ------------------------------------------------------------------------------

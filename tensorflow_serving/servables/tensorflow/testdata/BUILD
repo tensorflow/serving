@@ -93,6 +93,14 @@ filegroup(
     ),
 )
 
+filegroup(
+    name = "saved_model_half_plus_two_mkl",
+    srcs = glob(
+        ["saved_model_half_plus_two_mkl/**"],
+    ),
+)
+
+
 # Note: re-generate these files with :export_half_plus_two whenever model
 # changes.
 exports_files([

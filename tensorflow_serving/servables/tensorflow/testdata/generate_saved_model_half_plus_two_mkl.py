@@ -34,15 +34,10 @@ where `a`, `b` and `c` are variables with `a=0.5` and `b=2` and `c=3`.
 Output from this program is typically used to exercise SavedModel load and
 execution code.
 
-To create a CPU model:
-  bazel run -c opt saved_half_plus_two -- --device=cpu
+To create a model to use MKL optimizations:
+  python generate_saved_model_half_plus_two_mkl.py
 
-To create a CPU model with Intel MKL-DNN optimizations:
-  bazel run -c opt saved_half_plus_two -- --device=mkl
-
-To create GPU model:
-  bazel run --config=cuda -c opt saved_half_plus_two -- \
-  --device=gpu
+This will generate saved models in 3 different formats in /tmp directory.
 """
 
 from __future__ import absolute_import
@@ -155,40 +150,36 @@ def _generate_saved_model_for_half_plus_two(export_dir,
       with tf.device("/cpu:0"):
         tf_example = tf.parse_example(serialized_tf_example, feature_configs)
       # Use tf.identity() to assign name
-      x = tf.identity(tf_example["x"], name="x")
-      if device_type == "mkl":
-          # Create a small convolution op to trigger MKL
-          # The op will return 0s so this won't affect the
-          # resulting calculation.
-          o1 = tf.keras.layers.Conv2D(1,[1,1])(tf.zeros((1,16,16,1)))
-          y = o1[0,0,0,0] + tf.add(tf.multiply(a, x), b)
-      else:
-          y = tf.add(tf.multiply(a, x), b)
 
+      x = tf.identity(tf_example["x"], name="x")
+
+      # This operation just performs a convolution
+      # but the output is zero. This way we can keep
+      # the same output as the original code but trigger MKL-DNN.
+      o1 = tf.keras.layers.Conv2D(1,[1,1])(tf.zeros((1,10,10,1)))
+      o2 = o1[0,0,0,0]
+
+      y = o2 + tf.add(tf.multiply(a, x), b)
       y = tf.identity(y, name="y")
 
-      if device_type == "mkl":
-          # Create a small convolution op to trigger MKL
-          # The op will return 0s so this won't affect the
-          # resulting calculation.
-          o2 = tf.keras.layers.Conv2D(1,[1,1])(tf.zeros((1,16,16,1)))
-          y2 = o2[0,0,0,0] + tf.add(tf.multiply(a, x), c)
-      else:
-          y2 = tf.add(tf.multiply(a, x), c)
+      # This operation just performs a convolution
+      # but the output is zero. This way we can keep
+      # the same output as the original code but trigger MKL-DNN.
+      o3 = tf.keras.layers.Conv2D(1,[1,1])(tf.zeros((1,10,10,1)))
+      o4 = o3[0,0,0,0]
 
+      y2 = o3 + tf.add(tf.multiply(a, x), c)
       y2 = tf.identity(y2, name="y2")
 
       x2 = tf.identity(tf_example["x2"], name="x2")
 
-      if device_type == "mkl":
-          # Create a small convolution op to trigger MKL
-          # The op will return 0s so this won't affect the
-          # resulting calculation.
-          o3 = tf.keras.layers.Conv2D(1,[1,1])(tf.zeros((1,16,16,1)))
-          y3 = o3[0,0,0,0] + tf.add(tf.multiply(a, x2), c)
-      else:
-          y3 = tf.add(tf.multiply(a, x2), c)
+      # This operation just performs a convolution
+      # but the output is zero. This way we can keep
+      # the same output as the original code but trigger MKL-DNN.
+      o6 = tf.keras.layers.Conv2D(1,[1,1])(tf.zeros((1,10,10,1)))
+      o7 = o6[0,0,0,0]
 
+      y3 = o6 + tf.add(tf.multiply(a, x2), c)
       y3 = tf.identity(y3, name="y3")
 
     # Create an assets file that can be saved and restored as part of the
@@ -295,6 +286,6 @@ if __name__ == "__main__":
       "--device",
       type=str,
       default="cpu",
-      help="Force model to run on 'cpu', 'mkl', or 'gpu'")
+      help="Force model to run on 'cpu' or 'gpu'")
   FLAGS, unparsed = parser.parse_known_args()
   tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
