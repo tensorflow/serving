@@ -25,6 +25,8 @@ namespace serving {
 
 class GetModelMetadataImpl {
  public:
+  static constexpr const char kSignatureDef[] = "signature_def";
+
   static Status GetModelMetadata(ServerCore* core,
                                  const GetModelMetadataRequest& request,
                                  GetModelMetadataResponse* response);

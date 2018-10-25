@@ -100,6 +100,9 @@ class HttpRestApiHandler {
   Status ProcessModelStatusRequest(const absl::string_view model_name,
                                    const absl::string_view model_version_str,
                                    string* output);
+  Status ProcessModelMetadataRequest(const absl::string_view model_name,
+                                     const absl::string_view model_version_str,
+                                     string* output);
   Status GetInfoMap(const ModelSpec& model_spec, const string& signature_name,
                     ::google::protobuf::Map<string, tensorflow::TensorInfo>* infomap);
 

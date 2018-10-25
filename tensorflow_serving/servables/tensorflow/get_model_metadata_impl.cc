@@ -32,8 +32,6 @@ namespace serving {
 
 namespace {
 
-const string kSignatureDef = "signature_def";
-
 Status ValidateGetModelMetadataRequest(const GetModelMetadataRequest& request) {
   if (request.metadata_field_size() == 0) {
     return tensorflow::Status(
@@ -41,7 +39,7 @@ Status ValidateGetModelMetadataRequest(const GetModelMetadataRequest& request) {
         "GetModelMetadataRequest must specify at least one metadata_field");
   }
   for (const auto& metadata_field : request.metadata_field()) {
-    if (metadata_field != kSignatureDef) {
+    if (metadata_field != GetModelMetadataImpl::kSignatureDef) {
       return tensorflow::errors::InvalidArgument(
           "Metadata field %s is not supported", metadata_field);
     }
@@ -63,11 +61,14 @@ Status SavedModelGetSignatureDef(ServerCore* core, const ModelSpec& model_spec,
   response_model_spec->set_name(bundle.id().name);
   response_model_spec->mutable_version()->set_value(bundle.id().version);
 
-  (*response->mutable_metadata())[kSignatureDef].PackFrom(signature_def_map);
+  (*response->mutable_metadata())[GetModelMetadataImpl::kSignatureDef].PackFrom(
+      signature_def_map);
   return tensorflow::Status::OK();
 }
 
 }  // namespace
+
+constexpr const char GetModelMetadataImpl::kSignatureDef[];
 
 Status GetModelMetadataImpl::GetModelMetadata(
     ServerCore* core, const GetModelMetadataRequest& request,

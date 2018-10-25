@@ -160,7 +160,10 @@ cc_test(
     name = "http_rest_api_handler_test",
     size = "medium",
     srcs = ["http_rest_api_handler_test.cc"],
-    data = ["@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions_metadata.json",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
     deps = [
         ":http_rest_api_handler",
         ":model_platform_types",
@@ -266,6 +269,7 @@ cc_library(
         "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/servables/tensorflow:classification_service",
+        "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
         "//tensorflow_serving/servables/tensorflow:predict_impl",
         "//tensorflow_serving/servables/tensorflow:regression_service",
         "//tensorflow_serving/util:json_tensor",
@@ -372,6 +376,7 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
+        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_model_metadata.json",
         "//tensorflow_serving/servables/tensorflow/testdata:monitoring_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/assets/foo.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/saved_model.pb",

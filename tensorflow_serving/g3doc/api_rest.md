@@ -39,6 +39,27 @@ If successful, returns a JSON representation of
 [`GetModelStatusResponse`](https://github.com/tensorflow/serving/blob/5369880e9143aa00d586ee536c12b04e945a977c/tensorflow_serving/apis/get_model_status.proto#L64)
 protobuf.
 
+## Model Metadata API
+
+This API closely follows the
+[`PredictionService.GetModelMetadata`](https://github.com/tensorflow/serving/blob/5369880e9143aa00d586ee536c12b04e945a977c/tensorflow_serving/apis/prediction_service.proto#L29)
+gRPC API. It returns the metadata of a model in the ModelServer.
+
+### URL
+
+```
+GET http://host:port/v1/models/${MODEL_NAME}[/versions/${MODEL_VERSION}]/metadata
+```
+
+`/versions/${MODEL_VERSION}` is optional. If omitted the model metadata for
+the latest version is returned in the response.
+
+### Response format
+
+If successful, returns a JSON representation of
+[`GetModelMetadataResponse`](https://github.com/tensorflow/serving/blob/5369880e9143aa00d586ee536c12b04e945a977c/tensorflow_serving/apis/get_model_metadata.proto#L23)
+protobuf.
+
 ## Classify and Regress API
 
 This API closely follows the `Classify` and `Regress` methods of

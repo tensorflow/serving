@@ -531,6 +531,7 @@ cc_test(
         "//tensorflow_serving/model_servers:platform_config_util",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/contrib/session_bundle:bundle_shim",
         "@org_tensorflow//tensorflow/core:lib",

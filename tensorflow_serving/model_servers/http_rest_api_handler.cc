@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <string>
 
+#include "google/protobuf/any.pb.h"
 #include "google/protobuf/util/json_util.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/numbers.h"
@@ -32,6 +33,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/get_model_status_impl.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/classification_service.h"
+#include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
 #include "tensorflow_serving/util/json_tensor.h"
@@ -54,7 +56,8 @@ HttpRestApiHandler::HttpRestApiHandler(const RunOptions& run_options,
       prediction_api_regex_(
           R"((?i)/v1/models/([^/:]+)(?:/versions/(\d+))?:(classify|regress|predict))"),
       modelstatus_api_regex_(
-          R"((?i)/v1/models(?:/([^/:]+))?(?:/versions/(\d+))?)") {}
+          R"((?i)/v1/models(?:/([^/:]+))?(?:/versions/(\d+))?(?:\/(metadata))?)") {
+}
 
 HttpRestApiHandler::~HttpRestApiHandler() {}
 
@@ -84,6 +87,7 @@ Status HttpRestApiHandler::ProcessRequest(
   string model_name;
   string model_version_str;
   string method;
+  string model_subresource;
   Status status = errors::InvalidArgument("Malformed request: ", http_method,
                                           " ", request_path);
   if (http_method == "POST" &&
@@ -110,8 +114,14 @@ Status HttpRestApiHandler::ProcessRequest(
     }
   } else if (http_method == "GET" &&
              RE2::FullMatch(string(request_path), modelstatus_api_regex_,
-                            &model_name, &model_version_str)) {
-    status = ProcessModelStatusRequest(model_name, model_version_str, output);
+                            &model_name, &model_version_str,
+                            &model_subresource)) {
+    if (!model_subresource.empty() && model_subresource == "metadata") {
+      status =
+          ProcessModelMetadataRequest(model_name, model_version_str, output);
+    } else {
+      status = ProcessModelStatusRequest(model_name, model_version_str, output);
+    }
   }
 
   if (!status.ok()) {
@@ -216,6 +226,81 @@ Status HttpRestApiHandler::ProcessModelStatusRequest(
     return errors::Internal("Failed to convert proto to json. Error: ",
                             status.ToString());
   }
+  return Status::OK();
+}
+
+Status HttpRestApiHandler::ProcessModelMetadataRequest(
+    const absl::string_view model_name,
+    const absl::string_view model_version_str, string* output) {
+  GetModelMetadataRequest request;
+  if (model_name.empty()) {
+    return errors::InvalidArgument("Missing model name in request.");
+  }
+  request.mutable_model_spec()->set_name(string(model_name));
+  // We currently only support the kSignatureDef metadata field
+  request.add_metadata_field(GetModelMetadataImpl::kSignatureDef);
+  if (!model_version_str.empty()) {
+    int64 version;
+    if (!absl::SimpleAtoi(model_version_str, &version)) {
+      return errors::InvalidArgument(
+          "Failed to convert version: ", model_version_str, " to numeric.");
+    }
+    request.mutable_model_spec()->mutable_version()->set_value(version);
+  }
+
+  GetModelMetadataResponse response;
+  TF_RETURN_IF_ERROR(
+      GetModelMetadataImpl::GetModelMetadata(core_, request, &response));
+  JsonPrintOptions opts;
+  opts.add_whitespace = true;
+  opts.always_print_primitive_fields = true;
+  // TODO(b/118381513): preserving proto field names on 'Any' fields has been
+  // fixed in the master branch of OSS protobuf but the TF ecosystem is
+  // currently using v3.6.0 where the fix is not present. To resolve the issue
+  // we invoke MessageToJsonString on invididual fields and concatenate the
+  // resulting strings and make it valid JSON that conforms with the response we
+  // expect.
+  opts.preserve_proto_field_names = true;
+
+  string model_spec_output;
+  const auto& status1 =
+      MessageToJsonString(response.model_spec(), &model_spec_output, opts);
+  if (!status1.ok()) {
+    return errors::Internal(
+        "Failed to convert model spec proto to json. Error: ",
+        status1.ToString());
+  }
+
+  tensorflow::serving::SignatureDefMap signature_def_map;
+  if (response.metadata().end() ==
+      response.metadata().find(GetModelMetadataImpl::kSignatureDef)) {
+    return errors::Internal(
+        "Failed to find 'signature_def' key in the GetModelMetadataResponse "
+        "metadata map.");
+  }
+  bool unpack_status = response.metadata()
+                           .at(GetModelMetadataImpl::kSignatureDef)
+                           .UnpackTo(&signature_def_map);
+  if (!unpack_status) {
+    return errors::Internal(
+        "Failed to unpack 'Any' object to 'SignatureDefMap'.");
+  }
+
+  string signature_def_output;
+  const auto& status2 =
+      MessageToJsonString(signature_def_map, &signature_def_output, opts);
+  if (!status2.ok()) {
+    return errors::Internal(
+        "Failed to convert signature def proto to json. Error: ",
+        status2.ToString());
+  }
+
+  // Concatenate the resulting strings into a valid JSON format.
+  absl::StrAppend(output, "{\n");
+  absl::StrAppend(output, "\"model_spec\":", model_spec_output, ",\n");
+  absl::StrAppend(output, "\"metadata\": {");
+  absl::StrAppend(output, "\"signature_def\": ", signature_def_output, "}\n");
+  absl::StrAppend(output, "}\n");
   return Status::OK();
 }
 

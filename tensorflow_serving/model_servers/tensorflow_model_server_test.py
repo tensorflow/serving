@@ -292,6 +292,10 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Returns a path to a batching configuration file."""
     return os.path.join(self.testdata_dir, 'batching_config.txt')
 
+  def _GetModelMetadataFile(self):
+    """Returns a path to a sample model metadata file."""
+    return os.path.join(self.testdata_dir, 'half_plus_two_model_metadata.json')
+
   def _GetMonitoringConfigFile(self):
     """Returns a path to a monitoring configuration file."""
     return os.path.join(self.testdata_dir, 'monitoring_config.txt')
@@ -650,6 +654,31 @@ class TensorflowModelServerTest(tf.test.TestCase):
                 }
             }]
         })
+
+  def testGetModelMetadataREST(self):
+    """Test ModelStatus implementation over REST API with columnar inputs."""
+    model_path = self._GetSavedModelBundlePath()
+    host, port = TensorflowModelServerTest.RunServer('default',
+                                                     model_path)[2].split(':')
+
+    # Prepare request
+    url = 'http://{}:{}/v1/models/default/metadata'.format(host, port)
+
+    # Send request
+    resp_data = None
+    try:
+      resp_data = CallREST(url, None)
+    except Exception as e:  # pylint: disable=broad-except
+      self.fail('Request failed with error: {}'.format(e))
+
+    try:
+      model_metadata_file = self._GetModelMetadataFile()
+      with open(model_metadata_file) as f:
+        expected_metadata = json.load(f)
+        # Verify response
+        self.assertEquals(json.loads(resp_data), expected_metadata)
+    except Exception as e:  # pylint: disable=broad-except
+      self.fail('Request failed with error: {}'.format(e))
 
   def testPrometheusEndpoint(self):
     """Test ModelStatus implementation over REST API with columnar inputs."""

@@ -32,6 +32,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/platform/env.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
@@ -212,6 +213,11 @@ TEST_F(HttpRestApiHandlerTest, UnsupportedApiCalls) {
       "", &headers, &output);
   EXPECT_TRUE(errors::IsInvalidArgument(status));
   EXPECT_THAT(status.error_message(), HasSubstr("Failed to convert version"));
+
+  status = handler_.ProcessRequest("POST", "/v1/models/foo/metadata", "",
+                                   &headers, &output);
+  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_THAT(status.error_message(), HasSubstr("Malformed request"));
 }
 
 TEST_F(HttpRestApiHandlerTest, PredictModelNameVersionErrors) {
@@ -404,6 +410,25 @@ TEST_F(HttpRestApiHandlerTest, GetStatus) {
       }
      ]
     })"));
+}
+
+TEST_F(HttpRestApiHandlerTest, GetModelMetadata) {
+  HeaderList headers;
+  string output;
+  string test_file_contents;
+
+  // Get model metadata without specifying version.
+  TF_EXPECT_OK(handler_.ProcessRequest(
+      "GET", absl::StrCat("/v1/models/", kTestModelName, "/metadata"), "",
+      &headers, &output));
+  EXPECT_THAT(headers, UnorderedElementsAreArray(
+                           (HeaderList){{"Content-Type", "application/json"}}));
+  const string fname = absl::StrCat(
+      "./tensorflow_serving/servables/tensorflow/testdata",
+      "/saved_model_half_plus_two_2_versions_metadata.json");
+  TF_EXPECT_OK(tensorflow::ReadFileToString(tensorflow::Env::Default(), fname,
+                                            &test_file_contents));
+  TF_EXPECT_OK(CompareJson(output, test_file_contents));
 }
 
 }  // namespace
