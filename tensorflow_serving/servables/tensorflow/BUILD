@@ -480,6 +480,7 @@ cc_test(
         "//tensorflow_serving/model_servers:platform_config_util",
         "//tensorflow_serving/model_servers:server_core",
         "//tensorflow_serving/test_util",
+        "@com_google_absl//absl/strings",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/contrib/session_bundle",

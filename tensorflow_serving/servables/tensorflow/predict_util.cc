@@ -33,21 +33,6 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-// Returns the keys in the map as a comma delimited string. Useful for debugging
-// or when returning error messages.
-// e.g. returns "key1, key2, key3".
-string MapKeysToString(const google::protobuf::Map<string, tensorflow::TensorInfo>& map) {
-  string result = "";
-  for (const auto& i : map) {
-    if (result.empty()) {
-      result += i.first;
-    } else {
-      result += ", " + i.first;
-    }
-  }
-  return result;
-}
-
 Status VerifySignature(const SignatureDef& signature) {
   if (signature.method_name() != kPredictMethodName &&
       signature.method_name() != kClassifyMethodName &&
@@ -61,24 +46,40 @@ Status VerifySignature(const SignatureDef& signature) {
 }
 
 template <typename T>
-std::vector<string> get_map_keys(const T& proto_map) {
-  std::vector<string> keys;
+std::set<string> GetMapKeys(const T& proto_map) {
+  std::set<string> keys;
   for (auto it : proto_map) {
-    keys.push_back(it.first);
+    keys.insert(it.first);
   }
   return keys;
+}
+
+// Returns a \ b, i.e. all items that are in `set_a` but not in `set_b`.
+std::set<string> SetDifference(std::set<string> set_a, std::set<string> set_b) {
+  std::set<string> result;
+  std::set_difference(set_a.begin(), set_a.end(), set_b.begin(), set_b.end(),
+                      std::inserter(result, result.end()));
+  return result;
 }
 
 Status VerifyRequestInputsSize(const SignatureDef& signature,
                                const PredictRequest& request) {
   if (request.inputs().size() != signature.inputs().size()) {
+    const std::set<string> request_inputs = GetMapKeys(request.inputs());
+    const std::set<string> signature_inputs = GetMapKeys(signature.inputs());
+    const std::set<string> sent_extra =
+        SetDifference(request_inputs, signature_inputs);
+    const std::set<string> missing =
+        SetDifference(signature_inputs, request_inputs);
     return tensorflow::Status(
         tensorflow::error::INVALID_ARGUMENT,
         absl::StrCat(
             "input size does not match signature: ", request.inputs().size(),
-            "!=", signature.inputs().size(), " len([",
-            absl::StrJoin(get_map_keys(request.inputs()), ","), "]) != len([",
-            absl::StrJoin(get_map_keys(signature.inputs()), ","), "])"));
+            "!=", signature.inputs().size(), " len({",
+            absl::StrJoin(request_inputs, ","), "}) != len({",
+            absl::StrJoin(signature_inputs, ","), "}). Sent extra: {",
+            absl::StrJoin(sent_extra, ","), "}. Missing but required: {",
+            absl::StrJoin(missing, ","), "}."));
   }
   return Status::OK();
 }
@@ -100,7 +101,8 @@ Status PreProcessPrediction(const SignatureDef& signature,
           tensorflow::error::INVALID_ARGUMENT,
           strings::StrCat("input tensor alias not found in signature: ", alias,
                           ". Inputs expected to be in the set {",
-                          MapKeysToString(signature.inputs()), "}."));
+                          absl::StrJoin(GetMapKeys(signature.inputs()), ","),
+                          "}."));
     }
     Tensor tensor;
     if (!tensor.FromProto(input.second)) {
@@ -121,7 +123,8 @@ Status PreProcessPrediction(const SignatureDef& signature,
           tensorflow::error::INVALID_ARGUMENT,
           strings::StrCat("output tensor alias not found in signature: ", alias,
                           " Outputs expected to be in the set {",
-                          MapKeysToString(signature.outputs()), "}."));
+                          absl::StrJoin(GetMapKeys(signature.outputs()), ","),
+                          "}."));
     }
     if (seen_outputs.find(alias) != seen_outputs.end()) {
       return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,

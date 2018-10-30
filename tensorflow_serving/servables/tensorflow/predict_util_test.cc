@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/strings/str_cat.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/contrib/session_bundle/session_bundle.h"
@@ -167,21 +168,31 @@ TEST_F(PredictImplTest, EmptyInputList) {
 TEST_F(PredictImplTest, InputTensorsDontMatchModelSpecInputs) {
   PredictRequest request;
   PredictResponse response;
+  auto inputs = request.mutable_inputs();
 
   ModelSpec* model_spec = request.mutable_model_spec();
   model_spec->set_name(kTestModelName);
   model_spec->mutable_version()->set_value(kTestModelVersion);
 
-  TensorProto tensor_proto;
-  tensor_proto.add_string_val("any_key");
-  tensor_proto.set_dtype(tensorflow::DT_STRING);
-  tensor_proto.mutable_tensor_shape()->add_dim()->set_size(1);
+  TensorProto tensor_proto1;
+  tensor_proto1.add_string_val("any_value");
+  tensor_proto1.set_dtype(tensorflow::DT_STRING);
+  tensor_proto1.mutable_tensor_shape()->add_dim()->set_size(1);
+  (*inputs)["unknown_key1"] = tensor_proto1;
 
-  auto inputs = request.mutable_inputs();
-  (*inputs)["key"] = tensor_proto;
-  EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
-      CallPredict(GetServerCore(), request, &response).code());
+  TensorProto tensor_proto2;
+  tensor_proto2.add_float_val(1.0);
+  tensor_proto2.set_dtype(tensorflow::DT_FLOAT);
+  tensor_proto2.mutable_tensor_shape()->add_dim()->set_size(1);
+  (*inputs)["unknown_key2"] = tensor_proto2;
+
+  Status status = CallPredict(GetServerCore(), request, &response);
+  EXPECT_EQ(status.code(), tensorflow::error::INVALID_ARGUMENT);
+  EXPECT_THAT(status.error_message(),
+              ::testing::HasSubstr("Sent extra: {unknown_key1,unknown_key2}"));
+  EXPECT_THAT(status.error_message(),
+              ::testing::HasSubstr(absl::StrCat("Missing but required: {",
+                                                kInputTensorKey, "}")));
 }
 
 TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
@@ -199,9 +210,11 @@ TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
   request.add_output_filter("output_filter");
 
   // Output filter like this doesn't exist.
-  EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
-      CallPredict(GetServerCore(), request, &response).code());
+  Status status1 = CallPredict(GetServerCore(), request, &response);
+  EXPECT_EQ(status1.code(), tensorflow::error::INVALID_ARGUMENT);
+  EXPECT_THAT(status1.error_message(),
+              ::testing::HasSubstr(
+                  "output tensor alias not found in signature: output_filter"));
 
   request.clear_output_filter();
   request.add_output_filter(kOutputTensorKey);
@@ -209,9 +222,10 @@ TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
   request.add_output_filter(kOutputTensorKey);
 
   // Duplicate output filter specified.
-  EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
-      CallPredict(GetServerCore(), request, &response).code());
+  Status status2 = CallPredict(GetServerCore(), request, &response);
+  EXPECT_EQ(status2.code(), tensorflow::error::INVALID_ARGUMENT);
+  EXPECT_THAT(status2.error_message(),
+              ::testing::HasSubstr("duplicate output tensor alias: y"));
 }
 
 TEST_F(PredictImplTest, InputTensorsHaveWrongType) {
@@ -223,16 +237,17 @@ TEST_F(PredictImplTest, InputTensorsHaveWrongType) {
   model_spec->mutable_version()->set_value(kTestModelVersion);
 
   TensorProto tensor_proto;
-  tensor_proto.add_string_val("any_key");
+  tensor_proto.add_string_val("any_value");
   tensor_proto.set_dtype(tensorflow::DT_STRING);
   tensor_proto.mutable_tensor_shape()->add_dim()->set_size(1);
   (*request.mutable_inputs())[kInputTensorKey] = tensor_proto;
   request.add_output_filter(kOutputTensorKey);
 
   // Input tensors are all wrong.
-  EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
-      CallPredict(GetServerCore(), request, &response).code());
+  Status status = CallPredict(GetServerCore(), request, &response);
+  EXPECT_EQ(status.code(), tensorflow::error::INVALID_ARGUMENT);
+  EXPECT_THAT(status.error_message(),
+              ::testing::HasSubstr("to be float but string is provided"));
 }
 
 TEST_F(PredictImplTest, ModelMissingSignatures) {
