@@ -205,7 +205,6 @@ cc_library(
     deps = [
         ":source_router",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
 )
 
