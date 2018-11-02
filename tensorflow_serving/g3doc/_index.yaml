@@ -36,17 +36,17 @@ landing_page:
 
   - classname: devsite-landing-row-cards
     items:
+    - heading: "Serving ML Quickly with TensorFlow&nbsp;Serving and Docker"
+      image_path: /ecosystem/images/tf-logo-card-16x9.png
+      path: https://medium.com/tensorflow/serving-ml-quickly-with-tensorflow-serving-and-docker-7df7094aa008
+      buttons:
+      - label: Read on TensorFlow blog
+        path: https://medium.com/tensorflow/serving-ml-quickly-with-tensorflow-serving-and-docker-7df7094aa008
     - heading: "TensorFlow Serving at the Dev&nbsp;Summit"
       youtube_id: q_IkJcPyNl0
       buttons:
       - label: Watch the video
         path: https://www.youtube.com/watch?v=q_IkJcPyNl0
-    - heading: Running your models in production with TensorFlow Serving
-      image_path: /ecosystem/images/google-research-card-16x9.png
-      path: https://ai.googleblog.com/2016/02/running-your-models-in-production-with.html
-      buttons:
-      - label: Read on Google Research blog
-        path: https://ai.googleblog.com/2016/02/running-your-models-in-production-with.html
     - heading: TensorFlow Serving on GitHub
       image_path: /ecosystem/images/github-card-16x9.png
       path: https://github.com/tensorflow/serving
