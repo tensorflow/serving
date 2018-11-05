@@ -13,6 +13,12 @@ upper_tabs:
     other:
     - name: Guide
       contents:
+      - heading: Quick Start
+      - title: "Server: Use TensorFlow Serving with Docker"
+        path: /serving/docker
+      - title: "Client: REST API"
+        path: /serving/api_rest
+      - heading: Understanding TensorFlow Serving
       - title: Overview
         path: /serving/overview
       - title: Installation
@@ -36,7 +42,8 @@ upper_tabs:
     - name: API
       skip_translation: true
       contents:
-      - heading: C++ reference
-      - title: All symbols
+      - heading: Serving APIs
+      - title: Server API (C++)
         path: /serving/api_docs/cc/
-      - include: /serving/api_docs/cc/_doxygen.yaml
+      - title: Client API (REST)
+        path: /serving/api_rest/
