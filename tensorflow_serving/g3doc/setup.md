@@ -4,7 +4,7 @@
 
 ### Installing using Docker
 
-The easiest and most straight-forward way of using TensorFlow Serving is via
+The easiest and most straight-forward way of using TensorFlow Serving is with
 [Docker images](docker.md). We highly recommend this route unless you have
 specific needs that are not addressed by running in a container.
 

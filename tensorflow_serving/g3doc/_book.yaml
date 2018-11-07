@@ -25,12 +25,8 @@ upper_tabs:
         path: /serving/setup
       - title: Serve a TensorFlow model
         path: /serving/serving_basic
-      - title: REST API
-        path: /serving/api_rest
       - title: Build a TensorFlow ModelServer
         path: /serving/serving_advanced
-      - title: Use TensorFlow Serving with Docker
-        path: /serving/docker
       - title: Use TensorFlow Serving with Kubernetes
         path: /serving/serving_kubernetes
       - title: Create a new kind of servable

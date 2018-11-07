@@ -121,7 +121,7 @@ TensorFlow Serving Managers provide a simple, narrow interface --
 
 ### Core
 
-**TensorFlow Serving Core** manages (via standard TensorFlow Serving APIs) the
+Using the standard TensorFlow Serving APis, *TensorFlow Serving Core* manages the
 following aspects of servables:
 
   * lifecycle

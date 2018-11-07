@@ -30,7 +30,7 @@ document).
 
 In addition to your `Loader`, you will need to define a `SourceAdapter` that
 instantiates a `Loader` from a given storage path. Most simple use-cases can
-specify the two objects concisely via the `SimpleLoaderSourceAdapter` class
+specify the two objects concisely with the `SimpleLoaderSourceAdapter` class
 (in `core/simple_loader.h`). Advanced use-cases may opt to specify `Loader` and
 `SourceAdapter` classes separately using the lower-level APIs, e.g. if the
 `SourceAdapter` needs to retain some state, and/or if state needs to be shared

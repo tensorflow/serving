@@ -1,6 +1,6 @@
-# Using TensorFlow Serving via Docker
+# Using TensorFlow Serving with Docker
 
-One of the easiest ways to get started using TensorFlow Serving is via
+One of the easiest ways to get started using TensorFlow Serving is with
 [Docker](http://www.docker.com/).
 
 ## Installing Docker
@@ -136,8 +136,8 @@ deploy and will load your model for serving on startup.
 
 ### Serving example
 
-Let's run through a full example where we load a SavedModel and call it via the
-REST API. First pull the serving image:
+Let's run through a full example where we load a SavedModel and call it using
+the REST API. First pull the serving image:
 
 ```shell
 docker pull tensorflow/serving
@@ -209,7 +209,7 @@ details, see [running a serving image](#running-a-serving-image).
 ### GPU Serving example
 
 Let's run through a full example where we load a model with GPU-bound ops and
-call it via the REST API.
+call it using the REST API.
 
 First install [`nvidia-docker`](#install-nvidia-docker). Next you can pull the
 latest TensorFlow Serving GPU docker image by running:
