@@ -79,7 +79,8 @@ class EvHTTPRequest final : public ServerRequestInterface {
 
   void WriteResponseString(absl::string_view data) override;
 
-  std::unique_ptr<char, FreeDeleter> ReadRequestBytes(int64_t* size) override;
+  std::unique_ptr<char[], BlockDeleter> ReadRequestBytes(
+      int64_t* size) override;
 
   absl::string_view GetRequestHeader(absl::string_view header) const override;
 

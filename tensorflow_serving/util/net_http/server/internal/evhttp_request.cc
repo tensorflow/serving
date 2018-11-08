@@ -146,7 +146,7 @@ void EvHTTPRequest::WriteResponseString(absl::string_view data) {
   WriteResponseBytes(data.data(), static_cast<int64_t>(data.size()));
 }
 
-std::unique_ptr<char, FreeDeleter> EvHTTPRequest::ReadRequestBytes(
+std::unique_ptr<char[], BlockDeleter> EvHTTPRequest::ReadRequestBytes(
     int64_t* size) {
   evbuffer* input_buf =
       evhttp_request_get_input_buffer(parsed_request_->request);
@@ -162,22 +162,24 @@ std::unique_ptr<char, FreeDeleter> EvHTTPRequest::ReadRequestBytes(
     return nullptr;  // EOF
   }
 
-  void* block = malloc(*buf_size);
+  char* block = std::allocator<char>().allocate(*buf_size);
   int ret = evbuffer_remove(input_buf, block, *buf_size);
 
   if (ret != *buf_size) {
     ABSL_RAW_LOG(ERROR, "Unexpected: read less than specified num_bytes : %zu",
                  *buf_size);
-    free(block);
+    std::allocator<char>().deallocate(block, *buf_size);
     *buf_size = 0;
     return nullptr;  // don't return corrupted buffer
   }
 
   // Uncompress the entire body
   if (NeedUncompressGzipContent()) {
-    void* new_block;
-    UncompressGzipContent(block, *buf_size, &new_block, buf_size);
-    free(block);
+    char* new_block;
+    size_t orig_size = *buf_size;
+    UncompressGzipContent(block, orig_size,
+                          reinterpret_cast<void**>(&new_block), buf_size);
+    std::allocator<char>().deallocate(block, orig_size);
     if (new_block != nullptr) {
       block = new_block;
     } else {
@@ -187,7 +189,7 @@ std::unique_ptr<char, FreeDeleter> EvHTTPRequest::ReadRequestBytes(
     }
   }
 
-  return std::unique_ptr<char, FreeDeleter>(static_cast<char*>(block));
+  return std::unique_ptr<char[], BlockDeleter>(block, BlockDeleter(*buf_size));
 }
 
 bool EvHTTPRequest::NeedUncompressGzipContent() {

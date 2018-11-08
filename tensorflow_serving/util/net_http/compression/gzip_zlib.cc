@@ -22,6 +22,8 @@ limitations under the License.
 #include <cassert>
 #include <cstring>
 
+#include <memory>
+
 #include "absl/base/casts.h"
 #include "absl/base/internal/raw_logging.h"
 #include "absl/base/macros.h"
@@ -805,12 +807,12 @@ int ZLib::UncompressGzipAndAllocate(Bytef **dest, uLongf *destLen,
 
   *destLen = uncompress_length;
 
-  *dest = (Bytef *)malloc(*destLen);
+  *dest = std::allocator<Bytef>().allocate(*destLen);
   if (*dest == nullptr) return Z_MEM_ERROR;
 
   const int retval = Uncompress(*dest, destLen, source, sourceLen);
   if (retval != Z_OK) {  // just to make life easier for them
-    free(*dest);
+    std::allocator<Bytef>().deallocate(*dest, *destLen);
     *dest = nullptr;
   }
   return retval;

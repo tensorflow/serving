@@ -40,9 +40,18 @@ namespace tensorflow {
 namespace serving {
 namespace net_http {
 
-// To be used with std::unique_ptr<char>
-struct FreeDeleter {
-  inline void operator()(char* ptr) const { free(ptr); }
+// To be used with memory blocks returned via std::unique_ptr<char[]>
+struct BlockDeleter {
+ public:
+  BlockDeleter() : size_(0) {}  // nullptr
+  explicit BlockDeleter(int64_t size) : size_(size) {}
+  inline void operator()(char* ptr) const {
+    // TODO: c++14 ::operator delete[](ptr, size_t)
+    std::allocator<char>().deallocate(ptr, static_cast<std::size_t>(size_));
+  }
+
+ private:
+  int64_t size_;
 };
 
 class ServerRequestInterface {
@@ -84,11 +93,12 @@ class ServerRequestInterface {
   // to the caller. Returns nullptr when EOF is reached or when there
   // is no request body.
   //
-  // The returned memory will be "free-ed" via the custom Deleter.
+  // The returned memory will be "free-ed" via the custom Deleter. Do not
+  // release the memory manually as its allocator is subject to change.
   //
   // Note this is not a streaming read API in that the complete request body
   // should have already been received.
-  virtual std::unique_ptr<char, FreeDeleter> ReadRequestBytes(
+  virtual std::unique_ptr<char[], BlockDeleter> ReadRequestBytes(
       int64_t* size) = 0;
 
   // Returns the first value, including "", associated with a request
