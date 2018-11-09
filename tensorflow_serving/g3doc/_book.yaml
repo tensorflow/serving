@@ -35,6 +35,11 @@ upper_tabs:
         path: /serving/custom_source
       - title: SignatureDefs in SavedModel for TensorFlow Serving
         path: /serving/signature_defs
+    - name: TFX
+      contents:
+      - title: TFX
+        path: /tfx
+        status: external
     - name: API
       skip_translation: true
       contents:
