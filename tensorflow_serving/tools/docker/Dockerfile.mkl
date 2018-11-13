@@ -20,10 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install TF Serving pkg
 COPY --from=build_image /usr/local/bin/tensorflow_model_server /usr/bin/tensorflow_model_server
 
-# MKL installation
-COPY --from=build_image /mkl-dnn/external/mklml_lnx_*/lib/libiomp5.so /usr/local/lib
-COPY --from=build_image /mkl-dnn/external/mklml_lnx_*/lib/libmklml_gnu.so /usr/local/lib
-COPY --from=build_image /mkl-dnn/external/mklml_lnx_*/lib/libmklml_intel.so /usr/local/lib
+# Install MKL libraries
+COPY --from=build_image /usr/local/lib/libiomp5.so /usr/local/lib
+COPY --from=build_image /usr/local/lib/libmklml_gnu.so /usr/local/lib
+COPY --from=build_image /usr/local/lib/libmklml_intel.so /usr/local/lib
 
 ENV LIBRARY_PATH '/usr/local/lib:$LIBRARY_PATH'
 ENV LD_LIBRARY_PATH '/usr/local/lib:$LD_LIBRARY_PATH'
@@ -43,14 +43,29 @@ RUN mkdir -p ${MODEL_BASE_PATH}
 # The only required piece is the model name in order to differentiate endpoints
 ENV MODEL_NAME=model
 
-# Set inter_op or intra_op threads
-ENV TENSORFLOW_SESSION_PARALLELISM=2
-
 # Create a script that runs the model server so we can use environment variables
-# while also passing in arguments from the docker command line
+# while also passing in arguments from the docker command line.
+# Setting MKL environment variables gave better performance.
+# https://www.tensorflow.org/guide/performance/overview
+# Read about Tuning MKL for the best performance
+# and also
+# During our experiments, setting tensorflow_session_parallelism to
+# half of physical cores on single socket gave optimal peformance with MKL
+# Add export MKLDNN_VERBOSE=1 to the below script,
+# to see MKL messages in the docker logs when you send predict request.
+# NOTE: We don't gurantee same settings to give optimal peformance across all hardwares
+# please tune variables as required.
 RUN echo '#!/bin/bash \n\n\
+CORES_PER_SOCKET=`lscpu | grep "Core(s) per socket" | cut -d':' -f2 | sed "s/ //g"` \n\
+SOCKETS=`lscpu | grep "Socket(s)" | cut -d':' -f2 | sed "s/ //g"` \n\
+TOTAL_PHYSICAL_CORES=$((${CORES_PER_SOCKET} * ${SOCKETS} )) \n\
+export HALF_CORES=$(( ${TOTAL_PHYSICAL_CORES} / 2)) \n\
+export OMP_NUM_THREADS=${TOTAL_PHYSICAL_CORES} \n\
+export KMP_BLOCKTIME=1 \n\
+export KMP_SETTINGS=1 \n\
+export KMP_AFFINITY=granularity=fine,verbose,compact,1,0 \n\
 tensorflow_model_server --port=8500 --rest_api_port=8501 \
---tensorflow_session_parallelism=${TENSORFLOW_SESSION_PARALLELISM} \
+--tensorflow_session_parallelism=${HALF_CORES} \
 --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME} \
 "$@"' > /usr/bin/tf_serving_entrypoint.sh \
 && chmod +x /usr/bin/tf_serving_entrypoint.sh
