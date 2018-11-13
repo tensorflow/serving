@@ -20,6 +20,8 @@ limitations under the License.
 #include <memory>
 #include <utility>
 #include <vector>
+#include <thread>
+#include <atomic>
 
 #include "google/protobuf/wrappers.pb.h"
 #include "grpc/grpc.h"
@@ -171,6 +173,59 @@ Server::Options::Options()
 
 Server::~Server() { WaitForTermination(); }
 
+std::atomic<bool> Server::model_conf_mon_thread_exit_(false);
+
+int Server::model_config_mon_thread_function(std::unique_ptr<ServerCore> core_p, const string& model_conf_file,
+                                             tensorflow::int32 modelconf_poll_wait_seconds) {
+
+  LOG(INFO) << "Enter model_config_mon_thread_function";
+
+  std::string prev_conf_msg = "";
+
+  while(1) {
+
+    int time_left_sec = modelconf_poll_wait_seconds;
+
+    while(time_left_sec > 0) {
+      tensorflow::Env::Default()->SleepForMicroseconds(100 * 10000 * 1 /* 1 seconds */);
+      time_left_sec -= 1;
+
+      if (model_conf_mon_thread_exit_.load()) {
+        break;
+      }
+    }
+
+    if (model_conf_mon_thread_exit_.load()) {
+      break;
+    }
+
+    LOG(INFO) << "Looking at modelconf from " << model_conf_file;
+
+    ModelServerConfig new_config = ReadProtoFromFile<ModelServerConfig>(model_conf_file);
+
+    std::string new_conf_msg;
+    new_config.SerializeToString(&new_conf_msg);
+
+    if (new_conf_msg != prev_conf_msg) {
+      LOG(INFO) << "Reloading modelconf";
+
+      prev_conf_msg = new_conf_msg;
+
+      Status status = core_p->ReloadConfig(new_config);
+
+      if (!status.ok()) {
+        LOG(ERROR) << "Reload modelconf failed: " << status.error_message();
+      } else {
+        LOG(INFO) << "Running modelconf success";
+      }
+    }
+  }
+
+  LOG(INFO) << "Exiting model_config_mon_thread_function";
+
+  return 0;
+}
+
 Status Server::BuildAndStart(const Options& server_options) {
   const bool use_saved_model = true;
 
@@ -253,6 +308,14 @@ Status Server::BuildAndStart(const Options& server_options) {
 
   TF_RETURN_IF_ERROR(ServerCore::Create(std::move(options), &server_core_));
 
+  if (server_options.modelconf_poll_wait_seconds > 0) {
+    LOG(INFO) << "Starting modelconf monitor ";
+    model_conf_mon_thread_ = std::unique_ptr<std::thread>(new std::thread(&Server::model_config_mon_thread_function,
+                                                                          std::move(server_core_),
+                                                                          server_options.model_config_file,
+                                                                          server_options.modelconf_poll_wait_seconds));
+  }
+
   // 0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address =
       "0.0.0.0:" + std::to_string(server_options.grpc_port);
@@ -318,6 +381,10 @@ void Server::WaitForTermination() {
   }
   if (grpc_server_ != nullptr) {
     grpc_server_->Wait();
+  }
+  if (model_conf_mon_thread_ != nullptr) {
+      model_conf_mon_thread_exit_.store(true);
+      model_conf_mon_thread_->join();
   }
 }
 

@@ -17,6 +17,8 @@ limitations under the License.
 #define TENSORFLOW_SERVING_MODEL_SERVERS_SERVER_H_
 
 #include <memory>
+#include <thread>
+#include <atomic>
 
 #include "grpcpp/server.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -57,6 +59,7 @@ class Server {
     tensorflow::int32 max_num_load_retries = 5;
     tensorflow::int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
     tensorflow::int32 file_system_poll_wait_seconds = 1;
+    tensorflow::int32 modelconf_poll_wait_seconds = 0;
     bool flush_filesystem_caches = true;
     tensorflow::string model_base_path;
     tensorflow::string saved_model_tags;
@@ -84,12 +87,18 @@ class Server {
   // This will block the current thread until termination is successful.
   void WaitForTermination();
 
+  static int model_config_mon_thread_function(std::unique_ptr<ServerCore> core_p, const string& model_conf_file,
+                                              tensorflow::int32 modelconf_poll_wait_seconds);
+
  private:
   std::unique_ptr<ServerCore> server_core_;
   std::unique_ptr<ModelServiceImpl> model_service_;
   std::unique_ptr<PredictionServiceImpl> prediction_service_;
   std::unique_ptr<::grpc::Server> grpc_server_;
   std::unique_ptr<net_http::HTTPServerInterface> http_server_;
+
+  std::unique_ptr<std::thread> model_conf_mon_thread_;
+  static std::atomic<bool> model_conf_mon_thread_exit_;
 };
 
 }  // namespace main

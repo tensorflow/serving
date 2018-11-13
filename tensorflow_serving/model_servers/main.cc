@@ -102,6 +102,10 @@ int main(int argc, char** argv) {
                        &options.file_system_poll_wait_seconds,
                        "interval in seconds between each poll of the file "
                        "system for new model version"),
+      tensorflow::Flag("modelconf_poll_wait_seconds",
+                       &options.modelconf_poll_wait_seconds,
+                       "activates model_config_file monitor in seconds; "
+                       "if change is detected, models will be Added/updated; default=0 (disabled)"),
       tensorflow::Flag("flush_filesystem_caches",
                        &options.flush_filesystem_caches,
                        "If true (the default), filesystem caches will be "
