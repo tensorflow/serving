@@ -175,7 +175,7 @@ Server::~Server() { WaitForTermination(); }
 
 std::atomic<bool> Server::model_conf_mon_thread_exit_(false);
 
-int Server::model_config_mon_thread_function(std::unique_ptr<ServerCore> core_p, const string& model_conf_file,
+int Server::model_config_mon_thread_function(ServerCore* core_p, const string& model_conf_file,
                                              tensorflow::int32 modelconf_poll_wait_seconds) {
 
   LOG(INFO) << "Enter model_config_mon_thread_function";
@@ -311,7 +311,7 @@ Status Server::BuildAndStart(const Options& server_options) {
   if (server_options.modelconf_poll_wait_seconds > 0) {
     LOG(INFO) << "Starting modelconf monitor ";
     model_conf_mon_thread_ = std::unique_ptr<std::thread>(new std::thread(&Server::model_config_mon_thread_function,
-                                                                          std::move(server_core_),
+                                                                          server_core_.get(),
                                                                           server_options.model_config_file,
                                                                           server_options.modelconf_poll_wait_seconds));
   }
