@@ -87,7 +87,7 @@ class Server {
   // This will block the current thread until termination is successful.
   void WaitForTermination();
 
-  static int model_config_mon_thread_function(std::unique_ptr<ServerCore> core_p, const string& model_conf_file,
+  static int model_config_mon_thread_function(ServerCore* core_p, const string& model_conf_file,
                                               tensorflow::int32 modelconf_poll_wait_seconds);
 
  private:
