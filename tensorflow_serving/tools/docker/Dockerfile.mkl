@@ -44,28 +44,37 @@ RUN mkdir -p ${MODEL_BASE_PATH}
 ENV MODEL_NAME=model
 
 # Create a script that runs the model server so we can use environment variables
-# while also passing in arguments from the docker command line.
+# while also passing in arguments from the docker command line
+
 # Setting MKL environment variables gave better performance.
 # https://www.tensorflow.org/guide/performance/overview
 # Read about Tuning MKL for the best performance
-# and also
-# During our experiments, setting tensorflow_session_parallelism to
-# half of physical cores on single socket gave optimal peformance with MKL
 # Add export MKLDNN_VERBOSE=1 to the below script,
 # to see MKL messages in the docker logs when you send predict request.
+
+# Based on our observations during experiments,
+# setting tensorflow_session_parallelism=<1/4th of physical cores> and
+# setting OMP_NUM_THREADS=<Total physical cores>
+# gave optimal performance results with MKL
+# KMP_BLOCKTIME=<Varies based on your model>
+
 # NOTE: We don't gurantee same settings to give optimal peformance across all hardwares
 # please tune variables as required.
+
+ENV OMP_NUM_THREADS=2
+ENV KMP_BLOCKTIME=1
+ENV KMP_SETTINGS=1
+ENV KMP_AFFINITY='granularity=fine,verbose,compact,1,0'
+
+ENV TENSORFLOW_SESSION_PARALLELISM=2
+
 RUN echo '#!/bin/bash \n\n\
-CORES_PER_SOCKET=`lscpu | grep "Core(s) per socket" | cut -d':' -f2 | sed "s/ //g"` \n\
-SOCKETS=`lscpu | grep "Socket(s)" | cut -d':' -f2 | sed "s/ //g"` \n\
-TOTAL_PHYSICAL_CORES=$((${CORES_PER_SOCKET} * ${SOCKETS} )) \n\
-export HALF_CORES=$(( ${TOTAL_PHYSICAL_CORES} / 2)) \n\
-export OMP_NUM_THREADS=${TOTAL_PHYSICAL_CORES} \n\
-export KMP_BLOCKTIME=1 \n\
-export KMP_SETTINGS=1 \n\
-export KMP_AFFINITY=granularity=fine,verbose,compact,1,0 \n\
+export OMP_NUM_THREADS=${OMP_NUM_THREADS} \n\
+export KMP_BLOCKTIME=${KMP_BLOCKTIME} \n\
+export KMP_SETTINGS=${KMP_SETTINGS} \n\
+export KMP_AFFINITY=${KMP_AFFINITY} \n\
 tensorflow_model_server --port=8500 --rest_api_port=8501 \
---tensorflow_session_parallelism=${HALF_CORES} \
+--tensorflow_session_parallelism=${TENSORFLOW_SESSION_PARALLELISM} \
 --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME} \
 "$@"' > /usr/bin/tf_serving_entrypoint.sh \
 && chmod +x /usr/bin/tf_serving_entrypoint.sh
