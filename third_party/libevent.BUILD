@@ -72,8 +72,8 @@ cc_library(
         "libevent/lib/libevent_pthreads.a",
     ],
     hdrs = include_files,
-    linkopts = ["-lpthread"],
     includes = ["libevent/include"],
+    linkopts = ["-lpthread"],
     linkstatic = 1,
 )
 
