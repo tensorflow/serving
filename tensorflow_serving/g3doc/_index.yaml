@@ -72,7 +72,7 @@ landing_page:
   - classname: devsite-landing-row-cards
     items:
     - heading: "Serving ML Quickly with TensorFlow&nbsp;Serving and Docker"
-      image_path: /ecosystem/images/tf-logo-card-16x9.png
+      image_path: /resources/images/tf-logo-card-16x9.png
       path: https://medium.com/tensorflow/serving-ml-quickly-with-tensorflow-serving-and-docker-7df7094aa008
       buttons:
       - label: Read on TensorFlow blog
@@ -83,7 +83,7 @@ landing_page:
       - label: Watch the video
         path: https://www.youtube.com/watch?v=q_IkJcPyNl0
     - heading: TensorFlow Serving on GitHub
-      image_path: /ecosystem/images/github-card-16x9.png
+      image_path: /resources/images/github-card-16x9.png
       path: https://github.com/tensorflow/serving
       buttons:
       - label: View on GitHub
