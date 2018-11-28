@@ -216,8 +216,9 @@ void EvHTTPRequest::UncompressGzipContent(void* input, size_t input_size,
 
   ZLib zlib;
   int err = zlib.UncompressGzipAndAllocate(
-      reinterpret_cast<Bytef**>(uncompressed_input), uncompressed_input_size,
-      reinterpret_cast<Bytef*>(input), input_size);
+      reinterpret_cast<Bytef**>(uncompressed_input),
+      reinterpret_cast<uLongf*>(uncompressed_input_size),
+      static_cast<Bytef*>(input), static_cast<uLong>(input_size));
   if (err != Z_OK) {
     ABSL_RAW_LOG(ERROR, "Got zlib error: %d", err);
   }
