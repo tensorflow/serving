@@ -175,7 +175,8 @@ RUN bazel build --color=yes --curses=yes \
     tensorflow_serving/tools/pip_package:build_pip_package && \
     bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package \
     /tmp/pip && \
-    pip --no-cache-dir install --upgrade /tmp/pip/tensorflow_serving*.whl && \
+    pip --no-cache-dir install --upgrade \
+    /tmp/pip/tensorflow_serving_api_gpu-*.whl && \
     rm -rf /tmp/pip
 
 FROM binary_build as clean_build
