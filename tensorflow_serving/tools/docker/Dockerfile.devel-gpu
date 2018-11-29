@@ -120,7 +120,6 @@ ENV TF_CUDNN_VERSION=7
 # Fix paths so that CUDNN can be found: https://github.com/tensorflow/tensorflow/issues/8264
 WORKDIR /
 RUN mkdir /usr/lib/x86_64-linux-gnu/include/ && \
-  ln -s /usr/lib/x86_64-linux-gnu/include/cudnn.h /usr/lib/x86_64-linux-gnu/include/cudnn.h && \
   ln -s /usr/include/cudnn.h /usr/local/cuda/include/cudnn.h && \
   ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so /usr/local/cuda/lib64/libcudnn.so && \
   ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so.${TF_CUDNN_VERSION} /usr/local/cuda/lib64/libcudnn.so.${TF_CUDNN_VERSION}
