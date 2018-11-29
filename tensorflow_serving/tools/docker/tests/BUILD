@@ -23,9 +23,9 @@ sh_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu",
     ],
     tags = [
-        "exclude_from_all",
         "exclusive",
         "local",
+        "manual",
     ],
     deps = [":docker_test_lib"],
 )
@@ -39,9 +39,9 @@ sh_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu",
     ],
     tags = [
-        "exclude_from_all",
         "exclusive",
         "local",
+        "manual",
     ],
     deps = [":docker_test_lib"],
 )
@@ -55,9 +55,9 @@ sh_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_gpu",
     ],
     tags = [
-        "exclude_from_all",
         "exclusive",
         "local",
+        "manual",
     ],
     deps = [":docker_test_lib"],
 )
@@ -71,9 +71,9 @@ sh_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_gpu",
     ],
     tags = [
-        "exclude_from_all",
         "exclusive",
         "local",
+        "manual",
     ],
     deps = [":docker_test_lib"],
 )
