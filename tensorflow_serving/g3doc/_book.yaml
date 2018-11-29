@@ -20,7 +20,7 @@ upper_tabs:
         path: /serving/api_rest
       - heading: Examples
       - title: Training and serving a model with REST
-        path: /serving/tutorials/Serving_REST_simple.md
+        path: /serving/tutorials/Serving_REST_simple
       - heading: Understanding TensorFlow Serving
       - title: Overview
         path: /serving/overview
