@@ -23,7 +23,7 @@ function main() {
   fi
 
   if [[ ! -d "bazel-bin/tensorflow_serving" ]]; then
-    echo "Could not find bazel-bin. Did you run from the root of the build "\
+    echo "Could not find bazel-bin. Did you run from the root of the build"\
       "tree?"
     exit 1
   fi
@@ -74,8 +74,12 @@ function main() {
   cp ${PIP_SRC_DIR}/setup.py "${TMPDIR}"
 
   pushd "${TMPDIR}"
-  echo $(date) : "=== Building wheel"
-  python setup.py bdist_wheel --universal # >/dev/null
+  echo $(date) : "=== Building wheel (CPU)"
+  python setup.py bdist_wheel --universal \
+    --project_name tensorflow-serving-api # >/dev/null
+  echo $(date) : "=== Building wheel (GPU)"
+  python setup.py bdist_wheel --universal \
+    --project_name tensorflow-serving-api-gpu # >/dev/null
   mkdir -p "${DEST}"
   cp dist/* "${DEST}"
   popd
