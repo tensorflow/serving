@@ -15,6 +15,14 @@ licenses(["notice"])  # Apache 2.0
 # or other implementation details.
 package_group(name = "tensorflow_model_server_custom_op_clients")
 
+package_group(
+    name = "testing",
+    packages = [
+        # tensorflow_transform for testing only
+        "//third_party/py/tensorflow_transform/examples/...",
+    ],
+)
+
 filegroup(
     name = "all_files",
     srcs = glob(
@@ -356,7 +364,10 @@ cc_library(
 cc_binary(
     name = "tensorflow_model_server",
     stamp = 1,
-    visibility = ["//tensorflow_serving:internal"],
+    visibility = [
+        ":testing",
+        "//tensorflow_serving:internal",
+    ],
     deps = [
         ":tensorflow_model_server_main_lib",
     ],
