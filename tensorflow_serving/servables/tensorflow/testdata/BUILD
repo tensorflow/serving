@@ -68,6 +68,20 @@ py_binary(
     ],
 )
 
+filegroup(
+    name = "saved_model_half_plus_two_cpu",
+    srcs = glob(
+        ["saved_model_half_plus_two_cpu/**"],
+    ),
+)
+
+filegroup(
+    name = "saved_model_half_plus_two_gpu",
+    srcs = glob(
+        ["saved_model_half_plus_two_gpu/**"],
+    ),
+)
+
 # Note: re-generate these files with :export_half_plus_two whenever model
 # changes.
 exports_files([

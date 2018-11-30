@@ -359,7 +359,9 @@ void TestGzip(ZLib* zlib, const std::string& uncompbuf_str) {
   EXPECT_EQ(uncomplen, uncomplen2) << "Uncompression mismatch!";
   EXPECT_EQ(0, memcmp(uncompbuf, uncompbuf2.data(), uncomplen))
       << "Uncompression mismatch!";
-  if (tmpbuf) free(tmpbuf);
+  if (tmpbuf) {
+    std::allocator<char>().deallocate(tmpbuf, uncomplen2);
+  }
 }
 
 void TestChunkedGzip(ZLib* zlib, const std::string& uncompbuf_str,
@@ -499,7 +501,7 @@ TEST(ZLibTest, HugeCompression) {
   std::string uncompbuf(HUGE_DATA_SIZE, 'A');
 
   ZLib zlib;
-  zlib.SetCompressionLevel(6);
+  zlib.SetCompressionLevel(1);  //  as fast as possible
   TestCompression(&zlib, uncompbuf, nullptr);
 }
 

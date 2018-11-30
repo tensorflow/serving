@@ -177,7 +177,7 @@ class ZLib {
   uLongf GzipUncompressedLength(const Bytef *source, uLong len);
 
   // Special helper function to help uncompress gzipped documents:
-  // We'll allocate (with malloc) a destination buffer exactly big
+  // We'll allocate (via std::allocator) a destination buffer exactly big
   // enough to hold the gzipped content.  We set dest and destLen.
   // If we don't return Z_OK, *dest will be NULL, otherwise you
   // should free() it when you're done with it.
