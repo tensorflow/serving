@@ -30,6 +30,9 @@ message SessionRunRequest {
 }
 
 message SessionRunResponse {
+  // Effective Model Specification used for session run.
+  ModelSpec model_spec = 3;
+
   // NOTE: The order of the returned tensors may or may not match
   // the fetch order specified in RunRequest.
   repeated NamedTensorProto tensor = 1;
