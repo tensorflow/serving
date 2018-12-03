@@ -15,7 +15,7 @@ landing_page:
         provides out-of-the-box integration with TensorFlow models, but can be
         easily extended to serve other types of models and data.
         
-        h3 style='margin-top:1.5em; margin-bottom:0.5em'>Create a production pipeline</h3>
+        <h3 style='margin-top:1.5em; margin-bottom:0.5em'>Create a production pipeline</h3>
         You can create a production pipeline by adding other components from
         TensorFlow Extended (TFX) to your TensorFlow Serving deployment.  TFX includes
         components that enable your production deployment to monitor and validate your
