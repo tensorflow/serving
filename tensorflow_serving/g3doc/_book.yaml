@@ -40,11 +40,13 @@ upper_tabs:
         path: /serving/custom_source
       - title: SignatureDefs in SavedModel for TensorFlow Serving
         path: /serving/signature_defs
+
     - name: TFX
       contents:
       - title: TFX
         path: /tfx
         status: external
+
     - name: API
       skip_translation: true
       contents:
@@ -53,3 +55,5 @@ upper_tabs:
         path: /serving/api_docs/cc/
       - title: Client API (REST)
         path: /serving/api_rest/
+
+- include: /_upper_tabs_right.yaml
