@@ -35,7 +35,7 @@ for the ImageNet dataset.
 
 ```shell
 mkdir /tmp/resnet
-curl -s http://download.tensorflow.org/models/official/20181001_resnet/savedmodels/resnet_v2_fp32_savedmodel_NHWC_jpg.tar.gz| \
+curl -s http://download.tensorflow.org/models/official/20181001_resnet/savedmodels/resnet_v2_fp32_savedmodel_NHWC_jpg.tar.gz | \
 tar --strip-components=2 -C /tmp/resnet -xvz
 ```
 
