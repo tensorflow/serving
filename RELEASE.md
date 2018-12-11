@@ -1,3 +1,30 @@
+# Release 1.12.0
+
+## Major Features and Improvements
+* Add new REST API to [get model status](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/g3doc/api_rest.md#model-status-api) from ModelServer (commit: 00e459f1604c40c073cbb9cb92d72cb6a88be9cd)
+* Add new REST API to [get model metadata](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/g3doc/api_rest.md#model-metadata-api) from ModelServer (fixes #1115) (commit: 97687024c3b7515d2f2979c35054f44c8f84d146)
+* Support accepting gzipped REST API requests (fixes #1091) (commit: b94f6c89335782a7f175e8973c4f326375c55120)
+
+## Breaking Changes
+
+None
+
+## Bug Fixes and Other Changes
+
+* Update MKL build (commit: e11bd51540212242911dae00c8507e2852a5ad5a)
+* Remove version pinning on pip packages (commit: 462072c2d78124c2769f820f7b63ee086de4e305)
+* Update basic serving tutorials (commit: 33a4b052cedc39c21107bc99a090b59ca64ec568)
+* Replacing legacy_init_op argument in SavedModelBuilder with main_op. (commit: 2fda31f905eefd2d108e9c84b8d7d55e4e482833)
+* Add git hash for version metadata of model server and add tags for dev and nightly builds. (commit: 5c7740fc3d8d5c017643a8cc40a7202717b10dd6)
+* Add error messages for specific cases when json for REST requests (commit: a17c89202e68bf19f369b9cbc97db7ced283b874)
+* Python examples now run in a hermetic environment with all required dependencies (commit: 793fd90ee41ac34fa4c9261eef2d2c908dca9735)
+
+## Thanks to our Contributors
+
+This release contains contributions from many people at Google, as well as:
+
+Charles Verge, demfier, Kamidi Preetham, Lihang Li, naurril, vfdev, Yu Zheng
+
 # Release 1.11.1
 
 ## Bug Fixes and Other Changes
