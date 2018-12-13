@@ -68,6 +68,17 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "saved_model_half_plus_two",
+    srcs = [
+        "saved_model_half_plus_two.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        "@org_tensorflow//tensorflow:tensorflow_py",
+    ],
+)
+
 filegroup(
     name = "saved_model_half_plus_two_cpu",
     srcs = glob(
