@@ -178,6 +178,8 @@ class SavedModelTensorFlowClassifier : public ClassifierInterface {
         run_options_, request.input(), input_tensor_name, output_tensor_names,
         session_, &outputs, &num_examples));
 
+    RecordRequestExampleCount(request.model_spec().name(), num_examples);
+
     TRACELITERAL("ConvertToClassificationResult");
     return PostProcessClassificationResult(
         *signature_, num_examples, output_tensor_names, outputs, result);

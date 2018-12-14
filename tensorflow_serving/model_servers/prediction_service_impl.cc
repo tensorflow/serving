@@ -20,6 +20,21 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
 #include "tensorflow_serving/servables/tensorflow/multi_inference_helper.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
+#include "tensorflow_serving/servables/tensorflow/util.h"
+#include "tensorflow/cc/saved_model/signature_constants.h"
+#include "tensorflow/contrib/session_bundle/signature.h"
+#include "tensorflow/core/example/example.pb.h"
+#include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/core/notification.h"
+#include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/tracing.h"
+#include "tensorflow/core/platform/types.h"
+#include "tensorflow_serving/apis/classification.pb.h"
+#include "tensorflow_serving/apis/classifier.h"
+#include "tensorflow_serving/apis/input.pb.h"
+#include "tensorflow_serving/apis/model.pb.h"
+#include "tensorflow_serving/servables/tensorflow/util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -73,12 +88,30 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
   // By default, this is infinite which is the same default as RunOptions.
   run_options.set_timeout_in_ms(
       DeadlineToTimeoutMillis(context->raw_deadline()));
+
+  ClassificationRequest request_temp;
+  request_temp = *request;
+
+  const string model_name = request_temp.model_spec().name();
+
+  const uint64 start_microseconds = Env::Default()->NowMicros();
+
   const ::grpc::Status status =
       ToGRPCStatus(TensorflowClassificationServiceImpl::Classify(
           run_options, core_, *request, response));
   if (!status.ok()) {
     VLOG(1) << "Classify request failed: " << status.error_message();
   }
+
+  const uint64 load_latency_microsecs = [&]() -> uint64 {
+    const uint64 end_microseconds = Env::Default()->NowMicros();
+    // Avoid clock skew.
+    if (end_microseconds < start_microseconds) return 0;
+    return end_microseconds - start_microseconds;
+  }();
+
+  RecordModelEvaluation(model_name, load_latency_microsecs);
+
   return status;
 }
 

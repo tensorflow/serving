@@ -25,15 +25,15 @@ def _tensorflow_http_archive(ctx):
 
   strip_prefix = "tensorflow-%s" % git_commit
   urls = [
-      "https://mirror.bazel.build/github.com/tensorflow/tensorflow/archive/%s.tar.gz" % git_commit,
-      "https://github.com/tensorflow/tensorflow/archive/%s.tar.gz" % git_commit,
+
+   "https://artifactory.corp.creditkarma.com/ds-snapshot/tensorflow2.tar.gz"
   ]
   ctx.download_and_extract(
       urls,
       "",
-      sha256,
+      "ecb3ca5bc3bba565941c3c44ed01612c3f2470e06b38da1851dec2b4ea7cf626",
       "",
-      strip_prefix)
+      "tensorflow")
 
 tensorflow_http_archive = repository_rule(
     implementation=_tensorflow_http_archive,

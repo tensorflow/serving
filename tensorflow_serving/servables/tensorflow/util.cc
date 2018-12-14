@@ -44,6 +44,11 @@ auto* example_count_total = monitoring::Counter<1>::New(
     "/tensorflow/serving/request_example_count_total",
     "The total number of tensorflow.Examples.", "model");
 
+auto* evaluation_with_labels = monitoring::Sampler<1>::New(
+    {"/tensorflow/serving/evaluation_with_labels",
+                     "Evaluation with one label.", "model"},
+                    monitoring::Buckets::Explicit({1000, 5000, 10000, 20000, 30000, 50000}));
+
 // Returns the number of examples in the Input.
 int NumInputExamples(const internal::SerializedInput& input) {
   switch (input.kind_case()) {
@@ -63,9 +68,15 @@ namespace internal {
 
 monitoring::Sampler<1>* GetExampleCounts() { return example_counts; }
 
+monitoring::Sampler<1>* GetModelEvaluations() { return evaluation_with_labels; }
+
 monitoring::Counter<1>* GetExampleCountTotal() { return example_count_total; }
 
 }  // namespace internal
+
+void RecordModelEvaluation(const string& model_name, uint64 micros) {
+  evaluation_with_labels->GetCell(model_name)->Add(micros);
+}
 
 void RecordRequestExampleCount(const string& model_name, size_t count) {
   example_counts->GetCell(model_name)->Add(count);
