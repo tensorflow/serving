@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM ubuntu:16.04 as base_build
+FROM ubuntu:18.04 as base_build
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=head
@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         libcurl3-dev \
         libfreetype6-dev \
-        libpng12-dev \
+        libpng-dev \
         libtool \
         libzmq3-dev \
         mlocate \

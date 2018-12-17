@@ -35,13 +35,13 @@ Output from this program is typically used to exercise SavedModel load and
 execution code.
 
 To create a CPU model:
-  bazel run -c opt saved_half_plus_two -- --device=cpu
+  bazel run -c opt saved_model_half_plus_two -- --device=cpu
 
 To create a CPU model with Intel MKL-DNN optimizations:
-  bazel run -c opt saved_half_plus_two -- --device=mkl
+  bazel run -c opt saved_model_half_plus_two -- --device=mkl
 
 To create GPU model:
-  bazel run --config=cuda -c opt saved_half_plus_two -- \
+  bazel run --config=cuda -c opt saved_model_half_plus_two -- \
   --device=gpu
 """
 
