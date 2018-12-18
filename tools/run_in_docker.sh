@@ -43,7 +43,7 @@ function usage() {
   echo ""
   echo "Examples:"
   echo "  ${progname} bazel build tensorflow_serving/model_servers:tensorflow_model_server"
-  echo "  ${progname} python tensorflow_serving/examples/mnist_saved_model.py /tmp/mnist"
+  echo "  ${progname} python tensorflow_serving/example/mnist_saved_model.py /tmp/mnist"
   echo "  ${progname} -d tensorflow/serving:latest-devel bazel version"
   exit 1
 }
