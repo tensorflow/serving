@@ -84,11 +84,6 @@ ENV MKLDNN_VERBOSE=0
 ENV TENSORFLOW_SESSION_PARALLELISM=2
 
 RUN echo '#!/bin/bash \n\n\
-export OMP_NUM_THREADS=${OMP_NUM_THREADS} \n\
-export KMP_BLOCKTIME=${KMP_BLOCKTIME} \n\
-export KMP_SETTINGS=${KMP_SETTINGS} \n\
-export KMP_AFFINITY=${KMP_AFFINITY} \n\
-export MKLDNN_VERBOSE=${MKLDNN_VERBOSE} \n\
 tensorflow_model_server --port=8500 --rest_api_port=8501 \
 --tensorflow_session_parallelism=${TENSORFLOW_SESSION_PARALLELISM} \
 --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME} \

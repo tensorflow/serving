@@ -54,7 +54,6 @@ import os
 import sys
 
 # This is a placeholder for a Google-internal import.
-
 import tensorflow as tf
 
 from tensorflow.python.lib.io import file_io
