@@ -92,7 +92,7 @@ to the serving docker containers. For example, if we wanted to pass a model
 config file instead of specifying the model name, we could do the following:
 
 ```shell
-docker run -p 8500:8500 8501:8501 \
+docker run -p 8500:8500 -p 8501:8501 \
   --mount type=bind,source=/path/to/my_model/,target=/models/my_model \
   --mount type=bind,source=/path/to/my/models.config,target=/models/models.config \
   -t tensorflow/serving --model_config_file=/models/models.config
