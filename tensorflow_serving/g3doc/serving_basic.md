@@ -60,7 +60,7 @@ builder.add_meta_graph_and_variables(
            signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
                classification_signature,
       },
-      main_op=main_op)
+      main_op=tf.tables_initializer())
 builder.save()
 ```
 
