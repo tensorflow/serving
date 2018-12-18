@@ -82,12 +82,6 @@ RUN git clone --branch=${TF_SERVING_VERSION_GIT_BRANCH} https://github.com/tenso
 FROM base_build as binary_build
 
 # Build, and install TensorFlow Serving
-# Use --copt=-march values to get optimized builds appropriate for the hardware
-#   platform of your choice.
-# For ivy-bridge or sandy-bridge
-# --copt=-march="avx" \
-# For haswell, broadwell, or skylake
-# --copt=-march="avx2" \
 ARG TF_SERVING_BUILD_OPTIONS="--config=mkl --config=nativeopt"
 RUN echo "Building with build options: ${TF_SERVING_BUILD_OPTIONS}"
 

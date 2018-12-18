@@ -26,7 +26,7 @@ LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates htop \
+        ca-certificates \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -60,7 +60,7 @@ ENV MODEL_NAME=model
 # Create a script that runs the model server so we can use environment variables
 # while also passing in arguments from the docker command line
 
-# Setting MKL environment variables gave better performance.
+# Setting MKL environment variables can improve performance.
 # https://www.tensorflow.org/guide/performance/overview
 # Read about Tuning MKL for the best performance
 # Add export MKLDNN_VERBOSE=1 to the below script,
@@ -72,7 +72,7 @@ ENV MODEL_NAME=model
 # gave optimal performance results with MKL
 # KMP_BLOCKTIME=<Varies based on your model>
 
-# NOTE: We don't gurantee same settings to give optimal peformance across all hardwares
+# NOTE: We don't guarantee same settings to give optimal peformance across all hardware
 # please tune variables as required.
 
 ENV OMP_NUM_THREADS=2
