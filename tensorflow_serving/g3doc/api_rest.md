@@ -382,7 +382,7 @@ such values. This implies that requests like the following one are valid:
 ```
 
 A (strict) standards compliant JSON parser will reject this with a parse error
-(due to `NaN` and `Inifinity` tokens mixed with actual numbers). To correctly
+(due to `NaN` and `Infinity` tokens mixed with actual numbers). To correctly
 handle requests/responses in your code, use a JSON parser that supports these
 tokens.
 
