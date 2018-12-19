@@ -47,6 +47,38 @@ sh_test(
 )
 
 sh_test(
+    name = "unittest_dockerfile_mkl",
+    size = "small",
+    srcs = ["dockerfile_mkl_test.sh"],
+    args = ["tensorflow/serving:latest-mkl"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_mkl",
+    ],
+    tags = [
+        "exclusive",
+        "local",
+        "manual",
+    ],
+    deps = [":docker_test_lib"],
+)
+
+sh_test(
+    name = "unittest_dockerfile_devel_mkl",
+    size = "small",
+    srcs = ["dockerfile_devel_mkl_test.sh"],
+    args = ["tensorflow/serving:latest-devel-mkl"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_mkl",
+    ],
+    tags = [
+        "exclusive",
+        "local",
+        "manual",
+    ],
+    deps = [":docker_test_lib"],
+)
+
+sh_test(
     name = "unittest_dockerfile_gpu",
     size = "medium",
     srcs = ["dockerfile_gpu_test.sh"],

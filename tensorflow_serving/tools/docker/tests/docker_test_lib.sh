@@ -137,8 +137,12 @@ function test_docker_image {
   local model_base_path="/models/${MODELNAME}"
   local docker_opts=" --privileged=true --rm -t -p ${rest_port}:${rest_port}"
   docker_opts+=" -v ${MODEL_FULL_PATH}:${model_base_path}"
-  if [ "$USE_NVIDIA_RUNTIME" = true ] ; then
+  if [ "$USE_NVIDIA_RUNTIME" = true ]; then
       docker_opts+=" --runtime=nvidia"
+  fi
+
+  if [[ "$IS_MKL_IMAGE" = true ]]; then
+      docker_opts+=" -e MKLDNN_VERBOSE=1"
   fi
 
   if [ -z $(docker images -q ${IMAGE}) ]; then
@@ -161,10 +165,16 @@ function test_docker_image {
   fi
   _find_container
   _wait_for_http
-
   _query_model
 
+  if [[ "$IS_MKL_IMAGE" = true ]]; then
+    echo "Checking for mkldnn_verbose in logs of container: ${CONTAINER_ID}"
+    if [[ -z $(docker logs --tail 1 ${CONTAINER_ID} | grep "mkldnn_verbose") ]]; then
+        echo "${IMAGE}: does not use MKL optimizations"
+        exit 1
+    fi
+  fi
+
   _cleanup_test
+
 }
-
-
