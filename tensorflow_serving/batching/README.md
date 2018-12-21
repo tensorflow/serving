@@ -74,7 +74,7 @@ some number of times with a delay; again, see below.
 
 A final configuration parameter is `allowed_batch_sizes`. This parameter is
 optional. If unset, then batch sizes can vary freely between 1 and the maximum
-allowed size, say 1024. Depending on your environment, having a large numbrer
+allowed size, say 1024. Depending on your environment, having a large number
 of possible batch sizes may cause problems. The `allowed_batch_sizes` parameter
 lets you limit the batch sizes to a fixed set, say 128, 256, 512, 1024.
 `BatchingSession` adheres to this restriction by padding invalid-size batches
