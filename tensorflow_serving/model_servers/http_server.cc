@@ -82,17 +82,16 @@ net_http::HTTPStatusCode ToHTTPStatusCode(const Status& status) {
   }
 }
 
-void ProcessPrometheusRequest(PrometheusExporter* exporter,
-                              const PrometheusConfig& prometheus_config,
+void ProcessPrometheusRequest(PrometheusExporter* exporter, const string& path,
                               net_http::ServerRequestInterface* req) {
   std::vector<std::pair<string, string>> headers;
   headers.push_back({"Content-Type", "text/plain"});
   string output;
   Status status;
   // Check if url matches the path.
-  if (req->uri_path() != prometheus_config.path()) {
+  if (req->uri_path() != path) {
     output = absl::StrFormat("Unexpected path: %s. Should be %s",
-                             req->uri_path(), prometheus_config.path());
+                             req->uri_path(), path);
     status = Status(error::Code::INVALID_ARGUMENT, output);
   } else {
     status = exporter->GeneratePage(&output);
@@ -196,10 +195,13 @@ std::unique_ptr<net_http::HTTPServerInterface> CreateAndStartHttpServer(
         std::make_shared<PrometheusExporter>();
     net_http::RequestHandlerOptions prometheus_request_options;
     PrometheusConfig prometheus_config = monitoring_config.prometheus_config();
+    auto path = prometheus_config.path().empty()
+                    ? PrometheusExporter::kPrometheusPath
+                    : prometheus_config.path();
     server->RegisterRequestHandler(
-        monitoring_config.prometheus_config().path(),
-        [exporter, prometheus_config](net_http::ServerRequestInterface* req) {
-          ProcessPrometheusRequest(exporter.get(), prometheus_config, req);
+        path,
+        [exporter, path](net_http::ServerRequestInterface* req) {
+          ProcessPrometheusRequest(exporter.get(), path, req);
         },
         prometheus_request_options);
   }
