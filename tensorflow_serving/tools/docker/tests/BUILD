@@ -109,3 +109,35 @@ sh_test(
     ],
     deps = [":docker_test_lib"],
 )
+
+sh_test(
+    name = "unittest_dockerfile_gpu_trt",
+    size = "medium",
+    srcs = ["dockerfile_gpu_trt_test.sh"],
+    args = ["tensorflow/serving:latest-gpu"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_gpu_trt",
+    ],
+    tags = [
+        "exclusive",
+        "local",
+        "manual",
+    ],
+    deps = [":docker_test_lib"],
+)
+
+sh_test(
+    name = "unittest_dockerfile_devel_gpu_trt",
+    size = "medium",
+    srcs = ["dockerfile_devel_gpu_trt_test.sh"],
+    args = ["tensorflow/serving:latest-devel-gpu"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_gpu_trt",
+    ],
+    tags = [
+        "exclusive",
+        "local",
+        "manual",
+    ],
+    deps = [":docker_test_lib"],
+)

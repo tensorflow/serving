@@ -100,6 +100,13 @@ filegroup(
     ),
 )
 
+filegroup(
+    name = "saved_model_half_plus_two_gpu_trt",
+    srcs = glob(
+        ["saved_model_half_plus_two_gpu_trt/**"],
+    ),
+)
+
 # Note: re-generate these files with :export_half_plus_two whenever model
 # changes.
 exports_files([

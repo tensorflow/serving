@@ -188,7 +188,11 @@ def _generate_saved_model_for_half_plus_two(export_dir,
         o3 = tf.keras.layers.Conv2D(1, [1, 1])(tf.zeros((1, 16, 16, 1)))
         y3 = o3[0, 0, 0, 0] + tf.add(tf.multiply(a, x2), c)
       else:
-        y3 = tf.add(tf.multiply(a, x2), c)
+        # Add separate constants for x2, to prevent optimizers like TF-TRT from
+        # fusing the paths to compute y/y2 and y3 together.
+        a2 = tf.Variable(0.5, name="a2")
+        c2 = tf.Variable(3.0, name="c2")
+        y3 = tf.add(tf.multiply(a2, x2), c2)
 
       y3 = tf.identity(y3, name="y3")
 
