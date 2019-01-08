@@ -60,8 +60,7 @@ RUN pip --no-cache-dir install \
     requests
 
 # Set up Bazel
-# Need >= 0.15.0 so bazel compiles work with docker bind mounts.
-ENV BAZEL_VERSION 0.15.0
+ENV BAZEL_VERSION 0.20.0
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \

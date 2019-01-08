@@ -15,6 +15,8 @@ tensorflow_http_archive(
     git_commit = "7fa90cddf07c6aac532306dac15e02216a83b9fa",
 )
 
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
 # TensorFlow depends on "io_bazel_rules_closure" so we need this here.
 # Needs to be kept in sync with the same target in TensorFlow's WORKSPACE file.
 http_archive(
@@ -35,4 +37,4 @@ tf_serving_workspace()
 # Specify the minimum required bazel version.
 load("@org_tensorflow//tensorflow:version_check.bzl", "check_bazel_version_at_least")
 
-check_bazel_version_at_least("0.15.0")
+check_bazel_version_at_least("0.20.0")
