@@ -18,6 +18,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/record_reader.h"
+#include "tensorflow/core/lib/monitoring/counter.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow_serving/apis/prediction_log.pb.h"
@@ -31,6 +32,17 @@ namespace tensorflow {
 namespace serving {
 
 namespace {
+
+auto* model_warmup_latency = monitoring::Counter<1>::New(
+    "/tensorflow/serving/model_warmup_latency",
+    "Latency in microseconds for model warm up.", "model_path");
+
+uint64 GetLatencyMicroseconds(const uint64 start_microseconds) {
+  const uint64 end_microseconds = Env::Default()->NowMicros();
+  // Avoid clock skew.
+  if (end_microseconds < start_microseconds) return 0;
+  return end_microseconds - start_microseconds;
+}
 
 Status RunWarmupRequest(const PredictionLog& warmup_record,
                         const RunOptions& run_options,
@@ -76,6 +88,7 @@ constexpr int WarmupConsts::kMaxNumRecords;
 
 Status RunSavedModelWarmup(const RunOptions& run_options,
                            const string& export_dir, SavedModelBundle* bundle) {
+  const uint64 start_microseconds = Env::Default()->NowMicros();
   const string warmup_path =
       io::JoinPath(export_dir, kSavedModelAssetsExtraDirectory,
                    WarmupConsts::kRequestsFileName);
@@ -117,6 +130,9 @@ Status RunSavedModelWarmup(const RunOptions& run_options,
   if (!errors::IsOutOfRange(status)) {
     return status;
   }
+
+  model_warmup_latency->GetCell(export_dir)
+      ->IncrementBy(GetLatencyMicroseconds(start_microseconds));
 
   LOG(INFO) << "Finished reading warmup data for model at " << warmup_path
             << ". Number of warmup records read: " << num_warmup_records << ".";
