@@ -154,7 +154,7 @@ class AspiredVersionsManagerTest
   std::unique_ptr<AspiredVersionsManager> manager_;
 };
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WithOrWithoutThreadPools, AspiredVersionsManagerTest,
     ::testing::Values(
         ThreadPoolSizes{0, 0} /* without load or unload threadpools */,

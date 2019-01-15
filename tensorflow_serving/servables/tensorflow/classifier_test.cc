@@ -1187,7 +1187,7 @@ TEST_P(ClassifierTest, MismatchedNumberOfTensorClasses) {
 }
 
 // Test all ClassifierTest test cases with both SessionBundle and SavedModel.
-INSTANTIATE_TEST_CASE_P(UseSavedModel, ClassifierTest, ::testing::Bool());
+INSTANTIATE_TEST_SUITE_P(UseSavedModel, ClassifierTest, ::testing::Bool());
 
 }  // namespace
 }  // namespace serving

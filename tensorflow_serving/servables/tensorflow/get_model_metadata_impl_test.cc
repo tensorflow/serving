@@ -231,8 +231,8 @@ TEST_P(GetModelMetadataImplTest, ModelSpecOverride) {
 }
 
 // Test all ClassifierTest test cases with both SessionBundle and SavedModel.
-INSTANTIATE_TEST_CASE_P(UseSavedModel, GetModelMetadataImplTest,
-                        ::testing::Bool());
+INSTANTIATE_TEST_SUITE_P(UseSavedModel, GetModelMetadataImplTest,
+                         ::testing::Bool());
 
 }  // namespace
 }  // namespace serving

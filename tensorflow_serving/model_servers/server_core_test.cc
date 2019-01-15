@@ -790,13 +790,13 @@ TEST_P(ServerCoreTest, VersionLabelsNotAllowed) {
       ::testing::HasSubstr("Model version labels are not currently allowed"));
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestType, ServerCoreTest,
     ::testing::Combine(
         ::testing::Range(0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)),
         ::testing::Bool()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestType, RelativePathsServerCoreTest,
     ::testing::Combine(
         ::testing::Range(0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)),
