@@ -507,7 +507,7 @@ TEST_P(PredictImplTest, ModelSpecOverride) {
 }
 
 // Test all PredictImplTest test cases with both SessionBundle and SavedModel.
-INSTANTIATE_TEST_SUITE_P(UseSavedModel, PredictImplTest, ::testing::Bool());
+INSTANTIATE_TEST_CASE_P(UseSavedModel, PredictImplTest, ::testing::Bool());
 
 }  // namespace
 }  // namespace serving

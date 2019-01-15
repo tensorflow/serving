@@ -214,7 +214,7 @@ class CachingManagerTest : public ::testing::TestWithParam<ThreadPoolSizes> {
   StringLoaderFactory* string_loader_factory_;
 };
 
-INSTANTIATE_TEST_SUITE_P(
+INSTANTIATE_TEST_CASE_P(
     WithOrWithoutThreadPools, CachingManagerTest,
     ::testing::Values(
         ThreadPoolSizes{0, 0} /* without load or unload threadpools */,

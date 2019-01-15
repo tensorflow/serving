@@ -675,7 +675,7 @@ TEST_P(RegressorTest, MissingRegressionSignature) {
 }
 
 // Test all RegressorTest test cases with both SessionBundle and SavedModel.
-INSTANTIATE_TEST_SUITE_P(UseSavedModel, RegressorTest, ::testing::Bool());
+INSTANTIATE_TEST_CASE_P(UseSavedModel, RegressorTest, ::testing::Bool());
 
 }  // namespace
 }  // namespace serving

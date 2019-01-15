@@ -123,7 +123,7 @@ class BasicManagerTest : public ::testing::TestWithParam<ThreadPoolSizes> {
   std::unique_ptr<BasicManager> basic_manager_;
 };
 
-INSTANTIATE_TEST_SUITE_P(
+INSTANTIATE_TEST_CASE_P(
     WithOrWithoutThreadPools, BasicManagerTest,
     ::testing::Values(
         ThreadPoolSizes{0, 0} /* without load or unload threadpools */,
@@ -1017,8 +1017,8 @@ TEST_P(FlushFileSystemCachesTest, Load) {
   basic_manager_.reset();
 }
 
-INSTANTIATE_TEST_SUITE_P(WithOrWithoutFlush, FlushFileSystemCachesTest,
-                         ::testing::Bool());
+INSTANTIATE_TEST_CASE_P(WithOrWithoutFlush, FlushFileSystemCachesTest,
+                        ::testing::Bool());
 
 TEST_P(BasicManagerTest, ConcurrentLoadsOnlyOneSucceeds) {
   const ServableId id = {kServableName3, 0};

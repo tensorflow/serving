@@ -122,8 +122,8 @@ TEST_P(SavedModelBundleSourceAdapterTest, BackwardCompatibility) {
 
 // Test all SavedModelBundleSourceAdapterTest test cases with
 // warmup enabled/disabled.
-INSTANTIATE_TEST_SUITE_P(EnableWarmup, SavedModelBundleSourceAdapterTest,
-                         ::testing::Bool());
+INSTANTIATE_TEST_CASE_P(EnableWarmup, SavedModelBundleSourceAdapterTest,
+                        ::testing::Bool());
 
 }  // namespace
 }  // namespace serving

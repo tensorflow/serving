@@ -1028,7 +1028,7 @@ class ClassifyRegressRequestTest : public ::testing::Test {
 };
 
 typedef ::testing::Types<ClassificationRequest, RegressionRequest> RequestTypes;
-TYPED_TEST_SUITE(ClassifyRegressRequestTest, RequestTypes);
+TYPED_TEST_CASE(ClassifyRegressRequestTest, RequestTypes);
 
 TYPED_TEST(ClassifyRegressRequestTest, RequestNoContext) {
   TypeParam req;
