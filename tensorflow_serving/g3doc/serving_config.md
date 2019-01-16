@@ -133,3 +133,10 @@ If you subsequently need to perform a rollback, you can revert to the old config
 that has version 42 as "stable". Otherwise, you can march forward by unloading
 version 42 and loading the new version 44 when it is ready, and then advancing
 the canary label to 44, and so on.
+
+Please note that labels can only be assigned to model versions that are loaded
+and available for serving. Once a model version is available, one may reload
+the model config on the fly, to assign a label to it
+(can be achieved using
+[HandleReloadConfigRequest](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/model_service.proto#L22)
+RPC endpoint).
