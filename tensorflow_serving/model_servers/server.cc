@@ -221,12 +221,32 @@ Status Server::BuildAndStart(const Options& server_options) {
         ->mutable_gpu_options()
         ->set_per_process_gpu_memory_fraction(
             server_options.per_process_gpu_memory_fraction);
-    session_bundle_config.mutable_session_config()
+
+    if(server_options.tensorflow_intra_op_parallelism > 0 &&
+        server_options.tensorflow_inter_op_parallelism > 0 &&
+        server_options.tensorflow_session_parallelism > 0){
+        return errors::InvalidArgument("Either configure "
+          "server_options.tensorflow_session_parallelism "
+          "or (server_options.tensorflow_intra_op_parallelism, "
+          "server_options.tensorflow_inter_op_parallelism). "
+          "You cannot configure all.");
+    }else if(server_options.tensorflow_intra_op_parallelism > 0 ||
+        server_options.tensorflow_inter_op_parallelism > 0){
+            session_bundle_config.mutable_session_config()
+            ->set_intra_op_parallelism_threads(
+                server_options.tensorflow_intra_op_parallelism);
+            session_bundle_config.mutable_session_config()
+            ->set_inter_op_parallelism_threads(
+                server_options.tensorflow_inter_op_parallelism);
+    }else{
+        session_bundle_config.mutable_session_config()
         ->set_intra_op_parallelism_threads(
             server_options.tensorflow_session_parallelism);
-    session_bundle_config.mutable_session_config()
+        session_bundle_config.mutable_session_config()
         ->set_inter_op_parallelism_threads(
             server_options.tensorflow_session_parallelism);
+    }
+
     const std::vector<string> tags =
         tensorflow::str_util::Split(server_options.saved_model_tags, ",");
     for (const string& tag : tags) {
