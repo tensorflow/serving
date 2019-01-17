@@ -18,7 +18,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/record_reader.h"
-#include "tensorflow/core/lib/monitoring/counter.h"
+#include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow_serving/apis/prediction_log.pb.h"
@@ -33,9 +33,14 @@ namespace serving {
 
 namespace {
 
-auto* model_warmup_latency = monitoring::Counter<1>::New(
-    "/tensorflow/serving/model_warmup_latency",
-    "Latency in microseconds for model warm up.", "model_path");
+auto* model_warm_up_latency = monitoring::Sampler<2>::New(
+    {
+        "/tensorflow/serving/model_warmup_latency",
+        "Distribution of wall time (in microseconds) for warming up the model.",
+        "model_path",
+        "status",
+    },  // Scale of 10, power of 1.8 with bucket count 33 (~20 minutes).
+    monitoring::Buckets::Exponential(10, 1.8, 33));
 
 uint64 GetLatencyMicroseconds(const uint64 start_microseconds) {
   const uint64 end_microseconds = Env::Default()->NowMicros();
@@ -126,13 +131,14 @@ Status RunSavedModelWarmup(const RunOptions& run_options,
     }
     status = tf_record_file_reader->ReadRecord(&record);
   }
+
+  model_warm_up_latency->GetCell(export_dir, status.ToString())
+      ->Add(GetLatencyMicroseconds(start_microseconds));
+
   // OUT_OF_RANGE error means EOF was reached, do not return error in this case
   if (!errors::IsOutOfRange(status)) {
     return status;
   }
-
-  model_warmup_latency->GetCell(export_dir)
-      ->IncrementBy(GetLatencyMicroseconds(start_microseconds));
 
   LOG(INFO) << "Finished reading warmup data for model at " << warmup_path
             << ". Number of warmup records read: " << num_warmup_records << ".";
