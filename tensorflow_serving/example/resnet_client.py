@@ -48,18 +48,18 @@ def main():
   dl_request.raise_for_status()
 
   # Compose a JSON Predict request (send JPEG image in base64).
-  predict_request = '{"instances" : [{"b64": "%s"}]}' % base64.b64encode(
-      dl_request.content)
+  jpeg_bytes = base64.b64encode(dl_request.content).decode('utf-8')
+  predict_request = '{"instances" : [{"b64": "%s"}]}' % jpeg_bytes
 
   # Send few requests to warm-up the model.
-  for _ in xrange(3):
+  for _ in range(3):
     response = requests.post(SERVER_URL, data=predict_request)
     response.raise_for_status()
 
   # Send few actual requests and report average latency.
   total_time = 0
   num_requests = 10
-  for _ in xrange(num_requests):
+  for _ in range(num_requests):
     response = requests.post(SERVER_URL, data=predict_request)
     response.raise_for_status()
     total_time += response.elapsed.total_seconds()

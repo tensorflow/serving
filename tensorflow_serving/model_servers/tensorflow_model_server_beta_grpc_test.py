@@ -16,6 +16,10 @@
 #!/usr/bin/env python2.7
 """Minimal sanity tests for tensorflow_model_server with beta gRPC APIs."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import atexit
 import os
 import shlex
@@ -68,7 +72,7 @@ def WaitForServerReady(port):
     except Exception as e:  # pylint: disable=broad-except
       # Missing model error will have details containing 'Servable'
       if 'Servable' in e.details():
-        print 'Server is ready'
+        print('Server is ready')
         break
 
 
@@ -120,9 +124,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
     if args_key in TensorflowModelServerTest.model_servers_dict:
       return TensorflowModelServerTest.model_servers_dict[args_key]
     port = PickUnusedPort()
-    print('Starting test server on port: {} for model_name: '
-          '{}/model_config_file: {}'.format(port, model_name,
-                                            model_config_file))
+    print(('Starting test server on port: {} for model_name: '
+           '{}/model_config_file: {}'.format(port, model_name,
+                                             model_config_file)))
     command = os.path.join(
         TensorflowModelServerTest.__TestSrcDirPath('model_servers'),
         'tensorflow_model_server')
@@ -141,10 +145,10 @@ class TensorflowModelServerTest(tf.test.TestCase):
       command += ' --batching_parameters_file=' + batching_parameters_file
     if grpc_channel_arguments:
       command += ' --grpc_channel_arguments=' + grpc_channel_arguments
-    print command
+    print(command)
     proc = subprocess.Popen(shlex.split(command), stderr=pipe)
     atexit.register(proc.kill)
-    print 'Server started'
+    print('Server started')
     if wait_for_server_ready:
       WaitForServerReady(port)
     hostports = (proc, 'localhost:' + str(port), None)
@@ -184,17 +188,16 @@ class TensorflowModelServerTest(tf.test.TestCase):
     channel = implementations.insecure_channel(host, int(port))
     return prediction_service_pb2.beta_create_PredictionService_stub(channel)
 
-  def VerifyPredictRequest(self,
-                           model_server_address,
-                           expected_output,
-                           expected_version,
-                           model_name='default',
-                           specify_output=True,
-                           signature_name=
-                           signature_constants.
-                           DEFAULT_SERVING_SIGNATURE_DEF_KEY):
+  def VerifyPredictRequest(
+      self,
+      model_server_address,
+      expected_output,
+      expected_version,
+      model_name='default',
+      specify_output=True,
+      signature_name=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY):
     """Send PredictionService.Predict request and verify output."""
-    print 'Sending Predict request...'
+    print('Sending Predict request...')
     # Prepare request
     request = predict_pb2.PredictRequest()
     request.model_spec.name = model_name
@@ -211,8 +214,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     # Verify response
     self.assertTrue('y' in result.outputs)
     self.assertIs(types_pb2.DT_FLOAT, result.outputs['y'].dtype)
-    self.assertEquals(1, len(result.outputs['y'].float_val))
-    self.assertEquals(expected_output, result.outputs['y'].float_val[0])
+    self.assertEqual(1, len(result.outputs['y'].float_val))
+    self.assertEqual(expected_output, result.outputs['y'].float_val[0])
     self._VerifyModelSpec(result.model_spec, request.model_spec.name,
                           signature_name, expected_version)
 
@@ -251,11 +254,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Returns a path to a working configuration file."""
     return os.path.join(self.temp_dir, 'good_model_config.conf')
 
-  def _VerifyModelSpec(self,
-                       actual_model_spec,
-                       exp_model_name,
-                       exp_signature_name,
-                       exp_version):
+  def _VerifyModelSpec(self, actual_model_spec, exp_model_name,
+                       exp_signature_name, exp_version):
     """Verifies model_spec matches expected model name, signature, version.
 
     Args:
@@ -267,9 +267,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
     Returns:
       None.
     """
-    self.assertEquals(actual_model_spec.name, exp_model_name)
-    self.assertEquals(actual_model_spec.signature_name, exp_signature_name)
-    self.assertEquals(actual_model_spec.version.value, exp_version)
+    self.assertEqual(actual_model_spec.name, exp_model_name)
+    self.assertEqual(actual_model_spec.signature_name, exp_signature_name)
+    self.assertEqual(actual_model_spec.version.value, exp_version)
 
   def testClassify(self):
     """Test PredictionService.Classify implementation."""
@@ -277,7 +277,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     model_server_address = TensorflowModelServerTest.RunServer(
         'default', model_path)[1]
 
-    print 'Sending Classify request...'
+    print('Sending Classify request...')
     # Prepare request
     request = classification_pb2.ClassificationRequest()
     request.model_spec.name = 'default'
@@ -290,11 +290,11 @@ class TensorflowModelServerTest(tf.test.TestCase):
     result = self._MakeStub(model_server_address).Classify(request, RPC_TIMEOUT)
 
     # Verify response
-    self.assertEquals(1, len(result.result.classifications))
-    self.assertEquals(1, len(result.result.classifications[0].classes))
+    self.assertEqual(1, len(result.result.classifications))
+    self.assertEqual(1, len(result.result.classifications[0].classes))
     expected_output = 3.0
-    self.assertEquals(expected_output,
-                      result.result.classifications[0].classes[0].score)
+    self.assertEqual(expected_output,
+                     result.result.classifications[0].classes[0].score)
     self._VerifyModelSpec(result.model_spec, request.model_spec.name,
                           request.model_spec.signature_name,
                           self._GetModelVersion(model_path))
@@ -305,7 +305,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     model_server_address = TensorflowModelServerTest.RunServer(
         'default', model_path)[1]
 
-    print 'Sending Regress request...'
+    print('Sending Regress request...')
     # Prepare request
     request = regression_pb2.RegressionRequest()
     request.model_spec.name = 'default'
@@ -318,9 +318,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
     result = self._MakeStub(model_server_address).Regress(request, RPC_TIMEOUT)
 
     # Verify response
-    self.assertEquals(1, len(result.result.regressions))
+    self.assertEqual(1, len(result.result.regressions))
     expected_output = 3.0
-    self.assertEquals(expected_output, result.result.regressions[0].value)
+    self.assertEqual(expected_output, result.result.regressions[0].value)
     self._VerifyModelSpec(result.model_spec, request.model_spec.name,
                           request.model_spec.signature_name,
                           self._GetModelVersion(model_path))
@@ -331,7 +331,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     model_server_address = TensorflowModelServerTest.RunServer(
         'default', model_path)[1]
 
-    print 'Sending MultiInference request...'
+    print('Sending MultiInference request...')
     # Prepare request
     request = inference_pb2.MultiInferenceRequest()
     request.tasks.add().model_spec.name = 'default'
@@ -349,13 +349,14 @@ class TensorflowModelServerTest(tf.test.TestCase):
         request, RPC_TIMEOUT)
 
     # Verify response
-    self.assertEquals(2, len(result.results))
+    self.assertEqual(2, len(result.results))
     expected_output = 3.0
-    self.assertEquals(expected_output,
-                      result.results[0].regression_result.regressions[0].value)
-    self.assertEquals(expected_output, result.results[
-        1].classification_result.classifications[0].classes[0].score)
-    for i in xrange(2):
+    self.assertEqual(expected_output,
+                     result.results[0].regression_result.regressions[0].value)
+    self.assertEqual(
+        expected_output, result.results[1].classification_result
+        .classifications[0].classes[0].score)
+    for i in range(2):
       self._VerifyModelSpec(result.results[i].model_spec,
                             request.tasks[i].model_spec.name,
                             request.tasks[i].model_spec.signature_name,
@@ -368,12 +369,17 @@ class TensorflowModelServerTest(tf.test.TestCase):
         'default', model_path)[1]
     expected_version = self._GetModelVersion(model_path)
     signature_name = signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
-    self.VerifyPredictRequest(model_server_address, expected_output=3.0,
-                              expected_version=expected_version,
-                              signature_name=signature_name)
     self.VerifyPredictRequest(
-        model_server_address, expected_output=3.0, specify_output=False,
-        expected_version=expected_version, signature_name=signature_name)
+        model_server_address,
+        expected_output=3.0,
+        expected_version=expected_version,
+        signature_name=signature_name)
+    self.VerifyPredictRequest(
+        model_server_address,
+        expected_output=3.0,
+        specify_output=False,
+        expected_version=expected_version,
+        signature_name=signature_name)
 
 
 if __name__ == '__main__':

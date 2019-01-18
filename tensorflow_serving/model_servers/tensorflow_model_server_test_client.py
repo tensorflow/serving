@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
-#!/usr/bin/env python2.7
-
 """Manual test client for tensorflow_model_server."""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 # This is a placeholder for a Google-internal import.
 
@@ -43,7 +44,7 @@ def main(_):
   # Send request
   channel = grpc.insecure_channel(FLAGS.server)
   stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
-  print stub.Predict(request, 5.0)  # 5 secs timeout
+  print(stub.Predict(request, 5.0))  # 5 secs timeout
 
 
 if __name__ == '__main__':

@@ -13,8 +13,11 @@
 # limitations under the License.
 # ==============================================================================
 
-#!/usr/bin/env python2.7
 """Tests for tensorflow_model_server."""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import atexit
 import json
@@ -24,11 +27,12 @@ import socket
 import subprocess
 import sys
 import time
-import urllib2
 
 # This is a placeholder for a Google-internal import.
 
 import grpc
+from six.moves import range
+from six.moves import urllib
 import tensorflow as tf
 
 from tensorflow.core.framework import types_pb2
@@ -41,6 +45,7 @@ from tensorflow_serving.apis import model_service_pb2_grpc
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 from tensorflow_serving.apis import regression_pb2
+
 
 FLAGS = flags.FLAGS
 
@@ -73,7 +78,7 @@ def WaitForServerReady(port):
     except grpc.RpcError as error:
       # Missing model error will have details containing 'Servable'
       if 'Servable' in error.details():
-        print 'Server is ready'
+        print('Server is ready')
         break
 
 
@@ -81,20 +86,19 @@ def CallREST(url, req, max_attempts=60):
   """Returns HTTP response body from a REST API call."""
   for attempt in range(max_attempts):
     try:
-      print 'Attempt {}: Sending request to {} with data:\n{}'.format(
-          attempt, url, req)
-      resp = urllib2.urlopen(
-          urllib2.Request(
-              url, data=json.dumps(req) if req is not None else None))
+      print('Attempt {}: Sending request to {} with data:\n{}'.format(
+          attempt, url, req))
+      json_data = json.dumps(req).encode('utf-8') if req is not None else None
+      resp = urllib.request.urlopen(urllib.request.Request(url, data=json_data))
       resp_data = resp.read()
-      print 'Received response:\n{}'.format(resp_data)
+      print('Received response:\n{}'.format(resp_data))
       resp.close()
       return resp_data
     except Exception as e:  # pylint: disable=broad-except
-      print 'Failed attempt {}. Error: {}'.format(attempt, e)
+      print('Failed attempt {}. Error: {}'.format(attempt, e))
       if attempt == max_attempts - 1:
         raise
-      print 'Retrying...'
+      print('Retrying...')
       time.sleep(1)
 
 
@@ -149,9 +153,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
       return TensorflowModelServerTest.model_servers_dict[args_key]
     port = PickUnusedPort()
     rest_api_port = PickUnusedPort()
-    print('Starting test server on port: {} for model_name: '
-          '{}/model_config_file: {}'.format(port, model_name,
-                                            model_config_file))
+    print(('Starting test server on port: {} for model_name: '
+           '{}/model_config_file: {}'.format(port, model_name,
+                                             model_config_file)))
     command = os.path.join(
         TensorflowModelServerTest.__TestSrcDirPath('model_servers'),
         'tensorflow_model_server')
@@ -175,10 +179,10 @@ class TensorflowModelServerTest(tf.test.TestCase):
       command += ' --batching_parameters_file=' + batching_parameters_file
     if grpc_channel_arguments:
       command += ' --grpc_channel_arguments=' + grpc_channel_arguments
-    print command
+    print(command)
     proc = subprocess.Popen(shlex.split(command), stderr=pipe)
     atexit.register(proc.kill)
-    print 'Server started'
+    print('Server started')
     if wait_for_server_ready:
       WaitForServerReady(port)
     hostports = (
@@ -226,7 +230,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
                            signature_constants.
                            DEFAULT_SERVING_SIGNATURE_DEF_KEY):
     """Send PredictionService.Predict request and verify output."""
-    print 'Sending Predict request...'
+    print('Sending Predict request...')
     # Prepare request
     request = predict_pb2.PredictRequest()
     request.model_spec.name = model_name
@@ -244,8 +248,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     # Verify response
     self.assertTrue('y' in result.outputs)
     self.assertIs(types_pb2.DT_FLOAT, result.outputs['y'].dtype)
-    self.assertEquals(1, len(result.outputs['y'].float_val))
-    self.assertEquals(expected_output, result.outputs['y'].float_val[0])
+    self.assertEqual(1, len(result.outputs['y'].float_val))
+    self.assertEqual(expected_output, result.outputs['y'].float_val[0])
     self._VerifyModelSpec(result.model_spec, request.model_spec.name,
                           signature_name, expected_version)
 
@@ -316,9 +320,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
     Returns:
       None.
     """
-    self.assertEquals(actual_model_spec.name, exp_model_name)
-    self.assertEquals(actual_model_spec.signature_name, exp_signature_name)
-    self.assertEquals(actual_model_spec.version.value, exp_version)
+    self.assertEqual(actual_model_spec.name, exp_model_name)
+    self.assertEqual(actual_model_spec.signature_name, exp_signature_name)
+    self.assertEqual(actual_model_spec.version.value, exp_version)
 
   def testGetModelStatus(self):
     """Test ModelService.GetModelStatus implementation."""
@@ -326,7 +330,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     model_server_address = TensorflowModelServerTest.RunServer(
         'default', model_path)[1]
 
-    print 'Sending GetModelStatus request...'
+    print('Sending GetModelStatus request...')
     # Send request
     request = get_model_status_pb2.GetModelStatusRequest()
     request.model_spec.name = 'default'
@@ -334,10 +338,10 @@ class TensorflowModelServerTest(tf.test.TestCase):
     stub = model_service_pb2_grpc.ModelServiceStub(channel)
     result = stub.GetModelStatus(request, RPC_TIMEOUT)  # 5 secs timeout
     # Verify response
-    self.assertEquals(1, len(result.model_version_status))
-    self.assertEquals(123, result.model_version_status[0].version)
+    self.assertEqual(1, len(result.model_version_status))
+    self.assertEqual(123, result.model_version_status[0].version)
     # OK error code (0) indicates no error occurred
-    self.assertEquals(0, result.model_version_status[0].status.error_code)
+    self.assertEqual(0, result.model_version_status[0].status.error_code)
 
   def testClassify(self):
     """Test PredictionService.Classify implementation."""
@@ -345,7 +349,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     model_server_address = TensorflowModelServerTest.RunServer(
         'default', model_path)[1]
 
-    print 'Sending Classify request...'
+    print('Sending Classify request...')
     # Prepare request
     request = classification_pb2.ClassificationRequest()
     request.model_spec.name = 'default'
@@ -359,11 +363,11 @@ class TensorflowModelServerTest(tf.test.TestCase):
     stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
     result = stub.Classify(request, RPC_TIMEOUT)  # 5 secs timeout
     # Verify response
-    self.assertEquals(1, len(result.result.classifications))
-    self.assertEquals(1, len(result.result.classifications[0].classes))
+    self.assertEqual(1, len(result.result.classifications))
+    self.assertEqual(1, len(result.result.classifications[0].classes))
     expected_output = 3.0
-    self.assertEquals(expected_output,
-                      result.result.classifications[0].classes[0].score)
+    self.assertEqual(expected_output,
+                     result.result.classifications[0].classes[0].score)
     self._VerifyModelSpec(result.model_spec, request.model_spec.name,
                           request.model_spec.signature_name,
                           self._GetModelVersion(model_path))
@@ -374,7 +378,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     model_server_address = TensorflowModelServerTest.RunServer(
         'default', model_path)[1]
 
-    print 'Sending Regress request...'
+    print('Sending Regress request...')
     # Prepare request
     request = regression_pb2.RegressionRequest()
     request.model_spec.name = 'default'
@@ -388,9 +392,9 @@ class TensorflowModelServerTest(tf.test.TestCase):
     stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
     result = stub.Regress(request, RPC_TIMEOUT)  # 5 secs timeout
     # Verify response
-    self.assertEquals(1, len(result.result.regressions))
+    self.assertEqual(1, len(result.result.regressions))
     expected_output = 3.0
-    self.assertEquals(expected_output, result.result.regressions[0].value)
+    self.assertEqual(expected_output, result.result.regressions[0].value)
     self._VerifyModelSpec(result.model_spec, request.model_spec.name,
                           request.model_spec.signature_name,
                           self._GetModelVersion(model_path))
@@ -401,7 +405,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     model_server_address = TensorflowModelServerTest.RunServer(
         'default', model_path)[1]
 
-    print 'Sending MultiInference request...'
+    print('Sending MultiInference request...')
     # Prepare request
     request = inference_pb2.MultiInferenceRequest()
     request.tasks.add().model_spec.name = 'default'
@@ -420,13 +424,14 @@ class TensorflowModelServerTest(tf.test.TestCase):
     result = stub.MultiInference(request, RPC_TIMEOUT)  # 5 secs timeout
 
     # Verify response
-    self.assertEquals(2, len(result.results))
+    self.assertEqual(2, len(result.results))
     expected_output = 3.0
-    self.assertEquals(expected_output,
-                      result.results[0].regression_result.regressions[0].value)
-    self.assertEquals(expected_output, result.results[
-        1].classification_result.classifications[0].classes[0].score)
-    for i in xrange(2):
+    self.assertEqual(expected_output,
+                     result.results[0].regression_result.regressions[0].value)
+    self.assertEqual(
+        expected_output, result.results[1].classification_result
+        .classifications[0].classes[0].score)
+    for i in range(2):
       self._VerifyModelSpec(result.results[i].model_spec,
                             request.tasks[i].model_spec.name,
                             request.tasks[i].model_spec.signature_name,
@@ -529,6 +534,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
     error_message = (
         'Invalid protobuf file: \'%s\'') % self._GetBadModelConfigFile()
+    error_message = error_message.encode('utf-8')
     self.assertNotEqual(proc.stderr, None)
     self.assertGreater(proc.stderr.read().find(error_message), -1)
 
@@ -564,7 +570,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
-    self.assertEquals(json.loads(resp_data), {'results': [[['', 3.0]]]})
+    self.assertEqual(json.loads(resp_data), {'results': [[['', 3.0]]]})
 
   def testRegressREST(self):
     """Test Regress implementation over REST API."""
@@ -584,7 +590,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
-    self.assertEquals(json.loads(resp_data), {'results': [3.0]})
+    self.assertEqual(json.loads(resp_data), {'results': [3.0]})
 
   def testPredictREST(self):
     """Test Predict implementation over REST API."""
@@ -604,7 +610,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
-    self.assertEquals(json.loads(resp_data), {'predictions': [3.0, 3.5, 4.0]})
+    self.assertEqual(json.loads(resp_data), {'predictions': [3.0, 3.5, 4.0]})
 
   def testPredictColumnarREST(self):
     """Test Predict implementation over REST API with columnar inputs."""
@@ -624,7 +630,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
-    self.assertEquals(json.loads(resp_data), {'outputs': [3.0, 3.5, 4.0]})
+    self.assertEqual(json.loads(resp_data), {'outputs': [3.0, 3.5, 4.0]})
 
   def testGetStatusREST(self):
     """Test ModelStatus implementation over REST API with columnar inputs."""
@@ -643,7 +649,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
-    self.assertEquals(
+    self.assertEqual(
         json.loads(resp_data), {
             'model_version_status': [{
                 'version': '123',
@@ -676,7 +682,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
       with open(model_metadata_file) as f:
         expected_metadata = json.load(f)
         # Verify response
-        self.assertEquals(json.loads(resp_data), expected_metadata)
+        self.assertEqual(json.loads(resp_data), expected_metadata)
     except Exception as e:  # pylint: disable=broad-except
       self.fail('Request failed with error: {}'.format(e))
 
@@ -699,7 +705,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify that there should be some metric type information.
-    self.assertIn('# TYPE', resp_data)
+    self.assertIn('# TYPE',
+                  resp_data.decode('utf-8') if resp_data is not None else None)
 
 
 if __name__ == '__main__':

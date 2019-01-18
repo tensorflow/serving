@@ -40,11 +40,11 @@ def build_signature_def_from_tensors(inputs, outputs, method_name):
   return tf.saved_model.signature_def_utils.build_signature_def(
       inputs={
           key: tf.saved_model.utils.build_tensor_info(tensor)
-          for key, tensor in inputs.iteritems()
+          for key, tensor in inputs.items()
       },
       outputs={
           key: tf.saved_model.utils.build_tensor_info(tensor)
-          for key, tensor in outputs.iteritems()
+          for key, tensor in outputs.items()
       },
       method_name=method_name)
 
