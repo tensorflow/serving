@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
                        "used, --model_name, --model_base_path are ignored.)"),
       tensorflow::Flag("model_name", &options.model_name,
                        "name of model (ignored "
-                       "if --model_config_file flag is set"),
+                       "if --model_config_file flag is set)"),
       tensorflow::Flag("model_base_path", &options.model_base_path,
                        "path to export (ignored if --model_config_file flag "
                        "is set, otherwise required)"),
