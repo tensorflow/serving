@@ -330,7 +330,7 @@ cc_library(
     srcs = ["status_util.cc"],
     hdrs = ["status_util.h"],
     deps = [
-        "//tensorflow_serving/util:status_proto",
+        ":status_proto",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

@@ -40,7 +40,7 @@ TEST(PrometheusExporterTest, Counter) {
       {"# TYPE :test:path:total counter", ":test:path:total{name=\"abc\"} 2"},
       "\n");
   absl::StrAppend(&expected_result, "\n");
-  EXPECT_EQ(http_page, expected_result);
+  EXPECT_PRED_FORMAT2(testing::IsSubstring, expected_result, http_page);
 }
 
 TEST(PrometheusExporterTest, Gauge) {
@@ -56,7 +56,7 @@ TEST(PrometheusExporterTest, Gauge) {
                      ":test:path:gague{x=\"abc\",y=\"def\"} 5"},
                     "\n");
   absl::StrAppend(&expected_result, "\n");
-  EXPECT_EQ(http_page, expected_result);
+  EXPECT_PRED_FORMAT2(testing::IsSubstring, expected_result, http_page);
 }
 
 TEST(PrometheusExporterTest, Histogram) {
@@ -87,7 +87,7 @@ TEST(PrometheusExporterTest, Histogram) {
        ":test:path:histogram_count{status=\"good\"} 3"},
       "\n");
   absl::StrAppend(&expected_result, "\n");
-  EXPECT_EQ(http_page, expected_result);
+  EXPECT_PRED_FORMAT2(testing::IsSubstring, expected_result, http_page);
 }
 
 TEST(PrometheusExporterTest, SanitizeLabelValue) {
@@ -105,7 +105,7 @@ TEST(PrometheusExporterTest, SanitizeLabelValue) {
                      ":test:path:total{name=\"\\\"abc\\\\\\\"\"} 2"},
                     "\n");
   absl::StrAppend(&expected_result, "\n");
-  EXPECT_EQ(http_page, expected_result);
+  EXPECT_PRED_FORMAT2(testing::IsSubstring, expected_result, http_page);
 }
 
 TEST(PrometheusExporterTest, SanitizeLabelName) {
@@ -122,7 +122,7 @@ TEST(PrometheusExporterTest, SanitizeLabelName) {
                      ":test:path:total{my_name_1=\"abc\"} 2"},
                     "\n");
   absl::StrAppend(&expected_result, "\n");
-  EXPECT_EQ(http_page, expected_result);
+  EXPECT_PRED_FORMAT2(testing::IsSubstring, expected_result, http_page);
 }
 
 TEST(PrometheusExporterTest, SanitizeMetricName) {
@@ -139,7 +139,7 @@ TEST(PrometheusExporterTest, SanitizeMetricName) {
                      "_0:path:total_count{name=\"abc\"} 2"},
                     "\n");
   absl::StrAppend(&expected_result, "\n");
-  EXPECT_EQ(http_page, expected_result);
+  EXPECT_PRED_FORMAT2(testing::IsSubstring, expected_result, http_page);
 }
 
 }  // namespace
