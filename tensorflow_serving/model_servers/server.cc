@@ -293,7 +293,7 @@ Status Server::BuildAndStart(const Options& server_options) {
   LOG(INFO) << "Running gRPC ModelServer at " << server_address << " ...";
   if (!server_options.grpc_socket_path.empty()) {
     LOG(INFO) << "Running gRPC ModelServer at UNIX socket "
-              << server_options.grpc_socket_path << "...";
+              << server_options.grpc_socket_path << " ...";
   }
 
   if (server_options.http_port != 0) {
