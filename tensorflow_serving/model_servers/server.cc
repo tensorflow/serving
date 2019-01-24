@@ -264,9 +264,8 @@ Status Server::BuildAndStart(const Options& server_options) {
       server_address,
       BuildServerCredentialsFromSSLConfigFile(server_options.ssl_config_file));
   // If defined, listen to a UNIX socket for gRPC.
-  const string grpc_socket_path = server_options.grpc_socket_path;
-  const string grpc_socket_uri = "unix:" + grpc_socket_path;
-  if (!grpc_socket_path.empty()) {
+  if (!server_options.grpc_socket_path.empty()) {
+    const string grpc_socket_uri = "unix:" + server_options.grpc_socket_path;
     builder.AddListeningPort(
       grpc_socket_uri,
       BuildServerCredentialsFromSSLConfigFile(server_options.ssl_config_file));
@@ -292,9 +291,9 @@ Status Server::BuildAndStart(const Options& server_options) {
     return errors::InvalidArgument("Failed to BuildAndStart gRPC server");
   }
   LOG(INFO) << "Running gRPC ModelServer at " << server_address << " ...";
-  if (!grpc_socket_path.empty()) {
+  if (!server_options.grpc_socket_path.empty()) {
     LOG(INFO) << "Running gRPC ModelServer at UNIX socket "
-              << grpc_socket_uri << "...";
+              << server_options.grpc_socket_path << "...";
   }
 
   if (server_options.http_port != 0) {
