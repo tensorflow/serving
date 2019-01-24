@@ -48,6 +48,7 @@ RPC_TIMEOUT = 5.0
 HTTP_REST_TIMEOUT_MS = 5000
 CHANNEL_WAIT_TIMEOUT = 5.0
 WAIT_FOR_SERVER_READY_INT_SECS = 60
+GRPC_SOCKET_PATH = "/tmp/tf-serving.sock"
 
 
 def PickUnusedPort():
@@ -158,6 +159,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     command += ' --port=' + str(port)
     command += ' --rest_api_port=' + str(rest_api_port)
     command += ' --rest_api_timeout_in_ms=' + str(HTTP_REST_TIMEOUT_MS)
+    command += ' --grpc_socket_path=' + GRPC_SOCKET_PATH
 
     if model_config_file:
       command += ' --model_config_file=' + model_config_file
@@ -672,6 +674,18 @@ class TensorflowModelServerTest(tf.test.TestCase):
     # Verify that there should be some metric type information.
     self.assertIn('# TYPE', resp_data)
 
+  def testPredictUDS(self):
+    """Test saved model prediction over a Unix domain socket."""
+    _ = TensorflowModelServerTest.RunServer(
+        'default',
+        self._GetSavedModelBundlePath())
+    model_server_address = "unix:%s" % GRPC_SOCKET_PATH
+    self.VerifyPredictRequest(
+        model_server_address,
+        expected_output=3.0,
+        specify_output=False,
+        expected_version=self._GetModelVersion(
+            self._GetSavedModelHalfPlusThreePath()))
 
 if __name__ == '__main__':
   tf.test.main()
