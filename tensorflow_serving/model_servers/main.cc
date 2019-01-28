@@ -59,6 +59,10 @@ int main(int argc, char** argv) {
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &options.grpc_port,
                        "Port to listen on for gRPC API"),
+      tensorflow::Flag("grpc_socket_path", &options.grpc_socket_path,
+                       "If non-empty, listen to a UNIX socket for gRPC API "
+                       "on the given path. Can be either relative or absolute "
+                       "path."),
       tensorflow::Flag("rest_api_port", &options.http_port,
                        "Port to listen on for HTTP/REST API. If set to zero "
                        "HTTP/REST API will not be exported. This port must be "

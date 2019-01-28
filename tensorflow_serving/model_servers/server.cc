@@ -263,6 +263,13 @@ Status Server::BuildAndStart(const Options& server_options) {
   builder.AddListeningPort(
       server_address,
       BuildServerCredentialsFromSSLConfigFile(server_options.ssl_config_file));
+  // If defined, listen to a UNIX socket for gRPC.
+  if (!server_options.grpc_socket_path.empty()) {
+    const string grpc_socket_uri = "unix:" + server_options.grpc_socket_path;
+    builder.AddListeningPort(grpc_socket_uri,
+                             BuildServerCredentialsFromSSLConfigFile(
+                                 server_options.ssl_config_file));
+  }
   builder.RegisterService(model_service_.get());
   builder.RegisterService(prediction_service_.get());
   builder.SetMaxMessageSize(tensorflow::kint32max);
@@ -284,6 +291,10 @@ Status Server::BuildAndStart(const Options& server_options) {
     return errors::InvalidArgument("Failed to BuildAndStart gRPC server");
   }
   LOG(INFO) << "Running gRPC ModelServer at " << server_address << " ...";
+  if (!server_options.grpc_socket_path.empty()) {
+    LOG(INFO) << "Running gRPC ModelServer at UNIX socket "
+              << server_options.grpc_socket_path << " ...";
+  }
 
   if (server_options.http_port != 0) {
     if (server_options.http_port != server_options.grpc_port) {
