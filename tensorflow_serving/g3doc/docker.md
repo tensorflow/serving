@@ -319,16 +319,12 @@ docker run -it -p 8500:8500 tensorflow/serving:latest-devel
 To test a model, from inside the container try:
 
 ```shell
-# build the exporter
-bazel build -c opt //tensorflow_serving/example:mnist_saved_model
 # train the mnist model
-bazel-bin/tensorflow_serving/example/mnist_saved_model /tmp/mnist_model
+python tensorflow_serving/example/mnist_saved_model.py /tmp/mnist_model
 # serve the model
 tensorflow_model_server --port=8500 --model_name=mnist --model_base_path=/tmp/mnist_model/ &
-# build the client
-bazel build -c opt //tensorflow_serving/example:mnist_client
 # test the client
-bazel-bin/tensorflow_serving/example/mnist_client --num_tests=1000 --server=localhost:8500
+python tensorflow_serving/example/mnist_client.py --num_tests=1000 --server=localhost:8500
 ```
 
 ## Dockerfiles
