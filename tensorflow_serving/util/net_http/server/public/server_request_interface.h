@@ -62,8 +62,9 @@ class ServerRequestInterface {
   ServerRequestInterface& operator=(const ServerRequestInterface& other) =
       delete;
 
-  // The relative portion of the request URI (without host).
-  // No escape decoding.
+  // The portion of the request URI after the host and port.
+  // E.g. "/path/to/resource?param=value&param=value#fragment".
+  // Doesn't unescape the contents; returns "/" at least.
   virtual absl::string_view uri_path() const = 0;
 
   // HTTP request method.

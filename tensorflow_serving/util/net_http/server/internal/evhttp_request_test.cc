@@ -146,6 +146,46 @@ TEST_F(EvHTTPRequestTest, SimplePOST) {
   server->WaitForTermination();
 }
 
+// Test request's uri_path() method.
+TEST_F(EvHTTPRequestTest, RequestUri) {
+  static const char* const kUriPath[] = {
+      "/",
+      "/path",
+      "/path/",
+      "/path?query=value",
+      "/path#fragment",
+      "/path?param=value#fragment",
+      "/path?param=value%20value",
+  };
+
+  int counter = 0;
+  auto handler = [&counter](ServerRequestInterface* request) {
+    EXPECT_EQ(kUriPath[counter++], request->uri_path());
+    request->Reply();
+  };
+  server->RegisterRequestDispatcher(
+      [&handler](ServerRequestInterface* request) -> RequestHandler {
+        return handler;
+      },
+      RequestHandlerOptions());
+
+  server->StartAcceptingRequests();
+
+  auto connection =
+      EvHTTPConnection::Connect("localhost", server->listen_port());
+  ASSERT_TRUE(connection != nullptr);
+
+  for (const char* path : kUriPath) {
+    ClientRequest request = {path, "GET", {}, nullptr};
+    ClientResponse response = {};
+
+    EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
+  }
+
+  server->Terminate();
+  server->WaitForTermination();
+}
+
 // Test request headers
 TEST_F(EvHTTPRequestTest, RequestHeaders) {
   auto handler = [](ServerRequestInterface* request) {

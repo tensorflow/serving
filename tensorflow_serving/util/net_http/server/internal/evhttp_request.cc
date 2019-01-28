@@ -98,6 +98,19 @@ bool ParsedEvRequest::decode() {
     path = "/";
   }
 
+  path_and_query = path;
+  const char* query = evhttp_uri_get_query(decoded_uri);
+  if (query != nullptr) {
+    path_and_query.push_back('?');
+    path_and_query.append(query);
+  }
+
+  const char* fragment = evhttp_uri_get_fragment(decoded_uri);
+  if (fragment != nullptr) {
+    path_and_query.push_back('#');
+    path_and_query.append(fragment);
+  }
+
   headers = evhttp_request_get_input_headers(request);
 
   return true;
@@ -116,7 +129,7 @@ EvHTTPRequest::~EvHTTPRequest() {
 }
 
 absl::string_view EvHTTPRequest::uri_path() const {
-  return parsed_request_->path;
+  return parsed_request_->path_and_query;
 }
 
 absl::string_view EvHTTPRequest::http_method() const {

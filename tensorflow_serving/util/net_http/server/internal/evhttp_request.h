@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <cstdint>
 #include <memory>
+#include <string>
 
 #include "tensorflow_serving/util/net_http/server/internal/server_support.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
@@ -54,6 +55,7 @@ struct ParsedEvRequest {
   // TODO(wenboz): do we need escaped path for dispatching requests?
   // evhttp_uridecode(path)
   const char* path = nullptr;  // owned by uri
+  std::string path_and_query;
 
   evkeyvalq* headers = nullptr;  // owned by raw request
 };
