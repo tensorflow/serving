@@ -11,8 +11,8 @@ load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "ec149f4e3be02aae99e482da3bb5410da77f7db2c9dafb7f2379125779d2b051",
-    git_commit = "a93f06d160955c99bc279a419902ac40824a2cab",
+    sha256 = "e42bb0ca05f4afd747df97633f7dd5e99e81e03afa7423cf60bff8a5bda09dd2",
+    git_commit = "24a7280bd173a15437a7e52e2544ca4d009f16f4",
 )
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
