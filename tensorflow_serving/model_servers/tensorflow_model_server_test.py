@@ -236,6 +236,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
     # Prepare request
     request = predict_pb2.PredictRequest()
     request.model_spec.name = model_name
+    request.model_spec.signature_name = signature_name
     request.inputs['x'].dtype = types_pb2.DT_FLOAT
     request.inputs['x'].float_val.append(2.0)
     dim = request.inputs['x'].tensor_shape.dim.add()
@@ -722,6 +723,52 @@ class TensorflowModelServerTest(tf.test.TestCase):
         expected_version=self._GetModelVersion(
             self._GetSavedModelHalfPlusThreePath()))
 
+  def test_tf_saved_model_save(self):
+    base_path = os.path.join(self.get_temp_dir(), 'tf_saved_model_save')
+    export_path = os.path.join(base_path, '00000123')
+    root = tf.train.Checkpoint()
+    root.v1 = tf.Variable(3.)
+    root.v2 = tf.Variable(2.)
+    root.f = tf.function(
+        lambda x: {'y': root.v1 * root.v2 * x})
+    to_save = root.f.get_concrete_function(tf.TensorSpec(None, tf.float32))
+    tf.saved_model.experimental.save(root, export_path, to_save)
+    _, model_server_address, _ = TensorflowModelServerTest.RunServer(
+        'default', base_path)
+    expected_version = self._GetModelVersion(base_path)
+    self.VerifyPredictRequest(
+        model_server_address,
+        expected_output=12.0,
+        specify_output=False,
+        expected_version=expected_version)
+
+  def test_tf_saved_model_save_multiple_signatures(self):
+    base_path = os.path.join(self.get_temp_dir(), 'tf_saved_model_save')
+    export_path = os.path.join(base_path, '00000123')
+    root = tf.train.Checkpoint()
+    root.f = tf.function(lambda x: {'y': 1.},
+                         input_signature=[tf.TensorSpec(None, tf.float32)])
+    root.g = tf.function(lambda x: {'y': 2.},
+                         input_signature=[tf.TensorSpec(None, tf.float32)])
+    tf.saved_model.experimental.save(
+        root, export_path,
+        signatures={
+            signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: root.f,
+            'custom_signature_key': root.g})
+    _, model_server_address, _ = TensorflowModelServerTest.RunServer(
+        'default', base_path)
+    expected_version = self._GetModelVersion(base_path)
+    self.VerifyPredictRequest(
+        model_server_address,
+        expected_output=2.0,
+        expected_version=expected_version,
+        signature_name='custom_signature_key')
+    self.VerifyPredictRequest(
+        model_server_address,
+        expected_output=1.0,
+        expected_version=expected_version)
+
 
 if __name__ == '__main__':
+  tf.enable_eager_execution()
   tf.test.main()
