@@ -81,21 +81,18 @@ ENV KMP_SETTINGS=1
 ENV KMP_AFFINITY='granularity=fine,verbose,compact,1,0'
 ENV MKLDNN_VERBOSE=0
 
-# You can set either TENSORFLOW_SESSION_PARALLELISM or
-# TENSORFLOW_INTRA_OP_PARALLELISM and TENSORFLOW_INTER_OP_PARALLELISM envs separately.
-# Please comment or uncomment as required.
-# If you want to set TENSORFLOW_SESSION_PARALLELISM, uncomment respective env and line in bash script below
-# and comment out TENSORFLOW_INTRA_OP_PARALLELISM and TENSORFLOW_INTER_OP_PARALLELISM along with respective
-# lines in below bash script.
+# Recommended settings, may vary depending on the model.
+# Set TENSORFLOW_INTRA_OP_PARALLELISM=#No.of Physical cores
+# Set TENSORFLOW_INTER_OP_PARALLELISM=#No.of Sockets
+# For more information vist below reference
+# https://www.tensorflow.org/guide/performance/overview#tuning_mkl_for_the_best_performance
 
-#ENV TENSORFLOW_SESSION_PARALLELISM=2
-
+# Defaults
 ENV TENSORFLOW_INTRA_OP_PARALLELISM=2
 ENV TENSORFLOW_INTER_OP_PARALLELISM=2
 
 RUN echo '#!/bin/bash \n\n\
 tensorflow_model_server --port=8500 --rest_api_port=8501 \
-#--tensorflow_session_parallelism=${TENSORFLOW_SESSION_PARALLELISM} \
 --tensorflow_intra_op_parallelism=${TENSORFLOW_INTRA_OP_PARALLELISM} \
 --tensorflow_inter_op_parallelism=${TENSORFLOW_INTER_OP_PARALLELISM} \
 --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME} \
