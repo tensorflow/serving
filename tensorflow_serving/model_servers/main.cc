@@ -121,6 +121,18 @@ int main(int argc, char** argv) {
                        "Tensorflow session. Auto-configured by default."
                        "Note that this option is ignored if "
                        "--platform_config_file is non-empty."),
+      tensorflow::Flag("tensorflow_intra_op_parallelism",
+                       &options.tensorflow_intra_op_parallelism,
+                       "Number of threads to use to parallelize the execution"
+                       "of an individual op. Auto-configured by default."
+                       "Note that this option is ignored if "
+                       "--platform_config_file is non-empty."),
+      tensorflow::Flag("tensorflow_inter_op_parallelism",
+                       &options.tensorflow_inter_op_parallelism,
+                       "Controls the number of operators that can be executed "
+                       "simultaneously. Auto-configured by default."
+                       "Note that this option is ignored if "
+                       "--platform_config_file is non-empty."),
       tensorflow::Flag(
           "ssl_config_file", &options.ssl_config_file,
           "If non-empty, read an ascii SSLConfig protobuf from "

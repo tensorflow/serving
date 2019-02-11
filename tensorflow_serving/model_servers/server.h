@@ -64,6 +64,10 @@ class Server {
     // Tensorflow session parallelism of zero means that both inter and intra op
     // thread pools will be auto configured.
     tensorflow::int64 tensorflow_session_parallelism = 0;
+
+    // Zero means that the thread pools will be auto configured.
+    tensorflow::int64 tensorflow_intra_op_parallelism = 0;
+    tensorflow::int64 tensorflow_inter_op_parallelism = 0;
     tensorflow::string platform_config_file;
     tensorflow::string ssl_config_file;
     string model_config_file;
