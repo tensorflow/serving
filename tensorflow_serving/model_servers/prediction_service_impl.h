@@ -25,10 +25,18 @@ namespace serving {
 
 class PredictionServiceImpl final : public PredictionService::Service {
  public:
-  explicit PredictionServiceImpl(ServerCore* core, bool use_saved_model)
-      : core_(core),
-        predictor_(new TensorflowPredictor(use_saved_model)),
-        use_saved_model_(use_saved_model) {}
+  // Options for configuring a PredictionServiceImpl object.
+  struct Options {
+    ServerCore* server_core;
+    bool use_saved_model;
+    bool enforce_session_run_timeout;
+  };
+
+  explicit PredictionServiceImpl(const Options& options)
+      : core_(options.server_core),
+        predictor_(new TensorflowPredictor(options.use_saved_model)),
+        use_saved_model_(options.use_saved_model),
+        enforce_session_run_timeout_(options.enforce_session_run_timeout) {}
 
   ::grpc::Status Predict(::grpc::ServerContext* context,
                          const PredictRequest* request,
@@ -54,6 +62,7 @@ class PredictionServiceImpl final : public PredictionService::Service {
   ServerCore* core_;
   std::unique_ptr<TensorflowPredictor> predictor_;
   const bool use_saved_model_;
+  const bool enforce_session_run_timeout_;
 };
 
 }  // namespace serving

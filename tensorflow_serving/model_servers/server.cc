@@ -277,8 +277,14 @@ Status Server::BuildAndStart(const Options& server_options) {
   const string server_address =
       "0.0.0.0:" + std::to_string(server_options.grpc_port);
   model_service_ = absl::make_unique<ModelServiceImpl>(server_core_.get());
-  prediction_service_ = absl::make_unique<PredictionServiceImpl>(
-      server_core_.get(), use_saved_model);
+
+  PredictionServiceImpl::Options predict_server_options;
+  predict_server_options.server_core = server_core_.get();
+  predict_server_options.use_saved_model = use_saved_model;
+  predict_server_options.enforce_session_run_timeout =
+      server_options.enforce_session_run_timeout;
+  prediction_service_ =
+      absl::make_unique<PredictionServiceImpl>(predict_server_options);
   ::grpc::ServerBuilder builder;
   builder.AddListeningPort(
       server_address,

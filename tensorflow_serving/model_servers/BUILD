@@ -222,14 +222,20 @@ cc_library(
     deps = [
         ":grpc_status_util",
         ":server_core",
+        "//tensorflow_serving/apis:classification_proto",
+        "//tensorflow_serving/apis:get_model_metadata_proto",
+        "//tensorflow_serving/apis:inference_proto",
+        "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/apis:prediction_service_proto",
+        "//tensorflow_serving/apis:regression_proto",
         "//tensorflow_serving/servables/tensorflow:classification_service",
         "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
         "//tensorflow_serving/servables/tensorflow:multi_inference_helper",
         "//tensorflow_serving/servables/tensorflow:predict_impl",
         "//tensorflow_serving/servables/tensorflow:regression_service",
-        "//tensorflow_serving/util:status_util",
         "@grpc//:grpc++",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
 )
 

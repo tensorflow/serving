@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "tensorflow_serving/model_servers/prediction_service_impl.h"
+
 #include "grpc/grpc.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 #include "tensorflow_serving/servables/tensorflow/classification_service.h"
@@ -38,8 +39,10 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
                                               const PredictRequest *request,
                                               PredictResponse *response) {
   tensorflow::RunOptions run_options = tensorflow::RunOptions();
-  run_options.set_timeout_in_ms(
-      DeadlineToTimeoutMillis(context->raw_deadline()));
+  if (enforce_session_run_timeout_) {
+    run_options.set_timeout_in_ms(
+        DeadlineToTimeoutMillis(context->raw_deadline()));
+  }
 
   const ::grpc::Status status =
       ToGRPCStatus(predictor_->Predict(run_options, core_, *request, response));
@@ -71,8 +74,10 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
     ClassificationResponse *response) {
   tensorflow::RunOptions run_options = tensorflow::RunOptions();
   // By default, this is infinite which is the same default as RunOptions.
-  run_options.set_timeout_in_ms(
-      DeadlineToTimeoutMillis(context->raw_deadline()));
+  if (enforce_session_run_timeout_) {
+    run_options.set_timeout_in_ms(
+        DeadlineToTimeoutMillis(context->raw_deadline()));
+  }
   const ::grpc::Status status =
       ToGRPCStatus(TensorflowClassificationServiceImpl::Classify(
           run_options, core_, *request, response));
@@ -87,8 +92,10 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
                                               RegressionResponse *response) {
   tensorflow::RunOptions run_options = tensorflow::RunOptions();
   // By default, this is infinite which is the same default as RunOptions.
-  run_options.set_timeout_in_ms(
-      DeadlineToTimeoutMillis(context->raw_deadline()));
+  if (enforce_session_run_timeout_) {
+    run_options.set_timeout_in_ms(
+        DeadlineToTimeoutMillis(context->raw_deadline()));
+  }
   const ::grpc::Status status =
       ToGRPCStatus(TensorflowRegressionServiceImpl::Regress(
           run_options, core_, *request, response));
@@ -103,8 +110,10 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
     MultiInferenceResponse *response) {
   tensorflow::RunOptions run_options = tensorflow::RunOptions();
   // By default, this is infinite which is the same default as RunOptions.
-  run_options.set_timeout_in_ms(
-      DeadlineToTimeoutMillis(context->raw_deadline()));
+  if (enforce_session_run_timeout_) {
+    run_options.set_timeout_in_ms(
+        DeadlineToTimeoutMillis(context->raw_deadline()));
+  }
   const ::grpc::Status status = ToGRPCStatus(
       RunMultiInferenceWithServerCore(run_options, core_, *request, response));
   if (!status.ok()) {
