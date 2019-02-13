@@ -20,6 +20,7 @@ package_group(
     packages = [
         # tensorflow_transform for testing only
         "//third_party/py/tensorflow_transform/examples/...",
+        "//third_party/py/tensorflow_transform/google/examples/...",
     ],
 )
 
