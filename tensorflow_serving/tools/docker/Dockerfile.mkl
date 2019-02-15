@@ -87,6 +87,12 @@ ENV MKLDNN_VERBOSE=0
 # For more information vist below reference
 # https://www.tensorflow.org/guide/performance/overview#tuning_mkl_for_the_best_performance
 
+# NOTE: As TENSORFLOW_INTRA_OP_PARALLELISM and TENSORFLOW_INTER_OP_PARALLELISM are
+# configured via SessionOptions in tensorflow, these values
+# will override the values configured via TF_NUM_INTEROP_THREADS and TF_NUM_INTRAOP_THREADS
+# environment variables in tensorflow.
+# https://github.com/tensorflow/tensorflow/commit/d1823e2e966e96ee4ea7baa202ad9f292ac7427b
+
 # Defaults
 ENV TENSORFLOW_INTRA_OP_PARALLELISM=2
 ENV TENSORFLOW_INTER_OP_PARALLELISM=2
