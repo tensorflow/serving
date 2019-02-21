@@ -1,0 +1,28 @@
+toc:
+- heading: Quick Start
+- title: Use TensorFlow Serving with Docker
+  path: /tfx/serving/docker
+
+- heading: Examples
+- title: Train and serve a model with REST
+  path: /tfx/serving/tutorials/Serving_REST_simple
+
+- heading: Understanding TensorFlow Serving
+- title: Overview
+  path: /tfx/serving/overview
+- title: Installation
+  path: /tfx/serving/setup
+- title: Serve a TensorFlow model
+  path: /tfx/serving/serving_basic
+- title: Advanced model server configuration
+  path: /tfx/serving/serving_config
+- title: Build a TensorFlow ModelServer
+  path: /tfx/serving/serving_advanced
+- title: Use TensorFlow Serving with Kubernetes
+  path: /tfx/serving/serving_kubernetes
+- title: Create a new kind of servable
+  path: /tfx/serving/custom_servable
+- title: Create a module that discovers new servable paths
+  path: /tfx/serving/custom_source
+- title: SignatureDefs in SavedModel for TensorFlow Serving
+  path: /tfx/serving/signature_defs

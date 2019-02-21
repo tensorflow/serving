@@ -1,54 +1,20 @@
-book_path: /serving/_book.yaml
-project_path: /serving/_project.yaml
+book_path: /tfx/_book.yaml
+project_path: /tfx/_project.yaml
 description: <!--no description-->
 landing_page:
   custom_css_path: /site-assets/css/style.css
+  nav: left
   rows:
-  - heading: TensorFlow Serving for model deployment in production
+  - classname: devsite-landing-row-100
+    heading: TensorFlow Serving for model deployment in production
     items:
-    - classname: devsite-landing-row-50
-      description: >
+    - description: >
         TensorFlow Serving is a flexible, high-performance serving system for
         machine learning models, designed for production environments. TensorFlow
         Serving makes it easy to deploy new algorithms and experiments, while
         keeping the same server architecture and APIs. TensorFlow Serving
         provides out-of-the-box integration with TensorFlow models, but can be
         easily extended to serve other types of models and data.
-        
-        <h3 style='margin-top:1.5em; margin-bottom:0.5em'>Create a production pipeline</h3>
-        You can create a production pipeline by adding other components from
-        TensorFlow Extended (TFX) to your TensorFlow Serving deployment.  TFX includes
-        components that enable your production deployment to monitor and validate your
-        data, create engineered features, and analyze your model's results.  Along with
-        TensorFlow Serving, TFX also includes:
-      list:
-      - heading: TensorFlow Data Validation
-        description: >
-          A library for exploring and validating machine learning data.
-        path: /tfx/data_validation
-        icon:
-          icon_name: chevron_right
-          foreground: theme
-          background: grey
-      - heading: TensorFlow Transform
-        description: >
-          Perform full-pass analyze phases over data to create transformation
-          graphs that are consistently applied during training and serving.
-        path: /tfx/transform
-        icon:
-          icon_name: chevron_right
-          foreground: theme
-          background: grey
-      - heading: TensorFlow Model Analysis
-        description: >
-          Libraries and visualization components to compute full-pass and sliced
-          model metrics over large datasets, and analyze them in a notebook.
-        path: /tfx/model_analysis
-        icon:
-          icon_name: chevron_right
-          foreground: theme
-          background: grey
-
       code_block: |
         <pre class="prettyprint lang-bsh">
         # Download the TensorFlow Serving Docker image and repo
@@ -68,6 +34,7 @@ landing_page:
            -X POST http://localhost:8501/v1/models/half_plus_two:predict</code><br/>
         # Returns => { "predictions": [2.5, 3.0, 4.5] }
         </pre>
+        <p>For additional serving endpoints, see the <a href="./api_rest">Client REST API</a>.</p>
 
   - classname: devsite-landing-row-cards
     items:
