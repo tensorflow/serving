@@ -31,7 +31,7 @@ from setuptools import setup
 DOCLINES = __doc__.split('\n')
 
 # Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
-_VERSION = '1.13.0-rc1'
+_VERSION = '1.13.0'
 
 project_name = 'tensorflow-serving-api'
 # Set when building the pip package
