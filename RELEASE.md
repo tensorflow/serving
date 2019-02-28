@@ -1,3 +1,38 @@
+# Release 1.13.0
+
+## Major Features and Improvements
+
+* Support for TensorRT 5.0 (GPU docker image built against CUDA 10 and TensorRT 5.0)
+* Support for listening gRPC over UNIX socket (commit: a25b0dad3984d3b154db1144df9d3b447b19aae6)
+* New [GPU version of TensorFlow Serving API PIP package](https://pypi.org/project/tensorflow-serving-api-gpu/). This depends on the `tensorflow-gpu` instead of `tensorflow` PIP package, but is otherwise identical. (commit: 525c1af73ca543ce0165b3d22f0bbf21094fc443)
+* [TF Serving end-to-end colab](tensorflow_serving/g3doc/tutorials/Serving_REST_simple.ipynb)! Training with Keras, serving with TF Serving and REST API (commit: 1ff8aadf20d75294aa4d496a807320603c6887c6)
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Make error message for input size mismatch in `Predict` call even more actionable. (commit: 7237fb54c8d5898713e0bba7573add60cd19c25e)
+* Document how to use the version policy to pin a specific version, or serve multiple versions, of a model. (commit: 2724bfee911f1d2294a9ceb705bbd09a2701c344)
+* Document config reloading and model version labels. (commit: f4890afdc42f10f125cba64c3c2f2c01309ba2e2)
+* Fix the compile error on ARM-32 in net_http/server. (commit: 5446fd973de228693c1652acd4922dc4b177f77a)
+* Adds ModelSpec to SessionRunResponse. (commit: 58a22637ef5e3c50153eb42eff652137eb18c94a)
+* Add MKL support (commit: 8f792532bea10d82fd3c3b126412d0546f54ae28)
+* Fix default path of Prometheus metrics endpoint (commit: 9d05b0c17be47d3260ab58c2b9ac97e202699b96)
+* Add monitoring metrics for saved model (export_dir) warm up latency. (commit: de0935b64ec972879ae623aa4f438282a4281dcc)
+* Add more details/clarification to model version labels documentation. (commit: f9e6ac4d60a4044fc3b8c07719d0faaeae401dda)
+* Split `--tensorflow_session_parallelism` flag into two new flags: `--tensorflow_intra_op_parallelism` and `--tensorflow_inter_op_parallelism` (commit: 71092e448c5432f4411f7333a02b274f0a3cdd3f)
+* Update CPU Docker images to Ubuntu 18.04 (commit: 8023fba48c5b47a81fec25c17ba385a720650ef8)
+* Upgrade to Bazel 0.20.0 (commit: fc0b75f2e325a187794bf437ff3227510d261afb)
+* Update Python 2 scripts to be compatible with both Python 2 and 3 (commit: 846d443bb506f07242cd99347901f3ad5b7efe6a)
+
+## Thanks to our Contributors
+
+This release contains contributions from many people at Google, as well as:
+
+Daniel Shi, Karthik Vadla, lapolonio, robert, Shintaro Murakami, Siju, Tom Forbes, Ville TöRhöNen
+
 # Release 1.12.0
 
 ## Major Features and Improvements
