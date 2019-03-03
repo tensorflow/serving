@@ -1,19 +1,12 @@
 toc:
-- heading: Quick Start
-- title: Use TensorFlow Serving with Docker
+- title: TensorFlow Serving with Docker
   path: /tfx/serving/docker
-
-- heading: Examples
-- title: Train and serve a model with REST
-  path: /tfx/serving/tutorials/Serving_REST_simple
-
-- heading: Understanding TensorFlow Serving
-- title: Overview
-  path: /tfx/serving/overview
 - title: Installation
   path: /tfx/serving/setup
 - title: Serve a TensorFlow model
   path: /tfx/serving/serving_basic
+- title: Architecture
+  path: /tfx/serving/architecture
 - title: Advanced model server configuration
   path: /tfx/serving/serving_config
 - title: Build a TensorFlow ModelServer

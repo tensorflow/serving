@@ -1,4 +1,4 @@
-# Architecture Overview
+# Architecture
 
 TensorFlow Serving is a flexible, high-performance serving system for machine
 learning models, designed for production environments. TensorFlow Serving
