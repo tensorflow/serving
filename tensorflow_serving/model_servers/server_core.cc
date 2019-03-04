@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/server_core.h"
 
 #include <utility>
+#include <vector>
 
 #include "google/protobuf/any.pb.h"
 #include "google/protobuf/wrappers.pb.h"
@@ -411,11 +412,11 @@ Status ServerCore::MaybeUpdateServerRequestLogger(
   }
 
   if (config_case == ModelServerConfig::kModelConfigList) {
-    std::map<string, LoggingConfig> logging_config_map;
+    std::map<string, std::vector<LoggingConfig>> logging_config_map;
     for (const auto& model_config : config_.model_config_list().config()) {
       if (model_config.has_logging_config()) {
         logging_config_map.insert(
-            {model_config.name(), model_config.logging_config()});
+            {model_config.name(), {model_config.logging_config()}});
       }
     }
     return options_.server_request_logger->Update(logging_config_map);

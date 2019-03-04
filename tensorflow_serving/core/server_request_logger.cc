@@ -25,30 +25,6 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-namespace {
-
-// Validate the logging config map. For now only check for duplicate filename
-// prefixes and emit warnings.
-Status ValidateLoggingConfigMap(
-    const std::map<string, LoggingConfig>& logging_config_map) {
-  std::set<string> filename_prefixes;
-  for (const auto& model_and_logging_config : logging_config_map) {
-    const string& filename_prefix =
-        model_and_logging_config.second.log_collector_config()
-            .filename_prefix();
-    if (!gtl::InsertIfNotPresent(&filename_prefixes, filename_prefix)) {
-      // Each model's logs are supposed to be separated from each other,
-      // though there could be systems which can distinguish based on the
-      // model-spec in the logging proto, so we issue only a warning.
-      LOG(WARNING) << "Duplicate LogCollectorConfig::filename_prefix(): "
-                   << filename_prefix << ". Possibly a misconfiguration.";
-    }
-  }
-  return Status::OK();
-}
-
-}  // namespace
-
 // static
 Status ServerRequestLogger::Create(
     LoggerCreator request_logger_creator,
@@ -100,29 +76,30 @@ Status ServerRequestLogger::FindOrCreateLogger(
 }
 
 Status ServerRequestLogger::Update(
-    const std::map<string, LoggingConfig>& logging_config_map) {
+    const std::map<string, std::vector<LoggingConfig>>& logging_config_map) {
   if (!logging_config_map.empty() && !request_logger_creator_) {
     return errors::InvalidArgument("No request-logger-creator provided.");
   }
-  TF_RETURN_IF_ERROR(ValidateLoggingConfigMap(logging_config_map));
 
   // Those new maps will only contain loggers from logging_config_map and
   // replace the current versions further down.
-  std::unique_ptr<StringToRequestLoggerMap> new_model_to_logger_map(
-      new StringToRequestLoggerMap());
+  std::unique_ptr<StringToRequestLoggersMap> new_model_to_loggers_map(
+      new StringToRequestLoggersMap());
   StringToUniqueRequestLoggerMap new_config_to_logger_map;
 
   mutex_lock l(update_mu_);
 
   for (const auto& model_and_logging_config : logging_config_map) {
-    RequestLogger* logger;
-    TF_RETURN_IF_ERROR(FindOrCreateLogger(model_and_logging_config.second,
-                                          &new_config_to_logger_map, &logger));
-    const string& model_name = model_and_logging_config.first;
-    new_model_to_logger_map->emplace(std::make_pair(model_name, logger));
+    for (const auto& logging_config : model_and_logging_config.second) {
+      RequestLogger* logger;
+      TF_RETURN_IF_ERROR(FindOrCreateLogger(
+          logging_config, &new_config_to_logger_map, &logger));
+      const string& model_name = model_and_logging_config.first;
+      (*new_model_to_loggers_map)[model_name].push_back(logger);
+    }
   }
 
-  model_to_logger_map_.Update(std::move(new_model_to_logger_map));
+  model_to_loggers_map_.Update(std::move(new_model_to_loggers_map));
   // Any remaining loggers in config_to_logger_map_ will not be needed anymore
   // and destructed at this point.
   config_to_logger_map_ = std::move(new_config_to_logger_map);
@@ -134,18 +111,23 @@ Status ServerRequestLogger::Log(const google::protobuf::Message& request,
                                 const google::protobuf::Message& response,
                                 const LogMetadata& log_metadata) {
   const string& model_name = log_metadata.model_spec().name();
-  auto model_to_logger_map = model_to_logger_map_.get();
-  if (!model_to_logger_map || model_to_logger_map->empty()) {
-    VLOG(2) << "Request logger map is empty.";
+  auto model_to_loggers_map = model_to_loggers_map_.get();
+  if (!model_to_loggers_map || model_to_loggers_map->empty()) {
+    VLOG(2) << "Request loggers map is empty.";
     return Status::OK();
   }
-  auto found_it = model_to_logger_map->find(model_name);
-  if (found_it == model_to_logger_map->end()) {
-    VLOG(2) << "Cannot find request-logger for model: " << model_name;
+  auto found_it = model_to_loggers_map->find(model_name);
+  if (found_it == model_to_loggers_map->end()) {
+    VLOG(2) << "Cannot find request-loggers for model: " << model_name;
     return Status::OK();
   }
-  auto& request_logger = found_it->second;
-  return request_logger->Log(request, response, log_metadata);
+
+  Status status;
+  for (const auto& logger : found_it->second) {
+    // Note: Only first error will be tracked/returned.
+    status.Update(logger->Log(request, response, log_metadata));
+  }
+  return status;
 }
 
 }  // namespace serving

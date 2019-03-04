@@ -21,6 +21,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "google/protobuf/message.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -57,9 +58,12 @@ class ServerRequestLogger {
   // request_logger_creator, this will return an error if a non-empty
   // logging_config_map is passed in.
   virtual Status Update(
-      const std::map<string, LoggingConfig>& logging_config_map);
+      const std::map<string, std::vector<LoggingConfig>>& logging_config_map);
 
   // Similar to RequestLogger::Log().
+  //
+  // If request is logged/written to multiple sinks, we return error from
+  // the first failed write (and continue attempting to write to all).
   virtual Status Log(const google::protobuf::Message& request,
                      const google::protobuf::Message& response,
                      const LogMetadata& log_metadata);
@@ -68,7 +72,8 @@ class ServerRequestLogger {
   explicit ServerRequestLogger(LoggerCreator request_logger_creator);
 
  private:
-  using StringToRequestLoggerMap = std::unordered_map<string, RequestLogger*>;
+  using StringToRequestLoggersMap =
+      std::unordered_map<string, std::vector<RequestLogger*>>;
   using StringToUniqueRequestLoggerMap =
       std::unordered_map<string, std::unique_ptr<RequestLogger>>;
 
@@ -85,15 +90,15 @@ class ServerRequestLogger {
 
   // Mutex to ensure concurrent calls to Update() are serialized.
   mutable mutex update_mu_;
-  // A map from serialized model config to its corresponding RequestLogger.
-  // If two models have the same logging config, they will share the
-  // RequestLogger.
+  // A map from serialized model logging config to its corresponding
+  // RequestLogger. If two models have the same logging config, they
+  // will share the RequestLogger.
   // This is only used during calls to Update().
   StringToUniqueRequestLoggerMap config_to_logger_map_;
 
-  // A map from model_name to its corresponding RequestLogger.
+  // A map from model_name to its corresponding RequestLoggers.
   // The RequestLoggers are owned by config_to_logger_map_.
-  FastReadDynamicPtr<StringToRequestLoggerMap> model_to_logger_map_;
+  FastReadDynamicPtr<StringToRequestLoggersMap> model_to_loggers_map_;
 
   LoggerCreator request_logger_creator_;
 };
