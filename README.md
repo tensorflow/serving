@@ -52,5 +52,5 @@ See [install instructions](tensorflow_serving/g3doc/setup.md).
 
 ## For more information
 
-* [Serving architecture overview](tensorflow_serving/g3doc/overview.md)
+* [Serving architecture overview](tensorflow_serving/g3doc/architecture.md)
 * [TensorFlow website](http://tensorflow.org)
