@@ -414,7 +414,7 @@ Start the ModelServer with `--rest_api_port` option to export REST API endpoint:
 ```shell
 $ tensorflow_model_server --rest_api_port=8501 \
    --model_name=half_plus_three \
-   --model_base_path=$(pwd)/serving/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_three/
+   --model_base_path=$(pwd)/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_three/
 ```
 
 ### Make REST API calls to ModelServer
