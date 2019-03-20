@@ -148,10 +148,11 @@ cc_test(
     srcs = ["fast_read_dynamic_ptr_benchmark.cc"],
     deps = [
         ":fast_read_dynamic_ptr",
+        "@com_google_absl//absl/time",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
-        "@org_tensorflow//tensorflow/core/kernels/batching_util:periodic_function",
+        "@org_tensorflow//tensorflow/core/kernels/batching_util:periodic_function_dynamic",
     ],
 )
 

@@ -38,6 +38,8 @@ limitations under the License.
 #include <memory>
 #include <string>
 
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "tensorflow/core/kernels/batching_util/periodic_function.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/threadpool.h"
@@ -50,8 +52,12 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
+namespace {
 
-typedef FastReadDynamicPtr<int> FastReadIntPtr;
+using FastReadIntPtr = FastReadDynamicPtr<int>;
+
+// The amount of time to sleep for the cases where we simulate doing work.
+constexpr absl::Duration kWorkSleepTime = absl::Milliseconds(5);
 
 // This class maintains all state for a benchmark and handles the concurrency
 // concerns around the concurrent read and update threads.
@@ -146,17 +152,11 @@ void BenchmarkState::RunBenchmarkReads(int iters) {
 
   for (int i = 0; i < iters; i++) {
     std::shared_ptr<const int> current = fast_ptr_.get();
+    int bigger = *current + 1;
+    testing::DoNotOptimize(bigger);
     if (do_work_) {
-      // Let's do some work, so that we are not just measuring contention in the
-      // mutex.
-      float count = 0;
-      for (int i = 1; i < 10000; ++i) {
-        count *= i;
-      }
-      CHECK_GE(count, 0);
+      absl::SleepFor(kWorkSleepTime);
     }
-    // Prevent compiler optimizing this away.
-    CHECK(*current != INT_MAX);
   }
 }
 
@@ -252,6 +252,7 @@ BENCHMARK(BM_NoWork_FrequentUpdates_Reads)
     ->Arg(32)
     ->Arg(64);
 
+}  // namespace
 }  // namespace serving
 }  // namespace tensorflow
 
