@@ -16,6 +16,8 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_CORE_TEST_UTIL_MOCK_REQUEST_LOGGER_H_
 #define TENSORFLOW_SERVING_CORE_TEST_UTIL_MOCK_REQUEST_LOGGER_H_
 
+#include <vector>
+
 #include "google/protobuf/message.h"
 #include <gmock/gmock.h>
 #include "tensorflow/core/lib/core/status.h"
@@ -32,10 +34,11 @@ class MockRequestLogger : public RequestLogger {
   // Unfortunately NiceMock doesn't support ctors with move-only types, so we
   // have to do this workaround.
   MockRequestLogger(const LoggingConfig& logging_config,
+                    const std::vector<string>& saved_model_tags,
                     LogCollector* log_collector,
                     std::function<void(void)> notify_destruction =
                         std::function<void(void)>())
-      : RequestLogger(logging_config,
+      : RequestLogger(logging_config, saved_model_tags,
                       std::unique_ptr<LogCollector>(log_collector)),
         notify_destruction_(std::move(notify_destruction)) {}
 

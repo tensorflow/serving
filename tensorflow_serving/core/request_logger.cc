@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/core/request_logger.h"
 
 #include <random>
+#include <vector>
 
 #include "tensorflow/core/lib/core/error_codes.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -35,8 +36,10 @@ auto* request_log_count = monitoring::Counter<2>::New(
 }
 
 RequestLogger::RequestLogger(const LoggingConfig& logging_config,
+                             const std::vector<string>& saved_model_tags,
                              std::unique_ptr<LogCollector> log_collector)
     : logging_config_(logging_config),
+      saved_model_tags_(saved_model_tags),
       log_collector_(std::move(log_collector)),
       uniform_sampler_() {}
 
@@ -48,6 +51,10 @@ Status RequestLogger::Log(const google::protobuf::Message& request,
   LogMetadata log_metadata_with_config = log_metadata;
   *log_metadata_with_config.mutable_sampling_config() =
       logging_config_.sampling_config();
+  if (!saved_model_tags_.empty()) {
+    *log_metadata_with_config.mutable_saved_model_tags() = {
+        saved_model_tags_.begin(), saved_model_tags_.end()};
+  }
   if (uniform_sampler_.Sample(sampling_rate)) {
     const auto status = [&]() {
       std::unique_ptr<google::protobuf::Message> log;

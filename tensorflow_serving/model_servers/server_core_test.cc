@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/server_core.h"
 
 #include "google/protobuf/any.pb.h"
+#include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/lib/core/error_codes.pb.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -590,9 +591,10 @@ TEST_P(ServerCoreTest, RequestLoggingOn) {
         const string& filename_prefix =
             logging_config.log_collector_config().filename_prefix();
         log_collector_map[filename_prefix] = new FakeLogCollector();
+        const std::vector<string>& tags = {kSavedModelTagServe};
         auto mock_request_logger = std::unique_ptr<NiceMock<MockRequestLogger>>(
             new NiceMock<MockRequestLogger>(
-                logging_config, log_collector_map[filename_prefix]));
+                logging_config, tags, log_collector_map[filename_prefix]));
         ON_CALL(*mock_request_logger, CreateLogMessage(_, _, _, _))
             .WillByDefault(Invoke([&](const google::protobuf::Message& actual_request,
                                       const google::protobuf::Message& actual_response,

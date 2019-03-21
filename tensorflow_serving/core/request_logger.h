@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_CORE_REQUEST_LOGGER_H_
 
 #include <random>
+#include <vector>
 
 #include "google/protobuf/message.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -32,6 +33,7 @@ namespace serving {
 class RequestLogger {
  public:
   RequestLogger(const LoggingConfig& logging_config,
+                const std::vector<string>& saved_model_tags,
                 std::unique_ptr<LogCollector> log_collector);
 
   virtual ~RequestLogger() = default;
@@ -68,6 +70,7 @@ class RequestLogger {
   };
 
   const LoggingConfig logging_config_;
+  const std::vector<string> saved_model_tags_;
   std::unique_ptr<LogCollector> log_collector_;
   UniformSampler uniform_sampler_;
 };

@@ -25,6 +25,7 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "absl/strings/str_cat.h"
+#include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -90,10 +91,11 @@ class ServerRequestLoggerTest : public ::testing::Test {
           auto logger_destruction_notifier = [this]() {
             increment_deleted_logger_counter();
           };
+          const std::vector<string>& tags = {kSavedModelTagServe};
           auto mock_request_logger =
               std::unique_ptr<NiceMock<MockRequestLogger>>(
                   new NiceMock<MockRequestLogger>(
-                      logging_config, log_collector_map_[filename_prefix],
+                      logging_config, tags, log_collector_map_[filename_prefix],
                       logger_destruction_notifier));
           ON_CALL(*mock_request_logger, CreateLogMessage(_, _, _, _))
               .WillByDefault(Invoke([&](const google::protobuf::Message& actual_request,

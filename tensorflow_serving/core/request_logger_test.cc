@@ -22,6 +22,7 @@ limitations under the License.
 #include "google/protobuf/message.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -45,6 +46,8 @@ using ::testing::Invoke;
 using ::testing::NiceMock;
 using ::testing::Return;
 
+constexpr char kSavedModelTags[] = "server,tpu";
+
 class RequestLoggerTest : public ::testing::Test {
  protected:
   RequestLoggerTest() {
@@ -52,9 +55,12 @@ class RequestLoggerTest : public ::testing::Test {
     logging_config.mutable_sampling_config()->set_sampling_rate(1.0);
     log_collector_ = new NiceMock<MockLogCollector>();
     request_logger_ = std::unique_ptr<NiceMock<MockRequestLogger>>(
-        new NiceMock<MockRequestLogger>(logging_config, log_collector_));
+        new NiceMock<MockRequestLogger>(logging_config, model_tags_,
+                                        log_collector_));
   }
 
+  const std::vector<string> model_tags_ = {kSavedModelTagServe,
+                                           kSavedModelTagTpu};
   NiceMock<MockLogCollector>* log_collector_;
   std::unique_ptr<NiceMock<MockRequestLogger>> request_logger_;
 };
@@ -83,6 +89,8 @@ TEST_F(RequestLoggerTest, Simple) {
                     test_util::EqualsProto(PredictResponse()));
         LogMetadata expected_log_metadata = log_metadata;
         expected_log_metadata.mutable_sampling_config()->set_sampling_rate(1.0);
+        *expected_log_metadata.mutable_saved_model_tags() = {
+            model_tags_.begin(), model_tags_.end()};
         EXPECT_THAT(actual_log_metadata,
                     test_util::EqualsProto(expected_log_metadata));
         *log =
