@@ -103,6 +103,7 @@ Status RunSavedModelWarmup(const RunOptions& run_options,
     return Status::OK();
   }
 
+  LOG(INFO) << "Starting to read warmup data for model at " << warmup_path;
   std::unique_ptr<tensorflow::RandomAccessFile> tf_record_file;
   TF_RETURN_IF_ERROR(tensorflow::Env::Default()->NewRandomAccessFile(
       warmup_path, &tf_record_file));
@@ -132,8 +133,9 @@ Status RunSavedModelWarmup(const RunOptions& run_options,
     status = tf_record_file_reader->ReadRecord(&record);
   }
 
+  const auto warmup_latency = GetLatencyMicroseconds(start_microseconds);
   model_warm_up_latency->GetCell(export_dir, status.ToString())
-      ->Add(GetLatencyMicroseconds(start_microseconds));
+      ->Add(warmup_latency);
 
   // OUT_OF_RANGE error means EOF was reached, do not return error in this case
   if (!errors::IsOutOfRange(status)) {
@@ -141,7 +143,8 @@ Status RunSavedModelWarmup(const RunOptions& run_options,
   }
 
   LOG(INFO) << "Finished reading warmup data for model at " << warmup_path
-            << ". Number of warmup records read: " << num_warmup_records << ".";
+            << ". Number of warmup records read: " << num_warmup_records
+            << ". Elapsed time (microseconds): " << warmup_latency << ".";
   return Status::OK();
 }
 
