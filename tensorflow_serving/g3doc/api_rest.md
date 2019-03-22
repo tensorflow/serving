@@ -399,9 +399,8 @@ model to see REST APIs in action.
 
 ### Start ModelServer with the REST API endpoint
 
-Follow [setup instructions](https://www.tensorflow.org/serving/setup) to install
-TensorFlow ModelServer on your system. Then download the `half_plus_three` model
-from [git repository](https://github.com/tensorflow/serving):
+Download the `half_plus_three` model from
+[git repository](https://github.com/tensorflow/serving):
 
 ```shell
 $ mkdir -p /tmp/tfserving
@@ -409,12 +408,21 @@ $ cd /tmp/tfserving
 $ git clone --depth=1 https://github.com/tensorflow/serving
 ```
 
-Start the ModelServer with `--rest_api_port` option to export REST API endpoint:
+We will use Docker to run the ModelServer. If you want to install ModelServer
+natively on your system, follow
+[setup instructions](https://www.tensorflow.org/serving/setup) to install
+instead, and start the ModelServer with `--rest_api_port` option to export
+REST API endpoint (this is not needed when using Docker).
 
 ```shell
-$ tensorflow_model_server --rest_api_port=8501 \
-   --model_name=half_plus_three \
-   --model_base_path=$(pwd)/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_three/
+$ cd /tmp/tfserving
+$ docker pull tensorflow/serving:latest
+$ docker run --rm -p 8501:8501 \
+    --mount type=bind,source=$(pwd),target=$(pwd) \
+    -e MODEL_BASE_PATH=$(pwd)/serving/tensorflow_serving/servables/tensorflow/testdata \
+    -e MODEL_NAME=saved_model_half_plus_three -t tensorflow/serving:latest
+...
+.... Exporting HTTP/REST API at:localhost:8501 ...
 ```
 
 ### Make REST API calls to ModelServer
@@ -424,7 +432,7 @@ In a different terminal, use the `curl` tool to make REST API calls.
 Get status of the model as follows:
 
 ```
-$ curl http://localhost:8501/v1/models/half_plus_three
+$ curl http://localhost:8501/v1/models/saved_model_half_plus_three
 {
  "model_version_status": [
   {
@@ -442,7 +450,7 @@ $ curl http://localhost:8501/v1/models/half_plus_three
 A `predict` call would look as follows:
 
 ```shell
-$ curl -d '{"instances": [1.0,2.0,5.0]}' -X POST http://localhost:8501/v1/models/half_plus_three:predict
+$ curl -d '{"instances": [1.0,2.0,5.0]}' -X POST http://localhost:8501/v1/models/saved_model_half_plus_three:predict
 {
     "predictions": [3.5, 4.0, 5.5]
 }
@@ -452,7 +460,7 @@ And a `regress` call looks as follows:
 
 ```shell
 $ curl -d '{"signature_name": "tensorflow/serving/regress", "examples": [{"x": 1.0}, {"x": 2.0}]}' \
-  -X POST http://localhost:8501/v1/models/half_plus_three:regress
+  -X POST http://localhost:8501/v1/models/saved_model_half_plus_three:regress
 {
     "results": [3.5, 4.0]
 }
