@@ -29,6 +29,9 @@ build --genrule_strategy=standalone
 
 build --define=grpc_no_ares=true
 
+# Sets the default Apple platform to macOS.
+build --apple_platform_type=macos
+
 build -c opt
 
 # Adding --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0" creates parity with TF
