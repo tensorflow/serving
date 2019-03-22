@@ -26,31 +26,37 @@ message ExampleList {
 // to perform some inference on.
 //
 // context: {
-//   feature: {
-//     key  : "query"
-//     value: {
-//       bytes_list: {
-//         value: [ "pizza" ]
+//   features: {
+//     feature: {
+//       key  : "query"
+//       value: {
+//         bytes_list: {
+//           value: [ "pizza" ]
+//         }
 //       }
 //     }
 //   }
 // }
 // examples: {
-//   feature: {
-//     key  : "cuisine"
-//     value: {
-//       bytes_list: {
-//         value: [ "Pizzeria" ]
+//   features: {
+//     feature: {
+//       key  : "cuisine"
+//       value: {
+//         bytes_list: {
+//           value: [ "Pizzeria" ]
+//         }
 //       }
 //     }
 //   }
 // }
 // examples: {
-//   feature: {
-//     key  : "cuisine"
-//     value: {
-//       bytes_list: {
-//         value: [ "Taqueria" ]
+//   features: {
+//     feature: {
+//       key  : "cuisine"
+//       value: {
+//         bytes_list: {
+//           value: [ "Taqueria" ]
+//         }
 //       }
 //     }
 //   }
