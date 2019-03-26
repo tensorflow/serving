@@ -33,3 +33,23 @@ cc_binary(
         "@protobuf_archive//:protobuf_lite",
     ],
 )
+
+py_binary(
+    name = "mnist_saved_model",
+    srcs = [
+        "mnist_saved_model.py",
+    ],
+    deps = [
+        ":mnist_input_data",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+    ],
+)
+
+py_library(
+    name = "mnist_input_data",
+    srcs = ["mnist_input_data.py"],
+    deps = [
+        "//third_party/py/numpy",
+        "@six_archive//:six",
+    ],
+)
