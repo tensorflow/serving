@@ -43,10 +43,11 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
+using test_util::EqualsProto;
 using ::testing::_;
+using ::testing::DoAll;
 using ::testing::Return;
 using ::testing::SetArgPointee;
-using test_util::EqualsProto;
 using Batcher = SharedBatchScheduler<BatchingSessionTask>;
 
 class BundleFactoryUtilTest : public ::testing::Test {
