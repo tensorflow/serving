@@ -20,6 +20,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "google/protobuf/wrappers.pb.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/loader.h"
@@ -42,7 +43,7 @@ namespace {
 using test_util::EqualsProto;
 
 class SavedModelBundleSourceAdapterTest
-    : public ::testing::TestWithParam<bool> {
+    : public ::testing::TestWithParam<std::tuple<bool, bool>> {
  protected:
   SavedModelBundleSourceAdapterTest() {
     ResourceUtil::Options resource_util_options;
@@ -53,6 +54,12 @@ class SavedModelBundleSourceAdapterTest
     ram_resource_ = resource_util_->CreateBoundResource(
         device_types::kMain, resource_kinds::kRamBytes);
     config_.mutable_config()->set_enable_model_warmup(EnableWarmup());
+    if (EnableNumRequestIterations()) {
+      config_.mutable_config()
+          ->mutable_model_warmup_options()
+          ->mutable_num_request_iterations()
+          ->set_value(2);
+    }
   }
 
   void TestSavedModelBundleSourceAdapter(const string& export_dir) const {
@@ -101,7 +108,8 @@ class SavedModelBundleSourceAdapterTest
     loader->Unload();
   }
 
-  bool EnableWarmup() { return GetParam(); }
+  bool EnableWarmup() { return std::get<0>(GetParam()); }
+  bool EnableNumRequestIterations() { return std::get<1>(GetParam()); }
 
   std::unique_ptr<ResourceUtil> resource_util_;
   Resource ram_resource_;
@@ -121,9 +129,10 @@ TEST_P(SavedModelBundleSourceAdapterTest, BackwardCompatibility) {
 }
 
 // Test all SavedModelBundleSourceAdapterTest test cases with
-// warmup enabled/disabled.
-INSTANTIATE_TEST_CASE_P(EnableWarmup, SavedModelBundleSourceAdapterTest,
-                        ::testing::Bool());
+// warmup and num_request_iterations enabled/disabled.
+INSTANTIATE_TEST_CASE_P(ModelWarmup, SavedModelBundleSourceAdapterTest,
+                        ::testing::Combine(::testing::Bool(),
+                                           ::testing::Bool()));
 
 }  // namespace
 }  // namespace serving

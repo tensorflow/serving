@@ -15,9 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup.h"
 
+#include "google/protobuf/wrappers.pb.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
 #include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/contrib/session_bundle/signature.h"
@@ -38,6 +38,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/prediction_log.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
 #include "tensorflow_serving/core/test_util/mock_session.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 
 namespace tensorflow {
 namespace serving {
@@ -174,7 +175,28 @@ void AddSignatures(MetaGraphDef* meta_graph_def) {
                          {kPredictOutputs});
 }
 
-TEST(SavedModelBundleWarmupTest, MixedWarmupData) {
+class SavedModelBundleWarmupOptionsTest
+    : public ::testing::TestWithParam<bool> {
+ public:
+  bool EnableNumRequestIterations() { return GetParam(); }
+
+  ModelWarmupOptions GetModelWarmupOptions() {
+    ModelWarmupOptions options;
+    if (EnableNumRequestIterations()) {
+      options.mutable_num_request_iterations()->set_value(2);
+    }
+    return options;
+  }
+
+  int GetNumRequestIterations() {
+    if (EnableNumRequestIterations()) {
+      return 2;
+    }
+    return 1;
+  }
+};
+
+TEST_P(SavedModelBundleWarmupOptionsTest, MixedWarmupData) {
   string base_path = io::JoinPath(testing::TmpDir(), "MixedWarmupData");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
@@ -193,24 +215,26 @@ TEST(SavedModelBundleWarmupTest, MixedWarmupData) {
   Tensor classes(DT_STRING, TensorShape({1, 1}));
   // Regress and Predict case
   EXPECT_CALL(*mock, Run(_, _, SizeIs(1), _, _, _))
-      .Times(num_warmup_records * 2)
+      .Times(num_warmup_records * 2 * GetNumRequestIterations())
       .WillRepeatedly(DoAll(SetArgPointee<4>(std::vector<Tensor>({scores})),
                             Return(Status::OK())));
   // Classify case
   EXPECT_CALL(*mock, Run(_, _, SizeIs(2), _, _, _))
-      .Times(num_warmup_records)
+      .Times(num_warmup_records * GetNumRequestIterations())
       .WillRepeatedly(
           DoAll(SetArgPointee<4>(std::vector<Tensor>({classes, scores})),
                 Return(Status::OK())));
   // MultiInference case
   EXPECT_CALL(*mock, Run(_, _, SizeIs(3), _, _, _))
-      .Times(num_warmup_records)
+      .Times(num_warmup_records * GetNumRequestIterations())
       .WillRepeatedly(DoAll(
           SetArgPointee<4>(std::vector<Tensor>({classes, scores, scores})),
           Return(Status::OK())));
-  TF_EXPECT_OK(
-      RunSavedModelWarmup(RunOptions(), base_path, &saved_model_bundle));
+  TF_EXPECT_OK(RunSavedModelWarmup(GetModelWarmupOptions(), RunOptions(),
+                                   base_path, &saved_model_bundle));
 }
+INSTANTIATE_TEST_SUITE_P(WarmupOptions, SavedModelBundleWarmupOptionsTest,
+                         ::testing::Bool());
 
 TEST(SavedModelBundleWarmupTest, NoWarmupDataFile) {
   string base_path = io::JoinPath(testing::TmpDir(), "NoWarmupDataFile");
@@ -222,8 +246,8 @@ TEST(SavedModelBundleWarmupTest, NoWarmupDataFile) {
   MockSession* mock = new MockSession;
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _)).Times(0);
-  TF_EXPECT_OK(
-      RunSavedModelWarmup(RunOptions(), base_path, &saved_model_bundle));
+  TF_EXPECT_OK(RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
+                                   base_path, &saved_model_bundle));
 }
 
 TEST(SavedModelBundleWarmupTest, WarmupDataFileEmpty) {
@@ -240,8 +264,8 @@ TEST(SavedModelBundleWarmupTest, WarmupDataFileEmpty) {
   MockSession* mock = new MockSession;
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _)).Times(0);
-  TF_EXPECT_OK(
-      RunSavedModelWarmup(RunOptions(), base_path, &saved_model_bundle));
+  TF_EXPECT_OK(RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
+                                   base_path, &saved_model_bundle));
 }
 
 TEST(SavedModelBundleWarmupTest, UnsupportedLogType) {
@@ -263,8 +287,8 @@ TEST(SavedModelBundleWarmupTest, UnsupportedLogType) {
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
       .WillRepeatedly(Return(Status::OK()));
-  const Status status =
-      RunSavedModelWarmup(RunOptions(), base_path, &saved_model_bundle);
+  const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
+                                            base_path, &saved_model_bundle);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::UNIMPLEMENTED, status.code()) << status;
   EXPECT_THAT(status.ToString(),
@@ -302,8 +326,8 @@ TEST(SavedModelBundleWarmupTest, TooManyWarmupRecords) {
       .WillRepeatedly(DoAll(
           SetArgPointee<4>(std::vector<Tensor>({classes, scores, scores})),
           Return(Status::OK())));
-  const Status status =
-      RunSavedModelWarmup(RunOptions(), base_path, &saved_model_bundle);
+  const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
+                                            base_path, &saved_model_bundle);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
   EXPECT_THAT(
@@ -324,8 +348,8 @@ TEST(SavedModelBundleWarmupTest, UnparsableRecord) {
   MockSession* mock = new MockSession;
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _)).Times(0);
-  const Status status =
-      RunSavedModelWarmup(RunOptions(), base_path, &saved_model_bundle);
+  const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
+                                            base_path, &saved_model_bundle);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
   EXPECT_THAT(status.ToString(),
@@ -349,8 +373,8 @@ TEST(SavedModelBundleWarmupTest, RunFailure) {
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
       .WillOnce(::testing::Return(errors::InvalidArgument("Run failed")));
-  const Status status =
-      RunSavedModelWarmup(RunOptions(), base_path, &saved_model_bundle);
+  const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
+                                            base_path, &saved_model_bundle);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run failed"));

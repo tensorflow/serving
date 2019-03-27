@@ -21,6 +21,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/protobuf/saved_model.pb.h"
 #include "tensorflow/core/public/session.h"
+#include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 
 namespace tensorflow {
 namespace serving {
@@ -36,7 +37,8 @@ struct WarmupConsts {
 // at load time, and consequently improve first request latency.
 // Warmup is skipped if no warmup file present.
 // Supported request types: Regress, Classify, Predict, MultiInference.
-Status RunSavedModelWarmup(const RunOptions& run_options,
+Status RunSavedModelWarmup(const ModelWarmupOptions& model_warmup_options,
+                           const RunOptions& run_options,
                            const string& export_dir, SavedModelBundle* bundle);
 
 }  // namespace serving

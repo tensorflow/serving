@@ -54,8 +54,9 @@ Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
                            path](std::unique_ptr<SavedModelBundle>* bundle) {
     TF_RETURN_IF_ERROR(bundle_factory->CreateSavedModelBundle(path, bundle));
     if (bundle_factory->config().enable_model_warmup()) {
-      return RunSavedModelWarmup(GetRunOptions(bundle_factory->config()), path,
-                                 bundle->get());
+      return RunSavedModelWarmup(
+          bundle_factory->config().model_warmup_options(),
+          GetRunOptions(bundle_factory->config()), path, bundle->get());
     }
     return Status::OK();
   };

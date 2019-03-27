@@ -300,6 +300,7 @@ cc_test(
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -897,16 +898,15 @@ cc_library(
         ":multi_inference",
         ":predict_util",
         ":regressor",
-        "//tensorflow_serving/apis:classification_proto",
-        "//tensorflow_serving/apis:inference_proto",
-        "//tensorflow_serving/apis:predict_proto",
+        ":session_bundle_config_proto",
+        ":util",
         "//tensorflow_serving/apis:prediction_log_proto",
-        "//tensorflow_serving/apis:regression_proto",
-        "//tensorflow_serving/core:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:constants",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -916,6 +916,7 @@ cc_test(
     srcs = ["saved_model_warmup_test.cc"],
     deps = [
         ":saved_model_warmup",
+        ":session_bundle_config_proto",
         "//tensorflow_serving/apis:input_proto",
         "//tensorflow_serving/apis:model_proto",
         "//tensorflow_serving/apis:prediction_log_proto",
@@ -929,5 +930,6 @@ cc_test(
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
+        "@protobuf_archive//:cc_wkt_protos",
     ],
 )

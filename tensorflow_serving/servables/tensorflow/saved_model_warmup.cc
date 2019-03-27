@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup.h"
 
+#include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/record_reader.h"
@@ -91,7 +92,8 @@ Status RunWarmupRequest(const PredictionLog& warmup_record,
 constexpr char WarmupConsts::kRequestsFileName[];
 constexpr int WarmupConsts::kMaxNumRecords;
 
-Status RunSavedModelWarmup(const RunOptions& run_options,
+Status RunSavedModelWarmup(const ModelWarmupOptions& model_warmup_options,
+                           const RunOptions& run_options,
                            const string& export_dir, SavedModelBundle* bundle) {
   const uint64 start_microseconds = Env::Default()->NowMicros();
   const string warmup_path =
@@ -103,7 +105,16 @@ Status RunSavedModelWarmup(const RunOptions& run_options,
     return Status::OK();
   }
 
-  LOG(INFO) << "Starting to read warmup data for model at " << warmup_path;
+  const int num_request_iterations = [&]() {
+    if (model_warmup_options.has_num_request_iterations()) {
+      return model_warmup_options.num_request_iterations().value();
+    }
+    // Default of 1.
+    return 1;
+  }();
+  LOG(INFO) << "Starting to read warmup data for model at " << warmup_path
+            << " with model-warmup-options "
+            << model_warmup_options.DebugString();
   std::unique_ptr<tensorflow::RandomAccessFile> tf_record_file;
   TF_RETURN_IF_ERROR(tensorflow::Env::Default()->NewRandomAccessFile(
       warmup_path, &tf_record_file));
@@ -121,9 +132,11 @@ Status RunSavedModelWarmup(const RunOptions& run_options,
           "Failed to parse warmup record: ", record, " from ", warmup_path));
     }
 
-    TF_RETURN_IF_ERROR(RunWarmupRequest(prediction_log, run_options,
-                                        bundle->meta_graph_def,
-                                        bundle->session.get()));
+    for (int i = 0; i < num_request_iterations; ++i) {
+      TF_RETURN_IF_ERROR(RunWarmupRequest(prediction_log, run_options,
+                                          bundle->meta_graph_def,
+                                          bundle->session.get()));
+    }
     ++num_warmup_records;
     if (num_warmup_records > WarmupConsts::kMaxNumRecords) {
       return errors::InvalidArgument(
