@@ -10,11 +10,13 @@ build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
 # If you would like to use a local MKL instead of downloading, please set the
 # environment variable "TF_MKL_ROOT" every time before build.
 build:mkl --define=build_with_mkl=true --define=enable_mkl=true
+build:mkl --define=tensorflow_mkldnn_contraction_kernel=0
 
 # This config option is used to enable MKL-DNN open source library only,
 # without depending on MKL binary version.
 build:mkl_open_source_only --define=build_with_mkl_dnn_only=true
 build:mkl_open_source_only --define=build_with_mkl=true --define=enable_mkl=true
+build:mkl_open_source_only --define=tensorflow_mkldnn_contraction_kernel=0
 
 # Processor native optimizations (depends on build host capabilities).
 build:nativeopt --copt=-march=native
@@ -31,6 +33,9 @@ build --define=grpc_no_ares=true
 
 # Sets the default Apple platform to macOS.
 build --apple_platform_type=macos
+
+# Disable MKL-DNN contraction kernels by default.
+build --define=tensorflow_mkldnn_contraction_kernel=0
 
 build -c opt
 
