@@ -254,6 +254,11 @@ Status Server::BuildAndStart(const Options& server_options) {
     }
     session_bundle_config.set_enable_model_warmup(
         server_options.enable_model_warmup);
+    if (server_options.num_request_iterations_for_warmup > 0) {
+      session_bundle_config.mutable_model_warmup_options()
+          ->mutable_num_request_iterations()
+          ->set_value(server_options.num_request_iterations_for_warmup);
+    }
     options.platform_config_map = CreateTensorFlowPlatformConfigMap(
         session_bundle_config, use_saved_model);
   } else {

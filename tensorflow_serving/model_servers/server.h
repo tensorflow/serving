@@ -72,6 +72,8 @@ class Server {
     tensorflow::string ssl_config_file;
     string model_config_file;
     bool enable_model_warmup = true;
+    // This value is used only if > 0.
+    tensorflow::int32 num_request_iterations_for_warmup = 0;
     tensorflow::string monitoring_config_file;
     // Tensorflow session run options.
     bool enforce_session_run_timeout = true;
