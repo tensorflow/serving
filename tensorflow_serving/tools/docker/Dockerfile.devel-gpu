@@ -73,7 +73,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     rm /usr/lib/x86_64-linux-gnu/libnvinfer_static.a && \
-    rm /usr/lib/x86_64-linux-gnu/libnvinfer_plugin* && \
+    rm /usr/lib/x86_64-linux-gnu/libnvinfer_plugin_static.a && \
     rm /usr/lib/x86_64-linux-gnu/libnvcaffe_parser* && \
     rm /usr/lib/x86_64-linux-gnu/libnvparsers*
 
