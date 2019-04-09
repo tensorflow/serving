@@ -22,8 +22,8 @@
 # track down dependencies (that are covered by the docker container).
 #
 # Note: This script binds your working directory (via pwd) and /tmp to the
-# Docker container. Any scripts or programs you run will need to have its output
-# routed to one of the above locations in order to persist.
+# Docker container. Any scripts or programs you run will need to have its
+# output files/dirs written to one of the above locations for persistence.
 #
 # Typical usage (to build from lastest upstream source):
 # $ git clone https://github.com/tensorflow/serving.git
