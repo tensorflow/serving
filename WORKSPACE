@@ -17,8 +17,9 @@ tensorflow_http_archive(
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-# TensorFlow depends on "io_bazel_rules_closure" so we need this here.
-# Needs to be kept in sync with the same target in TensorFlow's WORKSPACE file.
+# START: Upstream TensorFlow dependencies
+# TensorFlow build depends on these dependencies.
+# Needs to be in-sync with TensorFlow sources.
 http_archive(
     name = "io_bazel_rules_closure",
     sha256 = "ddce3b3a3909f99b28b25071c40b7fec7e2e1d1d1a4b2e933f3082aa99517105",
@@ -28,6 +29,13 @@ http_archive(
         "https://github.com/bazelbuild/rules_closure/archive/316e6133888bfc39fb860a4f1a31cfcbae485aef.tar.gz",  # 2019-03-21
     ],
 )
+http_archive(
+    name = "bazel_skylib",
+    sha256 = "2c62d8cd4ab1e65c08647eb4afe38f51591f43f7f0885e7769832fa137633dcb",
+    strip_prefix = "bazel-skylib-0.7.0",
+    urls = ["https://github.com/bazelbuild/bazel-skylib/archive/0.7.0.tar.gz"],
+)
+# END: Upstream TensorFlow dependencies
 
 # Please add all new TensorFlow Serving dependencies in workspace.bzl.
 load("//tensorflow_serving:workspace.bzl", "tf_serving_workspace")
