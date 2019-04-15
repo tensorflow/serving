@@ -40,6 +40,7 @@ Status CachingManager::Create(
   basic_manager_options.max_num_load_retries = options.max_num_load_retries;
   basic_manager_options.load_retry_interval_micros =
       options.load_retry_interval_micros;
+  basic_manager_options.env = options.env;
   basic_manager_options.servable_event_bus = options.servable_event_bus;
 
   // Create a basic manager and use it to construct the caching manager.
