@@ -192,8 +192,9 @@ version of TensorFlow Serving for your processor if you are in doubt.
 ##### Building with GPU Support
 
 In order to build a custom version of TensorFlow Serving with GPU support, we
-recommend either building with the [provided Docker images](docker.md#developing-with-docker), or
-following the approach in the
+recommend either building with the
+[provided Docker images](building_with_docker.md), or following the approach in
+the
 [GPU Dockerfile](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel-gpu).
 
 ## TensorFlow Serving Python API PIP package

@@ -4,53 +4,113 @@
 ![Docker CPU Nightly Build Status](https://storage.googleapis.com/tensorflow-serving-kokoro-build-badges/docker-cpu-nightly.svg)
 ![Docker GPU Nightly Build Status](https://storage.googleapis.com/tensorflow-serving-kokoro-build-badges/docker-gpu-nightly.svg)
 
-TensorFlow Serving is an open-source software library for serving
-machine learning models. It deals with the *inference* aspect of machine
-learning, taking models after *training* and managing their lifetimes, providing
-clients with versioned access via a high-performance, reference-counted lookup
-table.
+----
+TensorFlow Serving is a flexible, high-performance serving system for
+machine learning models, designed for production environments. It deals with
+the *inference* aspect of machine learning, taking models after *training* and
+managing their lifetimes, providing clients with versioned access via
+a high-performance, reference-counted lookup table.
+TensorFlow Serving provides out-of-the-box integration with TensorFlow models,
+but can be easily extended to serve other types of models and data.
 
-Multiple models, or indeed multiple versions of the same model, can be served
-simultaneously. This flexibility facilitates canarying new versions,
-non-atomically migrating clients to new models or versions, and A/B testing
-experimental models.
+To note a few features:
 
-The primary use-case is high-performance production serving, but the same
-serving infrastructure can also be used in bulk-processing (e.g. map-reduce)
-jobs to pre-compute inference results or analyze model performance. In both
-scenarios, GPUs can substantially increase inference throughput. TensorFlow
-Serving comes with a scheduler that groups individual inference requests into
-batches for joint execution on a GPU, with configurable latency controls.
+-   Can serve multiple models, or multiple versions of the same model
+    simultaneously
+-   Exposes both gRPC as well as HTTP inference endpoints
+-   Allows deployment of new model versions without changing any client code
+-   Supports canarying new versions and A/B testing experimental models
+-   Adds minimal latency to inference time due to efficient, low-overhead
+    implementation
+-   Features a scheduler that groups individual inference requests into batches
+    for joint execution on GPU, with configurable latency controls
+-   Supports many *servables*: Tensorflow models, embeddings, vocabularies,
+    feature transformations and even non-Tensorflow-based machine learning
+    models
 
-TensorFlow Serving has out-of-the-box support for TensorFlow models (naturally),
-but at its core it manages arbitrary versioned items (*servables*) with
-pass-through to their native APIs. In addition to trained TensorFlow models,
-servables can include other assets needed for inference such as embeddings,
-vocabularies and feature transformation configs, or even non-TensorFlow-based
-machine learning models.
+## Serve a Tensorflow model in 60 seconds
+```bash
+# Download the TensorFlow Serving Docker image and repo
+docker pull tensorflow/serving
 
-The architecture is highly modular. You can use some parts individually (e.g.
-batch scheduling) or use all the parts together. There are numerous plug-in
-points; perhaps the most useful ways to extend the system are:
-(a) [creating a new type of servable](tensorflow_serving/g3doc/custom_servable.md);
-(b) [creating a custom source of servable versions](tensorflow_serving/g3doc/custom_source.md).
+git clone https://github.com/tensorflow/serving
+# Location of demo models
+TESTDATA="$(pwd)/serving/tensorflow_serving/servables/tensorflow/testdata"
+
+# Start TensorFlow Serving container and open the REST API port
+docker run -t --rm -p 8501:8501 \
+    -v "$TESTDATA/saved_model_half_plus_two_cpu:/models/half_plus_two" \
+    -e MODEL_NAME=half_plus_two \
+    tensorflow/serving &
+
+# Query the model using the predict API
+curl -d '{"instances": [1.0, 2.0, 5.0]}' \
+    -X POST http://localhost:8501/v1/models/half_plus_two:predict
+
+# Returns => { "predictions": [2.5, 3.0, 4.5] }
+```
+
+## End-to-End Training & Serving Tutorial
+
+Refer to the official Tensorflow documentations site for [a complete tutorial to train and serve a Tensorflow Model](https://www.tensorflow.org/tfx/tutorials/serving/rest_simple).
+
+
+## Documentation
+
+### Set up
+
+The easiest and most straight-forward way of using TensorFlow Serving is with
+Docker images. We highly recommend this route unless you have specific needs
+that are not addressed by running in a container.
+
+*   [Install Tensorflow Serving using Docker](tensorflow_serving/g3doc/docker.md)
+    *(Recommended)*
+*   [Install Tensorflow Serving without Docker](tensorflow_serving/g3doc/setup.md)
+    *(Not Recommended)*
+*   [Build Tensorflow Serving from Source with Docker](tensorflow_serving/g3doc/building_with_docker.md)
+*   [Deploy Tensorflow Serving on Kubernetes](tensorflow_serving/g3doc/serving_kubernetes.md)
+
+### Use
+
+#### Export your Tensorflow model
+
+In order to serve a Tensorflow model, simply export a SavedModel from your
+Tensorflow program.
+[SavedModel](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/README.md)
+is a language-neutral, recoverable, hermetic serialization format that enables
+higher-level systems and tools to produce, consume, and transform TensorFlow
+models.
+
+Please refer to [Tensorflow documentation](https://www.tensorflow.org/guide/saved_model#save_and_restore_models)
+for detailed instructions on how to export SavedModels.
+
+#### Configure and Use Tensorflow Serving
+
+* [Follow a tutorial on Serving Tensorflow models](tensorflow_serving/g3doc/serving_basic.md)
+* Read the [REST API Guide](tensorflow_serving/g3doc/api_rest.md) or [gRPC API definition](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/apis)
+* [Use SavedModel Warmup if initial inference requests are slow due to lazy initialization of graph](tensorflow_serving/g3doc/saved_model_warmup.md)
+* [Configure models, version and version policy via Serving Config](tensorflow_serving/g3doc/serving_config.md)
+* [If encountering issues regarding model signatures, please read the SignatureDef documentation](tensorflow_serving/g3doc/signature_defs.md)
+
+### Extend
+
+Tensorflow Serving's architecture is highly modular. You can use some parts
+individually (e.g. batch scheduling) and/or extend it to serve new use cases.
+
+* [Ensure you are familiar with building Tensorflow Serving](tensorflow_serving/g3doc/building_with_docker.md)
+* [Learn about Tensorflow Serving's architecture](tensorflow_serving/g3doc/architecture.md)
+* [Explore the Tensorflow Serving C++ API reference](https://www.tensorflow.org/tfx/serving/api_docs/cc/)
+* [Create a new type of Servable](tensorflow_serving/g3doc/custom_servable.md)
+* [Create a custom Source of Servable versions](tensorflow_serving/g3doc/custom_source.md)
+
+## Contribute
+
 
 **If you'd like to contribute to TensorFlow Serving, be sure to review the
 [contribution guidelines](CONTRIBUTING.md).**
 
-**We use [GitHub issues](https://github.com/tensorflow/serving/issues) for
-tracking requests and bugs.**
-
-# Download and Setup
-
-See [install instructions](tensorflow_serving/g3doc/setup.md).
-
-## Tutorials
-
-* [Basic tutorial](tensorflow_serving/g3doc/serving_basic.md)
-* [Advanced tutorial](tensorflow_serving/g3doc/serving_advanced.md)
 
 ## For more information
 
-* [Serving architecture overview](tensorflow_serving/g3doc/architecture.md)
-* [TensorFlow website](http://tensorflow.org)
+Please refer to the official [TensorFlow website](http://tensorflow.org) for
+more information.
