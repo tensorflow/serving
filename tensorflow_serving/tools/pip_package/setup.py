@@ -32,6 +32,8 @@ DOCLINES = __doc__.split('\n')
 
 # Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
 _VERSION = '0.0.0'
+# Have this by default be open; releasing a new version will lock to TF version
+_TF_VERSION = '>=1.2.0,<2'
 
 project_name = 'tensorflow-serving-api'
 # Set when building the pip package
@@ -41,12 +43,12 @@ if '--project_name' in sys.argv:
   sys.argv.remove('--project_name')
   sys.argv.pop(project_name_idx)
 
-_TF_REQ = ['tensorflow>=1.2.0,<2']
+_TF_REQ = ['tensorflow'+_TF_VERSION]
 
 # GPU build (note: the only difference is we depend on tensorflow-gpu so
 # pip doesn't overwrite it with the CPU build)
 if 'tensorflow-serving-api-gpu' in project_name:
-  _TF_REQ = ['tensorflow-gpu>=1.2.0,<2']
+  _TF_REQ = ['tensorflow-gpu'+_TF_VERSION]
 
 
 REQUIRED_PACKAGES = [
