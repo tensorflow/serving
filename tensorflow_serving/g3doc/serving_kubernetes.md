@@ -302,7 +302,7 @@ Events:
   1m        1m      1   {service-controller }           Normal      CreatedLoadBalancer Created load balancer
 ```
 
-The service external IP address is listed next to LoadBalancer Ingress.
+The service external IP address is listed below the LoadBalancer Ingress.
 
 ### Query the model
 
