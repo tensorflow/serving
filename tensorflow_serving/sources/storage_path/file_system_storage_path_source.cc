@@ -331,7 +331,8 @@ Status FileSystemStoragePathSource::UpdateConfig(
   const FileSystemStoragePathSourceConfig normalized_config =
       NormalizeConfig(config);
 
-  if (normalized_config.fail_if_zero_versions_at_startup()) {
+  if (normalized_config.fail_if_zero_versions_at_startup() ||  // NOLINT
+      normalized_config.servable_versions_always_present()) {
     TF_RETURN_IF_ERROR(FailIfZeroVersions(normalized_config));
   }
 
@@ -384,6 +385,11 @@ Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
   for (const auto& entry : versions_by_servable_name) {
     const string& servable = entry.first;
     const std::vector<ServableData<StoragePath>>& versions = entry.second;
+    if (versions.empty() && config_.servable_versions_always_present()) {
+      LOG(ERROR) << "Refusing to unload all versions for Servable: "
+                 << servable;
+      continue;
+    }
     for (const ServableData<StoragePath>& version : versions) {
       if (version.status().ok()) {
         VLOG(1) << "File-system polling update: Servable:" << version.id()

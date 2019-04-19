@@ -23,6 +23,7 @@ limitations under the License.
 #include <utility>
 
 #include "google/protobuf/any.pb.h"
+#include "absl/base/macros.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow/core/platform/macros.h"
@@ -154,7 +155,15 @@ class ServerCore : public Manager {
     // If set to true, the server will fail to start up (or fail a config
     // reload) if, for any configured model, no versions of the model are found
     // in the file system under the model's base path.
+    ABSL_DEPRECATED("Use servable_versions_always_present.")
     bool fail_if_no_model_versions_found = false;
+
+    // If set to true, the server will fail to start up (or fail a config
+    // reload) if, for any configured model, no versions of the model are found
+    // in the file system under the model's base path. In addition, if the
+    // filesystem polling finds no servables under the base path for a
+    // configured model, it will do nothing, rather than unloading all versions.
+    bool servable_versions_always_present = false;
 
     // Logger used for logging requests hitting the server.
     std::unique_ptr<ServerRequestLogger> server_request_logger;

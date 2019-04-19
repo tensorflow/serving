@@ -727,6 +727,53 @@ TEST(FileSystemStoragePathSourceTest, DuplicateVersions) {
                    .PollFileSystemAndInvokeCallback());
 }
 
+TEST(FileSystemStoragePathSourceTest, LastVersionNotRemoved) {
+  const string base_path =
+      io::JoinPath(testing::TmpDir(), "LastVersionNotRemoved");
+  TF_ASSERT_OK(Env::Default()->CreateDir(base_path));
+
+  for (bool servable_versions_always_present : {false, true}) {
+    TF_ASSERT_OK(
+        Env::Default()->RecursivelyCreateDir(io::JoinPath(base_path, "42")));
+
+    auto config = test_util::CreateProto<FileSystemStoragePathSourceConfig>(
+        strings::Printf("servable_name: 'test_servable_name' "
+                        "base_path: '%s' "
+                        "servable_versions_always_present: %s "
+                        // Disable the polling thread.
+                        "file_system_poll_wait_seconds: -1 ",
+                        base_path.c_str(),
+                        servable_versions_always_present ? "true" : "false"));
+    std::unique_ptr<FileSystemStoragePathSource> source;
+    TF_ASSERT_OK(FileSystemStoragePathSource::Create(config, &source));
+    std::unique_ptr<test_util::MockStoragePathTarget> target(
+        new StrictMock<test_util::MockStoragePathTarget>);
+    ConnectSourceToTarget(source.get(), target.get());
+
+    EXPECT_CALL(*target,
+                SetAspiredVersions(Eq("test_servable_name"),
+                                   ElementsAre(ServableData<StoragePath>(
+                                       {"test_servable_name", 42},
+                                       io::JoinPath(base_path, "42")))));
+    TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
+                     .PollFileSystemAndInvokeCallback());
+
+    TF_ASSERT_OK(Env::Default()->DeleteDir(io::JoinPath(base_path, "42")));
+
+    if (servable_versions_always_present) {
+      EXPECT_CALL(*target,
+                  SetAspiredVersions(Eq("test_servable_name"), IsEmpty()))
+          .Times(0);
+    } else {
+      EXPECT_CALL(*target,
+                  SetAspiredVersions(Eq("test_servable_name"), IsEmpty()));
+    }
+
+    TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
+                     .PollFileSystemAndInvokeCallback());
+  }
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

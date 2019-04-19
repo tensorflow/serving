@@ -73,5 +73,15 @@ message FileSystemStoragePathSourceConfig {
   // contain at least one version under the base path.
   // (Otherwise, it will emit a warning and keep pinging the file system to
   // check for a version to appear later.)
-  bool fail_if_zero_versions_at_startup = 4;
+  // DEPRECATED: Use 'servable_versions_always_present' instead, which includes
+  // this behavior.
+  // TODO(b/30898016): Remove 2019-10-31 or later.
+  bool fail_if_zero_versions_at_startup = 4 [deprecated = true];
+
+  // If true, the servable is always expected to exist on the underlying
+  // filesystem. FileSystemStoragePathSource::Create() and ::UpdateConfig() will
+  // fail if, for any configured servables, the file system doesn't currently
+  // contain at least one version under the base path. In addition, if a polling
+  // loop find the base path empty, it will not unload existing servables.
+  bool servable_versions_always_present = 6;
 }
