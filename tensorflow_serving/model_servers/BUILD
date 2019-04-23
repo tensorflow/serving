@@ -402,6 +402,7 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.index",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
+    python_version = "PY2",
     srcs_version = "PY2AND3",
     deps = [
         "//tensorflow_serving/apis:model_service_proto_py_pb2",
@@ -425,6 +426,7 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.index",
     ],
+    python_version = "PY2",
     srcs_version = "PY2AND3",
     tags = ["notsan"],
     deps = [
@@ -436,6 +438,7 @@ py_test(
 py_binary(
     name = "tensorflow_model_server_test_client",
     srcs = ["tensorflow_model_server_test_client.py"],
+    python_version = "PY2",
     srcs_version = "PY2AND3",
     deps = [
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",

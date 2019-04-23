@@ -39,6 +39,7 @@ py_binary(
     srcs = [
         "export_half_plus_two.py",
     ],
+    python_version = "PY2",
     srcs_version = "PY2AND3",
     deps = [
         "@org_tensorflow//tensorflow:tensorflow_py",
@@ -51,6 +52,7 @@ py_binary(
     srcs = [
         "export_bad_half_plus_two.py",
     ],
+    python_version = "PY2",
     srcs_version = "PY2AND3",
     deps = [
         "@org_tensorflow//tensorflow:tensorflow_py",
@@ -74,6 +76,7 @@ py_binary(
     srcs = [
         "saved_model_half_plus_two.py",
     ],
+    python_version = "PY2",
     srcs_version = "PY2AND3",
     deps = [
         "@org_tensorflow//tensorflow:tensorflow_py",
