@@ -794,12 +794,14 @@ TEST(JsontensorTest, FromJsonSingleFloatTensorSixDigitPrecision) {
     dtype: DT_FLOAT
     tensor_shape {
       dim { size: 2 }
-      dim { size: 2 }
+      dim { size: 3 }
     }
     float_val: 9000000
     float_val: 999999
+    float_val: 0.50000
     float_val: .0003
     float_val: .00003
+    float_val: 555557.5
     )",
                                           &tensormap["float_tensor"]));
 
@@ -808,8 +810,8 @@ TEST(JsontensorTest, FromJsonSingleFloatTensorSixDigitPrecision) {
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json));
   TF_EXPECT_OK(CompareJsonAllValuesAsStrings(json, R"({
     "predictions": [
-      [9e+06, 999999.0],
-      [0.0003, 3e-05]
+      [9e+06, 999999.0, 0.5],
+      [0.0003, 3e-05, 555557.5]
     ]})"));
 }
 

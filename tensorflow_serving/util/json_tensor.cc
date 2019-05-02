@@ -27,6 +27,8 @@ limitations under the License.
 #include "rapidjson/stringbuffer.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/match.h"
+#include "absl/strings/numbers.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/example/feature.pb.h"
@@ -100,6 +102,16 @@ string JsonTypeString(const rapidjson::Value& val) {
 }
 
 template <typename dtype>
+bool StringToDecimal(const absl::string_view s, dtype* out) {
+  return absl::SimpleAtof(s, out);
+}
+
+template <>
+bool StringToDecimal(const absl::string_view s, double* out) {
+  return absl::SimpleAtod(s, out);
+}
+
+template <typename dtype>
 bool WriteDecimal(RapidJsonWriter* writer, dtype val) {
   static_assert(
       std::is_same<dtype, float>::value || std::is_same<dtype, double>::value,
@@ -115,6 +127,17 @@ bool WriteDecimal(RapidJsonWriter* writer, dtype val) {
   string decimal_str;
   if (std::isfinite(val)) {
     decimal_str = absl::StrCat(val);
+
+    // If converted number does not roundtrip, format using full precision.
+    dtype num;
+    if (!StringToDecimal(decimal_str, &num)) {
+      return false;
+    }
+    if (val != num) {
+      decimal_str = absl::StrFormat(
+          "%.*g", std::numeric_limits<dtype>::max_digits10, val);
+    }
+
     // Add trailing '.0' for whole numbers and those not in scientific notation.
     // StrCat() formats numbers in six-digit (printf "%g"), numbers like 9000000
     // and .00003 get written as 9e+06 and 3e-05 (scientific notation).
