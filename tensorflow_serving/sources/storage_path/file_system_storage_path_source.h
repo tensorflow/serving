@@ -16,10 +16,14 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SOURCES_STORAGE_PATH_FILE_SYSTEM_STORAGE_PATH_SOURCE_H_
 #define TENSORFLOW_SERVING_SOURCES_STORAGE_PATH_FILE_SYSTEM_STORAGE_PATH_SOURCE_H_
 
+#include <functional>
 #include <memory>
+#include <utility>
 
+#include "absl/types/variant.h"
 #include "tensorflow/core/kernels/batching_util/periodic_function.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/source.h"
@@ -90,14 +94,34 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
   Status UnaspireServables(const std::set<string>& servable_names)
       EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
+  template <typename... Args>
+  void CallAspiredVersionsCallback(Args&&... args) {
+    if (aspired_versions_callback_) {
+      aspired_versions_callback_(std::forward<Args>(args)...);
+      if (aspired_versions_callback_notifier_) {
+        aspired_versions_callback_notifier_();
+      }
+    }
+  }
+
+  // For testing.
+  void SetAspiredVersionsCallbackNotifier(std::function<void()> fn) {
+    mutex_lock l(mu_);
+    aspired_versions_callback_notifier_ = fn;
+  }
+
   mutable mutex mu_;
 
   FileSystemStoragePathSourceConfig config_ GUARDED_BY(mu_);
 
   AspiredVersionsCallback aspired_versions_callback_ GUARDED_BY(mu_);
 
-  // A thread that periodically calls PollFileSystemAndInvokeCallback().
-  std::unique_ptr<PeriodicFunction> fs_polling_thread_ GUARDED_BY(mu_);
+  std::function<void()> aspired_versions_callback_notifier_ GUARDED_BY(mu_);
+
+  // A thread that calls PollFileSystemAndInvokeCallback() once or periodically.
+  using ThreadType =
+      absl::variant<absl::monostate, PeriodicFunction, std::unique_ptr<Thread>>;
+  std::unique_ptr<ThreadType> fs_polling_thread_ GUARDED_BY(mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(FileSystemStoragePathSource);
 };

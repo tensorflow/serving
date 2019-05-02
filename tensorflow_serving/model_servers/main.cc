@@ -104,8 +104,13 @@ int main(int argc, char** argv) {
                        "Default: 1 minute"),
       tensorflow::Flag("file_system_poll_wait_seconds",
                        &options.file_system_poll_wait_seconds,
-                       "interval in seconds between each poll of the file "
-                       "system for new model version"),
+                       "Interval in seconds between each poll of the "
+                       "filesystem for new model version. If set to zero "
+                       "poll will be exactly done once and not periodically. "
+                       "Setting this to negative value will disable polling "
+                       "entirely causing ModelServer to indefinitely wait for "
+                       "a new model at startup. Negative values are reserved "
+                       "for testing purposes only."),
       tensorflow::Flag("flush_filesystem_caches",
                        &options.flush_filesystem_caches,
                        "If true (the default), filesystem caches will be "

@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 
+#include <atomic>
 #include <string>
 
 #include <gmock/gmock.h>
@@ -52,6 +53,10 @@ class FileSystemStoragePathSourceTestAccess {
 
   Status PollFileSystemAndInvokeCallback() {
     return source_->PollFileSystemAndInvokeCallback();
+  }
+
+  void SetAspiredVersionsCallbackNotifier(std::function<void()> fn) {
+    source_->SetAspiredVersionsCallbackNotifier(fn);
   }
 
  private:
@@ -772,6 +777,42 @@ TEST(FileSystemStoragePathSourceTest, LastVersionNotRemoved) {
     TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
                      .PollFileSystemAndInvokeCallback());
   }
+}
+
+TEST(FileSystemStoragePathSourceTest, PollFilesystemOnlyOnce) {
+  const string base_path = io::JoinPath(testing::TmpDir(), "OneShot");
+  auto config = test_util::CreateProto<FileSystemStoragePathSourceConfig>(
+      strings::Printf("servable_name: 'test_servable_name' "
+                      "base_path: '%s' "
+                      "fail_if_zero_versions_at_startup: false "
+                      // Poll only once (One shot mode).
+                      "file_system_poll_wait_seconds: 0 ",
+                      base_path.c_str()));
+  std::unique_ptr<FileSystemStoragePathSource> source;
+  TF_ASSERT_OK(FileSystemStoragePathSource::Create(config, &source));
+  internal::FileSystemStoragePathSourceTestAccess source_test(source.get());
+  std::atomic<int> notify_count(0);
+  source_test.SetAspiredVersionsCallbackNotifier([&]() { notify_count++; });
+  std::unique_ptr<test_util::MockStoragePathTarget> target(
+      new StrictMock<test_util::MockStoragePathTarget>);
+  // Inject the base-path and version.
+  TF_ASSERT_OK(Env::Default()->CreateDir(base_path));
+  TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path, "3")));
+  EXPECT_CALL(*target, SetAspiredVersions(Eq("test_servable_name"),
+                                          ElementsAre(ServableData<StoragePath>(
+                                              {"test_servable_name", 3},
+                                              io::JoinPath(base_path, "3")))));
+  EXPECT_EQ(notify_count.load(), 0);
+  ConnectSourceToTarget(source.get(), target.get());
+  while (notify_count == 0) {
+    Env::Default()->SleepForMicroseconds(1000 /* 1 ms */);
+  }
+  EXPECT_EQ(notify_count.load(), 1);
+
+  // Inject new version.
+  TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path, "4")));
+  Env::Default()->SleepForMicroseconds(1 * 1000 * 1000 /* 1 second */);
+  EXPECT_EQ(notify_count.load(), 1);
 }
 
 }  // namespace

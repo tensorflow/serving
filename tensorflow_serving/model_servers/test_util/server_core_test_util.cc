@@ -42,7 +42,7 @@ void AddSessionRunLoadThreadPool(SessionBundleConfig* const bundle_config) {
 
 ServerCore::Options GetDefaultOptions(const bool use_saved_model) {
   ServerCore::Options options;
-  options.file_system_poll_wait_seconds = 0;
+  options.file_system_poll_wait_seconds = 1;
   // Reduce the number of initial load threads to be num_load_threads to avoid
   // timing out in tests.
   options.num_initial_load_threads = options.num_load_threads;

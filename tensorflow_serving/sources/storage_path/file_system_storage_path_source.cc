@@ -23,7 +23,6 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/strings/numbers.h"
-#include "tensorflow/core/platform/env.h"
 #include "tensorflow_serving/core/servable_data.h"
 #include "tensorflow_serving/core/servable_id.h"
 
@@ -357,21 +356,30 @@ void FileSystemStoragePathSource::SetAspiredVersionsCallback(
   }
   aspired_versions_callback_ = callback;
 
-  if (config_.file_system_poll_wait_seconds() >= 0) {
-    // Kick off a thread to poll the file system periodically, and call the
-    // callback.
+  const auto thread_fn = [this](void) {
+    Status status = this->PollFileSystemAndInvokeCallback();
+    if (!status.ok()) {
+      LOG(ERROR) << "FileSystemStoragePathSource encountered a "
+                    "filesystem access error: "
+                 << status.error_message();
+    }
+  };
+
+  if (config_.file_system_poll_wait_seconds() == 0) {
+    // Start a thread to poll filesystem once and call the callback.
+    fs_polling_thread_.reset(new FileSystemStoragePathSource::ThreadType(
+        absl::in_place_type_t<std::unique_ptr<Thread>>(),
+        Env::Default()->StartThread(
+            ThreadOptions(),
+            "FileSystemStoragePathSource_filesystem_oneshot_thread",
+            thread_fn)));
+  } else if (config_.file_system_poll_wait_seconds() > 0) {
+    // Start a thread to poll the filesystem periodically and call the callback.
     PeriodicFunction::Options pf_options;
     pf_options.thread_name_prefix =
         "FileSystemStoragePathSource_filesystem_polling_thread";
-    fs_polling_thread_.reset(new PeriodicFunction(
-        [this] {
-          Status status = this->PollFileSystemAndInvokeCallback();
-          if (!status.ok()) {
-            LOG(ERROR) << "FileSystemStoragePathSource encountered a "
-                          "file-system access error: "
-                       << status.error_message();
-          }
-        },
+    fs_polling_thread_.reset(new FileSystemStoragePathSource::ThreadType(
+        absl::in_place_type_t<PeriodicFunction>(), thread_fn,
         config_.file_system_poll_wait_seconds() * 1000000, pf_options));
   }
 }
@@ -398,7 +406,7 @@ Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
                 << config_.file_system_poll_wait_seconds();
       }
     }
-    aspired_versions_callback_(servable, versions);
+    CallAspiredVersionsCallback(servable, versions);
   }
   return Status::OK();
 }
@@ -406,7 +414,8 @@ Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
 Status FileSystemStoragePathSource::UnaspireServables(
     const std::set<string>& servable_names) {
   for (const string& servable_name : servable_names) {
-    aspired_versions_callback_(servable_name, {});
+    CallAspiredVersionsCallback(servable_name,
+                                std::vector<ServableData<StoragePath>>{});
   }
   return Status::OK();
 }
