@@ -430,11 +430,6 @@ int ZLib::CompressChunkOrAll(Bytef *dest, uLongf *destLen, const Bytef *source,
   return ret;
 }
 
-int ZLib::CompressChunk(Bytef *dest, uLongf *destLen, const Bytef *source,
-                        uLong sourceLen) {
-  return CompressChunkOrAll(dest, destLen, source, sourceLen, Z_SYNC_FLUSH);
-}
-
 int ZLib::CompressAtMost(Bytef *dest, uLongf *destLen, const Bytef *source,
                          uLong *sourceLen) {
   return CompressAtMostOrAll(dest, destLen, source, sourceLen, Z_SYNC_FLUSH);
@@ -555,7 +550,7 @@ int ZLib::UncompressInit(Bytef *dest, uLongf *destLen, const Bytef *source,
 
 // If you compressed your data a chunk at a time, with CompressChunk,
 // you can uncompress it a chunk at a time with UncompressChunk.
-// Only difference bewteen chunked and unchunked uncompression
+// Only difference between chunked and unchunked uncompression
 // is the flush mode we use: Z_SYNC_FLUSH (chunked) or Z_FINISH (unchunked).
 int ZLib::UncompressAtMostOrAll(Bytef *dest, uLongf *destLen,
                                 const Bytef *source, uLong *sourceLen,
@@ -698,11 +693,6 @@ int ZLib::UncompressAtMost(Bytef *dest, uLongf *destLen, const Bytef *source,
   return UncompressAtMostOrAll(dest, destLen, source, sourceLen, Z_SYNC_FLUSH);
 }
 
-int ZLib::UncompressChunk(Bytef *dest, uLongf *destLen, const Bytef *source,
-                          uLong sourceLen) {
-  return UncompressChunkOrAll(dest, destLen, source, sourceLen, Z_SYNC_FLUSH);
-}
-
 // We make sure we've uncompressed everything, that is, the current
 // uncompress stream is at a compressed-buffer-EOF boundary.  In gzip
 // mode, we also check the gzip footer to make sure we pass the gzip
@@ -808,7 +798,9 @@ int ZLib::UncompressGzipAndAllocate(Bytef **dest, uLongf *destLen,
   *destLen = uncompress_length;
 
   *dest = std::allocator<Bytef>().allocate(*destLen);
-  if (*dest == nullptr) return Z_MEM_ERROR;
+  if (*dest == nullptr) {
+    return Z_MEM_ERROR;
+  }
 
   const int retval = Uncompress(*dest, destLen, source, sourceLen);
   if (retval != Z_OK) {  // just to make life easier for them

@@ -22,16 +22,17 @@ limitations under the License.
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <string>
+#include <vector>
 
 #include "absl/base/internal/raw_logging.h"
 #include "absl/strings/string_view.h"
-
+#include "absl/types/span.h"
 #include "libevent/include/event2/buffer.h"
 #include "libevent/include/event2/event.h"
 #include "libevent/include/event2/http.h"
 #include "libevent/include/event2/keyvalq_struct.h"
-
 #include "tensorflow_serving/util/net_http/compression/gzip_zlib.h"
 #include "tensorflow_serving/util/net_http/server/public/header_names.h"
 
@@ -164,16 +165,25 @@ std::unique_ptr<char[], BlockDeleter> EvHTTPRequest::ReadRequestBytes(
   evbuffer* input_buf =
       evhttp_request_get_input_buffer(parsed_request_->request);
   if (input_buf == nullptr) {
+    *size = 0;
     return nullptr;  // no body
+  }
+
+  // possible a reentry after gzip uncompression
+  if (evbuffer_get_length(input_buf) == 0) {
+    *size = 0;
+    return nullptr;  // EOF
+  }
+
+  // Uncompress the entire body
+  if (NeedUncompressGzipContent()) {
+    return ReadRequestGzipBytes(input_buf, size);
   }
 
   auto buf_size = reinterpret_cast<size_t*>(size);
 
   *buf_size = evbuffer_get_contiguous_space(input_buf);
-
-  if (*buf_size == 0) {
-    return nullptr;  // EOF
-  }
+  assert(*buf_size > 0);
 
   char* block = std::allocator<char>().allocate(*buf_size);
   int ret = evbuffer_remove(input_buf, block, *buf_size);
@@ -186,23 +196,63 @@ std::unique_ptr<char[], BlockDeleter> EvHTTPRequest::ReadRequestBytes(
     return nullptr;  // don't return corrupted buffer
   }
 
-  // Uncompress the entire body
-  if (NeedUncompressGzipContent()) {
-    char* new_block;
-    size_t orig_size = *buf_size;
-    UncompressGzipContent(block, orig_size,
-                          reinterpret_cast<void**>(&new_block), buf_size);
-    std::allocator<char>().deallocate(block, orig_size);
-    if (new_block != nullptr) {
-      block = new_block;
-    } else {
-      ABSL_RAW_LOG(ERROR, "Failed to uncompress the gzipped body");
-      *buf_size = 0;
+  return std::unique_ptr<char[], BlockDeleter>(block, BlockDeleter(*buf_size));
+}
+
+std::unique_ptr<char[], BlockDeleter> EvHTTPRequest::ReadRequestGzipBytes(
+    evbuffer* input_buf, int64_t* size) {
+  std::vector<absl::Span<char>> buf_list;
+
+  size_t body_length = 0;
+  while (true) {
+    auto buf_size = evbuffer_get_contiguous_space(input_buf);
+
+    if (buf_size == 0) {
+      break;  // EOF
+    }
+
+    char* block = std::allocator<char>().allocate(buf_size);
+    int ret = evbuffer_remove(input_buf, block, buf_size);
+    if (ret != buf_size) {
+      ABSL_RAW_LOG(ERROR,
+                   "Unexpected: read less than specified num_bytes : %zu",
+                   buf_size);
+      std::allocator<char>().deallocate(block, buf_size);
+      for (auto buf : buf_list) {
+        std::allocator<char>().deallocate(buf.data(), buf.size());
+      }
+      *size = 0;
       return nullptr;  // don't return corrupted buffer
     }
+
+    body_length += buf_size;
+    buf_list.emplace_back(block, buf_size);
   }
 
-  return std::unique_ptr<char[], BlockDeleter>(block, BlockDeleter(*buf_size));
+  char* comp_body = std::allocator<char>().allocate(body_length);
+
+  size_t pos = 0;
+  for (auto buf : buf_list) {
+    memcpy(comp_body + pos, buf.data(), buf.size());
+    pos += buf.size();
+    std::allocator<char>().deallocate(buf.data(), buf.size());
+  }
+
+  char* uncomp_body;
+  auto uncomp_size = reinterpret_cast<size_t*>(size);
+  UncompressGzipBody(comp_body, body_length,
+                     reinterpret_cast<void**>(&uncomp_body), uncomp_size);
+
+  std::allocator<char>().deallocate(comp_body, body_length);
+
+  if (uncomp_body != nullptr) {
+    return std::unique_ptr<char[], BlockDeleter>(uncomp_body,
+                                                 BlockDeleter(*uncomp_size));
+  } else {
+    ABSL_RAW_LOG(ERROR, "Failed to uncompress the gzipped body");
+    *uncomp_size = 0;
+    return nullptr;
+  }
 }
 
 bool EvHTTPRequest::NeedUncompressGzipContent() {
@@ -217,9 +267,9 @@ bool EvHTTPRequest::NeedUncompressGzipContent() {
   return false;
 }
 
-void EvHTTPRequest::UncompressGzipContent(void* input, size_t input_size,
-                                          void** uncompressed_input,
-                                          size_t* uncompressed_input_size) {
+void EvHTTPRequest::UncompressGzipBody(void* input, size_t input_size,
+                                       void** uncompressed_input,
+                                       size_t* uncompressed_input_size) {
   int64_t max = handler_options_->auto_uncompress_max_size() > 0
                     ? handler_options_->auto_uncompress_max_size()
                     : ZLib::kMaxUncompressedBytes;

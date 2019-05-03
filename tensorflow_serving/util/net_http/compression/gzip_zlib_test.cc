@@ -236,9 +236,10 @@ void TestRandomGzipHeaderUncompress(ZLib* zlib) {
         ASSERT_GE(fragment_len, 0);
         if (fragment_len != 0) {  // zlib doesn't like 0-length buffers
           uLongf uncomplen2 = uncompbuf2.size() - bytes_uncompressed;
-          int err =
-              zlib->UncompressChunk((Bytef*)&uncompbuf2[0] + bytes_uncompressed,
-                                    &uncomplen2, (const Bytef*)p, fragment_len);
+          auto complen_src = static_cast<uLongf>(fragment_len);
+          int err = zlib->UncompressAtMost(
+              (Bytef*)&uncompbuf2[0] + bytes_uncompressed, &uncomplen2,
+              (const Bytef*)p, &complen_src);
           ASSERT_EQ(err, Z_OK);
           bytes_uncompressed += uncomplen2;
           bytes_read += fragment_len;
@@ -293,8 +294,9 @@ void TestErrors(ZLib* zlib, const std::string& uncompbuf_str) {
   EXPECT_EQ(Z_BUF_ERROR, err);
 
   uncomplen2 = uncompbuf2.size();
-  err = zlib->UncompressChunk((Bytef*)&uncompbuf2[0], &uncomplen2,
-                              (Bytef*)compbuf.data(), 23);
+  uLongf comlen2 = 23;
+  err = zlib->UncompressAtMost((Bytef*)&uncompbuf2[0], &uncomplen2,
+                               (Bytef*)compbuf.data(), &comlen2);
   EXPECT_EQ(Z_OK, err);  // it's ok if a single chunk is too small
   if (err == Z_OK) {
     EXPECT_FALSE(zlib->UncompressChunkDone())
@@ -383,9 +385,9 @@ void TestChunkedGzip(ZLib* zlib, const std::string& uncompbuf_str,
   for (chunknum = 0, i = 0; i < uncomplen; i += chunklen, chunknum++) {
     uLongf complen = compbuf.size() - cum_len[chunknum];
     // Make sure the last chunk gets the correct chunksize.
-    int chunksize = (uncomplen - i) < chunklen ? (uncomplen - i) : chunklen;
-    err = zlib->CompressChunk((Bytef*)compbuf.data() + cum_len[chunknum],
-                              &complen, (Bytef*)uncompbuf + i, chunksize);
+    uLongf chunksize = (uncomplen - i) < chunklen ? (uncomplen - i) : chunklen;
+    err = zlib->CompressAtMost((Bytef*)compbuf.data() + cum_len[chunknum],
+                               &complen, (Bytef*)uncompbuf + i, &chunksize);
     ASSERT_EQ(Z_OK, err) << "  " << uncomplen << " bytes down to " << complen
                          << " bytes.";
     cum_len[chunknum + 1] = cum_len[chunknum] + complen;
@@ -400,9 +402,10 @@ void TestChunkedGzip(ZLib* zlib, const std::string& uncompbuf_str,
     uLongf uncomplen2 = uncomplen - i;
     // Make sure the last chunk gets the correct chunksize.
     int expected = uncomplen2 < chunklen ? uncomplen2 : chunklen;
-    err = zlib->UncompressChunk((Bytef*)&uncompbuf2[0] + i, &uncomplen2,
-                                (Bytef*)compbuf.data() + cum_len[chunknum],
-                                cum_len[chunknum + 1] - cum_len[chunknum]);
+    uLongf complen_src = cum_len[chunknum + 1] - cum_len[chunknum];
+    err = zlib->UncompressAtMost((Bytef*)&uncompbuf2[0] + i, &uncomplen2,
+                                 (Bytef*)compbuf.data() + cum_len[chunknum],
+                                 &complen_src);
     EXPECT_EQ(Z_OK, err);
     EXPECT_EQ(expected, uncomplen2)
         << "Uncompress size is " << uncomplen2 << ", not " << expected;
@@ -410,9 +413,10 @@ void TestChunkedGzip(ZLib* zlib, const std::string& uncompbuf_str,
   // There should be no further uncompressed bytes, after uncomplen bytes.
   uLongf uncomplen2 = uncompbuf2.size() - uncomplen;
   EXPECT_NE(0, uncomplen2);
-  err = zlib->UncompressChunk((Bytef*)&uncompbuf2[0] + uncomplen, &uncomplen2,
-                              (Bytef*)compbuf.data() + cum_len[chunknum],
-                              cum_len[chunknum + 1] - cum_len[chunknum]);
+  uLongf complen_src = cum_len[chunknum + 1] - cum_len[chunknum];
+  err = zlib->UncompressAtMost((Bytef*)&uncompbuf2[0] + uncomplen, &uncomplen2,
+                               (Bytef*)compbuf.data() + cum_len[chunknum],
+                               &complen_src);
   EXPECT_EQ(Z_OK, err);
   EXPECT_EQ(0, uncomplen2);
   EXPECT_TRUE(zlib->UncompressChunkDone());
@@ -424,8 +428,9 @@ void TestChunkedGzip(ZLib* zlib, const std::string& uncompbuf_str,
   // Now test to make sure resetting works properly
   // (1) First, uncompress the first chunk and make sure it's ok
   uncomplen2 = uncompbuf2.size();
-  err = zlib->UncompressChunk((Bytef*)&uncompbuf2[0], &uncomplen2,
-                              (Bytef*)compbuf.data(), cum_len[1]);
+  complen_src = cum_len[1];
+  err = zlib->UncompressAtMost((Bytef*)&uncompbuf2[0], &uncomplen2,
+                               (Bytef*)compbuf.data(), &complen_src);
   EXPECT_EQ(Z_OK, err);
   EXPECT_EQ(chunklen, uncomplen2) << "Uncompression mismatch!";
   // The first uncomplen2 bytes should match, where uncomplen2 is the number of
@@ -438,15 +443,17 @@ void TestChunkedGzip(ZLib* zlib, const std::string& uncompbuf_str,
 
   // (2) Now, try the first chunk again and see that there's an error
   uncomplen2 = uncompbuf2.size();
-  err = zlib->UncompressChunk((Bytef*)&uncompbuf2[0], &uncomplen2,
-                              (Bytef*)compbuf.data(), cum_len[1]);
+  complen_src = cum_len[1];
+  err = zlib->UncompressAtMost((Bytef*)&uncompbuf2[0], &uncomplen2,
+                               (Bytef*)compbuf.data(), &complen_src);
   EXPECT_EQ(Z_DATA_ERROR, err);
 
   // (3) Now reset it and try again, and see that it's ok
   zlib->Reset();
   uncomplen2 = uncompbuf2.size();
-  err = zlib->UncompressChunk((Bytef*)&uncompbuf2[0], &uncomplen2,
-                              (Bytef*)compbuf.data(), cum_len[1]);
+  complen_src = cum_len[1];
+  err = zlib->UncompressAtMost((Bytef*)&uncompbuf2[0], &uncomplen2,
+                               (Bytef*)compbuf.data(), &complen_src);
   EXPECT_EQ(Z_OK, err);
   EXPECT_EQ(chunklen, uncomplen2) << "Uncompression mismatch!";
   EXPECT_EQ(0, memcmp(uncompbuf, uncompbuf2.data(), uncomplen2))

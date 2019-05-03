@@ -116,9 +116,12 @@ class EvHTTPRequest final : public ServerRequestInterface {
   bool NeedUncompressGzipContent();
 
   // Must set uncompressed_input to nullptr if uncompression is failed
-  void UncompressGzipContent(void* input, size_t input_size,
-                             void** uncompressed_input,
-                             size_t* uncompressed_input_size);
+  void UncompressGzipBody(void* input, size_t input_size,
+                          void** uncompressed_input,
+                          size_t* uncompressed_input_size);
+
+  std::unique_ptr<char[], BlockDeleter> ReadRequestGzipBytes(
+      evbuffer* input_buf, int64_t* size);
 
   ServerSupport* server_;
 

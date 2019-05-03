@@ -97,7 +97,7 @@ class ZLib {
   ~ZLib();
 
   // The max length of the buffer to store uncompressed data
-  static constexpr int64_t kMaxUncompressedBytes = 10 * 1024 * 1024;  // 10MB
+  static constexpr int64_t kMaxUncompressedBytes = 100 * 1024 * 1024;  // 100MB
 
   // Wipe a ZLib object to a virgin state.  This differs from Reset()
   // in that it also breaks any dictionary, gzip, etc, state.
@@ -173,7 +173,7 @@ class ZLib {
   int Uncompress(Bytef *dest, uLongf *destLen, const Bytef *source,
                  uLong sourceLen);
 
-  // Get the uncompressed size from the gzip header.
+  // Get the uncompressed size from the gzip footer.
   uLongf GzipUncompressedLength(const Bytef *source, uLong len);
 
   // Special helper function to help uncompress gzipped documents:
@@ -191,14 +191,10 @@ class ZLib {
   int UncompressGzipAndAllocate(Bytef **dest, uLongf *destLen,
                                 const Bytef *source, uLong sourceLen);
 
-  // Streaming compression and decompression methods come in two
-  // variations.  {Unc,C}ompressAtMost() and {Unc,C}ompressChunk().
-  // The former decrements sourceLen by the amount of data that was
+  // Streaming compression and decompression methods.
+  // {Unc,C}ompressAtMost() decrements sourceLen by the amount of data that was
   // consumed: if it returns Z_BUF_ERROR, set the source of the next
   // {Unc,C}ompressAtMost() to the unconsumed data.
-  // {Unc,C}ompressChunk() is the legacy interface and does not do
-  // this, thus it cannot recover from a Z_BUF_ERROR (except for in
-  // the first chunk).
 
   // Compresses data one chunk at a time -- ie you can call this more
   // than once.  This is useful for a webserver, for instance, which
@@ -211,9 +207,6 @@ class ZLib {
 
   int CompressAtMost(Bytef *dest, uLongf *destLen, const Bytef *source,
                      uLong *sourceLen);
-
-  int CompressChunk(Bytef *dest, uLongf *destLen, const Bytef *source,
-                    uLong sourceLen);
 
   // Emits gzip footer information, as needed.
   // destLen should be at least MinFooterSize() long.
@@ -230,8 +223,6 @@ class ZLib {
 
   int UncompressAtMost(Bytef *dest, uLongf *destLen, const Bytef *source,
                        uLong *sourceLen);
-  int UncompressChunk(Bytef *dest, uLongf *destLen, const Bytef *source,
-                      uLong sourceLen);
 
   // Checks gzip footer information, as needed.  Mostly this just
   // makes sure the checksums match.  Whenever you call this, it
@@ -257,7 +248,7 @@ class ZLib {
   // so far?
   bool IsGzipFooterValid() const;
 
-  // Accessor for the uncompressed size (first added to address issue #509976)
+  // Accessor for the uncompressed size
   uLong uncompressed_size() const { return uncompressed_size_; }
 
  private:

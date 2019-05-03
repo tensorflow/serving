@@ -13,18 +13,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/util/net_http/server/internal/evhttp_server.h"
-
 #include <cstdint>
 #include <memory>
+#include <random>
 
 #include <gtest/gtest.h>
-
 #include "absl/memory/memory.h"
-
 #include "tensorflow_serving/util/net_http/client/evhttp_connection.h"
 #include "tensorflow_serving/util/net_http/compression/gzip_zlib.h"
 #include "tensorflow_serving/util/net_http/internal/fixed_thread_pool.h"
+#include "tensorflow_serving/util/net_http/server/internal/evhttp_server.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
 #include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
@@ -316,13 +314,18 @@ TEST_F(EvHTTPRequestTest, DisableGzipPost) {
   server->WaitForTermination();
 }
 
-std::string CompressString(const char* data, size_t size) {
+std::string CompressLargeString(const char* data, size_t size,
+                                size_t buf_size) {
   ZLib zlib;
-  std::string buf(1000, '\0');
+  std::string buf(buf_size, '\0');
   size_t compressed_size = buf.size();
   zlib.Compress((Bytef*)buf.data(), &compressed_size, (Bytef*)data, size);
 
   return std::string(buf.data(), compressed_size);
+}
+
+std::string CompressString(const char* data, size_t size) {
+  return CompressLargeString(data, size, 1024);
 }
 
 // Test valid gzip body
@@ -337,6 +340,9 @@ TEST_F(EvHTTPRequestTest, ValidGzipPost) {
     std::string body_str(request_body.get(), static_cast<size_t>(num_bytes));
     EXPECT_EQ(body_str, std::string(kBody));
     EXPECT_EQ(sizeof(kBody) - 1, num_bytes);
+
+    EXPECT_EQ(nullptr, request->ReadRequestBytes(&num_bytes));
+    EXPECT_EQ(0, num_bytes);
 
     request->Reply();
   };
@@ -379,6 +385,56 @@ TEST_F(EvHTTPRequestTest, GzipExceedingLimit) {
   RequestHandlerOptions options;
   options.set_auto_uncompress_max_size(bodySize - 1);  // not enough buffer
   server->RegisterRequestHandler("/ok", std::move(handler), options);
+  server->StartAcceptingRequests();
+
+  auto connection =
+      EvHTTPConnection::Connect("localhost", server->listen_port());
+  ASSERT_TRUE(connection != nullptr);
+
+  ClientRequest request = {"/ok", "POST", {}, compressed};
+  request.headers.emplace_back("Content-Encoding", "my_gzip");
+  ClientResponse response = {};
+
+  EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
+  EXPECT_EQ(response.status, 200);
+
+  server->Terminate();
+  server->WaitForTermination();
+}
+
+std::string MakeRandomString(int64_t len) {
+  std::random_device rd;
+  std::mt19937_64 gen(rd());
+  std::uniform_int_distribution<> dis('a', 'z');
+  std::string s(len, '0');
+  for (char& c : s) {
+    c = dis(gen);
+  }
+  return s;
+}
+
+// Test large gzip body
+TEST_F(EvHTTPRequestTest, LargeGzipPost) {
+  constexpr int64_t uncompress_len = 1024 * 1024;
+  std::string uncompressed = MakeRandomString(uncompress_len);
+  std::string compressed = CompressLargeString(
+      uncompressed.data(), uncompressed.size(), 2 * uncompress_len);
+
+  auto handler = [&](ServerRequestInterface* request) {
+    int64_t num_bytes;
+    auto request_body = request->ReadRequestBytes(&num_bytes);
+
+    std::string body_str(request_body.get(), static_cast<size_t>(num_bytes));
+    EXPECT_EQ(body_str, uncompressed);
+    EXPECT_EQ(uncompressed.size(), num_bytes);
+
+    EXPECT_EQ(nullptr, request->ReadRequestBytes(&num_bytes));
+    EXPECT_EQ(0, num_bytes);
+
+    request->Reply();
+  };
+  server->RegisterRequestHandler("/ok", std::move(handler),
+                                 RequestHandlerOptions());
   server->StartAcceptingRequests();
 
   auto connection =
