@@ -21,6 +21,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/contrib/session_bundle/session_bundle.h"
+#include "tensorflow/core/framework/types.pb.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
@@ -57,12 +58,18 @@ class PredictImplTest : public ::testing::Test {
         test_util::TestSrcDirPath(
             "/servables/tensorflow/testdata/saved_model_counter"),
         true, &saved_model_server_core_counter_model_));
+
+    TF_ASSERT_OK(CreateServerCore(
+        test_util::TestSrcDirPath("/servables/tensorflow/testdata/"
+                                  "saved_model_half_plus_two_regress_only"),
+        true, &saved_model_server_core_single_signature_model_));
   }
 
   static void TearDownTestCase() {
     saved_model_server_core_.reset();
     saved_model_server_core_bad_model_.reset();
     saved_model_server_core_counter_model_.reset();
+    saved_model_server_core_single_signature_model_.reset();
   }
 
  protected:
@@ -100,6 +107,10 @@ class PredictImplTest : public ::testing::Test {
     return saved_model_server_core_counter_model_.get();
   }
 
+  ServerCore* GetServerCoreWithSingleSignaureModel() {
+    return saved_model_server_core_single_signature_model_.get();
+  }
+
   Status GetSavedModelServableHandle(ServerCore* server_core,
                                      ServableHandle<SavedModelBundle>* bundle) {
     ModelSpec model_spec;
@@ -123,12 +134,16 @@ class PredictImplTest : public ::testing::Test {
   static std::unique_ptr<ServerCore> saved_model_server_core_;
   static std::unique_ptr<ServerCore> saved_model_server_core_bad_model_;
   static std::unique_ptr<ServerCore> saved_model_server_core_counter_model_;
+  static std::unique_ptr<ServerCore>
+      saved_model_server_core_single_signature_model_;
 };
 
 std::unique_ptr<ServerCore> PredictImplTest::saved_model_server_core_;
 std::unique_ptr<ServerCore> PredictImplTest::saved_model_server_core_bad_model_;
 std::unique_ptr<ServerCore>
     PredictImplTest::saved_model_server_core_counter_model_;
+std::unique_ptr<ServerCore>
+    PredictImplTest::saved_model_server_core_single_signature_model_;
 
 TEST_F(PredictImplTest, MissingOrEmptyModelSpec) {
   PredictRequest request;
@@ -436,6 +451,36 @@ TEST_F(PredictImplTest, PredictionWithCustomizedSignatures) {
   (*expected_incr_counter_by.mutable_outputs())["output"] =
       output_incr_counter_by;
   EXPECT_THAT(response, test_util::EqualsProto(expected_incr_counter_by));
+}
+
+TEST_F(PredictImplTest, PredictionWithSingleSignature) {
+  PredictRequest request;
+  PredictResponse response;
+
+  TensorProto input_x;
+  input_x.add_float_val(4.0);
+  input_x.set_dtype(::tensorflow::DataType::DT_FLOAT);
+  (*request.mutable_inputs())[kRegressInputs] = input_x;
+
+  TensorProto expected_y;
+  expected_y.add_float_val(5.0);
+  expected_y.set_dtype(::tensorflow::DataType::DT_FLOAT);
+  expected_y.mutable_tensor_shape();
+
+  ModelSpec* model_spec = request.mutable_model_spec();
+  model_spec->set_name(kTestModelName);
+  model_spec->mutable_version()->set_value(kTestModelVersion);
+
+  TF_ASSERT_OK(
+      CallPredict(GetServerCoreWithSingleSignaureModel(), request, &response));
+
+  PredictResponse expected_response;
+  *expected_response.mutable_model_spec() = *model_spec;
+  expected_response.mutable_model_spec()->set_signature_name(
+      "regress_x2_to_y3");
+  (*expected_response.mutable_outputs())[kRegressOutputs] = expected_y;
+
+  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 
 }  // namespace

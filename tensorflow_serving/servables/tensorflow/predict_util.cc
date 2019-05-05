@@ -169,9 +169,16 @@ Status RunPredict(const RunOptions& run_options,
                   const optional<int64>& servable_version, Session* session,
                   const PredictRequest& request, PredictResponse* response) {
   // Validate signatures.
-  const string signature_name = request.model_spec().signature_name().empty()
-                                    ? kDefaultServingSignatureDefKey
-                                    : request.model_spec().signature_name();
+  // If there is no signature in the model_spec and there is only one signature
+  // in the metagraph, then use that.
+  string signature_name = kDefaultServingSignatureDefKey;
+  if (request.model_spec().signature_name().empty()) {
+    if (meta_graph_def.signature_def_size() == 1) {
+      signature_name = meta_graph_def.signature_def().begin()->first;
+    }
+  } else {
+    signature_name = request.model_spec().signature_name();
+  }
   auto iter = meta_graph_def.signature_def().find(signature_name);
   if (iter == meta_graph_def.signature_def().end()) {
     return errors::FailedPrecondition(strings::StrCat(

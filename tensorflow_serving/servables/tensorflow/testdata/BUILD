@@ -91,6 +91,13 @@ filegroup(
 )
 
 filegroup(
+    name = "saved_model_half_plus_two_regress_only",
+    srcs = glob(
+        ["saved_model_half_plus_two_regress_only/**"],
+    ),
+)
+
+filegroup(
     name = "saved_model_half_plus_two_gpu",
     srcs = glob(
         ["saved_model_half_plus_two_gpu/**"],

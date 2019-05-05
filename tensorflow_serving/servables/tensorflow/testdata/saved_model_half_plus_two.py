@@ -117,14 +117,16 @@ def _build_classification_signature(input_tensor, scores_tensor):
 def _generate_saved_model_for_half_plus_two(export_dir,
                                             as_text=False,
                                             use_main_op=False,
-                                            device_type="cpu"):
+                                            device_type="cpu",
+                                            signatures=None):
   """Generates SavedModel for half plus two.
 
   Args:
     export_dir: The directory to which the SavedModel should be written.
     as_text: Writes the SavedModel protocol buffer in text format to disk.
     use_main_op: Whether to supply a main op during SavedModel build time.
-    device_name: Device to force ops to run on.
+    device_type: Device to force ops to run on.
+    signatures: A comma separated list of signatures to export.
   """
   builder = tf.saved_model.builder.SavedModelBuilder(export_dir)
 
@@ -224,19 +226,26 @@ def _generate_saved_model_for_half_plus_two(export_dir,
         tf.saved_model.signature_def_utils.build_signature_def(
             predict_signature_inputs, predict_signature_outputs,
             tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
+    signature_def_map = {}
+    if signatures:
+      signatures_to_export = signatures.split(",")
+    if not signatures or "regress_x_to_y" in signatures_to_export:
+      signature_def_map["regress_x_to_y"] = (
+          _build_regression_signature(serialized_tf_example, y))
+    if not signatures or "regress_x_to_y2" in signatures_to_export:
+      signature_def_map["regress_x_to_y2"] = (
+          _build_regression_signature(serialized_tf_example, y2))
+    if not signatures or "regress_x2_to_y3" in signatures_to_export:
+      signature_def_map["regress_x2_to_y3"] = (
+          _build_regression_signature(x2, y3))
+    if not signatures or "classify_x_to_y" in signatures_to_export:
+      signature_def_map["classify_x_to_y"] = (
+          _build_classification_signature(serialized_tf_example, y))
+    default_signature = (
+        tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY)
+    if (not signatures or default_signature in signatures_to_export):
+      signature_def_map[default_signature] = predict_signature_def
 
-    signature_def_map = {
-        "regress_x_to_y":
-            _build_regression_signature(serialized_tf_example, y),
-        "regress_x_to_y2":
-            _build_regression_signature(serialized_tf_example, y2),
-        "regress_x2_to_y3":
-            _build_regression_signature(x2, y3),
-        "classify_x_to_y":
-            _build_classification_signature(serialized_tf_example, y),
-        tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
-            predict_signature_def
-    }
     # Initialize all variables and then save the SavedModel.
     sess.run(tf.global_variables_initializer())
 
@@ -258,25 +267,37 @@ def _generate_saved_model_for_half_plus_two(export_dir,
 
 def main(_):
   _generate_saved_model_for_half_plus_two(
-      FLAGS.output_dir, device_type=FLAGS.device)
-  print("SavedModel generated for %(device)s at: %(dir)s" % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir
-  })
+      FLAGS.output_dir, device_type=FLAGS.device, signatures=FLAGS.signatures)
+  print("SavedModel generated for %(device)s, signatures=%(signatures)s "
+        "at: %(dir)s" % {
+            "device": FLAGS.device,
+            "dir": FLAGS.output_dir,
+            "signatures": FLAGS.signatures or "all"
+        })
 
   _generate_saved_model_for_half_plus_two(
-      FLAGS.output_dir_pbtxt, as_text=True, device_type=FLAGS.device)
-  print("SavedModel generated for %(device)s at: %(dir)s" % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir_pbtxt
-  })
+      FLAGS.output_dir_pbtxt,
+      as_text=True,
+      device_type=FLAGS.device,
+      signatures=FLAGS.signatures)
+  print("SavedModel generated for %(device)s, signatures=%(signatures)s "
+        "at: %(dir)s" % {
+            "device": FLAGS.device,
+            "dir": FLAGS.output_dir_pbtxt,
+            "signatures": FLAGS.signatures or "all"
+        })
 
   _generate_saved_model_for_half_plus_two(
-      FLAGS.output_dir_main_op, use_main_op=True, device_type=FLAGS.device)
-  print("SavedModel generated for %(device)s at: %(dir)s " % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir_main_op
-  })
+      FLAGS.output_dir_main_op,
+      use_main_op=True,
+      device_type=FLAGS.device,
+      signatures=FLAGS.signatures)
+  print("SavedModel generated for %(device)s, signatures=%(signatures)s "
+        "at: %(dir)s " % {
+            "device": FLAGS.device,
+            "dir": FLAGS.output_dir_main_op,
+            "signatures": FLAGS.signatures or "all"
+        })
 
 
 if __name__ == "__main__":
@@ -301,5 +322,10 @@ if __name__ == "__main__":
       type=str,
       default="cpu",
       help="Force model to run on 'cpu', 'mkl', or 'gpu'")
+  parser.add_argument(
+      "--signatures",
+      type=str,
+      default=None,
+      help="A comma separated list of signatures to export.")
   FLAGS, unparsed = parser.parse_known_args()
   tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)

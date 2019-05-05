@@ -468,6 +468,7 @@ cc_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/saved_model.pb",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/variables/variables.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/variables/variables.index",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_regress_only",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
     deps = [

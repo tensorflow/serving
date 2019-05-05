@@ -175,6 +175,8 @@ Status HttpRestApiHandler::ProcessPredictRequest(
     const absl::string_view request_body, string* output) {
   PredictRequest request;
   request.mutable_model_spec()->set_name(string(model_name));
+  // If the request has signature, then use that
+
   if (model_version.has_value()) {
     request.mutable_model_spec()->mutable_version()->set_value(
         model_version.value());
