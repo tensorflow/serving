@@ -723,6 +723,54 @@ class TensorflowModelServerTest(tf.test.TestCase):
         expected_version=self._GetModelVersion(
             self._GetSavedModelHalfPlusThreePath()))
 
+  def test_integration_with_estimator_exporter(self):
+    export_dir_base = os.path.join(self.get_temp_dir(), 'tf_estimator_export')
+
+    def _InputFnWithIntKeys():
+      features = {
+          # This is "x", but this test uses an int key in the features dict.
+          4242: tf.constant([0], dtype=tf.float32),
+      }
+      return (features, None)
+
+    def _ModelFnWithIntKeys(features, labels, mode):
+      _ = labels
+      y = 21 * features[4242]  # y=21*x
+
+      return tf.estimator.EstimatorSpec(
+          mode,
+          predictions=y,
+          loss=tf.constant(1.),
+          train_op=tf.assign_add(tf.train.get_global_step(), 1),
+          export_outputs={'test': tf.estimator.export.PredictOutput({'y': y})})
+
+    def _ServingInputReceiverFn():
+      features = {
+          4242: tf.placeholder(dtype=tf.float32),
+      }
+      # int is only allowed in the `features` dict, not the `receiver_tensors`.
+      receiver_tensors = {
+          'x': features[4242],
+      }
+      return tf.estimator.export.ServingInputReceiver(
+          features=features, receiver_tensors=receiver_tensors)
+
+    est = tf.estimator.Estimator(model_fn=_ModelFnWithIntKeys)
+    est.train(input_fn=_InputFnWithIntKeys, steps=1)
+
+    # Perform the export.
+    est.export_saved_model(export_dir_base, _ServingInputReceiverFn)
+
+    # Run PredictRequest against the loaded model.
+    _, model_server_address, _ = TensorflowModelServerTest.RunServer(
+        'default', export_dir_base)
+    expected_version = self._GetModelVersion(export_dir_base)
+    self.VerifyPredictRequest(
+        model_server_address,
+        expected_output=42.0,
+        specify_output=False,
+        expected_version=expected_version)
+
   def test_tf_saved_model_save(self):
     base_path = os.path.join(self.get_temp_dir(), 'tf_saved_model_save')
     export_path = os.path.join(base_path, '00000123')
