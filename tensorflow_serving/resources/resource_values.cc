@@ -28,6 +28,7 @@ namespace resource_kinds {
 const char* const kNumModelSlots = "num_model_slots";
 const char* const kRamBytes = "ram_in_bytes";
 const char* const kHeapRamBytes = "heap_ram_in_bytes";
+const char* const kStackRamBytes = "stack_ram_in_bytes";
 const char* const kProcessingMillis = "processing_in_millicores";
 }  // namespace resource_kinds
 
