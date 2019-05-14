@@ -140,3 +140,35 @@ the model config on the fly, to assign a label to it
 (can be achieved using
 [HandleReloadConfigRequest](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/model_service.proto#L22)
 RPC endpoint).
+
+# How to Configure for Monitoring
+
+Creating a monitoring config file containing a
+[MonitoringConfig](https://github.com/tensorflow/serving/blob/1.13.0/tensorflow_serving/config/monitoring_config.proto#L17)
+and set its path to --monitoring_config_file. It currently provides a monitoring
+exporter for [Prometheus](https://prometheus.io/), and whose configs are
+described
+[PrometheusConfig](https://github.com/tensorflow/serving/blob/1.13.0/tensorflow_serving/config/monitoring_config.proto#L7)
+protocol buffer. Here's an example:
+
+```proto
+prometheus_config {
+  enable: true
+  path: '/metrics'
+}
+```
+
+And also you must define also --rest_api_port for HTTP requests.
+Prometheus Server pulls metrics from the serving which has specified endpoint.
+
+Tensorflow defines the basic metrics like
+[load_attempt_count](https://github.com/tensorflow/tensorflow/blob/v1.13.1/tensorflow/cc/saved_model/loader.cc#L37-L40)
+and
+[load_latency](https://github.com/tensorflow/tensorflow/blob/v1.13.1/tensorflow/cc/saved_model/loader.cc#L41-L44)
+which are arising on loading SavedModel.
+Furthermore, Tensorflow Serving also has its own metrics:
+
+- [model_warmup_latency](https://github.com/tensorflow/serving/blob/1.13.0/tensorflow_serving/servables/tensorflow/saved_model_warmup.cc#L36-L43)
+- [request_log_count](https://github.com/tensorflow/serving/blob/1.13.0/tensorflow_serving/core/request_logger.cc#L30-L35)
+- [request_example_counts](https://github.com/tensorflow/serving/blob/1.13.0/tensorflow_serving/servables/tensorflow/util.cc#L36-L41)
+- [request_example_count_total](https://github.com/tensorflow/serving/blob/1.13.0/tensorflow_serving/servables/tensorflow/util.cc#L43-L45)
