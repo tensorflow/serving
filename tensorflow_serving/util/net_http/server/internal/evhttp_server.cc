@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <signal.h>
 #include <cstdint>
 #include <memory>
 #include <utility>
@@ -44,7 +45,8 @@ void InitLibEvent() {
   if (evthread_use_pthreads() != 0) {
     ABSL_RAW_LOG(FATAL, "Server requires pthread support.");
   }
-
+  // Ignore SIGPIPE and allow errors to propagate through error codes.
+  signal(SIGPIPE, SIG_IGN);
   // TODO(wenboz): windows support needed?
 }
 
