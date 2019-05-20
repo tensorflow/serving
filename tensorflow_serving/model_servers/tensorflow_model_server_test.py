@@ -222,15 +222,15 @@ class TensorflowModelServerTest(tf.test.TestCase):
     """Deletes created configuration file."""
     os.remove(self._GetGoodModelConfigFile())
 
-  def VerifyPredictRequest(self,
-                           model_server_address,
-                           expected_output,
-                           expected_version,
-                           model_name='default',
-                           specify_output=True,
-                           signature_name=
-                           signature_constants.
-                           DEFAULT_SERVING_SIGNATURE_DEF_KEY):
+  def VerifyPredictRequest(
+      self,
+      model_server_address,
+      expected_output,
+      expected_version,
+      model_name='default',
+      specify_output=True,
+      batch_input=False,
+      signature_name=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY):
     """Send PredictionService.Predict request and verify output."""
     print('Sending Predict request...')
     # Prepare request
@@ -241,6 +241,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
     request.inputs['x'].float_val.append(2.0)
     dim = request.inputs['x'].tensor_shape.dim.add()
     dim.size = 1
+    if batch_input:
+      request.inputs['x'].tensor_shape.dim.add().size = 1
 
     if specify_output:
       request.output_filter.append('y')
@@ -766,6 +768,31 @@ class TensorflowModelServerTest(tf.test.TestCase):
     self.VerifyPredictRequest(
         model_server_address,
         expected_output=1.0,
+        expected_version=expected_version)
+
+  def test_sequential_keras_saved_model_save(self):
+    """Test loading a simple SavedModel created with Keras Sequential API."""
+
+    model = tf.keras.models.Sequential()
+
+    model.add(tf.keras.layers.Input(dtype='float32', shape=(1,), name='x'))
+    model.add(tf.keras.layers.Lambda(lambda x: x, name='y'))
+
+    base_path = os.path.join(self.get_temp_dir(),
+                             'keras_sequential_saved_model_save')
+    export_path = os.path.join(base_path, '00000123')
+
+    tf.saved_model.save(model, export_path)
+
+    _, model_server_address, _ = TensorflowModelServerTest.RunServer(
+        'default', base_path)
+
+    expected_version = self._GetModelVersion(base_path)
+    self.VerifyPredictRequest(
+        model_server_address,
+        batch_input=True,
+        specify_output=False,
+        expected_output=2.0,
         expected_version=expected_version)
 
 
