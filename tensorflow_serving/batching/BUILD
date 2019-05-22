@@ -22,7 +22,7 @@ cc_library(
     name = "streaming_batch_scheduler",
     srcs = ["streaming_batch_scheduler.cc"],
     hdrs = ["streaming_batch_scheduler.h"],
-    visibility = ["//visibility:public"],
+    visibility = ["//visibility:private"],
     deps = [
         ":batch_scheduler_retrier",
         "//tensorflow_serving/util:optional",
