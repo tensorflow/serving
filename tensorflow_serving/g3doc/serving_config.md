@@ -144,11 +144,11 @@ RPC endpoint).
 ## How to Configure for Monitoring
 
 Create a monitoring config file containing a
-[MonitoringConfig](https://github.com/tensorflow/serving/blob/1.13.0/tensorflow_serving/config/monitoring_config.proto#L17)
+[MonitoringConfig](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/config/monitoring_config.proto#L17)
 and set --monitoring_config_file flag to the path of this file. It currently
 provides a monitoring exporter for [Prometheus](https://prometheus.io/), and
 whose config is described in
-[PrometheusConfig](https://github.com/tensorflow/serving/blob/1.13.0/tensorflow_serving/config/monitoring_config.proto#L7)
+[PrometheusConfig](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/config/monitoring_config.proto#L7)
 protocol buffer. Here's an example:
 
 ```proto
