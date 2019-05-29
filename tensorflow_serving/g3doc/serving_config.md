@@ -140,3 +140,29 @@ the model config on the fly, to assign a label to it
 (can be achieved using
 [HandleReloadConfigRequest](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/model_service.proto#L22)
 RPC endpoint).
+
+## How to Configure for Monitoring
+
+Create a monitoring config file containing a
+[MonitoringConfig](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/config/monitoring_config.proto#L17)
+and set --monitoring_config_file flag to the path of this file. It currently
+provides a monitoring exporter for [Prometheus](https://prometheus.io/), and
+whose config is described in
+[PrometheusConfig](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/config/monitoring_config.proto#L7)
+protocol buffer. Here's an example:
+
+```proto
+prometheus_config {
+  enable: true
+}
+```
+
+The default monitoring endpoint is `/monitoring/prometheus/metrics`.
+You can set `path` field in prometheus_config to change the default path.
+
+To read metrics from above monitoring URL, you need to set `--rest_api_port`
+flag to enable HTTP requests. Configure your Prometheus Server to pulls metrics
+from Model Server configured by `--rest_api_port` and `path`.
+
+Tensorflow Serving collects all metrics that are available on Tensorflow and the
+serving itself.
