@@ -157,13 +157,12 @@ prometheus_config {
 }
 ```
 
-The default monitoring endpoint is /monitoring/prometheus/metrics.
-You add 'path' field into prometheus_config in case of changing the default
-path.
+The default monitoring endpoint is `/monitoring/prometheus/metrics`.
+You can set `path` field in prometheus_config to change the default path.
 
-To read metrics from above monitoring URL, you need to set --rest_api_port to
-enable HTTP requests. Prometheus Server pulls metrics from the serving which
-has specified endpoint.
+To read metrics from above monitoring URL, you need to set `--rest_api_port`
+flag to enable HTTP requests. Configure your Prometheus Server to pulls metrics
+from Model Server configured by `--rest_api_port` and `path`.
 
 Tensorflow Serving collects all metrics that are available on Tensorflow and the
 serving itself.
