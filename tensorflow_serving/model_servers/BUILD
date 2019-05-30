@@ -199,9 +199,6 @@ cc_library(
     name = "model_service_impl",
     srcs = ["model_service_impl.cc"],
     hdrs = ["model_service_impl.h"],
-    visibility = [
-        "//visibility:public",
-    ],
     deps = [
         ":get_model_status_impl",
         ":grpc_status_util",
@@ -217,9 +214,6 @@ cc_library(
     name = "prediction_service_impl",
     srcs = ["prediction_service_impl.cc"],
     hdrs = ["prediction_service_impl.h"],
-    visibility = [
-        "//visibility:public",
-    ],
     deps = [
         ":grpc_status_util",
         ":server_core",
@@ -244,9 +238,6 @@ cc_library(
     name = "grpc_status_util",
     srcs = ["grpc_status_util.cc"],
     hdrs = ["grpc_status_util.h"],
-    visibility = [
-        "//visibility:public",
-    ],
     deps = [
         "@grpc//:grpc++",
         "@org_tensorflow//tensorflow/core:lib",
@@ -257,7 +248,6 @@ cc_library(
     name = "http_server",
     srcs = ["http_server.cc"],
     hdrs = ["http_server.h"],
-    visibility = ["//tensorflow_serving:internal"],
     deps = [
         ":http_rest_api_handler",
         ":server_core",
