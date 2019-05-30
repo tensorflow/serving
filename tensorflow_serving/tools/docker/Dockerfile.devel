@@ -51,6 +51,7 @@ RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
     rm get-pip.py
 
 RUN pip --no-cache-dir install \
+    future>=0.17.1 \
     grpcio \
     h5py \
     keras_applications \
