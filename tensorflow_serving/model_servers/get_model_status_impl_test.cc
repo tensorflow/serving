@@ -46,9 +46,11 @@ constexpr int kNonexistentModelVersion = 125;
 
 class GetModelStatusImplTest : public ::testing::Test {
  public:
-  static void SetUpTestCase() { TF_ASSERT_OK(CreateServerCore(&server_core_)); }
+  static void SetUpTestSuite() {
+    TF_ASSERT_OK(CreateServerCore(&server_core_));
+  }
 
-  static void TearDownTestCase() { server_core_.reset(); }
+  static void TearDownTestSuite() { server_core_.reset(); }
 
  protected:
   static Status CreateServerCore(std::unique_ptr<ServerCore>* server_core) {

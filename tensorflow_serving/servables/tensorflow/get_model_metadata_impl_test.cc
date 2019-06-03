@@ -53,7 +53,7 @@ constexpr int kTestModelVersion = 123;
 
 class GetModelMetadataImplTest : public ::testing::TestWithParam<bool> {
  public:
-  static void SetUpTestCase() {
+  static void SetUpTestSuite() {
     const string session_bundle_path = test_util::TestSrcDirPath(
         "/servables/tensorflow/testdata/half_plus_two");
     TF_ASSERT_OK(CreateServerCore(session_bundle_path, false, &server_core_));
@@ -64,7 +64,7 @@ class GetModelMetadataImplTest : public ::testing::TestWithParam<bool> {
         CreateServerCore(saved_model_path, true, &saved_model_server_core_));
   }
 
-  static void TearDownTestCase() {
+  static void TearDownTestSuite() {
     server_core_.reset();
     saved_model_server_core_.reset();
   }

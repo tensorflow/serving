@@ -42,7 +42,7 @@ const char kOutputTensorKey[] = "y";
 // Parameter is 'bool use_saved_model'.
 class PredictImplTest : public ::testing::TestWithParam<bool> {
  public:
-  static void SetUpTestCase() {
+  static void SetUpTestSuite() {
     TF_ASSERT_OK(
         CreateServerCore(test_util::TestSrcDirPath(
                              "/servables/tensorflow/testdata/half_plus_two"),
@@ -63,7 +63,7 @@ class PredictImplTest : public ::testing::TestWithParam<bool> {
         true, &saved_model_server_core_counter_model_));
   }
 
-  static void TearDownTestCase() {
+  static void TearDownTestSuite() {
     server_core_.reset();
     server_core_bad_model_.reset();
     saved_model_server_core_.reset();

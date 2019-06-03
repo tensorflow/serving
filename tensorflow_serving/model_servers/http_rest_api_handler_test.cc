@@ -59,7 +59,7 @@ using HeaderList = std::vector<std::pair<string, string>>;
 
 class HttpRestApiHandlerTest : public ::testing::Test {
  public:
-  static void SetUpTestCase() {
+  static void SetUpTestSuite() {
     TF_ASSERT_OK(CreateServerCore(&server_core_));
 
     const int total = 1;  // Number of models expected to be loaded.
@@ -73,7 +73,7 @@ class HttpRestApiHandlerTest : public ::testing::Test {
     }
   }
 
-  static void TearDownTestCase() { server_core_.reset(); }
+  static void TearDownTestSuite() { server_core_.reset(); }
 
  protected:
   HttpRestApiHandlerTest() : handler_(RunOptions(), GetServerCore()) {}

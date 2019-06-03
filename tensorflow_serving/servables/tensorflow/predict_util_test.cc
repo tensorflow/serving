@@ -44,7 +44,7 @@ const char kOutputTensorKey[] = "y";
 // Parameter is 'bool use_saved_model'.
 class PredictImplTest : public ::testing::Test {
  public:
-  static void SetUpTestCase() {
+  static void SetUpTestSuite() {
     const string bad_half_plus_two_path = test_util::TestSrcDirPath(
         "/servables/tensorflow/testdata/bad_half_plus_two");
 
@@ -59,7 +59,7 @@ class PredictImplTest : public ::testing::Test {
         true, &saved_model_server_core_counter_model_));
   }
 
-  static void TearDownTestCase() {
+  static void TearDownTestSuite() {
     saved_model_server_core_.reset();
     saved_model_server_core_bad_model_.reset();
     saved_model_server_core_counter_model_.reset();

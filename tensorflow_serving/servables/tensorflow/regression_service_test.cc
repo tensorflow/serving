@@ -42,7 +42,7 @@ constexpr int kTestModelVersion = 123;
 // pointing to the half_plus_two SavedModel.
 class RegressionServiceTest : public ::testing::Test {
  public:
-  static void SetUpTestCase() {
+  static void SetUpTestSuite() {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);
@@ -64,7 +64,7 @@ class RegressionServiceTest : public ::testing::Test {
     TF_ASSERT_OK(ServerCore::Create(std::move(options), &server_core_));
   }
 
-  static void TearDownTestCase() { server_core_ = nullptr; }
+  static void TearDownTestSuite() { server_core_ = nullptr; }
 
  protected:
   static std::unique_ptr<ServerCore> server_core_;
