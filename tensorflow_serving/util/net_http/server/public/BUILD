@@ -8,7 +8,10 @@ package(
     ],
 )
 
-package_group(name = "http_server_clients")
+package_group(
+    name = "http_server_clients",
+    packages = ["//nest/services/dropcam/..."],
+)
 
 licenses(["notice"])  # Apache 2.0
 
