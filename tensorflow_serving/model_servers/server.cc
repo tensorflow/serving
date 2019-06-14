@@ -303,7 +303,8 @@ Status Server::BuildAndStart(const Options& server_options) {
   }
   builder.RegisterService(model_service_.get());
   builder.RegisterService(prediction_service_.get());
-  builder.SetMaxMessageSize(tensorflow::kint32max);
+  builder.SetMaxReceiveMessageSize(tensorflow::kint32max);
+  builder.SetMaxSendMessageSize(tensorflow::kint32max);
   const std::vector<GrpcChannelArgument> channel_arguments =
       parseGrpcChannelArgs(server_options.grpc_channel_arguments);
   for (GrpcChannelArgument channel_argument : channel_arguments) {
