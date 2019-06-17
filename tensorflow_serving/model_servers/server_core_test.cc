@@ -768,6 +768,90 @@ TEST_P(ServerCoreTest, AssignLabelToUnavailableVersion) {
               ::testing::HasSubstr("not currently available for inference"));
 }
 
+TEST_P(ServerCoreTest, AssignLabelToUnavailableVersionAllowed) {
+  ModelServerConfig two_version_config =
+      GetTestModelServerConfigForFakePlatform();
+  SwitchToHalfPlusTwoWith2Versions(&two_version_config);
+  ServerCore::Options server_core_options = GetDefaultOptions();
+  server_core_options.allow_version_labels = true;
+  server_core_options.allow_version_labels_for_unavailable_models = true;
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(two_version_config,
+                                std::move(server_core_options), &server_core));
+
+  const std::set<int64> aspired_versions = {test_util::kTestModelVersion,
+                                            test_util::kTestModelLargerVersion};
+  const int64 bogus_version = 777;
+  for (const int64 aspired_version : aspired_versions) {
+    ASSERT_NE(bogus_version, aspired_version);
+  }
+
+  // Wait until both aspired versions of the servable have been loaded.
+  for (const int64 aspired_version : aspired_versions) {
+    const auto servable_id =
+        ServableId{test_util::kTestModelName, aspired_version};
+    test_util::WaitUntilServableManagerStateIsOneOf(
+        *server_core->servable_state_monitor(), servable_id,
+        {ServableState::ManagerState::kAvailable});
+  }
+
+  // Attempt to assign a label to a version that isn't one of the loaded ones.
+  ASSERT_EQ(1, two_version_config.model_config_list().config().size());
+  ModelConfig* model_config =
+      two_version_config.mutable_model_config_list()->mutable_config(0);
+  (*model_config->mutable_version_labels())["nice try"] = bogus_version;
+  Status status = server_core->ReloadConfig(two_version_config);
+  EXPECT_TRUE(status.ok());
+}
+
+TEST_P(ServerCoreTest, AssignExistingLabelToUnavailableVersion) {
+  ModelServerConfig two_version_config =
+      GetTestModelServerConfigForFakePlatform();
+  SwitchToHalfPlusTwoWith2Versions(&two_version_config);
+  ServerCore::Options server_core_options = GetDefaultOptions();
+  server_core_options.allow_version_labels = true;
+  server_core_options.allow_version_labels_for_unavailable_models = true;
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(two_version_config,
+                                std::move(server_core_options), &server_core));
+
+  const std::set<int64> aspired_versions = {test_util::kTestModelVersion,
+                                            test_util::kTestModelLargerVersion};
+  const int64 bogus_version = 777;
+  for (const int64 aspired_version : aspired_versions) {
+    ASSERT_NE(bogus_version, aspired_version);
+  }
+
+  // Wait until both aspired versions of the servable have been loaded.
+  for (const int64 aspired_version : aspired_versions) {
+    const auto servable_id =
+        ServableId{test_util::kTestModelName, aspired_version};
+    test_util::WaitUntilServableManagerStateIsOneOf(
+        *server_core->servable_state_monitor(), servable_id,
+        {ServableState::ManagerState::kAvailable});
+  }
+
+  // Assign labels to the two versions of the model.
+  ASSERT_EQ(1, two_version_config.model_config_list().config().size());
+  ModelConfig* model_config =
+      two_version_config.mutable_model_config_list()->mutable_config(0);
+  (*model_config->mutable_version_labels())["A"] = test_util::kTestModelVersion;
+  (*model_config->mutable_version_labels())["B"] =
+      test_util::kTestModelLargerVersion;
+  TF_ASSERT_OK(server_core->ReloadConfig(two_version_config));
+
+  // Attempt to assign an exsiting label to a different version that isn't
+  // one of the loaded ones.
+  ASSERT_EQ(1, two_version_config.model_config_list().config().size());
+  model_config =
+      two_version_config.mutable_model_config_list()->mutable_config(0);
+  (*model_config->mutable_version_labels())["A"] = bogus_version;
+  Status status = server_core->ReloadConfig(two_version_config);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.ToString(),
+              ::testing::HasSubstr("not currently available for inference"));
+}
+
 TEST_P(ServerCoreTest, VersionLabelsNotAllowed) {
   ServerCore::Options server_core_options = GetDefaultOptions();
   server_core_options.allow_version_labels = false;

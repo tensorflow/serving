@@ -174,6 +174,10 @@ class ServerCore : public Manager {
     // Callback to be called just before a servable is to be loaded. This will
     // called on the same manager load thread which starts the load.
     PreLoadHook pre_load_hook;
+
+    // Whether to allow assigning unused version labels to models that are not
+    // available yet.
+    bool allow_version_labels_for_unavailable_models = false;
   };
 
   virtual ~ServerCore() = default;
@@ -347,7 +351,10 @@ class ServerCore : public Manager {
       EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // Updates 'model_labels_to_versions_' based on 'config_'. Throws an error if
-  // requesting to assign a label to a version not in state kAvailable.
+  // requesting to assign an existing label to a version not in state
+  // kAvailable. For a new version label, it can be assigned to a version that
+  // is not in state kAvailable yet if
+  // allow_version_labels_for_unavailable_models is true.
   Status UpdateModelVersionLabelMap() EXCLUSIVE_LOCKS_REQUIRED(config_mu_)
       LOCKS_EXCLUDED(model_labels_to_versions_mu_);
 

@@ -74,6 +74,11 @@ int main(int argc, char** argv) {
                        "Timeout for HTTP/REST API calls."),
       tensorflow::Flag("enable_batching", &options.enable_batching,
                        "enable batching"),
+      tensorflow::Flag(
+          "allow_version_labels_for_unavailable_models",
+          &options.allow_version_labels_for_unavailable_models,
+          "If true, allows assigning unused version labels to models that are "
+          "not available yet."),
       tensorflow::Flag("batching_parameters_file",
                        &options.batching_parameters_file,
                        "If non-empty, read an ascii BatchingParameters "

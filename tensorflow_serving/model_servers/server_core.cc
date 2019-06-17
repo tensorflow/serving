@@ -500,11 +500,23 @@ Status ServerCore::UpdateModelVersionLabelMap() {
       const string& label = entry.first;
       const int64 version = entry.second;
 
+      bool contains_existing_label_with_different_version = false;
+      int64 existing_version;
+      if (GetModelVersionForLabel(model_config.name(), label, &existing_version)
+              .ok() &&
+          existing_version != version) {
+        contains_existing_label_with_different_version = true;
+      }
+      bool allow_version_labels_for_unavailable_models =
+          options_.allow_version_labels_for_unavailable_models &&
+          (!contains_existing_label_with_different_version);
+
       // Verify that the label points to a version that is currently available.
       auto serving_states_it = serving_states.find(version);
-      if (serving_states_it == serving_states.end() ||
-          serving_states_it->second.state.manager_state !=
-              ServableState::ManagerState::kAvailable) {
+      if (!allow_version_labels_for_unavailable_models &&
+          (serving_states_it == serving_states.end() ||
+           serving_states_it->second.state.manager_state !=
+               ServableState::ManagerState::kAvailable)) {
         return errors::FailedPrecondition(strings::StrCat(
             "Request to assign label to version ", version, " of model ",
             model_config.name(),
@@ -773,6 +785,10 @@ Status ServerCore::GetModelVersionForLabel(const string& model_name,
                                            const string& label,
                                            int64* version) const {
   mutex_lock l(model_labels_to_versions_mu_);
+  if (model_labels_to_versions_ == nullptr) {
+    return errors::Unavailable(
+        strings::StrCat("Model labels does not init yet.", label));
+  }
   auto version_map_it = model_labels_to_versions_->find(model_name);
   if (version_map_it != model_labels_to_versions_->end()) {
     const std::map<string, int64>& version_map = version_map_it->second;

@@ -275,6 +275,8 @@ Status Server::BuildAndStart(const Options& server_options) {
   options.file_system_poll_wait_seconds =
       server_options.file_system_poll_wait_seconds;
   options.flush_filesystem_caches = server_options.flush_filesystem_caches;
+  options.allow_version_labels_for_unavailable_models =
+      server_options.allow_version_labels_for_unavailable_models;
 
   TF_RETURN_IF_ERROR(ServerCore::Create(std::move(options), &server_core_));
 
