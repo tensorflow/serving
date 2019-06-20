@@ -330,6 +330,7 @@ cc_library(
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/config:monitoring_config_proto",
         "//tensorflow_serving/config:ssl_config_proto",
+        "//tensorflow_serving/config:platform_config_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
     ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,

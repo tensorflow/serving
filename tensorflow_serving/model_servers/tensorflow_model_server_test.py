@@ -126,7 +126,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
                 batching_parameters_file=None,
                 grpc_channel_arguments='',
                 wait_for_server_ready=True,
-                pipe=None):
+                pipe=None,
+                model_config_file_poll_period=None):
     """Run tensorflow_model_server using test config.
 
     A unique instance of server is started for each set of arguments.
@@ -142,6 +143,8 @@ class TensorflowModelServerTest(tf.test.TestCase):
       grpc_channel_arguments: Custom gRPC args for server.
       wait_for_server_ready: Wait for gRPC port to be ready.
       pipe: subpipe.PIPE object to read stderr from server.
+      model_config_file_poll_period: Period for polling the
+      filesystem to discover new model configs.
 
     Returns:
       3-tuple (<Popen object>, <grpc host:port>, <rest host:port>).
@@ -175,6 +178,10 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
     if monitoring_config_file:
       command += ' --monitoring_config_file=' + monitoring_config_file
+
+    if model_config_file_poll_period is not None:
+      command += ' --model_config_file_poll_wait_seconds=' + str(
+          model_config_file_poll_period)
 
     if batching_parameters_file:
       command += ' --enable_batching'
@@ -537,11 +544,120 @@ class TensorflowModelServerTest(tf.test.TestCase):
         pipe=subprocess.PIPE,
         wait_for_server_ready=False)[0]
 
-    error_message = (
-        'Invalid protobuf file: \'%s\'') % self._GetBadModelConfigFile()
+    error_message = ('Error parsing text-format '
+                     'tensorflow.serving.ModelServerConfig')
     error_message = error_message.encode('utf-8')
     self.assertNotEqual(proc.stderr, None)
     self.assertGreater(proc.stderr.read().find(error_message), -1)
+
+  def testModelConfigReload(self):
+    """Test model server polls filesystem for model configuration."""
+
+    base_config_proto = """
+    model_config_list: {{
+      config: {{
+        name: "{name}",
+        base_path: "{model_path}",
+        model_platform: "tensorflow"
+      }}
+    }}
+    """
+
+    config_path = os.path.join(FLAGS.test_tmpdir, 'model_config.txt')
+
+    # Write a config file serving half_plus_two model
+    with open(config_path, 'w') as f:
+      f.write(
+          base_config_proto.format(
+              name='half_plus_two', model_path=self._GetSavedModelBundlePath()))
+
+    poll_period = 1
+    model_server_address = TensorflowModelServerTest.RunServer(
+        None,
+        None,
+        model_config_file=config_path,
+        model_config_file_poll_period=poll_period)[1]
+
+    self.VerifyPredictRequest(
+        model_server_address,
+        model_name='half_plus_two',
+        expected_output=3.0,
+        specify_output=False,
+        expected_version=self._GetModelVersion(self._GetSavedModelBundlePath()))
+
+    # Rewrite the config file with half_plus_three model
+    with open(config_path, 'w') as f:
+      f.write(
+          base_config_proto.format(
+              name='half_plus_three',
+              model_path=self._GetSavedModelHalfPlusThreePath()))
+
+    # Give modelserver time to poll and load the new config
+    time.sleep(poll_period + 1)
+
+    # Verify new model config was realized in model server
+    self.VerifyPredictRequest(
+        model_server_address,
+        model_name='half_plus_three',
+        expected_output=4.0,
+        specify_output=False,
+        expected_version=self._GetModelVersion(
+            self._GetSavedModelHalfPlusThreePath()))
+
+  def testModelConfigReloadWithZeroPollPeriod(self):
+    """Test model server does not poll filesystem for model config."""
+
+    base_config_proto = """
+    model_config_list: {{
+      config: {{
+        name: "{name}",
+        base_path: "{model_path}",
+        model_platform: "tensorflow"
+      }}
+    }}
+    """
+
+    config_path = os.path.join(FLAGS.test_tmpdir, 'model_config.txt')
+
+    # Write a config file serving half_plus_two model
+    with open(config_path, 'w') as f:
+      f.write(
+          base_config_proto.format(
+              name='half_plus_two', model_path=self._GetSavedModelBundlePath()))
+
+    poll_period = 0
+    model_server_address = TensorflowModelServerTest.RunServer(
+        None,
+        None,
+        model_config_file=config_path,
+        model_config_file_poll_period=poll_period)[1]
+
+    self.VerifyPredictRequest(
+        model_server_address,
+        model_name='half_plus_two',
+        expected_output=3.0,
+        specify_output=False,
+        expected_version=self._GetModelVersion(self._GetSavedModelBundlePath()))
+
+    # Rewrite the config file with half_plus_three model
+    with open(config_path, 'w') as f:
+      f.write(
+          base_config_proto.format(
+              name='half_plus_three',
+              model_path=self._GetSavedModelHalfPlusThreePath()))
+
+    # Give modelserver enough time to poll and load the new config should it
+    # have such a desire
+    time.sleep(poll_period + 1)
+
+    # Verify model server is still serving the old model config
+    self.VerifyPredictRequest(
+        model_server_address,
+        model_name='half_plus_two',
+        expected_output=3.0,
+        specify_output=False,
+        expected_version=self._GetModelVersion(
+            self._GetSavedModelHalfPlusThreePath()))
 
   def testGoodGrpcChannelArgs(self):
     """Test server starts with grpc_channel_arguments specified."""

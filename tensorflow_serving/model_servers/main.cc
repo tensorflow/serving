@@ -91,6 +91,13 @@ int main(int argc, char** argv) {
                        "specify multiple models to serve and other advanced "
                        "parameters including non-default version policy. (If "
                        "used, --model_name, --model_base_path are ignored.)"),
+      tensorflow::Flag("model_config_file_poll_wait_seconds",
+                       &options.fs_model_config_poll_wait_seconds,
+                       "Interval in seconds between each poll of the filesystem"
+                       "for model_config_file. If unset or set to zero, "
+                       "poll will be done exactly once and not periodically. "
+                       "Setting this to negative is reserved for testing "
+                       "purposes only."),
       tensorflow::Flag("model_name", &options.model_name,
                        "name of model (ignored "
                        "if --model_config_file flag is set)"),

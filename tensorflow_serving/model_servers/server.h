@@ -19,6 +19,7 @@ limitations under the License.
 #include <memory>
 
 #include "grpcpp/server.h"
+#include "tensorflow/core/kernels/batching_util/periodic_function.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow/core/platform/types.h"
@@ -72,6 +73,8 @@ class Server {
     tensorflow::string platform_config_file;
     tensorflow::string ssl_config_file;
     string model_config_file;
+    // Zero means server will not poll FS for model config file after start-up.
+    tensorflow::int32 fs_model_config_poll_wait_seconds = 0;
     bool enable_model_warmup = true;
     // This value is used only if > 0.
     tensorflow::int32 num_request_iterations_for_warmup = 0;
@@ -95,11 +98,18 @@ class Server {
   void WaitForTermination();
 
  private:
+  // Polls the filesystem, parses config at specified path, and calls
+  // ServerCore::ReloadConfig with the captured model config.
+  void PollFilesystemAndReloadConfig(const string& config_file_path);
+
   std::unique_ptr<ServerCore> server_core_;
   std::unique_ptr<ModelServiceImpl> model_service_;
   std::unique_ptr<PredictionServiceImpl> prediction_service_;
   std::unique_ptr<::grpc::Server> grpc_server_;
   std::unique_ptr<net_http::HTTPServerInterface> http_server_;
+  // A thread that calls PollFilesystemAndReloadConfig() periodically if
+  // fs_model_config_poll_wait_seconds > 0.
+  std::unique_ptr<PeriodicFunction> fs_config_polling_thread_;
 };
 
 }  // namespace main
