@@ -1670,6 +1670,154 @@ TEST_F(ResourceUtilTest, MaxUnbound) {
                           "   quantity: 8 "
                           "} "));
 }
+
+TEST_F(ResourceUtilTest, MinEmpty) {
+  const auto lhs = CreateProto<ResourceAllocation>("");
+  const auto rhs = CreateProto<ResourceAllocation>("");
+  EXPECT_THAT(util_.Min(lhs, rhs), EqualsProto(""));
+}
+
+TEST_F(ResourceUtilTest, MinBound) {
+  const auto lhs = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    device_instance { value: 0 } "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 100 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    device_instance { value: 0 } "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 8 "
+      "} ");
+  const auto rhs = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    device_instance { value: 0 } "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 300 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'gpu' "
+      "    device_instance { value: 0 } "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 4 "
+      "} ");
+  EXPECT_THAT(util_.Min(lhs, rhs),
+              EqualsProto("resource_quantities { "
+                          "  resource { "
+                          "    device: 'main' "
+                          "    device_instance { value: 0 } "
+                          "    kind: 'processing' "
+                          "  } "
+                          "  quantity: 100 "
+                          "} "));
+}
+
+TEST_F(ResourceUtilTest, MinBoundAndUnbound) {
+  const auto lhs = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    device_instance { value: 0 } "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 100 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'gpu' "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 8 "
+      "} ");
+  const auto rhs = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    device_instance { value: 0 } "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 300 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'gpu' "
+      "    device_instance { value: 0 } "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 4 "
+      "} ");
+  EXPECT_THAT(util_.Min(lhs, rhs),
+              EqualsProto("resource_quantities { "
+                          "  resource { "
+                          "    device: 'main' "
+                          "    device_instance { value: 0 } "
+                          "    kind: 'processing' "
+                          "  } "
+                          "  quantity: 100 "
+                          "} "));
+}
+
+TEST_F(ResourceUtilTest, MinUnbound) {
+  const auto lhs = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 100 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 8 "
+      "} ");
+  const auto rhs = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 300 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 4 "
+      "} ");
+  EXPECT_THAT(util_.Min(lhs, rhs),
+              EqualsProto("resource_quantities { "
+                          "  resource { "
+                          "    device: 'main' "
+                          "    device_instance { value: 0 } "
+                          "    kind: 'processing' "
+                          "  } "
+                          "  quantity: 100 "
+                          "} "
+                          "resource_quantities { "
+                          "  resource { "
+                          "    device: 'main' "
+                          "    device_instance { value: 0 } "
+                          "    kind: 'ram' "
+                          "   } "
+                          "   quantity: 4 "
+                          "} "));
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/resources/resource_util.h"
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -223,6 +224,11 @@ ResourceAllocation ResourceUtil::Overbind(
 ResourceAllocation ResourceUtil::Max(const ResourceAllocation& lhs,
                                      const ResourceAllocation& rhs) const {
   return MaxNormalized(Normalize(lhs), Normalize(rhs));
+}
+
+ResourceAllocation ResourceUtil::Min(const ResourceAllocation& lhs,
+                                     const ResourceAllocation& rhs) const {
+  return MinNormalized(Normalize(lhs), Normalize(rhs));
 }
 
 bool ResourceUtil::IsBoundNormalized(
@@ -506,6 +512,27 @@ ResourceAllocation ResourceUtil::MaxNormalized(
     }
   }
   return max_resource_allocation;
+}
+
+ResourceAllocation ResourceUtil::MinNormalized(
+    const ResourceAllocation& lhs, const ResourceAllocation& rhs) const {
+  DCHECK(IsNormalized(lhs));
+  DCHECK(IsNormalized(rhs));
+
+  ResourceAllocation min_resource_allocation;
+  ResourceAllocation rhs_copy = rhs;
+  for (const ResourceAllocation::Entry& lhs_entry : lhs.resource_quantities()) {
+    ResourceAllocation::Entry* rhs_entry =
+        FindMutableEntry(lhs_entry.resource(), &rhs_copy);
+    if (rhs_entry != nullptr) {
+      ResourceAllocation::Entry* min_entry =
+          min_resource_allocation.add_resource_quantities();
+      *min_entry->mutable_resource() = lhs_entry.resource();
+      min_entry->set_quantity(
+          std::min(lhs_entry.quantity(), rhs_entry->quantity()));
+    }
+  }
+  return min_resource_allocation;
 }
 
 }  // namespace serving
