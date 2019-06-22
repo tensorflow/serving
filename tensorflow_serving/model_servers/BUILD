@@ -89,8 +89,8 @@ cc_library(
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:optional",
         "//tensorflow_serving/util:unique_ptr_with_deps",
+        "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -114,10 +114,10 @@ cc_test(
         "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter",
         "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter_proto",
         "//tensorflow_serving/test_util",
+        "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
-        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -320,7 +320,7 @@ cc_library(
         ":server_core",
         ":grpc_status_util",
         ":model_service_impl",
-        "@protobuf_archive//:cc_wkt_protos",
+        "@com_google_protobuf//:cc_wkt_protos",
         "@grpc//:grpc++",
         "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",

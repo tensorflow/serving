@@ -48,8 +48,8 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":class_registration_util",
+        "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -375,11 +375,11 @@ cc_test(
         "//tensorflow_serving/apis:regression_proto",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
+        "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
-        "@protobuf_archive//:protobuf",
     ],
 )
 
@@ -392,7 +392,7 @@ serving_proto_library(
     srcs = ["class_registration_test.proto"],
     cc_api_version = 2,
     deps = [
-        "@protobuf_archive//:cc_wkt_protos",
+        "@com_google_protobuf//:cc_wkt_protos",
     ],
 )
 

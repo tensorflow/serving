@@ -42,9 +42,9 @@ cc_library(
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:unique_ptr_with_deps",
         "@com_google_googletest//:gtest",
+        "@com_google_protobuf//:cc_wkt_protos",
+        "@com_google_protobuf//:protobuf_lite",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf_archive//:cc_wkt_protos",
-        "@protobuf_archive//:protobuf_lite",
     ],
 )
 
