@@ -153,8 +153,8 @@ cc_library(
     deps = [
         "//tensorflow_serving/core:log_collector",
         "@com_google_googletest//:gtest",
-        "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf_archive//:protobuf",
     ],
 )
 
@@ -165,8 +165,8 @@ cc_library(
     deps = [
         "//tensorflow_serving/core:log_collector",
         "@com_google_googletest//:gtest",
-        "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf_archive//:protobuf",
     ],
 )
 
@@ -178,8 +178,8 @@ cc_library(
         "//tensorflow_serving/core:logging_proto",
         "//tensorflow_serving/core:request_logger",
         "@com_google_googletest//:gtest",
-        "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf_archive//:protobuf",
     ],
 )
 

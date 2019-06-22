@@ -771,8 +771,8 @@ cc_library(
         ":log_collector",
         ":logging_proto",
         "//tensorflow_serving/config:logging_config_proto",
-        "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf_archive//:protobuf",
     ],
 )
 
@@ -791,9 +791,9 @@ cc_test(
         "//tensorflow_serving/core/test_util:mock_request_logger",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
-        "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf_archive//:protobuf",
     ],
 )
 
@@ -810,8 +810,8 @@ cc_library(
         "//tensorflow_serving/config:logging_config_proto",
         "//tensorflow_serving/core:logging_proto",
         "//tensorflow_serving/util:fast_read_dynamic_ptr",
-        "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/core:lib",
+        "@protobuf_archive//:protobuf",
     ],
 )
 
@@ -832,10 +832,10 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
         "@com_google_absl//absl/strings",
-        "@com_google_protobuf//:cc_wkt_protos",
-        "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
+        "@protobuf_archive//:cc_wkt_protos",
+        "@protobuf_archive//:protobuf",
     ],
 )
