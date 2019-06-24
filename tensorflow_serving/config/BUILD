@@ -28,7 +28,7 @@ serving_proto_library(
     deps = [
         ":logging_config_proto",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto",
-        "@protobuf_archive//:cc_wkt_protos",
+        "@com_google_protobuf//:cc_wkt_protos",
     ],
 )
 
@@ -47,7 +47,7 @@ serving_proto_library(
     srcs = ["platform_config.proto"],
     cc_api_version = 2,
     deps = [
-        "@protobuf_archive//:cc_wkt_protos",
+        "@com_google_protobuf//:cc_wkt_protos",
     ],
 )
 

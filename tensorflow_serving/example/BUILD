@@ -27,9 +27,9 @@ cc_binary(
     ],
     deps = [
         "//tensorflow_serving/apis:prediction_service_proto",
+        "@com_google_protobuf//:protobuf_lite",
         "@grpc//:grpc++",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
-        "@protobuf_archive//:protobuf_lite",
     ],
 )

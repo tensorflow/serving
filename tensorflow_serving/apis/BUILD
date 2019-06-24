@@ -29,8 +29,8 @@ serving_proto_library(
     cc_api_version = 2,
     deps = [
         ":model_proto",
+        "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@protobuf_archive//:cc_wkt_protos",
     ],
 )
 
@@ -78,7 +78,7 @@ serving_proto_library(
     srcs = ["model.proto"],
     cc_api_version = 2,
     deps = [
-        "@protobuf_archive//:cc_wkt_protos",
+        "@com_google_protobuf//:cc_wkt_protos",
     ],
 )
 
