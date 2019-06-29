@@ -32,6 +32,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
+#include "util/task/status_builder.h"
 
 namespace tensorflow {
 namespace serving {

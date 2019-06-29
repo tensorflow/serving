@@ -18,6 +18,7 @@ limitations under the License.
 #include <string>
 #include <utility>
 
+#include "absl/strings/substitute.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow_serving/core/servable_handle.h"
@@ -29,11 +30,12 @@ namespace serving {
 
 namespace {
 
-Status SessionBundlePredict(const RunOptions& run_options,
-                            const MetaGraphDef& meta_graph_def,
-                            const optional<int64>& servable_version,
-                            const PredictRequest& request,
-                            PredictResponse* response, Session* session) {
+Status SessionBundlePredict(
+    const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
+    const optional<int64>& servable_version,
+    const internal::PredictResponseTensorSerializationOption option,
+    const PredictRequest& request, PredictResponse* response,
+    Session* session) {
   // Validate signatures.
   Signature signature;
   TF_RETURN_IF_ERROR(GetNamedSignature("inputs", meta_graph_def, &signature));
@@ -117,9 +119,20 @@ Status SessionBundlePredict(const RunOptions& run_options,
     return tensorflow::Status(tensorflow::error::UNKNOWN,
                               "Predict internal error");
   }
-  for (int i = 0; i < outputs.size(); i++) {
-    outputs[i].AsProtoField(
-        &((*response->mutable_outputs())[output_aliases[i]]));
+
+  switch (option) {
+    case internal::PredictResponseTensorSerializationOption::kAsProtoField: {
+      for (int i = 0; i < outputs.size(); i++) {
+        outputs[i].AsProtoField(
+            &((*response->mutable_outputs())[output_aliases[i]]));
+      }
+    } break;
+    case internal::PredictResponseTensorSerializationOption::kAsProtoContent: {
+      for (int i = 0; i < outputs.size(); i++) {
+        outputs[i].AsProtoTensorContent(
+            &((*response->mutable_outputs())[output_aliases[i]]));
+      }
+    } break;
   }
 
   return Status::OK();
@@ -147,14 +160,19 @@ Status TensorflowPredictor::PredictWithModelSpec(const RunOptions& run_options,
   if (use_saved_model_) {
     ServableHandle<SavedModelBundle> bundle;
     TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &bundle));
-    return RunPredict(run_options, bundle->meta_graph_def, bundle.id().version,
-                      bundle->session.get(), request, response);
+    return internal::RunPredict(
+        run_options, bundle->meta_graph_def, bundle.id().version,
+        core->predict_response_tensor_serialization_option(),
+        bundle->session.get(), request, response);
   }
   ServableHandle<SessionBundle> bundle;
   TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &bundle));
-  return SessionBundlePredict(run_options, bundle->meta_graph_def,
-                              bundle.id().version, request, response,
-                              bundle->session.get());
+  // SessionBundle is officially deprecated. SessionBundlePredict is for
+  // backward compatibility.
+  return SessionBundlePredict(
+      run_options, bundle->meta_graph_def, bundle.id().version,
+      core->predict_response_tensor_serialization_option(), request, response,
+      bundle->session.get());
 }
 
 }  // namespace serving

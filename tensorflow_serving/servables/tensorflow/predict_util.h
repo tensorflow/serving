@@ -24,13 +24,31 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+namespace internal {
+// Whether to serialize proto as field or content.
+enum class PredictResponseTensorSerializationOption {
+  kAsProtoField = 0,
+  kAsProtoContent = 1,
+};
+
+// Similar to RunPredict below, but allows specification of a serialization
+// option for the TensorProtos in the response.
+Status RunPredict(
+    const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
+    const optional<int64>& servable_version,
+    const PredictResponseTensorSerializationOption tensor_serialization_option,
+    Session* session, const PredictRequest& request, PredictResponse* response);
+
+}  // namespace internal
+
 // Implementation of Predict using the SavedModel SignatureDef format.
+//
+// IMPLEMENTATION NOTES: Calls the internal::RunPredict function above by
+// specifying serialization option as kAsProtoField for backward compatibility.
 Status RunPredict(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
-                  const optional<int64>& servable_version,
-                  Session* session,
-                  const PredictRequest& request,
-                  PredictResponse* response);
+                  const optional<int64>& servable_version, Session* session,
+                  const PredictRequest& request, PredictResponse* response);
 
 }  // namespace serving
 }  // namespace tensorflow

@@ -22,6 +22,7 @@ limitations under the License.
 #include <vector>
 
 #include "absl/strings/str_join.h"
+#include "absl/strings/substitute.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/contrib/session_bundle/signature.h"
 #include "tensorflow/core/framework/tensor.pb.h"
@@ -146,28 +147,44 @@ Status PreProcessPrediction(const SignatureDef& signature,
 }
 
 // Validate results and populate a PredictResponse.
+// Tensors are serialized as specified.
 Status PostProcessPredictionResult(
-    const SignatureDef& signature,
     const std::vector<string>& output_tensor_aliases,
-    const std::vector<Tensor>& output_tensors, PredictResponse* response) {
+    const std::vector<Tensor>& output_tensors,
+    const internal::PredictResponseTensorSerializationOption option,
+    PredictResponse* response) {
   // Validate and return output.
   if (output_tensors.size() != output_tensor_aliases.size()) {
     return tensorflow::Status(tensorflow::error::UNKNOWN,
                               "Predict internal error");
   }
-  for (int i = 0; i < output_tensors.size(); i++) {
-    output_tensors[i].AsProtoField(
-        &((*response->mutable_outputs())[output_tensor_aliases[i]]));
+  switch (option) {
+    case internal::PredictResponseTensorSerializationOption::kAsProtoField: {
+      for (int i = 0; i < output_tensors.size(); i++) {
+        output_tensors[i].AsProtoField(
+            &((*response->mutable_outputs())[output_tensor_aliases[i]]));
+      }
+    } break;
+    case internal::PredictResponseTensorSerializationOption::kAsProtoContent: {
+      for (int i = 0; i < output_tensors.size(); i++) {
+        output_tensors[i].AsProtoTensorContent(
+            &((*response->mutable_outputs())[output_tensor_aliases[i]]));
+      }
+    } break;
   }
+
   return Status::OK();
 }
 
 }  // namespace
 
-Status RunPredict(const RunOptions& run_options,
-                  const MetaGraphDef& meta_graph_def,
-                  const optional<int64>& servable_version, Session* session,
-                  const PredictRequest& request, PredictResponse* response) {
+namespace internal {
+Status RunPredict(
+    const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
+    const optional<int64>& servable_version,
+    const internal::PredictResponseTensorSerializationOption option,
+    Session* session, const PredictRequest& request,
+    PredictResponse* response) {
   // Validate signatures.
   const string signature_name = request.model_spec().signature_name().empty()
                                     ? kDefaultServingSignatureDefKey
@@ -194,8 +211,19 @@ Status RunPredict(const RunOptions& run_options,
                                   output_tensor_names, {}, &outputs,
                                   &run_metadata));
 
-  return PostProcessPredictionResult(signature, output_tensor_aliases, outputs,
+  return PostProcessPredictionResult(output_tensor_aliases, outputs, option,
                                      response);
+}
+}  // namespace internal
+
+Status RunPredict(const RunOptions& run_options,
+                  const MetaGraphDef& meta_graph_def,
+                  const optional<int64>& servable_version, Session* session,
+                  const PredictRequest& request, PredictResponse* response) {
+  return internal::RunPredict(
+      run_options, meta_graph_def, servable_version,
+      internal::PredictResponseTensorSerializationOption::kAsProtoField,
+      session, request, response);
 }
 
 }  // namespace serving

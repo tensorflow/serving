@@ -425,10 +425,10 @@ cc_library(
     ],
     deps = [
         ":predict_util",
+        ":util",
         "//tensorflow_serving/apis:predict_proto",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/model_servers:server_core",
-        "//tensorflow_serving/servables/tensorflow:util",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -443,8 +443,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":util",
         "//tensorflow_serving/apis:predict_proto",
-        "//tensorflow_serving/servables/tensorflow:util",
         "//tensorflow_serving/util:optional",
         "@com_google_absl//absl/strings",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",

@@ -40,6 +40,7 @@ limitations under the License.
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/core/storage_path.h"
+#include "tensorflow_serving/servables/tensorflow/predict_util.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/util/event_bus.h"
 #include "tensorflow_serving/util/optional.h"
@@ -178,6 +179,13 @@ class ServerCore : public Manager {
     // Whether to allow assigning unused version labels to models that are not
     // available yet.
     bool allow_version_labels_for_unavailable_models = false;
+
+    // In a predict handler, this option specifies how to serialize tensors
+    // (e.g: as proto fields or as proto content).
+    // Serialize as proto fields by default, for backward compatibility.
+    internal::PredictResponseTensorSerializationOption
+        predict_response_tensor_serialization_option =
+            internal::PredictResponseTensorSerializationOption::kAsProtoField;
   };
 
   virtual ~ServerCore() = default;
@@ -246,6 +254,11 @@ class ServerCore : public Manager {
   Status Log(const google::protobuf::Message& request, const google::protobuf::Message& response,
              const LogMetadata& log_metadata) {
     return options_.server_request_logger->Log(request, response, log_metadata);
+  }
+
+  internal::PredictResponseTensorSerializationOption
+  predict_response_tensor_serialization_option() const {
+    return options_.predict_response_tensor_serialization_option;
   }
 
  protected:

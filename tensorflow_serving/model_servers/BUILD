@@ -81,6 +81,7 @@ cc_library(
         "//tensorflow_serving/core:source_adapter",
         "//tensorflow_serving/core:storage_path",
         "//tensorflow_serving/resources:resource_values",
+        "//tensorflow_serving/servables/tensorflow:predict_util",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
         "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter",
         "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_proto",
