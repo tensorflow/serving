@@ -143,7 +143,7 @@ class StreamingBatchScheduler : public BatchScheduler<TaskType> {
 
     // The number of threads to use to process batches.
     // Must be >= 1, and should be tuned carefully.
-    int num_batch_threads = port::NumSchedulableCPUs();
+    int num_batch_threads = port::MaxParallelism();
 
     // The following options are typically only overridden by test code.
 
