@@ -397,6 +397,9 @@ py_test(
     ],
     python_version = "PY2",
     srcs_version = "PY2AND3",
+    tags = [
+        "noasan",  # b/136281879
+    ],
     deps = [
         "//tensorflow_serving/apis:model_service_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
