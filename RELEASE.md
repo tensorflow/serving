@@ -1,3 +1,54 @@
+# Release 1.14.0
+
+## Major Features and Improvements
+
+None
+
+## Breaking Changes
+
+None
+
+## Bug Fixes and Other Changes
+
+* Add enforce_session_run_timeout inside Server::Options. (commit: de030640ec6ed2cd504ee0ad9335fb93aebe51b5)
+* Update comments as new envs TF_NUM_INTEROP_THREADS and TF_NUM_INTRAOP_THREADS are added in tensorflow (commit: a32bc432ed3c6366cfbb540d4b86b1cc6b3acf22)
+* Update TF Serving subsite config to import to /tfx/serving (commit: 6ac044af384bb0529d68ee1dd4fe287c2c55dc04)
+* Allow multiple logging configs to be associated with a single model. (commit: d9b99a3efe4077a8936bd586b252486c8b24dd6f)
+* Add -o option, to pass params to `docker` command. (commit: dd59021d3f807f23390afa8a2bc34a6f7029ed24)
+* Change SerializedExampleListWithContext dependency. (commit: 7acaec7c594cddfe2f06b6536c579b1b58078807)
+* Add servable_name to debugging log. (commit: e384bf406a5411a0539973c4c3aa13f0f889ebb3)
+* Stop using reader locks (tf_shared_lock) on the read path of FastReadDynamicPtr. (commit: f04e583a6a700a4943a57b6758b3e131b0865e97)
+* Clarify which model is being initialized. (commit: 5456ac57343a7962450eb80e9d4870dcb4b31ed4)
+* Add saved model tags to logging metadata. These tags are used by (commit: 6320701645d5aeceac49a4f02cc629159559f143)
+* Updates Apple platform config settings and allows TF serving (commit: c283ea580e4a51ececfacaa2b255fd0bb751c9ab)
+* Update example section to use Docker (commit: a5fc8bbc20f712fd6c4c148ff4d94a9231b79ceb)
+* Adds an option in SessionBundleConfig to repeat warmup replay n times per request. (commit: 15cd20263c8362f534afecbdf98b9d929eac70fd)
+* Bazel 0.23.2 is the minimum version required to build. (commit: b8a377cbeea07d6173f1938e4fe507b7ff9d17cd)
+* Disable MKLDNN contraction kernels by default (commit: a7f98b67e3f054e20bec86459a4f5dbf8eb45b08)
+* improve tpu server warm up (commit: 63d31a33b4f6faeb0764bb159d403f2b49061aed)
+* Re-enable MKLDNN contraction kernels by default. (commit: a075ebe5eff56f3311d6e2cc2d23e4e82567596b)
+* Stop removing libnvinfer_plugin.so since future version of TF GPU builds depends on it. (commit: 23ceb08d771118a2abdd28835f126c8675ba2f60)
+* Fix build failure with TF head sources. (commit: a02687e3fe96edc57c9ed4ad08cfbe5d9ba6e838)
+* AspiredVersionsManager, CachingManager: forward Env to BasicManager. (commit: 28da549e382fa027897886afec83fca6e92da33c)
+* Official PIP package releases are now tied to a specific version of TensorFlow (commit: 9514c37d22f0b728e2db9e8c6f28fb11ebde0fad)
+* Improves top-level README documentation; (commit: f26deea38a506512690096ad81ffa5bb6c32a4b2)
+* Bump the minimal Bazel version to 0.24.1 (commit: 96a716ca31f753b0c3efc1ef60779b77f5c60845)
+* Add option to refuse to unload the last servable version. (commit: c8496b199cedf3e38a7ad0dc4c46db2b341b28e5)
+* Add new device type for TPU. (commit: c74861d61131e2248a70d9c72317df8c49eb8f1a)
+* Add ability to disable periodic filesystem polling (#1295). (commit: 72450555c83ea5e6d18d05362192ad85613b23b1)
+* Fix incorrect formatting of decimal numbers in JSON output (#1332) (commit: d7c3b3deacbabf763ed44fb6932535016852e90a)
+* Fixed the gzip uncompression support in the HTTP server for large request bodies. (commit: fb7835c7cd95c5b6b163cb2abd6a8b9a1a283689)
+* Add stack memory resource kind. (commit: e56e72b3e4b9a597832734208a3da455f6db1a04)
+* Adds ModelServer test for loading SavedModel exported from Keras Sequential API (commit: 9578f3d10c786c6714b9a8b481dd74f454402477)
+* ignore SIGPIPE for libevent ，prevent the SIGPIPE signal from being raised, (commit: 8d88a5b3c4ac502113c798a470111ca65f47b0c2)
+
+## Thanks to our Contributors
+
+This release contains contributions from many people at Google, as well as:
+
+G. Hussain Chinoy, Karthik Vadla, Li Lao, mkim301, Tensorflow-Copybara, yjhjstz
+
+
 # Release 1.13.0
 
 ## Major Features and Improvements
