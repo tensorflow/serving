@@ -1,3 +1,17 @@
+# Release 1.12.3
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 1.12.3.
+
 # Release 1.14.0
 
 ## Major Features and Improvements
