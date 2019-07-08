@@ -29,7 +29,7 @@ from setuptools import setup
 DOCLINES = __doc__.split('\n')
 
 # Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
-_VERSION = '1.12.0'
+_VERSION = '1.12.3'
 
 REQUIRED_PACKAGES = [
     'tensorflow>=1.2.0,<2',
