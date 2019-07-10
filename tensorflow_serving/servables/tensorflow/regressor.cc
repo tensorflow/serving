@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/regressor.h"
 
 #include <stddef.h>
+
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -320,8 +321,10 @@ Status PostProcessRegressionResult(
                                    num_examples,
                                    ".  Got: ", output_tensor->NumElements());
   }
+
+  const auto& output_tensor_flat = output_tensor->flat<float>();
   for (int i = 0; i < num_examples; ++i) {
-    result->add_regressions()->set_value(output_tensor->flat<float>()(i));
+    result->add_regressions()->set_value(output_tensor_flat(i));
   }
   return Status::OK();
 }
