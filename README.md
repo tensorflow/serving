@@ -92,6 +92,7 @@ for detailed instructions on how to export SavedModels.
 * [Use SavedModel Warmup if initial inference requests are slow due to lazy initialization of graph](tensorflow_serving/g3doc/saved_model_warmup.md)
 * [Configure models, version and version policy via Serving Config](tensorflow_serving/g3doc/serving_config.md)
 * [If encountering issues regarding model signatures, please read the SignatureDef documentation](tensorflow_serving/g3doc/signature_defs.md)
+* If using a model with custom ops, [learn how to serve models with custom ops](tensorflow_serving/g3doc/custom_op.md)
 
 ### Extend
 

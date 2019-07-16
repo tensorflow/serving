@@ -17,5 +17,7 @@ toc:
   path: /tfx/serving/custom_servable
 - title: Create a module that discovers new servable paths
   path: /tfx/serving/custom_source
+- title: Serving TensorFlow models with custom ops
+  path: /tfx/serving/custom_op
 - title: SignatureDefs in SavedModel for TensorFlow Serving
   path: /tfx/serving/signature_defs
