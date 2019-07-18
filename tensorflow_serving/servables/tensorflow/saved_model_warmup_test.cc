@@ -134,6 +134,21 @@ Status WriteWarmupData(const string& fname,
   return Status::OK();
 }
 
+Status WriteWarmupDataAsSerializedProtos(
+    const string& fname, const std::vector<string>& warmup_records,
+    int num_warmup_records) {
+  Env* env = Env::Default();
+  std::unique_ptr<WritableFile> file;
+  TF_RETURN_IF_ERROR(env->NewWritableFile(fname, &file));
+  for (int i = 0; i < num_warmup_records; ++i) {
+    for (const string& warmup_record : warmup_records) {
+      TF_RETURN_IF_ERROR(file->Append(warmup_record));
+    }
+  }
+  TF_RETURN_IF_ERROR(file->Close());
+  return Status::OK();
+}
+
 void AddMixedWarmupData(std::vector<string>* warmup_records) {
   for (auto& log_type :
        {PredictionLog::kRegressLog, PredictionLog::kClassifyLog,
@@ -293,6 +308,35 @@ TEST(SavedModelBundleWarmupTest, UnsupportedLogType) {
   EXPECT_EQ(::tensorflow::error::UNIMPLEMENTED, status.code()) << status;
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Unsupported log_type for warmup"));
+}
+
+TEST(SavedModelBundleWarmupTest, UnsupportedFileFormat) {
+  string base_path = io::JoinPath(testing::TmpDir(), "UnsupportedFileFormat");
+  TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
+      io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
+  const string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                    WarmupConsts::kRequestsFileName);
+
+  std::vector<string> warmup_records;
+  // Add unsupported log type
+  PredictionLog prediction_log;
+  PopulatePredictionLog(&prediction_log, PredictionLog::kSessionRunLog);
+  warmup_records.push_back(prediction_log.SerializeAsString());
+
+  TF_ASSERT_OK(WriteWarmupDataAsSerializedProtos(fname, warmup_records, 10));
+  SavedModelBundle saved_model_bundle;
+  AddSignatures(&saved_model_bundle.meta_graph_def);
+  MockSession* mock = new MockSession;
+  saved_model_bundle.session.reset(mock);
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+      .WillRepeatedly(Return(Status::OK()));
+  const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
+                                            base_path, &saved_model_bundle);
+  ASSERT_FALSE(status.ok());
+  EXPECT_EQ(::tensorflow::error::DATA_LOSS, status.code()) << status;
+  EXPECT_THAT(status.ToString(),
+              ::testing::HasSubstr(
+                  "Please verify your warmup data is in TFRecord format"));
 }
 
 TEST(SavedModelBundleWarmupTest, TooManyWarmupRecords) {

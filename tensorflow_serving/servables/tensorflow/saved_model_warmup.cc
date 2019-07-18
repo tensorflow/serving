@@ -16,7 +16,9 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup.h"
 
 #include "google/protobuf/wrappers.pb.h"
+#include "absl/strings/str_cat.h"
 #include "tensorflow/cc/saved_model/constants.h"
+#include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
@@ -149,6 +151,12 @@ Status RunSavedModelWarmup(const ModelWarmupOptions& model_warmup_options,
   const auto warmup_latency = GetLatencyMicroseconds(start_microseconds);
   model_warm_up_latency->GetCell(export_dir, status.ToString())
       ->Add(warmup_latency);
+
+  if (errors::IsDataLoss(status)) {
+    return errors::DataLoss(
+        status.error_message(),
+        ". Please verify your warmup data is in TFRecord format.");
+  }
 
   // OUT_OF_RANGE error means EOF was reached, do not return error in this case
   if (!errors::IsOutOfRange(status)) {
