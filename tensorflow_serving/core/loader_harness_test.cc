@@ -75,8 +75,10 @@ TEST(LoaderHarnessTest, LoadRequested) {
 
 TEST(LoaderHarnessTest, Quiesce) {
   test_util::MockLoader* loader = new StrictMock<test_util::MockLoader>;
-  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
-  EXPECT_CALL(*loader, Load()).WillOnce(Return(Status::OK()));
+  const ServableId servable_id = {"test", 0};
+  LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
+      .WillOnce(Return(Status::OK()));
   EXPECT_CALL(*loader, Unload()).WillOnce(Return());
 
   TF_ASSERT_OK(harness.LoadRequested());
@@ -96,11 +98,14 @@ TEST(LoaderHarnessTest, Quiesce) {
 
 TEST(LoaderHarnessTest, Load) {
   test_util::MockLoader* loader = new StrictMock<test_util::MockLoader>;
-  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
+  const ServableId servable_id = {"test", 0};
+
+  LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
 
   Notification load_called;
   Notification load_should_return;
-  EXPECT_CALL(*loader, Load()).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
+      .WillOnce(Return(Status::OK()));
   {
     std::unique_ptr<Thread> test_thread(
         Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
@@ -118,8 +123,11 @@ TEST(LoaderHarnessTest, Load) {
 
 TEST(LoaderHarnessTest, Unload) {
   test_util::MockLoader* loader = new StrictMock<test_util::MockLoader>;
-  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
-  EXPECT_CALL(*loader, Load()).WillOnce(Return(Status::OK()));
+  const ServableId servable_id = {"test", 0};
+
+  LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
+      .WillOnce(Return(Status::OK()));
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load());
@@ -138,8 +146,10 @@ TEST(LoaderHarnessTest, Unload) {
 
 TEST(LoaderHarnessTest, UnloadRequested) {
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
-  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
-  EXPECT_CALL(*loader, Load()).WillOnce(Return(Status::OK()));
+  const ServableId servable_id = {"test", 0};
+  LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
+      .WillOnce(Return(Status::OK()));
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load());
@@ -164,11 +174,12 @@ TEST(LoaderHarnessTest, LoadApproved) {
 
 TEST(LoaderHarnessTest, LoadError) {
   test_util::MockLoader* loader = new StrictMock<test_util::MockLoader>;
-  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
+  const ServableId servable_id = {"test", 0};
+  LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
 
   Notification load_called;
   Notification load_should_return;
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
       .WillOnce(Return(errors::Unknown("test load error")));
   {
     std::unique_ptr<Thread> test_thread(
@@ -241,10 +252,12 @@ TEST(LoaderHarnessTest, MultipleLoadRequestsOnlyFirstOneSucceeds) {
 
 TEST(LoaderHarnessTest, MultipleUnloadRequestsOnlyFirstOneSucceeds) {
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
-  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader));
+  const ServableId servable_id = {"test", 0};
+  LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
 
   TF_ASSERT_OK(harness.LoadRequested());
-  EXPECT_CALL(*loader, Load()).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
+      .WillOnce(Return(Status::OK()));
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load());
 
@@ -264,10 +277,10 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorFinallySucceeds) {
   LoaderHarness::Options options;
   options.max_num_load_retries = 1;
   options.load_retry_interval_micros = 1;
-  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
-                        options);
+  const ServableId servable_id = {"test", 0};
+  LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader), options);
 
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
       .WillOnce(InvokeWithoutArgs(
           []() { return errors::Unknown("test load error"); }))
       .WillOnce(InvokeWithoutArgs([]() { return Status::OK(); }));
@@ -283,12 +296,13 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorFinallyFails) {
   LoaderHarness::Options options;
   options.max_num_load_retries = 1;
   options.load_retry_interval_micros = 0;
-  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
-                        options);
+  const ServableId servable_id = {"test", 0};
+  LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader), options);
 
-  EXPECT_CALL(*loader, Load()).Times(2).WillRepeatedly(InvokeWithoutArgs([]() {
-    return errors::Unknown("test load error");
-  }));
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
+      .Times(2)
+      .WillRepeatedly(InvokeWithoutArgs(
+          []() { return errors::Unknown("test load error"); }));
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   const Status status = harness.Load();
@@ -301,12 +315,12 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorCancelledLoad) {
   LoaderHarness::Options options;
   options.max_num_load_retries = 10;
   options.load_retry_interval_micros = 0;
-  LoaderHarness harness(ServableId{"test", 0}, std::unique_ptr<Loader>(loader),
-                        options);
+  const ServableId servable_id = {"test", 0};
+  LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader), options);
 
   Notification load_called;
   Notification load_should_return;
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
         return errors::Unknown("test load error");
       }))

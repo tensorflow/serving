@@ -285,7 +285,8 @@ TEST_P(BasicManagerTest, UpdateServingMapServableHandleLatest) {
       .WillByDefault(Return(AnyPtr(&servable)));
   ON_CALL(*notify_to_unload, EstimateResources(_))
       .WillByDefault(Return(Status::OK()));
-  ON_CALL(*notify_to_unload, Load()).WillByDefault(Return(Status::OK()));
+  ON_CALL(*notify_to_unload, LoadWithMetadata(Loader::Metadata{id0}))
+      .WillByDefault(Return(Status::OK()));
   const ServableId id1 = {kServableName3, 1};
   TF_ASSERT_OK(basic_manager_->ManageServable(
       {id1, std::unique_ptr<Loader>(notify_to_unload)}));
@@ -694,11 +695,12 @@ TEST_P(BasicManagerTest, EventBusServableLifecycle) {
 
   Notification load_called;
   Notification load_continue;
-  EXPECT_CALL(*loader, Load()).WillOnce(InvokeWithoutArgs([&]() {
-    load_called.Notify();
-    load_continue.WaitForNotification();
-    return Status::OK();
-  }));
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
+      .WillOnce(InvokeWithoutArgs([&]() {
+        load_called.Notify();
+        load_continue.WaitForNotification();
+        return Status::OK();
+      }));
 
   std::unique_ptr<Thread> load_thread(
       Env::Default()->StartThread(ThreadOptions(), "LoadThread", [&]() {
@@ -1113,7 +1115,7 @@ TEST_P(BasicManagerTest, RetryOnLoadErrorFinallySucceeds) {
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>();
   TF_ASSERT_OK(
       basic_manager_->ManageServable({id, std::unique_ptr<Loader>(loader)}));
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(Return(errors::Internal("Load error.")))
       .WillRepeatedly(Return(Status::OK()));
   basic_manager_->LoadServable(
@@ -1125,7 +1127,7 @@ TEST_P(BasicManagerTest, RetryOnLoadErrorFinallyFails) {
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>();
   TF_ASSERT_OK(
       basic_manager_->ManageServable({id, std::unique_ptr<Loader>(loader)}));
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillRepeatedly(Return(errors::Internal("Load error.")));
   basic_manager_->LoadServable(id, [](const Status& status) {
     EXPECT_EQ(errors::Internal("Load error."), status);
@@ -1141,7 +1143,7 @@ TEST_P(BasicManagerTest, RetryOnLoadErrorCancelledLoad) {
 
   Notification load_called;
   Notification load_should_return;
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
         load_called.Notify();
         load_should_return.WaitForNotification();
@@ -1169,7 +1171,7 @@ TEST_P(BasicManagerTest, LoadAfterCancelledLoad) {
 
   Notification load_called;
   Notification load_should_return;
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
         load_called.Notify();
         load_should_return.WaitForNotification();
@@ -1212,10 +1214,11 @@ TEST(NonParameterizedBasicManagerTest, PreLoadHook) {
   EXPECT_CALL(mock_pre_load_hook, Call(id)).WillOnce(InvokeWithoutArgs([&]() {
     pre_load_hook_called = true;
   }));
-  EXPECT_CALL(*loader, Load()).WillOnce(InvokeWithoutArgs([&]() {
-    EXPECT_TRUE(pre_load_hook_called);
-    return Status::OK();
-  }));
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
+      .WillOnce(InvokeWithoutArgs([&]() {
+        EXPECT_TRUE(pre_load_hook_called);
+        return Status::OK();
+      }));
   manager->LoadServable(id, [](const Status& status) { TF_ASSERT_OK(status); });
   manager->UnloadServable(id,
                           [](const Status& status) { TF_ASSERT_OK(status); });
@@ -1320,7 +1323,8 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
         *estimate = CreateResourceQuantity(10 /* = total system resources */);
         return Status::OK();
       }));
-  EXPECT_CALL(*hogging_loader, Load()).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*hogging_loader, LoadWithMetadata(Loader::Metadata{hogging_id}))
+      .WillOnce(Return(Status::OK()));
   TF_ASSERT_OK(basic_manager_->ManageServable(
       CreateServableData(hogging_id, std::unique_ptr<Loader>(hogging_loader))));
   Notification hogging_loaded;
@@ -1372,7 +1376,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedIfLoadFails) {
         *estimate = CreateResourceQuantity(10);
         return Status::OK();
       }));
-  EXPECT_CALL(*failing_loader, Load())
+  EXPECT_CALL(*failing_loader, LoadWithMetadata(Loader::Metadata{failing_id}))
       .WillOnce(Return(errors::Unknown("Load failure")));
   TF_ASSERT_OK(basic_manager_->ManageServable(
       CreateServableData(failing_id, std::unique_ptr<Loader>(failing_loader))));
@@ -1395,7 +1399,9 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedIfLoadFails) {
         *estimate = CreateResourceQuantity(10);
         return Status::OK();
       }));
-  EXPECT_CALL(*succeeding_loader, Load()).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*succeeding_loader,
+              LoadWithMetadata(Loader::Metadata{succeeding_id}))
+      .WillOnce(Return(Status::OK()));
   TF_ASSERT_OK(basic_manager_->ManageServable(CreateServableData(
       succeeding_id, std::unique_ptr<Loader>(succeeding_loader))));
   basic_manager_->LoadServable(
@@ -1416,7 +1422,9 @@ TEST_F(ResourceConstrainedBasicManagerTest,
           return Status::OK();
         }))
         .RetiresOnSaturation();
-    EXPECT_CALL(*overestimating_loader, Load()).WillOnce(Return(Status::OK()));
+    EXPECT_CALL(*overestimating_loader,
+                LoadWithMetadata(Loader::Metadata{overestimating_id}))
+        .WillOnce(Return(Status::OK()));
     EXPECT_CALL(*overestimating_loader, EstimateResources(_))
         .WillOnce(Invoke([](ResourceAllocation* estimate) {
           *estimate = CreateResourceQuantity(5 /* lower estimate after load */);
@@ -1445,7 +1453,9 @@ TEST_F(ResourceConstrainedBasicManagerTest,
         *estimate = CreateResourceQuantity(5);
         return Status::OK();
       }));
-  EXPECT_CALL(*succeeding_loader, Load()).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*succeeding_loader,
+              LoadWithMetadata(Loader::Metadata{succeeding_id}))
+      .WillOnce(Return(Status::OK()));
   TF_ASSERT_OK(basic_manager_->ManageServable(CreateServableData(
       succeeding_id, std::unique_ptr<Loader>(succeeding_loader))));
   basic_manager_->LoadServable(
@@ -1461,7 +1471,9 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedAfterUnload) {
         return Status::OK();
       }));
   Notification load_done;
-  EXPECT_CALL(*unloading_loader, Load()).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*unloading_loader,
+              LoadWithMetadata(Loader::Metadata{unloading_id}))
+      .WillOnce(Return(Status::OK()));
   TF_ASSERT_OK(basic_manager_->ManageServable(CreateServableData(
       unloading_id, std::unique_ptr<Loader>(unloading_loader))));
   basic_manager_->LoadServable(unloading_id,
@@ -1497,7 +1509,9 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedAfterUnload) {
         *estimate = CreateResourceQuantity(10);
         return Status::OK();
       }));
-  EXPECT_CALL(*succeeding_loader, Load()).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*succeeding_loader,
+              LoadWithMetadata(Loader::Metadata{succeeding_id}))
+      .WillOnce(Return(Status::OK()));
   TF_ASSERT_OK(basic_manager_->ManageServable(CreateServableData(
       succeeding_id, std::unique_ptr<Loader>(succeeding_loader))));
   basic_manager_->LoadServable(
@@ -1522,7 +1536,8 @@ TEST_F(ResourceConstrainedBasicManagerTest, FirstLoadDeniedSecondOneApproved) {
         return Status::OK();
       }));
   // Load won't be called because resources are not enough to load it.
-  EXPECT_CALL(*denied_loader, Load()).Times(0);
+  EXPECT_CALL(*denied_loader, LoadWithMetadata(Loader::Metadata{denied_id}))
+      .Times(0);
   TF_ASSERT_OK(basic_manager_->ManageServable(
       CreateServableData(denied_id, std::unique_ptr<Loader>(denied_loader))));
 
@@ -1549,8 +1564,9 @@ TEST_F(ResourceConstrainedBasicManagerTest, FirstLoadDeniedSecondOneApproved) {
   denied_estimate_started.WaitForNotification();
   // The second servable's Load() call shouldn't occur until after the first
   // servable's load request exits its decision phase.
-  EXPECT_CALL(*succeeding_loader, Load())
-      .WillOnce(Invoke([&finish_denied_estimate]() {
+  EXPECT_CALL(*succeeding_loader,
+              LoadWithMetadata(Loader::Metadata{succeeding_id}))
+      .WillOnce(InvokeWithoutArgs([&finish_denied_estimate]() {
         // Ensure that the first servable's load request has been given
         // permission to exit its decision phase.
         EXPECT_TRUE(finish_denied_estimate.HasBeenNotified());
@@ -1625,7 +1641,8 @@ TEST(EstimateResourcesRetriedTest, Succeeds) {
   EXPECT_CALL(*loader, EstimateResources(_))
       .WillOnce(Return(errors::Internal("Error on estimate resources.")))
       .WillOnce(Return(Status::OK()));
-  EXPECT_CALL(*loader, Load()).WillRepeatedly(Return(Status::OK()));
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
+      .WillRepeatedly(Return(Status::OK()));
   TF_ASSERT_OK(basic_manager->ManageServable(
       CreateServableData(id, std::unique_ptr<Loader>(loader))));
   basic_manager->LoadServable(

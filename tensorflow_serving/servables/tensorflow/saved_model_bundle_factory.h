@@ -16,11 +16,13 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SAVED_MODEL_BUNDLE_FACTORY_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SAVED_MODEL_BUNDLE_FACTORY_H_
 
+#include "absl/types/optional.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/kernels/batching_util/shared_batch_scheduler.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/batching/batching_session.h"
+#include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 
@@ -64,6 +66,17 @@ class SavedModelBundleFactory {
   Status CreateSavedModelBundle(const string& path,
                                 std::unique_ptr<SavedModelBundle>* bundle);
 
+  /// Instantiates a bundle from a given export or SavedModel path and the given
+  /// metadata.
+  ///
+  /// @param metadata  Metadata to be associated with the bundle.
+  /// @param path      Path to the model.
+  /// @param bundle    Newly created SavedModelBundle if the returned Status is
+  /// OK.
+  Status CreateSavedModelBundleWithMetadata(
+      const Loader::Metadata& metadata, const string& path,
+      std::unique_ptr<SavedModelBundle>* bundle);
+
   /// Estimates the resources a SavedModel bundle will use once loaded, from its
   /// export path.
   ///
@@ -80,6 +93,10 @@ class SavedModelBundleFactory {
 
   SavedModelBundleFactory(const SessionBundleConfig& config,
                           std::shared_ptr<Batcher> batch_scheduler);
+
+  Status InternalCreateSavedModelBundle(
+      const absl::optional<Loader::Metadata>& metadata, const string& path,
+      std::unique_ptr<SavedModelBundle>* bundle);
 
   const SessionBundleConfig config_;
 

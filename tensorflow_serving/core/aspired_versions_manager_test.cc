@@ -736,11 +736,12 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
 
   Notification load_called;
   Notification load_continue;
-  EXPECT_CALL(*loader, Load()).WillOnce(InvokeWithoutArgs([&]() {
-    load_called.Notify();
-    load_continue.WaitForNotification();
-    return Status::OK();
-  }));
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
+      .WillOnce(InvokeWithoutArgs([&]() {
+        load_called.Notify();
+        load_continue.WaitForNotification();
+        return Status::OK();
+      }));
 
   std::unique_ptr<Thread> load_unload_thread(
       Env::Default()->StartThread(ThreadOptions(), "LoadUnloadThread", [&]() {
@@ -825,14 +826,13 @@ TEST_P(AspiredVersionsManagerTest, NoEventBus) {
 
 TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallySucceeds) {
   CHECK_GE(max_num_load_retries_, 1);
-
+  const ServableId id = {kServableName, 7};
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
   // We succeed on the last load, before the manager gives up.
-  EXPECT_CALL(*loader, Load())
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(Return(errors::Internal("Error on load.")))
       .WillOnce(Return(Status::OK()));
 
-  const ServableId id = {kServableName, 7};
   std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
   aspired_versions.push_back({id, std::unique_ptr<Loader>(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
@@ -961,7 +961,8 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   std::vector<ServableData<std::unique_ptr<Loader>>> first_aspired_versions;
   test_util::MockLoader* first_loader = new NiceMock<test_util::MockLoader>();
   first_aspired_versions.push_back({id, std::unique_ptr<Loader>(first_loader)});
-  EXPECT_CALL(*first_loader, Load()).WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*first_loader, LoadWithMetadata(Loader::Metadata{id}))
+      .WillOnce(Return(Status::OK()));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
   HandlePendingAspiredVersionsRequests();
@@ -1017,10 +1018,11 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   second_aspired_versions.push_back(
       {id, std::unique_ptr<Loader>(second_loader)});
   Notification second_load_called;
-  EXPECT_CALL(*second_loader, Load()).WillOnce(InvokeWithoutArgs([&]() {
-    second_load_called.Notify();
-    return Status::OK();
-  }));
+  EXPECT_CALL(*second_loader, LoadWithMetadata(Loader::Metadata{id}))
+      .WillOnce(InvokeWithoutArgs([&]() {
+        second_load_called.Notify();
+        return Status::OK();
+      }));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(second_aspired_versions));
 
@@ -1056,7 +1058,7 @@ TEST_P(AspiredVersionsManagerTest,
   std::vector<ServableData<std::unique_ptr<Loader>>> first_aspired_versions;
   test_util::MockLoader* first_loader = new NiceMock<test_util::MockLoader>();
   first_aspired_versions.push_back({id, std::unique_ptr<Loader>(first_loader)});
-  EXPECT_CALL(*first_loader, Load())
+  EXPECT_CALL(*first_loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillRepeatedly(Return(Status(error::UNKNOWN, "first load failing")));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
@@ -1084,10 +1086,11 @@ TEST_P(AspiredVersionsManagerTest,
   second_aspired_versions.push_back(
       {id, std::unique_ptr<Loader>(second_loader)});
   Notification second_load_called;
-  EXPECT_CALL(*second_loader, Load()).WillOnce(InvokeWithoutArgs([&]() {
-    second_load_called.Notify();
-    return Status::OK();
-  }));
+  EXPECT_CALL(*second_loader, LoadWithMetadata(Loader::Metadata{id}))
+      .WillOnce(InvokeWithoutArgs([&]() {
+        second_load_called.Notify();
+        return Status::OK();
+      }));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(second_aspired_versions));
 
@@ -1119,7 +1122,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireNewServableThenImmediatelyReaspire) {
 
   std::vector<ServableData<std::unique_ptr<Loader>>> first_aspired_versions;
   test_util::MockLoader* first_loader = new NiceMock<test_util::MockLoader>();
-  EXPECT_CALL(*first_loader, Load()).Times(0);
+  EXPECT_CALL(*first_loader, LoadWithMetadata(Loader::Metadata{id})).Times(0);
   first_aspired_versions.push_back({id, std::unique_ptr<Loader>(first_loader)});
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
@@ -1142,10 +1145,11 @@ TEST_P(AspiredVersionsManagerTest, UnaspireNewServableThenImmediatelyReaspire) {
   second_aspired_versions.push_back(
       {id, std::unique_ptr<Loader>(second_loader)});
   Notification second_load_called;
-  EXPECT_CALL(*second_loader, Load()).WillOnce(InvokeWithoutArgs([&]() {
-    second_load_called.Notify();
-    return Status::OK();
-  }));
+  EXPECT_CALL(*second_loader, LoadWithMetadata(Loader::Metadata{id}))
+      .WillOnce(InvokeWithoutArgs([&]() {
+        second_load_called.Notify();
+        return Status::OK();
+      }));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(second_aspired_versions));
   // The first HandlePendingAspiredVersionsRequests() call will do nothing,

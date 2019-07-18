@@ -1,10 +1,10 @@
 syntax = "proto3";
 
+package tensorflow.serving;
+
 import "google/protobuf/wrappers.proto";
 import "tensorflow/core/protobuf/config.proto";
 import "tensorflow/core/protobuf/named_tensor.proto";
-
-package tensorflow.serving;
 
 // Options related to model-warmup.
 message ModelWarmupOptions {
@@ -69,6 +69,13 @@ message SessionBundleConfig {
   // Enables model warmup.
   bool enable_model_warmup = 779;
   ModelWarmupOptions model_warmup_options = 780;
+
+  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
+  //
+  // Enables passing in the SessionMetadata to the Session. The SessionMetadata
+  // consists of information like the model name, version, which can then be
+  // used by the TensorFlow runtime appropriately (for debugging, logging, etc).
+  bool enable_session_metadata = 781;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

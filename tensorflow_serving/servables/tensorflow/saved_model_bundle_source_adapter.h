@@ -20,6 +20,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/core/loader.h"
+#include "tensorflow_serving/core/simple_loader.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
@@ -53,6 +54,10 @@ class SavedModelBundleSourceAdapter final
 
   explicit SavedModelBundleSourceAdapter(
       std::unique_ptr<SavedModelBundleFactory> bundle_factory);
+
+  SimpleLoader<SavedModelBundle>::CreatorVariant GetServableCreator(
+      std::shared_ptr<SavedModelBundleFactory> bundle_factory,
+      const StoragePath& path) const;
 
   Status Convert(const StoragePath& path,
                  std::unique_ptr<Loader>* loader) override;

@@ -29,6 +29,7 @@ class MockLoader : public Loader {
  public:
   MOCK_CONST_METHOD1(EstimateResources, Status(ResourceAllocation* estimate));
   MOCK_METHOD0(Load, Status());
+  MOCK_METHOD1(LoadWithMetadata, Status(const Metadata&));
   MOCK_METHOD0(Unload, void());
   MOCK_METHOD0(servable, AnyPtr());
 };

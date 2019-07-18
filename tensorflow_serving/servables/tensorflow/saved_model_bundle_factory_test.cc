@@ -31,6 +31,7 @@ limitations under the License.
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/public/version.h"
+#include "tensorflow_serving/core/test_util/session_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
@@ -39,20 +40,55 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
+enum class CreationType { kWithoutMetadata, kWithMetadata };
+
+Loader::Metadata CreateMetadata() { return {ServableId{"name", 42}}; }
+
 // Creates a new session based on the config and export path.
-Status CreateSessionFromPath(const SessionBundleConfig& config,
+Status CreateSessionFromPath(const CreationType creation_type,
+                             const SessionBundleConfig& config,
                              const string& path,
                              std::unique_ptr<Session>* session) {
   std::unique_ptr<SavedModelBundleFactory> factory;
   TF_RETURN_IF_ERROR(SavedModelBundleFactory::Create(config, &factory));
   std::unique_ptr<SavedModelBundle> bundle;
-  TF_RETURN_IF_ERROR(factory->CreateSavedModelBundle(path, &bundle));
+  auto config_with_session_hook = config;
+  config_with_session_hook.set_session_target(
+      test_util::kNewSessionHookSessionTargetPrefix);
+  test_util::SetNewSessionHook([&](const SessionOptions& session_options) {
+    const bool enable_session_metadata =
+        creation_type == CreationType::kWithMetadata;
+    EXPECT_EQ(enable_session_metadata,
+              session_options.config.experimental().has_session_metadata());
+    if (enable_session_metadata) {
+      const auto& actual_session_metadata =
+          session_options.config.experimental().session_metadata();
+      const auto& expected_loader_metadata = CreateMetadata();
+      EXPECT_EQ(expected_loader_metadata.servable_id.name,
+                actual_session_metadata.name());
+      EXPECT_EQ(expected_loader_metadata.servable_id.version,
+                actual_session_metadata.version());
+    }
+    return Status::OK();
+  });
+
+  switch (creation_type) {
+    case CreationType::kWithoutMetadata:
+      TF_RETURN_IF_ERROR(factory->CreateSavedModelBundle(path, &bundle));
+      break;
+    case CreationType::kWithMetadata:
+      TF_RETURN_IF_ERROR(factory->CreateSavedModelBundleWithMetadata(
+          CreateMetadata(), path, &bundle));
+      break;
+  }
   *session = std::move(bundle->session);
   return Status::OK();
 }
 
 // Tests SavedModelBundleFactory with native SavedModel.
-class SavedModelBundleFactoryTest : public test_util::BundleFactoryTest {
+class SavedModelBundleFactoryTest
+    : public test_util::BundleFactoryTest,
+      public ::testing::WithParamInterface<CreationType> {
  public:
   SavedModelBundleFactoryTest()
       : test_util::BundleFactoryTest(test_util::GetTestSavedModelPath()) {}
@@ -62,13 +98,17 @@ class SavedModelBundleFactoryTest : public test_util::BundleFactoryTest {
  protected:
   Status CreateSession(const SessionBundleConfig& config,
                        std::unique_ptr<Session>* session) const override {
-    return CreateSessionFromPath(config, export_dir_, session);
+    return CreateSessionFromPath(GetParam(), config, export_dir_, session);
   }
 };
 
-TEST_F(SavedModelBundleFactoryTest, Basic) { TestBasic(); }
+INSTANTIATE_TEST_SUITE_P(CreationType, SavedModelBundleFactoryTest,
+                         ::testing::Values(CreationType::kWithoutMetadata,
+                                           CreationType::kWithMetadata));
 
-TEST_F(SavedModelBundleFactoryTest, FixedInputTensors) {
+TEST_P(SavedModelBundleFactoryTest, Basic) { TestBasic(); }
+
+TEST_P(SavedModelBundleFactoryTest, FixedInputTensors) {
   Tensor fixed_input = test::AsTensor<float>({100.0f, 42.0f}, {2});
   NamedTensorProto fixed_input_proto;
   fixed_input_proto.set_name("x:0");
@@ -95,22 +135,23 @@ TEST_F(SavedModelBundleFactoryTest, FixedInputTensors) {
   test::ExpectTensorEqual<float>(expected_output, single_output);
 }
 
-TEST_F(SavedModelBundleFactoryTest, Batching) { TestBatching(); }
+TEST_P(SavedModelBundleFactoryTest, Batching) { TestBatching(); }
 
-TEST_F(SavedModelBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
+TEST_P(SavedModelBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
   const double kTotalFileSize =
       test_util::GetTotalFileSize(test_util::GetTestSavedModelFiles());
   TestEstimateResourceRequirementWithGoodExport<SavedModelBundleFactory>(
       kTotalFileSize);
 }
 
-TEST_F(SavedModelBundleFactoryTest, RunOptions) { TestRunOptions(); }
+TEST_P(SavedModelBundleFactoryTest, RunOptions) { TestRunOptions(); }
 
-TEST_F(SavedModelBundleFactoryTest, RunOptionsError) { TestRunOptionsError(); }
+TEST_P(SavedModelBundleFactoryTest, RunOptionsError) { TestRunOptionsError(); }
 
 // Tests SavedModelBundleFactory with SessionBundle export.
 class SavedModelBundleFactoryBackwardCompatibilityTest
-    : public test_util::BundleFactoryTest {
+    : public test_util::BundleFactoryTest,
+      public ::testing::WithParamInterface<CreationType> {
  public:
   SavedModelBundleFactoryBackwardCompatibilityTest()
       : test_util::BundleFactoryTest(
@@ -121,17 +162,22 @@ class SavedModelBundleFactoryBackwardCompatibilityTest
  private:
   Status CreateSession(const SessionBundleConfig& config,
                        std::unique_ptr<Session>* session) const override {
-    return CreateSessionFromPath(config, export_dir_, session);
+    return CreateSessionFromPath(GetParam(), config, export_dir_, session);
   }
 };
 
-TEST_F(SavedModelBundleFactoryBackwardCompatibilityTest, Basic) { TestBasic(); }
+INSTANTIATE_TEST_SUITE_P(CreationType,
+                         SavedModelBundleFactoryBackwardCompatibilityTest,
+                         ::testing::Values(CreationType::kWithoutMetadata,
+                                           CreationType::kWithMetadata));
 
-TEST_F(SavedModelBundleFactoryBackwardCompatibilityTest, Batching) {
+TEST_P(SavedModelBundleFactoryBackwardCompatibilityTest, Basic) { TestBasic(); }
+
+TEST_P(SavedModelBundleFactoryBackwardCompatibilityTest, Batching) {
   TestBatching();
 }
 
-TEST_F(SavedModelBundleFactoryBackwardCompatibilityTest,
+TEST_P(SavedModelBundleFactoryBackwardCompatibilityTest,
        EstimateResourceRequirementWithGoodExport) {
   const double kTotalFileSize =
       test_util::GetTotalFileSize(test_util::GetTestSessionBundleExportFiles());
@@ -139,11 +185,11 @@ TEST_F(SavedModelBundleFactoryBackwardCompatibilityTest,
       kTotalFileSize);
 }
 
-TEST_F(SavedModelBundleFactoryBackwardCompatibilityTest, RunOptions) {
+TEST_P(SavedModelBundleFactoryBackwardCompatibilityTest, RunOptions) {
   TestRunOptions();
 }
 
-TEST_F(SavedModelBundleFactoryBackwardCompatibilityTest, RunOptionsError) {
+TEST_P(SavedModelBundleFactoryBackwardCompatibilityTest, RunOptionsError) {
   TestRunOptionsError();
 }
 

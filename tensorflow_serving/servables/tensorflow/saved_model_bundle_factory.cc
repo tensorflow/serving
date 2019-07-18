@@ -75,8 +75,20 @@ Status SavedModelBundleFactory::EstimateResourceRequirement(
   return EstimateResourceFromPath(path, estimate);
 }
 
+Status SavedModelBundleFactory::CreateSavedModelBundleWithMetadata(
+    const Loader::Metadata& metadata, const string& path,
+    std::unique_ptr<SavedModelBundle>* bundle) {
+  return InternalCreateSavedModelBundle(metadata, path, bundle);
+}
+
 Status SavedModelBundleFactory::CreateSavedModelBundle(
     const string& path, std::unique_ptr<SavedModelBundle>* bundle) {
+  return InternalCreateSavedModelBundle({}, path, bundle);
+}
+
+Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
+    const absl::optional<Loader::Metadata>& metadata, const string& path,
+    std::unique_ptr<SavedModelBundle>* bundle) {
   bundle->reset(new SavedModelBundle);
   std::unordered_set<string> saved_model_tags(
       config_.saved_model_tags().begin(), config_.saved_model_tags().end());
@@ -85,9 +97,20 @@ Status SavedModelBundleFactory::CreateSavedModelBundle(
   if (saved_model_tags.empty()) {
     saved_model_tags.insert(kSavedModelTagServe);
   }
+  const auto& session_options = [&]() {
+    auto result = GetSessionOptions(config_);
+    if (metadata.has_value()) {
+      auto* session_metadata =
+          result.config.mutable_experimental()->mutable_session_metadata();
+      session_metadata->set_name(metadata->servable_id.name);
+      session_metadata->set_version(metadata->servable_id.version);
+    }
+    return result;
+  }();
+
   TF_RETURN_IF_ERROR(LoadSessionBundleOrSavedModelBundle(
-      GetSessionOptions(config_), GetRunOptions(config_), path,
-      saved_model_tags, bundle->get()));
+      session_options, GetRunOptions(config_), path, saved_model_tags,
+      bundle->get()));
   if (!config_.experimental_fixed_input_tensors().empty()) {
     LOG(INFO) << "Wrapping session to inject fixed input tensors";
     std::vector<std::pair<string, Tensor>> fixed_input_tensors;

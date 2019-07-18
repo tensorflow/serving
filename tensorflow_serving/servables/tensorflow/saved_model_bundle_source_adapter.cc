@@ -20,11 +20,11 @@ limitations under the License.
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow_serving/core/simple_loader.h"
 #include "tensorflow_serving/resources/resource_util.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup.h"
 #include "tensorflow_serving/util/optional.h"
 
@@ -47,11 +47,24 @@ SavedModelBundleSourceAdapter::SavedModelBundleSourceAdapter(
     std::unique_ptr<SavedModelBundleFactory> bundle_factory)
     : bundle_factory_(std::move(bundle_factory)) {}
 
-Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
-                                              std::unique_ptr<Loader>* loader) {
-  std::shared_ptr<SavedModelBundleFactory> bundle_factory = bundle_factory_;
-  auto servable_creator = [bundle_factory,
-                           path](std::unique_ptr<SavedModelBundle>* bundle) {
+SimpleLoader<SavedModelBundle>::CreatorVariant
+SavedModelBundleSourceAdapter::GetServableCreator(
+    std::shared_ptr<SavedModelBundleFactory> bundle_factory,
+    const StoragePath& path) const {
+  if (bundle_factory->config().enable_session_metadata()) {
+    return [bundle_factory, path](const Loader::Metadata& metadata,
+                                  std::unique_ptr<SavedModelBundle>* bundle) {
+      TF_RETURN_IF_ERROR(bundle_factory->CreateSavedModelBundleWithMetadata(
+          metadata, path, bundle));
+      if (bundle_factory->config().enable_model_warmup()) {
+        return RunSavedModelWarmup(
+            bundle_factory->config().model_warmup_options(),
+            GetRunOptions(bundle_factory->config()), path, bundle->get());
+      }
+      return Status::OK();
+    };
+  }
+  return [bundle_factory, path](std::unique_ptr<SavedModelBundle>* bundle) {
     TF_RETURN_IF_ERROR(bundle_factory->CreateSavedModelBundle(path, bundle));
     if (bundle_factory->config().enable_model_warmup()) {
       return RunSavedModelWarmup(
@@ -60,6 +73,12 @@ Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
     }
     return Status::OK();
   };
+}
+
+Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
+                                              std::unique_ptr<Loader>* loader) {
+  std::shared_ptr<SavedModelBundleFactory> bundle_factory = bundle_factory_;
+  auto servable_creator = GetServableCreator(bundle_factory, path);
   auto resource_estimator = [bundle_factory,
                              path](ResourceAllocation* estimate) {
     TF_RETURN_IF_ERROR(
@@ -88,7 +107,7 @@ Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
     return bundle_factory->EstimateResourceRequirement(path, estimate);
   };
   loader->reset(new SimpleLoader<SavedModelBundle>(
-      servable_creator, resource_estimator, post_load_resource_estimator));
+      servable_creator, resource_estimator, {post_load_resource_estimator}));
   return Status::OK();
 }
 
@@ -123,6 +142,5 @@ class SavedModelBundleSourceAdapterCreator {
 };
 REGISTER_STORAGE_PATH_SOURCE_ADAPTER(SavedModelBundleSourceAdapterCreator,
                                      SavedModelBundleSourceAdapterConfig);
-
 }  // namespace serving
 }  // namespace tensorflow

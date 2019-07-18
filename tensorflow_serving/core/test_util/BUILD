@@ -204,3 +204,16 @@ cc_library(
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
+
+cc_library(
+    name = "session_test_util",
+    testonly = 1,
+    srcs = ["session_test_util.cc"],
+    hdrs = ["session_test_util.h"],
+    deps = [
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+    alwayslink = 1,
+)

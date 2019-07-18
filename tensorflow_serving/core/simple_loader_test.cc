@@ -19,12 +19,14 @@ limitations under the License.
 #include <vector>
 
 #include <gtest/gtest.h>
+#include "absl/memory/memory.h"
 #include "tensorflow/core/lib/core/error_codes.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow_serving/core/servable_data.h"
+#include "tensorflow_serving/core/servable_id.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
@@ -53,18 +55,57 @@ class Caller {
   State* state_;
 };
 
+Loader::Metadata CreateMetadata() { return {ServableId{"name", 42}}; }
+
+class LoaderCreatorWithoutMetadata {
+ public:
+  template <typename ServableType, typename... Args>
+  static std::unique_ptr<Loader> CreateSimpleLoader(
+      typename SimpleLoader<ServableType>::Creator creator, Args... args) {
+    return absl::make_unique<SimpleLoader<ServableType>>(creator, args...);
+  }
+
+  static Status Load(Loader* loader) { return loader->Load(); }
+};
+
+class LoaderCreatorWithMetadata {
+ public:
+  template <typename ServableType, typename... Args>
+  static std::unique_ptr<Loader> CreateSimpleLoader(
+      typename SimpleLoader<ServableType>::Creator creator, Args... args) {
+    return absl::make_unique<SimpleLoader<ServableType>>(
+        [creator](const Loader::Metadata& metadata,
+                  std::unique_ptr<ServableType>* servable) {
+          const auto& expected_metadata = CreateMetadata();
+          EXPECT_EQ(expected_metadata.servable_id, metadata.servable_id);
+          return creator(servable);
+        },
+        args...);
+  }
+
+  static Status Load(Loader* loader) {
+    return loader->LoadWithMetadata(CreateMetadata());
+  }
+};
+
+template <typename T>
+class SimpleLoaderTest : public ::testing::Test {};
+using LoaderCreatorTypes =
+    ::testing::Types<LoaderCreatorWithoutMetadata, LoaderCreatorWithMetadata>;
+TYPED_TEST_SUITE(SimpleLoaderTest, LoaderCreatorTypes);
+
 // Move a Loader through its lifetime and ensure the servable is in the state
 // we expect.
-TEST(SimpleLoaderTest, VerifyServableStates) {
+TYPED_TEST(SimpleLoaderTest, VerifyServableStates) {
   State state = State::kNone;
-  std::unique_ptr<Loader> loader(new SimpleLoader<Caller>(
+  auto loader = TypeParam::template CreateSimpleLoader<Caller>(
       [&state](std::unique_ptr<Caller>* caller) {
         caller->reset(new Caller(&state));
         return Status::OK();
       },
-      SimpleLoader<Caller>::EstimateNoResources()));
+      SimpleLoader<Caller>::EstimateNoResources());
   EXPECT_EQ(State::kNone, state);
-  const Status status = loader->Load();
+  const Status status = TypeParam::Load(loader.get());
   TF_EXPECT_OK(status);
   EXPECT_EQ(State::kCtor, state);
   AnyPtr servable = loader->servable();
@@ -78,7 +119,7 @@ TEST(SimpleLoaderTest, VerifyServableStates) {
   EXPECT_EQ(State::kNone, state);
 }
 
-TEST(SimpleLoaderTest, ResourceEstimation) {
+TYPED_TEST(SimpleLoaderTest, ResourceEstimation) {
   const auto want = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
@@ -87,7 +128,7 @@ TEST(SimpleLoaderTest, ResourceEstimation) {
       "  } "
       "  quantity: 42 "
       "} ");
-  std::unique_ptr<Loader> loader(new SimpleLoader<int>(
+  auto loader = TypeParam::template CreateSimpleLoader<int>(
       [](std::unique_ptr<int>* servable) {
         servable->reset(new int);
         return Status::OK();
@@ -95,7 +136,7 @@ TEST(SimpleLoaderTest, ResourceEstimation) {
       [&want](ResourceAllocation* estimate) {
         *estimate = want;
         return Status::OK();
-      }));
+      });
 
   {
     ResourceAllocation got;
@@ -104,7 +145,7 @@ TEST(SimpleLoaderTest, ResourceEstimation) {
   }
 
   // The estimate should remain the same after load.
-  TF_ASSERT_OK(loader->Load());
+  TF_ASSERT_OK(TypeParam::Load(loader.get()));
   {
     ResourceAllocation got;
     TF_ASSERT_OK(loader->EstimateResources(&got));
@@ -112,7 +153,7 @@ TEST(SimpleLoaderTest, ResourceEstimation) {
   }
 }
 
-TEST(SimpleLoaderTest, ResourceEstimationWithPostLoadRelease) {
+TYPED_TEST(SimpleLoaderTest, ResourceEstimationWithPostLoadRelease) {
   const auto pre_load_resources = CreateProto<ResourceAllocation>(
       "resource_quantities { "
       "  resource { "
@@ -129,7 +170,7 @@ TEST(SimpleLoaderTest, ResourceEstimationWithPostLoadRelease) {
       "  } "
       "  quantity: 17 "
       "} ");
-  std::unique_ptr<Loader> loader(new SimpleLoader<int>(
+  auto loader = TypeParam::template CreateSimpleLoader<int>(
       [](std::unique_ptr<int>* servable) {
         servable->reset(new int);
         return Status::OK();
@@ -141,7 +182,7 @@ TEST(SimpleLoaderTest, ResourceEstimationWithPostLoadRelease) {
       [&post_load_resources](ResourceAllocation* estimate) {
         *estimate = post_load_resources;
         return Status::OK();
-      }));
+      });
 
   // Run it twice, to exercise memoization.
   for (int i = 0; i < 2; ++i) {
@@ -151,7 +192,7 @@ TEST(SimpleLoaderTest, ResourceEstimationWithPostLoadRelease) {
   }
 
   // The estimate should switch to the post-load one after load.
-  TF_ASSERT_OK(loader->Load());
+  TF_ASSERT_OK(TypeParam::Load(loader.get()));
   {
     ResourceAllocation got;
     TF_ASSERT_OK(loader->EstimateResources(&got));
@@ -161,15 +202,44 @@ TEST(SimpleLoaderTest, ResourceEstimationWithPostLoadRelease) {
 
 // Verify that the error returned by the Creator is propagates back through
 // Load.
-TEST(SimpleLoaderTest, LoadError) {
-  std::unique_ptr<Loader> loader(new SimpleLoader<Caller>(
+TYPED_TEST(SimpleLoaderTest, LoadError) {
+  auto loader = TypeParam::template CreateSimpleLoader<Caller>(
       [](std::unique_ptr<Caller>* caller) {
         return errors::InvalidArgument("No way!");
       },
-      SimpleLoader<Caller>::EstimateNoResources()));
-  const Status status = loader->Load();
+      SimpleLoader<Caller>::EstimateNoResources());
+  const Status status = TypeParam::Load(loader.get());
   EXPECT_EQ(error::INVALID_ARGUMENT, status.code());
   EXPECT_EQ("No way!", status.error_message());
+}
+
+TEST(SimpleLoaderCompatibilityTest, WithoutMetadata) {
+  auto loader_without_metadata = absl::make_unique<SimpleLoader<int>>(
+      [](std::unique_ptr<int>* servable) {
+        servable->reset(new int);
+        return Status::OK();
+      },
+      SimpleLoader<int>::EstimateNoResources());
+  // If the creator without metadata is used, both Load() and LoadWithMetadata()
+  // are fine, for compatibility.
+  TF_EXPECT_OK(loader_without_metadata->Load());
+  TF_EXPECT_OK(loader_without_metadata->LoadWithMetadata(CreateMetadata()));
+}
+
+TEST(SimpleLoaderCompatibilityTest, WithMetadata) {
+  auto loader_with_metadata = absl::make_unique<SimpleLoader<int>>(
+      [](const Loader::Metadata& metadata, std::unique_ptr<int>* servable) {
+        const auto& expected_metadata = CreateMetadata();
+        EXPECT_EQ(expected_metadata.servable_id, metadata.servable_id);
+        servable->reset(new int);
+        return Status::OK();
+      },
+      SimpleLoader<int>::EstimateNoResources());
+  // If the creator with metadata is used, we allow only LoadWithMetadata()
+  // to be invoked.
+  const Status error_status = loader_with_metadata->Load();
+  EXPECT_EQ(error::FAILED_PRECONDITION, error_status.code());
+  TF_EXPECT_OK(loader_with_metadata->LoadWithMetadata(CreateMetadata()));
 }
 
 // A pass-through implementation of SimpleLoaderSourceAdapter, which can be

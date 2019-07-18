@@ -84,7 +84,22 @@ class Loader {
   /// Fetches any data that needs to be loaded before using the servable
   /// returned by servable(). May use no more resources than the estimate
   /// reported by EstimateResources().
-  virtual Status Load() = 0;
+  ///
+  /// If implementing Load(), you don't have to override LoadWithMetadata().
+  virtual Status Load() {
+    return errors::Unimplemented("Load isn't implemented.");
+  }
+
+  /// The metadata consists of the ServableId.
+  struct Metadata {
+    ServableId servable_id;
+  };
+  /// Similar to the above method, but takes Metadata as a param, which
+  /// may be used by the loader implementation appropriately.
+  ///
+  /// If you're overriding LoadWithMetadata(), because you can use the metadata
+  /// appropriately, you can skip overriding Load().
+  virtual Status LoadWithMetadata(const Metadata& metadata) { return Load(); }
 
   /// Frees any resources allocated during Load() (except perhaps for resources
   /// shared across servables that are still needed for other active ones).
@@ -98,8 +113,8 @@ class Loader {
   ///
   /// CustomLoader implementation:
   ///
-  ///       class CustomLoader : public Loader {
-  ///        public:
+  ///     class CustomLoader : public Loader {
+  ///      public:
   ///       ...
   ///       Status Load() override {
   ///         servable_ = ...;
@@ -122,6 +137,14 @@ class Loader {
   /// Load() call or after Unload(), it returns null AnyPtr.
   virtual AnyPtr servable() = 0;
 };
+
+inline bool operator==(const Loader::Metadata& a, const Loader::Metadata& b) {
+  return a.servable_id == b.servable_id;
+}
+
+inline bool operator!=(const Loader::Metadata& a, const Loader::Metadata& b) {
+  return !(a == b);
+}
 
 /// A Loader that is oblivious to resources. Its EstimateResources() method
 /// returns 0, thus effectively disabling resource-based safety checks in the

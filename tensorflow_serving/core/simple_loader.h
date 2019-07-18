@@ -19,6 +19,7 @@ limitations under the License.
 #include <functional>
 #include <memory>
 
+#include "absl/types/variant.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/macros.h"
@@ -71,6 +72,9 @@ class SimpleLoader : public Loader {
  public:
   // Creator is called in Load and used to create the servable.
   using Creator = std::function<Status(std::unique_ptr<ServableType>*)>;
+  using CreatorWithMetadata =
+      std::function<Status(const Metadata&, std::unique_ptr<ServableType>*)>;
+  using CreatorVariant = absl::variant<Creator, CreatorWithMetadata>;
 
   // A callback for estimating a servable's resource usage.
   using ResourceEstimator = std::function<Status(ResourceAllocation*)>;
@@ -88,6 +92,11 @@ class SimpleLoader : public Loader {
   // the resources needed during load as well as post-load.
   SimpleLoader(Creator creator, ResourceEstimator resource_estimator);
 
+  // Similar to the above constructor, but accepts a CreatorWithMetadata
+  // function.
+  SimpleLoader(CreatorWithMetadata creator_with_metadata,
+               ResourceEstimator resource_estimator);
+
   // Constructor that takes two resource estimators: one to use for estimating
   // the resources needed during load, as well as a second one that gives a
   // different estimate after loading has finished. See the documentation on
@@ -97,18 +106,35 @@ class SimpleLoader : public Loader {
   SimpleLoader(Creator creator, ResourceEstimator resource_estimator,
                ResourceEstimator post_load_resource_estimator);
 
+  // Similar to the above constructor, but accepts a CreatorWithMetadata
+  // function.
+  SimpleLoader(CreatorWithMetadata creator_with_metadata,
+               ResourceEstimator resource_estimator,
+               ResourceEstimator post_load_resource_estimator);
+
+  // Constructor which accepts all variations of the params.
+  SimpleLoader(CreatorVariant creator_variant,
+               ResourceEstimator resource_estimator,
+               optional<ResourceEstimator> post_load_resource_estimator);
+
   ~SimpleLoader() override = default;
 
   Status EstimateResources(ResourceAllocation* estimate) const override;
 
+  // REQUIRES: That the ctor with Creator be used, otherwise returns an error
+  // status.
   Status Load() override;
+
+  Status LoadWithMetadata(const Metadata& metadata) override;
 
   void Unload() override;
 
   AnyPtr servable() override { return AnyPtr{servable_.get()}; }
 
  private:
-  Creator creator_;
+  Status EstimateResourcesPostLoad();
+
+  CreatorVariant creator_variant_;
 
   // A function that estimates the resources needed to load the servable.
   ResourceEstimator resource_estimator_;
@@ -205,7 +231,37 @@ SimpleLoader<ServableType>::EstimateNoResources() {
 template <typename ServableType>
 SimpleLoader<ServableType>::SimpleLoader(Creator creator,
                                          ResourceEstimator resource_estimator)
-    : creator_(creator), resource_estimator_(resource_estimator) {
+    : SimpleLoader(CreatorVariant(creator), resource_estimator, nullopt) {}
+
+template <typename ServableType>
+SimpleLoader<ServableType>::SimpleLoader(
+    CreatorWithMetadata creator_with_metadata,
+    ResourceEstimator resource_estimator)
+    : SimpleLoader(CreatorVariant(creator_with_metadata), resource_estimator,
+                   nullopt) {}
+
+template <typename ServableType>
+SimpleLoader<ServableType>::SimpleLoader(
+    Creator creator, ResourceEstimator resource_estimator,
+    ResourceEstimator post_load_resource_estimator)
+    : SimpleLoader(CreatorVariant(creator), resource_estimator,
+                   {post_load_resource_estimator}) {}
+
+template <typename ServableType>
+SimpleLoader<ServableType>::SimpleLoader(
+    CreatorWithMetadata creator_with_metadata,
+    ResourceEstimator resource_estimator,
+    ResourceEstimator post_load_resource_estimator)
+    : SimpleLoader(CreatorVariant(creator_with_metadata), resource_estimator,
+                   {post_load_resource_estimator}) {}
+
+template <typename ServableType>
+SimpleLoader<ServableType>::SimpleLoader(
+    CreatorVariant creator_variant, ResourceEstimator resource_estimator,
+    optional<ResourceEstimator> post_load_resource_estimator)
+    : creator_variant_(creator_variant),
+      resource_estimator_(resource_estimator),
+      post_load_resource_estimator_(post_load_resource_estimator) {
   ResourceUtil::Options resource_util_options;
   resource_util_options.devices = {{device_types::kMain, 1}};
   resource_util_ =
@@ -213,14 +269,6 @@ SimpleLoader<ServableType>::SimpleLoader(Creator creator,
 
   ram_resource_ = resource_util_->CreateBoundResource(
       device_types::kMain, resource_kinds::kRamBytes);
-}
-
-template <typename ServableType>
-SimpleLoader<ServableType>::SimpleLoader(
-    Creator creator, ResourceEstimator resource_estimator,
-    ResourceEstimator post_load_resource_estimator)
-    : SimpleLoader(creator, resource_estimator) {
-  post_load_resource_estimator_ = post_load_resource_estimator;
 }
 
 template <typename ServableType>
@@ -239,8 +287,29 @@ Status SimpleLoader<ServableType>::EstimateResources(
 
 template <typename ServableType>
 Status SimpleLoader<ServableType>::Load() {
-  TF_RETURN_IF_ERROR(creator_(&servable_));
+  if (absl::holds_alternative<CreatorWithMetadata>(creator_variant_)) {
+    return errors::FailedPrecondition(
+        "SimpleLoader::Load() called even though "
+        "SimpleLoader::CreatorWithMetadata was setup. Please use "
+        "SimpleLoader::LoadWithMetadata() instead.");
+  }
+  TF_RETURN_IF_ERROR(absl::get<Creator>(creator_variant_)(&servable_));
+  return EstimateResourcesPostLoad();
+}
 
+template <typename ServableType>
+Status SimpleLoader<ServableType>::LoadWithMetadata(const Metadata& metadata) {
+  if (absl::holds_alternative<CreatorWithMetadata>(creator_variant_)) {
+    TF_RETURN_IF_ERROR(
+        absl::get<CreatorWithMetadata>(creator_variant_)(metadata, &servable_));
+  } else {
+    TF_RETURN_IF_ERROR(absl::get<Creator>(creator_variant_)(&servable_));
+  }
+  return EstimateResourcesPostLoad();
+}
+
+template <typename ServableType>
+Status SimpleLoader<ServableType>::EstimateResourcesPostLoad() {
   if (post_load_resource_estimator_) {
     // Save the during-load estimate (may be able to use the memoized value).
     ResourceAllocation during_load_resource_estimate;
