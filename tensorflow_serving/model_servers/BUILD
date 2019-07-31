@@ -294,6 +294,7 @@ cc_library(
 SUPPORTED_TENSORFLOW_OPS = [
     "@org_tensorflow//tensorflow/contrib:contrib_kernels",
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
+    "//tensorflow_serving/custom_ops:custom_ops"
 ]
 
 TENSORFLOW_DEPS = [
