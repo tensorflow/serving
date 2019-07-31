@@ -1,19 +1,69 @@
-# How to Configure a Model Server
+# Tensorflow Serving Configuration
 
-Create a file containing an ASCII
+In this guide, we will go over the numerous configuration points for Tensorflow
+Serving.
+
+## Overview
+
+While most configurations relate to the Model Server, there are many ways to
+specify the behavior of Tensorflow Serving:
+
+*   [Model Server Configuration](#model-server-configuration): Specify model
+    names, paths, version policy & labels, logging configuration and more
+*   [Monitoring Configuration](#monitoring-configuration): Enable and configure
+    Prometheus monitoring
+*   [Batching Configuration](#batching-configuration): Enable batching and
+    configure its parameters
+*   [Misc. Flags](#miscellaneous-flags): A number of misc. flags that can be
+    provided to fine-tune the behavior of a Tensorflow Serving deployment
+
+## Model Server Configuration
+
+The easiest way to serve a model is to provide the `--model_name` and
+`--model_base_path` flags (or setting the `MODEL_NAME` environment variable if
+using Docker). However, if you would like to serve multiple models, or configure
+options like polling frequency for new versions, you may do so by writing a
+Model Server config file.
+
+You may provide this configuration file using the `--model_config_file` flag and
+instruct Tensorflow Serving to periodically poll for updated versions of this
+configuration file at the specifed path by setting the
+`--model_config_file_poll_wait_seconds` flag.
+
+Example using Docker:
+
+```
+docker run -t --rm -p 8501:8501 \
+    -v "$(pwd)/models/:/models/" tensorflow/serving \
+    --model_config_file=/models/models.config \
+    --model_config_file_poll_wait_seconds=60
+```
+
+### Reloading Model Server Configuration
+
+There are two ways to reload the Model Server configuration:
+
+*   By setting the `--model_config_file_poll_wait_seconds` flag to instruct the
+    server to periodically check for a new config file at `--model_config_file`
+    filepath.
+
+*   By issuing
+    [HandleReloadConfigRequest](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/model_service.proto#L22)
+    RPC calls to the server and supplying a new Model Server config
+    programmatically.
+
+Please note that each time the server loads the new config file, it will act to
+realize the content of the new specified config and _only_ the new specified
+config. This means if model A was present in the first config file, which is
+replaced with a file that contains only model B, the server will load model B
+and unload model A.
+
+### Model Server Config Details
+
+The Model Server configuration file provided must be an ASCII
 [ModelServerConfig](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/config/model_server_config.proto#L76)
-protocol buffer, and pass its path to the server using the --model_config_file
-flag. (Some useful references:
-[what an ASCII protocol buffer looks like](https://stackoverflow.com/questions/18873924/what-does-the-protobuf-text-format-look-like);
-[how to pass flags in Docker](docker.md#passing-additional-arguments).)
-
-You can also reload the model config on the fly, after the server is running,
-via the
-[HandleReloadConfigRequest](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/model_service.proto#L22)
-RPC endpoint. This will cause models in the new config that are not in the old
-config to be loaded, and models in the old config that are not in the new config
-to be unloaded; (models in both configs will remain in place, and will not be
-transiently unloaded).
+protocol buffer. Refer to the following to understand
+[what an ASCII protocol buffer looks like](https://stackoverflow.com/questions/18873924/what-does-the-protobuf-text-format-look-like).
 
 For all but the most advanced use-cases, you'll want to use the ModelConfigList
 option, which is a list of
@@ -34,7 +84,7 @@ model_config_list {
 }
 ```
 
-## Configuring One Model
+### Configuring One Model
 
 Each ModelConfig specifies one model to be served, including its name and the
 path where the Model Server should look for versions of the model to serve, as
@@ -134,35 +184,88 @@ that has version 42 as "stable". Otherwise, you can march forward by unloading
 version 42 and loading the new version 44 when it is ready, and then advancing
 the canary label to 44, and so on.
 
-Please note that labels can only be assigned to model versions that are loaded
-and available for serving. Once a model version is available, one may reload
-the model config on the fly, to assign a label to it
-(can be achieved using
+Please note that labels can only be assigned to model versions that are
+_already_ loaded and available for serving. Once a model version is available,
+one may reload the model config on the fly to assign a label to it. This can be
+achieved using a
 [HandleReloadConfigRequest](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/model_service.proto#L22)
-RPC endpoint).
+RPC or if the server is set up to periodically poll the filesystem for the
+config file, as described [above](#reloading-model-server-configuration).
 
-## How to Configure for Monitoring
+If you would like to assign a label to a version that is not yet loaded (for ex.
+by supplying both the model version and the label at startup time) then you must
+set the `--alow_version_labels_for_unavailable_models` flag to true, which
+allows new labels to be assigned to model versions that are not loaded yet.
 
-Create a monitoring config file containing a
+Please note that this applies only to new version labels (i.e. ones not assigned
+to a version currently). This is to ensure that during version swaps, the server
+does not prematurely assign the label to the new version, thereby dropping all
+requests destined for that label while the new version is loading.
+
+In order to comply with this safety check, if re-assigning an already in-use
+version label, you must assign it only to already-loaded versions. For example,
+if you would like to move a label from pointing to version N to version N+1, you
+may first submit a config containing version N and N+1, and then submit a config
+that contains version N+1, the label pointing to N+1 and no version N.
+
+## Monitoring Configuration
+
+You may provide a monitoring configuration to the server by using the
+`--monitoring_config_file` flag to specify a file containing a
 [MonitoringConfig](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/config/monitoring_config.proto#L17)
-and set --monitoring_config_file flag to the path of this file. It currently
-provides a monitoring exporter for [Prometheus](https://prometheus.io/), and
-whose config is described in
-[PrometheusConfig](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/config/monitoring_config.proto#L7)
 protocol buffer. Here's an example:
 
 ```proto
 prometheus_config {
-  enable: true
+  enable: true,
+  path: "/monitoring/prometheus/metrics"
 }
 ```
 
-The default monitoring endpoint is `/monitoring/prometheus/metrics`.
-You can set `path` field in prometheus_config to change the default path.
+To read metrics from the above monitoring URL, you first need to enable the HTTP
+server by setting the `--rest_api_port` flag. You can then configure your
+Prometheus Server to pull metrics from Model Server by passing it the values of
+`--rest_api_port` and `path`.
 
-To read metrics from above monitoring URL, you need to set `--rest_api_port`
-flag to enable HTTP requests. Configure your Prometheus Server to pulls metrics
-from Model Server configured by `--rest_api_port` and `path`.
+Tensorflow Serving collects all metrics that are captured by Serving as well as
+core Tensorflow.
 
-Tensorflow Serving collects all metrics that are available on Tensorflow and the
-serving itself.
+## Batching Configuration
+
+Model Server has the ability to batch requests in a variety of settings in order
+to realize better throughput. The scheduling for this batching is done globally
+for all models and model versions on the server to ensure the best possible
+utilization of the underlying resources no matter how many models or model
+versions are currently being served by the server
+([more details](../batching/README.md#servers-with-multiple-models-model-versions-or-subtasks)).
+You may enable this behavior by setting the `--enable_batching` flag and control
+it by passing a config to the `--batching_parameters_file` flag.
+
+Example batching parameters file:
+
+```
+max_batch_size { value: 128 }
+batch_timeout_micros { value: 0 }
+max_enqueued_batches { value: 1000000 }
+num_batch_threads { value: 8 }
+```
+
+Please refer to the [batching guide](../batching/README.md) for an in-depth
+discussion and refer to the
+[section on parameters](../batching/README.md#batch-scheduling-parameters-and-tuning)
+to understand how to set the parameters.
+
+## Miscellaneous Flags
+
+In addition to the flags covered so far in the guide, here we list a few other
+notable ones. For a complete list, please refer to the
+[source code](../model_servers/main.cc#L59).
+
+*   `--port`: Port to listen on for gRPC API
+*   `--rest_api_port`: Port to listen on for HTTP/REST API
+*   `--rest_api_timeout_in_ms`: Timeout for HTTP/REST API calls
+*   `--file_system_poll_wait_seconds`: The period with which the server polls
+    the filesystem for new model versions at each model's respective
+    model_base_path
+*   `--enable_model_warmup`: Enables [model warmup](saved_model_warmup.md) using
+    user-provided PredictionLogs in assets.extra/ directory
