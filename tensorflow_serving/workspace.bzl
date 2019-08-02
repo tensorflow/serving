@@ -15,11 +15,6 @@ def tf_serving_workspace():
         actual = "@boringssl//:ssl",
     )
 
-    native.bind(
-        name = "zlib",
-        actual = "@zlib_archive//:zlib",
-    )
-
     # gRPC wants the existence of a cares dependence but its contents are not
     # actually important since we have set GRPC_ARES=0 in tools/bazel.rc
     native.bind(
