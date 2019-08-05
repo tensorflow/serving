@@ -76,6 +76,13 @@ message SessionBundleConfig {
   // consists of information like the model name, version, which can then be
   // used by the TensorFlow runtime appropriately (for debugging, logging, etc).
   bool enable_session_metadata = 781;
+
+  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
+  //
+  // Remove unused fields from metagraph proto message in SavedModelBundle.
+  // This message is stored alongside the `Session` object. Removing unwanted
+  // fields helps reduce memory footprint.
+  bool remove_unused_fields_from_bundle_metagraph = 782;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

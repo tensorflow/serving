@@ -45,13 +45,12 @@ enum class CreationType { kWithoutMetadata, kWithMetadata };
 Loader::Metadata CreateMetadata() { return {ServableId{"name", 42}}; }
 
 // Creates a new session based on the config and export path.
-Status CreateSessionFromPath(const CreationType creation_type,
-                             const SessionBundleConfig& config,
-                             const string& path,
-                             std::unique_ptr<Session>* session) {
+Status CreateBundleFromPath(const CreationType creation_type,
+                            const SessionBundleConfig& config,
+                            const string& path,
+                            std::unique_ptr<SavedModelBundle>* bundle) {
   std::unique_ptr<SavedModelBundleFactory> factory;
   TF_RETURN_IF_ERROR(SavedModelBundleFactory::Create(config, &factory));
-  std::unique_ptr<SavedModelBundle> bundle;
   auto config_with_session_hook = config;
   config_with_session_hook.set_session_target(
       test_util::kNewSessionHookSessionTargetPrefix);
@@ -74,14 +73,13 @@ Status CreateSessionFromPath(const CreationType creation_type,
 
   switch (creation_type) {
     case CreationType::kWithoutMetadata:
-      TF_RETURN_IF_ERROR(factory->CreateSavedModelBundle(path, &bundle));
+      TF_RETURN_IF_ERROR(factory->CreateSavedModelBundle(path, bundle));
       break;
     case CreationType::kWithMetadata:
       TF_RETURN_IF_ERROR(factory->CreateSavedModelBundleWithMetadata(
-          CreateMetadata(), path, &bundle));
+          CreateMetadata(), path, bundle));
       break;
   }
-  *session = std::move(bundle->session);
   return Status::OK();
 }
 
@@ -98,7 +96,11 @@ class SavedModelBundleFactoryTest
  protected:
   Status CreateSession(const SessionBundleConfig& config,
                        std::unique_ptr<Session>* session) const override {
-    return CreateSessionFromPath(GetParam(), config, export_dir_, session);
+    std::unique_ptr<SavedModelBundle> bundle;
+    TF_RETURN_IF_ERROR(
+        CreateBundleFromPath(GetParam(), config, export_dir_, &bundle));
+    *session = std::move(bundle->session);
+    return Status::OK();
   }
 };
 
@@ -135,6 +137,25 @@ TEST_P(SavedModelBundleFactoryTest, FixedInputTensors) {
   test::ExpectTensorEqual<float>(expected_output, single_output);
 }
 
+TEST_P(SavedModelBundleFactoryTest, RemoveUnusedFieldsFromMetaGraphDefault) {
+  SessionBundleConfig config;
+  *config.add_saved_model_tags() = kSavedModelTagServe;
+  std::unique_ptr<SavedModelBundle> bundle;
+  TF_ASSERT_OK(CreateBundleFromPath(GetParam(), config, export_dir_, &bundle));
+  EXPECT_TRUE(bundle->meta_graph_def.has_graph_def());
+  EXPECT_FALSE(bundle->meta_graph_def.signature_def().empty());
+}
+
+TEST_P(SavedModelBundleFactoryTest, RemoveUnusedFieldsFromMetaGraphEnabled) {
+  SessionBundleConfig config;
+  *config.add_saved_model_tags() = kSavedModelTagServe;
+  config.set_remove_unused_fields_from_bundle_metagraph(true);
+  std::unique_ptr<SavedModelBundle> bundle;
+  TF_ASSERT_OK(CreateBundleFromPath(GetParam(), config, export_dir_, &bundle));
+  EXPECT_FALSE(bundle->meta_graph_def.has_graph_def());
+  EXPECT_FALSE(bundle->meta_graph_def.signature_def().empty());
+}
+
 TEST_P(SavedModelBundleFactoryTest, Batching) { TestBatching(); }
 
 TEST_P(SavedModelBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
@@ -162,7 +183,11 @@ class SavedModelBundleFactoryBackwardCompatibilityTest
  private:
   Status CreateSession(const SessionBundleConfig& config,
                        std::unique_ptr<Session>* session) const override {
-    return CreateSessionFromPath(GetParam(), config, export_dir_, session);
+    std::unique_ptr<SavedModelBundle> bundle;
+    TF_RETURN_IF_ERROR(
+        CreateBundleFromPath(GetParam(), config, export_dir_, &bundle));
+    *session = std::move(bundle->session);
+    return Status::OK();
   }
 };
 

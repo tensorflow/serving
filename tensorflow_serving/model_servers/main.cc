@@ -182,7 +182,12 @@ int main(int argc, char** argv) {
       tensorflow::Flag(
           "monitoring_config_file", &options.monitoring_config_file,
           "If non-empty, read an ascii MonitoringConfig protobuf from "
-          "the supplied file name")};
+          "the supplied file name"),
+      tensorflow::Flag(
+          "remove_unused_fields_from_bundle_metagraph",
+          &options.remove_unused_fields_from_bundle_metagraph,
+          "Removes unused fields from MetaGraphDef proto message to save "
+          "memory.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {

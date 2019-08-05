@@ -20,6 +20,7 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/protobuf/config.pb.h"
+#include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
@@ -118,6 +119,18 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
         config_.experimental_fixed_input_tensors(), &fixed_input_tensors));
     (*bundle)->session.reset(
         new CurriedSession(std::move((*bundle)->session), fixed_input_tensors));
+  }
+  if (config_.remove_unused_fields_from_bundle_metagraph()) {
+    // Save memory by removing fields in MetaGraphDef proto message stored
+    // in the bundle that we never use. Notably the unused graphdef submessage
+    // can get large (MBs) wasting memory on the server.
+    //
+    // Presently we retain following field(s) of MetaGraphDef proto:
+    // - signature_def
+    MetaGraphDef metagraph;
+    (*bundle)->meta_graph_def.Swap(&metagraph);
+    (*bundle)->meta_graph_def.mutable_signature_def()->swap(
+        *metagraph.mutable_signature_def());
   }
   if (config_.has_batching_parameters()) {
     LOG(INFO) << "Wrapping session to perform batch processing";

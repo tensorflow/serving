@@ -81,6 +81,7 @@ class Server {
     tensorflow::string monitoring_config_file;
     // Tensorflow session run options.
     bool enforce_session_run_timeout = true;
+    bool remove_unused_fields_from_bundle_metagraph = true;
 
     Options();
   };

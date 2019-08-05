@@ -265,6 +265,8 @@ Status Server::BuildAndStart(const Options& server_options) {
           ->mutable_num_request_iterations()
           ->set_value(server_options.num_request_iterations_for_warmup);
     }
+    session_bundle_config.set_remove_unused_fields_from_bundle_metagraph(
+        server_options.remove_unused_fields_from_bundle_metagraph);
     options.platform_config_map = CreateTensorFlowPlatformConfigMap(
         session_bundle_config, use_saved_model);
   } else {
