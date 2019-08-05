@@ -36,6 +36,8 @@ from six.moves import urllib
 import tensorflow as tf
 
 from tensorflow.core.framework import types_pb2
+from tensorflow.python.eager import context
+from tensorflow.python.framework import config as device_config
 from tensorflow.python.platform import flags
 from tensorflow.python.saved_model import signature_constants
 from tensorflow_serving.apis import classification_pb2
@@ -46,7 +48,6 @@ from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 from tensorflow_serving.apis import regression_pb2
 
-
 FLAGS = flags.FLAGS
 
 RPC_TIMEOUT = 5.0
@@ -54,6 +55,26 @@ HTTP_REST_TIMEOUT_MS = 5000
 CHANNEL_WAIT_TIMEOUT = 5.0
 WAIT_FOR_SERVER_READY_INT_SECS = 60
 GRPC_SOCKET_PATH = '/tmp/tf-serving.sock'
+
+
+def SetVirtualCpus(num_virtual_cpus):
+  """Create virtual CPU devices if they haven't yet been created."""
+  if num_virtual_cpus < 1:
+    raise ValueError('`num_virtual_cpus` must be at least 1 not %r' %
+                     (num_virtual_cpus,))
+  physical_devices = device_config.list_physical_devices('CPU')
+  if not physical_devices:
+    raise RuntimeError('No CPUs found')
+  configs = device_config.get_virtual_device_configuration(physical_devices[0])
+  if configs is None:
+    virtual_devices = [context.VirtualDeviceConfiguration()
+                       for _ in range(num_virtual_cpus)]
+    device_config.set_virtual_device_configuration(
+        physical_devices[0], virtual_devices)
+  else:
+    if len(configs) < num_virtual_cpus:
+      raise RuntimeError('Already configured with %d < %d virtual CPUs' %
+                         (len(configs), num_virtual_cpus))
 
 
 def PickUnusedPort():
@@ -888,11 +909,42 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def test_sequential_keras_saved_model_save(self):
     """Test loading a simple SavedModel created with Keras Sequential API."""
-
     model = tf.keras.models.Sequential()
 
     model.add(tf.keras.layers.Input(dtype='float32', shape=(1,), name='x'))
     model.add(tf.keras.layers.Lambda(lambda x: x, name='y'))
+
+    base_path = os.path.join(self.get_temp_dir(),
+                             'keras_sequential_saved_model_save')
+    export_path = os.path.join(base_path, '00000123')
+
+    tf.saved_model.save(model, export_path)
+
+    _, model_server_address, _ = TensorflowModelServerTest.RunServer(
+        'default', base_path)
+
+    expected_version = self._GetModelVersion(base_path)
+    self.VerifyPredictRequest(
+        model_server_address,
+        batch_input=True,
+        specify_output=False,
+        expected_output=2.0,
+        expected_version=expected_version)
+
+  def test_distrat_sequential_keras_saved_model_save(self):
+    """Test loading a Keras SavedModel with tf.distribute."""
+    # You need to call SetVirtualCpus in test setUp with the maximum value
+    # needed in any test if you use this in multiple tests. For now this is the
+    # only test using this functionality.
+    SetVirtualCpus(2)
+    strategy = tf.distribute.MirroredStrategy(devices=('/cpu:0', '/cpu:1'))
+    with strategy.scope():
+      model = tf.keras.models.Sequential()
+
+      model.add(tf.keras.layers.Input(dtype='float32', shape=(1,), name='x'))
+      model.add(tf.keras.layers.Dense(1, kernel_initializer='ones',
+                                      bias_initializer='zeros'))
+      model.add(tf.keras.layers.Lambda(lambda x: x, name='y'))
 
     base_path = os.path.join(self.get_temp_dir(),
                              'keras_sequential_saved_model_save')
