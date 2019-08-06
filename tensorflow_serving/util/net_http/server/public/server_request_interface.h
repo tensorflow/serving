@@ -73,7 +73,7 @@ class ServerRequestInterface {
 
   // Input/output byte-buffer types are subject to change!
   // I/O buffer choices:
-  // - absl:ByteStream would work but it is not yet open-sourced
+  // - absl::ByteStream would work but it is not yet open-sourced
   // - iovec doesn't add much value and may limit portability; but otherwise
   //   the current API is compatible with iovec
   // - absl::Span is open-sourced, but string_view is simpler to use for writing
