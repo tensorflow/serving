@@ -30,6 +30,7 @@ limitations under the License.
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/config/platform_config.pb.h"
 #include "tensorflow_serving/core/aspired_versions_manager.h"
+#include "tensorflow_serving/core/logging.pb.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
@@ -80,6 +81,9 @@ class MockServerCore : public ServerCore {
 
   MOCK_CONST_METHOD0(servable_state_monitor, ServableStateMonitor*());
   MOCK_METHOD1(ReloadConfig, Status(const ModelServerConfig&));
+  MOCK_METHOD3(Log, Status(const google::protobuf::Message& request,
+                           const google::protobuf::Message& response,
+                           const LogMetadata& log_metadata));
 
   template <typename T>
   Status GetServableHandle(const ModelSpec& model_spec,
