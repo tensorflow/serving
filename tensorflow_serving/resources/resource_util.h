@@ -167,14 +167,9 @@ class ResourceUtil {
  private:
   enum class DCHECKFailOption { kDoDCHECKFail, kDoNotDCHECKFail };
 
-  // Wraps VerifyValidity() with error logging and the option to DCHECK-fail.
-  Status VerifyValidityInternal(const ResourceAllocation& allocation,
+  // Wraps fn() with the option to DCHECK-fail.
+  Status VerifyFunctionInternal(std::function<Status()> fn,
                                 DCHECKFailOption dcheck_fail_option) const;
-
-  // Wraps VerifyResourceValidity() with error logging and the option to
-  // DCHECK-fail.
-  Status VerifyResourceValidityInternal(
-      const Resource& resource, DCHECKFailOption dcheck_fail_option) const;
 
   // Converts 'resource' to normal form, i.e. ensures that if the device has
   // exactly one instance, the resource is bound to that instance.
