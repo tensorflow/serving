@@ -18,15 +18,13 @@ limitations under the License.
 #include "tensorflow_serving/util/net_http/compression/gzip_zlib.h"
 
 #include <algorithm>
-
 #include <cassert>
 #include <cstring>
-
 #include <memory>
 
 #include "absl/base/casts.h"
-#include "absl/base/internal/raw_logging.h"
 #include "absl/base/macros.h"
+#include "tensorflow_serving/util/net_http/internal/net_logging.h"
 
 namespace tensorflow {
 namespace serving {
@@ -581,8 +579,7 @@ int ZLib::UncompressAtMostOrAll(Bytef *dest, uLongf *destLen,
         crc_ = crc32(0, nullptr, 0);  // initialize CRC
         break;
       default:
-        ABSL_RAW_LOG(FATAL, "Unexpected gzip header parsing result: %d",
-                     status);
+        NET_LOG(FATAL, "Unexpected gzip header parsing result: %d", status);
     }
   } else if (gzip_footer_bytes_ >= 0) {
     // We're now just reading the gzip footer. We already read all the data.
@@ -602,10 +599,10 @@ int ZLib::UncompressAtMostOrAll(Bytef *dest, uLongf *destLen,
   }
 
   if ((err = UncompressInit(dest, destLen, source, sourceLen)) != Z_OK) {
-    ABSL_RAW_LOG(WARNING,
-                 "UncompressInit: Error: %d "
-                 " SourceLen: %zu",
-                 err, *sourceLen);
+    NET_LOG(WARNING,
+            "UncompressInit: Error: %d "
+            " SourceLen: %zu",
+            err, *sourceLen);
     return err;
   }
 

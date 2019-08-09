@@ -17,8 +17,8 @@ limitations under the License.
 
 #include "tensorflow_serving/util/net_http/client/evhttp_connection.h"
 
-#include "absl/base/internal/raw_logging.h"
 #include "absl/strings/str_cat.h"
+#include "tensorflow_serving/util/net_http/internal/net_logging.h"
 
 namespace tensorflow {
 namespace serving {
@@ -48,14 +48,14 @@ std::unique_ptr<EvHTTPConnection> EvHTTPConnection::Connect(
   std::string url_str(url.data(), url.size());
   struct evhttp_uri* http_uri = evhttp_uri_parse(url_str.c_str());
   if (http_uri == nullptr) {
-    ABSL_RAW_LOG(ERROR, "Failed to connect : event_base_new()");
+    NET_LOG(ERROR, "Failed to connect : event_base_new()");
     return nullptr;
   }
 
   const char* host = evhttp_uri_get_host(http_uri);
   if (host == nullptr) {
-    ABSL_RAW_LOG(ERROR, "url must have a host %.*s",
-                 static_cast<int>(url.size()), url.data());
+    NET_LOG(ERROR, "url must have a host %.*s", static_cast<int>(url.size()),
+            url.data());
     return nullptr;
   }
 
@@ -76,7 +76,7 @@ std::unique_ptr<EvHTTPConnection> EvHTTPConnection::Connect(
 
   result->ev_base_ = event_base_new();
   if (result->ev_base_ == nullptr) {
-    ABSL_RAW_LOG(ERROR, "Failed to connect : event_base_new()");
+    NET_LOG(ERROR, "Failed to connect : event_base_new()");
     return nullptr;
   }
 
@@ -86,8 +86,8 @@ std::unique_ptr<EvHTTPConnection> EvHTTPConnection::Connect(
       result->ev_base_, nullptr, nullptr, host_str.c_str(),
       static_cast<uint16_t>(port));
   if (result->evcon_ == nullptr) {
-    ABSL_RAW_LOG(
-        ERROR, "Failed to connect : evhttp_connection_base_bufferevent_new()");
+    NET_LOG(ERROR,
+            "Failed to connect : evhttp_connection_base_bufferevent_new()");
     return nullptr;
   }
 
@@ -155,8 +155,8 @@ void ResponseDone(evhttp_request* req, void* ctx) {
   if (req == nullptr) {
     // TODO(wenboz): make this a util and check safety
     int errcode = EVUTIL_SOCKET_ERROR();
-    ABSL_RAW_LOG(ERROR, "socket error = %s (%d)",
-                 evutil_socket_error_to_string(errcode), errcode);
+    NET_LOG(ERROR, "socket error = %s (%d)",
+            evutil_socket_error_to_string(errcode), errcode);
     return;
   }
 
@@ -172,7 +172,7 @@ bool GenerateEvRequest(evhttp_connection* evcon, const ClientRequest& request,
                        ClientResponse* response) {
   evhttp_request* evreq = evhttp_request_new(ResponseDone, response);
   if (evreq == nullptr) {
-    ABSL_RAW_LOG(ERROR, "Failed to send request : evhttp_request_new()");
+    NET_LOG(ERROR, "Failed to send request : evhttp_request_new()");
     return false;
   }
 
@@ -202,7 +202,7 @@ bool GenerateEvRequest(evhttp_connection* evcon, const ClientRequest& request,
       evcon, evreq, GetMethodEnum(request.method, !request.body.empty()),
       uri.c_str());
   if (r != 0) {
-    ABSL_RAW_LOG(ERROR, "evhttp_make_request() failed");
+    NET_LOG(ERROR, "evhttp_make_request() failed");
     return false;
   }
 
@@ -215,7 +215,7 @@ bool GenerateEvRequest(evhttp_connection* evcon, const ClientRequest& request,
 bool EvHTTPConnection::BlockingSendRequest(const ClientRequest& request,
                                            ClientResponse* response) {
   if (!GenerateEvRequest(evcon_, request, response)) {
-    ABSL_RAW_LOG(ERROR, "Failed to generate the ev_request");
+    NET_LOG(ERROR, "Failed to generate the ev_request");
     return false;
   }
 
@@ -227,12 +227,12 @@ bool EvHTTPConnection::BlockingSendRequest(const ClientRequest& request,
 bool EvHTTPConnection::SendRequest(const ClientRequest& request,
                                    ClientResponse* response) {
   if (this->executor_ == nullptr) {
-    ABSL_RAW_LOG(ERROR, "EventExecutor is not configured.");
+    NET_LOG(ERROR, "EventExecutor is not configured.");
     return false;
   }
 
   if (!GenerateEvRequest(evcon_, request, response)) {
-    ABSL_RAW_LOG(ERROR, "Failed to generate the ev_request");
+    NET_LOG(ERROR, "Failed to generate the ev_request");
     return false;
   }
 

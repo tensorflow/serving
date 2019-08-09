@@ -26,7 +26,6 @@ limitations under the License.
 #include <string>
 #include <vector>
 
-#include "absl/base/internal/raw_logging.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "libevent/include/event2/buffer.h"
@@ -34,6 +33,7 @@ limitations under the License.
 #include "libevent/include/event2/http.h"
 #include "libevent/include/event2/keyvalq_struct.h"
 #include "tensorflow_serving/util/net_http/compression/gzip_zlib.h"
+#include "tensorflow_serving/util/net_http/internal/net_logging.h"
 #include "tensorflow_serving/util/net_http/server/public/header_names.h"
 
 namespace tensorflow {
@@ -145,14 +145,14 @@ bool EvHTTPRequest::Initialize() {
 void EvHTTPRequest::WriteResponseBytes(const char* data, int64_t size) {
   assert(size >= 0);
   if (output_buf == nullptr) {
-    ABSL_RAW_LOG(FATAL, "Request not initialized.");
+    NET_LOG(FATAL, "Request not initialized.");
     return;
   }
 
   int ret = evbuffer_add(output_buf, data, static_cast<size_t>(size));
   if (ret == -1) {
-    ABSL_RAW_LOG(ERROR, "Failed to write %zu bytes data to output buffer",
-                 static_cast<size_t>(size));
+    NET_LOG(ERROR, "Failed to write %zu bytes data to output buffer",
+            static_cast<size_t>(size));
   }
 }
 
@@ -189,8 +189,8 @@ std::unique_ptr<char[], BlockDeleter> EvHTTPRequest::ReadRequestBytes(
   int ret = evbuffer_remove(input_buf, block, *buf_size);
 
   if (ret != *buf_size) {
-    ABSL_RAW_LOG(ERROR, "Unexpected: read less than specified num_bytes : %zu",
-                 *buf_size);
+    NET_LOG(ERROR, "Unexpected: read less than specified num_bytes : %zu",
+            *buf_size);
     std::allocator<char>().deallocate(block, *buf_size);
     *buf_size = 0;
     return nullptr;  // don't return corrupted buffer
@@ -214,9 +214,8 @@ std::unique_ptr<char[], BlockDeleter> EvHTTPRequest::ReadRequestGzipBytes(
     char* block = std::allocator<char>().allocate(buf_size);
     int ret = evbuffer_remove(input_buf, block, buf_size);
     if (ret != buf_size) {
-      ABSL_RAW_LOG(ERROR,
-                   "Unexpected: read less than specified num_bytes : %zu",
-                   buf_size);
+      NET_LOG(ERROR, "Unexpected: read less than specified num_bytes : %zu",
+              buf_size);
       std::allocator<char>().deallocate(block, buf_size);
       for (auto buf : buf_list) {
         std::allocator<char>().deallocate(buf.data(), buf.size());
@@ -249,7 +248,7 @@ std::unique_ptr<char[], BlockDeleter> EvHTTPRequest::ReadRequestGzipBytes(
     return std::unique_ptr<char[], BlockDeleter>(uncomp_body,
                                                  BlockDeleter(*uncomp_size));
   } else {
-    ABSL_RAW_LOG(ERROR, "Failed to uncompress the gzipped body");
+    NET_LOG(ERROR, "Failed to uncompress the gzipped body");
     *uncomp_size = 0;
     return nullptr;
   }
@@ -283,7 +282,7 @@ void EvHTTPRequest::UncompressGzipBody(void* input, size_t input_size,
       reinterpret_cast<uLongf*>(uncompressed_input_size),
       static_cast<Bytef*>(input), static_cast<uLong>(input_size));
   if (err != Z_OK) {
-    ABSL_RAW_LOG(ERROR, "Got zlib error: %d", err);
+    NET_LOG(ERROR, "Got zlib error: %d", err);
   }
 }
 
@@ -331,20 +330,20 @@ void EvHTTPRequest::AppendResponseHeader(absl::string_view header,
                               std::string(value.data(), value.size()).c_str());
 
   if (ret != 0) {
-    ABSL_RAW_LOG(ERROR,
-                 "Unexpected: failed to set the request header"
-                 " %.*s: %.*s",
-                 static_cast<int>(header.size()), header.data(),
-                 static_cast<int>(value.size()), value.data());
+    NET_LOG(ERROR,
+            "Unexpected: failed to set the request header"
+            " %.*s: %.*s",
+            static_cast<int>(header.size()), header.data(),
+            static_cast<int>(value.size()), value.data());
   }
 }
 
 void EvHTTPRequest::PartialReplyWithStatus(HTTPStatusCode status) {
-  ABSL_RAW_LOG(FATAL, "PartialReplyWithStatus not implemented.");
+  NET_LOG(FATAL, "PartialReplyWithStatus not implemented.");
 }
 
 void EvHTTPRequest::PartialReply() {
-  ABSL_RAW_LOG(FATAL, "PartialReplyWithStatus not implemented.");
+  NET_LOG(FATAL, "PartialReplyWithStatus not implemented.");
 }
 
 void EvHTTPRequest::ReplyWithStatus(HTTPStatusCode status) {
@@ -352,7 +351,7 @@ void EvHTTPRequest::ReplyWithStatus(HTTPStatusCode status) {
       server_->EventLoopSchedule([this, status]() { EvSendReply(status); });
 
   if (!result) {
-    ABSL_RAW_LOG(ERROR, "Failed to EventLoopSchedule ReplyWithStatus()");
+    NET_LOG(ERROR, "Failed to EventLoopSchedule ReplyWithStatus()");
     Abort();
     // TODO(wenboz): should have a forced abort that doesn't write back anything
     // to the event-loop

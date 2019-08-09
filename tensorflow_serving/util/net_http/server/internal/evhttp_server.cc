@@ -18,20 +18,20 @@ limitations under the License.
 #include "tensorflow_serving/util/net_http/server/internal/evhttp_server.h"
 
 #include <netinet/in.h>
-#include <sys/socket.h>
 #include <signal.h>
+#include <sys/socket.h>
+
 #include <cstdint>
 #include <memory>
 #include <utility>
 
 #include "absl/base/call_once.h"
-#include "absl/base/internal/raw_logging.h"
 #include "absl/memory/memory.h"
-
 #include "libevent/include/event2/event.h"
 #include "libevent/include/event2/http.h"
 #include "libevent/include/event2/thread.h"
 #include "libevent/include/event2/util.h"
+#include "tensorflow_serving/util/net_http/internal/net_logging.h"
 
 namespace tensorflow {
 namespace serving {
@@ -43,7 +43,7 @@ absl::once_flag libevent_init_once;
 
 void InitLibEvent() {
   if (evthread_use_pthreads() != 0) {
-    ABSL_RAW_LOG(FATAL, "Server requires pthread support.");
+    NET_LOG(FATAL, "Server requires pthread support.");
   }
   // Ignore SIGPIPE and allow errors to propagate through error codes.
   signal(SIGPIPE, SIG_IGN);
@@ -60,8 +60,7 @@ EvHTTPServer::EvHTTPServer(std::unique_ptr<ServerOptions> options)
 // May crash the server if called before WaitForTermination() returns
 EvHTTPServer::~EvHTTPServer() {
   if (!is_terminating()) {
-    ABSL_RAW_LOG(ERROR,
-                 "Serer has not been terminated. Force termination now.");
+    NET_LOG(ERROR, "Serer has not been terminated. Force termination now.");
     Terminate();
   }
 
@@ -79,12 +78,12 @@ EvHTTPServer::~EvHTTPServer() {
 // TODO(wenboz): support multiple ports
 bool EvHTTPServer::Initialize() {
   if (server_options_->executor() == nullptr) {
-    ABSL_RAW_LOG(FATAL, "Default EventExecutor is not configured.");
+    NET_LOG(FATAL, "Default EventExecutor is not configured.");
     return false;
   }
 
   if (server_options_->ports().empty()) {
-    ABSL_RAW_LOG(FATAL, "Server port is not specified.");
+    NET_LOG(FATAL, "Server port is not specified.");
     return false;
   }
 
@@ -93,7 +92,7 @@ bool EvHTTPServer::Initialize() {
   // This ev_base_ created per-server v.s. global
   ev_base_ = event_base_new();
   if (ev_base_ == nullptr) {
-    ABSL_RAW_LOG(FATAL, "Failed to create an event_base.");
+    NET_LOG(FATAL, "Failed to create an event_base.");
     return false;
   }
 
@@ -102,7 +101,7 @@ bool EvHTTPServer::Initialize() {
 
   ev_http_ = evhttp_new(ev_base_);
   if (ev_http_ == nullptr) {
-    ABSL_RAW_LOG(FATAL, "Failed to create evhttp.");
+    NET_LOG(FATAL, "Failed to create evhttp.");
     return false;
   }
 
@@ -191,7 +190,7 @@ void ResolveEphemeralPort(evhttp_bound_socket* listener, int* port) {
 
   evutil_socket_t fd = evhttp_bound_socket_get_fd(listener);
   if (getsockname(fd, reinterpret_cast<sockaddr*>(&ss), &socklen)) {
-    ABSL_RAW_LOG(ERROR, "getsockname() failed");
+    NET_LOG(ERROR, "getsockname() failed");
     return;
   }
 
@@ -200,7 +199,7 @@ void ResolveEphemeralPort(evhttp_bound_socket* listener, int* port) {
   } else if (ss.ss_family == AF_INET6) {
     *port = ntohs((reinterpret_cast<sockaddr_in6*>(&ss))->sin6_port);
   } else {
-    ABSL_RAW_LOG(ERROR, "Unknown address family %d", ss.ss_family);
+    NET_LOG(ERROR, "Unknown address family %d", ss.ss_family);
   }
 }
 
@@ -208,7 +207,7 @@ void ResolveEphemeralPort(evhttp_bound_socket* listener, int* port) {
 
 bool EvHTTPServer::StartAcceptingRequests() {
   if (ev_http_ == nullptr) {
-    ABSL_RAW_LOG(FATAL, "Server has not been successfully initialized");
+    NET_LOG(FATAL, "Server has not been successfully initialized");
     return false;
   }
 
@@ -221,7 +220,7 @@ bool EvHTTPServer::StartAcceptingRequests() {
     // in case ipv6 is not supported, fallback to inaddr_any
     ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, nullptr, ev_port);
     if (ev_listener_ == nullptr) {
-      ABSL_RAW_LOG(FATAL, "Couldn't bind to port %d", port);
+      NET_LOG(FATAL, "Couldn't bind to port %d", port);
       return false;
     }
   }
@@ -236,9 +235,9 @@ bool EvHTTPServer::StartAcceptingRequests() {
 
   IncOps();
   server_options_->executor()->Schedule([this]() {
-    ABSL_RAW_LOG(INFO, "Entering the event loop ...");
+    NET_LOG(INFO, "Entering the event loop ...");
     int result = event_base_dispatch(ev_base_);
-    ABSL_RAW_LOG(INFO, "event_base_dispatch() exits with value %d", result);
+    NET_LOG(INFO, "event_base_dispatch() exits with value %d", result);
 
     DecOps();
   });
@@ -256,12 +255,12 @@ bool EvHTTPServer::is_accepting_requests() const {
 
 void EvHTTPServer::Terminate() {
   if (!is_accepting_requests()) {
-    ABSL_RAW_LOG(ERROR, "Server is not running ...");
+    NET_LOG(ERROR, "Server is not running ...");
     return;
   }
 
   if (is_terminating()) {
-    ABSL_RAW_LOG(ERROR, "Server is already being terminated ...");
+    NET_LOG(ERROR, "Server is already being terminated ...");
     return;
   }
 
@@ -300,17 +299,17 @@ void EvHTTPServer::DecOps() {
 void EvHTTPServer::WaitForTermination() {
   {
     absl::MutexLock l(&ops_mu_);
-    ops_mu_.Await(absl::Condition(+[](int64_t* count) { return *count <= 1; },
-                                  &num_pending_ops_));
+    ops_mu_.Await(absl::Condition(
+        +[](int64_t* count) { return *count <= 1; }, &num_pending_ops_));
   }
 
   int result = event_base_loopexit(ev_base_, nullptr);
-  ABSL_RAW_LOG(INFO, "event_base_loopexit() exits with value %d", result);
+  NET_LOG(INFO, "event_base_loopexit() exits with value %d", result);
 
   {
     absl::MutexLock l(&ops_mu_);
-    ops_mu_.Await(absl::Condition(+[](int64_t* count) { return *count == 0; },
-                                  &num_pending_ops_));
+    ops_mu_.Await(absl::Condition(
+        +[](int64_t* count) { return *count == 0; }, &num_pending_ops_));
   }
 }
 
@@ -320,21 +319,21 @@ bool EvHTTPServer::WaitForTerminationWithTimeout(absl::Duration timeout) {
   {
     absl::MutexLock l(&ops_mu_);
     wait_result = ops_mu_.AwaitWithTimeout(
-        absl::Condition(+[](int64_t* count) { return *count <= 1; },
-                        &num_pending_ops_),
+        absl::Condition(
+            +[](int64_t* count) { return *count <= 1; }, &num_pending_ops_),
         timeout);
   }
 
   if (wait_result) {
     int result = event_base_loopexit(ev_base_, nullptr);
-    ABSL_RAW_LOG(INFO, "event_base_loopexit() exits with value %d", result);
+    NET_LOG(INFO, "event_base_loopexit() exits with value %d", result);
 
     // This should pass immediately
     {
       absl::MutexLock l(&ops_mu_);
       wait_result = ops_mu_.AwaitWithTimeout(
-          absl::Condition(+[](int64_t* count) { return *count == 0; },
-                          &num_pending_ops_),
+          absl::Condition(
+              +[](int64_t* count) { return *count == 0; }, &num_pending_ops_),
           timeout);
     }
   }
@@ -362,19 +361,18 @@ void EvHTTPServer::RegisterRequestHandler(
       std::forward_as_tuple(uri, handler, options));
 
   if (!result.second) {
-    ABSL_RAW_LOG(INFO,
-                 "Overwrite the existing handler registered under "
-                 "the URI path %.*s",
-                 static_cast<int>(uri.size()), uri.data());
+    NET_LOG(INFO,
+            "Overwrite the existing handler registered under "
+            "the URI path %.*s",
+            static_cast<int>(uri.size()), uri.data());
 
     uri_handlers_.erase(result.first);
     if (!uri_handlers_
              .emplace(std::piecewise_construct, std::forward_as_tuple(uri),
                       std::forward_as_tuple(uri, handler, options))
              .second) {
-      ABSL_RAW_LOG(ERROR,
-                   "Failed to register an handler under the URI path %.*s",
-                   static_cast<int>(uri.size()), uri.data());
+      NET_LOG(ERROR, "Failed to register an handler under the URI path %.*s",
+              static_cast<int>(uri.size()), uri.data());
     }
   }
 }

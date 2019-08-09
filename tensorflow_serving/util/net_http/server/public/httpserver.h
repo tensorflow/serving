@@ -20,7 +20,6 @@ limitations under the License.
 
 #include <memory>
 
-#include "absl/base/internal/raw_logging.h"
 #include "absl/memory/memory.h"
 
 #include "tensorflow_serving/util/net_http/server/internal/evhttp_server.h"
@@ -40,7 +39,6 @@ inline std::unique_ptr<HTTPServerInterface> CreateEvHTTPServer(
   auto server = absl::make_unique<EvHTTPServer>(std::move(options));
   bool result = server->Initialize();
   if (!result) {
-    ABSL_RAW_LOG(ERROR, "Failed to initialize EvHTTPServer");
     return nullptr;
   }
 
