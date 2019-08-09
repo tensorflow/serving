@@ -25,6 +25,6 @@ cc_library(
     deps = [
         "@com_google_absl//absl/base:config",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/base:log_severity",
+        "@com_google_absl//absl/base:base",
     ],
 )
