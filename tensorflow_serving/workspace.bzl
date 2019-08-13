@@ -1,6 +1,7 @@
 # TensorFlow Serving external dependencies that can be loaded in WORKSPACE
 # files.
 
+load("@org_tensorflow//third_party:repo.bzl", "tf_http_archive")
 load("@org_tensorflow//tensorflow:workspace.bzl", "tf_workspace")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
@@ -42,4 +43,16 @@ def tf_serving_workspace():
         sha256 = "70158101eab7ed44fd9cc34e7f247b3cae91a8e4490745d9d6eb7edc184e4d96",
         strip_prefix = "libevent-release-2.1.8-stable",
         build_file = "@//third_party/libevent:BUILD",
+    )
+
+    # ===== Override TF defined `com_google_absl` (we need a recent version).
+    tf_http_archive(
+        name = "com_google_absl",
+        build_file = str(Label("@org_tensorflow//third_party:com_google_absl.BUILD")),
+        sha256 = "b6aa25c8283cca9de282bb7f5880b04492af76213b2f48c135c4963c6333a21e",
+        strip_prefix = "abseil-cpp-36d37ab992038f52276ca66b9da80c1cf0f57dc2",
+        urls = [
+            "http://mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/36d37ab992038f52276ca66b9da80c1cf0f57dc2.tar.gz",
+            "https://github.com/abseil/abseil-cpp/archive/36d37ab992038f52276ca66b9da80c1cf0f57dc2.tar.gz",
+        ],
     )
