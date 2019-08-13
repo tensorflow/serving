@@ -21,10 +21,9 @@ cc_library(
 cc_library(
     name = "net_logging",
     srcs = ["net_logging.cc"],
-    hdrs = ["net_logging.h"],
+    hdrs = ["net_logging.h", "@com_google_absl//absl/base:log_severity.h"],
     deps = [
         "@com_google_absl//absl/base:config",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/base:log_severity",
     ],
 )
