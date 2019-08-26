@@ -37,7 +37,6 @@ cc_library(
     deps = [
         ":http_server_api",
         "//tensorflow_serving/util/net_http/server/internal:evhttp_server",
-        "@com_google_absl//absl/base",
         "@com_google_absl//absl/memory",
     ],
 )
