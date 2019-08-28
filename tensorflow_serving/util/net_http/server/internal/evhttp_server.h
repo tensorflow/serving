@@ -85,9 +85,9 @@ class EvHTTPServer final : public HTTPServerInterface, ServerSupport {
 
   void ScheduleHandlerReference(const RequestHandler& handler,
                                 EvHTTPRequest* ev_request)
-      EXCLUSIVE_LOCKS_REQUIRED(request_mu_);
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(request_mu_);
   void ScheduleHandler(RequestHandler&& handler, EvHTTPRequest* ev_request)
-      EXCLUSIVE_LOCKS_REQUIRED(request_mu_);
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(request_mu_);
 
   struct UriHandlerInfo {
    public:
@@ -119,12 +119,12 @@ class EvHTTPServer final : public HTTPServerInterface, ServerSupport {
 
   // Tracks the # of pending operations
   mutable absl::Mutex ops_mu_;
-  int64_t num_pending_ops_ GUARDED_BY(ops_mu_) = 0;
+  int64_t num_pending_ops_ ABSL_GUARDED_BY(ops_mu_) = 0;
 
   mutable absl::Mutex request_mu_;
   std::unordered_map<std::string, UriHandlerInfo> uri_handlers_
-      GUARDED_BY(request_mu_);
-  std::vector<DispatcherInfo> dispatchers_ GUARDED_BY(request_mu_);
+      ABSL_GUARDED_BY(request_mu_);
+  std::vector<DispatcherInfo> dispatchers_ ABSL_GUARDED_BY(request_mu_);
 
   // ev instances
   event_base* ev_base_ = nullptr;
