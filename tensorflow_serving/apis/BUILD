@@ -21,7 +21,7 @@ filegroup(
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library")
-load("@org_tensorflow//tensorflow/core:platform/default/build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
+load("@org_tensorflow//tensorflow/core/platform:default/build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
 
 serving_proto_library(
     name = "get_model_metadata_proto",
