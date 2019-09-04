@@ -194,7 +194,7 @@ Status RunPredict(
     return errors::FailedPrecondition(strings::StrCat(
         "Serving signature key \"", signature_name, "\" not found."));
   }
-  SignatureDef signature = iter->second;
+  const SignatureDef& signature = iter->second;
 
   MakeModelSpec(request.model_spec().name(), signature_name, servable_version,
                 response->mutable_model_spec());
