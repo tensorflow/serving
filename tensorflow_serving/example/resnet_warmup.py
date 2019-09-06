@@ -14,8 +14,8 @@
 # ==============================================================================
 """Creates the tf_serving_warmup_requests file to warm up a ResNet SavedModel.
    
-   1. Invoke this script passing in the model directory (including version
-        folder) as an argument.
+   1. Invoke this script passing in the saved_model directory (including version
+        folder, the folder containing saved_model.pb) as an argument.
    2. Restart tensorflow_model_server.
 
    If unsure of the model directory, look for the output:
@@ -28,7 +28,7 @@
    startup log
 
    Usage example:
-     python resnet_warmup.py model_dir
+     python resnet_warmup.py saved_model_dir
 """
 
 import os
@@ -40,16 +40,17 @@ from tensorflow_serving.apis import prediction_log_pb2
 
 # IMAGE_URLS are the locations of the images we use to warmup the model
 IMAGE_URLS = [ 'https://tensorflow.org/images/blogs/serving/cat.jpg',
+               'https://storage.googleapis.com/download.tensorflow.org/example_images/320px-Felis_catus-cat_on_snow.jpg',
              ]
 
 def main():
   if len(sys.argv) != 2 or sys.argv[-1].startswith('-'):
-    print('Usage: resnet_warmup.py model_dir')
+    print('Usage: resnet_warmup.py saved_model_dir')
     sys.exit(-1)
 
   model_dir = sys.argv[-1]
   if not os.path.isdir(model_dir):
-    print('The model directory: %s does not exist. '
+    print('The saved model directory: %s does not exist. '
           'Specify the path of an existing model.' % model_dir)
     sys.exit(-1)
 
