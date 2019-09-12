@@ -220,7 +220,7 @@ bool EvHTTPServer::StartAcceptingRequests() {
     // in case ipv6 is not supported, fallback to inaddr_any
     ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, nullptr, ev_port);
     if (ev_listener_ == nullptr) {
-      NET_LOG(FATAL, "Couldn't bind to port %d", port);
+      NET_LOG(ERROR, "Couldn't bind to port %d", port);
       return false;
     }
   }
