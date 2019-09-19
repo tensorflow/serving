@@ -458,15 +458,6 @@ void SharedBatchScheduler<TaskType>::ThreadLogic() {
   {
     mutex_lock l(mu_);
 
-    if (options_.env->NowMicros() >= last_log_time_size_micros_ + logging_rate_) {
-      LOG(INFO) << "Batch size to process: " << "NaN"; // FLUENTD
-      last_log_time_size_micros_ = options_.env->NowMicros();
-    }
-
-    if (options_.env->NowMicros() >= last_log_time_proctime_micros_ + logging_rate_) {
-      LOG(INFO) << "Batch processing time: " << "NaN" << " ms"; // FLUENTD
-      last_log_time_proctime_micros_ = options_.env->NowMicros();
-    }
     const int num_queues = queues_.size();
     for (int num_queues_tried = 0;
          batch_to_process == nullptr && num_queues_tried < num_queues;
