@@ -291,10 +291,12 @@ cc_library(
     ],
 )
 
-SUPPORTED_TENSORFLOW_OPS = [
+load("//tensorflow_serving:tensorflow_version.bzl", "if_v2", "if_not_v2")
+
+SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
     "@org_tensorflow//tensorflow/contrib:contrib_kernels",
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
-]
+])
 
 TENSORFLOW_DEPS = [
     "@org_tensorflow//tensorflow/core:tensorflow",
