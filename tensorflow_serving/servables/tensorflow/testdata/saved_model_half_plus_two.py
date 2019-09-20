@@ -114,8 +114,29 @@ def _build_classification_signature(input_tensor, scores_tensor):
       tf.saved_model.signature_constants.CLASSIFY_METHOD_NAME)
 
 
+def _create_asset_file():
+  """Helper to create assets file. Returns a tensor for the filename."""
+  # Create an assets file that can be saved and restored as part of the
+  # SavedModel.
+  original_assets_directory = "/tmp/original/export/assets"
+  original_assets_filename = "foo.txt"
+  original_assets_filepath = _write_assets(original_assets_directory,
+                                           original_assets_filename)
+
+  # Set up the assets collection.
+  assets_filepath = tf.constant(original_assets_filepath)
+  tf.add_to_collection(tf.GraphKeys.ASSET_FILEPATHS, assets_filepath)
+  filename_tensor = tf.Variable(
+      original_assets_filename,
+      name="filename_tensor",
+      trainable=False,
+      collections=[])
+  return filename_tensor.assign(original_assets_filename)
+
+
 def _generate_saved_model_for_half_plus_two(export_dir,
                                             as_text=False,
+                                            as_tflite=False,
                                             use_main_op=False,
                                             device_type="cpu"):
   """Generates SavedModel for half plus two.
@@ -123,8 +144,9 @@ def _generate_saved_model_for_half_plus_two(export_dir,
   Args:
     export_dir: The directory to which the SavedModel should be written.
     as_text: Writes the SavedModel protocol buffer in text format to disk.
+    as_tflite: Writes the Model in Tensorflow Lite format to disk.
     use_main_op: Whether to supply a main op during SavedModel build time.
-    device_name: Device to force ops to run on.
+    device_type: Device to force ops to run on.
   """
   builder = tf.saved_model.builder.SavedModelBuilder(export_dir)
 
@@ -196,22 +218,7 @@ def _generate_saved_model_for_half_plus_two(export_dir,
 
       y3 = tf.identity(y3, name="y3")
 
-    # Create an assets file that can be saved and restored as part of the
-    # SavedModel.
-    original_assets_directory = "/tmp/original/export/assets"
-    original_assets_filename = "foo.txt"
-    original_assets_filepath = _write_assets(original_assets_directory,
-                                             original_assets_filename)
-
-    # Set up the assets collection.
-    assets_filepath = tf.constant(original_assets_filepath)
-    tf.add_to_collection(tf.GraphKeys.ASSET_FILEPATHS, assets_filepath)
-    filename_tensor = tf.Variable(
-        original_assets_filename,
-        name="filename_tensor",
-        trainable=False,
-        collections=[])
-    assign_filename_op = filename_tensor.assign(original_assets_filename)
+    assign_filename_op = _create_asset_file()
 
     # Set up the signature for Predict with input and output tensor
     # specification.
@@ -240,20 +247,27 @@ def _generate_saved_model_for_half_plus_two(export_dir,
     # Initialize all variables and then save the SavedModel.
     sess.run(tf.global_variables_initializer())
 
-    if use_main_op:
-      builder.add_meta_graph_and_variables(
-          sess, [tf.saved_model.tag_constants.SERVING],
-          signature_def_map=signature_def_map,
-          assets_collection=tf.get_collection(tf.GraphKeys.ASSET_FILEPATHS),
-          main_op=tf.group(tf.saved_model.main_op.main_op(),
-                           assign_filename_op))
+    if as_tflite:
+      converter = tf.lite.TFLiteConverter.from_session(sess, [x], [y])
+      tflite_model = converter.convert()
+      open(export_dir + "/model.tflite", "wb").write(tflite_model)
     else:
-      builder.add_meta_graph_and_variables(
-          sess, [tf.saved_model.tag_constants.SERVING],
-          signature_def_map=signature_def_map,
-          assets_collection=tf.get_collection(tf.GraphKeys.ASSET_FILEPATHS),
-          main_op=tf.group(assign_filename_op))
-  builder.save(as_text)
+      if use_main_op:
+        builder.add_meta_graph_and_variables(
+            sess, [tf.saved_model.tag_constants.SERVING],
+            signature_def_map=signature_def_map,
+            assets_collection=tf.get_collection(tf.GraphKeys.ASSET_FILEPATHS),
+            main_op=tf.group(tf.saved_model.main_op.main_op(),
+                             assign_filename_op))
+      else:
+        builder.add_meta_graph_and_variables(
+            sess, [tf.saved_model.tag_constants.SERVING],
+            signature_def_map=signature_def_map,
+            assets_collection=tf.get_collection(tf.GraphKeys.ASSET_FILEPATHS),
+            main_op=tf.group(assign_filename_op))
+
+  if not as_tflite:
+    builder.save(as_text)
 
 
 def main(_):
@@ -278,6 +292,13 @@ def main(_):
       "dir": FLAGS.output_dir_main_op
   })
 
+  _generate_saved_model_for_half_plus_two(
+      FLAGS.output_dir_tflite, as_tflite=True, device_type=FLAGS.device)
+  print("SavedModel in TFLite format generated for %(device)s at: %(dir)s " % {
+      "device": FLAGS.device,
+      "dir": FLAGS.output_dir_tflite,
+  })
+
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
@@ -296,6 +317,11 @@ if __name__ == "__main__":
       type=str,
       default="/tmp/saved_model_half_plus_two_main_op",
       help="Directory where to output the SavedModel with a main op.")
+  parser.add_argument(
+      "--output_dir_tflite",
+      type=str,
+      default="/tmp/saved_model_half_plus_two_tflite",
+      help="Directory where to output model in TensorFlow Lite format.")
   parser.add_argument(
       "--device",
       type=str,

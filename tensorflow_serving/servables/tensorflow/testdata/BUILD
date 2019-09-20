@@ -105,6 +105,13 @@ filegroup(
 )
 
 filegroup(
+    name = "saved_model_half_plus_two_tflite",
+    srcs = glob(
+        ["saved_model_half_plus_two_tflite/**"],
+    ),
+)
+
+filegroup(
     name = "saved_model_half_plus_two_gpu_trt",
     srcs = glob(
         ["saved_model_half_plus_two_gpu_trt/**"],

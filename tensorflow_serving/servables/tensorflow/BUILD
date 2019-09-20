@@ -420,6 +420,43 @@ cc_test(
 )
 
 cc_library(
+    name = "tflite_session",
+    srcs = ["tflite_session.cc"],
+    hdrs = ["tflite_session.h"],
+    deps = [
+        ":serving_session",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_protobuf//:protobuf",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/lite:framework",
+        "@org_tensorflow//tensorflow/lite:string_util",
+        "@org_tensorflow//tensorflow/lite/core/api",
+        "@org_tensorflow//tensorflow/lite/kernels:builtin_ops",
+    ],
+)
+
+cc_test(
+    name = "tflite_session_test",
+    size = "small",
+    srcs = ["tflite_session_test.cc"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
+    ],
+    deps = [
+        ":tflite_session",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
+    ],
+)
+
+cc_library(
     name = "predict_impl",
     srcs = ["predict_impl.cc"],
     hdrs = ["predict_impl.h"],
