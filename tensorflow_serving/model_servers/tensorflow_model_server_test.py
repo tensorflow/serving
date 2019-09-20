@@ -124,6 +124,18 @@ def CallREST(url, req, max_attempts=60):
       time.sleep(1)
 
 
+def SortedObject(obj):
+  """Returns sorted object (with nested list/dictionaries)."""
+  if isinstance(obj, dict):
+    return sorted((k, SortedObject(v)) for k, v in obj.items())
+  if isinstance(obj, list):
+    return sorted(SortedObject(x) for x in obj)
+  if isinstance(obj, tuple):
+    return list(sorted(SortedObject(x) for x in obj))
+  else:
+    return obj
+
+
 class TensorflowModelServerTest(tf.test.TestCase):
   """This class defines integration test cases for tensorflow_model_server."""
 
@@ -288,8 +300,7 @@ class TensorflowModelServerTest(tf.test.TestCase):
 
   def _GetSavedModelBundlePath(self):
     """Returns a path to a model in SavedModel format."""
-    return os.path.join(os.environ['TEST_SRCDIR'], 'tf_serving/external/org_tensorflow/tensorflow/',
-                        'cc/saved_model/testdata/half_plus_two')
+    return os.path.join(self.testdata_dir, 'saved_model_half_plus_two_cpu')
 
   def _GetModelVersion(self, model_path):
     """Returns version of SavedModel/SessionBundle in given path.
@@ -824,7 +835,13 @@ class TensorflowModelServerTest(tf.test.TestCase):
       with open(model_metadata_file) as f:
         expected_metadata = json.load(f)
         # Verify response
-        self.assertEqual(json.loads(resp_data), expected_metadata)
+        # Note, we sort the JSON object before comparing. Formally JSON lists
+        # (aka arrays) are considered ordered and general comparison should NOT
+        # sort. In this case, the "metadata" does not have any ordering making
+        # the sort OK (and the test robust).
+        self.assertEqual(
+            SortedObject(json.loads(resp_data)),
+            SortedObject(expected_metadata))
     except Exception as e:  # pylint: disable=broad-except
       self.fail('Request failed with error: {}'.format(e))
 

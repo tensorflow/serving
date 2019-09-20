@@ -121,47 +121,6 @@
      },
      "method_name": "tensorflow/serving/classify"
     },
-    "classify_x2_to_y3": {
-     "inputs": {
-      "inputs": {
-       "dtype": "DT_FLOAT",
-       "tensor_shape": {
-        "dim": [
-         {
-          "size": "-1",
-          "name": ""
-         },
-         {
-          "size": "1",
-          "name": ""
-         }
-        ],
-        "unknown_rank": false
-       },
-       "name": "x2:0"
-      }
-     },
-     "outputs": {
-      "scores": {
-       "dtype": "DT_FLOAT",
-       "tensor_shape": {
-        "dim": [
-         {
-          "size": "-1",
-          "name": ""
-         },
-         {
-          "size": "1",
-          "name": ""
-         }
-        ],
-        "unknown_rank": false
-       },
-       "name": "y3:0"
-      }
-     },
-     "method_name": "tensorflow/serving/classify"
-    },
     "regress_x_to_y2": {
      "inputs": {
       "inputs": {
