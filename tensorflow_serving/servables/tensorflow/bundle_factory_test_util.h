@@ -32,9 +32,8 @@ string GetTestSavedModelPath();
 // Returns the Session Bundle export path for the half plus two model.
 string GetTestSessionBundleExportPath();
 
-// Returns the paths of the files of the Saved Model (the pb version) for the
-// half plus two model.
-std::vector<string> GetTestSavedModelFiles();
+// Returns the path of TensorFlow Lite model for the half plus two model.
+string GetTestTfLiteModelPath();
 
 // Returns the paths of the files of the Session Bundle export for the half plus
 // two model.

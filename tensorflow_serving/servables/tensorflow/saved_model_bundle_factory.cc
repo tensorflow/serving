@@ -15,16 +15,19 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
 
+#include "absl/strings/string_view.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/contrib/session_bundle/bundle_shim.h"
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
 #include "tensorflow_serving/servables/tensorflow/curried_session.h"
+#include "tensorflow_serving/servables/tensorflow/tflite_session.h"
 
 namespace tensorflow {
 namespace serving {
@@ -54,6 +57,32 @@ Status ParseFixedInputTensors(
     }
     parsed->push_back({proto.name(), tensor});
   }
+  return Status::OK();
+}
+
+// TODO(b/140959776): Move this upstream alongside `kSavedModelFilenamePb`.
+const char kTfLiteModelFilename[] = "model.tflite";
+
+Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle) {
+  std::unique_ptr<TfLiteSession> session;
+
+  const string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
+  uint64 size;
+  TF_RETURN_IF_ERROR(Env::Default()->GetFileSize(fname, &size));
+
+  std::unique_ptr<RandomAccessFile> file;
+  TF_RETURN_IF_ERROR(Env::Default()->NewRandomAccessFile(fname, &file));
+
+  string model_bytes;
+  model_bytes.resize(size);
+  absl::string_view sv;
+  TF_RETURN_IF_ERROR(file->Read(0, size, &sv, &model_bytes[0]));
+
+  std::unique_ptr<TfLiteSession> tflite_session;
+  TF_RETURN_IF_ERROR(
+      TfLiteSession::Create(std::move(model_bytes), &tflite_session,
+                            bundle->meta_graph_def.mutable_signature_def()));
+  bundle->session = std::move(tflite_session);
   return Status::OK();
 }
 
@@ -109,9 +138,13 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
     return result;
   }();
 
-  TF_RETURN_IF_ERROR(LoadSessionBundleOrSavedModelBundle(
-      session_options, GetRunOptions(config_), path, saved_model_tags,
-      bundle->get()));
+  if (config_.use_tflite_model()) {
+    TF_RETURN_IF_ERROR(LoadTfLiteModel(path, bundle->get()));
+  } else {
+    TF_RETURN_IF_ERROR(LoadSessionBundleOrSavedModelBundle(
+        session_options, GetRunOptions(config_), path, saved_model_tags,
+        bundle->get()));
+  }
   if (!config_.experimental_fixed_input_tensors().empty()) {
     LOG(INFO) << "Wrapping session to inject fixed input tensors";
     std::vector<std::pair<string, Tensor>> fixed_input_tensors;

@@ -23,11 +23,13 @@ limitations under the License.
 #include "google/protobuf/wrappers.pb.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/public/version.h"
@@ -41,6 +43,8 @@ namespace serving {
 namespace {
 
 enum class CreationType { kWithoutMetadata, kWithMetadata };
+
+enum class ModelType { kTfModel, kTfLiteModel };
 
 Loader::Metadata CreateMetadata() { return {ServableId{"name", 42}}; }
 
@@ -86,10 +90,13 @@ Status CreateBundleFromPath(const CreationType creation_type,
 // Tests SavedModelBundleFactory with native SavedModel.
 class SavedModelBundleFactoryTest
     : public test_util::BundleFactoryTest,
-      public ::testing::WithParamInterface<CreationType> {
+      public ::testing::WithParamInterface<std::pair<CreationType, ModelType>> {
  public:
   SavedModelBundleFactoryTest()
-      : test_util::BundleFactoryTest(test_util::GetTestSavedModelPath()) {}
+      : test_util::BundleFactoryTest(
+            GetParam().second == ModelType::kTfModel
+                ? test_util::GetTestSavedModelPath()
+                : test_util::GetTestTfLiteModelPath()) {}
 
   virtual ~SavedModelBundleFactoryTest() = default;
 
@@ -98,15 +105,52 @@ class SavedModelBundleFactoryTest
                        std::unique_ptr<Session>* session) const override {
     std::unique_ptr<SavedModelBundle> bundle;
     TF_RETURN_IF_ERROR(
-        CreateBundleFromPath(GetParam(), config, export_dir_, &bundle));
+        CreateBundleFromPath(GetParam().first, config, export_dir_, &bundle));
     *session = std::move(bundle->session);
     return Status::OK();
   }
+
+  SessionBundleConfig GetSessionBundleConfig() const override {
+    SessionBundleConfig config;
+    if (GetParam().second == ModelType::kTfLiteModel) {
+      config.set_use_tflite_model(true);
+    }
+    return config;
+  }
+
+  bool IsRunOptionsSupported() const override {
+    // Presently TensorFlow Lite sessions do NOT support RunOptions.
+    return GetParam().second != ModelType::kTfLiteModel;
+  }
+
+  std::vector<string> GetModelFiles() {
+    switch (GetParam().second) {
+      case ModelType::kTfModel: {
+        const string& dir = test_util::GetTestSavedModelPath();
+        return {
+            io::JoinPath(dir, kSavedModelAssetsDirectory, "foo.txt"),
+            io::JoinPath(dir, kSavedModelFilenamePb),
+            io::JoinPath(dir, kSavedModelVariablesFilename,
+                         "variables.data-00000-of-00001"),
+            io::JoinPath(dir, kSavedModelVariablesFilename, "variables.index")};
+      }
+      case ModelType::kTfLiteModel: {
+        return {
+            io::JoinPath(test_util::GetTestTfLiteModelPath(), "model.tflite")};
+      }
+      default:
+        return {};
+    }
+  }
 };
 
-INSTANTIATE_TEST_SUITE_P(CreationType, SavedModelBundleFactoryTest,
-                         ::testing::Values(CreationType::kWithoutMetadata,
-                                           CreationType::kWithMetadata));
+INSTANTIATE_TEST_SUITE_P(
+    CreationType, SavedModelBundleFactoryTest,
+    ::testing::Values(
+        std::make_pair(CreationType::kWithoutMetadata, ModelType::kTfModel),
+        std::make_pair(CreationType::kWithoutMetadata, ModelType::kTfLiteModel),
+        std::make_pair(CreationType::kWithMetadata, ModelType::kTfModel),
+        std::make_pair(CreationType::kWithMetadata, ModelType::kTfLiteModel)));
 
 TEST_P(SavedModelBundleFactoryTest, Basic) { TestBasic(); }
 
@@ -116,7 +160,7 @@ TEST_P(SavedModelBundleFactoryTest, FixedInputTensors) {
   fixed_input_proto.set_name("x:0");
   fixed_input.AsProtoField(fixed_input_proto.mutable_tensor());
 
-  SessionBundleConfig config;
+  SessionBundleConfig config = GetSessionBundleConfig();
   *config.add_saved_model_tags() = kSavedModelTagServe;
   *config.add_experimental_fixed_input_tensors() = fixed_input_proto;
   std::unique_ptr<Session> session;
@@ -138,20 +182,27 @@ TEST_P(SavedModelBundleFactoryTest, FixedInputTensors) {
 }
 
 TEST_P(SavedModelBundleFactoryTest, RemoveUnusedFieldsFromMetaGraphDefault) {
-  SessionBundleConfig config;
+  SessionBundleConfig config = GetSessionBundleConfig();
   *config.add_saved_model_tags() = kSavedModelTagServe;
   std::unique_ptr<SavedModelBundle> bundle;
-  TF_ASSERT_OK(CreateBundleFromPath(GetParam(), config, export_dir_, &bundle));
-  EXPECT_TRUE(bundle->meta_graph_def.has_graph_def());
+  TF_ASSERT_OK(
+      CreateBundleFromPath(GetParam().first, config, export_dir_, &bundle));
+  if (GetParam().second == ModelType::kTfLiteModel) {
+    // TF Lite model never has a graph_def.
+    EXPECT_FALSE(bundle->meta_graph_def.has_graph_def());
+  } else {
+    EXPECT_TRUE(bundle->meta_graph_def.has_graph_def());
+  }
   EXPECT_FALSE(bundle->meta_graph_def.signature_def().empty());
 }
 
 TEST_P(SavedModelBundleFactoryTest, RemoveUnusedFieldsFromMetaGraphEnabled) {
-  SessionBundleConfig config;
+  SessionBundleConfig config = GetSessionBundleConfig();
   *config.add_saved_model_tags() = kSavedModelTagServe;
   config.set_remove_unused_fields_from_bundle_metagraph(true);
   std::unique_ptr<SavedModelBundle> bundle;
-  TF_ASSERT_OK(CreateBundleFromPath(GetParam(), config, export_dir_, &bundle));
+  TF_ASSERT_OK(
+      CreateBundleFromPath(GetParam().first, config, export_dir_, &bundle));
   EXPECT_FALSE(bundle->meta_graph_def.has_graph_def());
   EXPECT_FALSE(bundle->meta_graph_def.signature_def().empty());
 }
@@ -159,8 +210,7 @@ TEST_P(SavedModelBundleFactoryTest, RemoveUnusedFieldsFromMetaGraphEnabled) {
 TEST_P(SavedModelBundleFactoryTest, Batching) { TestBatching(); }
 
 TEST_P(SavedModelBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
-  const double kTotalFileSize =
-      test_util::GetTotalFileSize(test_util::GetTestSavedModelFiles());
+  const double kTotalFileSize = test_util::GetTotalFileSize(GetModelFiles());
   TestEstimateResourceRequirementWithGoodExport<SavedModelBundleFactory>(
       kTotalFileSize);
 }

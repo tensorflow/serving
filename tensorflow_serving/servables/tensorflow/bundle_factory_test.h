@@ -50,14 +50,14 @@ class BundleFactoryTest : public ::testing::Test {
  protected:
   // Test functions to be used by subclasses.
   void TestBasic() const {
-    const SessionBundleConfig config;
+    const SessionBundleConfig config = GetSessionBundleConfig();
     std::unique_ptr<Session> session;
     TF_ASSERT_OK(CreateSession(config, &session));
     TestSingleRequest(session.get());
   }
 
   void TestBatching() const {
-    SessionBundleConfig config;
+    SessionBundleConfig config = GetSessionBundleConfig();
     BatchingParameters *batching_params = config.mutable_batching_parameters();
     batching_params->mutable_max_batch_size()->set_value(2);
     batching_params->mutable_max_enqueued_batches()->set_value(INT_MAX);
@@ -72,7 +72,7 @@ class BundleFactoryTest : public ::testing::Test {
   template <class FactoryType>
   void TestEstimateResourceRequirementWithGoodExport(
       double total_file_size) const {
-    const SessionBundleConfig config;
+    const SessionBundleConfig config = GetSessionBundleConfig();
     std::unique_ptr<FactoryType> factory;
     TF_ASSERT_OK(FactoryType::Create(config, &factory));
     ResourceAllocation actual;
@@ -83,7 +83,9 @@ class BundleFactoryTest : public ::testing::Test {
   }
 
   void TestRunOptions() const {
-    SessionBundleConfig config;
+    if (!IsRunOptionsSupported()) return;
+
+    SessionBundleConfig config = GetSessionBundleConfig();
 
     // Configure the session-config with two threadpools. The first is setup
     // with default settings. The second is explicitly setup with 1 thread.
@@ -104,8 +106,10 @@ class BundleFactoryTest : public ::testing::Test {
   }
 
   void TestRunOptionsError() const {
+    if (!IsRunOptionsSupported()) return;
+
     // Session bundle config with the default global threadpool.
-    SessionBundleConfig config;
+    SessionBundleConfig config = GetSessionBundleConfig();
 
     // Invalid threadpool index to use for session-run calls.
     config.mutable_session_run_load_threadpool_index()->set_value(100);
@@ -124,6 +128,14 @@ class BundleFactoryTest : public ::testing::Test {
   // Creates a Session with the given configuration and export path.
   virtual Status CreateSession(const SessionBundleConfig &config,
                                std::unique_ptr<Session> *session) const = 0;
+
+  // Returns a SessionBundleConfig.
+  virtual SessionBundleConfig GetSessionBundleConfig() const {
+    return SessionBundleConfig();
+  }
+
+  // Returns true if RunOptions is supported by underlying session.
+  virtual bool IsRunOptionsSupported() const { return true; }
 };
 
 }  // namespace test_util

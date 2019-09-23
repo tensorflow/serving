@@ -396,6 +396,7 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.index",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
     ],
     python_version = "PY2",
     srcs_version = "PY2AND3",

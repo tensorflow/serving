@@ -267,6 +267,7 @@ Status Server::BuildAndStart(const Options& server_options) {
     }
     session_bundle_config.set_remove_unused_fields_from_bundle_metagraph(
         server_options.remove_unused_fields_from_bundle_metagraph);
+    session_bundle_config.set_use_tflite_model(server_options.use_tflite_model);
     options.platform_config_map = CreateTensorFlowPlatformConfigMap(
         session_bundle_config, use_saved_model);
   } else {

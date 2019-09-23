@@ -83,6 +83,12 @@ message SessionBundleConfig {
   // This message is stored alongside the `Session` object. Removing unwanted
   // fields helps reduce memory footprint.
   bool remove_unused_fields_from_bundle_metagraph = 782;
+
+  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
+  //
+  // Use TensorFlow Lite model from `model.tflite` file in SavedModel directory,
+  // instead of the TensorFlow model from `saved_model.pb` file.
+  bool use_tflite_model = 783;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

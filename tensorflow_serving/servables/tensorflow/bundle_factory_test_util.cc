@@ -35,6 +35,8 @@ const char kTestSavedModelPath[] =
     "cc/saved_model/testdata/half_plus_two/00000123";
 const char kTestSessionBundleExportPath[] =
     "session_bundle/testdata/half_plus_two/00000123";
+const char kTestTfLiteModelPath[] =
+    "servables/tensorflow/testdata/saved_model_half_plus_two_tflite/00000123";
 
 }  // namespace
 
@@ -46,14 +48,8 @@ string GetTestSessionBundleExportPath() {
   return test_util::ContribTestSrcDirPath(kTestSessionBundleExportPath);
 }
 
-std::vector<string> GetTestSavedModelFiles() {
-  const string dir = GetTestSavedModelPath();
-  return {tensorflow::io::JoinPath(dir, kSavedModelAssetsDirectory, "foo.txt"),
-          tensorflow::io::JoinPath(dir, kSavedModelFilenamePb),
-          tensorflow::io::JoinPath(dir, kSavedModelVariablesFilename,
-                                   "variables.data-00000-of-00001"),
-          tensorflow::io::JoinPath(dir, kSavedModelVariablesFilename,
-                                   "variables.index")};
+string GetTestTfLiteModelPath() {
+  return test_util::TestSrcDirPath(kTestTfLiteModelPath);
 }
 
 std::vector<string> GetTestSessionBundleExportFiles() {
@@ -65,7 +61,8 @@ std::vector<string> GetTestSessionBundleExportFiles() {
 uint64 GetTotalFileSize(const std::vector<string>& files) {
   uint64 total_file_size = 0;
   for (const string& file : files) {
-    if (!(Env::Default()->IsDirectory(file).ok())) {
+    if (!(Env::Default()->IsDirectory(file).ok()) &&
+        Env::Default()->FileExists(file).ok()) {
       uint64 file_size;
       TF_CHECK_OK(Env::Default()->GetFileSize(file, &file_size));
       total_file_size += file_size;
