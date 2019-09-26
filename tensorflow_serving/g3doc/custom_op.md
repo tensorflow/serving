@@ -91,10 +91,24 @@ tools/run_in_docker.sh bazel build tensorflow_serving/model_servers:tensorflow_m
 
 ## Serve a model containing your custom op
 
-You can now run the ModelServer binary and start serving your model:
+You can now run the ModelServer binary and start serving a model that contains
+this custom op:
 
 ```bash
 tools/run_in_docker.sh -o "-p 8501:8501" \
 bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server \
 --rest_api_port=8501 --model_name=<model_name> --model_base_path=<model_base_path>
 ```
+
+## Send an inference request to test op manually
+
+You can now send an inference request to the model server to test your custom
+op:
+
+```bash
+curl http://localhost:8501/v1/models/<model_name>:predict -X POST \
+-d '{"inputs": [[1,2], [3,4]]}'
+```
+
+[This page](https://www.tensorflow.org/tfx/serving/api_rest#top_of_page)
+contains a more complete API for sending REST requests to the model server.
