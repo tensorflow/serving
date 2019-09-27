@@ -1,0 +1,81 @@
+From cdeb61c249f6b566291c6b2cef233ba1a7425fbe Mon Sep 17 00:00:00 2001
+From: Christian Sigg <csigg@google.com>
+Date: Wed, 11 Sep 2019 12:43:35 -0700
+Subject: [PATCH] Allow MLIR external repository to be created from
+ non-tensorflow repository.
+
+PiperOrigin-RevId: 268519854
+---
+ tensorflow/opensource_only.files    |  2 +-
+ tensorflow/workspace.bzl            |  6 ++----
+ third_party/mlir/WORKSPACE          |  0
+ third_party/mlir/mlir_configure.bzl | 22 ++++++++++++++++++++++
+ 4 files changed, 25 insertions(+), 5 deletions(-)
+ delete mode 100644 third_party/mlir/WORKSPACE
+ create mode 100644 third_party/mlir/mlir_configure.bzl
+
+diff --git a/tensorflow/opensource_only.files b/tensorflow/opensource_only.files
+index 557fb2a436..2df9c1d566 100644
+--- a/tensorflow/opensource_only.files
++++ b/tensorflow/opensource_only.files
+@@ -1,4 +1,4 @@
+-llvm/llvm/projects/google_mlir/WORKSPACE
++llvm/llvm/projects/google_mlir/mlir_configure.bzl
+ tensorflow/__init__.py
+ tensorflow/api_template.__init__.py
+ tensorflow/api_template_v1.__init__.py
+diff --git a/tensorflow/workspace.bzl b/tensorflow/workspace.bzl
+index 631b118ce3..661d08457b 100755
+--- a/tensorflow/workspace.bzl
++++ b/tensorflow/workspace.bzl
+@@ -7,6 +7,7 @@ load("//third_party/nccl:nccl_configure.bzl", "nccl_configure")
+ load("//third_party/mkl:build_defs.bzl", "mkl_repository")
+ load("//third_party/git:git_configure.bzl", "git_configure")
+ load("//third_party/py:python_configure.bzl", "python_configure")
++load("//third_party/mlir:mlir_configure.bzl", "mlir_configure")
+ load("//third_party/sycl:sycl_configure.bzl", "sycl_configure")
+ load("//third_party/systemlibs:syslibs_configure.bzl", "syslibs_configure")
+ load("//third_party/toolchains/remote:configure.bzl", "remote_execution_configure")
+@@ -75,10 +76,7 @@ def tf_repositories(path_prefix = "", tf_repo_name = ""):
+     syslibs_configure(name = "local_config_syslibs")
+     python_configure(name = "local_config_python")
+     rocm_configure(name = "local_config_rocm")
+-    native.local_repository(
+-        name = "local_config_mlir",
+-        path = "third_party/mlir",
+-    )
++    mlir_configure(name = "local_config_mlir")
+     remote_execution_configure(name = "local_config_remote_execution")
+ 
+     initialize_third_party()
+diff --git a/third_party/mlir/WORKSPACE b/third_party/mlir/WORKSPACE
+deleted file mode 100644
+index e69de29bb2..0000000000
+diff --git a/third_party/mlir/mlir_configure.bzl b/third_party/mlir/mlir_configure.bzl
+new file mode 100644
+index 0000000000..6ffbd90ecf
+--- /dev/null
++++ b/third_party/mlir/mlir_configure.bzl
+@@ -0,0 +1,22 @@
++"""Repository rule for MLIR autoconfiguration."""
++
++def _mlir_configure_impl(repository_ctx):
++    repository_ctx.file("WORKSPACE", "")
++    label = Label("@org_tensorflow//third_party/mlir:mlir_configure.bzl")
++    for entry in repository_ctx.path(label).dirname.readdir():
++        repository_ctx.symlink(entry, entry.basename)
++
++mlir_configure = repository_rule(
++    implementation = _mlir_configure_impl,
++)
++"""Detects and configures the MLIR configuration.
++
++Add the following to your WORKSPACE FILE:
++
++```python
++mlir_configure(name = "local_config_mlir")
++```
++
++Args:
++  name: A unique name for this workspace rule.
++"""
