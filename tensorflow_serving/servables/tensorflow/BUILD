@@ -171,7 +171,7 @@ cc_library(
         ":bundle_factory_util",
         ":curried_session",
         ":session_bundle_config_proto",
-        ":tflite_session",
+        ":tflite_session_lib",
         "//tensorflow_serving/batching:batching_session",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/resources:resources_proto",
@@ -423,7 +423,7 @@ cc_test(
 )
 
 cc_library(
-    name = "tflite_session",
+    name = "tflite_session_lib",
     srcs = ["tflite_session.cc"],
     hdrs = ["tflite_session.h"],
     deps = [
@@ -450,13 +450,22 @@ cc_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
     ],
     deps = [
-        ":tflite_session",
+        ":tflite_session_lib",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
+    ],
+)
+
+cc_binary(
+    name = "tflite_session",
+    srcs = ["tflite_session_main.cc"],
+    deps = [
+        ":tflite_session_lib",
+        "@org_tensorflow//tensorflow/core:framework",
     ],
 )
 
