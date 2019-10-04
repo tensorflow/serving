@@ -64,6 +64,7 @@ serving_proto_library_py(
 
 tf_pyclif_proto_library(
     name = "input_pyclif",
+    deprecated_proto_lib_visibility = True,  # TODO(b/136847937)
     proto_lib = ":input_proto",
     proto_srcfile = "input.proto",
 )
@@ -91,6 +92,7 @@ serving_proto_library_py(
 
 tf_pyclif_proto_library(
     name = "model_pyclif",
+    deprecated_proto_lib_visibility = True,  # TODO(b/136847937)
     proto_lib = ":model_proto",
     proto_srcfile = "model.proto",
 )
@@ -186,6 +188,7 @@ py_library(
 
 tf_pyclif_proto_library(
     name = "predict_pyclif",
+    deprecated_proto_lib_visibility = True,  # TODO(b/136847937)
     proto_lib = ":predict_proto",
     proto_srcfile = "predict.proto",
 )
@@ -290,6 +293,7 @@ serving_proto_library_py(
 
 tf_pyclif_proto_library(
     name = "classification_pyclif",
+    deprecated_proto_lib_visibility = True,  # TODO(b/136847937)
     proto_lib = ":classification_proto",
     proto_srcfile = "classification.proto",
 )
@@ -325,6 +329,7 @@ serving_proto_library_py(
 
 tf_pyclif_proto_library(
     name = "inference_pyclif",
+    deprecated_proto_lib_visibility = True,  # TODO(b/136847937)
     proto_lib = ":inference_proto",
     proto_srcfile = "inference.proto",
 )
@@ -378,6 +383,7 @@ serving_proto_library_py(
 
 tf_pyclif_proto_library(
     name = "regression_pyclif",
+    deprecated_proto_lib_visibility = True,  # TODO(b/136847937)
     proto_lib = ":regression_proto",
     proto_srcfile = "regression.proto",
 )
