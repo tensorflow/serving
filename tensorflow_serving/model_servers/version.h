@@ -27,7 +27,7 @@ limitations under the License.
 #define TF_MODELSERVER_PATCH_VERSION 0
 // TF_MODELSERVER_VERSION_SUFFIX is non-empty for pre-releases
 // (e.g. "-alpha", "-alpha.1", "-beta", "-rc", "-rc.1")
-#define TF_MODELSERVER_VERSION_SUFFIX "-rc1"
+#define TF_MODELSERVER_VERSION_SUFFIX "-rc3"
 
 #ifndef TF_MODELSERVER_VERSION_NO_META
 // TF_MODELSERVER_BUILD_TAG can be set to be nightly for nightly builds
