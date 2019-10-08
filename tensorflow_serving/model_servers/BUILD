@@ -296,7 +296,13 @@ load("//tensorflow_serving:tensorflow_version.bzl", "if_v2", "if_not_v2")
 SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
     "@org_tensorflow//tensorflow/contrib:contrib_kernels",
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
-])
+]) + [
+    "@org_tensorflow_text//tensorflow_text:constrained_sequence_op_cc",
+    "@org_tensorflow_text//tensorflow_text:sentence_breaking_ops_cc",
+    "@org_tensorflow_text//tensorflow_text:unicode_script_tokenizer_cc",
+    "@org_tensorflow_text//tensorflow_text:whitespace_tokenizer_cc",
+    "@org_tensorflow_text//tensorflow_text:wordpiece_tokenizer_cc",
+]
 
 TENSORFLOW_DEPS = [
     "@org_tensorflow//tensorflow/core:tensorflow",
