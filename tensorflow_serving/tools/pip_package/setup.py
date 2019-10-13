@@ -53,7 +53,7 @@ if 'tensorflow-serving-api-gpu' in project_name:
 
 
 REQUIRED_PACKAGES = [
-    'grpcio>=1.0<2',
+    'grpcio>=1.0,<2',
     'protobuf>=3.6.0',
 ] + _TF_REQ
 
