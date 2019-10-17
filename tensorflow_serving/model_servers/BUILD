@@ -1,5 +1,7 @@
 # Description: Model Server
 
+load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",
@@ -116,6 +118,7 @@ cc_test(
         "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter",
         "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter_proto",
         "//tensorflow_serving/test_util",
+        "//tensorflow_serving/util:oss_or_google",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -162,7 +165,6 @@ cc_test(
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
-        "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
@@ -291,8 +293,6 @@ cc_library(
     ],
 )
 
-load("//tensorflow_serving:tensorflow_version.bzl", "if_v2", "if_not_v2")
-
 SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
     "@org_tensorflow//tensorflow/contrib:contrib_kernels",
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
@@ -412,6 +412,7 @@ py_test(
     deps = [
         "//tensorflow_serving/apis:model_service_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        "//tensorflow_serving/model_servers/test_util:tensorflow_model_server_test_base",
         "@org_tensorflow//tensorflow:tensorflow_py",
         "@six_archive//:six",
     ],

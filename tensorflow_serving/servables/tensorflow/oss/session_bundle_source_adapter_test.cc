@@ -22,7 +22,6 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow_serving/core/loader.h"
@@ -72,12 +71,11 @@ class SessionBundleSourceAdapterTest : public ::testing::Test {
     TF_ASSERT_OK(loader->EstimateResources(&second_resource_estimate));
     EXPECT_THAT(second_resource_estimate, EqualsProto(first_resource_estimate));
 
-    TF_ASSERT_OK(loader->Load());
-
-    const SessionBundle* bundle = loader->servable().get<SessionBundle>();
-    test_util::TestSingleRequest(bundle->session.get());
-
-    loader->Unload();
+    Status status = loader->Load();
+    EXPECT_EQ(::tensorflow::error::UNIMPLEMENTED, status.code());
+    EXPECT_THAT(
+        status.ToString(),
+        ::testing::HasSubstr("Session Bundle is deprecated and removed."));
   }
 };
 

@@ -36,6 +36,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
+#include "tensorflow_serving/util/oss_or_google.h"
 
 namespace tensorflow {
 namespace serving {
@@ -149,10 +150,12 @@ TEST_P(SavedModelBundleSourceAdapterTest, Basic) {
 }
 
 TEST_P(SavedModelBundleSourceAdapterTest, BackwardCompatibility) {
+  if (IsTensorflowServingOSS()) {
+    return;
+  }
   TestSavedModelBundleSourceAdapter(
       test_util::GetTestSessionBundleExportPath());
 }
-
 // Test all SavedModelBundleSourceAdapterTest test cases with
 // warmup, num_request_iterations enabled/disabled and session-metadata
 // enabled/disabled.

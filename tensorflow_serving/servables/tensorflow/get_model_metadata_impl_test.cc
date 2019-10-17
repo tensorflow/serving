@@ -25,8 +25,6 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
-#include "tensorflow/contrib/session_bundle/bundle_shim.h"
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/error_codes.pb.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/types.h"
@@ -43,6 +41,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
+#include "tensorflow_serving/util/oss_or_google.h"
 
 namespace tensorflow {
 namespace serving {
@@ -54,9 +53,11 @@ constexpr int kTestModelVersion = 123;
 class GetModelMetadataImplTest : public ::testing::TestWithParam<bool> {
  public:
   static void SetUpTestSuite() {
-    const string session_bundle_path = test_util::TestSrcDirPath(
-        "/servables/tensorflow/testdata/half_plus_two");
-    TF_ASSERT_OK(CreateServerCore(session_bundle_path, false, &server_core_));
+    if (!IsTensorflowServingOSS()) {
+      const string session_bundle_path = test_util::TestSrcDirPath(
+          "/servables/tensorflow/testdata/half_plus_two");
+      TF_ASSERT_OK(CreateServerCore(session_bundle_path, false, &server_core_));
+    }
 
     const string saved_model_path = test_util::TensorflowTestSrcDirPath(
         "cc/saved_model/testdata/half_plus_two");
@@ -232,7 +233,8 @@ TEST_P(GetModelMetadataImplTest, ModelSpecOverride) {
 
 // Test all ClassifierTest test cases with both SessionBundle and SavedModel.
 INSTANTIATE_TEST_CASE_P(UseSavedModel, GetModelMetadataImplTest,
-                        ::testing::Bool());
+                        IsTensorflowServingOSS() ? ::testing::Values(true)
+                                                 : ::testing::Bool());
 
 }  // namespace
 }  // namespace serving

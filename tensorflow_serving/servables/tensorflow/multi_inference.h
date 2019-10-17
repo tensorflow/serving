@@ -16,8 +16,9 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_MULTI_INFERENCE_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_MULTI_INFERENCE_H_
 
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/protobuf/meta_graph.pb.h"
+#include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/util/optional.h"
 

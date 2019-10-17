@@ -23,7 +23,6 @@ limitations under the License.
 #include "google/protobuf/wrappers.pb.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/kernels/batching_util/shared_batch_scheduler.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -36,6 +35,7 @@ limitations under the License.
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
+#include "tensorflow_serving/session_bundle/session_bundle_util.h"
 #include "tensorflow_serving/test_util/test_util.h"
 #include "tensorflow_serving/util/test_util/mock_file_probing_env.h"
 
@@ -52,8 +52,7 @@ using Batcher = SharedBatchScheduler<BatchingSessionTask>;
 
 class BundleFactoryUtilTest : public ::testing::Test {
  protected:
-  BundleFactoryUtilTest()
-      : export_dir_(test_util::GetTestSessionBundleExportPath()) {}
+  BundleFactoryUtilTest() : export_dir_(test_util::GetTestSavedModelPath()) {}
 
   virtual ~BundleFactoryUtilTest() = default;
 
@@ -86,23 +85,17 @@ TEST_F(BundleFactoryUtilTest, GetRunOptions) {
 }
 
 TEST_F(BundleFactoryUtilTest, WrapSession) {
-  // Create a SessionBundle and wrap the session.
-  // TODO(b/32248363): use SavedModelBundle instead of SessionBundle when we
-  // switch the Model Server to use Saved Model.
-  SessionBundle bundle;
-  TF_ASSERT_OK(LoadSessionBundleFromPathUsingRunOptions(
-      SessionOptions(), RunOptions(), export_dir_, &bundle));
+  SavedModelBundle bundle;
+  TF_ASSERT_OK(LoadSavedModel(SessionOptions(), RunOptions(), export_dir_,
+                              {"serve"}, &bundle));
   TF_ASSERT_OK(WrapSession(&bundle.session));
   test_util::TestSingleRequest(bundle.session.get());
 }
 
 TEST_F(BundleFactoryUtilTest, WrapSessionForBatching) {
-  // Create a SessionBundle.
-  // TODO(b/32248363): use SavedModelBundle instead of SessionBundle when we
-  // switch the Model Server to use Saved Model.
-  SessionBundle bundle;
-  TF_ASSERT_OK(LoadSessionBundleFromPathUsingRunOptions(
-      SessionOptions(), RunOptions(), export_dir_, &bundle));
+  SavedModelBundle bundle;
+  TF_ASSERT_OK(LoadSavedModel(SessionOptions(), RunOptions(), export_dir_,
+                              {"serve"}, &bundle));
 
   // Create BatchingParameters and batch scheduler.
   BatchingParameters batching_params;
@@ -140,8 +133,8 @@ TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithBadExport) {
 }
 
 TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithGoodExport) {
-  const double kTotalFileSize =
-      test_util::GetTotalFileSize(test_util::GetTestSessionBundleExportFiles());
+  const double kTotalFileSize = test_util::GetTotalFileSize(
+      test_util::GetTestSavedModelBundleExportFiles());
   ResourceAllocation expected =
       test_util::GetExpectedResourceEstimate(kTotalFileSize);
 

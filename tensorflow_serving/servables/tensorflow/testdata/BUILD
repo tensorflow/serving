@@ -84,6 +84,13 @@ py_binary(
 )
 
 filegroup(
+    name = "half_plus_two",
+    srcs = glob(
+        ["half_plus_two/**"],
+    ),
+)
+
+filegroup(
     name = "saved_model_half_plus_two_cpu",
     srcs = glob(
         ["saved_model_half_plus_two_cpu/**"],

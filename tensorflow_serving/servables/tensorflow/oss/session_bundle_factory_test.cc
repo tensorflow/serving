@@ -23,7 +23,6 @@ limitations under the License.
 #include "google/protobuf/wrappers.pb.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/public/session.h"
@@ -45,7 +44,6 @@ class SessionBundleFactoryTest : public test_util::BundleFactoryTest {
 
   virtual ~SessionBundleFactoryTest() = default;
 
- private:
   Status CreateSession(const SessionBundleConfig& config,
                        std::unique_ptr<Session>* session) const override {
     std::unique_ptr<SessionBundleFactory> factory;
@@ -57,20 +55,15 @@ class SessionBundleFactoryTest : public test_util::BundleFactoryTest {
   }
 };
 
-TEST_F(SessionBundleFactoryTest, Basic) { TestBasic(); }
-
-TEST_F(SessionBundleFactoryTest, Batching) { TestBatching(); }
-
-TEST_F(SessionBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
-  const double kTotalFileSize =
-      test_util::GetTotalFileSize(test_util::GetTestSessionBundleExportFiles());
-  TestEstimateResourceRequirementWithGoodExport<SessionBundleFactory>(
-      kTotalFileSize);
+TEST_F(SessionBundleFactoryTest, Basic) {
+  const SessionBundleConfig config;
+  std::unique_ptr<Session> session;
+  Status status = CreateSession(config, &session);
+  EXPECT_EQ(::tensorflow::error::UNIMPLEMENTED, status.code());
+  EXPECT_THAT(
+      status.ToString(),
+      ::testing::HasSubstr("Session Bundle is deprecated and removed."));
 }
-
-TEST_F(SessionBundleFactoryTest, RunOptions) { TestRunOptions(); }
-
-TEST_F(SessionBundleFactoryTest, RunOptionsError) { TestRunOptionsError(); }
 
 }  // namespace
 }  // namespace serving

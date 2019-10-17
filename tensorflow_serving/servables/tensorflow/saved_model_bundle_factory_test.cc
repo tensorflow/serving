@@ -219,55 +219,6 @@ TEST_P(SavedModelBundleFactoryTest, RunOptions) { TestRunOptions(); }
 
 TEST_P(SavedModelBundleFactoryTest, RunOptionsError) { TestRunOptionsError(); }
 
-// Tests SavedModelBundleFactory with SessionBundle export.
-class SavedModelBundleFactoryBackwardCompatibilityTest
-    : public test_util::BundleFactoryTest,
-      public ::testing::WithParamInterface<CreationType> {
- public:
-  SavedModelBundleFactoryBackwardCompatibilityTest()
-      : test_util::BundleFactoryTest(
-            test_util::GetTestSessionBundleExportPath()) {}
-
-  virtual ~SavedModelBundleFactoryBackwardCompatibilityTest() = default;
-
- private:
-  Status CreateSession(const SessionBundleConfig& config,
-                       std::unique_ptr<Session>* session) const override {
-    std::unique_ptr<SavedModelBundle> bundle;
-    TF_RETURN_IF_ERROR(
-        CreateBundleFromPath(GetParam(), config, export_dir_, &bundle));
-    *session = std::move(bundle->session);
-    return Status::OK();
-  }
-};
-
-INSTANTIATE_TEST_SUITE_P(CreationType,
-                         SavedModelBundleFactoryBackwardCompatibilityTest,
-                         ::testing::Values(CreationType::kWithoutMetadata,
-                                           CreationType::kWithMetadata));
-
-TEST_P(SavedModelBundleFactoryBackwardCompatibilityTest, Basic) { TestBasic(); }
-
-TEST_P(SavedModelBundleFactoryBackwardCompatibilityTest, Batching) {
-  TestBatching();
-}
-
-TEST_P(SavedModelBundleFactoryBackwardCompatibilityTest,
-       EstimateResourceRequirementWithGoodExport) {
-  const double kTotalFileSize =
-      test_util::GetTotalFileSize(test_util::GetTestSessionBundleExportFiles());
-  TestEstimateResourceRequirementWithGoodExport<SavedModelBundleFactory>(
-      kTotalFileSize);
-}
-
-TEST_P(SavedModelBundleFactoryBackwardCompatibilityTest, RunOptions) {
-  TestRunOptions();
-}
-
-TEST_P(SavedModelBundleFactoryBackwardCompatibilityTest, RunOptionsError) {
-  TestRunOptionsError();
-}
-
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

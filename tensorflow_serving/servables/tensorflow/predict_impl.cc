@@ -24,6 +24,7 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/servables/tensorflow/predict_util.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
+#include "tensorflow_serving/session_bundle/session_bundle_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -38,14 +39,16 @@ Status SessionBundlePredict(
     Session* session) {
   // Validate signatures.
   Signature signature;
-  TF_RETURN_IF_ERROR(GetNamedSignature("inputs", meta_graph_def, &signature));
+  TF_RETURN_IF_ERROR(
+      session_bundle::GetNamedSignature("inputs", meta_graph_def, &signature));
   if (!signature.has_generic_signature()) {
     return tensorflow::Status(
         tensorflow::error::INVALID_ARGUMENT,
         "'inputs' named signature is not a generic signature");
   }
   GenericSignature input_signature = signature.generic_signature();
-  TF_RETURN_IF_ERROR(GetNamedSignature("outputs", meta_graph_def, &signature));
+  TF_RETURN_IF_ERROR(
+      session_bundle::GetNamedSignature("outputs", meta_graph_def, &signature));
   if (!signature.has_generic_signature()) {
     return tensorflow::Status(
         tensorflow::error::INVALID_ARGUMENT,

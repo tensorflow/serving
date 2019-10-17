@@ -17,7 +17,6 @@ limitations under the License.
 
 #include "absl/strings/string_view.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
-#include "tensorflow/contrib/session_bundle/bundle_shim.h"
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/io/path.h"
@@ -28,6 +27,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
 #include "tensorflow_serving/servables/tensorflow/curried_session.h"
 #include "tensorflow_serving/servables/tensorflow/tflite_session.h"
+#include "tensorflow_serving/session_bundle/session_bundle_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -141,7 +141,7 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
   if (config_.use_tflite_model()) {
     TF_RETURN_IF_ERROR(LoadTfLiteModel(path, bundle->get()));
   } else {
-    TF_RETURN_IF_ERROR(LoadSessionBundleOrSavedModelBundle(
+    TF_RETURN_IF_ERROR(session_bundle::LoadSessionBundleOrSavedModelBundle(
         session_options, GetRunOptions(config_), path, saved_model_tags,
         bundle->get()));
   }

@@ -39,6 +39,10 @@ string GetTestTfLiteModelPath();
 // two model.
 std::vector<string> GetTestSessionBundleExportFiles();
 
+// Returns the paths of the files of the SavedModel Bundle export for the half
+// plus two model.
+std::vector<string> GetTestSavedModelBundleExportFiles();
+
 // Returns the total size of the given files. Requires the files to exist.
 uint64 GetTotalFileSize(const std::vector<string>& files);
 

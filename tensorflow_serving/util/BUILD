@@ -1,5 +1,7 @@
 # Description: Tensorflow Serving utils.
 
+load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_proto_library_py")
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",
@@ -77,7 +79,6 @@ cc_library(
 ###############################################################################
 #                  Internal targets
 ###############################################################################
-
 cc_library(
     name = "hash",
     srcs = ["hash.cc"],
@@ -383,9 +384,6 @@ cc_test(
     ],
 )
 
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
-
 serving_proto_library(
     name = "class_registration_test_proto",
     testonly = 1,
@@ -413,4 +411,9 @@ serving_proto_library_py(
     deps = [
         "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
+)
+
+cc_library(
+    name = "oss_or_google",
+    hdrs = ["oss_or_google.h"],
 )

@@ -36,6 +36,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/test_util/storage_path_error_injecting_source_adapter.h"
 #include "tensorflow_serving/model_servers/test_util/storage_path_error_injecting_source_adapter.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
+#include "tensorflow_serving/util/oss_or_google.h"
 
 namespace tensorflow {
 namespace serving {
@@ -879,7 +880,12 @@ TEST_P(ServerCoreTest, VersionLabelsNotAllowed) {
 INSTANTIATE_TEST_CASE_P(
     TestType, ServerCoreTest,
     ::testing::Combine(
-        ::testing::Range(0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)),
+        IsTensorflowServingOSS()
+            ? ::testing::Range(
+                  static_cast<int>(test_util::ServerCoreTest::SAVED_MODEL),
+                  static_cast<int>(test_util::ServerCoreTest::SAVED_MODEL))
+            : ::testing::Range(
+                  0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)),
         ::testing::Bool()));
 
 INSTANTIATE_TEST_CASE_P(

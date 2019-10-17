@@ -16,7 +16,6 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SESSION_BUNDLE_SOURCE_ADAPTER_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SESSION_BUNDLE_SOURCE_ADAPTER_H_
 
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/source_adapter.h"
