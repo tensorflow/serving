@@ -298,7 +298,7 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
 
   def _GetSessionBundlePath(self):
     """Returns a path to a model in SessionBundle format."""
-    return os.path.join(self.testdata_dir, 'half_plus_two')
+    return os.path.join(self.session_bundle_testdata_dir, 'half_plus_two')
 
   def _GetGoodModelConfigTemplate(self):
     """Returns a path to a working configuration file template."""

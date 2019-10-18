@@ -35,19 +35,6 @@ filegroup(
 )
 
 py_binary(
-    name = "export_half_plus_two",
-    srcs = [
-        "export_half_plus_two.py",
-    ],
-    python_version = "PY2",
-    srcs_version = "PY2AND3",
-    deps = [
-        "@org_tensorflow//tensorflow:tensorflow_py",
-        "@org_tensorflow//tensorflow/contrib/session_bundle:exporter",
-    ],
-)
-
-py_binary(
     name = "export_bad_half_plus_two",
     srcs = [
         "export_bad_half_plus_two.py",
@@ -81,13 +68,6 @@ py_binary(
     deps = [
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
-)
-
-filegroup(
-    name = "half_plus_two",
-    srcs = glob(
-        ["half_plus_two/**"],
-    ),
 )
 
 filegroup(
@@ -125,12 +105,7 @@ filegroup(
     ),
 )
 
-# Note: re-generate these files with :export_half_plus_two whenever model
-# changes.
 exports_files([
-    "half_plus_two/00000123/export.data-00000-of-00001",
-    "half_plus_two/00000123/export.index",
-    "half_plus_two/00000123/export.meta",
     "saved_model_half_plus_three/00000123/saved_model.pb",
     "saved_model_half_plus_three/00000123/assets/foo.txt",
     "saved_model_half_plus_three/00000123/variables/variables.data-00000-of-00001",

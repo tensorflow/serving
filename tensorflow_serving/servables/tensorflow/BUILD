@@ -1,5 +1,7 @@
 # Description: TensorFlow servables.
 
+load("//tensorflow_serving:oss_or_google.bzl", "if_google")
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",
@@ -452,16 +454,17 @@ cc_test(
     size = "medium",
     srcs = ["predict_impl_test.cc"],
     data = [
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/saved_model.pb",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/variables/variables.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/variables/variables.index",
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
-    ],
+    ] + if_google([
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.meta",
+    ]),
     deps = [
         ":predict_impl",
         ":saved_model_bundle_source_adapter_proto",
@@ -501,16 +504,17 @@ cc_test(
     size = "medium",
     srcs = ["predict_util_test.cc"],
     data = [
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/saved_model.pb",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/variables/variables.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/variables/variables.index",
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
-    ],
+    ] + if_google([
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.meta",
+    ]),
     deps = [
         ":predict_util",
         ":saved_model_bundle_source_adapter_proto",
@@ -551,11 +555,12 @@ cc_test(
     size = "medium",
     srcs = ["get_model_metadata_impl_test.cc"],
     data = [
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
-    ],
+    ] + if_google([
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.meta",
+    ]),
     deps = [
         ":get_model_metadata_impl",
         ":saved_model_bundle_source_adapter_proto",

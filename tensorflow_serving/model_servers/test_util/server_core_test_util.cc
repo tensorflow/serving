@@ -101,7 +101,7 @@ ServerCoreTest::GetTestModelServerConfigForTensorflowPlatform() {
         "/cc/saved_model/testdata/half_plus_two"));
   } else {
     model->set_base_path(test_util::TestSrcDirPath(
-        "/servables/tensorflow/testdata/half_plus_two"));
+        "/servables/tensorflow/google/testdata/half_plus_two"));
   }
   if (PrefixPathsWithURIScheme()) {
     model->set_base_path(io::CreateURI("file", "", model->base_path()));
@@ -114,8 +114,13 @@ void ServerCoreTest::SwitchToHalfPlusTwoWith2Versions(
     ModelServerConfig* config) {
   CHECK_EQ(1, config->model_config_list().config().size());
   auto model = config->mutable_model_config_list()->mutable_config(0);
-  model->set_base_path(test_util::TestSrcDirPath(
-      "/servables/tensorflow/testdata/half_plus_two_2_versions"));
+  if (GetTestType() == SAVED_MODEL) {
+    model->set_base_path(test_util::TestSrcDirPath(
+        "/servables/tensorflow/testdata/saved_model_half_plus_two_2_versions"));
+  } else {
+    model->set_base_path(test_util::TestSrcDirPath(
+        "/servables/tensorflow/google/testdata/half_plus_two_2_versions"));
+  }
   // Request loading both versions simultaneously.
   model->clear_model_version_policy();
   model->mutable_model_version_policy()->mutable_all();

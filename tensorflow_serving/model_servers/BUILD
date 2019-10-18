@@ -1,5 +1,6 @@
 # Description: Model Server
 
+load("//tensorflow_serving:oss_or_google.bzl", "if_google")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 
 package(
@@ -392,9 +393,6 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:bad_model_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:batching_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:good_model_config.txt",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_model_metadata.json",
         "//tensorflow_serving/servables/tensorflow/testdata:monitoring_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/assets/foo.txt",
@@ -403,7 +401,11 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.index",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
-    ],
+    ] + if_google([
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.meta",
+    ]),
     python_version = "PY2",
     srcs_version = "PY2AND3",
     tags = [

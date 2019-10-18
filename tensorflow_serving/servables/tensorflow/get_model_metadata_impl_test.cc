@@ -55,7 +55,7 @@ class GetModelMetadataImplTest : public ::testing::TestWithParam<bool> {
   static void SetUpTestSuite() {
     if (!IsTensorflowServingOSS()) {
       const string session_bundle_path = test_util::TestSrcDirPath(
-          "/servables/tensorflow/testdata/half_plus_two");
+          "/servables/tensorflow/google/testdata/half_plus_two");
       TF_ASSERT_OK(CreateServerCore(session_bundle_path, false, &server_core_));
     }
 

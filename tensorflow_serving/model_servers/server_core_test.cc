@@ -891,7 +891,12 @@ INSTANTIATE_TEST_CASE_P(
 INSTANTIATE_TEST_CASE_P(
     TestType, RelativePathsServerCoreTest,
     ::testing::Combine(
-        ::testing::Range(0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)),
+        IsTensorflowServingOSS()
+            ? ::testing::Range(
+                  static_cast<int>(test_util::ServerCoreTest::SAVED_MODEL),
+                  static_cast<int>(test_util::ServerCoreTest::SAVED_MODEL))
+            : ::testing::Range(
+                  0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)),
         ::testing::Bool()));
 
 }  // namespace

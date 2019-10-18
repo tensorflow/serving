@@ -44,10 +44,10 @@ class PredictImplTest : public ::testing::TestWithParam<bool> {
  public:
   static void SetUpTestSuite() {
     if (!IsTensorflowServingOSS()) {
-      TF_ASSERT_OK(
-          CreateServerCore(test_util::TestSrcDirPath(
-                               "/servables/tensorflow/testdata/half_plus_two"),
-                           false, &server_core_));
+      TF_ASSERT_OK(CreateServerCore(
+          test_util::TestSrcDirPath(
+              "/servables/tensorflow/google/testdata/half_plus_two"),
+          false, &server_core_));
       const string bad_half_plus_two_path = test_util::TestSrcDirPath(
           "/servables/tensorflow/testdata/bad_half_plus_two");
       TF_ASSERT_OK(CreateServerCore(bad_half_plus_two_path, false,
