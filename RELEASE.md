@@ -1,3 +1,23 @@
+# Release 1.15.0
+
+## Major Features and Improvements
+* Some Tensorflow Text ops have been added to ModelServer (specifically
+* constrained_sequence_op, sentence_breaking_ops, unicode_script_tokenizer,
+* whitespace_tokenizer, wordpiece_tokenizer)
+
+## Breaking Changes
+* As previously announced, Contrib ops will not be packaged with Tensorflow, and therefore will not be available in Tensorflow Serving. If serving with Tensorflow Serving >1.15, please ensure your models do not contain any tf.contrib ops. If you are critically dependent on custom ops, please review this guide for instructions to statically build ops into the model server.
+* After being deprecated for multiple years, as a part of tf.contrib deprecation, SessionBundle API will be removed starting from Tensorflow Serving 2.0 - if currently using SessionBundle, please migrate to SavedModel APIs.
+
+## Bug Fixes and Other Changes
+* This release is based on TF version 1.15.0
+
+## Thanks to our Contributors
+
+This release contains contributions from many people at Google, as well as:
+
+Abolfazl Shahbazi, chaox, gison93, Minglotus-6, William D. Irons, ynqa
+
 # Release 1.12.3
 
 ## Major Features and Improvements
