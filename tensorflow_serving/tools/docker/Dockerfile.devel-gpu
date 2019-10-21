@@ -85,8 +85,8 @@ RUN pip --no-cache-dir install \
     future>=0.17.1 \
     grpcio \
     h5py \
-    keras_applications \
-    keras_preprocessing \
+    keras_applications>=1.0.8 \
+    keras_preprocessing>=1.1.0 \
     mock \
     numpy \
     requests
