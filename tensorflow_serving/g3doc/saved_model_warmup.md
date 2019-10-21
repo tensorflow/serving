@@ -23,8 +23,8 @@ Requirements for model warmup to work correctly:
 *   Warmup file name: 'tf_serving_warmup_requests'
 *   File location: assets.extra/
 *   File format:
-    [TFRecord](https://www.tensorflow.org/api_guides/python/python_io) with each
-    record as a
+    [TFRecord](https://www.tensorflow.org/tutorials/load_data/tfrecord#tfrecords_format_details)
+    with each record as a
     [PredictionLog](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/prediction_log.proto#L40).
 *   Number of warmup records <= 1000.
 *   The warmup data must be representative of the inference requests used at
