@@ -1,3 +1,28 @@
+# Release 2.0.0
+
+## Major Features and Improvements
+* Some Tensorflow Text ops have been added to ModelServer (specifically constrained_sequence_op, sentence_breaking_ops, unicode_script_tokenizer, whitespace_tokenizer, wordpiece_tokenizer)
+
+## Breaking Changes
+* As previously announced[1](https://groups.google.com/a/tensorflow.org/forum/#!msg/announce/qXfsxr2sF-0/jHQ77dr3DAAJ)[2](https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md)[3](https://github.com/tensorflow/serving/releases/tag/1.15.0), Contrib ops will not be packaged with Tensorflow, and therefore will not be available in Tensorflow Serving. If serving with Tensorflow Serving >1.15, please ensure your models do not contain any tf.contrib ops. If you are critically dependent on custom ops, please review [this guide](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/g3doc/custom_op.md) for instructions to statically build ops into the model server.
+* After being [deprecated](https://developers.googleblog.com/2017/07/tensorflow-serving-10.html) for multiple years, as a part of tf.contrib deprecation, SessionBundle API will be removed starting from Tensorflow Serving 2.0 - if currently using SessionBundle, please migrate to SavedModel APIs.
+
+## Bug Fixes and Other Changes
+* Add a section in the documentation for testing custom op manually. (commit: 1b65af1d7fee4fe79b4152f94d5ea422e8a79cca)
+* Add ops delegate library to enable running TF ops. (commit: 14112359d16b3e1e275c2ba70b0e078ce4863783)
+* Add command line tool to load TF Lite model for manual testing/debugging. (commit: 0b0254d4a90550b1d7228334187e624bf4b31c37)
+* Fixes broken relative docs links (commit: 12813143b22616091388e7659d7f69cfcf518269)
+* Cleaning up BUILD visibility for tf_pyclif_proto_library intermediate targets. (commit: 81ed5ef2307eea4c9396fd34f33673be072cdcf3)
+* Remove unused load statements from BUILD files (commit: d0e01a3c56b280c6602d6c14e97ef60882d317aa)
+* Manual tests for model server and including tf.Text in serving build. (commit: 142d0adb5e2975689d80d8fc608c9684e96de078)
+* Remove tensorflow/contrib/session_bundle as dependency for Tensorflow Serving. (commit: 1bdd3499f1fe4d99b3c3024080560350d493e29b)
+
+## Thanks to our Contributors
+
+This release contains contributions from many people at Google, as well as:
+
+chaox
+
 # Release 1.15.0
 
 ## Major Features and Improvements
