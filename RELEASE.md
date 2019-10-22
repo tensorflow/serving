@@ -26,13 +26,13 @@ chaox
 # Release 1.15.0
 
 ## Major Features and Improvements
-* Some Tensorflow Text ops have been added to ModelServer (specifically
-* constrained_sequence_op, sentence_breaking_ops, unicode_script_tokenizer,
-* whitespace_tokenizer, wordpiece_tokenizer)
 
 ## Breaking Changes
-* As previously announced, Contrib ops will not be packaged with Tensorflow, and therefore will not be available in Tensorflow Serving. If serving with Tensorflow Serving >1.15, please ensure your models do not contain any tf.contrib ops. If you are critically dependent on custom ops, please review this guide for instructions to statically build ops into the model server.
-* After being deprecated for multiple years, as a part of tf.contrib deprecation, SessionBundle API will be removed starting from Tensorflow Serving 2.0 - if currently using SessionBundle, please migrate to SavedModel APIs.
+* As previously announced[1](https://groups.google.com/a/tensorflow.org/forum/#!msg/announce/qXfsxr2sF-0/jHQ77dr3DAAJ)[2](https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md), Contrib ops will not be packaged with Tensorflow, and therefore will not be available in Tensorflow Serving. If serving with Tensorflow Serving >1.15, please ensure your models do not contain any tf.contrib ops. If you are critically dependent on custom ops, please review [this guide](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/g3doc/custom_op.md) for instructions to statically build ops into the model server.
+* After being [deprecated](https://developers.googleblog.com/2017/07/tensorflow-serving-10.html) for multiple years, as a part of tf.contrib deprecation, SessionBundle API will be removed starting from Tensorflow Serving 2.0 - if currently using SessionBundle, please migrate to SavedModel APIs.
+
+## Upcoming Features
+* Some Tensorflow Text ops will be added to Model Server starting from TF Serving 2.0.0 (specifically constrained_sequence_op, sentence_breaking_ops, unicode_script_tokenizer, whitespace_tokenizer, wordpiece_tokenizer).
 
 ## Bug Fixes and Other Changes
 * Add monitoring config (commit: 18db9a46168eadd4d3e28e9b0cdb27bd6a11add9)
