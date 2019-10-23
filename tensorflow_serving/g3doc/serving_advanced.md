@@ -51,14 +51,14 @@ rm -rf /tmp/models
 Train (with 100 iterations) and export the first version of model:
 
 ```shell
-tools/run_in_docker.sh python tensorflow_serving/example/mnist_saved_model.py \
+tools/run_in_docker.sh -d tensorflow/serving:1.14.0-devel python tensorflow_serving/example/mnist_saved_model.py \
   --training_iteration=100 --model_version=1 /tmp/mnist
 ```
 
 Train (with 2000 iterations) and export the second version of model:
 
 ```shell
-tools/run_in_docker.sh python tensorflow_serving/example/mnist_saved_model.py \
+tools/run_in_docker.sh -d tensorflow/serving:1.14.0-devel python tensorflow_serving/example/mnist_saved_model.py \
   --training_iteration=2000 --model_version=2 /tmp/mnist
 ```
 
@@ -276,7 +276,7 @@ Then start the server:
 ```shell
 docker run -p 8500:8500 \
   --mount type=bind,source=/tmp/monitored,target=/models/mnist \
-  -t --entrypoint=tensorflow_model_server tensorflow/serving --enable_batching \
+  -t --entrypoint=tensorflow_model_server tensorflow/serving:1.14.0-devel --enable_batching \
   --port=8500 --model_name=mnist --model_base_path=/models/mnist &
 ```
 
@@ -288,7 +288,7 @@ Let's run the client with `--concurrency=10`. This will send concurrent requests
 to the server and thus trigger your batching logic.
 
 ```shell
-tools/run_in_docker.sh python tensorflow_serving/example/mnist_client.py \
+tools/run_in_docker.sh -d tensorflow/serving:1.14.0-devel python tensorflow_serving/example/mnist_client.py \
   --num_tests=1000 --server=127.0.0.1:8500 --concurrency=10
 ```
 
@@ -304,7 +304,7 @@ the test:
 
 ```shell
 cp -r /tmp/mnist/2 /tmp/monitored
-tools/run_in_docker.sh python tensorflow_serving/example/mnist_client.py \
+tools/run_in_docker.sh -d tensorflow/serving:1.14.0-devel python tensorflow_serving/example/mnist_client.py \
   --num_tests=1000 --server=127.0.0.1:8500 --concurrency=10
 ```
 
