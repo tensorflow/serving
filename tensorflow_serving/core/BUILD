@@ -189,6 +189,7 @@ cc_test(
         ":servable_data",
         ":source_router",
         ":storage_path",
+        ":target",
         "//tensorflow_serving/core/test_util:mock_storage_path_target",
         "//tensorflow_serving/core/test_util:test_main",
         "@org_tensorflow//tensorflow/core:lib",
