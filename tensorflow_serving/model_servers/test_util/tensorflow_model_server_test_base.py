@@ -35,8 +35,6 @@ from six.moves import urllib
 import tensorflow as tf
 
 from tensorflow.core.framework import types_pb2
-from tensorflow.python.eager import context
-from tensorflow.python.framework import config as device_config
 from tensorflow.python.platform import flags
 from tensorflow.python.saved_model import signature_constants
 from tensorflow_serving.apis import predict_pb2
@@ -56,14 +54,15 @@ def SetVirtualCpus(num_virtual_cpus):
   if num_virtual_cpus < 1:
     raise ValueError('`num_virtual_cpus` must be at least 1 not %r' %
                      (num_virtual_cpus,))
-  physical_devices = device_config.list_physical_devices('CPU')
+  physical_devices = tf.config.experimental.list_physical_devices('CPU')
   if not physical_devices:
     raise RuntimeError('No CPUs found')
-  configs = device_config.get_virtual_device_configuration(physical_devices[0])
+  configs = tf.config.experimental.get_virtual_device_configuration(
+      physical_devices[0])
   if configs is None:
-    virtual_devices = [context.VirtualDeviceConfiguration()
+    virtual_devices = [tf.config.experimental.VirtualDeviceConfiguration()
                        for _ in range(num_virtual_cpus)]
-    device_config.set_virtual_device_configuration(
+    tf.config.experimental.set_virtual_device_configuration(
         physical_devices[0], virtual_devices)
   else:
     if len(configs) < num_virtual_cpus:
