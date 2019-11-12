@@ -36,11 +36,11 @@ import tensorflow as tf
 
 import mnist_input_data
 
-tf.app.flags.DEFINE_integer('training_iteration', 1000,
+tf.compat.v1.flags.DEFINE_integer('training_iteration', 1000,
                             'number of training iterations.')
-tf.app.flags.DEFINE_integer('model_version', 1, 'version number of the model.')
-tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory.')
-FLAGS = tf.app.flags.FLAGS
+tf.compat.v1.flags.DEFINE_integer('model_version', 1, 'version number of the model.')
+tf.compat.v1.flags.DEFINE_string('work_dir', '/tmp', 'Working directory.')
+FLAGS = tf.compat.v1.flags.FLAGS
 
 
 def main(_):
@@ -144,4 +144,4 @@ def main(_):
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  tf.compat.v1.app.run()
