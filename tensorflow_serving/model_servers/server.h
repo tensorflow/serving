@@ -23,6 +23,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow/core/profiler/rpc/profiler_service_impl.h"
 #include "tensorflow_serving/model_servers/http_server.h"
 #include "tensorflow_serving/model_servers/model_service_impl.h"
 #include "tensorflow_serving/model_servers/prediction_service_impl.h"
@@ -107,6 +108,7 @@ class Server {
   std::unique_ptr<ServerCore> server_core_;
   std::unique_ptr<ModelServiceImpl> model_service_;
   std::unique_ptr<PredictionServiceImpl> prediction_service_;
+  std::unique_ptr<tensorflow::grpc::ProfilerService::Service> profiler_service_;
   std::unique_ptr<::grpc::Server> grpc_server_;
   std::unique_ptr<net_http::HTTPServerInterface> http_server_;
   // A thread that calls PollFilesystemAndReloadConfig() periodically if

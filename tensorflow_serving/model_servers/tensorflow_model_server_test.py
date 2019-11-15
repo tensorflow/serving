@@ -30,6 +30,7 @@ import grpc
 from six.moves import range
 import tensorflow as tf
 
+from tensorflow.python import pywrap_tensorflow
 from tensorflow.python.platform import flags
 from tensorflow.python.saved_model import signature_constants
 from tensorflow_serving.apis import classification_pb2
@@ -666,6 +667,50 @@ class TensorflowModelServerTest(
         specify_output=False,
         expected_output=2.0,
         expected_version=expected_version)
+
+  def test_profiler_service_with_valid_trace_request(self):
+    """Test integration with profiler service by sending tracing requests."""
+
+    # Start model server
+    model_path = self._GetSavedModelBundlePath()
+    _, grpc_addr, rest_addr = TensorflowModelServerTest.RunServer(
+        'default', model_path)
+
+    # Prepare predict request
+    url = 'http://{}/v1/models/default:predict'.format(rest_addr)
+    json_req = '{"instances": [2.0, 3.0, 4.0]}'
+
+    # In a subprocess, send a REST predict request every second for 3 seconds
+    exec_command = ("wget {} --content-on-error=on -O- --post-data  '{}' "
+                    "--header='Content-Type:application/json'").format(
+                        url, json_req)
+    repeat_command = 'for n in {{1..3}}; do {} & sleep 1; done;'.format(
+        exec_command)
+    proc = subprocess.Popen(
+        repeat_command,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+
+    # Prepare args to ProfilerClient
+    logdir = os.path.join(self.temp_dir, 'logs')
+    worker_list = ''
+    include_dataset_ops = True
+    duration_ms = 1000
+    num_tracing_attempts = 3
+    os.makedirs(logdir)
+
+    # Send a tracing request
+    trace_status = pywrap_tensorflow.TFE_ProfilerClientStartTracing(
+        grpc_addr, logdir, worker_list, include_dataset_ops, duration_ms,
+        num_tracing_attempts)
+
+    #  Log stdout & stderr of subprocess issuing predict requests for debugging
+    out, err = proc.communicate()
+    print("stdout: '{}' | stderr: '{}'".format(out, err))
+
+    # Validate the tracing request succeeded (OK status)
+    self.assertTrue(trace_status)
 
 
 if __name__ == '__main__':

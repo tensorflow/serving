@@ -2,6 +2,7 @@
 
 load("//tensorflow_serving:oss_or_google.bzl", "if_google")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
 
 package(
     default_visibility = [
@@ -337,6 +338,7 @@ cc_library(
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@com_google_absl//absl/memory",
+        "@org_tensorflow//tensorflow/core/profiler/rpc:profiler_service_impl",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/config:monitoring_config_proto",
@@ -453,8 +455,6 @@ py_binary(
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )
-
-load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
 
 pkg_tar(
     name = "tensorflow_model_server_tar",

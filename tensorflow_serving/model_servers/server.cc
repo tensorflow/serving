@@ -37,6 +37,7 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/protobuf.h"
+#include "tensorflow/core/profiler/rpc/profiler_service_impl.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/config/monitoring_config.pb.h"
@@ -319,6 +320,9 @@ Status Server::BuildAndStart(const Options& server_options) {
       server_options.enforce_session_run_timeout;
   prediction_service_ =
       absl::make_unique<PredictionServiceImpl>(predict_server_options);
+
+  profiler_service_ = tensorflow::CreateProfilerService();
+
   ::grpc::ServerBuilder builder;
   builder.AddListeningPort(
       server_address,
@@ -332,6 +336,7 @@ Status Server::BuildAndStart(const Options& server_options) {
   }
   builder.RegisterService(model_service_.get());
   builder.RegisterService(prediction_service_.get());
+  builder.RegisterService(profiler_service_.get());
   builder.SetMaxMessageSize(tensorflow::kint32max);
   const std::vector<GrpcChannelArgument> channel_arguments =
       parseGrpcChannelArgs(server_options.grpc_channel_arguments);
