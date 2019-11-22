@@ -88,7 +88,7 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
       break;
 
     case Input::KindCase::kExampleList: {
-      auto input_vec = examples->vec<string>();
+      auto input_vec = examples->vec<tstring>();
       int input_vec_index = 0;
       for (const auto& entry : serialized_input.example_list().examples()) {
         input_vec(input_vec_index++) = entry;
@@ -99,7 +99,7 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
     case Input::KindCase::kExampleListWithContext: {
       const string& context =
           serialized_input.example_list_with_context().context();
-      auto input_vec = examples->vec<string>();
+      auto input_vec = examples->vec<tstring>();
       int input_vec_index = 0;
       for (const auto& entry :
            serialized_input.example_list_with_context().examples()) {

@@ -136,10 +136,10 @@ class FakeSession : public tensorflow::Session {
                             std::vector<Example>* examples) {
     examples->clear();
     const int batch_size = input.dim_size(0);
-    const auto& flat_input = input.flat<string>();
+    const auto& flat_input = input.flat<tstring>();
     for (int i = 0; i < batch_size; ++i) {
       Example example;
-      if (!example.ParseFromString(flat_input(i))) {
+      if (!example.ParseFromArray(flat_input(i).data(), flat_input(i).size())) {
         return errors::Internal("failed to parse example");
       }
       examples->push_back(example);
@@ -187,7 +187,7 @@ class FakeSession : public tensorflow::Session {
     const int num_classes = FeatureSize(GetFeature(examples[0], kClassFeature));
     *classes = Tensor(DT_STRING, TensorShape({batch_size, num_classes}));
     *scores = Tensor(DT_FLOAT, TensorShape({batch_size, num_classes}));
-    auto classes_matrix = classes->matrix<string>();
+    auto classes_matrix = classes->matrix<tstring>();
     auto scores_matrix = scores->matrix<float>();
 
     for (int i = 0; i < batch_size; ++i) {

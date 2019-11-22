@@ -136,7 +136,8 @@ class TensorFlowClassifier : public ClassifierInterface {
       for (int c = 0; c < num_classes; ++c) {
         serving::Class* cl = classifications->add_classes();
         if (classes) {
-          cl->set_label((classes->matrix<string>())(i, c));
+          const tstring& class_tstr = (classes->matrix<tstring>())(i, c);
+          cl->set_label(class_tstr.data(), class_tstr.size());
         }
         if (scores) {
           cl->set_score((scores->matrix<float>())(i, c));
@@ -435,7 +436,8 @@ Status PostProcessClassificationResult(
     for (int c = 0; c < num_classes; ++c) {
       serving::Class* cl = classifications->add_classes();
       if (classes) {
-        cl->set_label((classes->matrix<string>())(i, c));
+        const tstring& class_tstr = (classes->matrix<tstring>())(i, c);
+        cl->set_label(class_tstr.data(), class_tstr.size());
       }
       if (scores) {
         cl->set_score((scores->matrix<float>())(i, c));
