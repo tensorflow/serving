@@ -73,6 +73,17 @@ void RecordRequestExampleCount(const string& model_name, size_t count) {
 }
 
 Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
+  // There's a reason we serialize and then parse 'input' in this way:
+  // 'example_list' and 'example_list_with_context' are lazily parsed
+  // fields, which means they are lazily deserialized the very first
+  // time they are accessed. So if we access them here for counting the
+  // num_examples, then we'll pay a heavy cost of deserialization.
+  //
+  // SerializedInput proto has been created to prevent this, but at the same
+  // time get the count of num_examples as well.
+  //
+  // Benchmark ('BM_InputToSerializedExample') can help measure the effect of
+  // changes in the future.
   const string serialized_input_str = input.SerializeAsString();
   internal::SerializedInput serialized_input;
   if (!serialized_input.ParseFromString(serialized_input_str)) {
