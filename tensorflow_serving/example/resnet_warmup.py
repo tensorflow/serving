@@ -37,6 +37,7 @@ import os
 import sys
 import requests
 import tensorflow as tf
+from tensorflow.contrib import util as contrib_util
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_log_pb2
 
@@ -78,7 +79,7 @@ def main():
       request.model_spec.name = 'resnet'
       request.model_spec.signature_name = 'serving_default'
       request.inputs['image_bytes'].CopyFrom(
-          tf.contrib.util.make_tensor_proto(data, shape=[1]))
+          contrib_util.make_tensor_proto(data, shape=[1]))
 
       log = prediction_log_pb2.PredictionLog(
           predict_log=prediction_log_pb2.PredictLog(request=request))

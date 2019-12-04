@@ -33,6 +33,7 @@ import sys
 # This is a placeholder for a Google-internal import.
 
 import tensorflow as tf
+from tensorflow.contrib import lookup as contrib_lookup
 
 import mnist_input_data
 
@@ -71,7 +72,7 @@ def main(_):
   cross_entropy = -tf.reduce_sum(y_ * tf.log(y))
   train_step = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)
   values, indices = tf.nn.top_k(y, 10)
-  table = tf.contrib.lookup.index_to_string_table_from_tensor(
+  table = contrib_lookup.index_to_string_table_from_tensor(
       tf.constant([str(i) for i in range(10)]))
   prediction_classes = table.lookup(tf.to_int64(indices))
   for _ in range(FLAGS.training_iteration):
