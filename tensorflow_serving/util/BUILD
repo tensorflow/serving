@@ -303,7 +303,7 @@ cc_test(
     ],
     deps = [
         ":class_registration",
-        ":class_registration_test_proto",
+        ":class_registration_test_cc_proto",
         "//tensorflow_serving/core/test_util:test_main",
     ],
 )
@@ -332,7 +332,7 @@ cc_library(
     srcs = ["status_util.cc"],
     hdrs = ["status_util.h"],
     deps = [
-        ":status_proto",
+        ":status_cc_proto",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -342,11 +342,11 @@ cc_library(
     srcs = ["json_tensor.cc"],
     hdrs = ["json_tensor.h"],
     deps = [
-        "//tensorflow_serving/apis:classification_proto",
-        "//tensorflow_serving/apis:input_proto",
-        "//tensorflow_serving/apis:model_proto",
-        "//tensorflow_serving/apis:predict_proto",
-        "//tensorflow_serving/apis:regression_proto",
+        "//tensorflow_serving/apis:classification_cc_proto",
+        "//tensorflow_serving/apis:input_cc_proto",
+        "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/apis:regression_cc_proto",
         "@com_github_tencent_rapidjson//:rapidjson",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
@@ -370,10 +370,10 @@ cc_test(
     srcs = ["json_tensor_test.cc"],
     deps = [
         ":json_tensor",
-        "//tensorflow_serving/apis:classification_proto",
-        "//tensorflow_serving/apis:model_proto",
-        "//tensorflow_serving/apis:predict_proto",
-        "//tensorflow_serving/apis:regression_proto",
+        "//tensorflow_serving/apis:classification_cc_proto",
+        "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/apis:regression_cc_proto",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
         "@com_google_protobuf//:protobuf",

@@ -19,6 +19,15 @@ def serving_proto_library(
     use_grpc_plugin = None
     if cc_grpc_version:
         use_grpc_plugin = True
+
+    # For compatibility with Google-internal naming conventions
+    native.alias(
+        name = name[:-len("_proto")] + "_cc_proto",
+        actual = name,
+        testonly = testonly,
+        visibility = visibility,
+    )
+
     cc_proto_library(
         name = name,
         srcs = srcs,

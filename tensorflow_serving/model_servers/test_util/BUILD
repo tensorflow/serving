@@ -1,6 +1,7 @@
 # Description: Model Server test utility
 
 load("//tensorflow_serving:oss_or_google.bzl", "if_google")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 package(
     default_visibility = [
@@ -30,16 +31,16 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "//tensorflow_serving/apis:model_proto",
-        "//tensorflow_serving/config:model_server_config_proto",
-        "//tensorflow_serving/config:platform_config_proto",
+        "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/config:model_server_config_cc_proto",
+        "//tensorflow_serving/config:platform_config_cc_proto",
         "//tensorflow_serving/core:aspired_versions_manager",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/core:servable_state",
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/core:server_request_logger",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter",
-        "//tensorflow_serving/core/test_util:fake_loader_source_adapter_proto",
+        "//tensorflow_serving/core/test_util:fake_loader_source_adapter_cc_proto",
         "//tensorflow_serving/model_servers:server_core",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:unique_ptr_with_deps",
@@ -79,9 +80,9 @@ cc_library(
         "//tensorflow_serving/model_servers:model_platform_types",
         "//tensorflow_serving/model_servers:platform_config_util",
         "//tensorflow_serving/model_servers:server_core",
-        "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_proto",
-        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
-        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_proto",
+        "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_cc_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/test_util",
         "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:test",
@@ -97,12 +98,10 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        ":storage_path_error_injecting_source_adapter_proto",
+        ":storage_path_error_injecting_source_adapter_cc_proto",
         "//tensorflow_serving/core:source_adapter",
     ],
 )
-
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 serving_proto_library(
     name = "storage_path_error_injecting_source_adapter_proto",

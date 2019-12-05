@@ -1,5 +1,10 @@
 # Description: Tensorflow Serving APIs.
 
+load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
+load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library")
+load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
+
 package(
     default_visibility = ["//visibility:public"],
     features = ["-layering_check"],
@@ -17,11 +22,6 @@ filegroup(
         ],
     ),
 )
-
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
-load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library")
-load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
 
 serving_proto_library(
     name = "get_model_metadata_proto",
@@ -392,7 +392,7 @@ cc_library(
     name = "classifier",
     hdrs = ["classifier.h"],
     deps = [
-        ":classification_proto",
+        ":classification_cc_proto",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -401,7 +401,7 @@ cc_library(
     name = "regressor",
     hdrs = ["regressor.h"],
     deps = [
-        ":regression_proto",
+        ":regression_cc_proto",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

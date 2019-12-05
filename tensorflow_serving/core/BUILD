@@ -1,5 +1,8 @@
 # Description: Tensorflow Serving core.
 
+load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",
@@ -72,7 +75,7 @@ cc_library(
     ],
     deps = [
         ":source",
-        "//tensorflow_serving/resources:resources_proto",
+        "//tensorflow_serving/resources:resources_cc_proto",
         "//tensorflow_serving/util:any_ptr",
         "@org_tensorflow//tensorflow/core:lib",
     ],
@@ -718,7 +721,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "//tensorflow_serving/config:log_collector_config_proto",
+        "//tensorflow_serving/config:log_collector_config_cc_proto",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -731,9 +734,6 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
     ],
 )
-
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 
 serving_proto_library(
     name = "logging_proto",
@@ -770,8 +770,8 @@ cc_library(
     ],
     deps = [
         ":log_collector",
-        ":logging_proto",
-        "//tensorflow_serving/config:logging_config_proto",
+        ":logging_cc_proto",
+        "//tensorflow_serving/config:logging_config_cc_proto",
         "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/core:lib",
     ],
@@ -783,11 +783,11 @@ cc_test(
     srcs = ["request_logger_test.cc"],
     deps = [
         ":log_collector",
-        ":logging_proto",
+        ":logging_cc_proto",
         ":request_logger",
-        "//tensorflow_serving/apis:model_proto",
-        "//tensorflow_serving/apis:predict_proto",
-        "//tensorflow_serving/config:logging_config_proto",
+        "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/config:logging_config_cc_proto",
         "//tensorflow_serving/core/test_util:mock_log_collector",
         "//tensorflow_serving/core/test_util:mock_request_logger",
         "//tensorflow_serving/core/test_util:test_main",
@@ -807,9 +807,9 @@ cc_library(
     ],
     deps = [
         ":request_logger",
-        "//tensorflow_serving/apis:model_proto",
-        "//tensorflow_serving/config:logging_config_proto",
-        "//tensorflow_serving/core:logging_proto",
+        "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/config:logging_config_cc_proto",
+        "//tensorflow_serving/core:logging_cc_proto",
         "//tensorflow_serving/util:fast_read_dynamic_ptr",
         "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/core:lib",
@@ -822,12 +822,12 @@ cc_test(
     srcs = ["server_request_logger_test.cc"],
     deps = [
         ":log_collector",
-        ":logging_proto",
+        ":logging_cc_proto",
         ":server_request_logger",
-        "//tensorflow_serving/apis:model_proto",
-        "//tensorflow_serving/apis:predict_proto",
-        "//tensorflow_serving/config:log_collector_config_proto",
-        "//tensorflow_serving/config:logging_config_proto",
+        "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/config:log_collector_config_cc_proto",
+        "//tensorflow_serving/config:logging_config_cc_proto",
         "//tensorflow_serving/core/test_util:fake_log_collector",
         "//tensorflow_serving/core/test_util:mock_request_logger",
         "//tensorflow_serving/core/test_util:test_main",

@@ -24,7 +24,7 @@ cc_binary(
         "resnet_client.cc",
     ],
     deps = [
-        "//tensorflow_serving/apis:prediction_service_proto",
+        "//tensorflow_serving/apis:prediction_service_cc_proto",
         "@com_google_protobuf//:protobuf_lite",
         "@grpc//:grpc++",
         "@org_tensorflow//tensorflow/core:framework",

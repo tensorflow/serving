@@ -1,3 +1,5 @@
+load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",
@@ -18,8 +20,6 @@ filegroup(
         ],
     ),
 )
-
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 serving_proto_library(
     name = "resources_proto",
@@ -44,7 +44,7 @@ cc_library(
     hdrs = ["resource_util.h"],
     visibility = ["//visibility:public"],
     deps = [
-        ":resources_proto",
+        ":resources_cc_proto",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -68,7 +68,7 @@ cc_library(
     hdrs = ["resource_tracker.h"],
     deps = [
         ":resource_util",
-        ":resources_proto",
+        ":resources_cc_proto",
         "//tensorflow_serving/core:loader",
         "@org_tensorflow//tensorflow/core:lib",
     ],
