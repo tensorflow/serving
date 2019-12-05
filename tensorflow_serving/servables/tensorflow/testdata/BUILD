@@ -12,6 +12,14 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
+exports_files(
+    [
+        "half_plus_two_model_metadata.json",
+        "saved_model_half_plus_two_2_versions_metadata.json",
+    ],
+    visibility = ["//tensorflow_serving:internal"],
+)
+
 filegroup(
     name = "all_files",
     srcs = glob(
