@@ -79,6 +79,7 @@ cc_library(
         "//tensorflow_serving/core:aspired_versions_manager",
         "//tensorflow_serving/core:dynamic_source_router",
         "//tensorflow_serving/core:load_servables_fast",
+        "//tensorflow_serving/core:prefix_storage_path_source_adapter",
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/core:server_request_logger",
         "//tensorflow_serving/core:source",

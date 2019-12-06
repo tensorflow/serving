@@ -1,7 +1,6 @@
 # Description: Tensorflow Serving core.
 
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_proto_library_py")
 
 package(
     default_visibility = [
@@ -254,6 +253,31 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
+    name = "prefix_storage_path_source_adapter",
+    srcs = ["prefix_storage_path_source_adapter.cc"],
+    hdrs = ["prefix_storage_path_source_adapter.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":source_adapter",
+        ":storage_path",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "prefix_storage_path_source_adapter_test",
+    srcs = ["prefix_storage_path_source_adapter_test.cc"],
+    deps = [
+        ":prefix_storage_path_source_adapter",
+        ":servable_data",
+        ":storage_path",
+        "//tensorflow_serving/core/test_util:test_main",
     ],
 )
 

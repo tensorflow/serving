@@ -35,6 +35,7 @@ limitations under the License.
 #include "tensorflow_serving/config/platform_config.pb.h"
 #include "tensorflow_serving/core/aspired_versions_manager.h"
 #include "tensorflow_serving/core/dynamic_source_router.h"
+#include "tensorflow_serving/core/prefix_storage_path_source_adapter.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/server_request_logger.h"
 #include "tensorflow_serving/core/source.h"
@@ -186,6 +187,9 @@ class ServerCore : public Manager {
     internal::PredictResponseTensorSerializationOption
         predict_response_tensor_serialization_option =
             internal::PredictResponseTensorSerializationOption::kAsProtoField;
+
+    // The prefix to append to the file system storage paths.
+    std::string storage_path_prefix;
   };
 
   virtual ~ServerCore() = default;
@@ -307,12 +311,13 @@ class ServerCore : public Manager {
   Status WaitUntilModelsAvailable(const std::set<string>& models,
                                   ServableStateMonitor* monitor);
 
-  // Creates a FileSystemStoragePathSource and connects it to the supplied
-  // target.
+  // Creates a FileSystemStoragePathSource and an optional
+  // PrefixStoragePathSourceAdapter, and connects them to the supplied target.
   Status CreateStoragePathSource(
       const FileSystemStoragePathSourceConfig& config,
       Target<StoragePath>* target,
-      std::unique_ptr<FileSystemStoragePathSource>* source) const
+      std::unique_ptr<FileSystemStoragePathSource>* source,
+      std::unique_ptr<PrefixStoragePathSourceAdapter>* prefix_source_adapter)
       EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // The source adapters to deploy, to handle the configured platforms as well

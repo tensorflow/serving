@@ -340,8 +340,9 @@ Status ServerCore::AddModelsViaModelConfigList() {
     std::unique_ptr<DynamicSourceRouter<StoragePath>> router;
     TF_RETURN_IF_ERROR(CreateRouter(routes, &adapters, &router));
     std::unique_ptr<FileSystemStoragePathSource> source;
-    TF_RETURN_IF_ERROR(
-        CreateStoragePathSource(source_config, router.get(), &source));
+    std::unique_ptr<PrefixStoragePathSourceAdapter> prefix_source_adapter;
+    TF_RETURN_IF_ERROR(CreateStoragePathSource(
+        source_config, router.get(), &source, &prefix_source_adapter));
 
     // Connect the adapters to the manager, and wait for the models to load.
     TF_RETURN_IF_ERROR(ConnectAdaptersToManagerAndAwaitModelLoads(&adapters));
@@ -349,6 +350,9 @@ Status ServerCore::AddModelsViaModelConfigList() {
     // Stow the source components.
     storage_path_source_and_router_ = {source.get(), router.get()};
     manager_.AddDependency(std::move(source));
+    if (prefix_source_adapter != nullptr) {
+      manager_.AddDependency(std::move(prefix_source_adapter));
+    }
     manager_.AddDependency(std::move(router));
     for (auto& entry : adapters.platform_adapters) {
       auto& adapter = entry.second;
@@ -601,14 +605,22 @@ Status ServerCore::CreateStoragePathRoutes(
 Status ServerCore::CreateStoragePathSource(
     const FileSystemStoragePathSourceConfig& config,
     Target<StoragePath>* target,
-    std::unique_ptr<FileSystemStoragePathSource>* source) const {
+    std::unique_ptr<FileSystemStoragePathSource>* source,
+    std::unique_ptr<PrefixStoragePathSourceAdapter>* prefix_source_adapter) {
   const Status status = FileSystemStoragePathSource::Create(config, source);
   if (!status.ok()) {
     VLOG(1) << "Unable to create FileSystemStoragePathSource due to: "
             << status;
     return status;
   }
-  ConnectSourceToTarget(source->get(), target);
+  if (options_.storage_path_prefix.empty()) {
+    ConnectSourceToTarget(source->get(), target);
+  } else {
+    *prefix_source_adapter = absl::make_unique<PrefixStoragePathSourceAdapter>(
+        options_.storage_path_prefix);
+    ConnectSourceToTarget(source->get(), prefix_source_adapter->get());
+    ConnectSourceToTarget(prefix_source_adapter->get(), target);
+  }
   return Status::OK();
 }
 
