@@ -86,7 +86,7 @@ class AspiredVersionPolicy {
     storage_path_source_ = storage_path_source;
   }
 
-  std::unordered_set<int64> GetConfiguringSpecificVersions(
+  std::unordered_set<int64> GetSpecificVersionsInConfig(
       const std::string& servable_name) const;
 
  protected:

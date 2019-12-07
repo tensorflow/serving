@@ -385,7 +385,7 @@ void FileSystemStoragePathSource::SetAspiredVersionsCallback(
 }
 
 std::unordered_set<int64>
-FileSystemStoragePathSource::GetConfiguringSpecificVersions(
+FileSystemStoragePathSource::GetSpecificVersionsInConfig(
     const std::string& servable_name) const {
   mutex_lock l(mu_);
 

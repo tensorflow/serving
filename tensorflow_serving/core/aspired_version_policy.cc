@@ -35,14 +35,14 @@ optional<ServableId> AspiredVersionPolicy::GetHighestAspiredNewServableId(
 }
 
 std::unordered_set<int64>
-AspiredVersionPolicy::GetConfiguringSpecificVersions(
+AspiredVersionPolicy::GetSpecificVersionsInConfig(
     const std::string& servable_name) const {
   mutex_lock l(mu_);
   if (storage_path_source_ == nullptr) {
     std::unordered_set<int64> empty_set;
     return empty_set;
   }
-  return storage_path_source_->GetConfiguringSpecificVersions(servable_name);
+  return storage_path_source_->GetSpecificVersionsInConfig(servable_name);
 }
 
 }  // namespace serving

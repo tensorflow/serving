@@ -68,7 +68,7 @@ AvailabilityPreservingPolicy::GetNextAction(
         GetLowestServableId(unaspired_serving_versions);
     if (version_to_unload) {
       std::unordered_set<int64> specific_versions =
-          GetConfiguringSpecificVersions(version_to_unload.value().name);
+          GetSpecificVersionsInConfig(version_to_unload.value().name);
       if (specific_versions.count(version_to_unload.value().version) == 0) {
         return {{Action::kUnload, version_to_unload.value()}};
       }

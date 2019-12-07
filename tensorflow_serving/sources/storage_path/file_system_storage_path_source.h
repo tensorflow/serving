@@ -79,7 +79,7 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
     return config_;
   }
 
-  std::unordered_set<int64> GetConfiguringSpecificVersions(
+  std::unordered_set<int64> GetSpecificVersionsInConfig(
       const std::string& servable_name) const;
 
  private:
