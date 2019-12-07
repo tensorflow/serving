@@ -654,6 +654,8 @@ cc_library(
         ":loader_harness",
         ":servable_id",
         "//tensorflow_serving/util:optional",
+        "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
+        "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
