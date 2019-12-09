@@ -1,5 +1,9 @@
 # Description: Model Server
 
+load("//tensorflow_serving:oss_or_google.bzl", "if_google")
+load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",
@@ -116,6 +120,7 @@ cc_test(
         "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter",
         "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter_proto",
         "//tensorflow_serving/test_util",
+        "//tensorflow_serving/util:oss_or_google",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -162,7 +167,6 @@ cc_test(
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
-        "@org_tensorflow//tensorflow/contrib/session_bundle",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
@@ -291,12 +295,16 @@ cc_library(
     ],
 )
 
-load("//tensorflow_serving:tensorflow_version.bzl", "if_v2", "if_not_v2")
-
 SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
     "@org_tensorflow//tensorflow/contrib:contrib_kernels",
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
-])
+]) + [
+    "@org_tensorflow_text//tensorflow_text:constrained_sequence_op_cc",
+    "@org_tensorflow_text//tensorflow_text:sentence_breaking_ops_cc",
+    "@org_tensorflow_text//tensorflow_text:unicode_script_tokenizer_cc",
+    "@org_tensorflow_text//tensorflow_text:whitespace_tokenizer_cc",
+    "@org_tensorflow_text//tensorflow_text:wordpiece_tokenizer_cc",
+]
 
 TENSORFLOW_DEPS = [
     "@org_tensorflow//tensorflow/core:tensorflow",
@@ -330,6 +338,7 @@ cc_library(
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@com_google_absl//absl/memory",
+        "@org_tensorflow//tensorflow/core/profiler/rpc:profiler_service_impl",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "//tensorflow_serving/config:model_server_config_proto",
         "//tensorflow_serving/config:monitoring_config_proto",
@@ -386,9 +395,6 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:bad_model_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:batching_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:good_model_config.txt",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
         "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_model_metadata.json",
         "//tensorflow_serving/servables/tensorflow/testdata:monitoring_config.txt",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/assets/foo.txt",
@@ -397,7 +403,11 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.index",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
-    ],
+    ] + if_google([
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.meta",
+    ]),
     python_version = "PY2",
     srcs_version = "PY2AND3",
     tags = [
@@ -406,6 +416,7 @@ py_test(
     deps = [
         "//tensorflow_serving/apis:model_service_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        "//tensorflow_serving/model_servers/test_util:tensorflow_model_server_test_base",
         "@org_tensorflow//tensorflow:tensorflow_py",
         "@six_archive//:six",
     ],
@@ -444,8 +455,6 @@ py_binary(
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )
-
-load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
 
 pkg_tar(
     name = "tensorflow_model_server_tar",

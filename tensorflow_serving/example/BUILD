@@ -7,8 +7,6 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
-
 filegroup(
     name = "all_files",
     srcs = glob(

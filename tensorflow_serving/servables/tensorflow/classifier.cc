@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/classifier.h"
 
 #include <stddef.h>
+
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -23,7 +24,6 @@ limitations under the License.
 #include <vector>
 
 #include "tensorflow/cc/saved_model/signature_constants.h"
-#include "tensorflow/contrib/session_bundle/signature.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -36,6 +36,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
+#include "tensorflow_serving/session_bundle/session_bundle_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -76,8 +77,8 @@ class TensorFlowClassifier : public ClassifierInterface {
       scores.reset(new Tensor);
     }
 
-    TF_RETURN_IF_ERROR(RunClassification(*signature_, input_tensor, session_,
-                                         classes.get(), scores.get()));
+    TF_RETURN_IF_ERROR(session_bundle::RunClassification(
+        *signature_, input_tensor, session_, classes.get(), scores.get()));
 
     // Validate classes output Tensor.
     if (classes) {
@@ -135,7 +136,8 @@ class TensorFlowClassifier : public ClassifierInterface {
       for (int c = 0; c < num_classes; ++c) {
         serving::Class* cl = classifications->add_classes();
         if (classes) {
-          cl->set_label((classes->matrix<string>())(i, c));
+          const tstring& class_tstr = (classes->matrix<tstring>())(i, c);
+          cl->set_label(class_tstr.data(), class_tstr.size());
         }
         if (scores) {
           cl->set_score((scores->matrix<float>())(i, c));
@@ -206,8 +208,8 @@ class SessionBundleClassifier : public ClassifierInterface {
     // TODO(b/26220896): Move TensorFlowClassifier creation to construction
     // time.
     ClassificationSignature signature;
-    TF_RETURN_IF_ERROR(
-        GetClassificationSignature(bundle_->meta_graph_def, &signature));
+    TF_RETURN_IF_ERROR(session_bundle::GetClassificationSignature(
+        bundle_->meta_graph_def, &signature));
 
     TensorFlowClassifier classifier(bundle_->session.get(), &signature);
     return classifier.Classify(request, result);
@@ -434,7 +436,8 @@ Status PostProcessClassificationResult(
     for (int c = 0; c < num_classes; ++c) {
       serving::Class* cl = classifications->add_classes();
       if (classes) {
-        cl->set_label((classes->matrix<string>())(i, c));
+        const tstring& class_tstr = (classes->matrix<tstring>())(i, c);
+        cl->set_label(class_tstr.data(), class_tstr.size());
       }
       if (scores) {
         cl->set_score((scores->matrix<float>())(i, c));

@@ -22,9 +22,6 @@ limitations under the License.
 #include <vector>
 
 #include "google/protobuf/map.h"
-#include "tensorflow/contrib/session_bundle/bundle_shim.h"
-#include "tensorflow/contrib/session_bundle/manifest.pb.h"
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/example/feature.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -37,8 +34,10 @@ limitations under the License.
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/core/test_util/mock_session.h"
+#include "tensorflow_serving/session_bundle/session_bundle_util.h"
 #include "tensorflow_serving/test_util/test_util.h"
 #include "tensorflow_serving/util/optional.h"
+#include "tensorflow_serving/util/oss_or_google.h"
 
 namespace tensorflow {
 namespace serving {
@@ -137,10 +136,10 @@ class FakeSession : public tensorflow::Session {
                             std::vector<Example>* examples) {
     examples->clear();
     const int batch_size = input.dim_size(0);
-    const auto& flat_input = input.flat<string>();
+    const auto& flat_input = input.flat<tstring>();
     for (int i = 0; i < batch_size; ++i) {
       Example example;
-      if (!example.ParseFromString(flat_input(i))) {
+      if (!example.ParseFromArray(flat_input(i).data(), flat_input(i).size())) {
         return errors::Internal("failed to parse example");
       }
       examples->push_back(example);
@@ -188,7 +187,7 @@ class FakeSession : public tensorflow::Session {
     const int num_classes = FeatureSize(GetFeature(examples[0], kClassFeature));
     *classes = Tensor(DT_STRING, TensorShape({batch_size, num_classes}));
     *scores = Tensor(DT_FLOAT, TensorShape({batch_size, num_classes}));
-    auto classes_matrix = classes->matrix<string>();
+    auto classes_matrix = classes->matrix<tstring>();
     auto scores_matrix = scores->matrix<float>();
 
     for (int i = 0; i < batch_size; ++i) {
@@ -245,41 +244,101 @@ void AddNamedSignature(const string& input_tensor_name,
           signature_name, named_signature));
 }
 
+// Add a named signature to the mutable meta_graph_def* parameter.
+// If is_classification is false, will add a regression signature, which is
+// invalid in classification requests.
+void AddNamedSignatureToSavedModelBundle(
+    const string& input_tensor_name, const string& output_scores_tensor_name,
+    const string& signature_name, const bool is_classification,
+    tensorflow::MetaGraphDef* meta_graph_def) {
+  auto* signature_defs = meta_graph_def->mutable_signature_def();
+  SignatureDef sig_def;
+  TensorInfo input_tensor_info;
+  input_tensor_info.set_name(input_tensor_name);
+  (*sig_def.mutable_inputs())["inputs"] = input_tensor_info;
+  TensorInfo scores_tensor_info;
+  scores_tensor_info.set_name(output_scores_tensor_name);
+  (*sig_def.mutable_outputs())["scores"] = scores_tensor_info;
+  string methond_name = "tensorflow/serving/regress";
+  if (is_classification) {
+    TensorInfo class_tensor_info;
+    class_tensor_info.set_name(kClassTensor);
+    (*sig_def.mutable_outputs())["classes"] = class_tensor_info;
+
+    methond_name = "tensorflow/serving/classify";
+  }
+  sig_def.set_method_name(methond_name);
+  (*signature_defs)[signature_name] = sig_def;
+}
+
 // Parameter is 'bool use_saved_model'.
 class ClassifierTest : public ::testing::TestWithParam<bool> {
  public:
   void SetUp() override {
-    bundle_.reset(new SessionBundle);
-    meta_graph_def_ = &bundle_->meta_graph_def;
-    optional<int64> expected_timeout = GetRunOptions().timeout_in_ms();
     if (!UseSavedModel()) {
+      bundle_.reset(new SessionBundle);
+      meta_graph_def_ = &bundle_->meta_graph_def;
+      optional<int64> expected_timeout = GetRunOptions().timeout_in_ms();
       // For SessionBundle we don't propagate the timeout.
       expected_timeout = nullopt;
+      fake_session_ = new FakeSession(expected_timeout);
+      bundle_->session.reset(fake_session_);
+
+      // Setup some defaults for our signature.
+      tensorflow::serving::Signatures signatures;
+      auto signature = signatures.mutable_default_signature()
+                           ->mutable_classification_signature();
+      signature->mutable_input()->set_tensor_name(kInputTensor);
+      signature->mutable_classes()->set_tensor_name(kClassTensor);
+      signature->mutable_scores()->set_tensor_name(kScoreTensor);
+
+      AddNamedSignature(kInputTensor, kOutputPlusOneClassTensor,
+                        kOutputPlusOneSignature, true /* is_classification */,
+                        &signatures);
+      AddNamedSignature(kInputTensor, kOutputPlusOneClassTensor,
+                        kInvalidNamedSignature, false /* is_classification */,
+                        &signatures);
+
+      // Add a named signature where the output is not valid.
+      AddNamedSignature(kInputTensor, kImproperlySizedScoresTensor,
+                        kImproperlySizedScoresSignature,
+                        true /* is_classification */, &signatures);
+      TF_ASSERT_OK(tensorflow::serving::session_bundle::SetSignatures(
+          signatures, meta_graph_def_));
+    } else {
+      saved_model_bundle_.reset(new SavedModelBundle);
+      meta_graph_def_ = &saved_model_bundle_->meta_graph_def;
+      optional<int64> expected_timeout = GetRunOptions().timeout_in_ms();
+      fake_session_ = new FakeSession(expected_timeout);
+      saved_model_bundle_->session.reset(fake_session_);
+
+      auto* signature_defs = meta_graph_def_->mutable_signature_def();
+      SignatureDef sig_def;
+      TensorInfo input_tensor_info;
+      input_tensor_info.set_name(kInputTensor);
+      (*sig_def.mutable_inputs())["inputs"] = input_tensor_info;
+      TensorInfo class_tensor_info;
+      class_tensor_info.set_name(kClassTensor);
+      (*sig_def.mutable_outputs())["classes"] = class_tensor_info;
+      TensorInfo scores_tensor_info;
+      scores_tensor_info.set_name(kScoreTensor);
+      (*sig_def.mutable_outputs())["scores"] = scores_tensor_info;
+      sig_def.set_method_name("tensorflow/serving/classify");
+      (*signature_defs)["serving_default"] = sig_def;
+
+      AddNamedSignatureToSavedModelBundle(
+          kInputTensor, kOutputPlusOneClassTensor, kOutputPlusOneSignature,
+          true /* is_classification */, meta_graph_def_);
+      AddNamedSignatureToSavedModelBundle(
+          kInputTensor, kOutputPlusOneClassTensor, kInvalidNamedSignature,
+          false /* is_classification */, meta_graph_def_);
+
+      // Add a named signature where the output is not valid.
+      AddNamedSignatureToSavedModelBundle(
+          kInputTensor, kImproperlySizedScoresTensor,
+          kImproperlySizedScoresSignature, true /* is_classification */,
+          meta_graph_def_);
     }
-    fake_session_ = new FakeSession(expected_timeout);
-    bundle_->session.reset(fake_session_);
-
-    // Setup some defaults for our signature.
-    tensorflow::serving::Signatures signatures;
-    auto signature = signatures.mutable_default_signature()
-                         ->mutable_classification_signature();
-    signature->mutable_input()->set_tensor_name(kInputTensor);
-    signature->mutable_classes()->set_tensor_name(kClassTensor);
-    signature->mutable_scores()->set_tensor_name(kScoreTensor);
-
-    AddNamedSignature(kInputTensor, kOutputPlusOneClassTensor,
-                      kOutputPlusOneSignature, true /* is_classification */,
-                      &signatures);
-    AddNamedSignature(kInputTensor, kOutputPlusOneClassTensor,
-                      kInvalidNamedSignature, false /* is_classification */,
-                      &signatures);
-
-    // Add a named signature where the output is not valid.
-    AddNamedSignature(kInputTensor, kImproperlySizedScoresTensor,
-                      kImproperlySizedScoresSignature,
-                      true /* is_classification */, &signatures);
-    TF_ASSERT_OK(
-        tensorflow::serving::SetSignatures(signatures, meta_graph_def_));
   }
 
  protected:
@@ -305,8 +364,8 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
   Status Create() {
     if (UseSavedModel()) {
       std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-      TF_RETURN_IF_ERROR(internal::ConvertSessionBundleToSavedModelBundle(
-          *bundle_, saved_model.get()));
+      saved_model->meta_graph_def = saved_model_bundle_->meta_graph_def;
+      saved_model->session = std::move(saved_model_bundle_->session);
       return CreateClassifierFromSavedModelBundle(
           GetRunOptions(), std::move(saved_model), &classifier_);
     } else {
@@ -324,6 +383,7 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
   tensorflow::MetaGraphDef* meta_graph_def_;
   FakeSession* fake_session_;
   std::unique_ptr<SessionBundle> bundle_;
+  std::unique_ptr<SavedModelBundle> saved_model_bundle_;
 
   // Classifier valid after calling create.
   std::unique_ptr<ClassifierInterface> classifier_;
@@ -362,11 +422,9 @@ TEST_P(ClassifierTest, ExampleList) {
                                    " } "));
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+    TF_ASSERT_OK(RunClassify(GetRunOptions(),
+                             saved_model_bundle_->meta_graph_def, {},
                              fake_session_, request_, &response));
     EXPECT_THAT(response.result(), EqualsProto(" classifications { "
                                                "   classes { "
@@ -424,11 +482,9 @@ TEST_P(ClassifierTest, ExampleListWithContext) {
 
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+    TF_ASSERT_OK(RunClassify(GetRunOptions(),
+                             saved_model_bundle_->meta_graph_def, {},
                              fake_session_, request_, &response));
     EXPECT_THAT(response.result(), EqualsProto(" classifications { "
                                                "   classes { "
@@ -488,11 +544,9 @@ TEST_P(ClassifierTest, ExampleListWithContext_DuplicateFeatures) {
 
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+    TF_ASSERT_OK(RunClassify(GetRunOptions(),
+                             saved_model_bundle_->meta_graph_def, {},
                              fake_session_, request_, &response));
     EXPECT_THAT(response.result(), EqualsProto(" classifications { "
                                                "   classes { "
@@ -518,13 +572,27 @@ TEST_P(ClassifierTest, ExampleListWithContext_DuplicateFeatures) {
 }
 
 TEST_P(ClassifierTest, ClassesOnly) {
-  tensorflow::serving::Signatures signatures;
-  auto signature = signatures.mutable_default_signature()
-                       ->mutable_classification_signature();
-  signature->mutable_input()->set_tensor_name(kInputTensor);
-  signature->mutable_classes()->set_tensor_name(kClassTensor);
-  // No scores Tensor.
-  TF_ASSERT_OK(tensorflow::serving::SetSignatures(signatures, meta_graph_def_));
+  if (UseSavedModel()) {
+    auto* signature_defs = meta_graph_def_->mutable_signature_def();
+    SignatureDef sig_def;
+    TensorInfo input_tensor_info;
+    input_tensor_info.set_name(kInputTensor);
+    (*sig_def.mutable_inputs())["inputs"] = input_tensor_info;
+    TensorInfo class_tensor_info;
+    class_tensor_info.set_name(kClassTensor);
+    (*sig_def.mutable_outputs())["classes"] = class_tensor_info;
+    sig_def.set_method_name("tensorflow/serving/classify");
+    (*signature_defs)["serving_default"] = sig_def;
+  } else {
+    tensorflow::serving::Signatures signatures;
+    auto signature = signatures.mutable_default_signature()
+                         ->mutable_classification_signature();
+    signature->mutable_input()->set_tensor_name(kInputTensor);
+    signature->mutable_classes()->set_tensor_name(kClassTensor);
+    // No scores Tensor.
+    TF_ASSERT_OK(tensorflow::serving::session_bundle::SetSignatures(
+        signatures, meta_graph_def_));
+  }
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -549,11 +617,9 @@ TEST_P(ClassifierTest, ClassesOnly) {
                                    " } "));
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+    TF_ASSERT_OK(RunClassify(GetRunOptions(),
+                             saved_model_bundle_->meta_graph_def, {},
                              fake_session_, request_, &response));
     EXPECT_THAT(response.result(), EqualsProto(" classifications { "
                                                "   classes { "
@@ -575,13 +641,28 @@ TEST_P(ClassifierTest, ClassesOnly) {
 }
 
 TEST_P(ClassifierTest, ScoresOnly) {
-  tensorflow::serving::Signatures signatures;
-  auto signature = signatures.mutable_default_signature()
-                       ->mutable_classification_signature();
-  signature->mutable_input()->set_tensor_name(kInputTensor);
-  // No classes Tensor.
-  signature->mutable_scores()->set_tensor_name(kScoreTensor);
-  TF_ASSERT_OK(tensorflow::serving::SetSignatures(signatures, meta_graph_def_));
+  if (UseSavedModel()) {
+    auto* signature_defs = meta_graph_def_->mutable_signature_def();
+    SignatureDef sig_def;
+    TensorInfo input_tensor_info;
+    input_tensor_info.set_name(kInputTensor);
+    (*sig_def.mutable_inputs())["inputs"] = input_tensor_info;
+    TensorInfo scores_tensor_info;
+    scores_tensor_info.set_name(kScoreTensor);
+    (*sig_def.mutable_outputs())["scores"] = scores_tensor_info;
+    sig_def.set_method_name("tensorflow/serving/classify");
+    (*signature_defs)["serving_default"] = sig_def;
+
+  } else {
+    tensorflow::serving::Signatures signatures;
+    auto signature = signatures.mutable_default_signature()
+                         ->mutable_classification_signature();
+    signature->mutable_input()->set_tensor_name(kInputTensor);
+    // No classes Tensor.
+    signature->mutable_scores()->set_tensor_name(kScoreTensor);
+    TF_ASSERT_OK(tensorflow::serving::session_bundle::SetSignatures(
+        signatures, meta_graph_def_));
+  }
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -606,11 +687,9 @@ TEST_P(ClassifierTest, ScoresOnly) {
                                    " } "));
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+    TF_ASSERT_OK(RunClassify(GetRunOptions(),
+                             saved_model_bundle_->meta_graph_def, {},
                              fake_session_, request_, &response));
     EXPECT_THAT(response.result(), EqualsProto(" classifications { "
                                                "   classes { "
@@ -632,13 +711,27 @@ TEST_P(ClassifierTest, ScoresOnly) {
 }
 
 TEST_P(ClassifierTest, ZeroScoresArePresent) {
-  tensorflow::serving::Signatures signatures;
-  auto signature = signatures.mutable_default_signature()
-                       ->mutable_classification_signature();
-  signature->mutable_input()->set_tensor_name(kInputTensor);
-  // No classes Tensor.
-  signature->mutable_scores()->set_tensor_name(kScoreTensor);
-  TF_ASSERT_OK(tensorflow::serving::SetSignatures(signatures, meta_graph_def_));
+  if (UseSavedModel()) {
+    auto* signature_defs = meta_graph_def_->mutable_signature_def();
+    SignatureDef sig_def;
+    TensorInfo input_tensor_info;
+    input_tensor_info.set_name(kInputTensor);
+    (*sig_def.mutable_inputs())["inputs"] = input_tensor_info;
+    TensorInfo scores_tensor_info;
+    scores_tensor_info.set_name(kScoreTensor);
+    (*sig_def.mutable_outputs())["scores"] = scores_tensor_info;
+    sig_def.set_method_name("tensorflow/serving/classify");
+    (*signature_defs)["serving_default"] = sig_def;
+  } else {
+    tensorflow::serving::Signatures signatures;
+    auto signature = signatures.mutable_default_signature()
+                         ->mutable_classification_signature();
+    signature->mutable_input()->set_tensor_name(kInputTensor);
+    // No classes Tensor.
+    signature->mutable_scores()->set_tensor_name(kScoreTensor);
+    TF_ASSERT_OK(tensorflow::serving::session_bundle::SetSignatures(
+        signatures, meta_graph_def_));
+  }
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -657,11 +750,9 @@ TEST_P(ClassifierTest, ZeroScoresArePresent) {
 
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+    TF_ASSERT_OK(RunClassify(GetRunOptions(),
+                             saved_model_bundle_->meta_graph_def, {},
                              fake_session_, request_, &response));
     // Parse the protos and compare the results with expected scores.
     ASSERT_EQ(response.result().classifications_size(), 1);
@@ -731,11 +822,9 @@ TEST_P(ClassifierTest, ValidNamedSignature) {
   }
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+    TF_ASSERT_OK(RunClassify(GetRunOptions(),
+                             saved_model_bundle_->meta_graph_def, {},
                              fake_session_, request_, &response));
     EXPECT_THAT(response.result(), EqualsProto(" classifications { "
                                                "   classes { "
@@ -800,12 +889,9 @@ TEST_P(ClassifierTest, InvalidNamedSignature) {
   }
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
     const Status status =
-        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+        RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                     fake_session_, request_, &response);
     ASSERT_FALSE(status.ok());
     EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
@@ -832,12 +918,9 @@ TEST_P(ClassifierTest, MalformedScores) {
   EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
     const Status status =
-        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+        RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                     fake_session_, request_, &response);
     ASSERT_FALSE(status.ok());
     EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
@@ -845,9 +928,16 @@ TEST_P(ClassifierTest, MalformedScores) {
 }
 
 TEST_P(ClassifierTest, MissingClassificationSignature) {
-  tensorflow::serving::Signatures signatures;
-  signatures.mutable_default_signature();
-  TF_ASSERT_OK(tensorflow::serving::SetSignatures(signatures, meta_graph_def_));
+  if (UseSavedModel()) {
+    auto* signature_defs = meta_graph_def_->mutable_signature_def();
+    SignatureDef sig_def;
+    (*signature_defs)["serving_default"] = sig_def;
+  } else {
+    tensorflow::serving::Signatures signatures;
+    signatures.mutable_default_signature();
+    TF_ASSERT_OK(tensorflow::serving::session_bundle::SetSignatures(
+        signatures, meta_graph_def_));
+  }
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -866,12 +956,9 @@ TEST_P(ClassifierTest, MissingClassificationSignature) {
   }
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
     const Status status =
-        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+        RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                     fake_session_, request_, &response);
     ASSERT_FALSE(status.ok());
     EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
@@ -888,12 +975,9 @@ TEST_P(ClassifierTest, EmptyInput) {
               ::testing::HasSubstr("Invalid argument: Input is empty"));
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
     const Status status =
-        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+        RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                     fake_session_, request_, &response);
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.ToString(),
@@ -911,12 +995,9 @@ TEST_P(ClassifierTest, EmptyExampleList) {
               ::testing::HasSubstr("Invalid argument: Input is empty"));
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
     const Status status =
-        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+        RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                     fake_session_, request_, &response);
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.ToString(),
@@ -936,12 +1017,9 @@ TEST_P(ClassifierTest, EmptyExampleListWithContext) {
               ::testing::HasSubstr("Invalid argument: Input is empty"));
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
     const Status status =
-        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {},
+        RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                     fake_session_, request_, &response);
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.ToString(),
@@ -951,12 +1029,13 @@ TEST_P(ClassifierTest, EmptyExampleListWithContext) {
 
 TEST_P(ClassifierTest, RunsFails) {
   MockSession* mock = new MockSession;
-  bundle_->session.reset(mock);
   if (UseSavedModel()) {
+    saved_model_bundle_->session.reset(mock);
     EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
         .WillRepeatedly(
             ::testing::Return(errors::Internal("Run totally failed")));
   } else {
+    bundle_->session.reset(mock);
     EXPECT_CALL(*mock, Run(_, _, _, _))
         .WillRepeatedly(
             ::testing::Return(errors::Internal("Run totally failed")));
@@ -970,13 +1049,10 @@ TEST_P(ClassifierTest, RunsFails) {
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
     const Status status =
-        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
-                    request_, &response);
+        RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                    mock, request_, &response);
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
   }
@@ -984,7 +1060,11 @@ TEST_P(ClassifierTest, RunsFails) {
 
 TEST_P(ClassifierTest, ClassesIncorrectTensorBatchSize) {
   MockSession* mock = new MockSession;
-  bundle_->session.reset(mock);
+  if (UseSavedModel()) {
+    saved_model_bundle_->session.reset(mock);
+  } else {
+    bundle_->session.reset(mock);
+  }
   // This Tensor only has one batch item but we will have two inputs.
   Tensor classes(DT_STRING, TensorShape({1, 2}));
   Tensor scores(DT_FLOAT, TensorShape({2, 2}));
@@ -1009,13 +1089,10 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorBatchSize) {
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
     const Status status =
-        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
-                    request_, &response);
+        RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                    mock, request_, &response);
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
   }
@@ -1023,7 +1100,11 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorBatchSize) {
 
 TEST_P(ClassifierTest, ClassesIncorrectTensorType) {
   MockSession* mock = new MockSession;
-  bundle_->session.reset(mock);
+  if (UseSavedModel()) {
+    saved_model_bundle_->session.reset(mock);
+  } else {
+    bundle_->session.reset(mock);
+  }
   // This Tensor is the wrong type for class.
   Tensor classes(DT_FLOAT, TensorShape({2, 2}));
   Tensor scores(DT_FLOAT, TensorShape({2, 2}));
@@ -1049,13 +1130,10 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorType) {
               ::testing::HasSubstr("Expected classes Tensor of DT_STRING"));
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
     const Status status =
-        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
-                    request_, &response);
+        RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                    mock, request_, &response);
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.ToString(),
                 ::testing::HasSubstr("Expected classes Tensor of DT_STRING"));
@@ -1064,7 +1142,11 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorType) {
 
 TEST_P(ClassifierTest, ScoresIncorrectTensorBatchSize) {
   MockSession* mock = new MockSession;
-  bundle_->session.reset(mock);
+  if (UseSavedModel()) {
+    saved_model_bundle_->session.reset(mock);
+  } else {
+    bundle_->session.reset(mock);
+  }
   Tensor classes(DT_STRING, TensorShape({2, 2}));
   // This Tensor only has one batch item but we will have two inputs.
   Tensor scores(DT_FLOAT, TensorShape({1, 2}));
@@ -1089,13 +1171,10 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorBatchSize) {
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
     const Status status =
-        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
-                    request_, &response);
+        RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                    mock, request_, &response);
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
   }
@@ -1103,7 +1182,11 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorBatchSize) {
 
 TEST_P(ClassifierTest, ScoresIncorrectTensorType) {
   MockSession* mock = new MockSession;
-  bundle_->session.reset(mock);
+  if (UseSavedModel()) {
+    saved_model_bundle_->session.reset(mock);
+  } else {
+    bundle_->session.reset(mock);
+  }
   Tensor classes(DT_STRING, TensorShape({2, 2}));
   // This Tensor is the wrong type for class.
   Tensor scores(DT_STRING, TensorShape({2, 2}));
@@ -1129,13 +1212,10 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorType) {
               ::testing::HasSubstr("Expected scores Tensor of DT_FLOAT"));
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
     const Status status =
-        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
-                    request_, &response);
+        RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                    mock, request_, &response);
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.ToString(),
                 ::testing::HasSubstr("Expected scores Tensor of DT_FLOAT"));
@@ -1144,7 +1224,11 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorType) {
 
 TEST_P(ClassifierTest, MismatchedNumberOfTensorClasses) {
   MockSession* mock = new MockSession;
-  bundle_->session.reset(mock);
+  if (UseSavedModel()) {
+    saved_model_bundle_->session.reset(mock);
+  } else {
+    bundle_->session.reset(mock);
+  }
   Tensor classes(DT_STRING, TensorShape({2, 2}));
   // Scores Tensor has three scores but classes only has two labels.
   Tensor scores(DT_FLOAT, TensorShape({2, 3}));
@@ -1172,13 +1256,10 @@ TEST_P(ClassifierTest, MismatchedNumberOfTensorClasses) {
           "Tensors class and score should match in dim_size(1). Got 2 vs. 3"));
   // Test RunClassify
   if (UseSavedModel()) {
-    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-    TF_ASSERT_OK(internal::ConvertSessionBundleToSavedModelBundle(
-        *bundle_, saved_model.get()));
     ClassificationResponse response;
     const Status status =
-        RunClassify(GetRunOptions(), saved_model->meta_graph_def, {}, mock,
-                    request_, &response);
+        RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                    mock, request_, &response);
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.ToString(),
                 ::testing::HasSubstr("Tensors class and score should match in "
@@ -1187,8 +1268,9 @@ TEST_P(ClassifierTest, MismatchedNumberOfTensorClasses) {
 }
 
 // Test all ClassifierTest test cases with both SessionBundle and SavedModel.
-INSTANTIATE_TEST_CASE_P(UseSavedModel, ClassifierTest, ::testing::Bool());
-
+INSTANTIATE_TEST_CASE_P(UseSavedModel, ClassifierTest,
+                        IsTensorflowServingOSS() ? ::testing::Values(true)
+                                                 : ::testing::Bool());
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

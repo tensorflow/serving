@@ -94,7 +94,7 @@ TEST_F(InputUtilTest, ExampleList) {
 
   TF_ASSERT_OK(InputToSerializedExampleTensor(input_, &tensor_));
   EXPECT_EQ(2, tensor_.NumElements());
-  const auto vec = tensor_.flat<string>();
+  const auto vec = tensor_.flat<tstring>();
   ASSERT_EQ(vec.size(), 2);
   Example serialized_example;
   ASSERT_TRUE(serialized_example.ParseFromString(vec(0)));
@@ -112,7 +112,7 @@ TEST_F(InputUtilTest, ExampleListWithContext) {
 
   TF_ASSERT_OK(InputToSerializedExampleTensor(input_, &tensor_));
   EXPECT_EQ(2, tensor_.NumElements());
-  const auto vec = tensor_.flat<string>();
+  const auto vec = tensor_.flat<tstring>();
   ASSERT_EQ(vec.size(), 2);
   {
     Example serialized_example;
@@ -142,7 +142,7 @@ TEST_F(InputUtilTest, ExampleListWithOverridingContext) {
 
   TF_ASSERT_OK(InputToSerializedExampleTensor(input_, &tensor_));
   EXPECT_EQ(2, tensor_.NumElements());
-  const auto vec = tensor_.flat<string>();
+  const auto vec = tensor_.flat<tstring>();
   ASSERT_EQ(vec.size(), 2);
   {
     Example serialized_example;
@@ -168,7 +168,7 @@ TEST_F(InputUtilTest, ExampleListWithContext_NoContext) {
 
   TF_ASSERT_OK(InputToSerializedExampleTensor(input_, &tensor_));
   EXPECT_EQ(2, tensor_.NumElements());
-  const auto vec = tensor_.flat<string>();
+  const auto vec = tensor_.flat<tstring>();
   ASSERT_EQ(vec.size(), 2);
   {
     Example serialized_example;

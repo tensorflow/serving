@@ -21,9 +21,9 @@ limitations under the License.
 #include <memory>
 
 #include "tensorflow/cc/saved_model/loader.h"
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/apis/regressor.h"
+#include "tensorflow_serving/session_bundle/session_bundle_util.h"
 #include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {

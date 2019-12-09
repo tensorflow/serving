@@ -45,7 +45,7 @@ string GetTestSavedModelPath() {
 }
 
 string GetTestSessionBundleExportPath() {
-  return test_util::ContribTestSrcDirPath(kTestSessionBundleExportPath);
+  return test_util::TestSrcDirPath(kTestSessionBundleExportPath);
 }
 
 string GetTestTfLiteModelPath() {
@@ -56,6 +56,15 @@ std::vector<string> GetTestSessionBundleExportFiles() {
   const string dir = GetTestSessionBundleExportPath();
   return {tensorflow::io::JoinPath(dir, "export.meta"),
           tensorflow::io::JoinPath(dir, "export-00000-of-00001")};
+}
+
+std::vector<string> GetTestSavedModelBundleExportFiles() {
+  const string dir = GetTestSavedModelPath();
+  return {
+      tensorflow::io::JoinPath(dir, "saved_model.pb"),
+      tensorflow::io::JoinPath(dir, "assets/foo.txt"),
+      tensorflow::io::JoinPath(dir, "variables/variables.index"),
+      tensorflow::io::JoinPath(dir, "variables/variables.data-00000-of-00001")};
 }
 
 uint64 GetTotalFileSize(const std::vector<string>& files) {

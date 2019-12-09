@@ -22,8 +22,6 @@ limitations under the License.
 #include <vector>
 
 #include "tensorflow/cc/saved_model/loader.h"
-#include "tensorflow/contrib/session_bundle/bundle_shim.h"
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow_serving/core/servable_handle.h"
 

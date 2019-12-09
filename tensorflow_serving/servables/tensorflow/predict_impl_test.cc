@@ -18,7 +18,6 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/signature_constants.h"
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
@@ -28,6 +27,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
+#include "tensorflow_serving/util/oss_or_google.h"
 
 namespace tensorflow {
 namespace serving {
@@ -43,20 +43,22 @@ const char kOutputTensorKey[] = "y";
 class PredictImplTest : public ::testing::TestWithParam<bool> {
  public:
   static void SetUpTestSuite() {
-    TF_ASSERT_OK(
-        CreateServerCore(test_util::TestSrcDirPath(
-                             "/servables/tensorflow/testdata/half_plus_two"),
-                         false, &server_core_));
-    const string bad_half_plus_two_path = test_util::TestSrcDirPath(
-        "/servables/tensorflow/testdata/bad_half_plus_two");
-    TF_ASSERT_OK(CreateServerCore(bad_half_plus_two_path, false,
-                                  &server_core_bad_model_));
+    if (!IsTensorflowServingOSS()) {
+      TF_ASSERT_OK(CreateServerCore(
+          test_util::TestSrcDirPath(
+              "/servables/tensorflow/google/testdata/half_plus_two"),
+          false, &server_core_));
+      const string bad_half_plus_two_path = test_util::TestSrcDirPath(
+          "/servables/tensorflow/testdata/bad_half_plus_two");
+      TF_ASSERT_OK(CreateServerCore(bad_half_plus_two_path, false,
+                                    &server_core_bad_model_));
+      TF_ASSERT_OK(CreateServerCore(bad_half_plus_two_path, true,
+                                    &saved_model_server_core_bad_model_));
+    }
 
     TF_ASSERT_OK(CreateServerCore(test_util::TensorflowTestSrcDirPath(
                                       "cc/saved_model/testdata/half_plus_two"),
                                   true, &saved_model_server_core_));
-    TF_ASSERT_OK(CreateServerCore(bad_half_plus_two_path, true,
-                                  &saved_model_server_core_bad_model_));
     TF_ASSERT_OK(CreateServerCore(
         test_util::TestSrcDirPath(
             "/servables/tensorflow/testdata/saved_model_counter"),
@@ -253,6 +255,10 @@ TEST_P(PredictImplTest, InputTensorsHaveWrongType) {
 }
 
 TEST_P(PredictImplTest, ModelMissingSignatures) {
+  if (GetParam()) {
+    // The test is only related to SessionBundle.
+    return;
+  }
   PredictRequest request;
   PredictResponse response;
 
@@ -507,7 +513,9 @@ TEST_P(PredictImplTest, ModelSpecOverride) {
 }
 
 // Test all PredictImplTest test cases with both SessionBundle and SavedModel.
-INSTANTIATE_TEST_CASE_P(UseSavedModel, PredictImplTest, ::testing::Bool());
+INSTANTIATE_TEST_CASE_P(UseSavedModel, PredictImplTest,
+                        IsTensorflowServingOSS() ? ::testing::Values(true)
+                                                 : ::testing::Bool());
 
 }  // namespace
 }  // namespace serving

@@ -1,5 +1,7 @@
 # Description: Model Server test utility
 
+load("//tensorflow_serving:oss_or_google.bzl", "if_google")
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",
@@ -54,17 +56,19 @@ cc_library(
     srcs = ["server_core_test_util.cc"],
     hdrs = ["server_core_test_util.h"],
     data = [
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.index",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two/00000123/export.meta",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_2_versions/00000123/export.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_2_versions/00000123/export.index",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_2_versions/00000123/export.meta",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_2_versions/00000124/export.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_2_versions/00000124/export.index",
-        "//tensorflow_serving/servables/tensorflow/testdata:half_plus_two_2_versions/00000124/export.meta",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
-    ],
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions",
+    ] + if_google([
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.meta",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two_2_versions/00000123/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two_2_versions/00000123/export.index",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two_2_versions/00000123/export.meta",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two_2_versions/00000124/export.data-00000-of-00001",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two_2_versions/00000124/export.index",
+        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two_2_versions/00000124/export.meta",
+    ]),
     visibility = [
         "//visibility:public",
     ],
@@ -107,5 +111,24 @@ serving_proto_library(
     cc_api_version = 2,
     visibility = [
         "//visibility:public",
+    ],
+)
+
+py_library(
+    name = "tensorflow_model_server_test_base",
+    srcs = ["tensorflow_model_server_test_base.py"],
+    srcs_version = "PY2AND3",
+    tags = [
+        "noasan",  # b/136281879
+        "notsan",
+    ],
+    deps = [
+        "//tensorflow_serving/apis:predict_proto_py_pb2",
+        "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/core:protos_all_py",
+        "@org_tensorflow//tensorflow/python:platform",
+        "@org_tensorflow//tensorflow/python/saved_model:signature_constants",
+        "@six_archive//:six",
     ],
 )

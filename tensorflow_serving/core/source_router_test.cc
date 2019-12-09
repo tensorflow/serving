@@ -25,6 +25,7 @@ limitations under the License.
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/core/servable_data.h"
 #include "tensorflow_serving/core/storage_path.h"
+#include "tensorflow_serving/core/target.h"
 #include "tensorflow_serving/core/test_util/mock_storage_path_target.h"
 
 using ::testing::_;
@@ -39,11 +40,12 @@ namespace {
 
 class TestSourceRouter final : public SourceRouter<StoragePath> {
  public:
-  TestSourceRouter() = default;
+  TestSourceRouter(int num_ports = 2) : num_output_ports_(num_ports) {}
   ~TestSourceRouter() override { Detach(); }
 
  protected:
-  int num_output_ports() const override { return 2; }
+  const int num_output_ports_;
+  int num_output_ports() const override { return num_output_ports_; }
 
   int Route(const StringPiece servable_name,
             const std::vector<ServableData<StoragePath>>& versions) override {
@@ -51,6 +53,8 @@ class TestSourceRouter final : public SourceRouter<StoragePath> {
       return 0;
     } else if (servable_name == "one") {
       return 1;
+    } else if (servable_name == "no_route") {
+      return kNoRoute;
     } else {
       LOG(FATAL) << "Unexpected test data";
     }
@@ -84,6 +88,21 @@ TEST(SourceRouterTest, Basic) {
                                               {"one", 1}, "floo"))));
   router.SetAspiredVersions("one",
                             {ServableData<StoragePath>({"one", 1}, "floo")});
+}
+
+TEST(SourceRouterTest, NumPorts) {
+  TestSourceRouter router(1);
+  std::vector<Source<StoragePath>*> output_ports = router.GetOutputPorts();
+  ASSERT_EQ(1, output_ports.size());
+  std::unique_ptr<test_util::MockStoragePathTarget> target(
+      new StrictMock<test_util::MockStoragePathTarget>);
+  ConnectSourceToTarget(output_ports[0], target.get());
+
+  EXPECT_CALL(*target, SetAspiredVersions(Eq("zero"),
+                                          ElementsAre(ServableData<StoragePath>(
+                                              {"zero", 0}, "mrop"))));
+  router.SetAspiredVersions("zero",
+                            {ServableData<StoragePath>({"zero", 0}, "mrop")});
 }
 
 TEST(SourceRouterTest, SetAspiredVersionsBlocksUntilAllTargetsConnected_1) {
@@ -154,6 +173,22 @@ TEST(SourceRouterTest, SetAspiredVersionsBlocksUntilAllTargetsConnected_2) {
 
   EXPECT_CALL(*targets[1], SetAspiredVersions(Eq("one"), IsEmpty()));
   router.SetAspiredVersions("one", {});
+}
+
+TEST(SourceRouterTest, DiscardRequest) {
+  // Testing return kNoRoute to discard a request
+
+  TestSourceRouter router;
+  std::vector<Source<StoragePath>*> output_ports = router.GetOutputPorts();
+  std::vector<std::unique_ptr<test_util::MockStoragePathTarget>> targets;
+  for (int i = 0; i < output_ports.size(); ++i) {
+    targets.emplace_back(new StrictMock<test_util::MockStoragePathTarget>);
+    ConnectSourceToTarget(output_ports[i], targets.back().get());
+  }
+
+  router.SetAspiredVersions("no_route", {});
+
+  // Expect no `SetAspiredVersions` call on `output_ports[0]`.
 }
 
 }  // namespace

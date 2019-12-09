@@ -15,11 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/session_bundle_factory.h"
 
-#include "tensorflow/contrib/session_bundle/bundle_shim.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
+#include "tensorflow_serving/session_bundle/session_bundle_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -31,7 +31,7 @@ Status GetSignatureDefs(const SessionBundle& bundle,
                         std::vector<SignatureDef>* signature_defs) {
   MetaGraphDef meta_graph_def = bundle.meta_graph_def;
   const Status conversion_status =
-      internal::ConvertSignaturesToSignatureDefs(&meta_graph_def);
+      session_bundle::ConvertSignaturesToSignatureDefs(&meta_graph_def);
   if (!conversion_status.ok()) {
     if (meta_graph_def.signature_def().empty()) {
       return conversion_status;
@@ -76,7 +76,7 @@ Status SessionBundleFactory::EstimateResourceRequirement(
 Status SessionBundleFactory::CreateSessionBundle(
     const string& path, std::unique_ptr<SessionBundle>* bundle) {
   bundle->reset(new SessionBundle);
-  TF_RETURN_IF_ERROR(LoadSessionBundleFromPathUsingRunOptions(
+  TF_RETURN_IF_ERROR(session_bundle::LoadSessionBundleFromPathUsingRunOptions(
       GetSessionOptions(config_), GetRunOptions(config_), path, bundle->get()));
 
   if (config_.has_batching_parameters()) {

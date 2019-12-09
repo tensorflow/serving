@@ -16,12 +16,12 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SESSION_BUNDLE_FACTORY_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SESSION_BUNDLE_FACTORY_H_
 
-#include "tensorflow/contrib/session_bundle/session_bundle.h"
 #include "tensorflow/core/kernels/batching_util/shared_batch_scheduler.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/batching/batching_session.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
+#include "tensorflow_serving/session_bundle/session_bundle_util.h"
 
 namespace tensorflow {
 namespace serving {

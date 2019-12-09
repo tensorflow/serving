@@ -60,7 +60,7 @@ EvHTTPServer::EvHTTPServer(std::unique_ptr<ServerOptions> options)
 // May crash the server if called before WaitForTermination() returns
 EvHTTPServer::~EvHTTPServer() {
   if (!is_terminating()) {
-    NET_LOG(ERROR, "Serer has not been terminated. Force termination now.");
+    NET_LOG(ERROR, "Server has not been terminated. Force termination now.");
     Terminate();
   }
 

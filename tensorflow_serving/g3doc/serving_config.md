@@ -237,7 +237,7 @@ to realize better throughput. The scheduling for this batching is done globally
 for all models and model versions on the server to ensure the best possible
 utilization of the underlying resources no matter how many models or model
 versions are currently being served by the server
-([more details](../batching/README.md#servers-with-multiple-models-model-versions-or-subtasks)).
+([more details](http://github.com/tensorflow/serving/tree/master/tensorflow_serving/batching/README.md#servers-with-multiple-models-model-versions-or-subtasks)).
 You may enable this behavior by setting the `--enable_batching` flag and control
 it by passing a config to the `--batching_parameters_file` flag.
 
@@ -250,16 +250,17 @@ max_enqueued_batches { value: 1000000 }
 num_batch_threads { value: 8 }
 ```
 
-Please refer to the [batching guide](../batching/README.md) for an in-depth
-discussion and refer to the
-[section on parameters](../batching/README.md#batch-scheduling-parameters-and-tuning)
+Please refer to the
+[batching guide](http://github.com/tensorflow/serving/tree/master/tensorflow_serving/batching/README.md)
+for an in-depth discussion and refer to the
+[section on parameters](http://github.com/tensorflow/serving/tree/master/tensorflow_serving/batching/README.md#batch-scheduling-parameters-and-tuning)
 to understand how to set the parameters.
 
 ## Miscellaneous Flags
 
 In addition to the flags covered so far in the guide, here we list a few other
 notable ones. For a complete list, please refer to the
-[source code](../model_servers/main.cc#L59).
+[source code](http://github.com/tensorflow/serving/tree/master/tensorflow_serving/model_servers/main.cc#L59).
 
 *   `--port`: Port to listen on for gRPC API
 *   `--rest_api_port`: Port to listen on for HTTP/REST API

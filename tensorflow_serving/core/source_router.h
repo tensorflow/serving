@@ -51,6 +51,8 @@ namespace serving {
 template <typename T>
 class SourceRouter : public TargetBase<T> {
  public:
+  static constexpr int kNoRoute = -1;
+
   ~SourceRouter() override = 0;
 
   // Returns a vector of N source pointers, corresponding to the N output ports
@@ -72,8 +74,10 @@ class SourceRouter : public TargetBase<T> {
   // of the router. To be written by the implementing subclass.
   virtual int num_output_ports() const = 0;
 
-  // Returns the output port # to which to route a given aspired-versions
-  // request, in [0, num_output_ports() - 1]. To be written by the implementing
+  // Returns `kNoRoute` or a valid output port # in [0, num_output_ports() - 1].
+  // Aspired-versions requests will be routed to the output port corresponding
+  // to the returned port number. If `kNoRoute` is returned, the aspired-version
+  // request will be discarded silently. To be written by the implementing
   // subclass.
   virtual int Route(const StringPiece servable_name,
                     const std::vector<ServableData<T>>& versions) = 0;
@@ -148,10 +152,13 @@ void SourceRouter<T>::SetAspiredVersions(
     const StringPiece servable_name, std::vector<ServableData<T>> versions) {
   output_ports_created_.WaitForNotification();
   int output_port = Route(servable_name, versions);
+  if (output_port == kNoRoute) {
+    return;
+  }
   if (output_port < 0 || output_port > output_ports_.size() - 1) {
     LOG(ERROR)
-        << "SourceRouter abstraction used improperly; Route() must return a "
-           "value in [0, num_output_ports()-1]; suppressing the "
+        << "SourceRouter abstraction used improperly; Route() must return "
+           "kNoRoute or a value in [0, num_output_ports()-1]; suppressing the "
            "aspired-versions request";
     DCHECK(false);
     return;

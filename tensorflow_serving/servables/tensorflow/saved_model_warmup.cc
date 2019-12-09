@@ -125,11 +125,11 @@ Status RunSavedModelWarmup(const ModelWarmupOptions& model_warmup_options,
   tf_record_file_reader.reset(
       new tensorflow::io::SequentialRecordReader(tf_record_file.get()));
   int num_warmup_records = 0;
-  string record;
+  tstring record;
   Status status = tf_record_file_reader->ReadRecord(&record);
   tensorflow::serving::PredictionLog prediction_log;
   while (status.ok()) {
-    if (!prediction_log.ParseFromString(record)) {
+    if (!prediction_log.ParseFromArray(record.data(), record.size())) {
       return errors::InvalidArgument(strings::StrCat(
           "Failed to parse warmup record: ", record, " from ", warmup_path));
     }

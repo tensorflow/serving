@@ -56,3 +56,17 @@ def tf_serving_workspace():
             "https://github.com/abseil/abseil-cpp/archive/36d37ab992038f52276ca66b9da80c1cf0f57dc2.tar.gz",
         ],
     )
+
+    # ===== TF.Text dependencies
+    # NOTE: Before updating this version, you must manually run the tests found in:
+    # https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/tests.txt
+    http_archive(
+        name = "org_tensorflow_text",
+        sha256 = "2d6e1be79989d5b03da75a34d9e1331a70221d17dd754e80a7bca6e8daa8ae59",
+        strip_prefix = "text-a2f2ad05638c37161d2f06bdbf6eb5e0858b00e6",
+        urls = [
+            "https://github.com/tensorflow/text/archive/a2f2ad05638c37161d2f06bdbf6eb5e0858b00e6.zip",
+        ],
+        patches = ["@//third_party/tf_text:tftext.patch"],
+        patch_args = ["-p1"],
+    )

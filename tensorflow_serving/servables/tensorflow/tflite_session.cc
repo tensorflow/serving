@@ -152,11 +152,58 @@ Status FillTfLiteTensorFromInput(const string& name, const Tensor& tensor,
                 tensor_bytes.size());
   } else {
     tflite::DynamicBuffer buf;
-    auto tensor_vec = tensor.vec<tstring>();
+    auto tensor_vec = tensor.flat<tstring>();
     for (int i = 0; i < tensor_vec.size(); i++) {
       buf.AddString(tensor_vec(i).data(), tensor_vec(i).size());
     }
-    buf.WriteToTensor(tflite_tensor, /*new_shape=*/nullptr);
+    TfLiteIntArray* dims_array = TfLiteIntArrayCreate(tensor.dims());
+    for (int i = 0; i < tensor.dims(); i++) {
+      dims_array->data[i] = static_cast<int>(tensor.dim_size(i));
+    }
+    // WriteToTensor() takes ownership of dims_array.
+    buf.WriteToTensor(tflite_tensor, dims_array);
+  }
+  return Status::OK();
+}
+
+Status AppendTfLiteToTfTensorList(const TfLiteTensor* tflite_tensor,
+                                  std::vector<Tensor>* outputs) {
+  DataType tf_type;
+  TF_RETURN_IF_ERROR(TfLiteTypeToTfType(tflite_tensor->type, &tf_type));
+
+  TensorShape shape;
+  for (int i = 0; i < tflite_tensor->dims->size; ++i) {
+    shape.AddDim(tflite_tensor->dims->data[i]);
+  }
+
+  outputs->emplace_back(Tensor(tf_type, shape));
+  Tensor* tensor = &outputs->back();
+  if (DataTypeCanUseMemcpy(tf_type)) {
+    auto tensor_bytes = tensor->tensor_data();
+    if (tflite_tensor->bytes != tensor_bytes.size()) {
+      return errors::Internal(
+          "Failed to convert TFLite tensor: ", tflite_tensor->name,
+          " to TF tensor. Size mismatch: ", tensor_bytes.size(), " vs ",
+          tflite_tensor->bytes);
+    }
+    std::memcpy(const_cast<char*>(tensor_bytes.data()), tflite_tensor->data.raw,
+                tflite_tensor->bytes);
+  } else if (tflite_tensor->type == kTfLiteString) {
+    const int num_strings = tflite::GetStringCount(tflite_tensor);
+    if (num_strings != tensor->NumElements()) {
+      return errors::Internal(
+          "Failed to convert TFLite tensor: ", tflite_tensor->name,
+          " to TF tensor. Num elements mismatch: ", tensor->NumElements(),
+          " vs ", num_strings);
+    }
+    auto str_tensors = outputs->back().flat<tstring>();
+    for (int i = 0; i < num_strings; i++) {
+      auto ref = tflite::GetString(tflite_tensor, i);
+      str_tensors(i).assign(ref.str, ref.len);
+    }
+  } else {
+    return errors::Internal("TFLite to TF Tensor copy not supported for type: ",
+                            tflite_tensor->type);
   }
   return Status::OK();
 }
@@ -266,24 +313,7 @@ Status TfLiteSession::Run(const RunOptions& run_options,
       return errors::InvalidArgument(
           "Failed to get output TFLite tensor: ", name, " at index: ", index);
     }
-
-    DataType tf_type;
-    TF_RETURN_IF_ERROR(TfLiteTypeToTfType(tflite_tensor->type, &tf_type));
-
-    TensorShape shape;
-    for (int i = 0; i < tflite_tensor->dims->size; i++) {
-      shape.AddDim(tflite_tensor->dims->data[i]);
-    }
-    outputs->emplace_back(Tensor(tf_type, shape));
-    auto tensor_bytes = outputs->back().tensor_data();
-    if (tflite_tensor->bytes != tensor_bytes.size()) {
-      return errors::Internal(
-          "Failed to convert output tensor: ", name,
-          " to TFLite tensor. Size mismatch: ", tensor_bytes.size(), " vs ",
-          tflite_tensor->bytes);
-    }
-    std::memcpy(const_cast<char*>(tensor_bytes.data()), tflite_tensor->data.raw,
-                tflite_tensor->bytes);
+    TF_RETURN_IF_ERROR(AppendTfLiteToTfTensorList(tflite_tensor, outputs));
   }
   return Status::OK();
 }

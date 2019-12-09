@@ -24,7 +24,6 @@ limitations under the License.
 #include <vector>
 
 #include "tensorflow/cc/saved_model/signature_constants.h"
-#include "tensorflow/contrib/session_bundle/signature.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -37,6 +36,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/regression.pb.h"
 #include "tensorflow_serving/apis/regressor.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
+#include "tensorflow_serving/session_bundle/session_bundle_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -70,8 +70,8 @@ class TensorFlowRegressor : public RegressorInterface {
 
     TRACELITERAL("RunRegression");
     Tensor output;
-    TF_RETURN_IF_ERROR(
-        RunRegression(*signature_, input_tensor, session_, &output));
+    TF_RETURN_IF_ERROR(session_bundle::RunRegression(*signature_, input_tensor,
+                                                     session_, &output));
 
     if (output.dtype() != DT_FLOAT) {
       return errors::Internal("Expected output Tensor of DT_FLOAT.  Got: ",
@@ -146,8 +146,8 @@ class SessionBundleRegressor : public RegressorInterface {
   Status Regress(const RegressionRequest& request,
                  RegressionResult* result) override {
     RegressionSignature signature;
-    TF_RETURN_IF_ERROR(
-        GetRegressionSignature(bundle_->meta_graph_def, &signature));
+    TF_RETURN_IF_ERROR(session_bundle::GetRegressionSignature(
+        bundle_->meta_graph_def, &signature));
 
     TensorFlowRegressor regressor(bundle_->session.get(), &signature);
     return regressor.Regress(request, result);
