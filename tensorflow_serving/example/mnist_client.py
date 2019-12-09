@@ -35,7 +35,6 @@ import threading
 import grpc
 import numpy
 import tensorflow as tf
-from tensorflow.contrib import util as contrib_util
 
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
@@ -147,7 +146,7 @@ def do_inference(hostport, work_dir, concurrency, num_tests):
     request.model_spec.signature_name = 'predict_images'
     image, label = test_data_set.next_batch(1)
     request.inputs['images'].CopyFrom(
-        contrib_util.make_tensor_proto(image[0], shape=[1, image[0].size]))
+        tf.make_tensor_proto(image[0], shape=[1, image[0].size]))
     result_counter.throttle()
     result_future = stub.Predict.future(request, 5.0)  # 5 seconds
     result_future.add_done_callback(
