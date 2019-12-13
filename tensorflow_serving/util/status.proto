@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option cc_enable_arenas = true;
 
-import "tensorflow/core/lib/core/error_codes.proto";
+import "tensorflow/core/protobuf/error_codes.proto";
 
 package tensorflow.serving;
 
