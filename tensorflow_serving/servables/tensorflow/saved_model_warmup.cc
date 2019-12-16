@@ -46,7 +46,7 @@ auto* model_warm_up_latency = monitoring::Sampler<2>::New(
     monitoring::Buckets::Exponential(10, 1.8, 33));
 
 uint64 GetLatencyMicroseconds(const uint64 start_microseconds) {
-  const uint64 end_microseconds = Env::Default()->NowMicros();
+  const uint64 end_microseconds = EnvTime::NowMicros();
   // Avoid clock skew.
   if (end_microseconds < start_microseconds) return 0;
   return end_microseconds - start_microseconds;
@@ -97,7 +97,7 @@ constexpr int WarmupConsts::kMaxNumRecords;
 Status RunSavedModelWarmup(const ModelWarmupOptions& model_warmup_options,
                            const RunOptions& run_options,
                            const string& export_dir, SavedModelBundle* bundle) {
-  const uint64 start_microseconds = Env::Default()->NowMicros();
+  const uint64 start_microseconds = EnvTime::NowMicros();
   const string warmup_path =
       io::JoinPath(export_dir, kSavedModelAssetsExtraDirectory,
                    WarmupConsts::kRequestsFileName);

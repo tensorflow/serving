@@ -277,7 +277,7 @@ Status BatchingSession::Run(
     // We have a Run() call that doesn't match one of our batching signatures.
     // Run it in-line.
     static uint64 last_log_message_secs = 0;
-    uint64 now_secs = Env::Default()->NowSeconds();
+    uint64 now_secs = EnvTime::NowSeconds();
     // The time check is not strictly thread safe, but it doesn't matter.
     if (now_secs - last_log_message_secs >= 120) {
       LOG(WARNING) << "Request doesn't match any declared signature. Bypassing "
@@ -296,7 +296,7 @@ Status BatchingSession::Run(
   Notification done;
   Status status;
   auto task = std::unique_ptr<BatchingSessionTask>(new BatchingSessionTask);
-  task->enqueue_time_micros = Env::Default()->NowMicros();
+  task->enqueue_time_micros = EnvTime::NowMicros();
   task->run_options = run_options;
   TF_RETURN_IF_ERROR(ComputeInputSize(inputs, &task->zeroth_dim_size));
   task->inputs = &inputs;
@@ -551,7 +551,7 @@ void BatchingSession::ProcessBatch(
     return;
   }
 
-  const uint64 dequeue_time_micros = Env::Default()->NowMicros();
+  const uint64 dequeue_time_micros = EnvTime::NowMicros();
 
   // Regardless of the outcome, we need to propagate the status to the
   // individual tasks and signal that they are done. We use MakeCleanup() to
