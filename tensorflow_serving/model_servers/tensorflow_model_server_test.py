@@ -30,7 +30,7 @@ import grpc
 from six.moves import range
 import tensorflow as tf
 
-from tensorflow.python import pywrap_tensorflow
+from tensorflow.python.eager import profiler_client
 from tensorflow.python.platform import flags
 from tensorflow.python.saved_model import signature_constants
 from tensorflow_serving.apis import classification_pb2
@@ -701,16 +701,12 @@ class TensorflowModelServerTest(
     os.makedirs(logdir)
 
     # Send a tracing request
-    trace_status = pywrap_tensorflow.TFE_ProfilerClientStartTracing(
-        grpc_addr, logdir, worker_list, include_dataset_ops, duration_ms,
-        num_tracing_attempts)
+    profiler_client.start_tracing(grpc_addr, logdir, duration_ms, worker_list,
+                                  include_dataset_ops, num_tracing_attempts)
 
     #  Log stdout & stderr of subprocess issuing predict requests for debugging
     out, err = proc.communicate()
     print("stdout: '{}' | stderr: '{}'".format(out, err))
-
-    # Validate the tracing request succeeded (OK status)
-    self.assertTrue(trace_status)
 
 
 if __name__ == '__main__':
