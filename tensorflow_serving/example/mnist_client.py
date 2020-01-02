@@ -41,11 +41,12 @@ from tensorflow_serving.apis import prediction_service_pb2_grpc
 import mnist_input_data
 
 
-tf.app.flags.DEFINE_integer('concurrency', 1,
-                            'maximum number of concurrent inference requests')
-tf.app.flags.DEFINE_integer('num_tests', 100, 'Number of test images')
-tf.app.flags.DEFINE_string('server', '', 'PredictionService host:port')
-tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory. ')
+tf.compat.v1.app.flags.DEFINE_integer(
+    'concurrency', 1, 'maximum number of concurrent inference requests')
+tf.compat.v1.app.flags.DEFINE_integer('num_tests', 100, 'Number of test images')
+tf.compat.v1.app.flags.DEFINE_string('server', '',
+                                     'PredictionService host:port')
+tf.compat.v1.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory. ')
 FLAGS = tf.app.flags.FLAGS
 
 
