@@ -47,7 +47,7 @@ tf.compat.v1.app.flags.DEFINE_integer('num_tests', 100, 'Number of test images')
 tf.compat.v1.app.flags.DEFINE_string('server', '',
                                      'PredictionService host:port')
 tf.compat.v1.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory. ')
-FLAGS = tf.app.flags.FLAGS
+FLAGS = tf.compat.v1.app.flags.FLAGS
 
 
 class _ResultCounter(object):
