@@ -472,7 +472,7 @@ pkg_deb(
     homepage = "https://github.com/tensorflow/serving",
     maintainer = "TensorFlow Serving team",
     package = "tensorflow-model-server",
-    version = "2.1.0-rc1",  # Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
+    version = "2.1.0",  # Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
 )
 
 # Build with '-c opt'
@@ -483,5 +483,5 @@ pkg_deb(
     homepage = "https://github.com/tensorflow/serving",
     maintainer = "TensorFlow Serving team",
     package = "tensorflow-model-server-universal",
-    version = "2.1.0-rc1",  # Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
+    version = "2.1.0",  # Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
 )
