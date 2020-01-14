@@ -21,16 +21,11 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "flatbuffers/flexbuffers.h"
-#include "tensorflow/core/framework/attr_value.pb.h"
-#include "tensorflow/core/framework/node_def.pb.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/framework/types.pb.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/logging.h"
-#include "tensorflow/core/platform/test_benchmark.h"
-#include "tensorflow/lite/util.h"
 #include "tensorflow/lite/version.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
@@ -102,27 +97,14 @@ constexpr char kTestModelInputList[] = "list";
 constexpr char kTestModelInputShape[] = "shape";
 constexpr char kTestModelOutput[] = "output";
 
-tensorflow::DataType ToTfTensorType(tflite::TensorType tflite_type) {
-  switch (tflite_type) {
-    case tflite::TensorType_INT32:
-      return tensorflow::DT_INT32;
-    case tflite::TensorType_STRING:
-      return tensorflow::DT_STRING;
-    default:
-      LOG(FATAL) << "Unsupported tflite type: " << tflite_type;
-  }
-}
-
 // Returns a serialized FlatBuffer tflite model.
 //
 // The model has two inputs (kTestModelInputList|Shape) and one output
 // kTestModelOutput. The output is list that is reshaped to shape via
 // tf.reshape operator.
 //
-// Elements of list are expected to be of `tensor_type` type. `use_flex_op`
-// sets up the model to use the `Reshape` *flex* op as opposed to using the
-// builtin `Reshape` op from TF Lite.
-string BuildTestModel(tflite::TensorType tensor_type, bool use_flex_op) {
+// Elements of list are expected to be of `tensor_type` type.
+string BuildTestModel(tflite::TensorType tensor_type) {
   std::vector<int32_t> inputs;
   std::vector<int32_t> outputs;
   std::vector<flatbuffers::Offset<tflite::Tensor>> tensors;
@@ -153,40 +135,15 @@ string BuildTestModel(tflite::TensorType tensor_type, bool use_flex_op) {
                                  /*quantization=*/0, /*is_variable=*/false));
 
   // Add reshape operator.
-  tflite::BuiltinOptions builtin_opts_type =
-      tflite::BuiltinOptions_ReshapeOptions;
-  flatbuffers::Offset<void> reshape_opts =
-      tflite::CreateReshapeOptions(builder, builder.CreateVector<int>({}))
-          .Union();
-  flatbuffers::Offset<flatbuffers::Vector<uint8_t>> custom_opts = 0;
-  if (use_flex_op) {
-    string flexop = std::string(tflite::kFlexCustomCodePrefix) + "Reshape";
-    opcodes.push_back(CreateOperatorCodeDirect(
-        builder, tflite::BuiltinOperator_CUSTOM, flexop.data()));
-    builtin_opts_type = tflite::BuiltinOptions_NONE;
-    reshape_opts = 0;
-    NodeDef node_def;
-    node_def.set_name("Reshape");
-    node_def.set_op("Reshape");
-    (*node_def.mutable_attr())["T"].set_type(ToTfTensorType(tensor_type));
-    string node_def_str;
-    CHECK(node_def.SerializeToString(&node_def_str));
-    auto flex_builder = absl::make_unique<flexbuffers::Builder>();
-    flex_builder->Vector([&]() {
-      flex_builder->String(node_def.op());
-      flex_builder->String(node_def_str);
-    });
-    flex_builder->Finish();
-    custom_opts = builder.CreateVector(flex_builder->GetBuffer());
-  } else {
-    opcodes.push_back(
-        CreateOperatorCode(builder, tflite::BuiltinOperator_RESHAPE, 0));
-  }
-
+  opcodes.push_back(
+      CreateOperatorCode(builder, tflite::BuiltinOperator_RESHAPE, 0));
   operators.push_back(CreateOperator(
       builder, /*opcode_index=*/0, builder.CreateVector<int32_t>(inputs),
-      builder.CreateVector<int32_t>(outputs), builtin_opts_type, reshape_opts,
-      custom_opts, tflite::CustomOptionsFormat_FLEXBUFFERS));
+      builder.CreateVector<int32_t>(outputs),
+      tflite::BuiltinOptions_ReshapeOptions,
+      tflite::CreateReshapeOptions(builder, builder.CreateVector<int>({}))
+          .Union(),
+      /*custom_options=*/0, tflite::CustomOptionsFormat_FLEXBUFFERS));
 
   auto subgraph = CreateSubGraph(builder, builder.CreateVector(tensors),
                                  builder.CreateVector<int32_t>(inputs),
@@ -202,8 +159,7 @@ string BuildTestModel(tflite::TensorType tensor_type, bool use_flex_op) {
 }
 
 TEST(TfLiteSession, ProcessStrings) {
-  string model_bytes =
-      BuildTestModel(tflite::TensorType_STRING, /*use_flex_op=*/false);
+  string model_bytes = BuildTestModel(tflite::TensorType_STRING);
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> session;
   TF_EXPECT_OK(
@@ -220,86 +176,6 @@ TEST(TfLiteSession, ProcessStrings) {
       outputs[0],
       test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({2, 2})));
 }
-
-TEST(TfLiteSession, ProcessStringsFlex) {
-  string model_bytes =
-      BuildTestModel(tflite::TensorType_STRING, /*use_flex_op=*/true);
-  ::google::protobuf::Map<string, SignatureDef> signatures;
-  std::unique_ptr<TfLiteSession> session;
-  TF_EXPECT_OK(
-      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
-  Tensor input_list =
-      test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({4}));
-  Tensor input_shape = test::AsTensor<int32>({2, 2}, TensorShape({2}));
-  std::vector<Tensor> outputs;
-  TF_EXPECT_OK(session->Run(
-      {{kTestModelInputList, input_list}, {kTestModelInputShape, input_shape}},
-      {kTestModelOutput}, {}, &outputs));
-  ASSERT_EQ(outputs.size(), 1);
-  test::ExpectTensorEqual<tstring>(
-      outputs[0],
-      test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({2, 2})));
-}
-
-#ifdef PLATFORM_GOOGLE
-// These benchmarks rely on https://github.com/google/benchmark features,
-// not available in open-sourced TF codebase.
-
-static void BM_Reshape(benchmark::State& state, bool use_flex_op) {
-  static TfLiteSession* session;
-  if (state.thread_index() == 0) {
-    string model_bytes = BuildTestModel(tflite::TensorType_INT32, use_flex_op);
-    ::google::protobuf::Map<string, SignatureDef> signatures;
-    std::unique_ptr<TfLiteSession> sess;
-    TF_ASSERT_OK(
-        TfLiteSession::Create(std::move(model_bytes), &sess, &signatures));
-    session = sess.release();
-  }
-  Tensor input = test::AsTensor<int32>({1, 2, 3, 4, 5, 6}, TensorShape({6}));
-  Tensor input_shape = test::AsTensor<int32>({3, 2}, TensorShape({2}));
-  std::vector<Tensor> outputs;
-  testing::UseRealTime();
-  for (auto _ : state) {
-    outputs.clear();
-    TF_ASSERT_OK(session->Run(
-        {{kTestModelInputList, input}, {kTestModelInputShape, input_shape}},
-        {kTestModelOutput}, {}, &outputs));
-  }
-}
-
-static void BM_Reshape_Builtin(benchmark::State& state) {
-  BM_Reshape(state, /*use_flex_op=*/false);
-}
-BENCHMARK(BM_Reshape_Builtin)->ThreadRange(1, 64);
-
-static void BM_Reshape_Flex(benchmark::State& state) {
-  BM_Reshape(state, /*use_flex_op=*/true);
-}
-BENCHMARK(BM_Reshape_Flex)->ThreadRange(1, 64);
-
-void BM_HalfPlusTwo(benchmark::State& state) {
-  static TfLiteSession* session;
-  if (state.thread_index() == 0) {
-    string model_bytes;
-    TF_ASSERT_OK(ReadFileToString(
-        Env::Default(), test_util::TestSrcDirPath(kTestModel), &model_bytes));
-    ::google::protobuf::Map<string, SignatureDef> signatures;
-    std::unique_ptr<TfLiteSession> sess;
-    TF_ASSERT_OK(
-        TfLiteSession::Create(std::move(model_bytes), &sess, &signatures));
-    session = sess.release();
-  }
-  Tensor input = test::AsTensor<float>({1.0, 2.0, 3.0}, TensorShape({3}));
-  std::vector<Tensor> outputs;
-  testing::UseRealTime();
-  for (auto _ : state) {
-    outputs.clear();
-    TF_ASSERT_OK(session->Run({{"x", input}}, {"y"}, {}, &outputs));
-  }
-}
-BENCHMARK(BM_HalfPlusTwo)->ThreadRange(1, 64);
-
-#endif  // PLATFORM_GOOGLE
 
 }  // namespace
 }  // namespace serving

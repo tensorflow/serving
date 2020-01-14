@@ -23,12 +23,10 @@ limitations under the License.
 #include "google/protobuf/wrappers.pb.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/kernels/batching_util/shared_batch_scheduler.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/io/path.h"
-#include "tensorflow/core/platform/test_benchmark.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/public/session_options.h"
@@ -170,32 +168,6 @@ TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithFileProbingEnv) {
       test_util::GetExpectedResourceEstimate(file_size);
   EXPECT_THAT(actual, EqualsProto(expected));
 }
-
-#ifdef PLATFORM_GOOGLE
-// This benchmark relies on https://github.com/google/benchmark features,
-// not available in open-sourced TF codebase.
-
-void BM_HalfPlusTwo(benchmark::State& state) {
-  static Session* session;
-  if (state.thread_index() == 0) {
-    SavedModelBundle bundle;
-    TF_ASSERT_OK(LoadSavedModel(SessionOptions(), RunOptions(),
-                                test_util::GetTestSavedModelPath(), {"serve"},
-                                &bundle));
-    TF_ASSERT_OK(WrapSession(&bundle.session));
-    session = bundle.session.release();
-  }
-  Tensor input = test::AsTensor<float>({1.0, 2.0, 3.0}, TensorShape({3}));
-  std::vector<Tensor> outputs;
-  testing::UseRealTime();
-  for (auto _ : state) {
-    outputs.clear();
-    TF_ASSERT_OK(session->Run({{"x:0", input}}, {"y:0"}, {}, &outputs));
-  }
-}
-BENCHMARK(BM_HalfPlusTwo)->ThreadRange(1, 64);
-
-#endif  // PLATFORM_GOOGLE
 
 }  // namespace
 }  // namespace serving
