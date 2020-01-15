@@ -1,3 +1,19 @@
+# Release 2.1.0
+
+## Major Features and Improvements
+* Add integration with [TensorBoard profiler service](https://www.tensorflow.org/tensorboard).
+
+## Breaking Changes
+
+## Bug Fixes and Other Changes
+
+* Fix link for TFRecord in Saved Model Warmup documentation. (commit: 127a112a91bda3d7d3c3a56802632376bbe3e36e)
+* Fix typo in http server log message. (commit: 509f6da062dc9b091ad6961a94740cf64e265c36)
+* Be able to discard aspired-versions request from SourceRouter (commit: 10e4987502ee91fe74c6c179ed4ba52f17cc75b4)
+* Use public tf.config APIs (commit: 87a4b2b28729bd269ab367742998b6f8426ea1b7)
+* Fix copying of string tensor outputs by explicitly copying each (commit: 9544077bdb6eef9b20a0688a042155ee6dea011a)
+* Migrate from std::string to tensorflow::tstring. (commit: e24571ac9ce390733f3b02188c7d740f08fff62d)
+
 # Release 2.0.0
 
 ## Major Features and Improvements
