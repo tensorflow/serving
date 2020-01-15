@@ -36,66 +36,10 @@ limitations under the License.
 #include "tensorflow_serving/apis/regression.pb.h"
 #include "tensorflow_serving/apis/regressor.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
-#include "tensorflow_serving/session_bundle/session_bundle_util.h"
 
 namespace tensorflow {
 namespace serving {
 namespace {
-
-// Implementation of the RegressorInterface using the legacy SessionBundle
-// RegressionSignature signature format.
-class TensorFlowRegressor : public RegressorInterface {
- public:
-  explicit TensorFlowRegressor(Session* session,
-                               const RegressionSignature* const signature)
-      : session_(session), signature_(signature) {}
-
-  ~TensorFlowRegressor() override = default;
-
-  Status Regress(const RegressionRequest& request,
-                 RegressionResult* result) override {
-    TRACELITERAL("TensorFlowRegressor::Regress");
-    TRACELITERAL("ConvertInputTFEXamplesToTensor");
-    // Setup the input Tensor to be a vector of string containing the serialized
-    // tensorflow.Example.
-    Tensor input_tensor;
-    TF_RETURN_IF_ERROR(
-        InputToSerializedExampleTensor(request.input(), &input_tensor));
-
-    const int num_examples = input_tensor.dim_size(0);
-    if (num_examples == 0) {
-      return errors::InvalidArgument("RegressionRequest::input is empty.");
-    }
-    RecordRequestExampleCount(request.model_spec().name(), num_examples);
-
-    TRACELITERAL("RunRegression");
-    Tensor output;
-    TF_RETURN_IF_ERROR(session_bundle::RunRegression(*signature_, input_tensor,
-                                                     session_, &output));
-
-    if (output.dtype() != DT_FLOAT) {
-      return errors::Internal("Expected output Tensor of DT_FLOAT.  Got: ",
-                              DataType_Name(output.dtype()));
-    }
-
-    if (output.NumElements() != num_examples) {
-      return errors::Internal("Expected output batch size to be ", num_examples,
-                              ".  Got: ", output.NumElements());
-    }
-
-    TRACELITERAL("ConvertToRegressionResult");
-    for (int i = 0; i < num_examples; ++i) {
-      result->add_regressions()->set_value(output.flat<float>()(i));
-    }
-    return Status::OK();
-  }
-
- private:
-  Session* const session_;
-  const RegressionSignature* const signature_;
-
-  TF_DISALLOW_COPY_AND_ASSIGN(TensorFlowRegressor);
-};
 
 // Implementation of the RegressorInterface using SavedModel.
 class SavedModelTensorFlowRegressor : public RegressorInterface {
@@ -135,30 +79,6 @@ class SavedModelTensorFlowRegressor : public RegressorInterface {
   TF_DISALLOW_COPY_AND_ASSIGN(SavedModelTensorFlowRegressor);
 };
 
-// Implementation of the RegressorInterface
-class SessionBundleRegressor : public RegressorInterface {
- public:
-  explicit SessionBundleRegressor(std::unique_ptr<SessionBundle> bundle)
-      : bundle_(std::move(bundle)) {}
-
-  ~SessionBundleRegressor() override = default;
-
-  Status Regress(const RegressionRequest& request,
-                 RegressionResult* result) override {
-    RegressionSignature signature;
-    TF_RETURN_IF_ERROR(session_bundle::GetRegressionSignature(
-        bundle_->meta_graph_def, &signature));
-
-    TensorFlowRegressor regressor(bundle_->session.get(), &signature);
-    return regressor.Regress(request, result);
-  }
-
- private:
-  std::unique_ptr<SessionBundle> bundle_;
-
-  TF_DISALLOW_COPY_AND_ASSIGN(SessionBundleRegressor);
-};
-
 class SavedModelRegressor : public RegressorInterface {
  public:
   SavedModelRegressor(const RunOptions& run_options,
@@ -186,23 +106,10 @@ class SavedModelRegressor : public RegressorInterface {
 
 }  // namespace
 
-Status CreateRegressorFromBundle(std::unique_ptr<SessionBundle> bundle,
-                                 std::unique_ptr<RegressorInterface>* service) {
-  service->reset(new SessionBundleRegressor(std::move(bundle)));
-  return Status::OK();
-}
-
 Status CreateRegressorFromSavedModelBundle(
     const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<RegressorInterface>* service) {
   service->reset(new SavedModelRegressor(run_options, std::move(bundle)));
-  return Status::OK();
-}
-
-Status CreateFlyweightTensorFlowRegressor(
-    Session* session, const RegressionSignature* const signature,
-    std::unique_ptr<RegressorInterface>* service) {
-  service->reset(new TensorFlowRegressor(session, signature));
   return Status::OK();
 }
 

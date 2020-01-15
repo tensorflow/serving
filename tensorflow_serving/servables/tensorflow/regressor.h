@@ -23,31 +23,15 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/apis/regressor.h"
-#include "tensorflow_serving/session_bundle/session_bundle_util.h"
 #include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
 
-// Create a new RegressorInterface backed by a TensorFlow Session.
-// Requires the SessionBundle manifest have a RegressionSignature
-// as the default signature.
-Status CreateRegressorFromBundle(std::unique_ptr<SessionBundle> bundle,
-                                 std::unique_ptr<RegressorInterface>* service);
-
 // Create a new RegressorInterface backed by a TensorFlow SavedModel.
 // Requires that the default SignatureDef be compatible with Regression.
 Status CreateRegressorFromSavedModelBundle(
     const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
-    std::unique_ptr<RegressorInterface>* service);
-
-// Create a new RegressorInterface backed by a TensorFlow Session using the
-// specified RegressionSignature. Does not take ownership of the Session.
-// Useful in contexts where we need to avoid copying, e.g. if created per
-// request. The caller must ensure that the session and signature live at least
-// as long as the service.
-Status CreateFlyweightTensorFlowRegressor(
-    Session* session, const RegressionSignature* signature,
     std::unique_ptr<RegressorInterface>* service);
 
 // Create a new RegressorInterface backed by a TensorFlow Session using the
