@@ -34,7 +34,7 @@ class PredictionServiceImpl final : public PredictionService::Service {
 
   explicit PredictionServiceImpl(const Options& options)
       : core_(options.server_core),
-        predictor_(new TensorflowPredictor(options.use_saved_model)),
+        predictor_(new TensorflowPredictor()),
         use_saved_model_(options.use_saved_model),
         enforce_session_run_timeout_(options.enforce_session_run_timeout) {}
 

@@ -28,8 +28,7 @@ namespace serving {
 // Utility methods for implementation of PredictionService::Predict.
 class TensorflowPredictor {
  public:
-  explicit TensorflowPredictor(bool use_saved_model)
-      : use_saved_model_(use_saved_model) {}
+  explicit TensorflowPredictor() {}
 
   Status Predict(const RunOptions& run_options, ServerCore* core,
                  const PredictRequest& request, PredictResponse* response);
@@ -42,10 +41,6 @@ class TensorflowPredictor {
                               PredictResponse* response);
 
  private:
-  // If use_saved_model_ is true, a SavedModelBundle handle will be retrieved
-  // from the ServerCore and the new SavedModel SignatureDef format will be
-  // used.
-  bool use_saved_model_;
 };
 
 }  // namespace serving

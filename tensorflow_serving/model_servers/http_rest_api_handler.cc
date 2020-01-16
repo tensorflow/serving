@@ -52,7 +52,7 @@ HttpRestApiHandler::HttpRestApiHandler(const RunOptions& run_options,
                                        ServerCore* core)
     : run_options_(run_options),
       core_(core),
-      predictor_(new TensorflowPredictor(true /* use_saved_model */)),
+      predictor_(new TensorflowPredictor()),
       prediction_api_regex_(
           R"((?i)/v1/models/([^/:]+)(?:/versions/(\d+))?:(classify|regress|predict))"),
       modelstatus_api_regex_(

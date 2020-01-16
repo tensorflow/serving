@@ -315,7 +315,6 @@ Status Server::BuildAndStart(const Options& server_options) {
 
   PredictionServiceImpl::Options predict_server_options;
   predict_server_options.server_core = server_core_.get();
-  predict_server_options.use_saved_model = use_saved_model;
   predict_server_options.enforce_session_run_timeout =
       server_options.enforce_session_run_timeout;
   prediction_service_ =

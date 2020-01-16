@@ -441,7 +441,6 @@ cc_library(
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/model_servers:server_core",
-        "//tensorflow_serving/session_bundle:session_bundle_util",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -453,17 +452,11 @@ cc_test(
     size = "medium",
     srcs = ["predict_impl_test.cc"],
     data = [
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
-        "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
-        "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/saved_model.pb",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/variables/variables.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/variables/variables.index",
-    ] + if_google([
-        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
-        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
-        "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.meta",
-    ]),
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
     deps = [
         ":predict_impl",
         ":saved_model_bundle_source_adapter_cc_proto",
