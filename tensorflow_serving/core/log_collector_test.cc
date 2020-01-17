@@ -16,8 +16,8 @@ limitations under the License.
 #include "tensorflow_serving/core/log_collector.h"
 
 #include <gtest/gtest.h>
-#include "tensorflow/core/lib/core/error_codes.pb.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow_serving/config/log_collector_config.pb.h"
 
 namespace tensorflow {

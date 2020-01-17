@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-option cc_enable_arenas = true;
-
-import "tensorflow/core/lib/core/error_codes.proto";
-
 package tensorflow.serving;
+
+import "tensorflow/core/protobuf/error_codes.proto";
+
+option cc_enable_arenas = true;
 
 // Status that corresponds to Status in
 // third_party/tensorflow/core/lib/core/status.h.

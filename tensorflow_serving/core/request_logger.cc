@@ -18,10 +18,10 @@ limitations under the License.
 #include <random>
 #include <vector>
 
-#include "tensorflow/core/lib/core/error_codes.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/monitoring/counter.h"
 #include "tensorflow/core/lib/random/random.h"
+#include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 
 namespace tensorflow {
