@@ -66,6 +66,7 @@ class ServableStateMonitor {
   using VersionMap =
       std::map<Version, ServableStateAndTime, std::greater<Version>>;
   using ServableMap = std::map<ServableName, VersionMap>;
+  using ServableSet = std::set<ServableName>;
 
   struct Options {
     Options() {}
@@ -103,6 +104,12 @@ class ServableStateMonitor {
   /// Returns the current states of all versions of all servables which have not
   /// transitioned to state ServableState::ManagerState::kEnd.
   ServableMap GetLiveServableStates() const LOCKS_EXCLUDED(mu_);
+
+  // Returns all servables that are in state
+  // ServableState::ManagerState::kAvailable.
+  // Note that as opposed to GetAllServableStates() and GetLiveServableStates(),
+  // this method loops over all the tracked servables.
+  ServableSet GetAvailableServableStates() const LOCKS_EXCLUDED(mu_);
 
   /// Returns the current bounded log of handled servable state events.
   BoundedLog GetBoundedLog() const LOCKS_EXCLUDED(mu_);

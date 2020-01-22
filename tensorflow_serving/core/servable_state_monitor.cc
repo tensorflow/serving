@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
+#include "tensorflow_serving/core/servable_state.h"
 
 namespace tensorflow {
 namespace serving {
@@ -171,6 +172,24 @@ ServableStateMonitor::ServableMap ServableStateMonitor::GetLiveServableStates()
     const {
   mutex_lock l(mu_);
   return live_states_;
+}
+
+ServableStateMonitor::ServableSet
+ServableStateMonitor::GetAvailableServableStates() const {
+  ServableSet available_servable_set;
+  mutex_lock l(mu_);
+  for (const auto& live_state : live_states_) {
+    const string& servable_name = live_state.first;
+    const auto& version_map = live_state.second;
+    for (const auto& version : version_map) {
+      const ServableStateAndTime state_and_time = version.second;
+      if (state_and_time.state.manager_state ==
+          ServableState::ManagerState::kAvailable) {
+        available_servable_set.insert(servable_name);
+      }
+    }
+  }
+  return available_servable_set;
 }
 
 ServableStateMonitor::BoundedLog ServableStateMonitor::GetBoundedLog() const {
