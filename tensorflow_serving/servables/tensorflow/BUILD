@@ -412,10 +412,12 @@ cc_test(
         ":tflite_session_lib",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
+        "@flatbuffers",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
+        "@org_tensorflow//tensorflow/lite:util",
     ],
 )
 
