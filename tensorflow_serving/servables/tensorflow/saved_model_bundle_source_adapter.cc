@@ -111,20 +111,6 @@ Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
   return Status::OK();
 }
 
-std::function<Status(
-    std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*)>
-SavedModelBundleSourceAdapter::GetCreator(
-    const SessionBundleSourceAdapterConfig& config) {
-  return [config](std::unique_ptr<tensorflow::serving::SourceAdapter<
-                      StoragePath, std::unique_ptr<Loader>>>* source) {
-    std::unique_ptr<SavedModelBundleSourceAdapter> typed_source;
-    TF_RETURN_IF_ERROR(
-        SavedModelBundleSourceAdapter::Create(config, &typed_source));
-    *source = std::move(typed_source);
-    return Status::OK();
-  };
-}
-
 // Register the source adapter.
 class SavedModelBundleSourceAdapterCreator {
  public:

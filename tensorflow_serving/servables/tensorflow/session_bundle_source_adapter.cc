@@ -57,20 +57,6 @@ Status SessionBundleSourceAdapter::Convert(const StoragePath& path,
   return Status::OK();
 }
 
-std::function<Status(
-    std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*)>
-SessionBundleSourceAdapter::GetCreator(
-    const SessionBundleSourceAdapterConfig& config) {
-  return [config](std::unique_ptr<tensorflow::serving::SourceAdapter<
-                      StoragePath, std::unique_ptr<Loader>>>* source) {
-    std::unique_ptr<SessionBundleSourceAdapter> typed_source;
-    TF_RETURN_IF_ERROR(
-        SessionBundleSourceAdapter::Create(config, &typed_source));
-    *source = std::move(typed_source);
-    return Status::OK();
-  };
-}
-
 // Register the source adapter.
 class SessionBundleSourceAdapterCreator {
  public:
