@@ -80,11 +80,10 @@ TEST(SessionBundleTest, LoadSessionBundleOrSavedModelBundleFailureTest) {
   Status status = session_bundle::LoadSessionBundleOrSavedModelBundle(
       session_options, run_options, export_dir, tags, &bundle,
       &is_session_bundle);
-  EXPECT_EQ(::tensorflow::error::Code::NOT_FOUND, status.code());
+  EXPECT_EQ(::tensorflow::error::UNIMPLEMENTED, status.code());
   EXPECT_THAT(
       status.ToString(),
-      ::testing::HasSubstr(
-          "Specified file path does not appear to contain a SavedModel"));
+      ::testing::HasSubstr("Session Bundle is deprecated and removed."));
 }
 
 TEST(SessionBundleTest, LoadSessionBundleFromPathUsingRunOptionsTest) {

@@ -20,7 +20,7 @@ limitations under the License.
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/core/storage_path.h"
-#include "tensorflow_serving/servables/tensorflow/session_bundle_factory.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 
 namespace tensorflow {
@@ -41,14 +41,14 @@ class SessionBundleSourceAdapter final
   friend class SessionBundleSourceAdapterCreator;
 
   explicit SessionBundleSourceAdapter(
-      std::unique_ptr<SessionBundleFactory> bundle_factory);
+      std::unique_ptr<SavedModelBundleFactory> bundle_factory);
 
   Status Convert(const StoragePath& path,
                  std::unique_ptr<Loader>* loader) override;
 
   // We use a shared ptr to share ownership with Loaders we emit, in case they
   // outlive this object.
-  std::shared_ptr<SessionBundleFactory> bundle_factory_;
+  std::shared_ptr<SavedModelBundleFactory> bundle_factory_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(SessionBundleSourceAdapter);
 };

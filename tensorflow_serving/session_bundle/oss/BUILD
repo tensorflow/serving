@@ -32,6 +32,7 @@ cc_library(
         ":session_bundle",
         "//tensorflow_serving/session_bundle:session_bundle_util_header",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 

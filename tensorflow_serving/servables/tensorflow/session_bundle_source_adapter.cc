@@ -28,9 +28,9 @@ namespace serving {
 Status SessionBundleSourceAdapter::Create(
     const SessionBundleSourceAdapterConfig& config,
     std::unique_ptr<SessionBundleSourceAdapter>* adapter) {
-  std::unique_ptr<SessionBundleFactory> bundle_factory;
+  std::unique_ptr<SavedModelBundleFactory> bundle_factory;
   TF_RETURN_IF_ERROR(
-      SessionBundleFactory::Create(config.config(), &bundle_factory));
+      SavedModelBundleFactory::Create(config.config(), &bundle_factory));
   adapter->reset(new SessionBundleSourceAdapter(std::move(bundle_factory)));
   return Status::OK();
 }
@@ -38,22 +38,22 @@ Status SessionBundleSourceAdapter::Create(
 SessionBundleSourceAdapter::~SessionBundleSourceAdapter() { Detach(); }
 
 SessionBundleSourceAdapter::SessionBundleSourceAdapter(
-    std::unique_ptr<SessionBundleFactory> bundle_factory)
+    std::unique_ptr<SavedModelBundleFactory> bundle_factory)
     : bundle_factory_(std::move(bundle_factory)) {}
 
 Status SessionBundleSourceAdapter::Convert(const StoragePath& path,
                                            std::unique_ptr<Loader>* loader) {
-  std::shared_ptr<SessionBundleFactory> bundle_factory = bundle_factory_;
+  std::shared_ptr<SavedModelBundleFactory> bundle_factory = bundle_factory_;
   auto servable_creator = [bundle_factory,
-                           path](std::unique_ptr<SessionBundle>* bundle) {
-    return bundle_factory->CreateSessionBundle(path, bundle);
+                           path](std::unique_ptr<SavedModelBundle>* bundle) {
+    return bundle_factory->CreateSavedModelBundle(path, bundle);
   };
   auto resource_estimator = [bundle_factory,
                              path](ResourceAllocation* estimate) {
     return bundle_factory->EstimateResourceRequirement(path, estimate);
   };
   loader->reset(
-      new SimpleLoader<SessionBundle>(servable_creator, resource_estimator));
+      new SimpleLoader<SavedModelBundle>(servable_creator, resource_estimator));
   return Status::OK();
 }
 
@@ -64,9 +64,9 @@ class SessionBundleSourceAdapterCreator {
       const SessionBundleSourceAdapterConfig& config,
       std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
           adapter) {
-    std::unique_ptr<SessionBundleFactory> bundle_factory;
+    std::unique_ptr<SavedModelBundleFactory> bundle_factory;
     TF_RETURN_IF_ERROR(
-        SessionBundleFactory::Create(config.config(), &bundle_factory));
+        SavedModelBundleFactory::Create(config.config(), &bundle_factory));
     adapter->reset(new SessionBundleSourceAdapter(std::move(bundle_factory)));
     return Status::OK();
   }

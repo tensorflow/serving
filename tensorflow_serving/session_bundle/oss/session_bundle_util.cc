@@ -17,6 +17,8 @@ limitations under the License.
 
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/path.h"
 #include "tensorflow_serving/session_bundle/manifest_proto.h"
 
 namespace tensorflow {
@@ -39,6 +41,11 @@ Status LoadSessionBundleOrSavedModelBundle(
     SavedModelBundle* bundle, bool* is_session_bundle) {
   if (is_session_bundle != nullptr) {
     *is_session_bundle = false;
+  }
+  if (Env::Default()
+          ->FileExists(io::JoinPath(export_dir, "export.meta"))
+          .ok()) {
+    return errors::Unimplemented("Session Bundle is deprecated and removed.");
   }
   if (MaybeSavedModelDirectory(export_dir)) {
     return LoadSavedModel(session_options, run_options, export_dir, tags,

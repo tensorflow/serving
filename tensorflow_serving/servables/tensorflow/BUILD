@@ -123,26 +123,6 @@ cc_library(
 )
 
 cc_library(
-    name = "session_bundle_factory",
-    srcs = ["session_bundle_factory.cc"],
-    hdrs = ["session_bundle_factory.h"],
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        ":bundle_factory_util",
-        ":session_bundle_config_cc_proto",
-        "//tensorflow_serving/batching:batching_session",
-        "//tensorflow_serving/resources:resources_cc_proto",
-        "//tensorflow_serving/session_bundle:session_bundle_util",
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core/kernels/batching_util:shared_batch_scheduler",
-    ],
-)
-
-cc_library(
     name = "saved_model_bundle_factory",
     srcs = ["saved_model_bundle_factory.cc"],
     hdrs = ["saved_model_bundle_factory.h"],
@@ -201,7 +181,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        ":session_bundle_factory",
+        ":saved_model_bundle_factory",
         ":session_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:simple_loader",
