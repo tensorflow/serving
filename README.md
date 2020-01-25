@@ -89,7 +89,10 @@ for detailed instructions on how to export SavedModels.
 
 * [Follow a tutorial on Serving Tensorflow models](tensorflow_serving/g3doc/serving_basic.md)
 * [Configure Tensorflow Serving to make it fit your serving use case](tensorflow_serving/g3doc/serving_config.md)
-* Read the [REST API Guide](tensorflow_serving/g3doc/api_rest.md) or [gRPC API definition](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/apis)
+* Read the [Performance Guide](tensorflow_serving/g3doc/performance.md)
+and learn how to [use TensorBoard to profile and optimize inference requests](tensorflow_serving/g3doc/tensorboard.md)
+* Read the [REST API Guide](tensorflow_serving/g3doc/api_rest.md)
+or [gRPC API definition](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/apis)
 * [Use SavedModel Warmup if initial inference requests are slow due to lazy initialization of graph](tensorflow_serving/g3doc/saved_model_warmup.md)
 * [If encountering issues regarding model signatures, please read the SignatureDef documentation](tensorflow_serving/g3doc/signature_defs.md)
 * If using a model with custom ops, [learn how to serve models with custom ops](tensorflow_serving/g3doc/custom_op.md)
