@@ -57,16 +57,48 @@ def tf_serving_workspace():
         ],
     )
 
+    # ===== Override TF & TF Text defined 'ICU'. (we need a version that contains all data).
+    http_archive(
+        name = "icu",
+        strip_prefix = "icu-release-64-2",
+        sha256 = "dfc62618aa4bd3ca14a3df548cd65fe393155edd213e49c39f3a30ccd618fc27",
+        urls = [
+            "https://github.com/unicode-org/icu/archive/release-64-2.zip",
+        ],
+        build_file = "//third_party/icu:BUILD",
+    )
+
     # ===== TF.Text dependencies
-    # NOTE: Before updating this version, you must manually run the tests found in:
-    # https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/tests.txt
+    # NOTE: Before updating this version, you must update the test model
+    # and double check all custom ops have a test:
+    # https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/save_models.py
     http_archive(
         name = "org_tensorflow_text",
-        sha256 = "2d6e1be79989d5b03da75a34d9e1331a70221d17dd754e80a7bca6e8daa8ae59",
-        strip_prefix = "text-a2f2ad05638c37161d2f06bdbf6eb5e0858b00e6",
+        sha256 = "a817dc75a02c1e3a3996838253776e4cec2e187870f00af2614bafa1f8ff710a",
+        strip_prefix = "text-2.0.1",
         urls = [
-            "https://github.com/tensorflow/text/archive/a2f2ad05638c37161d2f06bdbf6eb5e0858b00e6.zip",
+            "https://github.com/tensorflow/text/archive/v2.0.1.zip",
         ],
         patches = ["@//third_party/tf_text:tftext.patch"],
         patch_args = ["-p1"],
+        repo_mapping = {"@com_google_re2": "@com_googlesource_code_re2"},
+    )
+
+    http_archive(
+        name = "com_google_sentencepiece",
+        strip_prefix = "sentencepiece-1.0.0",
+        sha256 = "c05901f30a1d0ed64cbcf40eba08e48894e1b0e985777217b7c9036cac631346",
+        urls = [
+            "https://github.com/google/sentencepiece/archive/1.0.0.zip",
+        ],
+    )
+
+    http_archive(
+        name = "com_google_glog",
+        sha256 = "1ee310e5d0a19b9d584a855000434bb724aa744745d5b8ab1855c85bff8a8e21",
+        strip_prefix = "glog-028d37889a1e80e8a07da1b8945ac706259e5fd8",
+        urls = [
+            "https://mirror.bazel.build/github.com/google/glog/archive/028d37889a1e80e8a07da1b8945ac706259e5fd8.tar.gz",
+            "https://github.com/google/glog/archive/028d37889a1e80e8a07da1b8945ac706259e5fd8.tar.gz",
+        ],
     )

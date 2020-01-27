@@ -300,11 +300,7 @@ SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
     "@org_tensorflow//tensorflow/contrib:contrib_kernels",
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
 ]) + [
-    "@org_tensorflow_text//tensorflow_text:constrained_sequence_op_cc",
-    "@org_tensorflow_text//tensorflow_text:sentence_breaking_ops_cc",
-    "@org_tensorflow_text//tensorflow_text:unicode_script_tokenizer_cc",
-    "@org_tensorflow_text//tensorflow_text:whitespace_tokenizer_cc",
-    "@org_tensorflow_text//tensorflow_text:wordpiece_tokenizer_cc",
+    "@org_tensorflow_text//tensorflow_text:ops_lib",
 ]
 
 TENSORFLOW_DEPS = [
@@ -404,6 +400,7 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.index",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
+        "//tensorflow_serving/servables/tensorflow/testdata:tf_text_regression",
     ] + if_google([
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",

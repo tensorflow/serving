@@ -708,6 +708,21 @@ class TensorflowModelServerTest(
     out, err = proc.communicate()
     print("stdout: '{}' | stderr: '{}'".format(out, err))
 
+  def test_tf_text(self):
+    """Test TF Text."""
+    model_path = os.path.join(flags.os.environ['TEST_SRCDIR'],
+                              'tf_serving/tensorflow_serving',
+                              'servables/tensorflow/testdata',
+                              'tf_text_regression')
+    model_server_address = TensorflowModelServerTest.RunServer(
+        'default',
+        model_path)[1]
+    self.VerifyPredictRequest(
+        model_server_address,
+        expected_output=3.0,
+        expected_version=self._GetModelVersion(model_path),
+        rpc_timeout=600)
+
 
 if __name__ == '__main__':
   tf.enable_eager_execution()

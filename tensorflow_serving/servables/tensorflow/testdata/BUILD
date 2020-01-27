@@ -113,6 +113,13 @@ filegroup(
     ),
 )
 
+filegroup(
+    name = "tf_text_regression",
+    srcs = glob(
+        ["tf_text_regression/**"],
+    ),
+)
+
 exports_files([
     "saved_model_half_plus_three/00000123/saved_model.pb",
     "saved_model_half_plus_three/00000123/assets/foo.txt",

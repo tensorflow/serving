@@ -241,7 +241,8 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
       model_name='default',
       specify_output=True,
       batch_input=False,
-      signature_name=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY):
+      signature_name=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY,
+      rpc_timeout=RPC_TIMEOUT):
     """Send PredictionService.Predict request and verify output."""
     print('Sending Predict request...')
     # Prepare request
@@ -260,7 +261,7 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
     # Send request
     channel = grpc.insecure_channel(model_server_address)
     stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
-    result = stub.Predict(request, RPC_TIMEOUT)  # 5 secs timeout
+    result = stub.Predict(request, rpc_timeout)  # 5 secs timeout
     # Verify response
     self.assertTrue('y' in result.outputs)
     self.assertIs(types_pb2.DT_FLOAT, result.outputs['y'].dtype)
