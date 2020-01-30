@@ -88,8 +88,6 @@ cc_library(
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/servables/tensorflow:predict_util",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
-        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter",
-        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_cc_proto",
         "//tensorflow_serving/util:event_bus",
@@ -164,7 +162,6 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
-        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
@@ -189,7 +186,6 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
-        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/test_util",
         "@com_github_tencent_rapidjson//:rapidjson",
         "@com_google_absl//absl/strings",
@@ -310,7 +306,6 @@ TENSORFLOW_DEPS = [
     "//tensorflow_serving/servables/tensorflow:multi_inference",
     "//tensorflow_serving/servables/tensorflow:regression_service",
     "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
-    "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter",
     "//tensorflow_serving/servables/tensorflow:predict_impl",
 ]
 

@@ -174,27 +174,6 @@ cc_test(
 )
 
 cc_library(
-    name = "session_bundle_source_adapter",
-    srcs = ["session_bundle_source_adapter.cc"],
-    hdrs = ["session_bundle_source_adapter.h"],
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        ":saved_model_bundle_factory",
-        ":session_bundle_source_adapter_cc_proto",
-        "//tensorflow_serving/core:loader",
-        "//tensorflow_serving/core:simple_loader",
-        "//tensorflow_serving/core:source_adapter",
-        "//tensorflow_serving/core:storage_path",
-        "//tensorflow_serving/util:optional",
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-    alwayslink = 1,
-)
-
-cc_library(
     name = "saved_model_bundle_source_adapter",
     srcs = ["saved_model_bundle_source_adapter.cc"],
     hdrs = ["saved_model_bundle_source_adapter.h"],

@@ -39,8 +39,6 @@ class ServerCoreTest : public ::testing::TestWithParam<std::tuple<int, bool>> {
  public:
   // The parameter of this test.
   enum TestType {
-    // SessionBundle is used on export.
-    SESSION_BUNDLE,
     // SavedModelBundle is used on export.
     SAVED_MODEL_BACKWARD_COMPATIBILITY,
     // SavedModelBundle is used on native Saved Model.
@@ -51,8 +49,6 @@ class ServerCoreTest : public ::testing::TestWithParam<std::tuple<int, bool>> {
 
   static string GetNameOfTestType(int test_type) {
     switch (static_cast<TestType>(test_type)) {
-      case SESSION_BUNDLE:
-        return "SESSION_BUNDLE";
       case SAVED_MODEL_BACKWARD_COMPATIBILITY:
         return "SAVED_MODEL_BACKWARD_COMPATIBILITY";
       case SAVED_MODEL:
