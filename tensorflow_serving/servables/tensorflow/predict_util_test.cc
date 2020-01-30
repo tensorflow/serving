@@ -41,24 +41,23 @@ constexpr int kTestModelVersion = 123;
 const char kInputTensorKey[] = "x";
 const char kOutputTensorKey[] = "y";
 
-// Parameter is 'bool use_saved_model'.
 class PredictImplTest : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
     if (!IsTensorflowServingOSS()) {
       const string bad_half_plus_two_path = test_util::TestSrcDirPath(
           "/servables/tensorflow/testdata/bad_half_plus_two");
-      TF_ASSERT_OK(CreateServerCore(bad_half_plus_two_path, true,
+      TF_ASSERT_OK(CreateServerCore(bad_half_plus_two_path,
                                     &saved_model_server_core_bad_model_));
     }
 
     TF_ASSERT_OK(CreateServerCore(test_util::TensorflowTestSrcDirPath(
                                       "cc/saved_model/testdata/half_plus_two"),
-                                  true, &saved_model_server_core_));
+                                  &saved_model_server_core_));
     TF_ASSERT_OK(CreateServerCore(
         test_util::TestSrcDirPath(
             "/servables/tensorflow/testdata/saved_model_counter"),
-        true, &saved_model_server_core_counter_model_));
+        &saved_model_server_core_counter_model_));
   }
 
   static void TearDownTestSuite() {
@@ -68,7 +67,7 @@ class PredictImplTest : public ::testing::Test {
   }
 
  protected:
-  static Status CreateServerCore(const string& model_path, bool use_saved_model,
+  static Status CreateServerCore(const string& model_path,
                                  std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
@@ -80,8 +79,8 @@ class PredictImplTest : public ::testing::Test {
     // unspecified so the default servable_state_monitor_creator will be used.
     ServerCore::Options options;
     options.model_server_config = config;
-    options.platform_config_map = CreateTensorFlowPlatformConfigMap(
-        SessionBundleConfig(), use_saved_model);
+    options.platform_config_map =
+        CreateTensorFlowPlatformConfigMap(SessionBundleConfig());
     options.aspired_version_policy =
         std::unique_ptr<AspiredVersionPolicy>(new AvailabilityPreservingPolicy);
     // Reduce the number of initial load threads to be num_load_threads to avoid

@@ -40,7 +40,22 @@ void AddSessionRunLoadThreadPool(SessionBundleConfig* const bundle_config) {
   bundle_config->mutable_session_run_load_threadpool_index()->set_value(1);
 }
 
-ServerCore::Options GetDefaultOptions(const bool use_saved_model) {
+}  // namespace
+
+Status CreateServerCore(const ModelServerConfig& config,
+                        ServerCore::Options options,
+                        std::unique_ptr<ServerCore>* server_core) {
+  options.model_server_config = config;
+  return ServerCore::Create(std::move(options), server_core);
+}
+
+Status CreateServerCore(const ModelServerConfig& config,
+                        std::unique_ptr<ServerCore>* server_core) {
+  return CreateServerCore(config, ServerCoreTest::GetDefaultOptions(),
+                          server_core);
+}
+
+ServerCore::Options ServerCoreTest::GetDefaultOptions() {
   ServerCore::Options options;
   options.file_system_poll_wait_seconds = 1;
   // Reduce the number of initial load threads to be num_load_threads to avoid
@@ -58,7 +73,7 @@ ServerCore::Options GetDefaultOptions(const bool use_saved_model) {
   AddSessionRunLoadThreadPool(&bundle_config);
 
   options.platform_config_map =
-      CreateTensorFlowPlatformConfigMap(bundle_config, use_saved_model);
+      CreateTensorFlowPlatformConfigMap(bundle_config);
   ::google::protobuf::Any fake_source_adapter_config;
   fake_source_adapter_config.PackFrom(
       test_util::FakeLoaderSourceAdapterConfig());
@@ -66,21 +81,6 @@ ServerCore::Options GetDefaultOptions(const bool use_saved_model) {
         .mutable_source_adapter_config()) = fake_source_adapter_config;
 
   return options;
-}
-
-}  // namespace
-
-Status CreateServerCore(const ModelServerConfig& config,
-                        ServerCore::Options options,
-                        std::unique_ptr<ServerCore>* server_core) {
-  options.model_server_config = config;
-  return ServerCore::Create(std::move(options), server_core);
-}
-
-Status CreateServerCore(const ModelServerConfig& config,
-                        std::unique_ptr<ServerCore>* server_core) {
-  return CreateServerCore(config, GetDefaultOptions(true /*use_saved_model */),
-                          server_core);
 }
 
 ModelServerConfig ServerCoreTest::GetTestModelServerConfigForFakePlatform() {
@@ -127,14 +127,6 @@ void ServerCoreTest::SwitchToHalfPlusTwoWith2Versions(
   if (PrefixPathsWithURIScheme()) {
     model->set_base_path(io::CreateURI("file", "", model->base_path()));
   }
-}
-
-ServerCore::Options ServerCoreTest::GetDefaultOptions() {
-  // Model platforms.
-  const TestType test_type = GetTestType();
-  const bool use_saved_model = test_type == SAVED_MODEL ||
-                               test_type == SAVED_MODEL_BACKWARD_COMPATIBILITY;
-  return test_util::GetDefaultOptions(use_saved_model);
 }
 
 Status ServerCoreTest::CreateServerCore(

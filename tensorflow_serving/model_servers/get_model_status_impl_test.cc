@@ -68,8 +68,8 @@ class GetModelStatusImplTest : public ::testing::Test {
     ServerCore::Options options;
     options.model_server_config = config;
 
-    options.platform_config_map = CreateTensorFlowPlatformConfigMap(
-        SessionBundleConfig(), true /* use_saved_model */);
+    options.platform_config_map =
+        CreateTensorFlowPlatformConfigMap(SessionBundleConfig());
     // Reduce the number of initial load threads to be num_load_threads to avoid
     // timing out in tests.
     options.num_initial_load_threads = options.num_load_threads;

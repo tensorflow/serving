@@ -179,8 +179,6 @@ void Server::PollFilesystemAndReloadConfig(const string& config_file_path) {
 }
 
 Status Server::BuildAndStart(const Options& server_options) {
-  const bool use_saved_model = true;
-
   if (server_options.grpc_port == 0) {
     return errors::InvalidArgument("server_options.grpc_port is not set.");
   }
@@ -269,8 +267,8 @@ Status Server::BuildAndStart(const Options& server_options) {
     session_bundle_config.set_remove_unused_fields_from_bundle_metagraph(
         server_options.remove_unused_fields_from_bundle_metagraph);
     session_bundle_config.set_use_tflite_model(server_options.use_tflite_model);
-    options.platform_config_map = CreateTensorFlowPlatformConfigMap(
-        session_bundle_config, use_saved_model);
+    options.platform_config_map =
+        CreateTensorFlowPlatformConfigMap(session_bundle_config);
   } else {
     TF_RETURN_IF_ERROR(ParseProtoTextFile<PlatformConfigMap>(
         server_options.platform_config_file, &options.platform_config_map));

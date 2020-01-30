@@ -58,6 +58,9 @@ class ServerCoreTest : public ::testing::TestWithParam<std::tuple<int, bool>> {
     }
   }
 
+  // Creates some reasonable default ServerCore options for tests.
+  static ServerCore::Options GetDefaultOptions();
+
  protected:
   // Returns ModelServerConfig that contains test model for the fake platform.
   ModelServerConfig GetTestModelServerConfigForFakePlatform();
@@ -69,9 +72,6 @@ class ServerCoreTest : public ::testing::TestWithParam<std::tuple<int, bool>> {
   // Mutates 'config' by changing the model's base path to point to a variant
   // of half-plus-two that has two versions instead of one.
   void SwitchToHalfPlusTwoWith2Versions(ModelServerConfig* config);
-
-  // Creates some reasonable default ServerCore options for tests.
-  ServerCore::Options GetDefaultOptions();
 
   // Creates a ServerCore object configured with both a fake platform and the
   // tensorflow platform, using the supplied options.

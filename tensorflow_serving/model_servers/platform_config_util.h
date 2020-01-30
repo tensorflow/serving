@@ -23,11 +23,10 @@ namespace tensorflow {
 namespace serving {
 
 // Creates a PlatformConfigMap containing a single entry with the key as
-// kTensorFlowModelPlatform and the value as a SourceAdapter config proto for
-// one of {SessionBundleSourceAdapter, SavedModelBundleSourceAdapter} (based
-// on 'use_saved_model' using 'session_bundle_config'.
+// kTensorFlowModelPlatform and the value as a SourceAdapter config proto
+// for SavedModelBundleSourceAdapter.
 PlatformConfigMap CreateTensorFlowPlatformConfigMap(
-    const SessionBundleConfig& session_bundle_config, bool use_saved_model);
+    const SessionBundleConfig& session_bundle_config);
 
 }  // namespace serving
 }  // namespace tensorflow

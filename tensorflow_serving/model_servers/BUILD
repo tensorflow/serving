@@ -59,7 +59,6 @@ cc_library(
         "//tensorflow_serving/model_servers:model_platform_types",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
-        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_cc_proto",
     ],
 )
 

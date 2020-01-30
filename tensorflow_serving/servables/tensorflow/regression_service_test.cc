@@ -55,7 +55,7 @@ class RegressionServiceTest : public ::testing::Test {
     ServerCore::Options options;
     options.model_server_config = config;
     options.platform_config_map =
-        CreateTensorFlowPlatformConfigMap(SessionBundleConfig(), true);
+        CreateTensorFlowPlatformConfigMap(SessionBundleConfig());
     options.aspired_version_policy =
         std::unique_ptr<AspiredVersionPolicy>(new AvailabilityPreservingPolicy);
     // Reduce the number of initial load threads to be num_load_threads to avoid
