@@ -82,7 +82,6 @@ cc_library(
         "//tensorflow_serving/model_servers:server_core",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
-        "//tensorflow_serving/servables/tensorflow:session_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/test_util",
         "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:test",

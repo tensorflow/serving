@@ -32,11 +32,11 @@ namespace tensorflow {
 namespace serving {
 
 Status SavedModelBundleSourceAdapter::Create(
-    const SessionBundleSourceAdapterConfig& config,
+    const SavedModelBundleSourceAdapterConfig& config,
     std::unique_ptr<SavedModelBundleSourceAdapter>* adapter) {
   std::unique_ptr<SavedModelBundleFactory> bundle_factory;
   TF_RETURN_IF_ERROR(
-      SavedModelBundleFactory::Create(config.config(), &bundle_factory));
+      SavedModelBundleFactory::Create(config.legacy_config(), &bundle_factory));
   adapter->reset(new SavedModelBundleSourceAdapter(std::move(bundle_factory)));
   return Status::OK();
 }

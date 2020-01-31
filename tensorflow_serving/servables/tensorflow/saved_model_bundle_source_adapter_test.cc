@@ -33,8 +33,8 @@ limitations under the License.
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
-#include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
 #include "tensorflow_serving/util/oss_or_google.h"
 
@@ -57,18 +57,18 @@ class SavedModelBundleSourceAdapterTest
 
     ram_resource_ = resource_util_->CreateBoundResource(
         device_types::kMain, resource_kinds::kRamBytes);
-    config_.mutable_config()->set_enable_model_warmup(EnableWarmup());
+    config_.mutable_legacy_config()->set_enable_model_warmup(EnableWarmup());
     if (EnableNumRequestIterations()) {
-      config_.mutable_config()
+      config_.mutable_legacy_config()
           ->mutable_model_warmup_options()
           ->mutable_num_request_iterations()
           ->set_value(2);
     }
 
-    config_.mutable_config()->set_enable_session_metadata(
+    config_.mutable_legacy_config()->set_enable_session_metadata(
         EnableSessionMetadata());
 
-    config_.mutable_config()->set_session_target(
+    config_.mutable_legacy_config()->set_session_target(
         test_util::kNewSessionHookSessionTargetPrefix);
     test_util::SetNewSessionHook([&](const SessionOptions& session_options) {
       EXPECT_EQ(EnableSessionMetadata(),
@@ -119,7 +119,8 @@ class SavedModelBundleSourceAdapterTest
     resource_util_->SetQuantity(
         ram_resource_,
         resource_util_->GetQuantity(ram_resource_, first_resource_estimate) -
-            config_.config().experimental_transient_ram_bytes_during_load(),
+            config_.legacy_config()
+                .experimental_transient_ram_bytes_during_load(),
         &expected_post_load_resource_estimate);
     ResourceAllocation actual_post_load_resource_estimate;
     TF_ASSERT_OK(
@@ -139,12 +140,12 @@ class SavedModelBundleSourceAdapterTest
 
   std::unique_ptr<ResourceUtil> resource_util_;
   Resource ram_resource_;
-  SessionBundleSourceAdapterConfig config_;
+  SavedModelBundleSourceAdapterConfig config_;
 };
 
 TEST_P(SavedModelBundleSourceAdapterTest, Basic) {
-  config_.mutable_config()->set_experimental_transient_ram_bytes_during_load(
-      42);
+  config_.mutable_legacy_config()
+      ->set_experimental_transient_ram_bytes_during_load(42);
 
   TestSavedModelBundleSourceAdapter(test_util::GetTestSavedModelPath());
 }

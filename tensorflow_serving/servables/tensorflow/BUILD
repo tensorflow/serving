@@ -184,7 +184,6 @@ cc_library(
         ":saved_model_bundle_factory",
         ":saved_model_bundle_source_adapter_cc_proto",
         ":saved_model_warmup",
-        ":session_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:simple_loader",
         "//tensorflow_serving/core:source_adapter",
@@ -212,8 +211,8 @@ cc_test(
     deps = [
         ":bundle_factory_test_util",
         ":saved_model_bundle_source_adapter",
+        ":saved_model_bundle_source_adapter_cc_proto",
         ":session_bundle_config_cc_proto",
-        ":session_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/core:servable_data",
         "//tensorflow_serving/core/test_util:session_test_util",
@@ -225,18 +224,6 @@ cc_test(
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
-    ],
-)
-
-serving_proto_library(
-    name = "session_bundle_source_adapter_proto",
-    srcs = ["session_bundle_source_adapter.proto"],
-    cc_api_version = 2,
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        ":session_bundle_config_proto",
     ],
 )
 
@@ -261,7 +248,7 @@ cc_library(
     ],
     deps = [
         ":saved_model_bundle_source_adapter",
-        ":session_bundle_source_adapter_cc_proto",
+        ":saved_model_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/core:aspired_versions_manager_builder",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/core:loader",
@@ -422,7 +409,6 @@ cc_test(
         ":predict_impl",
         ":saved_model_bundle_source_adapter_cc_proto",
         ":session_bundle_config_cc_proto",
-        ":session_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/model_servers:model_platform_types",
@@ -472,7 +458,6 @@ cc_test(
         ":predict_util",
         ":saved_model_bundle_source_adapter_cc_proto",
         ":session_bundle_config_cc_proto",
-        ":session_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/model_servers:model_platform_types",
@@ -518,7 +503,6 @@ cc_test(
         ":get_model_metadata_impl",
         ":saved_model_bundle_source_adapter_cc_proto",
         ":session_bundle_config_cc_proto",
-        ":session_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/apis:model_cc_proto",
         "//tensorflow_serving/config:model_server_config_cc_proto",
         "//tensorflow_serving/config:platform_config_cc_proto",

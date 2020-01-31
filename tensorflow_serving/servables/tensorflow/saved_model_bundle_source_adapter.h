@@ -25,7 +25,6 @@ limitations under the License.
 #include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.pb.h"
-#include "tensorflow_serving/servables/tensorflow/session_bundle_source_adapter.pb.h"
 
 namespace tensorflow {
 namespace serving {
@@ -36,10 +35,7 @@ namespace serving {
 class SavedModelBundleSourceAdapter final
     : public UnarySourceAdapter<StoragePath, std::unique_ptr<Loader>> {
  public:
-  // TODO(b/32248363): Switch to SavedModelBundleSourceAdapterConfig after we
-  // switch Model Server to Saved Model and populate the "real" fields of
-  // SavedModelBundleSourceAdapterConfig.
-  static Status Create(const SessionBundleSourceAdapterConfig& config,
+  static Status Create(const SavedModelBundleSourceAdapterConfig& config,
                        std::unique_ptr<SavedModelBundleSourceAdapter>* adapter);
 
   ~SavedModelBundleSourceAdapter() override;
