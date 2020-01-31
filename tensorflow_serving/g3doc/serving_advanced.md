@@ -27,7 +27,7 @@ This tutorial steps through the following tasks:
 
 1.  Train and export a TensorFlow model.
 2.  Manage model versioning with TensorFlow Serving `ServerCore`.
-3.  Configure batching using `SessionBundleSourceAdapterConfig`.
+3.  Configure batching using `SavedModelBundleSourceAdapterConfig`.
 4.  Serve request with TensorFlow Serving `ServerCore`.
 5.  Run and test the service.
 

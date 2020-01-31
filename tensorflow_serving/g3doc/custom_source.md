@@ -102,7 +102,7 @@ Then, create a `SavedModelBundle` source adapter and plug it into the manager:
 
 ```c++
 std::unique_ptr<SavedModelBundleSourceAdapter> bundle_adapter;
-SessionBundleSourceAdapterConfig config;
+SavedModelBundleSourceAdapterConfig config;
 // ... populate 'config' with TensorFlow options.
 TF_CHECK_OK(SavedModelBundleSourceAdapter::Create(config, &bundle_adapter));
 ConnectSourceToTarget(bundle_adapter.get(), manager.get());
