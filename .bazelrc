@@ -23,8 +23,8 @@ build:nativeopt --copt=-march=native
 build:nativeopt --host_copt=-march=native
 build:nativeopt --copt=-O3
 
-build --action_env PYTHON_BIN_PATH="/usr/bin/python"
-build --define PYTHON_BIN_PATH=/usr/bin/python
+build --action_env PYTHON_BIN_PATH="/usr/bin/python3"
+build --define PYTHON_BIN_PATH=/usr/bin/python3
 
 build --spawn_strategy=standalone
 build --genrule_strategy=standalone
@@ -40,7 +40,7 @@ build -c opt
 build --cxxopt=-std=c++14
 build --host_cxxopt=-std=c++14
 
-# Adding --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0" creates parity with TF
+# Adding "--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0" creates parity with TF
 # compilation options. It also addresses memory use due to
 # copy-on-write semantics of std::strings of the older ABI.
 build --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0

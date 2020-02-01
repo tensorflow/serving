@@ -15,6 +15,20 @@ tensorflow_http_archive(
 )
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+
+load("@org_tensorflow//third_party/toolchains/preconfig/generate:archives.bzl",
+     "bazel_toolchains_archive")
+
+bazel_toolchains_archive()
+
+load(
+    "@bazel_toolchains//repositories:repositories.bzl",
+    bazel_toolchains_repositories = "repositories",
+)
+
+bazel_toolchains_repositories()
+
 # START: Upstream TensorFlow dependencies
 # TensorFlow build depends on these dependencies.
 # Needs to be in-sync with TensorFlow sources.
@@ -40,4 +54,4 @@ tf_serving_workspace()
 
 # Specify the minimum required bazel version.
 load("@org_tensorflow//tensorflow:version_check.bzl", "check_bazel_version_at_least")
-check_bazel_version_at_least("0.24.1")
+check_bazel_version_at_least("1.2.1")
