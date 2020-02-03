@@ -62,6 +62,10 @@ RUN apt-get update && \
 # Install TF Serving GPU pkg
 COPY --from=build_image /usr/local/bin/tensorflow_model_server /usr/bin/tensorflow_model_server
 
+# For CUDA profiling, TensorFlow requires CUPTI.
+# @see: https://github.com/tensorflow/tensorflow/issues/7207
+ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
+
 # Expose ports
 # gRPC
 EXPOSE 8500
