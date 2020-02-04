@@ -264,7 +264,7 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
     result = stub.Predict(request, rpc_timeout)  # 5 secs timeout
     # Verify response
     self.assertTrue('y' in result.outputs)
-    self.assertIs(types_pb2.DT_FLOAT, result.outputs['y'].dtype)
+    self.assertEqual(types_pb2.DT_FLOAT, result.outputs['y'].dtype)
     self.assertEqual(1, len(result.outputs['y'].float_val))
     self.assertEqual(expected_output, result.outputs['y'].float_val[0])
     self._VerifyModelSpec(result.model_spec, request.model_spec.name,

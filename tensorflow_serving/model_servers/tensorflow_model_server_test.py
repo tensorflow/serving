@@ -400,7 +400,7 @@ class TensorflowModelServerTest(
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
-    self.assertEqual(json.loads(resp_data), {'results': [[['', 3.0]]]})
+    self.assertEqual(json.loads(resp_data.decode()), {'results': [[['', 3.0]]]})
 
   def testRegressREST(self):
     """Test Regress implementation over REST API."""
@@ -420,7 +420,7 @@ class TensorflowModelServerTest(
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
-    self.assertEqual(json.loads(resp_data), {'results': [3.0]})
+    self.assertEqual(json.loads(resp_data.decode()), {'results': [3.0]})
 
   def testPredictREST(self):
     """Test Predict implementation over REST API."""
@@ -440,7 +440,7 @@ class TensorflowModelServerTest(
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
-    self.assertEqual(json.loads(resp_data), {'predictions': [3.0, 3.5, 4.0]})
+    self.assertEqual(json.loads(resp_data.decode()), {'predictions': [3.0, 3.5, 4.0]})
 
   def testPredictColumnarREST(self):
     """Test Predict implementation over REST API with columnar inputs."""
@@ -460,7 +460,7 @@ class TensorflowModelServerTest(
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
-    self.assertEqual(json.loads(resp_data), {'outputs': [3.0, 3.5, 4.0]})
+    self.assertEqual(json.loads(resp_data.decode()), {'outputs': [3.0, 3.5, 4.0]})
 
   def testGetStatusREST(self):
     """Test ModelStatus implementation over REST API with columnar inputs."""
@@ -480,7 +480,7 @@ class TensorflowModelServerTest(
 
     # Verify response
     self.assertEqual(
-        json.loads(resp_data), {
+        json.loads(resp_data.decode()), {
             'model_version_status': [{
                 'version': '123',
                 'state': 'AVAILABLE',
@@ -518,7 +518,7 @@ class TensorflowModelServerTest(
         # the sort OK (and the test robust).
         self.assertEqual(
             tensorflow_model_server_test_base.SortedObject(
-                json.loads(resp_data)),
+                json.loads(resp_data.decode())),
             tensorflow_model_server_test_base.SortedObject(expected_metadata))
     except Exception as e:  # pylint: disable=broad-except
       self.fail('Request failed with error: {}'.format(e))
