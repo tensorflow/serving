@@ -440,7 +440,8 @@ class TensorflowModelServerTest(
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
-    self.assertEqual(json.loads(resp_data.decode()), {'predictions': [3.0, 3.5, 4.0]})
+    self.assertEqual(
+        json.loads(resp_data.decode()), {'predictions': [3.0, 3.5, 4.0]})
 
   def testPredictColumnarREST(self):
     """Test Predict implementation over REST API with columnar inputs."""
@@ -460,7 +461,8 @@ class TensorflowModelServerTest(
       self.fail('Request failed with error: {}'.format(e))
 
     # Verify response
-    self.assertEqual(json.loads(resp_data.decode()), {'outputs': [3.0, 3.5, 4.0]})
+    self.assertEqual(
+        json.loads(resp_data.decode()), {'outputs': [3.0, 3.5, 4.0]})
 
   def testGetStatusREST(self):
     """Test ModelStatus implementation over REST API with columnar inputs."""
