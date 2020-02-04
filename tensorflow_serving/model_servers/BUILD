@@ -2,7 +2,7 @@
 
 load("//tensorflow_serving:oss_or_google.bzl", "if_google")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
-load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
+load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
 
 package(
     default_visibility = [
@@ -433,25 +433,24 @@ pkg_tar(
     package_dir = "/usr/bin",
 )
 
-# TODO(b/148694084): Re-enable the deb packages.
 # Build with '-c opt --copt=-mavx --copt=-msse4.2'
-# pkg_deb(
-#     name = "tensorflow_model_server_deb",
-#     data = ":tensorflow_model_server_tar",
-#     description = "TensorFlow Serving ModelServer",
-#     homepage = "https://github.com/tensorflow/serving",
-#     maintainer = "TensorFlow Serving team",
-#     package = "tensorflow-model-server",
-#     version = "undefined",  # Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
-# )
+pkg_deb(
+    name = "tensorflow_model_server_deb",
+    data = ":tensorflow_model_server_tar",
+    description = "TensorFlow Serving ModelServer",
+    homepage = "https://github.com/tensorflow/serving",
+    maintainer = "TensorFlow Serving team",
+    package = "tensorflow-model-server",
+    version = "undefined",  # Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
+)
 
-# # Build with '-c opt'
-# pkg_deb(
-#     name = "tensorflow_model_server_universal_deb",
-#     data = ":tensorflow_model_server_tar",
-#     description = "TensorFlow Serving ModelServer",
-#     homepage = "https://github.com/tensorflow/serving",
-#     maintainer = "TensorFlow Serving team",
-#     package = "tensorflow-model-server-universal",
-#     version = "undefined",  # Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
-# )
+# Build with '-c opt'
+pkg_deb(
+    name = "tensorflow_model_server_universal_deb",
+    data = ":tensorflow_model_server_tar",
+    description = "TensorFlow Serving ModelServer",
+    homepage = "https://github.com/tensorflow/serving",
+    maintainer = "TensorFlow Serving team",
+    package = "tensorflow-model-server-universal",
+    version = "undefined",  # Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
+)
