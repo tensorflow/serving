@@ -400,7 +400,7 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.meta",
     ]),
-    python_version = "PY2",
+    python_version = "PY3",
     srcs_version = "PY2AND3",
     tags = [
         "noasan",  # b/136281879
@@ -417,7 +417,7 @@ py_test(
 py_binary(
     name = "tensorflow_model_server_test_client",
     srcs = ["tensorflow_model_server_test_client.py"],
-    python_version = "PY2",
+    python_version = "PY3",
     srcs_version = "PY2AND3",
     deps = [
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
