@@ -92,7 +92,7 @@ RUN pip --no-cache-dir install \
     requests
 
 # Set up Bazel
-ENV BAZEL_VERSION 0.24.1
+ENV BAZEL_VERSION 1.2.1
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \
