@@ -42,15 +42,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         wget \
         zip \
         zlib1g-dev \
+        python3-distutils \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
-    python get-pip.py && \
+    python3 get-pip.py && \
     rm get-pip.py
 
-RUN pip --no-cache-dir install \
+RUN pip3 --no-cache-dir install \
     future>=0.17.1 \
     grpcio \
     h5py \
@@ -58,7 +59,8 @@ RUN pip --no-cache-dir install \
     keras_preprocessing>=1.1.0 \
     mock \
     numpy \
-    requests
+    requests \
+    --ignore-installed six
 
 # Set up Bazel
 ENV BAZEL_VERSION 1.2.1
