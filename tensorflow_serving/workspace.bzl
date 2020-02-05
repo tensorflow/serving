@@ -74,10 +74,10 @@ def tf_serving_workspace():
     # https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/save_models.py
     http_archive(
         name = "org_tensorflow_text",
-        sha256 = "a817dc75a02c1e3a3996838253776e4cec2e187870f00af2614bafa1f8ff710a",
-        strip_prefix = "text-2.0.1",
+        sha256 = "83e4ed74661b5ec6a956f45edf515b26e5ac7b357ee1382146117dfa47729b61",
+        strip_prefix = "text-2.1.1",
         urls = [
-            "https://github.com/tensorflow/text/archive/v2.0.1.zip",
+            "https://github.com/tensorflow/text/archive/v2.1.1.zip",
         ],
         patches = ["@//third_party/tf_text:tftext.patch"],
         patch_args = ["-p1"],
