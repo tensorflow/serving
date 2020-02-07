@@ -92,6 +92,28 @@ TYPED_TEST(FastReadDynamicPtrTest, MultiThreaded) {
   }
 }
 
+TYPED_TEST(FastReadDynamicPtrTest, WaitsForReadPtrsBeforeDestruction) {
+  const int expected = 12;
+  std::unique_ptr<TypeParam> fast_read_int(new TypeParam);
+  fast_read_int->Update(std::unique_ptr<int>(new int(expected)));
+  Notification got;
+  std::unique_ptr<Thread> thread(Env::Default()->StartThread({}, "Holder", [&] {
+    auto p = fast_read_int->get();
+    ASSERT_NE(p, nullptr);
+    EXPECT_EQ(expected, *p);
+    got.Notify();
+    // The other thread can't notify us that they deleted
+    // fast_read_int because that destruction will block until
+    // we're done with p.  We sleep so that with high
+    // probability, deletion was attempted.
+    Env::Default()->SleepForMicroseconds(1e7);
+    EXPECT_EQ(expected, *p);
+  }));
+  got.WaitForNotification();
+  // Destruction must block until all outstanding ReadPtrs are destroyed.
+  fast_read_int = nullptr;
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

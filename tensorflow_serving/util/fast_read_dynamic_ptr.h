@@ -100,6 +100,7 @@ class FastReadDynamicPtr {
 
   // Initially contains a null pointer by default.
   explicit FastReadDynamicPtr(OwnedPtr = nullptr);
+  ~FastReadDynamicPtr();
 
   // Updates the current object with a new one, returning the old object. This
   // method will block until all ReadPtrs that point to the previous object have
@@ -309,6 +310,12 @@ FastReadDynamicPtr<T, ReadPtrHolder>::FastReadDynamicPtr(OwnedPtr p) {
   if (p != nullptr) {
     Update(std::move(p));
   }
+}
+
+template <typename T, typename ReadPtrHolder>
+FastReadDynamicPtr<T, ReadPtrHolder>::~FastReadDynamicPtr() {
+  // Force a wait until all outstanding ReadPtrs are destroyed.
+  Update(nullptr);
 }
 
 template <typename T, typename ReadPtrHolder>
