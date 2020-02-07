@@ -24,10 +24,18 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-typedef FastReadDynamicPtr<int> FastReadIntPtr;
+template <typename T>
+class FastReadDynamicPtrTest : public ::testing::Test {};
 
-TEST(FastReadDynamicPtrTest, SingleThreaded) {
-  FastReadIntPtr fast_read_int;
+using FastReadDynamicPtrTypes = ::testing::Types<
+    FastReadDynamicPtr<int>,
+    FastReadDynamicPtr<int, internal_read_ptr_holder::ShardedReadPtrs<int>>,
+    FastReadDynamicPtr<int, internal_read_ptr_holder::SingleReadPtr<int>>>;
+
+TYPED_TEST_SUITE(FastReadDynamicPtrTest, FastReadDynamicPtrTypes);
+
+TYPED_TEST(FastReadDynamicPtrTest, SingleThreaded) {
+  TypeParam fast_read_int;
 
   {
     // Initially the object should be null.
@@ -46,10 +54,10 @@ TEST(FastReadDynamicPtrTest, SingleThreaded) {
   }
 }
 
-TEST(FastReadDynamicPtrTest, MultiThreaded) {
+TYPED_TEST(FastReadDynamicPtrTest, MultiThreaded) {
   const int kNumThreads = 4;
 
-  FastReadIntPtr fast_read_int;
+  TypeParam fast_read_int;
 
   {
     std::unique_ptr<int> tmp(new int(0));

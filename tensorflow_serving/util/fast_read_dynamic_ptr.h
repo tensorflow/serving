@@ -17,13 +17,16 @@ limitations under the License.
 #define TENSORFLOW_SERVING_UTIL_FAST_READ_DYNAMIC_PTR_H_
 
 #include <algorithm>
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <string>
 
 #include "tensorflow/core/lib/core/notification.h"
+#include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/mutex.h"
+#include "tensorflow/core/platform/random.h"
 #include "tensorflow/core/platform/types.h"
 
 namespace tensorflow {
@@ -67,7 +70,20 @@ namespace serving {
 // Care must be taken to not call FastReadDynamicPtr::Update() from a thread
 // that owns any instances of FastReadDynamicPtr::ReadPtr, or else deadlock may
 // occur.
+
+// FastReadDynamicPtr, below, is templatized both on the type pointed to, and on
+// a concept named "ReadPtrHolder", which holds the ReadPtrs for the
+// FastReadDynamicPtr instance.  While we could hold the ReadPtr with just a
+// single ReadPtr and a mutex (see SingleReadPtr, below) having a separate
+// concept lets us use higher performance mechanisms like sharding the ReadPtrs
+// to reduce contention.
+namespace internal_read_ptr_holder {
 template <typename T>
+class ShardedReadPtrs;
+}  // namespace internal_read_ptr_holder
+
+template <typename T,
+          typename ReadPtrHolder = internal_read_ptr_holder::ShardedReadPtrs<T>>
 class FastReadDynamicPtr {
  public:
   // Short, documentative names for the types of smart pointers we use. Callers
@@ -104,111 +120,213 @@ class FastReadDynamicPtr {
   ReadPtr get() const;
 
  private:
-  // A class that behaves like a shared_ptr, except it is capable of being
-  // released (as a unique_ptr) when it becomes unique.
-  class ReleasableSharedPtr;
+  // ShareableOwnedPtr wraps an OwnedPtr with an interface that can provide
+  // multiple independent ReadPtrs to it.  These ReadPtrs will have separate
+  // reference counts to reduce contention.
+  class ShareableOwnedPtr;
 
-  // The current pointer, and a mutex to guard it. Note that the only operations
-  // performed under lock are swap, during Update(), and incrementing the
-  // reference count, during get().
-  // TODO(b/24973960): Consider implementing userspace RCU instead of this if
-  // performance is ever a concern.
-  mutable mutex mutex_;
-  std::unique_ptr<ReleasableSharedPtr> object_;
+  mutex mu_;
+  std::unique_ptr<ShareableOwnedPtr> shareable_;
+
+  ReadPtrHolder read_ptrs_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(FastReadDynamicPtr);
 };
 
-//
-// Implementation details follow.
-//
-
-template <typename T>
-class FastReadDynamicPtr<T>::ReleasableSharedPtr {
+template <typename T, typename ReadPtrHolder>
+class FastReadDynamicPtr<T, ReadPtrHolder>::ShareableOwnedPtr {
  public:
-  explicit ReleasableSharedPtr(OwnedPtr object)
-      : object_{std::move(object)},
-        read_only_object_{
-            object_.get(),
-            // Use a destructor that will notify 'no_longer_referenced_' rather
-            // than deleting.
-            std::bind(&Notification::Notify, &no_longer_referenced_)} {}
+  explicit ShareableOwnedPtr(OwnedPtr p) : owned_(std::move(p)) {}
 
-  ~ReleasableSharedPtr() {
-    // Block destruction until all outstanding references have been cleaned up.
-    // This prevents the last shared_ptr from calling
-    // no_longer_referenced_.set_value() after destruction.
-    BlockingRelease();
+  // Returns a new, independent ReadPtr referencing the held OwnedPtr.
+  // Release() will not return the OwnedPtr until the returned ReadPtr and all
+  // its copies are destroyed.
+  ReadPtr NewShare() {
+    if (owned_ == nullptr) {
+      return nullptr;
+    }
+    shares_.fetch_add(1, std::memory_order_release);
+    return std::shared_ptr<T>(owned_.get(), [this](T* p) { DecRef(); });
   }
 
-  // Returns a reference to the underlying object, increasing the reference
-  // count by one. May be called concurrently from different threads, but not
-  // concurrently with BlockingRelease().
-  ReadPtr reference() const { return read_only_object_; }
-
-  // Blocks until outstanding values returned by 'reference' have been
-  // destroyed.  Requires that reference() is not being called concurrently.
-  OwnedPtr BlockingRelease() {
-    // Allow the reference count to go to zero.
-    read_only_object_ = nullptr;
-
-    // shared_ptr doesn't call the destructor if it is null, so do not block for
-    // null pointers.
-    if (object_ != nullptr) {
-      no_longer_referenced_.WaitForNotification();
-    }
-
-    // Yield ownership to the caller.
-    return std::move(object_);
+  // Waits until all shares have been destroyed, and then returns the OwnedPtr.
+  // No methods should be called after this one.
+  OwnedPtr Release() && {
+    DecRef();
+    no_longer_shared_.WaitForNotification();
+    return std::move(owned_);
   }
 
  private:
-  // The current object.
-  OwnedPtr object_;
-
-  // Notified when read_only_object_'s reference count goes to zero.
-  Notification no_longer_referenced_;
-
-  // A shared pointer to object_. Does not actually delete the pointer,
-  // but satisifies 'no_longer_referenced_' upon destruction.
-  ReadPtr read_only_object_;
-
-  TF_DISALLOW_COPY_AND_ASSIGN(ReleasableSharedPtr);
-};
-
-template <typename T>
-FastReadDynamicPtr<T>::FastReadDynamicPtr(OwnedPtr ptr)
-    : object_{new ReleasableSharedPtr{std::move(ptr)}} {}
-
-template <typename T>
-std::unique_ptr<T> FastReadDynamicPtr<T>::Update(std::unique_ptr<T> object) {
-  // Construct a ReleasableSharedPtr outside of the lock, this performs about
-  // three allocations (the ReleasableSharedPtr, the shared_ptr control block,
-  // and the internal state of std::promise) so we take care to keep it out of
-  // the critical section.
-  std::unique_ptr<ReleasableSharedPtr> local_ptr(
-      new ReleasableSharedPtr{std::move(object)});
-
-  // Swap the new ReleasableSharedPtr under lock.
-  {
-    mutex_lock lock(mutex_);
-    using std::swap;
-    swap(object_, local_ptr);
+  void DecRef() {
+    if (shares_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+      no_longer_shared_.Notify();
+    }
   }
 
-  // Now local_ptr points to the old object, release it to the caller.  This may
-  // block for a while, so this also must be kept outside of the critical
-  // section.
-  return local_ptr->BlockingRelease();
+  OwnedPtr owned_;
+  // The number of times we've shared the pointer.  This defaults to 1 so we can
+  // safely and incrementally hand out shares, without worrying that
+  // no_longer_shared_ will be notified until Release() has been called, which
+  // decrements this before waiting for a notification.
+  std::atomic<uint32> shares_ = {1};
+  // When shares_ goes to zero, this will be notified.
+  Notification no_longer_shared_;
+  TF_DISALLOW_COPY_AND_ASSIGN(ShareableOwnedPtr);
+};
+
+namespace internal_read_ptr_holder {
+// ReadPtrHolders must provide two methods:
+//   1. get(), which must be thread safe, and returns a shared_ptr<const T>, and
+//   2. update(), which takes a factory function f (which returns a
+//      std::shared_ptr<const T>), calls it one or more times, and updates the
+//      internal state to match.  get() after an update() call should return one
+//      of the pointers produced by the factory.  update() is not required to be
+//      thread-safe against other callers (but must be thread-safe against
+//      parallel get() calls); it will only ever be called under a lock.
+//
+// The Factory-based interface of update() may seem strange, but it allows
+// ReadPtrHolders to hold several distinct ReadPtrs.
+
+// SingleReadDPtr is the simplest possible implementation of a ReadPtrHolder,
+// but it causes every reader to contend on both the mutex_lock and the atomic
+// reference count for the ReadPtr it holds.  By default we use ShardedReadPtrs,
+// below, which avoids both of these pitfalls.  SingleReadPtr here is useful
+// primarily for benchmarking and for ensuring that no reader ever goes "back in
+// time": in the sharded implementation, below, it's possible for a reader to
+// see a new version and then see an older version in get(), if the writer is in
+// the midst of an update() call.
+//
+// If you don't care about contention and you want to save memory, you might
+// want to use this.
+template <typename T>
+class SingleReadPtr {
+ public:
+  std::shared_ptr<const T> get() const {
+    mutex_lock lock(mu_);
+    return p_;
+  }
+
+  template <typename Factory>
+  void update(const Factory& f) {
+    auto p = f();
+    mutex_lock lock(mu_);
+    p_.swap(p);
+  }
+
+ private:
+  mutable mutex mu_;
+  std::shared_ptr<const T> p_;
+};
+
+// This maintains a set of sharded ReadPtrs.  It tries to shard one ReadPtr per
+// CPU, but if the port::NumTotalCPUs or port::GetCurrentCPU fails, it falls
+// back to random sharding.
+template <typename T>
+class ShardedReadPtrs {
+ public:
+  ShardedReadPtrs() : shards_(new PaddedThreadSafeSharedPtr[num_shards_]) {}
+
+  std::shared_ptr<const T> get() const {
+    const int shard = GetShard();
+    mutex_lock lock(shards_[shard].mu);
+    return shards_[shard].ps[index_.load(std::memory_order_acquire)];
+  }
+
+  template <typename Factory>
+  void update(const Factory& f) {
+    // First we'll update all the pointers into each shard's next_index, then
+    // we'll change index_ to point to those new pointers, then we'll get rid of
+    // orig_index.  This ensures temporal consistency, so no reader ever goes
+    // back in time: all readers advance to next_index together, when we write
+    // to index_.
+    const uint32 orig_index = index_.load(std::memory_order_acquire);
+    const uint32 next_index = orig_index ? 0 : 1;
+    for (int shard = 0; shard < num_shards_; ++shard) {
+      auto p = f();
+      mutex_lock lock(shards_[shard].mu);
+      shards_[shard].ps[next_index] = std::move(p);
+    }
+    index_.store(next_index, std::memory_order_release);
+    for (int shard = 0; shard < num_shards_; ++shard) {
+      std::shared_ptr<const T> p;
+      mutex_lock lock(shards_[shard].mu);
+      shards_[shard].ps[orig_index].swap(p);
+    }
+  }
+
+ private:
+  // NOTE: If a std::atomic_shared_ptr is ever available, it would be reasonable
+  // to use that here for improved performance.
+  struct ThreadSafeSharedPtr {
+    std::shared_ptr<const T> ps[2];
+    mutex mu;
+  };
+
+  // We pad the pointers to ensure that individual shards don't experience false
+  // sharing between threads.
+  struct PaddedThreadSafeSharedPtr : public ThreadSafeSharedPtr {
+    char padding[64 - sizeof(ThreadSafeSharedPtr)];
+  };
+  static_assert(sizeof(PaddedThreadSafeSharedPtr) >= 64,
+                "PaddedThreadSafeSharedPtr should be at least 64 bytes.");
+
+  static constexpr int kRandomShards = 16;
+  int GetShard() const {
+    const int cpu = port::GetCurrentCPU();
+    if (cpu != -1) {
+      return cpu;
+    }
+    // Otherwise, return a random shard.  random::New64 would introduce a mutex
+    // lock here, which would defeat the purpose of the sharding.  Similarly, a
+    // static std::atomic<uint64>, if updated with any memory order other than
+    // std::memory_order_relaxed, would re-introduce contention on that memory
+    // location.  A thread_local sidesteps both problems with only eight bytes
+    // per thread of overhead.
+    //
+    // MCGs need to be seeded with an odd number, so we ensure the lowest bit is
+    // set.
+    thread_local uint64 state = {random::New64() | 1ULL};
+    // We just need something simple and good enough.  The multiplier here was
+    // picked from "COMPUTATIONALLY EASY, SPECTRALLY GOOD MULTIPLIERS FOR
+    // CONGRUENTIAL PSEUDORANDOM NUMBER GENERATORS" by Steele and Vigna.
+    state *= 0xd09d;
+    // Update this shift if kRandomShards changes.
+    return state >> 60;
+  }
+
+ protected:
+  const int num_shards_ =
+      port::NumTotalCPUs() == -1 ? kRandomShards : port::NumTotalCPUs();
+  std::atomic<uint32> index_{0};
+  std::unique_ptr<PaddedThreadSafeSharedPtr[]> shards_;
+};
+
+}  // namespace internal_read_ptr_holder
+
+template <typename T, typename ReadPtrHolder>
+FastReadDynamicPtr<T, ReadPtrHolder>::FastReadDynamicPtr(OwnedPtr p) {
+  if (p != nullptr) {
+    Update(std::move(p));
+  }
 }
 
-template <typename T>
-typename FastReadDynamicPtr<T>::ReadPtr FastReadDynamicPtr<T>::get() const {
-  // Note: tf_shared_lock (a reader/writer lock vs a normal mutex lock) was
-  // found to generally perform worse in our benchmarks. Before changing this
-  // back to a reader lock, please do careful benchmarks.
-  mutex_lock lock(mutex_);
-  return object_->reference();
+template <typename T, typename ReadPtrHolder>
+std::unique_ptr<T> FastReadDynamicPtr<T, ReadPtrHolder>::Update(
+    OwnedPtr new_object) {
+  std::unique_ptr<ShareableOwnedPtr> shareable(
+      new ShareableOwnedPtr(std::move(new_object)));
+  {
+    mutex_lock lock(mu_);
+    read_ptrs_.update([&] { return shareable->NewShare(); });
+    shareable_.swap(shareable);
+  }
+  return shareable == nullptr ? nullptr : std::move(*shareable).Release();
+}
+
+template <typename T, typename ReadPtrHolder>
+std::shared_ptr<const T> FastReadDynamicPtr<T, ReadPtrHolder>::get() const {
+  return read_ptrs_.get();
 }
 
 }  // namespace serving
