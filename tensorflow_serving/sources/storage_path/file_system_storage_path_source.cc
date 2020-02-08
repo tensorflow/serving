@@ -351,7 +351,8 @@ Status FileSystemStoragePathSource::UpdateConfig(
       // waiting for the corresponding events. This is especially important
       // if config.file_system_poll_wait_seconds() == 0.
       for (const auto& entry : versions_by_servable_name) {
-        LogVersionsAndInvokeCallback(entry.first, entry.second);
+        LogVersions(entry.second);
+        CallAspiredVersionsCallback(entry.first, entry.second);
       }
     }
   }
@@ -414,13 +415,13 @@ Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
                  << servable;
       continue;
     }
-    LogVersionsAndInvokeCallback(servable, versions);
+    LogVersions(versions);
+    CallAspiredVersionsCallback(servable, versions);
   }
   return Status::OK();
 }
 
-void FileSystemStoragePathSource::LogVersionsAndInvokeCallback(
-    const string& servable,
+void FileSystemStoragePathSource::LogVersions(
     const std::vector<ServableData<StoragePath>>& versions) {
   for (const ServableData<StoragePath> &version : versions) {
     if (version.status().ok()) {
@@ -430,7 +431,6 @@ void FileSystemStoragePathSource::LogVersionsAndInvokeCallback(
               << config_.file_system_poll_wait_seconds();
     }
   }
-  CallAspiredVersionsCallback(servable, versions);
 }
 
 Status FileSystemStoragePathSource::UnaspireServables(
