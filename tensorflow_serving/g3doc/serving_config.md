@@ -194,7 +194,7 @@ config file, as described [above](#reloading-model-server-configuration).
 
 If you would like to assign a label to a version that is not yet loaded (for ex.
 by supplying both the model version and the label at startup time) then you must
-set the `--alow_version_labels_for_unavailable_models` flag to true, which
+set the `--allow_version_labels_for_unavailable_models` flag to true, which
 allows new labels to be assigned to model versions that are not loaded yet.
 
 Please note that this applies only to new version labels (i.e. ones not assigned
