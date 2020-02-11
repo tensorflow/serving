@@ -227,10 +227,16 @@ format and our project name,
 docker tag $USER/resnet_serving gcr.io/tensorflow-serving/resnet
 ```
 
+Next, we configure Docker to use gcloud as a credential helper:
+
+```shell
+gcloud auth configure-docker
+```
+
 Next we push the image to the Registry,
 
 ```shell
-gcloud docker -- push gcr.io/tensorflow-serving/resnet
+docker push gcr.io/tensorflow-serving/resnet
 ```
 
 ### Create Kubernetes Deployment and Service
