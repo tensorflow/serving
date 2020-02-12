@@ -118,6 +118,23 @@ class ServerRequestInterface {
   virtual void AppendResponseHeader(absl::string_view header,
                                     absl::string_view value) = 0;
 
+  // The IO status of a request or response body.
+  enum class BodyStatus {
+    // The body hasn't been completely read or written.
+    PENDING = 0,
+    // The body has been completely read or written or when there is no body.
+    COMPLETE = 1,
+    // The transport has reported a failure and the request should be aborted.
+    FAILED = 2,
+  };
+
+  // This serves as the return value type for callbacks that may be
+  // skipped for optimization reasons
+  enum class CallbackStatus {
+    NOT_SCHEDULED = 0,
+    SCHEDULED = 1,
+  };
+
   // Sends headers and/or any buffered response body data to the client.
   // Assumes 200 if status is not specified.
   // If called for the first time, all the response headers will be sent
@@ -130,33 +147,40 @@ class ServerRequestInterface {
   virtual void PartialReply() = 0;
 
   // Similar to PartialReply() but with an on_flush callback which will be
-  // invoked when the response data has been completely flushed by the transport
-  // or when the write fails due to transport errors. This allows the handler to
-  // respect transport-provided flow-control in writing data to the peer.
+  // invoked when the response data has been completely flushed by the
+  // transport. This allows the handler to apply transport-provided flow-control
+  // in writing data to the peer.
   //
-  // Until the callback is invoked, the request object should not be accessed
-  // by the handler after this method is called. If a failure occurs,
-  // the callback will be passed a false value, and the request should be
-  // aborted thereafter by the handler.
+  // Returns SCHEDULED if the callback will be invoked asynchronously after
+  // this method returns. Until the callback is invoked, the request object
+  // should not be accessed by the handler.
   //
-  // The callback may be invoked immediately but never from the current
-  // call stack.
-  virtual void PartialReplyWithFlushCallback(
-      std::function<void(bool result)> callback) = 0;
+  // Returns NOT_SCHEDULED if data is already flushed when this method returns
+  // or when the request should be aborted due to transport failures.
+  //
+  // The handler should check response_body_status() after this method returns
+  // or from the callback to decide if the request should be aborted due to
+  // transport failures.
+  virtual CallbackStatus PartialReplyWithFlushCallback(
+      std::function<void()> callback) = 0;
+  virtual BodyStatus response_body_status() { return BodyStatus::PENDING; }
+
+  // Request streaming is disabled by default
+  virtual BodyStatus request_body_status() { return BodyStatus::COMPLETE; }
 
   // Completes the response and sends any buffered response body
   // to the client. Headers will be generated and sent first if PartialReply()
   // has never be called.
   // Assumes 200 if status is not specified.
-  // Once Reply() is called, the request object will be owned (and destructed)
+  // Once Reply() is called, the request object will be owned and destructed
   // by the server runtime.
   virtual void ReplyWithStatus(HTTPStatusCode status) = 0;
   virtual void Reply() = 0;
 
   // Aborts the current request forcibly.
+  // Once Abort() is called, the request object will be owned and destructed
+  // by the server runtime.
   virtual void Abort() = 0;
-
-  // To be defined: status enum
 
  protected:
   ServerRequestInterface() = default;

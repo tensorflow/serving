@@ -346,9 +346,10 @@ void EvHTTPRequest::PartialReply() {
   NET_LOG(FATAL, "PartialReplyWithStatus not implemented.");
 }
 
-void EvHTTPRequest::PartialReplyWithFlushCallback(
-    std::function<void(bool result)> callback) {
+ServerRequestInterface::CallbackStatus
+EvHTTPRequest::PartialReplyWithFlushCallback(std::function<void()> callback) {
   NET_LOG(FATAL, "PartialReplyWithStatus not implemented.");
+  return CallbackStatus::NOT_SCHEDULED;
 }
 
 void EvHTTPRequest::ReplyWithStatus(HTTPStatusCode status) {
