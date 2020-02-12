@@ -261,7 +261,7 @@ Status PostProcessClassificationResult(
   // Tensor.
   int num_classes = 0;
   if (classes && scores) {
-    // If we have both Tensors they should agree in the second dimmension.
+    // If we have both Tensors they should agree in the second dimension.
     if (classes->dim_size(1) != scores->dim_size(1)) {
       return errors::InvalidArgument(
           "Tensors class and score should match in dim_size(1). Got ",

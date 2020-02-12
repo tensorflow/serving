@@ -89,7 +89,7 @@ TEST(SessionBundleTest, LoadSessionBundleOrSavedModelBundleFailureTest) {
 TEST(SessionBundleTest, LoadSessionBundleFromPathUsingRunOptionsTest) {
   SessionOptions session_options;
   RunOptions run_options;
-  string export_dir = "/exort_dir";
+  string export_dir = "/export_dir";
   SessionBundle bundle;
   Status status = session_bundle::LoadSessionBundleFromPathUsingRunOptions(
       session_options, run_options, export_dir, &bundle);

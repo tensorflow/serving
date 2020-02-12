@@ -136,7 +136,7 @@ TEST_F(GetModelStatusImplTest, AllVersionsSuccess) {
   ModelSpec* model_spec = request.mutable_model_spec();
   model_spec->set_name(kTestModelName);
 
-  // If two versions of model are managed by ServerCore, succesfully get model
+  // If two versions of model are managed by ServerCore, successfully get model
   // status for both versions of the model.
   TF_EXPECT_OK(
       GetModelStatusImpl::GetModelStatus(GetServerCore(), request, &response));

@@ -178,7 +178,7 @@ TEST_F(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
                     "Duplicate evaluation of signature: regress_x_to_y");
 }
 
-TEST_F(MultiInferenceTest, UsupportedSignatureTypeTest) {
+TEST_F(MultiInferenceTest, UnsupportedSignatureTypeTest) {
   MultiInferenceRequest request;
   AddInput({{"x", 2}}, &request);
   PopulateTask("serving_default", kPredictMethodName, -1, request.add_tasks());

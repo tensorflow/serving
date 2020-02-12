@@ -375,7 +375,7 @@ TEST(SavedModelBundleWarmupTest, TooManyWarmupRecords) {
   EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
   EXPECT_THAT(
       status.ToString(),
-      ::testing::HasSubstr("Number of warmup records exceeeds the maximum"));
+      ::testing::HasSubstr("Number of warmup records exceeds the maximum"));
 }
 
 TEST(SavedModelBundleWarmupTest, UnparsableRecord) {

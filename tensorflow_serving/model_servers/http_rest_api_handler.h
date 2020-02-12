@@ -67,7 +67,7 @@ class HttpRestApiHandler {
   // HTTP server, so incoming requests can be forwarded to this handler.
   static const char* const kPathRegex;
 
-  // API calls are configured to timeout after `run_optons.timeout_in_ms`.
+  // API calls are configured to timeout after `run_options.timeout_in_ms`.
   // `core` is not owned and is expected to outlive HttpRestApiHandler
   // instance.
   HttpRestApiHandler(const RunOptions& run_options, ServerCore* core);

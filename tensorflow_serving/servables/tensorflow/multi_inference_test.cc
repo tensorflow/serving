@@ -230,7 +230,7 @@ TEST_F(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
       "Duplicate evaluation of signature: regress_x_to_y");
 }
 
-TEST_F(MultiInferenceTest, UsupportedSignatureTypeTest) {
+TEST_F(MultiInferenceTest, UnsupportedSignatureTypeTest) {
   std::unique_ptr<TensorFlowMultiInferenceRunner> inference_runner;
   TF_ASSERT_OK(GetInferenceRunner(&inference_runner));
 
