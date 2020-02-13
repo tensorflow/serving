@@ -62,6 +62,12 @@ void AddModelVersionStatusToResponse(GetModelStatusResponse* response,
 
 }  // namespace
 
+// Add model name to ListModelNamesResponse
+void AddModelNameToResponse(ListModelNamesResponse* response,
+			    const string& name){
+  response->add_model_names(name);
+}
+
 Status GetModelStatusImpl::GetModelStatus(ServerCore* core,
                                           const GetModelStatusRequest& request,
                                           GetModelStatusResponse* response) {
@@ -102,6 +108,17 @@ Status GetModelStatusImpl::GetModelStatusWithModelSpec(
       const ServableState& servable_state = version_and_state.second.state;
       AddModelVersionStatusToResponse(response, version, servable_state);
     }
+  }
+  return tensorflow::Status::OK();
+}
+
+Status GetModelStatusImpl::ListModelNames(ServerCore* core,
+                                          const ListModelNamesRequest& request,
+                                          ListModelNamesResponse* response) {
+
+  const ServableStateMonitor& monitor = *core->servable_state_monitor();
+  for(const auto&  servable: monitor.GetAllServableStates()) {
+	  AddModelNameToResponse(response, servable.first);
   }
   return tensorflow::Status::OK();
 }

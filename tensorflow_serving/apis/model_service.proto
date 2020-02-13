@@ -21,4 +21,7 @@ service ModelService {
   // longer served.
   rpc HandleReloadConfigRequest(ReloadConfigRequest)
       returns (ReloadConfigResponse);
+
+  // Lists the live model names
+  rpc ListModelNames(ListModelNamesRequest) returns (ListModelNamesResponse);
 }

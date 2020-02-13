@@ -38,8 +38,12 @@ class GetModelStatusImpl {
   static Status GetModelStatusWithModelSpec(
       ServerCore* core, const ModelSpec& model_spec,
       const GetModelStatusRequest& request, GetModelStatusResponse* response);
-};
 
+  // List all live model names
+  static Status ListModelNames(ServerCore* core,
+                               const ListModelNamesRequest& request,
+                               ListModelNamesResponse* response);
+};
 }  // namespace serving
 }  // namespace tensorflow
 
