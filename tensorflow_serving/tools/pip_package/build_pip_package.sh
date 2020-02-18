@@ -41,7 +41,7 @@ function main() {
   mkdir -p ${TMPDIR}/tensorflow_serving/util
 
   echo "Adding python files"
-  cp bazel-genfiles/tensorflow_serving/apis/*_pb2.py \
+  cp bazel-out/k8-opt/bin/tensorflow_serving/apis/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/apis"
 
   cp ${BAZEL_PROJECT_DIR}/tensorflow_serving/apis/*_pb2.py \
@@ -50,16 +50,16 @@ function main() {
   cp ${BAZEL_PROJECT_DIR}/tensorflow_serving/apis/*_grpc.py \
     "${TMPDIR}/tensorflow_serving/apis"
 
-  cp bazel-genfiles/tensorflow_serving/config/*_pb2.py \
+  cp bazel-out/k8-opt/bin/tensorflow_serving/config/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/config"
 
-  cp bazel-genfiles/tensorflow_serving/core/*_pb2.py \
+  cp bazel-out/k8-opt/bin/tensorflow_serving/core/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/core"
 
-  cp bazel-genfiles/tensorflow_serving/sources/storage_path/*_pb2.py \
+  cp bazel-out/k8-opt/bin/tensorflow_serving/sources/storage_path/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/sources/storage_path"
 
-  cp bazel-genfiles/tensorflow_serving/util/*_pb2.py \
+  cp bazel-out/k8-opt/bin/tensorflow_serving/util/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/util"
 
   touch "${TMPDIR}/tensorflow_serving/apis/__init__.py"
@@ -75,10 +75,10 @@ function main() {
 
   pushd "${TMPDIR}"
   echo $(date) : "=== Building wheel (CPU)"
-  python setup.py bdist_wheel --universal \
+  python3 setup.py bdist_wheel --universal \
     --project_name tensorflow-serving-api # >/dev/null
   echo $(date) : "=== Building wheel (GPU)"
-  python setup.py bdist_wheel --universal \
+  python3 setup.py bdist_wheel --universal \
     --project_name tensorflow-serving-api-gpu # >/dev/null
   mkdir -p "${DEST}"
   cp dist/* "${DEST}"
