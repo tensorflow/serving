@@ -19,8 +19,10 @@ limitations under the License.
 
 #include <iostream>
 #include <memory>
+#include <limits>
 #include <utility>
 #include <vector>
+#include <algorithm>
 
 #include "google/protobuf/wrappers.pb.h"
 #include "grpc/grpc.h"
@@ -285,7 +287,9 @@ Status Server::BuildAndStart(const Options& server_options) {
   options.flush_filesystem_caches = server_options.flush_filesystem_caches;
   options.allow_version_labels_for_unavailable_models =
       server_options.allow_version_labels_for_unavailable_models;
-
+  options.total_model_memory_limit_bytes = std::min(
+      ((uint64)server_options.total_model_memory_limit_megabytes) << 20,
+      std::numeric_limits<uint64>::max());
   TF_RETURN_IF_ERROR(ServerCore::Create(std::move(options), &server_core_));
 
   // Model config polling thread must be started after the call to
