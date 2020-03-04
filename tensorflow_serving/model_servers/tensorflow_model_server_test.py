@@ -28,7 +28,7 @@ import time
 
 import grpc
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from tensorflow.python.eager import profiler_client
 from tensorflow.python.platform import flags
