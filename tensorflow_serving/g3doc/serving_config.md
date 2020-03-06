@@ -128,13 +128,17 @@ model_version_policy {
 
 ### Assigning String Labels to Model Versions, To Simplify Canary and Rollback
 
+_Note: This feature is only available in the gRPC API surface - if you're using
+REST API you cannot specify version labels._
+
 Sometimes it's helpful to add a level of indirection to model versions. Instead
 of letting all of your clients know that they should be querying version 42, you
 can assign an alias such as "stable" to whichever version is currently the one
 clients should query. If you want to redirect a slice of traffic to a tentative
 canary model version, you can use a second alias "canary".
 
-You can configure these model version aliases, or labels, like so:
+If you're using the gRPC API surface, you can configure these model version
+aliases, or labels, like so:
 
 ```proto
 model_version_policy {
