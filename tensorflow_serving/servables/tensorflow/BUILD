@@ -2,6 +2,7 @@
 
 load("//tensorflow_serving:oss_or_google.bzl", "if_google")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+load("//tensorflow_serving:serving.bzl", "serving_tensorflow_proto_dep")
 
 package(
     default_visibility = [
@@ -32,7 +33,9 @@ serving_proto_library(
     ],
     deps = [
         "@com_google_protobuf//:cc_wkt_protos",
-        "@org_tensorflow//tensorflow/core:protos_all",
+        serving_tensorflow_proto_dep(
+            "@org_tensorflow//tensorflow/core:protos_all",
+        ),
     ],
 )
 

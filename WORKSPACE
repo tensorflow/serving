@@ -10,8 +10,9 @@ workspace(name = "tf_serving")
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "abceedf2f627e83a5d4324d158e2f2b731f0b747f041407a28ff6ba1634dc583",
-    git_commit = "2a2c812ab2330c9aac33335f10679a346436acfb",
+    sha256 = "3513fd2e31a9297452a257e687b88a4c9b44b983880f67f8469b5c6a62bec1d2",
+    git_commit = "7cf58aa514b348b0b44610555dd8e3002c32e999",
+    patch = "//third_party/tf_patch:tf.patch"
 )
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
@@ -63,4 +64,4 @@ tf_serving_workspace()
 
 # Specify the minimum required bazel version.
 load("@org_tensorflow//tensorflow:version_check.bzl", "check_bazel_version_at_least")
-check_bazel_version_at_least("1.2.1")
+check_bazel_version_at_least("2.0.0")

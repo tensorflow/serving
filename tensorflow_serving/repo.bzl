@@ -17,6 +17,7 @@ _TF_REVISION = "TF_REVISION"
 def _tensorflow_http_archive(ctx):
     git_commit = ctx.attr.git_commit
     sha256 = ctx.attr.sha256
+    patch = ctx.attr.patch
 
     override_git_commit = ctx.os.environ.get(_TF_REVISION)
     if override_git_commit:
@@ -35,11 +36,13 @@ def _tensorflow_http_archive(ctx):
         "",
         strip_prefix,
     )
+    ctx.patch(patch, strip = 1)
 
 tensorflow_http_archive = repository_rule(
     implementation = _tensorflow_http_archive,
     attrs = {
         "git_commit": attr.string(mandatory = True),
         "sha256": attr.string(mandatory = True),
+        "patch": attr.label(mandatory = True),
     },
 )

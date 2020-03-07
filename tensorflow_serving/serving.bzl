@@ -55,3 +55,8 @@ def serving_proto_library_py(name, proto_library, srcs = [], deps = [], visibili
         visibility = visibility,
         testonly = testonly,
     )
+
+def serving_tensorflow_proto_dep(dep):
+    """Rename for deps onto tensorflow protos in serving_proto_library targets.
+    """
+    return "{}_cc".format(dep)

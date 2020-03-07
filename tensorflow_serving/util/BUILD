@@ -1,6 +1,6 @@
 # Description: Tensorflow Serving utils.
 
-load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_proto_library_py")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
 
 package(
     default_visibility = [
@@ -400,7 +400,9 @@ serving_proto_library(
     cc_api_version = 2,
     visibility = ["//visibility:public"],
     deps = [
-        "@org_tensorflow//tensorflow/core:protos_all",
+        serving_tensorflow_proto_dep(
+            "@org_tensorflow//tensorflow/core:protos_all",
+        ),
     ],
 )
 
