@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <stddef.h>
 
+#include "tensorflow/core/framework/cost_graph.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_util.h"
@@ -202,6 +203,11 @@ class BatchingSession : public ServingSession {
   Status SplitOutputTensors(const TensorSignature& signature,
                             const std::vector<Tensor>& combined_outputs,
                             Batch<BatchingSessionTask>* batch);
+
+  // Splits RunMetadata parts (e.g. costgraph attribution) into individual task
+  // outputs.
+  Status SplitRunMetadata(RunMetadata* batch_metadata,
+                          Batch<BatchingSessionTask>* batch);
 
   // Processes one batch of Run() calls with 'signature'. Called by
   // 'batch_scheduler_' in a batch thread.
@@ -539,6 +545,31 @@ Status BatchingSession::SplitOutputTensors(
   return Status::OK();
 }
 
+Status BatchingSession::SplitRunMetadata(RunMetadata* batch_metadata,
+                                         Batch<BatchingSessionTask>* batch) {
+  if (batch->num_tasks() > 0) {
+    if (batch_metadata->has_cost_graph()) {
+      // Scale the batch aggregated to reflect the cost of an individual request
+      // in the batch; this assumes all requests in a batch have an equal cost.
+      for (size_t i = 0; i < batch_metadata->cost_graph().cost_size(); ++i) {
+        CostGraphDef_AggregatedCost* cost =
+            batch_metadata->mutable_cost_graph()->mutable_cost(i);
+        const float agg_cost = cost->cost();
+        cost->set_cost(agg_cost / static_cast<float>(batch->num_tasks()));
+      }
+    }
+
+    for (size_t i = 0; i < batch->num_tasks(); ++i) {
+      RunMetadata* run_metadata = batch->mutable_task(i)->run_metadata;
+      if (run_metadata != nullptr) {
+        *run_metadata = *batch_metadata;
+      }
+    }
+  }
+
+  return Status::OK();
+}
+
 void BatchingSession::ProcessBatch(
     const TensorSignature& signature,
     std::unique_ptr<Batch<BatchingSessionTask>> batch) {
@@ -613,9 +644,8 @@ void BatchingSession::ProcessBatch(
   status = wrapped_->Run(run_options, merged_inputs, output_tensor_names,
                          {} /* target node names */, &combined_outputs,
                          &run_metadata);
-  for (int i = 0; i < batch->num_tasks(); ++i) {
-    *(batch->mutable_task(i)->run_metadata) = run_metadata;
-  }
+  status.Update(SplitRunMetadata(&run_metadata, batch.get()));
+
   if (!status.ok()) {
     return;
   }

@@ -18,6 +18,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
+#include "tensorflow/core/framework/cost_graph.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
@@ -60,8 +61,10 @@ class BatchSizeCapturingSession : public ServingSession {
              const std::vector<string>& target_node_names,
              std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
     latest_batch_size_ = inputs[0].second.shape().dim_size(0);
-    return wrapped_->Run(run_options, inputs, output_tensor_names,
-                         target_node_names, outputs, run_metadata);
+    Status status = wrapped_->Run(run_options, inputs, output_tensor_names,
+                                  target_node_names, outputs, run_metadata);
+    *(run_metadata->mutable_cost_graph()) = cost_graph_;
+    return status;
   }
 
   Status ListDevices(std::vector<DeviceAttributes>* response) override {
@@ -70,11 +73,16 @@ class BatchSizeCapturingSession : public ServingSession {
 
   int latest_batch_size() const { return latest_batch_size_; }
 
+  CostGraphDef* mutable_cost_graph() { return &cost_graph_; }
+
  private:
   std::unique_ptr<Session> wrapped_;
 
   // The size of the batch most recently submitted to Run().
   int latest_batch_size_ = -1;
+
+  // Cost graph associated with the latest call to Run().
+  CostGraphDef cost_graph_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(BatchSizeCapturingSession);
 };
@@ -229,6 +237,69 @@ TEST(BatchingSessionTest, BatchingWithPadding) {
                                        {1, 3, 3},
                                        {4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5},
                                        {1, 3, 3}, batching_session.get());
+      }));
+}
+
+TEST(BatchingSessionTest, BatchingWithPaddingAndCost) {
+  BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
+  schedule_options.max_batch_size = 2;
+  schedule_options.batch_timeout_micros = 1e6;
+  schedule_options.num_batch_threads = 1;
+  std::unique_ptr<Session> batching_session;
+  BatchingSessionOptions batching_session_options;
+  batching_session_options.pad_variable_length_inputs = true;
+  std::unique_ptr<BatchSizeCapturingSession> batch_size_capturing_session(
+      new BatchSizeCapturingSession(CreateHalfPlusTwoSession()));
+  auto batch_size_capturing_session_raw = batch_size_capturing_session.get();
+
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, {{"x"}, {"y"}},
+      std::move(batch_size_capturing_session), &batching_session));
+
+  CostGraphDef* cg = batch_size_capturing_session_raw->mutable_cost_graph();
+  CostGraphDef_AggregatedCost* ag = cg->add_cost();
+  ag->set_cost(7.0);
+  ag = cg->add_cost();
+  ag->set_dimension("named-cost");
+  ag->set_cost(1.0);
+
+  // two requests form a batch and first input gets padded with zeros to match
+  // [1, 3, 3] shape that is accepted by the model.
+  // if padding doesn't work, test will fail.
+  std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "first_request", [&batching_session] {
+        Tensor input = test::AsTensor<float>({1, 2, 3, 4}, {1, 2, 2});
+        Tensor expected_output = test::AsTensor<float>(
+            {2.5, 3, 2.5, 3.5, 4, 2.5, 2.5, 2.5, 2.5}, {1, 3, 3});
+        std::vector<Tensor> output;
+        RunMetadata run_metadata;
+        TF_ASSERT_OK(batching_session->Run({}, {{"x", input}}, {"y"}, {},
+                                           &output, &run_metadata));
+        ASSERT_EQ(1, output.size());
+        test::ExpectTensorEqual<float>(expected_output, output[0]);
+        const CostGraphDef& cgs = run_metadata.cost_graph();
+        EXPECT_EQ(2, cgs.cost_size());
+        EXPECT_NEAR(3.5, cgs.cost(0).cost(), 0.001);
+        EXPECT_NEAR(0.5, cgs.cost(1).cost(), 0.001);
+        EXPECT_EQ("named-cost", cgs.cost(1).dimension());
+      }));
+  std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "second_request", [&batching_session] {
+        Tensor input =
+            test::AsTensor<float>({5, 6, 7, 8, 9, 10, 11, 12, 13}, {1, 3, 3});
+        Tensor expected_output = test::AsTensor<float>(
+            {4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5}, {1, 3, 3});
+        std::vector<Tensor> output;
+        RunMetadata run_metadata;
+        TF_ASSERT_OK(batching_session->Run({}, {{"x", input}}, {"y"}, {},
+                                           &output, &run_metadata));
+        ASSERT_EQ(1, output.size());
+        test::ExpectTensorEqual<float>(expected_output, output[0]);
+        const CostGraphDef& cgs = run_metadata.cost_graph();
+        EXPECT_EQ(2, cgs.cost_size());
+        EXPECT_NEAR(3.5, cgs.cost(0).cost(), 0.001);
+        EXPECT_NEAR(0.5, cgs.cost(1).cost(), 0.001);
+        EXPECT_EQ("named-cost", cgs.cost(1).dimension());
       }));
 }
 
