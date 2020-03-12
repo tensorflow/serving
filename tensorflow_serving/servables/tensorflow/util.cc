@@ -23,6 +23,8 @@ limitations under the License.
 #include "tensorflow/core/lib/monitoring/counter.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/lib/strings/strcat.h"
+#include "tensorflow/core/platform/cord.h"
+#include "tensorflow/core/platform/errors.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/internal/serialized_input.pb.h"
@@ -73,6 +75,7 @@ void RecordRequestExampleCount(const string& model_name, size_t count) {
 }
 
 Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
+  internal::SerializedInput serialized_input;
   // There's a reason we serialize and then parse 'input' in this way:
   // 'example_list' and 'example_list_with_context' are lazily parsed
   // fields, which means they are lazily deserialized the very first
@@ -81,14 +84,20 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
   //
   // SerializedInput proto has been created to prevent this, but at the same
   // time get the count of num_examples as well.
-  //
+  bool parse_serialized_input_ok = false;
+#if defined(PLATFORM_GOOGLE)
   // Benchmark ('BM_InputToSerializedExample') can help measure the effect of
   // changes in the future.
-  const string serialized_input_str = input.SerializeAsString();
-  internal::SerializedInput serialized_input;
-  if (!serialized_input.ParseFromString(serialized_input_str)) {
+  parse_serialized_input_ok =
+      serialized_input.ParseFromCord(input.SerializeAsCord());
+#else
+  parse_serialized_input_ok =
+      serialized_input.ParseFromString(input.SerializeAsString());
+#endif
+  if (!parse_serialized_input_ok) {
     return errors::Internal("Error parsing serialized input.");
   }
+
   const int64 num_examples = NumInputExamples(serialized_input);
   if (num_examples == 0) {
     return errors::InvalidArgument("Input is empty.");
@@ -108,15 +117,25 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
     }
 
     case Input::KindCase::kExampleListWithContext: {
-      const string& context =
+      const auto& context =
           serialized_input.example_list_with_context().context();
       auto input_vec = examples->vec<tstring>();
       int input_vec_index = 0;
       for (const auto& entry :
            serialized_input.example_list_with_context().examples()) {
-        // Avoid the need for repeated serialization of context by simply
-        // appending the Example serialization to the pre-serialized context.
-        input_vec(input_vec_index++) = strings::StrCat(context, entry);
+        tstring& input_str = input_vec(input_vec_index++);
+        input_str.resize_uninitialized(context.size() + entry.size());
+        // 'input_str_ptr' now points to the beginning of input_str.
+        char* input_str_ptr = &input_str[0];
+#if defined(PLATFORM_GOOGLE)
+        // When absl::Cord OSS is fully shipped and protobuf open-source suports
+        // Cord, we can get rid of marco above and unify code path.
+        context.CopyToArray(input_str_ptr);
+        entry.CopyToArray(input_str_ptr + context.size());
+#else
+        memcpy(input_str_ptr, &context[0], context.size());
+        memcpy(input_str_ptr + context.size(), &entry[0], entry.size());
+#endif
       }
     } break;
 

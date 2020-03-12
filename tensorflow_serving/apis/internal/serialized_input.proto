@@ -24,9 +24,9 @@ limitations under the License.
 
 syntax = "proto3";
 
-option cc_enable_arenas = true;
-
 package tensorflow.serving.internal;
+
+option cc_enable_arenas = true;
 
 message SerializedExampleList {
   repeated bytes examples = 1;
