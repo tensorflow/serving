@@ -153,7 +153,7 @@ class Observer<Args...>::Impl {
  private:
   mutable mutex mutex_;
   // The function to call when an observed even occurs.
-  Function f_ GUARDED_BY(mutex_);
+  Function f_ TF_GUARDED_BY(mutex_);
 };
 
 }  // namespace serving

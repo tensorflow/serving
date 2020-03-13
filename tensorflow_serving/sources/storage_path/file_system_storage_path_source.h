@@ -92,7 +92,7 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
 
   // Sends empty aspired-versions lists for each servable in 'servable_names'.
   Status UnaspireServables(const std::set<string>& servable_names)
-      EXCLUSIVE_LOCKS_REQUIRED(mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   template <typename... Args>
   void CallAspiredVersionsCallback(Args&&... args) {
@@ -112,16 +112,16 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
 
   mutable mutex mu_;
 
-  FileSystemStoragePathSourceConfig config_ GUARDED_BY(mu_);
+  FileSystemStoragePathSourceConfig config_ TF_GUARDED_BY(mu_);
 
-  AspiredVersionsCallback aspired_versions_callback_ GUARDED_BY(mu_);
+  AspiredVersionsCallback aspired_versions_callback_ TF_GUARDED_BY(mu_);
 
-  std::function<void()> aspired_versions_callback_notifier_ GUARDED_BY(mu_);
+  std::function<void()> aspired_versions_callback_notifier_ TF_GUARDED_BY(mu_);
 
   // A thread that calls PollFileSystemAndInvokeCallback() once or periodically.
   using ThreadType =
       absl::variant<absl::monostate, PeriodicFunction, std::unique_ptr<Thread>>;
-  std::unique_ptr<ThreadType> fs_polling_thread_ GUARDED_BY(mu_);
+  std::unique_ptr<ThreadType> fs_polling_thread_ TF_GUARDED_BY(mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(FileSystemStoragePathSource);
 };

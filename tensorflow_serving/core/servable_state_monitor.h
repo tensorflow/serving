@@ -86,33 +86,33 @@ class ServableStateMonitor {
   /// Returns the current state of one servable, or nullopt if that servable is
   /// not being tracked.
   optional<ServableState> GetState(const ServableId& servable_id) const
-      LOCKS_EXCLUDED(mu_);
+      TF_LOCKS_EXCLUDED(mu_);
 
   /// Returns the current state and time of one servable, or nullopt if that
   /// servable is not being tracked.
   optional<ServableStateAndTime> GetStateAndTime(
-      const ServableId& servable_id) const LOCKS_EXCLUDED(mu_);
+      const ServableId& servable_id) const TF_LOCKS_EXCLUDED(mu_);
 
   /// Returns the current states of all tracked versions of the given servable,
   /// if any.
   VersionMap GetVersionStates(const string& servable_name) const
-      LOCKS_EXCLUDED(mu_);
+      TF_LOCKS_EXCLUDED(mu_);
 
   /// Returns the current states of all tracked versions of all servables.
-  ServableMap GetAllServableStates() const LOCKS_EXCLUDED(mu_);
+  ServableMap GetAllServableStates() const TF_LOCKS_EXCLUDED(mu_);
 
   /// Returns the current states of all versions of all servables which have not
   /// transitioned to state ServableState::ManagerState::kEnd.
-  ServableMap GetLiveServableStates() const LOCKS_EXCLUDED(mu_);
+  ServableMap GetLiveServableStates() const TF_LOCKS_EXCLUDED(mu_);
 
   // Returns all servables that are in state
   // ServableState::ManagerState::kAvailable.
   // Note that as opposed to GetAllServableStates() and GetLiveServableStates(),
   // this method loops over all the tracked servables.
-  ServableSet GetAvailableServableStates() const LOCKS_EXCLUDED(mu_);
+  ServableSet GetAvailableServableStates() const TF_LOCKS_EXCLUDED(mu_);
 
   /// Returns the current bounded log of handled servable state events.
-  BoundedLog GetBoundedLog() const LOCKS_EXCLUDED(mu_);
+  BoundedLog GetBoundedLog() const TF_LOCKS_EXCLUDED(mu_);
 
   /// Notifies when all of the servables have reached the 'goal_state'.
   ///
@@ -144,7 +144,7 @@ class ServableStateMonitor {
   void NotifyWhenServablesReachState(
       const std::vector<ServableRequest>& servables,
       ServableState::ManagerState goal_state,
-      const ServableStateNotifierFn& notifier_fn) LOCKS_EXCLUDED(mu_);
+      const ServableStateNotifierFn& notifier_fn) TF_LOCKS_EXCLUDED(mu_);
 
   /// Similar to NotifyWhenServablesReachState(...), but instead of notifying,
   /// we wait until the 'goal_state' or kEnd is reached.
@@ -155,16 +155,16 @@ class ServableStateMonitor {
       const std::vector<ServableRequest>& servables,
       ServableState::ManagerState goal_state,
       std::map<ServableId, ServableState::ManagerState>* states_reached =
-          nullptr) LOCKS_EXCLUDED(mu_) TF_MUST_USE_RESULT;
+          nullptr) TF_LOCKS_EXCLUDED(mu_) TF_MUST_USE_RESULT;
 
   // Subscribes to all servable state changes hitting this monitor. This is
   // called after the monitor updates its own state based on the event.
   using NotifyFn = std::function<void(const ServableState&)>;
-  void Notify(const NotifyFn& notify_fn) LOCKS_EXCLUDED(notify_mu_);
+  void Notify(const NotifyFn& notify_fn) TF_LOCKS_EXCLUDED(notify_mu_);
 
  private:
   optional<ServableStateMonitor::ServableStateAndTime> GetStateAndTimeInternal(
-      const ServableId& servable_id) const EXCLUSIVE_LOCKS_REQUIRED(mu_);
+      const ServableId& servable_id) const TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Request to send notification, setup using
   // NotifyWhenServablesReachState(...).
@@ -180,16 +180,16 @@ class ServableStateMonitor {
   optional<std::pair<bool, std::map<ServableId, ServableState::ManagerState>>>
   ShouldSendStateReachedNotification(
       const ServableStateNotificationRequest& notification_request)
-      EXCLUSIVE_LOCKS_REQUIRED(mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Goes through the notification requests and tries to see if any of them can
   // be sent. If a notification is sent, the corresponding request is removed.
-  void MaybeSendStateReachedNotifications() EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void MaybeSendStateReachedNotifications() TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Goes through the notify_fns list and calls each one with the currently
   // received ServableState.
   void SendNotifications(const ServableState& servable_state)
-      LOCKS_EXCLUDED(notify_mu_);
+      TF_LOCKS_EXCLUDED(notify_mu_);
 
   // This method is called when an event comes in, but before we update our
   // state with the contents of the event. Subclasses may override this method
@@ -200,7 +200,7 @@ class ServableStateMonitor {
 
   // Handles a bus event.
   void HandleEvent(const EventBus<ServableState>::EventAndTime& state_and_time)
-      LOCKS_EXCLUDED(mu_, notify_mu_);
+      TF_LOCKS_EXCLUDED(mu_, notify_mu_);
 
   const Options options_;
 
@@ -210,26 +210,26 @@ class ServableStateMonitor {
 
   // The current state of each servable version that has appeared on the bus.
   // (Entries are never removed, even when they enter state kEnd.)
-  ServableMap states_ GUARDED_BY(mu_);
+  ServableMap states_ TF_GUARDED_BY(mu_);
 
   // The current state of each servable version that has not transitioned to
   // state ServableState::ManagerState::kEnd.
-  ServableMap live_states_ GUARDED_BY(mu_);
+  ServableMap live_states_ TF_GUARDED_BY(mu_);
 
   // Deque of pairs of timestamp and ServableState, corresponding to the most
   // recent servable state events handled by the monitor. The size of this deque
   // is upper bounded by max_count_log_events in Options.
-  BoundedLog log_ GUARDED_BY(mu_);
+  BoundedLog log_ TF_GUARDED_BY(mu_);
 
   std::vector<ServableStateNotificationRequest>
-      servable_state_notification_requests_ GUARDED_BY(mu_);
+      servable_state_notification_requests_ TF_GUARDED_BY(mu_);
 
   // Separate mutex to protect the notify_fns_ so that they can be updated
   // independently. This also allows these notify_fns_ to call other methods
   // in ServableStateMonitor which don't depend on this mutex without being
   // deadlocked.
   mutable mutex notify_mu_;
-  std::vector<NotifyFn> notify_fns_ GUARDED_BY(notify_mu_);
+  std::vector<NotifyFn> notify_fns_ TF_GUARDED_BY(notify_mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(ServableStateMonitor);
 };

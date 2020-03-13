@@ -216,7 +216,7 @@ class ServerCore : public Manager {
   /// IMPORTANT: It is only legal to call this method more than once if using
   /// ModelConfigList (versus custom model config).
   virtual Status ReloadConfig(const ModelServerConfig& config)
-      LOCKS_EXCLUDED(config_mu_);
+      TF_LOCKS_EXCLUDED(config_mu_);
 
   /// Returns ServableStateMonitor that can be used to query servable states.
   virtual ServableStateMonitor* servable_state_monitor() const {
@@ -318,7 +318,7 @@ class ServerCore : public Manager {
       Target<StoragePath>* target,
       std::unique_ptr<FileSystemStoragePathSource>* source,
       std::unique_ptr<PrefixStoragePathSourceAdapter>* prefix_source_adapter)
-      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // The source adapters to deploy, to handle the configured platforms as well
   // as models whose platform is unknown (errors).
@@ -347,35 +347,36 @@ class ServerCore : public Manager {
   // Connects the source adapters to the manager and waits it to load all
   // configured models.
   Status ConnectAdaptersToManagerAndAwaitModelLoads(SourceAdapters* adapters)
-      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // Updates the config of 'storage_path_source_and_router_->source'.
   Status ReloadStoragePathSourceConfig(
       const FileSystemStoragePathSourceConfig& source_config)
-      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // Updates the configured routes of 'storage_path_source_and_router_->router'.
   Status ReloadRoutes(const DynamicSourceRouter<StoragePath>::Routes& routes)
-      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // Adds/reloads models through ModelConfigList of 'config_'.
-  Status AddModelsViaModelConfigList() EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+  Status AddModelsViaModelConfigList() TF_EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // Adds/reloads models through custom model config of 'config_'.
-  Status AddModelsViaCustomModelConfig() EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+  Status AddModelsViaCustomModelConfig()
+      TF_EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // Updates the ServerRequestLogger based on the ModelConfigList.
   Status MaybeUpdateServerRequestLogger(
       ModelServerConfig::ConfigCase config_case)
-      EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(config_mu_);
 
   // Updates 'model_labels_to_versions_' based on 'config_'. Throws an error if
   // requesting to assign an existing label to a version not in state
   // kAvailable. For a new version label, it can be assigned to a version that
   // is not in state kAvailable yet if
   // allow_version_labels_for_unavailable_models is true.
-  Status UpdateModelVersionLabelMap() EXCLUSIVE_LOCKS_REQUIRED(config_mu_)
-      LOCKS_EXCLUDED(model_labels_to_versions_mu_);
+  Status UpdateModelVersionLabelMap() TF_EXCLUSIVE_LOCKS_REQUIRED(config_mu_)
+      TF_LOCKS_EXCLUDED(model_labels_to_versions_mu_);
 
   // ************************************************************************
   // Request Processing.
@@ -388,7 +389,7 @@ class ServerCore : public Manager {
   // Gets the version associated with 'label', for the given model name.
   Status GetModelVersionForLabel(const string& model_name, const string& label,
                                  int64* version) const
-      LOCKS_EXCLUDED(model_labels_to_versions_mu_);
+      TF_LOCKS_EXCLUDED(model_labels_to_versions_mu_);
 
   Status GetUntypedServableHandle(
       const ServableRequest& request,
@@ -414,11 +415,11 @@ class ServerCore : public Manager {
   UniquePtrWithDeps<AspiredVersionsManager> manager_;
 
   // The most recent config supplied to ReloadConfig().
-  ModelServerConfig config_ GUARDED_BY(config_mu_);
+  ModelServerConfig config_ TF_GUARDED_BY(config_mu_);
 
   // A model_name->label->version# map.
   std::unique_ptr<std::map<string, std::map<string, int64>>>
-      model_labels_to_versions_ GUARDED_BY(model_labels_to_versions_mu_);
+      model_labels_to_versions_ TF_GUARDED_BY(model_labels_to_versions_mu_);
 
   struct StoragePathSourceAndRouter {
     FileSystemStoragePathSource* source;
@@ -429,7 +430,7 @@ class ServerCore : public Manager {
   // pointers to the source and router (to enable reconfiguration later). Both
   // are owned by 'manager_'.
   optional<StoragePathSourceAndRouter> storage_path_source_and_router_
-      GUARDED_BY(config_mu_);
+      TF_GUARDED_BY(config_mu_);
 
   // A mutex for reconfiguration, used by ReloadConfig().
   mutable mutex config_mu_;

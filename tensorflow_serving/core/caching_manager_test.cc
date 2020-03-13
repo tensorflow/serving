@@ -107,13 +107,13 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
   mutable mutex mu_;
 
   // The current earliest version.
-  int64 earliest_version_ GUARDED_BY(mu_) = 0;
+  int64 earliest_version_ TF_GUARDED_BY(mu_) = 0;
 
   // The current latest version.
-  int64 latest_version_ GUARDED_BY(mu_) = 0;
+  int64 latest_version_ TF_GUARDED_BY(mu_) = 0;
 
   // Tracks the number of loaders dispensed by the loader-factory.
-  int64 num_loaders_dispensed_ GUARDED_BY(mu_) = 0;
+  int64 num_loaders_dispensed_ TF_GUARDED_BY(mu_) = 0;
 
   TF_DISALLOW_COPY_AND_ASSIGN(StringLoaderFactory);
 };

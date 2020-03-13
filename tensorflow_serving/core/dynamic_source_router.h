@@ -63,7 +63,7 @@ class DynamicSourceRouter final : public SourceRouter<T> {
   const int num_output_ports_;
 
   mutable mutex routes_mu_;
-  Routes routes_ GUARDED_BY(routes_mu_);
+  Routes routes_ TF_GUARDED_BY(routes_mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(DynamicSourceRouter);
 };

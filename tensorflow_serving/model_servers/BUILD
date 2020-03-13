@@ -208,7 +208,7 @@ cc_library(
         "//tensorflow_serving/apis:model_management_cc_proto",
         "//tensorflow_serving/apis:model_service_cc_proto",
         "//tensorflow_serving/util:status_util",
-        "@grpc//:grpc++",
+        "@com_github_grpc_grpc//:grpc++",
     ],
 )
 
@@ -230,7 +230,7 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:multi_inference_helper",
         "//tensorflow_serving/servables/tensorflow:predict_impl",
         "//tensorflow_serving/servables/tensorflow:regression_service",
-        "@grpc//:grpc++",
+        "@com_github_grpc_grpc//:grpc++",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
@@ -241,7 +241,7 @@ cc_library(
     srcs = ["grpc_status_util.cc"],
     hdrs = ["grpc_status_util.h"],
     deps = [
-        "@grpc//:grpc++",
+        "@com_github_grpc_grpc//:grpc++",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -324,7 +324,7 @@ cc_library(
         ":grpc_status_util",
         ":model_service_impl",
         "@com_google_protobuf//:cc_wkt_protos",
-        "@grpc//:grpc++",
+        "@com_github_grpc_grpc//:grpc++",
         "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",

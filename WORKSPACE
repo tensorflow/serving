@@ -8,11 +8,11 @@ workspace(name = "tf_serving")
 # 3. Request the new archive to be mirrored on mirror.bazel.build for more
 #    reliable downloads.
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
+
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "3513fd2e31a9297452a257e687b88a4c9b44b983880f67f8469b5c6a62bec1d2",
-    git_commit = "7cf58aa514b348b0b44610555dd8e3002c32e999",
-    patch = "//third_party/tf_patch:tf.patch"
+    sha256 = "788bb65c12a79fd02746d614bd87485738d9e4c1aed79fde52ffea434e1c1050",
+    git_commit = "553bff39bbec23e0d7b792fd8b4383014ad0401f",
 )
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
@@ -24,11 +24,13 @@ http_archive(
 )
 
 load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
+
 rules_pkg_dependencies()
 
-
-load("@org_tensorflow//third_party/toolchains/preconfig/generate:archives.bzl",
-     "bazel_toolchains_archive")
+load(
+    "@org_tensorflow//third_party/toolchains/preconfig/generate:archives.bzl",
+    "bazel_toolchains_archive",
+)
 
 bazel_toolchains_archive()
 
@@ -53,15 +55,30 @@ http_archive(
 )
 http_archive(
     name = "bazel_skylib",
-    sha256 = "2ef429f5d7ce7111263289644d233707dba35e39696377ebab8b0bc701f7818e",
-    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/0.8.0/bazel-skylib.0.8.0.tar.gz"],
+    sha256 = "1dde365491125a3db70731e25658dfdd3bc5dbdfd11b840b3e987ecf043c7ca0",
+    urls = [
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/bazelbuild/bazel-skylib/releases/download/0.9.0/bazel_skylib-0.9.0.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/0.9.0/bazel_skylib-0.9.0.tar.gz",
+    ],
 )  # https://github.com/bazelbuild/bazel-skylib/releases
+
 # END: Upstream TensorFlow dependencies
 
 # Please add all new TensorFlow Serving dependencies in workspace.bzl.
 load("//tensorflow_serving:workspace.bzl", "tf_serving_workspace")
+
 tf_serving_workspace()
 
 # Specify the minimum required bazel version.
 load("@org_tensorflow//tensorflow:version_check.bzl", "check_bazel_version_at_least")
+
 check_bazel_version_at_least("2.0.0")
+
+# GPRC deps, required to match TF's.  Only after calling tf_serving_workspace()
+load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
+
+grpc_deps()
+
+load("@upb//bazel:repository_defs.bzl", "bazel_version_repository")
+
+bazel_version_repository(name = "bazel_version")

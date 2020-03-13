@@ -312,7 +312,7 @@ class ClassRegistry {
   // A map from proto descriptor names to factories, with a lock.
   struct LockableFactoryMap {
     mutex mu;
-    std::unordered_map<string, FactoryType*> factory_map GUARDED_BY(mu);
+    std::unordered_map<string, FactoryType*> factory_map TF_GUARDED_BY(mu);
   };
 
   // Returns a pointer to the factory map. There is one factory map per set of

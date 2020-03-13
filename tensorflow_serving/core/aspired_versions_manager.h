@@ -230,7 +230,7 @@ class AspiredVersionsManager : public Manager,
   void EnqueueAspiredVersionsRequest(
       const StringPiece servable_name,
       std::vector<ServableData<std::unique_ptr<Loader>>> versions)
-      LOCKS_EXCLUDED(pending_aspired_versions_requests_mu_);
+      TF_LOCKS_EXCLUDED(pending_aspired_versions_requests_mu_);
 
   // Processes an aspired-versions request. It assumes the request doesn't
   // re-aspire any servables currently marked as not aspired in
@@ -238,41 +238,41 @@ class AspiredVersionsManager : public Manager,
   void ProcessAspiredVersionsRequest(
       const StringPiece servable_name,
       std::vector<ServableData<std::unique_ptr<Loader>>> versions)
-      EXCLUSIVE_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
 
   // Determines whether an aspired-versions request contains any versions that
   // are currently being managed in 'basic_manager_' with is_aspired==false.
   bool ContainsAnyReaspiredVersions(
       const StringPiece servable_name,
       const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) const
-      SHARED_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
+      TF_SHARED_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
 
   // Performs the action on the harness.
   void PerformAction(const AspiredVersionPolicy::ServableAction action)
-      EXCLUSIVE_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
 
   // Goes through the harness map and calls the configured servable_policy with
   // the state snapshots to get a list of suggested actions. The actions are
   // then ordered and finally the topmost one is performed.
   optional<AspiredVersionPolicy::ServableAction> GetNextAction()
-      EXCLUSIVE_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
 
   // Checks for servables that are not aspired and at some final state and tells
   // 'basic_manager_' to forget about them. This method is intended to be
   // invoked periodically, interleaved with InvokePolicyAndExecuteAction() and
   // HandlePendingAspiredVersionsRequests().
-  void FlushServables() LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_);
+  void FlushServables() TF_LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_);
 
   // Handles enqueued aspired-versions requests. This method is intended to be
   // invoked periodically, interleaved with InvokePolicyAndExecuteAction().
   void HandlePendingAspiredVersionsRequests()
-      LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_,
-                     pending_aspired_versions_requests_mu_);
+      TF_LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_,
+                        pending_aspired_versions_requests_mu_);
 
   // Invokes the aspired-version policy and executes any returned policy action.
   // This method is intended to be invoked periodically.
   void InvokePolicyAndExecuteAction()
-      LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_);
+      TF_LOCKS_EXCLUDED(basic_manager_read_modify_write_mu_);
 
   // Sets the number of load threads.
   //
@@ -294,7 +294,7 @@ class AspiredVersionsManager : public Manager,
   using AspiredVersionsMap =
       std::map<string, std::vector<ServableData<std::unique_ptr<Loader>>>>;
   AspiredVersionsMap pending_aspired_versions_requests_
-      GUARDED_BY(pending_aspired_versions_requests_mu_);
+      TF_GUARDED_BY(pending_aspired_versions_requests_mu_);
   mutable mutex pending_aspired_versions_requests_mu_;
 
   // To lock basic_manager_ to perform atomic read/modify/write operations on

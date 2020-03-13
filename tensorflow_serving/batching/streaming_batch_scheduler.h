@@ -184,13 +184,13 @@ class StreamingBatchScheduler : public BatchScheduler<TaskType> {
 
   // Closes 'open_batch_' (unless it equals nullptr), and replaces it with a
   // fresh open batch. Schedules the new batch on 'batch_threads_'.
-  void StartNewBatch() EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void StartNewBatch() TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Takes a snapshot of 'open_batch_num_', and schedules an event with
   // 'batch_closer_' to close it at time 'close_time_micros' if it is still open
   // at that time.
   void ScheduleCloseOfCurrentOpenBatch(uint64 close_time_micros)
-      EXCLUSIVE_LOCKS_REQUIRED(mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   const Options options_;
 
@@ -206,21 +206,22 @@ class StreamingBatchScheduler : public BatchScheduler<TaskType> {
 
   // The batch that is currently open and into which new tasks can be added.
   // Not owned here; owned by the batch thread pool.
-  Batch<TaskType>* open_batch_ GUARDED_BY(mu_) = nullptr;
+  Batch<TaskType>* open_batch_ TF_GUARDED_BY(mu_) = nullptr;
 
   // The sequence number of 'open_batch_'. Incremented each time 'open_batch_'
   // is assigned to a new (non-null) batch object.
-  int64 open_batch_num_ GUARDED_BY(mu_) = 0;
+  int64 open_batch_num_ TF_GUARDED_BY(mu_) = 0;
 
   // The number of batches "in progress", i.e. batches that have been started
   // but for which the process-batch callback hasn't finished. Note that this
   // counter is somewhat conservative (i.e. might be an overestimate), because
   // it gets decremented after the callback finishes and there could be races.
-  int num_batches_in_progress_ GUARDED_BY(mu_) = 0;
+  int num_batches_in_progress_ TF_GUARDED_BY(mu_) = 0;
 
   // A background task we use to schedule batches to close when they hit their
   // timeout.
-  std::unique_ptr<internal::SingleTaskScheduler> batch_closer_ GUARDED_BY(mu_);
+  std::unique_ptr<internal::SingleTaskScheduler> batch_closer_
+      TF_GUARDED_BY(mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(StreamingBatchScheduler);
 };
@@ -276,7 +277,7 @@ class SingleTaskScheduler {
   };
 
   // A newly-scheduled task hasn't yet been picked up by 'thread_'.
-  optional<Task> updated_task_ GUARDED_BY(mu_);
+  optional<Task> updated_task_ TF_GUARDED_BY(mu_);
 
   // The time parameter passed in the most recent Schedule() invocation.
   // Used to enforce monotonicity.

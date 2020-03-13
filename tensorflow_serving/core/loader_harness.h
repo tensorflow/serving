@@ -130,7 +130,7 @@ class LoaderHarness final {
   ServableId id() const { return id_; }
 
   /// Returns the current state of underlying Servable.
-  State state() const LOCKS_EXCLUDED(mu_);
+  State state() const TF_LOCKS_EXCLUDED(mu_);
 
   /// Returns a pointer to the wrapped loader.
   /// Ownership remains with this class.
@@ -138,18 +138,18 @@ class LoaderHarness final {
 
   /// Returns the current overall state snapshot of the underlying Servable.
   template <typename T = std::nullptr_t>
-  ServableStateSnapshot<T> loader_state_snapshot() const LOCKS_EXCLUDED(mu_);
+  ServableStateSnapshot<T> loader_state_snapshot() const TF_LOCKS_EXCLUDED(mu_);
 
   /// Transitions the state of the harness to kLoadRequested iff its current
   /// state is kNew. The test-and-change is done transactionally, so this method
   /// can be used to ensure that at most one Load() request can proceed.
-  Status LoadRequested() LOCKS_EXCLUDED(mu_);
+  Status LoadRequested() TF_LOCKS_EXCLUDED(mu_);
 
   /// Transitions to kLoadApproved.
   ///
   /// REQUIRES: State is kLoadRequested when called. Otherwise DCHECK-fails,
   /// transitions to state kError and invokes 'options_.error_callback'.
-  Status LoadApproved() LOCKS_EXCLUDED(mu_);
+  Status LoadApproved() TF_LOCKS_EXCLUDED(mu_);
 
   /// Transitions to kLoading, delegates to Servable::Load(), then transitions
   /// either to kReady if Load() succeeds, or to kError (and invokes 'options_.
@@ -161,12 +161,12 @@ class LoaderHarness final {
   ///
   /// REQUIRES: State is kLoadApproved when called. Otherwise DCHECK-fails,
   /// transitions to state kError and invokes 'options_.error_callback'.
-  Status Load() LOCKS_EXCLUDED(mu_);
+  Status Load() TF_LOCKS_EXCLUDED(mu_);
 
   /// Transitions the state of the harness to kUnloadRequested iff its current
   /// state is kReady. The test-and-change is done transactionally, so this
   /// method can be used to ensure that at most one Load() request can proceed.
-  Status UnloadRequested() LOCKS_EXCLUDED(mu_);
+  Status UnloadRequested() TF_LOCKS_EXCLUDED(mu_);
 
   /// Cancels retrying the load of the servable. This is best-effort, and does
   /// not preempt a Load() which is already happening, only subsequent calls.
@@ -174,22 +174,22 @@ class LoaderHarness final {
   /// If the retries are cancelled, the servable goes into a state dependent on
   /// the last Load() called on it. If the last Load() was successful, it will
   /// be in state kReady, else in kError.
-  void set_cancel_load_retry(bool value) LOCKS_EXCLUDED(mu_);
-  bool cancel_load_retry() LOCKS_EXCLUDED(mu_);
+  void set_cancel_load_retry(bool value) TF_LOCKS_EXCLUDED(mu_);
+  bool cancel_load_retry() TF_LOCKS_EXCLUDED(mu_);
 
   /// Transitions to kUnloading, delegates to Servable::Unload(), then
   /// transitions to kDisabled when Unload() is done.
   ///
   /// REQUIRES: State is kQuiesced when called. Otherwise DCHECK-fails,
   /// transitions to state kError and invokes 'options_.error_callback'.
-  Status Unload() LOCKS_EXCLUDED(mu_);
+  Status Unload() TF_LOCKS_EXCLUDED(mu_);
 
   /// Transitions the state to kQuiescing, which means that we would like to not
   /// give out any more handles to this servable.
   ///
   /// REQUIRES: State is kUnloadRequested when called. Otherwise DCHECK-fails,
   /// transitions to state kError and invokes 'options_.error_callback'.
-  Status StartQuiescing() LOCKS_EXCLUDED(mu_);
+  Status StartQuiescing() TF_LOCKS_EXCLUDED(mu_);
 
   /// Transitions the state to kQuiesced, which means that there are no more
   /// live handles to this servable available in the frontend. At this point, we
@@ -197,17 +197,17 @@ class LoaderHarness final {
   ///
   /// REQUIRES: State is kQuiescing when called. Otherwise DCHECK-fails,
   /// transitions to state kError and invokes 'options_.error_callback'.
-  Status DoneQuiescing() LOCKS_EXCLUDED(mu_);
+  Status DoneQuiescing() TF_LOCKS_EXCLUDED(mu_);
 
   /// Transitions the state to kError and invokes 'options_.error_callback'.
-  void Error(const Status& status) LOCKS_EXCLUDED(mu_);
+  void Error(const Status& status) TF_LOCKS_EXCLUDED(mu_);
 
   /// Whether anything has gone wrong with this servable. If state is kError,
   /// this will be non-OK. If not OK, the error could be something that occurred
   /// in a Source or SourceAdapter, in the Loader, in the Manager, or elsewhere.
   /// All errors pertaining to the servable are reported here, regardless of
   /// origin.
-  Status status() const LOCKS_EXCLUDED(mu_);
+  Status status() const TF_LOCKS_EXCLUDED(mu_);
 
   /// Gets the additional state. Returns nullptr if the type mismatches or if it
   /// wasn't set.
@@ -222,12 +222,12 @@ class LoaderHarness final {
   // Transitions the state to kError and invokes 'options_.error_callback'.
   // Private method to be used when we want to set an error from another method
   // in this class, where mu_ is already held.
-  void ErrorInternal(const Status& status) EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void ErrorInternal(const Status& status) TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Expects 'state_' to equal 'from', and if so transitions it to 'to'. If not,
   // DCHECK-fails, calls ErrorInternal() with a suitable error and returns the
   // same error.
-  Status TransitionState(State from, State to) EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  Status TransitionState(State from, State to) TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   const ServableId id_;
   const std::unique_ptr<Loader> loader_;
@@ -235,12 +235,12 @@ class LoaderHarness final {
   const UniqueAnyPtr additional_state_;
   const Options options_;
   mutable mutex mu_;
-  State state_ GUARDED_BY(mu_) = State::kNew;
+  State state_ TF_GUARDED_BY(mu_) = State::kNew;
   // If state_ is kError, this will be non-OK.
-  Status status_ GUARDED_BY(mu_);
+  Status status_ TF_GUARDED_BY(mu_);
   // If set to true, we don't try to retry the load of the servable, if not
   // loaded by the first attempt.
-  bool cancel_load_retry_ GUARDED_BY(mu_) = false;
+  bool cancel_load_retry_ TF_GUARDED_BY(mu_) = false;
 
   TF_DISALLOW_COPY_AND_ASSIGN(LoaderHarness);
 };

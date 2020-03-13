@@ -30,7 +30,7 @@ namespace {
 class Registry {
  public:
   Status Register(const string& type, const LogCollector::Factory& factory)
-      LOCKS_EXCLUDED(mu_) {
+      TF_LOCKS_EXCLUDED(mu_) {
     mutex_lock l(mu_);
     const auto found_it = factory_map_.find(type);
     if (found_it != factory_map_.end()) {
@@ -41,7 +41,7 @@ class Registry {
   }
 
   const LogCollector::Factory* Lookup(const string& type) const
-      LOCKS_EXCLUDED(mu_) {
+      TF_LOCKS_EXCLUDED(mu_) {
     mutex_lock l(mu_);
     const auto found_it = factory_map_.find(type);
     if (found_it == factory_map_.end()) {
@@ -53,7 +53,7 @@ class Registry {
  private:
   mutable mutex mu_;
   std::unordered_map<string, LogCollector::Factory> factory_map_
-      GUARDED_BY(mu_);
+      TF_GUARDED_BY(mu_);
 };
 
 Registry* GetRegistry() {

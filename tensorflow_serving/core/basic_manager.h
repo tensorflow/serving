@@ -293,13 +293,13 @@ class BasicManager : public Manager {
   // status if a corresponding harness was found, else an error status.
   Status GetHealthyHarness(const ServableId& servable_id,
                            LoaderHarness** harness)
-      EXCLUSIVE_LOCKS_REQUIRED(mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Obtains a pointer to every managed loader that is currently holding
   // resources, i.e. whose state is one of kApprovedForLoading, kLoading,
   // kReady, kUnloadRequested, kQuiescing, kQuiesced or kUnloading.
   std::vector<const Loader*> GetLoadersCurrentlyUsingResources() const
-      EXCLUSIVE_LOCKS_REQUIRED(mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // A load or unload request for a particular servable. Facilitates code
   // sharing across the two cases.
@@ -311,13 +311,13 @@ class BasicManager : public Manager {
 
   // A unification of LoadServable() and UnloadServable().
   void LoadOrUnloadServable(const LoadOrUnloadRequest& request,
-                            DoneCallback done_callback) LOCKS_EXCLUDED(mu_);
+                            DoneCallback done_callback) TF_LOCKS_EXCLUDED(mu_);
 
   // The synchronous logic for handling a load/unload request, including both
   // the decision and execution phases. This is the method run in the executor.
   void HandleLoadOrUnloadRequest(const LoadOrUnloadRequest& request,
                                  DoneCallback done_callback)
-      LOCKS_EXCLUDED(mu_);
+      TF_LOCKS_EXCLUDED(mu_);
 
   // The decision phase of whether to approve a load/unload request. Delegates
   // to one of ApproveLoad() or ApproveUnload() -- see those methods' comments
@@ -332,7 +332,7 @@ class BasicManager : public Manager {
   // precludes concurrent execution of another request that could delete the
   // harness.)
   Status ApproveLoadOrUnload(const LoadOrUnloadRequest& request,
-                             LoaderHarness** harness) LOCKS_EXCLUDED(mu_);
+                             LoaderHarness** harness) TF_LOCKS_EXCLUDED(mu_);
 
   // The decision phase of whether to approve a load request.
   //
@@ -343,12 +343,12 @@ class BasicManager : public Manager {
   // Argument 'mu_lock' is a lock held on 'mu_'. It is released temporarily via
   // 'num_ongoing_load_unload_executions_cv_'.
   Status ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock)
-      EXCLUSIVE_LOCKS_REQUIRED(mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // The decision phase of whether to approve an unload request. If it succeeds,
   // places the servable into state kQuiescing. Among other things, that
   // prevents a subsequent unload request from proceeding concurrently.
-  Status ApproveUnload(LoaderHarness* harness) EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  Status ApproveUnload(LoaderHarness* harness) TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Attempts to reserve the resources required to load the servable in
   // 'harness'. Does not make any state transitions on 'harness' -- merely
@@ -358,7 +358,7 @@ class BasicManager : public Manager {
   // Argument 'mu_lock' is a lock held on 'mu_'. It is released temporarily via
   // 'num_ongoing_load_unload_executions_cv_'.
   Status ReserveResources(LoaderHarness* harness, mutex_lock* mu_lock)
-      EXCLUSIVE_LOCKS_REQUIRED(mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // The execution phase of loading/unloading a servable. Delegates to either
   // ExecuteLoad() or ExecuteUnload().
@@ -369,17 +369,17 @@ class BasicManager : public Manager {
                              LoaderHarness* harness);
 
   // The execution phase of loading a servable.
-  Status ExecuteLoad(LoaderHarness* harness) LOCKS_EXCLUDED(mu_);
+  Status ExecuteLoad(LoaderHarness* harness) TF_LOCKS_EXCLUDED(mu_);
 
   // The execution phase of loading a unservable.
-  Status ExecuteUnload(LoaderHarness* harness) LOCKS_EXCLUDED(mu_);
+  Status ExecuteUnload(LoaderHarness* harness) TF_LOCKS_EXCLUDED(mu_);
 
   // Unloads all the managed servables.
-  Status UnloadAllServables() LOCKS_EXCLUDED(mu_);
+  Status UnloadAllServables() TF_LOCKS_EXCLUDED(mu_);
 
   // Updates the serving map by copying servables from the managed map, which
   // are ready to be served.
-  void UpdateServingMap() EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void UpdateServingMap() TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Sets the number of load threads.
   //
@@ -388,7 +388,7 @@ class BasicManager : public Manager {
   // the old thread pool blocks until all threads are done, so it could block
   // for a long time.
   void SetNumLoadThreads(uint32 num_load_threads)
-      LOCKS_EXCLUDED(load_executor_mu_);
+      TF_LOCKS_EXCLUDED(load_executor_mu_);
   uint32 num_load_threads() const;
 
   // Keys are the servable names.
@@ -400,7 +400,7 @@ class BasicManager : public Manager {
   // Fetches the harness with this id from the harness_map_. Returns
   // harness_map_.end(), if the harness is not found.
   ManagedMap::iterator FindHarnessInMap(const ServableId& id)
-      EXCLUSIVE_LOCKS_REQUIRED(mu_);
+      TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Publishes the state on the event bus, if an event bus was part of the
   // options, if not we ignore it.
@@ -418,7 +418,7 @@ class BasicManager : public Manager {
 
   // ManagedMap contains all the servables managed by this manager, in different
   // states.
-  ManagedMap managed_map_ GUARDED_BY(mu_);
+  ManagedMap managed_map_ TF_GUARDED_BY(mu_);
 
   // ServingMap contains all the servables which are ready to be served, which
   // is a subset of those in the managed map.
@@ -489,7 +489,7 @@ class BasicManager : public Manager {
   const bool flush_filesystem_caches_ = false;
   // The executor (and associated mutex) used for executing loads of servables.
   mutable mutex load_executor_mu_;
-  std::unique_ptr<Executor> load_executor_ GUARDED_BY(load_executor_mu_);
+  std::unique_ptr<Executor> load_executor_ TF_GUARDED_BY(load_executor_mu_);
 
   // The executor used for executing unloads of servables. (Unlike for loads,
   // the unload executor is fixed for the lifetime of the manager.)
@@ -500,10 +500,10 @@ class BasicManager : public Manager {
 
   // A module that keeps track of available, used and reserved servable
   // resources (e.g. RAM).
-  std::unique_ptr<ResourceTracker> resource_tracker_ GUARDED_BY(mu_);
+  std::unique_ptr<ResourceTracker> resource_tracker_ TF_GUARDED_BY(mu_);
 
   // The number of load/unload requests currently in their execution phase.
-  int num_ongoing_load_unload_executions_ GUARDED_BY(mu_) = 0;
+  int num_ongoing_load_unload_executions_ TF_GUARDED_BY(mu_) = 0;
 
   // Used to wake up threads that are waiting for 'num_ongoing_executions' to
   // decrease.

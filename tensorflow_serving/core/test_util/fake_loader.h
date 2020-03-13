@@ -59,7 +59,7 @@ class FakeLoader : public ResourceUnsafeLoader {
   static thread_local bool was_deleted_in_this_thread_;
 
   // Counts the number of FakeLoader objects alive.
-  static int num_fake_loaders_ GUARDED_BY(num_fake_loaders_mu_);
+  static int num_fake_loaders_ TF_GUARDED_BY(num_fake_loaders_mu_);
   static mutex num_fake_loaders_mu_;
 
   // The servable returned from this loader.

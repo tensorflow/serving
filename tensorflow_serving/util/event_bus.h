@@ -128,16 +128,16 @@ class EventBus : public std::enable_shared_from_this<EventBus<E>> {
   ///   (1) Unsubscribe.
   ///   (2) Tear down anything that the callback references.
   std::unique_ptr<Subscription> Subscribe(const Callback& callback)
-      LOCKS_EXCLUDED(mutex_) TF_MUST_USE_RESULT;
+      TF_LOCKS_EXCLUDED(mutex_) TF_MUST_USE_RESULT;
 
   /// Publishes an event to all subscribers.
-  void Publish(const E& event) LOCKS_EXCLUDED(mutex_);
+  void Publish(const E& event) TF_LOCKS_EXCLUDED(mutex_);
 
  private:
   explicit EventBus(const Options& options);
 
   // Unsubscribes the specified subscriber. Called only by Subscription.
-  void Unsubscribe(const Subscription* subscription) LOCKS_EXCLUDED(mutex_);
+  void Unsubscribe(const Subscription* subscription) TF_LOCKS_EXCLUDED(mutex_);
 
   // All of the information needed for a single subscription, both for
   // publishing events and unsubscribing.
@@ -153,7 +153,7 @@ class EventBus : public std::enable_shared_from_this<EventBus<E>> {
 
   // All subscriptions that the EventBus is aware of. Note that this is not
   // optimized for high scale in the number of subscribers.
-  std::vector<SubscriptionTuple> subscriptions_ GUARDED_BY(mutex_);
+  std::vector<SubscriptionTuple> subscriptions_ TF_GUARDED_BY(mutex_);
 
   const Options options_;
 
