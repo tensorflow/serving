@@ -24,6 +24,7 @@ limitations under the License.
 #include "absl/synchronization/mutex.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/file_system.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/model.h"
@@ -56,6 +57,13 @@ class TfLiteSession : public ServingSession {
              const std::vector<string>& output_tensor_names,
              const std::vector<string>& target_node_names,
              std::vector<Tensor>* outputs, RunMetadata* run_metadata) override;
+
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_tensor_names,
+             const std::vector<string>& target_node_names,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata,
+             const thread::ThreadPoolOptions& thread_pool_options) override;
 
   Status ListDevices(std::vector<DeviceAttributes>* response) override;
 

@@ -21,9 +21,13 @@ limitations under the License.
 #include "google/protobuf/message.h"
 #include "google/protobuf/text_format.h"
 #include <gmock/gmock.h>
+#include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
+#include "tensorflow/core/platform/thread_annotations.h"
+#include "tensorflow/core/platform/threadpool.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow/core/public/session_options.h"
 
 namespace tensorflow {
 namespace serving {
@@ -97,6 +101,41 @@ bool ProtoStringMatcher::MatchAndExplain(
   return p.SerializeAsString() ==
          CreateProto<Message>(expected_).SerializeAsString();
 }
+
+// An implementation of thread::ThreadPoolInterface that delegates calls to
+// thread::ThreadPool but
+class CountingThreadPool : public thread::ThreadPoolInterface {
+ public:
+  CountingThreadPool(Env* env, const string& name, int num_threads)
+      : thread_pool_(env, name, num_threads), num_scheduled_(0) {}
+  ~CountingThreadPool() = default;
+
+  void Schedule(std::function<void()> fn) override {
+    {
+      mutex_lock l(mu_);
+      num_scheduled_++;
+    }
+    thread_pool_.Schedule(fn);
+  }
+
+  int NumThreads() const override { return thread_pool_.NumThreads(); }
+
+  int CurrentThreadId() const override {
+    return thread_pool_.CurrentThreadId();
+  }
+
+  int NumScheduled() const {
+    {
+      mutex_lock l(mu_);
+      return num_scheduled_;
+    }
+  }
+
+ private:
+  thread::ThreadPool thread_pool_;
+  mutable mutex mu_;
+  int32 num_scheduled_ TF_GUARDED_BY(mu_);
+};
 
 }  // namespace test_util
 }  // namespace serving

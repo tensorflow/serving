@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_CORE_TEST_UTIL_MOCK_SESSION_H_
 
 #include <gmock/gmock.h>
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/public/session.h"
 
 namespace tensorflow {
@@ -43,6 +44,15 @@ class MockSession : public tensorflow::Session {
                    const std::vector<string>& output_names,
                    const std::vector<string>& target_nodes,
                    std::vector<Tensor>* outputs, RunMetadata* run_metadata));
+  MOCK_METHOD7(
+      Run,
+      ::tensorflow::Status(
+          const RunOptions& run_options,
+          const std::vector<std::pair<string, Tensor>>& inputs,
+          const std::vector<string>& output_names,
+          const std::vector<string>& target_nodes, std::vector<Tensor>* outputs,
+          RunMetadata* run_metadata,
+          const tensorflow::thread::ThreadPoolOptions& thread_pool_options));
   MOCK_METHOD4(PRunSetup,
                ::tensorflow::Status(const std::vector<string>& input_names,
                                     const std::vector<string>& output_names,

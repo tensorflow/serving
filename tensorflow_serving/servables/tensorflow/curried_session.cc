@@ -52,6 +52,21 @@ Status CurriedSession::Run(const RunOptions& run_options,
                        target_node_names, outputs, run_metadata);
 }
 
+Status CurriedSession::Run(
+    const RunOptions& run_options,
+    const std::vector<std::pair<string, Tensor>>& inputs,
+    const std::vector<string>& output_tensor_names,
+    const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
+    RunMetadata* run_metadata,
+    const thread::ThreadPoolOptions& thread_pool_options) {
+  TF_RETURN_IF_ERROR(ValidateExplicitInputsDontMatchCurriedInputs(inputs));
+  const std::vector<std::pair<string, Tensor>> combined_inputs =
+      AddCurriedInputs(inputs);
+  return wrapped_->Run(run_options, combined_inputs, output_tensor_names,
+                       target_node_names, outputs, run_metadata,
+                       thread_pool_options);
+}
+
 Status CurriedSession::ListDevices(std::vector<DeviceAttributes>* response) {
   return wrapped_->ListDevices(response);
 }

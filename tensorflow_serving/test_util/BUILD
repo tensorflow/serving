@@ -25,8 +25,8 @@ cc_library(
     deps = [
         "@com_google_googletest//:gtest",
         "@com_google_protobuf//:protobuf",
-        "@org_tensorflow//tensorflow/core",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:session_options",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )

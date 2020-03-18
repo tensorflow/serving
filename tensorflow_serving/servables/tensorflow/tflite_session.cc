@@ -283,6 +283,17 @@ Status TfLiteSession::Run(const RunOptions& run_options,
                           const std::vector<string>& target_node_names,
                           std::vector<Tensor>* outputs,
                           RunMetadata* run_metadata) {
+  return Run(run_options, inputs, output_tensor_names, target_node_names,
+             outputs, run_metadata, thread::ThreadPoolOptions());
+}
+
+Status TfLiteSession::Run(
+    const RunOptions& run_options,
+    const std::vector<std::pair<string, Tensor>>& inputs,
+    const std::vector<string>& output_tensor_names,
+    const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
+    RunMetadata* run_metadata,
+    const thread::ThreadPoolOptions& thread_pool_options) {
   // TODO(b/140959776): Remove serialized Run() calls, and support
   // multi-threaded execution -- allowing multiple Run() calls to
   // happen in-parallel.

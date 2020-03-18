@@ -22,6 +22,7 @@ limitations under the License.
 #include <vector>
 
 #include "tensorflow/core/platform/logging.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/public/session.h"
 
 namespace tensorflow {
@@ -70,6 +71,18 @@ class ServingSessionWrapper : public ServingSession {
     return wrapped_->Run(run_options, inputs, output_tensor_names,
                          target_node_names, outputs, run_metadata);
   }
+
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_tensor_names,
+             const std::vector<string>& target_node_names,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata,
+             const thread::ThreadPoolOptions& thread_pool_options) override {
+    return wrapped_->Run(run_options, inputs, output_tensor_names,
+                         target_node_names, outputs, run_metadata,
+                         thread_pool_options);
+  }
+
   Status ListDevices(std::vector<DeviceAttributes>* response) override {
     return wrapped_->ListDevices(response);
   }

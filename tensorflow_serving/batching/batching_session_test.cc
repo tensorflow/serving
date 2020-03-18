@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/batching_session.h"
 
+#include <memory>
+
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
@@ -27,7 +29,9 @@ limitations under the License.
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/macros.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
 #include "tensorflow_serving/test_util/test_util.h"
@@ -60,9 +64,20 @@ class BatchSizeCapturingSession : public ServingSession {
              const std::vector<string>& output_tensor_names,
              const std::vector<string>& target_node_names,
              std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+    return Run(run_options, inputs, output_tensor_names, target_node_names,
+               outputs, run_metadata, thread::ThreadPoolOptions());
+  }
+
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_tensor_names,
+             const std::vector<string>& target_node_names,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata,
+             const thread::ThreadPoolOptions& thread_pool_options) override {
     latest_batch_size_ = inputs[0].second.shape().dim_size(0);
     Status status = wrapped_->Run(run_options, inputs, output_tensor_names,
-                                  target_node_names, outputs, run_metadata);
+                                  target_node_names, outputs, run_metadata,
+                                  thread_pool_options);
     *(run_metadata->mutable_cost_graph()) = cost_graph_;
     return status;
   }
@@ -110,9 +125,12 @@ std::unique_ptr<Session> CreateMatrixHalfPlusTwoSession() {
   return std::move(bundle.session);
 }
 
-// Test that a session handles a single request for the half-plus-two model
-// properly. The request has two input floats (size=2 for batching purposes).
-void TestSingleRequest(float input_0, float input_1, Session* session) {
+// Similar to the above function, but takes 'run_options', 'inter_op_threadpool'
+// and 'intra_op_threadpool' as addititional parameters.
+void TestSingleRequest(const RunOptions& run_options, float input_0,
+                       float input_1, Session* session,
+                       test_util::CountingThreadPool* inter_op_threadpool,
+                       test_util::CountingThreadPool* intra_op_threadpool) {
   Tensor input = test::AsTensor<float>({input_0, input_1}, {2});
   // Half plus two: each output should be input / 2 + 2.
   Tensor expected_output =
@@ -120,9 +138,27 @@ void TestSingleRequest(float input_0, float input_1, Session* session) {
 
   const std::vector<std::pair<string, Tensor>> inputs = {{"x", input}};
   std::vector<Tensor> outputs;
-  TF_ASSERT_OK(session->Run(inputs, {"y"}, {} /* target nodes */, &outputs));
+  RunMetadata run_metadata;
+  thread::ThreadPoolOptions thread_pool_options;
+  thread_pool_options.inter_op_threadpool = inter_op_threadpool;
+  thread_pool_options.intra_op_threadpool = intra_op_threadpool;
+  TF_ASSERT_OK(session->Run(run_options, inputs, {"y"}, {} /* target nodes */,
+                            &outputs, &run_metadata, thread_pool_options));
   ASSERT_EQ(1, outputs.size());
   test::ExpectTensorEqual<float>(expected_output, outputs[0]);
+
+  // The intra_op_threadpool doesn't have anything scheduled.
+  if (inter_op_threadpool != nullptr) {
+    ASSERT_GE(inter_op_threadpool->NumScheduled(), 1);
+  }
+}
+
+// Test that a session handles a single request for the half-plus-two model
+// properly. The request has two input floats (size=2 for batching purposes).
+void TestSingleRequest(float input_0, float input_1, Session* session) {
+  TestSingleRequest(RunOptions(), input_0, input_1, session,
+                    /*inter_op_threadpool=*/nullptr,
+                    /*intra_op_threadpool=*/nullptr);
 }
 
 void TestRequestToMatrixHalfPlusTwo(const std::vector<float>& x_values,
@@ -616,6 +652,36 @@ TEST(BatchingSessionTest, EnqueuedLongerThanTimeout) {
   // Tear down the batcher, so that it schedules the pending batch.
   batching_session = nullptr;
   request_returned.WaitForNotification();
+}
+
+TEST(BatchingSessionTest, ThreadPoolOptions) {
+  BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
+  schedule_options.max_batch_size = 4;  // fits two 2-unit tasks
+  schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
+  schedule_options.num_batch_threads = 1;
+  std::unique_ptr<Session> batching_session;
+  BatchingSessionOptions batching_session_options;
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, {{"x"}, {"y"}},
+      CreateHalfPlusTwoSession(), &batching_session));
+
+  test_util::CountingThreadPool inter_op_threadpool(Env::Default(), "InterOp",
+                                                    /*num_threads=*/1);
+  test_util::CountingThreadPool intra_op_threadpool(Env::Default(), "IntraOp",
+                                                    /*num_threads=*/1);
+
+  // Asynchronously send two requests whose total size is 4. The two requests in
+  // conjunction should trigger a batch to be processed.
+  std::unique_ptr<Thread> first_request_thread(
+      Env::Default()->StartThread(ThreadOptions(), "first_request_thread", [&] {
+        TestSingleRequest(RunOptions(), 100.0f, 42.0f, batching_session.get(),
+                          &inter_op_threadpool, &intra_op_threadpool);
+      }));
+  std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "second_request_thread", [&] {
+        TestSingleRequest(RunOptions(), 71.5f, 18.3f, batching_session.get(),
+                          &inter_op_threadpool, &intra_op_threadpool);
+      }));
 }
 
 }  // namespace

@@ -26,8 +26,10 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/macros.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/profiler/lib/traceme.h"
+#include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/batching/batching_util.h"
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
 #include "tensorflow_serving/util/cleanup.h"
@@ -172,6 +174,17 @@ class BatchingSession : public ServingSession {
              const std::vector<string>& target_node_names,
              std::vector<Tensor>* outputs, RunMetadata* run_metadata) override;
 
+  // Similar to the function above, but takes an additional
+  // 'thread_pool_options' to pass to the underlying Session's Run(). We select
+  // an arbitrary 'thread_pool_options' (typically they are the same across
+  // calls).
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_tensor_names,
+             const std::vector<string>& target_node_names,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata,
+             const thread::ThreadPoolOptions& thread_pool_options) override;
+
   Status ListDevices(std::vector<DeviceAttributes>* response) override;
 
  private:
@@ -270,6 +283,17 @@ Status BatchingSession::Run(
     const std::vector<string>& output_tensor_names,
     const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
     RunMetadata* run_metadata) {
+  return Run(run_options, inputs, output_tensor_names, target_node_names,
+             outputs, run_metadata, thread::ThreadPoolOptions());
+}
+
+Status BatchingSession::Run(
+    const RunOptions& run_options,
+    const std::vector<std::pair<string, Tensor>>& inputs,
+    const std::vector<string>& output_tensor_names,
+    const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
+    RunMetadata* run_metadata,
+    const thread::ThreadPoolOptions& thread_pool_options) {
   if (!target_node_names.empty()) {
     return errors::PermissionDenied(
         "BatchingSession does not support target nodes");
@@ -292,7 +316,8 @@ Status BatchingSession::Run(
       last_log_message_secs = now_secs;
     }
     return wrapped_->Run(run_options, inputs, output_tensor_names,
-                         target_node_names, outputs, run_metadata);
+                         target_node_names, outputs, run_metadata,
+                         thread_pool_options);
   }
   BatchScheduler<BatchingSessionTask>* batch_scheduler =
       batch_scheduler_it->second.get();
@@ -311,6 +336,7 @@ Status BatchingSession::Run(
   task->status = &status;
   task->outputs = outputs;
   task->run_metadata = run_metadata;
+  task->thread_pool_options = thread_pool_options;
 
   TF_RETURN_IF_ERROR(batch_scheduler->Schedule(&task));
   done.WaitForNotification();
@@ -637,13 +663,16 @@ void BatchingSession::ProcessBatch(
     return;
   }
 
+  thread::ThreadPoolOptions thread_pool_options =
+      batch->task(0).thread_pool_options;
+
   const std::vector<string> output_tensor_names(
       signature.output_tensors.begin(), signature.output_tensors.end());
   std::vector<Tensor> combined_outputs;
   RunMetadata run_metadata;
   status = wrapped_->Run(run_options, merged_inputs, output_tensor_names,
                          {} /* target node names */, &combined_outputs,
-                         &run_metadata);
+                         &run_metadata, thread_pool_options);
   status.Update(SplitRunMetadata(&run_metadata, batch.get()));
 
   if (!status.ok()) {

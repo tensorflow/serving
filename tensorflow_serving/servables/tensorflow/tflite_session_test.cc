@@ -30,6 +30,8 @@ limitations under the License.
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/test_benchmark.h"
+#include "tensorflow/core/platform/threadpool_options.h"
+#include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/lite/util.h"
 #include "tensorflow/lite/version.h"
 #include "tensorflow_serving/test_util/test_util.h"
@@ -239,6 +241,38 @@ TEST(TfLiteSession, ProcessStringsFlex) {
   test::ExpectTensorEqual<tstring>(
       outputs[0],
       test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({2, 2})));
+}
+
+TEST(TfLiteSession, ThreadPoolOptions) {
+  string model_bytes =
+      BuildTestModel(tflite::TensorType_STRING, /*use_flex_op=*/false);
+  ::google::protobuf::Map<string, SignatureDef> signatures;
+  std::unique_ptr<TfLiteSession> session;
+  TF_EXPECT_OK(
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+  Tensor input_list =
+      test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({4}));
+  Tensor input_shape = test::AsTensor<int32>({2, 2}, TensorShape({2}));
+  std::vector<Tensor> outputs;
+  RunMetadata run_metadata;
+  thread::ThreadPoolOptions thread_pool_options;
+  test_util::CountingThreadPool inter_op_threadpool(Env::Default(), "InterOp",
+                                                    /*num_threads=*/1);
+  test_util::CountingThreadPool intra_op_threadpool(Env::Default(), "IntraOp",
+                                                    /*num_threads=*/1);
+  thread_pool_options.inter_op_threadpool = &inter_op_threadpool;
+  thread_pool_options.intra_op_threadpool = &intra_op_threadpool;
+  TF_EXPECT_OK(session->Run(
+      RunOptions(),
+      {{kTestModelInputList, input_list}, {kTestModelInputShape, input_shape}},
+      {kTestModelOutput}, {}, &outputs, &run_metadata, thread_pool_options));
+  ASSERT_EQ(outputs.size(), 1);
+  test::ExpectTensorEqual<tstring>(
+      outputs[0],
+      test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({2, 2})));
+  // TfLiteSession does not use the ThreadPoolOptions.
+  EXPECT_EQ(inter_op_threadpool.NumScheduled(), 0);
+  EXPECT_EQ(intra_op_threadpool.NumScheduled(), 0);
 }
 
 #ifdef PLATFORM_GOOGLE
