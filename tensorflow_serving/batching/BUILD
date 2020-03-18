@@ -54,7 +54,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "//tensorflow_serving/batching:batching_util",
+        ":batching_util",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/util:cleanup",
         "//tensorflow_serving/util:hash",

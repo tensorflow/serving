@@ -31,6 +31,7 @@ limitations under the License.
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
+#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -210,7 +211,7 @@ struct BatchingSessionTask : public BatchTask {
   Status* status;
   std::vector<Tensor>* outputs;
   RunMetadata* run_metadata;
-  thread::ThreadPoolOptions thread_pool_options;
+  optional<thread::ThreadPoolOptions> thread_pool_options;
 };
 
 }  // namespace serving

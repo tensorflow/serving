@@ -34,7 +34,6 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
 #include "tensorflow_serving/util/cleanup.h"
 #include "tensorflow_serving/util/hash.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -190,6 +189,14 @@ class BatchingSession : public ServingSession {
  private:
   explicit BatchingSession(const BatchingSessionOptions& options);
 
+  // Helper fucntion to run the session.
+  Status InternalRun(const RunOptions& run_options,
+                     const std::vector<std::pair<string, Tensor>>& inputs,
+                     const std::vector<string>& output_tensor_names,
+                     const std::vector<string>& target_node_names,
+                     std::vector<Tensor>* outputs, RunMetadata* run_metadata,
+                     optional<thread::ThreadPoolOptions> thread_pool_options);
+
   // Computes the size of an input tensor list for batching purposes, by
   // analyzing the 0th dimension size of each of the tensors. All tensors in the
   // list must have the same 0th dimension size to be batchable. If the sizes
@@ -283,8 +290,8 @@ Status BatchingSession::Run(
     const std::vector<string>& output_tensor_names,
     const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
     RunMetadata* run_metadata) {
-  return Run(run_options, inputs, output_tensor_names, target_node_names,
-             outputs, run_metadata, thread::ThreadPoolOptions());
+  return InternalRun(run_options, inputs, output_tensor_names,
+                     target_node_names, outputs, run_metadata, nullopt);
 }
 
 Status BatchingSession::Run(
@@ -294,6 +301,18 @@ Status BatchingSession::Run(
     const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
     RunMetadata* run_metadata,
     const thread::ThreadPoolOptions& thread_pool_options) {
+  return InternalRun(run_options, inputs, output_tensor_names,
+                     target_node_names, outputs, run_metadata,
+                     thread_pool_options);
+}
+
+Status BatchingSession::InternalRun(
+    const RunOptions& run_options,
+    const std::vector<std::pair<string, Tensor>>& inputs,
+    const std::vector<string>& output_tensor_names,
+    const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
+    RunMetadata* run_metadata,
+    optional<thread::ThreadPoolOptions> thread_pool_options) {
   if (!target_node_names.empty()) {
     return errors::PermissionDenied(
         "BatchingSession does not support target nodes");
@@ -315,9 +334,17 @@ Status BatchingSession::Run(
                    << TensorSignatureDebugString(signature);
       last_log_message_secs = now_secs;
     }
-    return wrapped_->Run(run_options, inputs, output_tensor_names,
-                         target_node_names, outputs, run_metadata,
-                         thread_pool_options);
+    // Because the wrapped session may not provide an implementation for
+    // thread_pool_options, we need to invoke different Run() functions
+    // depending on whether thread_pool_options is specified.
+    if (thread_pool_options) {
+      return wrapped_->Run(run_options, inputs, output_tensor_names,
+                           target_node_names, outputs, run_metadata,
+                           thread_pool_options.value());
+    } else {
+      return wrapped_->Run(run_options, inputs, output_tensor_names,
+                           target_node_names, outputs, run_metadata);
+    }
   }
   BatchScheduler<BatchingSessionTask>* batch_scheduler =
       batch_scheduler_it->second.get();
@@ -663,16 +690,25 @@ void BatchingSession::ProcessBatch(
     return;
   }
 
-  thread::ThreadPoolOptions thread_pool_options =
+  optional<thread::ThreadPoolOptions> thread_pool_options =
       batch->task(0).thread_pool_options;
 
   const std::vector<string> output_tensor_names(
       signature.output_tensors.begin(), signature.output_tensors.end());
   std::vector<Tensor> combined_outputs;
   RunMetadata run_metadata;
-  status = wrapped_->Run(run_options, merged_inputs, output_tensor_names,
-                         {} /* target node names */, &combined_outputs,
-                         &run_metadata, thread_pool_options);
+  // Because the wrapped session may not provide an implementation for
+  // thread_pool_options, we need to invoke different Run() functions depending
+  // on whether thread_pool_options is specified.
+  if (thread_pool_options) {
+    status = wrapped_->Run(run_options, merged_inputs, output_tensor_names,
+                           {} /* target node names */, &combined_outputs,
+                           &run_metadata, thread_pool_options.value());
+  } else {
+    status = wrapped_->Run(run_options, merged_inputs, output_tensor_names,
+                           {} /* target node names */, &combined_outputs,
+                           &run_metadata);
+  }
   status.Update(SplitRunMetadata(&run_metadata, batch.get()));
 
   if (!status.ok()) {
