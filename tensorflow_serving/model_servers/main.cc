@@ -132,6 +132,16 @@ int main(int argc, char** argv) {
                        "consumption of the model server, at the potential cost "
                        "of cache misses if model files are accessed after "
                        "servables are loaded."),
+      tensorflow::Flag("num_load_threads",
+                       &options.num_load_threads,
+                       "The number of threads used to load models. If set to "
+                       "0, loads are performed serially."),
+      tensorflow::Flag("num_initial_load_threads",
+                       &options.num_initial_load_threads,
+                       "The number of load threads used to load the initial "
+                       "set of models at server startup. This is set high to "
+                       "load up the initial set of models fast, after this the "
+                       "server uses num_load_threads."),
       tensorflow::Flag("tensorflow_session_parallelism",
                        &options.tensorflow_session_parallelism,
                        "Number of threads to use for running a "

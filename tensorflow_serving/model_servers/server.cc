@@ -283,6 +283,8 @@ Status Server::BuildAndStart(const Options& server_options) {
   options.file_system_poll_wait_seconds =
       server_options.file_system_poll_wait_seconds;
   options.flush_filesystem_caches = server_options.flush_filesystem_caches;
+  options.num_initial_load_threads = server_options.num_initial_load_threads;
+  options.num_load_threads = server_options.num_load_threads;
   options.allow_version_labels_for_unavailable_models =
       server_options.allow_version_labels_for_unavailable_models;
 

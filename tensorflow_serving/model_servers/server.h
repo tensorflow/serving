@@ -62,6 +62,8 @@ class Server {
     tensorflow::int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
     tensorflow::int32 file_system_poll_wait_seconds = 1;
     bool flush_filesystem_caches = true;
+    tensorflow::int32 num_load_threads = 0;
+    tensorflow::int32 num_initial_load_threads = 4.0 * port::NumSchedulableCPUs();
     tensorflow::string model_base_path;
     tensorflow::string saved_model_tags;
     // Tensorflow session parallelism of zero means that both inter and intra op
