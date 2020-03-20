@@ -55,8 +55,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":model_platform_types",
         "//tensorflow_serving/config:platform_config_cc_proto",
-        "//tensorflow_serving/model_servers:model_platform_types",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter_cc_proto",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
     ],
@@ -291,21 +291,13 @@ cc_library(
     ],
 )
 
+# This is not inlined by tools bcos inlining non-constant values
+# is not provably safe.
 SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
     "@org_tensorflow//tensorflow/contrib:contrib_kernels",
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
 ]) + [
     "@org_tensorflow_text//tensorflow_text:ops_lib",
-]
-
-TENSORFLOW_DEPS = [
-    "@org_tensorflow//tensorflow/core:tensorflow",
-    "//tensorflow_serving/servables/tensorflow:classification_service",
-    "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
-    "//tensorflow_serving/servables/tensorflow:multi_inference",
-    "//tensorflow_serving/servables/tensorflow:regression_service",
-    "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
-    "//tensorflow_serving/servables/tensorflow:predict_impl",
 ]
 
 cc_library(
@@ -337,7 +329,14 @@ cc_library(
         "//tensorflow_serving/config:platform_config_cc_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
-    ] + TENSORFLOW_DEPS + SUPPORTED_TENSORFLOW_OPS,
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "//tensorflow_serving/servables/tensorflow:classification_service",
+        "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
+        "//tensorflow_serving/servables/tensorflow:multi_inference",
+        "//tensorflow_serving/servables/tensorflow:regression_service",
+        "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
+        "//tensorflow_serving/servables/tensorflow:predict_impl",
+    ] + SUPPORTED_TENSORFLOW_OPS,
 )
 
 cc_library(
