@@ -337,7 +337,7 @@ Status Server::BuildAndStart(const Options& server_options) {
   builder.SetMaxMessageSize(tensorflow::kint32max);
   const std::vector<GrpcChannelArgument> channel_arguments =
       parseGrpcChannelArgs(server_options.grpc_channel_arguments);
-  for (GrpcChannelArgument channel_argument : channel_arguments) {
+  for (const GrpcChannelArgument& channel_argument : channel_arguments) {
     // gRPC accept arguments of two types, int and string. We will attempt to
     // parse each arg as int and pass it on as such if successful. Otherwise we
     // will pass it as a string. gRPC will log arguments that were not accepted.

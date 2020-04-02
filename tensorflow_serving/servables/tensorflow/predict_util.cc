@@ -48,7 +48,7 @@ Status VerifySignature(const SignatureDef& signature) {
 template <typename T>
 std::set<string> GetMapKeys(const T& proto_map) {
   std::set<string> keys;
-  for (auto it : proto_map) {
+  for (const auto& it : proto_map) {
     keys.insert(it.first);
   }
   return keys;

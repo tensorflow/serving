@@ -262,7 +262,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
   const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
       basic_manager_->GetManagedServableStateSnapshots<Aspired>(
           string(servable_name));
-  for (const ServableStateSnapshot<Aspired> state_snapshot : state_snapshots) {
+  for (const ServableStateSnapshot<Aspired>& state_snapshot : state_snapshots) {
     if (state_snapshot.additional_state->is_aspired) {
       current_aspired_versions.insert(state_snapshot.id.version);
     }
