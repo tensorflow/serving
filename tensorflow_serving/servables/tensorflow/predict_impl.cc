@@ -21,6 +21,7 @@ limitations under the License.
 #include "absl/strings/substitute.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/servables/tensorflow/predict_util.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
@@ -45,12 +46,19 @@ Status TensorflowPredictor::PredictWithModelSpec(const RunOptions& run_options,
                                                  const ModelSpec& model_spec,
                                                  const PredictRequest& request,
                                                  PredictResponse* response) {
-    ServableHandle<SavedModelBundle> bundle;
-    TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &bundle));
-    return internal::RunPredict(
-        run_options, bundle->meta_graph_def, bundle.id().version,
-        core->predict_response_tensor_serialization_option(),
-        bundle->session.get(), request, response);
+  ServableHandle<SavedModelBundle> bundle;
+  TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &bundle));
+  thread::ThreadPoolOptions thread_pool_options;
+  if (thread_pool_factory_ != nullptr) {
+    thread_pool_options.inter_op_threadpool =
+        thread_pool_factory_->GetInterOpThreadPool();
+    thread_pool_options.intra_op_threadpool =
+        thread_pool_factory_->GetIntraOpThreadPool();
+  }
+  return internal::RunPredict(
+      run_options, bundle->meta_graph_def, bundle.id().version,
+      core->predict_response_tensor_serialization_option(),
+      bundle->session.get(), request, response, thread_pool_options);
 }
 
 }  // namespace serving

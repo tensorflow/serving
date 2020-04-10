@@ -21,6 +21,7 @@ limitations under the License.
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/servables/tensorflow/thread_pool_factory.h"
 
 namespace tensorflow {
 namespace serving {
@@ -28,7 +29,10 @@ namespace serving {
 // Utility methods for implementation of PredictionService::Predict.
 class TensorflowPredictor {
  public:
-  explicit TensorflowPredictor() {}
+  TensorflowPredictor() {}
+
+  explicit TensorflowPredictor(ThreadPoolFactory* thread_pool_factory)
+      : thread_pool_factory_(thread_pool_factory) {}
 
   Status Predict(const RunOptions& run_options, ServerCore* core,
                  const PredictRequest& request, PredictResponse* response);
@@ -41,6 +45,7 @@ class TensorflowPredictor {
                               PredictResponse* response);
 
  private:
+  ThreadPoolFactory* thread_pool_factory_ = nullptr;
 };
 
 }  // namespace serving

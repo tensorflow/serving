@@ -28,6 +28,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/model_service_impl.h"
 #include "tensorflow_serving/model_servers/prediction_service_impl.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/servables/tensorflow/thread_pool_factory.h"
 
 namespace tensorflow {
 namespace serving {
@@ -84,6 +85,7 @@ class Server {
     bool enforce_session_run_timeout = true;
     bool remove_unused_fields_from_bundle_metagraph = true;
     bool use_tflite_model = false;
+    tensorflow::string thread_pool_factory_config_file;
 
     Options();
   };
@@ -114,6 +116,7 @@ class Server {
   // A thread that calls PollFilesystemAndReloadConfig() periodically if
   // fs_model_config_poll_wait_seconds > 0.
   std::unique_ptr<PeriodicFunction> fs_config_polling_thread_;
+  std::unique_ptr<ThreadPoolFactory> thread_pool_factory_;
 };
 
 }  // namespace main

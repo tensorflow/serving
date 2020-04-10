@@ -21,6 +21,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
@@ -107,14 +108,15 @@ class PredictImplTest : public ::testing::Test {
     return server_core->GetServableHandle(model_spec, bundle);
   }
 
-  Status CallPredict(ServerCore* server_core,
-                     const PredictRequest& request, PredictResponse* response) {
+  Status CallPredict(ServerCore* server_core, const PredictRequest& request,
+                     PredictResponse* response,
+                     const thread::ThreadPoolOptions& thread_pool_options =
+                         thread::ThreadPoolOptions()) {
     ServableHandle<SavedModelBundle> bundle;
     TF_RETURN_IF_ERROR(GetSavedModelServableHandle(server_core, &bundle));
-    return RunPredict(GetRunOptions(),
-                      bundle->meta_graph_def,
-                      kTestModelVersion, bundle->session.get(),
-                      request, response);
+    return RunPredict(GetRunOptions(), bundle->meta_graph_def,
+                      kTestModelVersion, bundle->session.get(), request,
+                      response, thread_pool_options);
   }
 
   RunOptions GetRunOptions() { return RunOptions(); }
@@ -439,6 +441,44 @@ TEST_F(PredictImplTest, PredictionWithCustomizedSignatures) {
   (*expected_incr_counter_by.mutable_outputs())["output"] =
       output_incr_counter_by;
   EXPECT_THAT(response, test_util::EqualsProto(expected_incr_counter_by));
+}
+
+TEST_F(PredictImplTest, ThreadPoolOptions) {
+  PredictRequest request;
+  PredictResponse response;
+
+  ModelSpec* model_spec = request.mutable_model_spec();
+  model_spec->set_name(kTestModelName);
+  model_spec->mutable_version()->set_value(kTestModelVersion);
+
+  TensorProto tensor_proto;
+  tensor_proto.add_float_val(2.0);
+  tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  (*request.mutable_inputs())[kInputTensorKey] = tensor_proto;
+
+  test_util::CountingThreadPool inter_op_threadpool(Env::Default(), "InterOp",
+                                                    /*num_threads=*/1);
+  test_util::CountingThreadPool intra_op_threadpool(Env::Default(), "IntraOp",
+                                                    /*num_threads=*/1);
+  thread::ThreadPoolOptions thread_pool_options;
+  thread_pool_options.inter_op_threadpool = &inter_op_threadpool;
+  thread_pool_options.intra_op_threadpool = &intra_op_threadpool;
+  TF_EXPECT_OK(
+      CallPredict(GetServerCore(), request, &response, thread_pool_options));
+  TensorProto output_tensor_proto;
+  output_tensor_proto.add_float_val(3);
+  output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  output_tensor_proto.mutable_tensor_shape();
+  PredictResponse expected_response;
+  *expected_response.mutable_model_spec() = *model_spec;
+  expected_response.mutable_model_spec()->set_signature_name(
+      kDefaultServingSignatureDefKey);
+  (*expected_response.mutable_outputs())[kOutputTensorKey] =
+      output_tensor_proto;
+  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
+
+  // The intra_op_threadpool doesn't have anything scheduled.
+  ASSERT_GE(inter_op_threadpool.NumScheduled(), 1);
 }
 
 }  // namespace

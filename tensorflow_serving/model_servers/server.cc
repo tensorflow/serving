@@ -49,6 +49,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/platform_config_util.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
+#include "tensorflow_serving/servables/tensorflow/thread_pool_factory_config.pb.h"
 
 namespace tensorflow {
 namespace serving {
@@ -315,6 +316,16 @@ Status Server::BuildAndStart(const Options& server_options) {
   predict_server_options.server_core = server_core_.get();
   predict_server_options.enforce_session_run_timeout =
       server_options.enforce_session_run_timeout;
+  if (!server_options.thread_pool_factory_config_file.empty()) {
+    ThreadPoolFactoryConfig thread_pool_factory_config;
+    TF_RETURN_IF_ERROR(ParseProtoTextFile<ThreadPoolFactoryConfig>(
+        server_options.thread_pool_factory_config_file,
+        &thread_pool_factory_config));
+    TF_RETURN_IF_ERROR(ThreadPoolFactoryRegistry::CreateFromAny(
+        thread_pool_factory_config.thread_pool_factory_config(),
+        &thread_pool_factory_));
+  }
+  predict_server_options.thread_pool_factory = thread_pool_factory_.get();
   prediction_service_ =
       absl::make_unique<PredictionServiceImpl>(predict_server_options);
 

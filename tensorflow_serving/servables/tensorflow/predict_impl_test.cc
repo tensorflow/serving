@@ -25,6 +25,8 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
+#include "tensorflow_serving/servables/tensorflow/test_util/fake_thread_pool_factory.h"
+#include "tensorflow_serving/servables/tensorflow/test_util/fake_thread_pool_factory.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
 #include "tensorflow_serving/util/oss_or_google.h"
 
@@ -425,6 +427,48 @@ TEST_F(PredictImplTest, ModelSpecOverride) {
                 .PredictWithModelSpec(RunOptions(), GetServerCore(),
                                       model_spec_override, request, &response)
                 .code());
+}
+
+TEST_F(PredictImplTest, ThreadPoolFactory) {
+  PredictRequest request;
+  PredictResponse response;
+
+  ModelSpec* model_spec = request.mutable_model_spec();
+  model_spec->set_name(kTestModelName);
+  model_spec->mutable_version()->set_value(kTestModelVersion);
+
+  TensorProto tensor_proto;
+  tensor_proto.add_float_val(2.0);
+  tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  (*request.mutable_inputs())[kInputTensorKey] = tensor_proto;
+
+  test_util::CountingThreadPool inter_op_threadpool(Env::Default(), "InterOp",
+                                                    /*num_threads=*/1);
+  test_util::CountingThreadPool intra_op_threadpool(Env::Default(), "IntraOp",
+                                                    /*num_threads=*/1);
+  test_util::FakeThreadPoolFactoryConfig fake_thread_pool_factory_config;
+  test_util::FakeThreadPoolFactory fake_thread_pool_factory(
+      fake_thread_pool_factory_config);
+  fake_thread_pool_factory.SetInterOpThreadPool(&inter_op_threadpool);
+  fake_thread_pool_factory.SetIntraOpThreadPool(&intra_op_threadpool);
+
+  TensorflowPredictor predictor(&fake_thread_pool_factory);
+  TF_EXPECT_OK(
+      predictor.Predict(GetRunOptions(), GetServerCore(), request, &response));
+  TensorProto output_tensor_proto;
+  output_tensor_proto.add_float_val(3);
+  output_tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  output_tensor_proto.mutable_tensor_shape();
+  PredictResponse expected_response;
+  *expected_response.mutable_model_spec() = *model_spec;
+  expected_response.mutable_model_spec()->set_signature_name(
+      kDefaultServingSignatureDefKey);
+  (*expected_response.mutable_outputs())[kOutputTensorKey] =
+      output_tensor_proto;
+  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
+
+  // The intra_op_threadpool doesn't have anything scheduled.
+  ASSERT_GE(inter_op_threadpool.NumScheduled(), 1);
 }
 
 }  // namespace

@@ -182,8 +182,8 @@ Status RunPredict(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
     const optional<int64>& servable_version,
     const internal::PredictResponseTensorSerializationOption option,
-    Session* session, const PredictRequest& request,
-    PredictResponse* response) {
+    Session* session, const PredictRequest& request, PredictResponse* response,
+    const thread::ThreadPoolOptions& thread_pool_options) {
   // Validate signatures.
   const string signature_name = request.model_spec().signature_name().empty()
                                     ? kDefaultServingSignatureDefKey
@@ -208,7 +208,7 @@ Status RunPredict(
   RunMetadata run_metadata;
   TF_RETURN_IF_ERROR(session->Run(run_options, input_tensors,
                                   output_tensor_names, {}, &outputs,
-                                  &run_metadata));
+                                  &run_metadata, thread_pool_options));
 
   return PostProcessPredictionResult(output_tensor_aliases, outputs, option,
                                      response);
@@ -218,11 +218,12 @@ Status RunPredict(
 Status RunPredict(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
                   const optional<int64>& servable_version, Session* session,
-                  const PredictRequest& request, PredictResponse* response) {
+                  const PredictRequest& request, PredictResponse* response,
+                  const thread::ThreadPoolOptions& thread_pool_options) {
   return internal::RunPredict(
       run_options, meta_graph_def, servable_version,
       internal::PredictResponseTensorSerializationOption::kAsProtoField,
-      session, request, response);
+      session, request, response, thread_pool_options);
 }
 
 }  // namespace serving

@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_PREDICT_UTIL_H_
 
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
@@ -39,7 +40,9 @@ Status RunPredict(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
     const optional<int64>& servable_version,
     const PredictResponseTensorSerializationOption tensor_serialization_option,
-    Session* session, const PredictRequest& request, PredictResponse* response);
+    Session* session, const PredictRequest& request, PredictResponse* response,
+    const thread::ThreadPoolOptions& thread_pool_options =
+        thread::ThreadPoolOptions());
 
 }  // namespace internal
 
@@ -50,7 +53,9 @@ Status RunPredict(
 Status RunPredict(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
                   const optional<int64>& servable_version, Session* session,
-                  const PredictRequest& request, PredictResponse* response);
+                  const PredictRequest& request, PredictResponse* response,
+                  const thread::ThreadPoolOptions& thread_pool_options =
+                      thread::ThreadPoolOptions());
 
 }  // namespace serving
 }  // namespace tensorflow

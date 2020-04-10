@@ -29,6 +29,7 @@ limitations under the License.
 #include "tensorflow/core/lib/io/record_writer.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/test.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/apis/classification.pb.h"
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/apis/input.pb.h"
@@ -227,9 +228,14 @@ TEST_P(SavedModelBundleWarmupOptionsTest, MixedWarmupData) {
   saved_model_bundle.session.reset(mock);
   Tensor scores(DT_FLOAT, TensorShape({1, 1}));
   Tensor classes(DT_STRING, TensorShape({1, 1}));
-  // Regress and Predict case
+  // Regress case
   EXPECT_CALL(*mock, Run(_, _, SizeIs(1), _, _, _))
-      .Times(num_warmup_records * 2 * GetNumRequestIterations())
+      .Times(num_warmup_records * GetNumRequestIterations())
+      .WillRepeatedly(DoAll(SetArgPointee<4>(std::vector<Tensor>({scores})),
+                            Return(Status::OK())));
+  // Predict case
+  EXPECT_CALL(*mock, Run(_, _, SizeIs(1), _, _, _, _))
+      .Times(num_warmup_records * GetNumRequestIterations())
       .WillRepeatedly(DoAll(SetArgPointee<4>(std::vector<Tensor>({scores})),
                             Return(Status::OK())));
   // Classify case
@@ -260,6 +266,7 @@ TEST(SavedModelBundleWarmupTest, NoWarmupDataFile) {
   MockSession* mock = new MockSession;
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _)).Times(0);
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _)).Times(0);
   TF_EXPECT_OK(RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
                                    base_path, &saved_model_bundle));
 }
@@ -278,6 +285,7 @@ TEST(SavedModelBundleWarmupTest, WarmupDataFileEmpty) {
   MockSession* mock = new MockSession;
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _)).Times(0);
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _)).Times(0);
   TF_EXPECT_OK(RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
                                    base_path, &saved_model_bundle));
 }
@@ -299,7 +307,7 @@ TEST(SavedModelBundleWarmupTest, UnsupportedLogType) {
   AddSignatures(&saved_model_bundle.meta_graph_def);
   MockSession* mock = new MockSession;
   saved_model_bundle.session.reset(mock);
-  EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(Return(Status::OK()));
   const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
                                             base_path, &saved_model_bundle);
@@ -327,7 +335,7 @@ TEST(SavedModelBundleWarmupTest, UnsupportedFileFormat) {
   AddSignatures(&saved_model_bundle.meta_graph_def);
   MockSession* mock = new MockSession;
   saved_model_bundle.session.reset(mock);
-  EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(Return(Status::OK()));
   const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
                                             base_path, &saved_model_bundle);
@@ -355,8 +363,12 @@ TEST(SavedModelBundleWarmupTest, TooManyWarmupRecords) {
   saved_model_bundle.session.reset(mock);
   Tensor scores(DT_FLOAT, TensorShape({1, 1}));
   Tensor classes(DT_STRING, TensorShape({1, 1}));
-  // Regress and Predict case
+  // Regress case
   EXPECT_CALL(*mock, Run(_, _, SizeIs(1), _, _, _))
+      .WillRepeatedly(DoAll(SetArgPointee<4>(std::vector<Tensor>({scores})),
+                            Return(Status::OK())));
+  // Predict case
+  EXPECT_CALL(*mock, Run(_, _, SizeIs(1), _, _, _, _))
       .WillRepeatedly(DoAll(SetArgPointee<4>(std::vector<Tensor>({scores})),
                             Return(Status::OK())));
   // Classify case
@@ -391,6 +403,7 @@ TEST(SavedModelBundleWarmupTest, UnparsableRecord) {
   MockSession* mock = new MockSession;
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _)).Times(0);
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _)).Times(0);
   const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
                                             base_path, &saved_model_bundle);
   ASSERT_FALSE(status.ok());

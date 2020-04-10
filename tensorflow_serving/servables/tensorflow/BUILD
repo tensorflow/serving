@@ -1,8 +1,7 @@
 # Description: TensorFlow servables.
 
 load("//tensorflow_serving:oss_or_google.bzl", "if_google")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
-load("//tensorflow_serving:serving.bzl", "serving_tensorflow_proto_dep")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_tensorflow_proto_dep")
 
 package(
     default_visibility = [
@@ -388,10 +387,12 @@ cc_library(
     ],
     deps = [
         ":predict_util",
+        ":thread_pool_factory",
         ":util",
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/model_servers:server_core",
+        "@com_google_absl//absl/strings",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -417,6 +418,8 @@ cc_test(
         "//tensorflow_serving/model_servers:model_platform_types",
         "//tensorflow_serving/model_servers:platform_config_util",
         "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/servables/tensorflow/test_util:fake_thread_pool_factory",
+        "//tensorflow_serving/servables/tensorflow/test_util:fake_thread_pool_factory_cc_proto",
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:test",
@@ -436,6 +439,7 @@ cc_library(
         "//tensorflow_serving/util:optional",
         "@com_google_absl//absl/strings",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
@@ -867,5 +871,26 @@ cc_test(
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
+    ],
+)
+
+serving_proto_library(
+    name = "thread_pool_factory_config_proto",
+    srcs = ["thread_pool_factory_config.proto"],
+    cc_api_version = 2,
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "@com_google_protobuf//:cc_wkt_protos",
+    ],
+)
+
+cc_library(
+    name = "thread_pool_factory",
+    hdrs = ["thread_pool_factory.h"],
+    deps = [
+        "//tensorflow_serving/util:class_registration",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )

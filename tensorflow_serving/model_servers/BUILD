@@ -230,6 +230,7 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:multi_inference_helper",
         "//tensorflow_serving/servables/tensorflow:predict_impl",
         "//tensorflow_serving/servables/tensorflow:regression_service",
+        "//tensorflow_serving/servables/tensorflow:thread_pool_factory",
         "@com_github_grpc_grpc//:grpc++",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -336,6 +337,8 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:regression_service",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
         "//tensorflow_serving/servables/tensorflow:predict_impl",
+        "//tensorflow_serving/servables/tensorflow:thread_pool_factory",
+        "//tensorflow_serving/servables/tensorflow:thread_pool_factory_config_cc_proto",
     ] + SUPPORTED_TENSORFLOW_OPS,
 )
 
