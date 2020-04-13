@@ -27,6 +27,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/io/path.h"
+#include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/threadpool_options.h"
@@ -199,6 +200,19 @@ SignatureDef CreateSignatureDef(const TensorSignature& tensor_signature) {
     (*signature_def.mutable_outputs())[output_tensor] = output;
   }
   return signature_def;
+}
+
+int GetPercentileTotal(string label) {
+  auto* collection_registry = monitoring::CollectionRegistry::Default();
+  monitoring::CollectionRegistry::CollectMetricsOptions options;
+  const std::unique_ptr<monitoring::CollectedMetrics> collected_metrics =
+      collection_registry->CollectMetrics(options);
+  int total_samples = 0;
+  const monitoring::PointSet& lps = *collected_metrics->point_set_map.at(label);
+  for (int i = 0; i < lps.points.size(); ++i) {
+    total_samples += lps.points[i]->percentiles_value.accumulator;
+  }
+  return static_cast<int>(total_samples);
 }
 
 TEST(BatchingSessionTest, TensorSignatureFromSignatureDef) {
@@ -406,6 +420,12 @@ TEST(BatchingSessionTest, RequestWithIncompatibleInputTensorSizes) {
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
 
+  int32 start_input_value = GetPercentileTotal(
+      "/tensorflow/serving/batching_session/input_batch_size");
+  int32 start_process_value = GetPercentileTotal(
+      "/tensorflow/serving/batching_session/processed_batch_size");
+  int32 start_pad_value =
+      GetPercentileTotal("/tensorflow/serving/batching_session/padding_size");
   TF_ASSERT_OK(CreateBasicBatchingSession(
       schedule_options, batching_session_options,
       {{"input_0", "input_1"}, {"output"}}, CreateHalfPlusTwoSession(),
@@ -416,9 +436,26 @@ TEST(BatchingSessionTest, RequestWithIncompatibleInputTensorSizes) {
       {{"input_0", test::AsTensor<int>({3}, {1})},
        {"input_1", test::AsTensor<int>({5, 7}, {2})}},
       {"output"}, batching_session.get());
+
+  // We expect no change.
+  EXPECT_EQ(start_input_value,
+            GetPercentileTotal(
+                "/tensorflow/serving/batching_session/input_batch_size"));
+  EXPECT_EQ(start_process_value,
+            GetPercentileTotal(
+                "/tensorflow/serving/batching_session/processed_batch_size"));
+  EXPECT_EQ(
+      start_pad_value,
+      GetPercentileTotal("/tensorflow/serving/batching_session/padding_size"));
 }
 
 TEST(BatchingSessionTest, AllowedBatchSizesNoPaddingNeeded) {
+  int32 start_input_value = GetPercentileTotal(
+      "/tensorflow/serving/batching_session/input_batch_size");
+  int32 start_process_value = GetPercentileTotal(
+      "/tensorflow/serving/batching_session/processed_batch_size");
+  int32 start_pad_value =
+      GetPercentileTotal("/tensorflow/serving/batching_session/padding_size");
   // Arrange to capture the batch size.
   std::unique_ptr<BatchSizeCapturingSession> batch_size_capturing_session(
       new BatchSizeCapturingSession(CreateHalfPlusTwoSession()));
@@ -438,9 +475,26 @@ TEST(BatchingSessionTest, AllowedBatchSizesNoPaddingNeeded) {
 
   // It should not add any padding, i.e. leave the batch size at 2.
   EXPECT_EQ(2, batch_size_capturing_session_raw->latest_batch_size());
+
+  // We expect no pad, 2 inputs, and a batch process of 2.
+  EXPECT_EQ(start_input_value + 2,
+            GetPercentileTotal(
+                "/tensorflow/serving/batching_session/input_batch_size"));
+  EXPECT_EQ(start_process_value + 2,
+            GetPercentileTotal(
+                "/tensorflow/serving/batching_session/processed_batch_size"));
+  EXPECT_EQ(
+      start_pad_value,
+      GetPercentileTotal("/tensorflow/serving/batching_session/padding_size"));
 }
 
 TEST(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
+  int32 start_input_value = GetPercentileTotal(
+      "/tensorflow/serving/batching_session/input_batch_size");
+  int32 start_process_value = GetPercentileTotal(
+      "/tensorflow/serving/batching_session/processed_batch_size");
+  int32 start_pad_value =
+      GetPercentileTotal("/tensorflow/serving/batching_session/padding_size");
   // Arrange to capture the batch size.
   std::unique_ptr<BatchSizeCapturingSession> batch_size_capturing_session(
       new BatchSizeCapturingSession(CreateHalfPlusTwoSession()));
@@ -460,6 +514,17 @@ TEST(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
 
   // It should pad the batch size from 2 to 3.
   EXPECT_EQ(3, batch_size_capturing_session_raw->latest_batch_size());
+
+  // We expect 1 pad, 2 inputs, and a batch process of 3.
+  EXPECT_EQ(start_input_value + 2,
+            GetPercentileTotal(
+                "/tensorflow/serving/batching_session/input_batch_size"));
+  EXPECT_EQ(start_process_value + 3,
+            GetPercentileTotal(
+                "/tensorflow/serving/batching_session/processed_batch_size"));
+  EXPECT_EQ(
+      start_pad_value + 1,
+      GetPercentileTotal("/tensorflow/serving/batching_session/padding_size"));
 }
 
 TEST(BatchingSessionTest, UnsortedAllowedBatchSizesRejected) {
