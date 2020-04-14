@@ -38,7 +38,8 @@ class PredictionServiceImpl final : public PredictionService::Service {
       : core_(options.server_core),
         predictor_(new TensorflowPredictor(options.thread_pool_factory)),
         use_saved_model_(options.use_saved_model),
-        enforce_session_run_timeout_(options.enforce_session_run_timeout) {}
+        enforce_session_run_timeout_(options.enforce_session_run_timeout),
+        thread_pool_factory_(options.thread_pool_factory) {}
 
   ::grpc::Status Predict(::grpc::ServerContext* context,
                          const PredictRequest* request,
@@ -65,6 +66,7 @@ class PredictionServiceImpl final : public PredictionService::Service {
   std::unique_ptr<TensorflowPredictor> predictor_;
   const bool use_saved_model_;
   const bool enforce_session_run_timeout_;
+  ThreadPoolFactory* thread_pool_factory_;
 };
 
 }  // namespace serving

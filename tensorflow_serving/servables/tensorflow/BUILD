@@ -583,11 +583,11 @@ cc_library(
     ],
     deps = [
         ":classifier",
+        ":util",
         "//tensorflow_serving/apis:classification_cc_proto",
         "//tensorflow_serving/apis:classifier",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/model_servers:server_core",
-        "//tensorflow_serving/servables/tensorflow:util",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

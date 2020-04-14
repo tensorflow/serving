@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/prediction_service_impl.h"
 
 #include "grpc/grpc.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 #include "tensorflow_serving/servables/tensorflow/classification_service.h"
 #include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
@@ -78,9 +79,16 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
+  thread::ThreadPoolOptions thread_pool_options;
+  if (thread_pool_factory_ != nullptr) {
+    thread_pool_options.inter_op_threadpool =
+        thread_pool_factory_->GetInterOpThreadPool();
+    thread_pool_options.intra_op_threadpool =
+        thread_pool_factory_->GetIntraOpThreadPool();
+  }
   const ::grpc::Status status =
       ToGRPCStatus(TensorflowClassificationServiceImpl::Classify(
-          run_options, core_, *request, response));
+          run_options, core_, thread_pool_options, *request, response));
   if (!status.ok()) {
     VLOG(1) << "Classify request failed: " << status.error_message();
   }

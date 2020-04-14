@@ -29,6 +29,8 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/threadpool.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/platform/tracing.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/classification.pb.h"
@@ -44,10 +46,15 @@ namespace {
 // Implementation of the ClassifierInterface using SavedModel.
 class SavedModelTensorFlowClassifier : public ClassifierInterface {
  public:
-  explicit SavedModelTensorFlowClassifier(const RunOptions& run_options,
-                                          Session* session,
-                                          const SignatureDef* const signature)
-      : run_options_(run_options), session_(session), signature_(signature) {}
+  explicit SavedModelTensorFlowClassifier(
+      const RunOptions& run_options, Session* session,
+      const SignatureDef* const signature,
+      const thread::ThreadPoolOptions& thread_pool_options =
+          thread::ThreadPoolOptions())
+      : run_options_(run_options),
+        session_(session),
+        signature_(signature),
+        thread_pool_options_(thread_pool_options) {}
 
   ~SavedModelTensorFlowClassifier() override = default;
 
@@ -64,7 +71,7 @@ class SavedModelTensorFlowClassifier : public ClassifierInterface {
     int num_examples;
     TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
         run_options_, request.input(), input_tensor_name, output_tensor_names,
-        session_, &outputs, &num_examples));
+        session_, &outputs, &num_examples, thread_pool_options_));
 
     TRACELITERAL("ConvertToClassificationResult");
     return PostProcessClassificationResult(
@@ -75,6 +82,7 @@ class SavedModelTensorFlowClassifier : public ClassifierInterface {
   const RunOptions run_options_;
   Session* const session_;
   const SignatureDef* const signature_;
+  const thread::ThreadPoolOptions thread_pool_options_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(SavedModelTensorFlowClassifier);
 };
@@ -121,8 +129,17 @@ Status CreateFlyweightTensorFlowClassifier(
     const RunOptions& run_options, Session* session,
     const SignatureDef* signature,
     std::unique_ptr<ClassifierInterface>* service) {
-  service->reset(
-      new SavedModelTensorFlowClassifier(run_options, session, signature));
+  return CreateFlyweightTensorFlowClassifier(
+      run_options, session, signature, thread::ThreadPoolOptions(), service);
+}
+
+Status CreateFlyweightTensorFlowClassifier(
+    const RunOptions& run_options, Session* session,
+    const SignatureDef* signature,
+    const thread::ThreadPoolOptions& thread_pool_options,
+    std::unique_ptr<ClassifierInterface>* service) {
+  service->reset(new SavedModelTensorFlowClassifier(
+      run_options, session, signature, thread_pool_options));
   return Status::OK();
 }
 
@@ -295,14 +312,16 @@ Status RunClassify(const RunOptions& run_options,
                    const MetaGraphDef& meta_graph_def,
                    const optional<int64>& servable_version, Session* session,
                    const ClassificationRequest& request,
-                   ClassificationResponse* response) {
+                   ClassificationResponse* response,
+                   const thread::ThreadPoolOptions& thread_pool_options) {
   SignatureDef signature;
   TF_RETURN_IF_ERROR(GetClassificationSignatureDef(request.model_spec(),
                                                    meta_graph_def, &signature));
 
   std::unique_ptr<ClassifierInterface> classifier_interface;
   TF_RETURN_IF_ERROR(CreateFlyweightTensorFlowClassifier(
-      run_options, session, &signature, &classifier_interface));
+      run_options, session, &signature, thread_pool_options,
+      &classifier_interface));
 
   MakeModelSpec(request.model_spec().name(),
                 request.model_spec().signature_name(), servable_version,

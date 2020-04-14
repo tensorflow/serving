@@ -22,6 +22,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
@@ -80,21 +81,24 @@ TEST_F(ClassificationServiceTest, InvalidModelSpec) {
 
   // No model_spec specified.
   EXPECT_EQ(TensorflowClassificationServiceImpl::Classify(
-                RunOptions(), server_core_.get(), request, &response)
+                RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
+                request, &response)
                 .code(),
             tensorflow::error::INVALID_ARGUMENT);
 
   // No model name specified.
   auto* model_spec = request.mutable_model_spec();
   EXPECT_EQ(TensorflowClassificationServiceImpl::Classify(
-                RunOptions(), server_core_.get(), request, &response)
+                RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
+                request, &response)
                 .code(),
             tensorflow::error::INVALID_ARGUMENT);
 
   // No servable found for model name "foo".
   model_spec->set_name("foo");
   EXPECT_EQ(TensorflowClassificationServiceImpl::Classify(
-                RunOptions(), server_core_.get(), request, &response)
+                RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
+                request, &response)
                 .code(),
             tensorflow::error::NOT_FOUND);
 }
@@ -109,7 +113,8 @@ TEST_F(ClassificationServiceTest, InvalidSignature) {
       "}");
   ClassificationResponse response;
   EXPECT_EQ(TensorflowClassificationServiceImpl::Classify(
-                RunOptions(), server_core_.get(), request, &response)
+                RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
+                request, &response)
                 .code(),
             tensorflow::error::INVALID_ARGUMENT);
 }
@@ -157,7 +162,8 @@ TEST_F(ClassificationServiceTest, ClassificationSuccess) {
       "}");
   ClassificationResponse response;
   TF_EXPECT_OK(TensorflowClassificationServiceImpl::Classify(
-      RunOptions(), server_core_.get(), request, &response));
+      RunOptions(), server_core_.get(), thread::ThreadPoolOptions(), request,
+      &response));
   EXPECT_THAT(response,
               test_util::EqualsProto(
                   "result { classifications { classes { score: 42 } } }"
@@ -181,13 +187,77 @@ TEST_F(ClassificationServiceTest, ModelSpecOverride) {
   ClassificationResponse response;
   EXPECT_NE(tensorflow::error::NOT_FOUND,
             TensorflowClassificationServiceImpl::Classify(
-                RunOptions(), server_core_.get(), request, &response)
+                RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
+                request, &response)
                 .code());
   EXPECT_EQ(tensorflow::error::NOT_FOUND,
             TensorflowClassificationServiceImpl::ClassifyWithModelSpec(
-                RunOptions(), server_core_.get(), model_spec_override, request,
-                &response)
+                RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
+                model_spec_override, request, &response)
                 .code());
+}
+
+TEST_F(ClassificationServiceTest, ThreadPoolOptions) {
+  auto request = test_util::CreateProto<ClassificationRequest>(
+      "model_spec {"
+      "  name: \"test_model\""
+      "  signature_name: \"classify_x_to_y\""
+      "}"
+      "input {"
+      "  example_list {"
+      "    examples {"
+      "      features {"
+      "        feature: {"
+      "          key  : \"x\""
+      "          value: {"
+      "            float_list: {"
+      "              value: [ 80.0 ]"
+      "            }"
+      "          }"
+      "        }"
+      "        feature: {"
+      "          key  : \"locale\""
+      "          value: {"
+      "            bytes_list: {"
+      "              value: [ \"pt_BR\" ]"
+      "            }"
+      "          }"
+      "        }"
+      "        feature: {"
+      "          key  : \"age\""
+      "          value: {"
+      "            float_list: {"
+      "              value: [ 19.0 ]"
+      "            }"
+      "          }"
+      "        }"
+      "      }"
+      "    }"
+      "  }"
+      "}");
+
+  test_util::CountingThreadPool inter_op_threadpool(Env::Default(), "InterOp",
+                                                    /*num_threads=*/1);
+  test_util::CountingThreadPool intra_op_threadpool(Env::Default(), "IntraOp",
+                                                    /*num_threads=*/1);
+  thread::ThreadPoolOptions thread_pool_options;
+  thread_pool_options.inter_op_threadpool = &inter_op_threadpool;
+  thread_pool_options.intra_op_threadpool = &intra_op_threadpool;
+  ClassificationResponse response;
+  TF_EXPECT_OK(TensorflowClassificationServiceImpl::Classify(
+      RunOptions(), server_core_.get(), thread_pool_options, request,
+      &response));
+  EXPECT_THAT(response,
+              test_util::EqualsProto(
+                  "result { classifications { classes { score: 42 } } }"
+                  "model_spec {"
+                  "  name: \"test_model\""
+                  "  signature_name: \"classify_x_to_y\""
+                  "  version { value: 123 }"
+                  "}"));
+
+  // The intra_op_threadpool doesn't have anything scheduled.
+  ASSERT_GE(inter_op_threadpool.NumScheduled(), 1);
 }
 
 }  // namespace

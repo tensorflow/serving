@@ -27,6 +27,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/mutex.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/input.pb.h"
@@ -94,6 +95,16 @@ class FakeSession : public tensorflow::Session {
              const std::vector<string>& output_names,
              const std::vector<string>& target_nodes,
              std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+    return Run(run_options, inputs, output_names, target_nodes, outputs,
+               run_metadata, thread::ThreadPoolOptions());
+  }
+
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_names,
+             const std::vector<string>& target_nodes,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata,
+             const thread::ThreadPoolOptions& thread_pool_options) override {
     if (expected_timeout_) {
       CHECK_EQ(*expected_timeout_, run_options.timeout_in_ms());
     }
@@ -441,7 +452,7 @@ TEST_F(RegressorTest, EmptyExampleListWithContext) {
 TEST_F(RegressorTest, RunsFails) {
   MockSession* mock = new MockSession;
   saved_model_bundle_->session.reset(mock);
-  EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(
           ::testing::Return(errors::Internal("Run totally failed")));
   TF_ASSERT_OK(Create());
@@ -461,7 +472,7 @@ TEST_F(RegressorTest, UnexpectedOutputTensorSize) {
   MockSession* mock = new MockSession;
   saved_model_bundle_->session.reset(mock);
   std::vector<Tensor> outputs = {Tensor(DT_FLOAT, TensorShape({2}))};
-  EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
                                  ::testing::Return(Status::OK())));
   TF_ASSERT_OK(Create());
@@ -470,7 +481,7 @@ TEST_F(RegressorTest, UnexpectedOutputTensorSize) {
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("output batch size"));
-  EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
                                  ::testing::Return(Status::OK())));
   RegressionResponse response;
@@ -485,7 +496,7 @@ TEST_F(RegressorTest, UnexpectedOutputTensorType) {
   saved_model_bundle_->session.reset(mock);
   // We expect a FLOAT output type; test returning a STRING.
   std::vector<Tensor> outputs = {Tensor(DT_STRING, TensorShape({1}))};
-  EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
                                  ::testing::Return(Status::OK())));
   TF_ASSERT_OK(Create());
@@ -495,7 +506,7 @@ TEST_F(RegressorTest, UnexpectedOutputTensorType) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Expected output Tensor of DT_FLOAT"));
-  EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
                                  ::testing::Return(Status::OK())));
   RegressionResponse response;

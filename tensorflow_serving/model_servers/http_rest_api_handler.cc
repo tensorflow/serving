@@ -27,6 +27,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/core/servable_handle.h"
@@ -144,7 +145,7 @@ Status HttpRestApiHandler::ProcessClassifyRequest(
 
   ClassificationResponse response;
   TF_RETURN_IF_ERROR(TensorflowClassificationServiceImpl::Classify(
-      run_options_, core_, request, &response));
+      run_options_, core_, thread::ThreadPoolOptions(), request, &response));
   TF_RETURN_IF_ERROR(
       MakeJsonFromClassificationResult(response.result(), output));
   return Status::OK();

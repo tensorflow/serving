@@ -22,6 +22,7 @@ limitations under the License.
 
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/apis/classifier.h"
 #include "tensorflow_serving/util/optional.h"
 
@@ -42,6 +43,13 @@ Status CreateClassifierFromSavedModelBundle(
 Status CreateFlyweightTensorFlowClassifier(
     const RunOptions& run_options, Session* session,
     const SignatureDef* signature,
+    std::unique_ptr<ClassifierInterface>* service);
+
+// Similar to the above function, but with an additional thread_pool_factory.
+Status CreateFlyweightTensorFlowClassifier(
+    const RunOptions& run_options, Session* session,
+    const SignatureDef* signature,
+    const thread::ThreadPoolOptions& thread_pool_options,
     std::unique_ptr<ClassifierInterface>* service);
 
 // Get a classification signature from the meta_graph_def that's either:
@@ -73,7 +81,9 @@ Status RunClassify(const RunOptions& run_options,
                    const MetaGraphDef& meta_graph_def,
                    const optional<int64>& servable_version, Session* session,
                    const ClassificationRequest& request,
-                   ClassificationResponse* response);
+                   ClassificationResponse* response,
+                   const thread::ThreadPoolOptions& thread_pool_options =
+                       thread::ThreadPoolOptions());
 
 }  // namespace serving
 }  // namespace tensorflow

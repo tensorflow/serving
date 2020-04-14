@@ -25,6 +25,7 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/cord.h"
 #include "tensorflow/core/platform/errors.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/internal/serialized_input.pb.h"
@@ -150,7 +151,8 @@ Status PerformOneShotTensorComputation(
     const RunOptions& run_options, const Input& input,
     const string& input_tensor_name,
     const std::vector<string>& output_tensor_names, Session* session,
-    std::vector<Tensor>* outputs, int* num_input_examples) {
+    std::vector<Tensor>* outputs, int* num_input_examples,
+    const thread::ThreadPoolOptions& thread_pool_options) {
   // Setup the input Tensor to be a vector of string containing the serialized
   // tensorflow.Example.
   Tensor input_tensor;
@@ -159,7 +161,8 @@ Status PerformOneShotTensorComputation(
 
   RunMetadata run_metadata;
   return session->Run(run_options, {{input_tensor_name, input_tensor}},
-                      output_tensor_names, {}, outputs, &run_metadata);
+                      output_tensor_names, {}, outputs, &run_metadata,
+                      thread_pool_options);
 }
 
 void MakeModelSpec(const string& model_name,

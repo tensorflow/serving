@@ -228,24 +228,19 @@ TEST_P(SavedModelBundleWarmupOptionsTest, MixedWarmupData) {
   saved_model_bundle.session.reset(mock);
   Tensor scores(DT_FLOAT, TensorShape({1, 1}));
   Tensor classes(DT_STRING, TensorShape({1, 1}));
-  // Regress case
-  EXPECT_CALL(*mock, Run(_, _, SizeIs(1), _, _, _))
-      .Times(num_warmup_records * GetNumRequestIterations())
-      .WillRepeatedly(DoAll(SetArgPointee<4>(std::vector<Tensor>({scores})),
-                            Return(Status::OK())));
-  // Predict case
+  // Regress and Predict cases
   EXPECT_CALL(*mock, Run(_, _, SizeIs(1), _, _, _, _))
-      .Times(num_warmup_records * GetNumRequestIterations())
+      .Times(num_warmup_records * 2 * GetNumRequestIterations())
       .WillRepeatedly(DoAll(SetArgPointee<4>(std::vector<Tensor>({scores})),
                             Return(Status::OK())));
   // Classify case
-  EXPECT_CALL(*mock, Run(_, _, SizeIs(2), _, _, _))
+  EXPECT_CALL(*mock, Run(_, _, SizeIs(2), _, _, _, _))
       .Times(num_warmup_records * GetNumRequestIterations())
       .WillRepeatedly(
           DoAll(SetArgPointee<4>(std::vector<Tensor>({classes, scores})),
                 Return(Status::OK())));
   // MultiInference case
-  EXPECT_CALL(*mock, Run(_, _, SizeIs(3), _, _, _))
+  EXPECT_CALL(*mock, Run(_, _, SizeIs(3), _, _, _, _))
       .Times(num_warmup_records * GetNumRequestIterations())
       .WillRepeatedly(DoAll(
           SetArgPointee<4>(std::vector<Tensor>({classes, scores, scores})),
@@ -363,21 +358,17 @@ TEST(SavedModelBundleWarmupTest, TooManyWarmupRecords) {
   saved_model_bundle.session.reset(mock);
   Tensor scores(DT_FLOAT, TensorShape({1, 1}));
   Tensor classes(DT_STRING, TensorShape({1, 1}));
-  // Regress case
-  EXPECT_CALL(*mock, Run(_, _, SizeIs(1), _, _, _))
-      .WillRepeatedly(DoAll(SetArgPointee<4>(std::vector<Tensor>({scores})),
-                            Return(Status::OK())));
-  // Predict case
+  // Regress and Predict cases
   EXPECT_CALL(*mock, Run(_, _, SizeIs(1), _, _, _, _))
       .WillRepeatedly(DoAll(SetArgPointee<4>(std::vector<Tensor>({scores})),
                             Return(Status::OK())));
   // Classify case
-  EXPECT_CALL(*mock, Run(_, _, SizeIs(2), _, _, _))
+  EXPECT_CALL(*mock, Run(_, _, SizeIs(2), _, _, _, _))
       .WillRepeatedly(
           DoAll(SetArgPointee<4>(std::vector<Tensor>({classes, scores})),
                 Return(Status::OK())));
   // MultiInference case
-  EXPECT_CALL(*mock, Run(_, _, SizeIs(3), _, _, _))
+  EXPECT_CALL(*mock, Run(_, _, SizeIs(3), _, _, _, _))
       .WillRepeatedly(DoAll(
           SetArgPointee<4>(std::vector<Tensor>({classes, scores, scores})),
           Return(Status::OK())));
@@ -427,7 +418,7 @@ TEST(SavedModelBundleWarmupTest, RunFailure) {
   AddSignatures(&saved_model_bundle.meta_graph_def);
   MockSession* mock = new MockSession;
   saved_model_bundle.session.reset(mock);
-  EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::Return(errors::InvalidArgument("Run failed")));
   const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
                                             base_path, &saved_model_bundle);

@@ -28,6 +28,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/mutex.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/classification.pb.h"
@@ -98,6 +99,16 @@ class FakeSession : public tensorflow::Session {
              const std::vector<string>& output_names,
              const std::vector<string>& target_nodes,
              std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+    return Run(run_options, inputs, output_names, target_nodes, outputs,
+               run_metadata, thread::ThreadPoolOptions());
+  }
+
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_names,
+             const std::vector<string>& target_nodes,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata,
+             const thread::ThreadPoolOptions& thread_pool_options) override {
     if (expected_timeout_) {
       CHECK_EQ(*expected_timeout_, run_options.timeout_in_ms());
     }
@@ -293,11 +304,11 @@ class ClassifierTest : public ::testing::Test {
   }
 
   Status Create() {
-      std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
-      saved_model->meta_graph_def = saved_model_bundle_->meta_graph_def;
-      saved_model->session = std::move(saved_model_bundle_->session);
-      return CreateClassifierFromSavedModelBundle(
-          GetRunOptions(), std::move(saved_model), &classifier_);
+    std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
+    saved_model->meta_graph_def = saved_model_bundle_->meta_graph_def;
+    saved_model->session = std::move(saved_model_bundle_->session);
+    return CreateClassifierFromSavedModelBundle(
+        GetRunOptions(), std::move(saved_model), &classifier_);
   }
 
   RunOptions GetRunOptions() const {
@@ -814,16 +825,16 @@ TEST_F(ClassifierTest, EmptyExampleListWithContext) {
 TEST_F(ClassifierTest, RunsFails) {
   MockSession* mock = new MockSession;
     saved_model_bundle_->session.reset(mock);
-    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
+    EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
         .WillRepeatedly(
             ::testing::Return(errors::Internal("Run totally failed")));
-  TF_ASSERT_OK(Create());
-  auto* examples =
-      request_.mutable_input()->mutable_example_list()->mutable_examples();
-  *examples->Add() = example({{"dos", 2}});
-  Status status = classifier_->Classify(request_, &result_);
-  ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
+    TF_ASSERT_OK(Create());
+    auto* examples =
+        request_.mutable_input()->mutable_example_list()->mutable_examples();
+    *examples->Add() = example({{"dos", 2}});
+    Status status = classifier_->Classify(request_, &result_);
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
 
     ClassificationResponse response;
     status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
@@ -839,9 +850,9 @@ TEST_F(ClassifierTest, ClassesIncorrectTensorBatchSize) {
   Tensor classes(DT_STRING, TensorShape({1, 2}));
   Tensor scores(DT_FLOAT, TensorShape({2, 2}));
   std::vector<Tensor> outputs = {classes, scores};
-    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
-        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                         ::testing::Return(Status::OK())));
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
+      .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                       ::testing::Return(Status::OK())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -867,9 +878,9 @@ TEST_F(ClassifierTest, ClassesIncorrectTensorType) {
   Tensor classes(DT_FLOAT, TensorShape({2, 2}));
   Tensor scores(DT_FLOAT, TensorShape({2, 2}));
   std::vector<Tensor> outputs = {classes, scores};
-    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
-        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                         ::testing::Return(Status::OK())));
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
+      .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                       ::testing::Return(Status::OK())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -895,9 +906,9 @@ TEST_F(ClassifierTest, ScoresIncorrectTensorBatchSize) {
   // This Tensor only has one batch item but we will have two inputs.
   Tensor scores(DT_FLOAT, TensorShape({1, 2}));
   std::vector<Tensor> outputs = {classes, scores};
-    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
-        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                         ::testing::Return(Status::OK())));
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
+      .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                       ::testing::Return(Status::OK())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -922,9 +933,9 @@ TEST_F(ClassifierTest, ScoresIncorrectTensorType) {
   // This Tensor is the wrong type for class.
   Tensor scores(DT_STRING, TensorShape({2, 2}));
   std::vector<Tensor> outputs = {classes, scores};
-    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
-        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                         ::testing::Return(Status::OK())));
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
+      .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                       ::testing::Return(Status::OK())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -951,9 +962,9 @@ TEST_F(ClassifierTest, MismatchedNumberOfTensorClasses) {
   // Scores Tensor has three scores but classes only has two labels.
   Tensor scores(DT_FLOAT, TensorShape({2, 3}));
   std::vector<Tensor> outputs = {classes, scores};
-    EXPECT_CALL(*mock, Run(_, _, _, _, _, _))
-        .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                         ::testing::Return(Status::OK())));
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
+      .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
+                                       ::testing::Return(Status::OK())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();

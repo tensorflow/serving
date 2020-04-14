@@ -29,6 +29,7 @@ namespace serving {
 
 Status TensorflowClassificationServiceImpl::Classify(
     const RunOptions& run_options, ServerCore* core,
+    const thread::ThreadPoolOptions& thread_pool_options,
     const ClassificationRequest& request, ClassificationResponse* response) {
   // Verify Request Metadata and create a ServableRequest
   if (!request.has_model_spec()) {
@@ -36,12 +37,13 @@ Status TensorflowClassificationServiceImpl::Classify(
                               "Missing ModelSpec");
   }
 
-  return ClassifyWithModelSpec(run_options, core, request.model_spec(), request,
-                               response);
+  return ClassifyWithModelSpec(run_options, core, thread_pool_options,
+                               request.model_spec(), request, response);
 }
 
 Status TensorflowClassificationServiceImpl::ClassifyWithModelSpec(
     const RunOptions& run_options, ServerCore* core,
+    const thread::ThreadPoolOptions& thread_pool_options,
     const ModelSpec& model_spec, const ClassificationRequest& request,
     ClassificationResponse* response) {
   TRACELITERAL("TensorflowClassificationServiceImpl::ClassifyWithModelSpec");
@@ -50,7 +52,8 @@ Status TensorflowClassificationServiceImpl::ClassifyWithModelSpec(
   TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &saved_model_bundle));
   return RunClassify(run_options, saved_model_bundle->meta_graph_def,
                      saved_model_bundle.id().version,
-                     saved_model_bundle->session.get(), request, response);
+                     saved_model_bundle->session.get(), request, response,
+                     thread_pool_options);
 }
 
 }  // namespace serving

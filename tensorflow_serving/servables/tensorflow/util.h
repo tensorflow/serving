@@ -20,6 +20,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/monitoring/counter.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
@@ -62,7 +63,9 @@ Status PerformOneShotTensorComputation(
     const RunOptions& run_options, const Input& input,
     const string& input_tensor_name,
     const std::vector<string>& output_tensor_names, Session* session,
-    std::vector<Tensor>* outputs, int* num_input_examples);
+    std::vector<Tensor>* outputs, int* num_input_examples,
+    const thread::ThreadPoolOptions& thread_pool_options =
+        thread::ThreadPoolOptions());
 
 // Populates given model_spec based on the model name and optional
 // signature/version information.
