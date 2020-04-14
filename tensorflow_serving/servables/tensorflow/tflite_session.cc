@@ -70,10 +70,10 @@ Status TfLiteTypeToTfType(TfLiteType tflite_type, DataType* type) {
   return Status::OK();
 }
 
-std::string TfLiteToTensorName(const string& name) {
+std::string TfToTfLiteTensorName(const string& tf_name) {
   // TF variable names have ':0' suffix, TF Lite variables dont.
   std::pair<absl::string_view, absl::string_view> name_index =
-      absl::StrSplit(name, absl::MaxSplits(':', 1));
+      absl::StrSplit(tf_name, absl::MaxSplits(':', 1));
   return std::string(name_index.first);
 }
 
@@ -299,7 +299,7 @@ Status TfLiteSession::Run(
   // happen in-parallel.
   absl::MutexLock lock(&mutex_);
   for (const auto& input : inputs) {
-    const string& name = TfLiteToTensorName(input.first);
+    const string& name = TfToTfLiteTensorName(input.first);
     if (input_tensor_to_index_.find(name) == input_tensor_to_index_.end()) {
       return errors::InvalidArgument("Missing input TFLite tensor: ", name);
     }
@@ -314,7 +314,7 @@ Status TfLiteSession::Run(
 
   outputs->clear();
   for (const auto& tfname : output_tensor_names) {
-    const string& name = TfLiteToTensorName(tfname);
+    const string& name = TfToTfLiteTensorName(tfname);
     if (output_tensor_to_index_.find(name) == output_tensor_to_index_.end()) {
       return errors::InvalidArgument("Missing output TFLite tensor: ", name);
     }
