@@ -80,21 +80,24 @@ TEST_F(RegressionServiceTest, InvalidModelSpec) {
 
   // No model_spec specified.
   EXPECT_EQ(TensorflowRegressionServiceImpl::Regress(
-                RunOptions(), server_core_.get(), request, &response)
+                RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
+                request, &response)
                 .code(),
             tensorflow::error::INVALID_ARGUMENT);
 
   // No model name specified.
   auto* model_spec = request.mutable_model_spec();
   EXPECT_EQ(TensorflowRegressionServiceImpl::Regress(
-                RunOptions(), server_core_.get(), request, &response)
+                RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
+                request, &response)
                 .code(),
             tensorflow::error::INVALID_ARGUMENT);
 
   // No servable found for model name "foo".
   model_spec->set_name("foo");
   EXPECT_EQ(TensorflowRegressionServiceImpl::Regress(
-                RunOptions(), server_core_.get(), request, &response)
+                RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
+                request, &response)
                 .code(),
             tensorflow::error::NOT_FOUND);
 }
@@ -109,7 +112,8 @@ TEST_F(RegressionServiceTest, InvalidSignature) {
       "}");
   RegressionResponse response;
   EXPECT_EQ(TensorflowRegressionServiceImpl::Regress(
-                RunOptions(), server_core_.get(), request, &response)
+                RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
+                request, &response)
                 .code(),
             tensorflow::error::INVALID_ARGUMENT);
 }
@@ -157,7 +161,8 @@ TEST_F(RegressionServiceTest, RegressionSuccess) {
       "}");
   RegressionResponse response;
   TF_EXPECT_OK(TensorflowRegressionServiceImpl::Regress(
-      RunOptions(), server_core_.get(), request, &response));
+      RunOptions(), server_core_.get(), thread::ThreadPoolOptions(), request,
+      &response));
   EXPECT_THAT(response,
               test_util::EqualsProto("result { regressions { value: 42 } }"
                                      "model_spec {"
@@ -180,13 +185,75 @@ TEST_F(RegressionServiceTest, ModelSpecOverride) {
   RegressionResponse response;
   EXPECT_NE(tensorflow::error::NOT_FOUND,
             TensorflowRegressionServiceImpl::Regress(
-                RunOptions(), server_core_.get(), request, &response)
+                RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
+                request, &response)
                 .code());
   EXPECT_EQ(tensorflow::error::NOT_FOUND,
             TensorflowRegressionServiceImpl::RegressWithModelSpec(
-                RunOptions(), server_core_.get(), model_spec_override, request,
-                &response)
+                RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
+                model_spec_override, request, &response)
                 .code());
+}
+
+TEST_F(RegressionServiceTest, ThreadPoolOptions) {
+  auto request = test_util::CreateProto<RegressionRequest>(
+      "model_spec {"
+      "  name: \"test_model\""
+      "  signature_name: \"regress_x_to_y\""
+      "}"
+      "input {"
+      "  example_list {"
+      "    examples {"
+      "      features {"
+      "        feature: {"
+      "          key  : \"x\""
+      "          value: {"
+      "            float_list: {"
+      "              value: [ 80.0 ]"
+      "            }"
+      "          }"
+      "        }"
+      "        feature: {"
+      "          key  : \"locale\""
+      "          value: {"
+      "            bytes_list: {"
+      "              value: [ \"pt_BR\" ]"
+      "            }"
+      "          }"
+      "        }"
+      "        feature: {"
+      "          key  : \"age\""
+      "          value: {"
+      "            float_list: {"
+      "              value: [ 19.0 ]"
+      "            }"
+      "          }"
+      "        }"
+      "      }"
+      "    }"
+      "  }"
+      "}");
+
+  test_util::CountingThreadPool inter_op_threadpool(Env::Default(), "InterOp",
+                                                    /*num_threads=*/1);
+  test_util::CountingThreadPool intra_op_threadpool(Env::Default(), "IntraOp",
+                                                    /*num_threads=*/1);
+  thread::ThreadPoolOptions thread_pool_options;
+  thread_pool_options.inter_op_threadpool = &inter_op_threadpool;
+  thread_pool_options.intra_op_threadpool = &intra_op_threadpool;
+  RegressionResponse response;
+  TF_EXPECT_OK(TensorflowRegressionServiceImpl::Regress(
+      RunOptions(), server_core_.get(), thread_pool_options, request,
+      &response));
+  EXPECT_THAT(response,
+              test_util::EqualsProto("result { regressions { value: 42 } }"
+                                     "model_spec {"
+                                     "  name: \"test_model\""
+                                     "  signature_name: \"regress_x_to_y\""
+                                     "  version { value: 123 }"
+                                     "}"));
+  // The intra_op_threadpool doesn't have anything scheduled.
+  ASSERT_GE(inter_op_threadpool.NumScheduled(), 1);
 }
 
 }  // namespace

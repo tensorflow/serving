@@ -165,7 +165,7 @@ Status HttpRestApiHandler::ProcessRegressRequest(
 
   RegressionResponse response;
   TF_RETURN_IF_ERROR(TensorflowRegressionServiceImpl::Regress(
-      run_options_, core_, request, &response));
+      run_options_, core_, thread::ThreadPoolOptions(), request, &response));
   TF_RETURN_IF_ERROR(MakeJsonFromRegressionResult(response.result(), output));
   return Status::OK();
 }

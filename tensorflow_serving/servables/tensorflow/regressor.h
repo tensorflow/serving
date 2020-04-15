@@ -22,6 +22,7 @@ limitations under the License.
 
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/apis/regressor.h"
 #include "tensorflow_serving/util/optional.h"
 
@@ -42,6 +43,13 @@ Status CreateRegressorFromSavedModelBundle(
 Status CreateFlyweightTensorFlowRegressor(
     const RunOptions& run_options, Session* session,
     const SignatureDef* signature,
+    std::unique_ptr<RegressorInterface>* service);
+
+// Similar to the above function, but with additional 'thread_pool_options'.
+Status CreateFlyweightTensorFlowRegressor(
+    const RunOptions& run_options, Session* session,
+    const SignatureDef* signature,
+    const thread::ThreadPoolOptions& thread_pool_options,
     std::unique_ptr<RegressorInterface>* service);
 
 // Get a regression signature from the meta_graph_def that's either:
@@ -73,7 +81,9 @@ Status RunRegress(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
                   const optional<int64>& servable_version, Session* session,
                   const RegressionRequest& request,
-                  RegressionResponse* response);
+                  RegressionResponse* response,
+                  const thread::ThreadPoolOptions& thread_pool_options =
+                      thread::ThreadPoolOptions());
 
 }  // namespace serving
 }  // namespace tensorflow

@@ -104,9 +104,16 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
+  thread::ThreadPoolOptions thread_pool_options;
+  if (thread_pool_factory_ != nullptr) {
+    thread_pool_options.inter_op_threadpool =
+        thread_pool_factory_->GetInterOpThreadPool();
+    thread_pool_options.intra_op_threadpool =
+        thread_pool_factory_->GetIntraOpThreadPool();
+  }
   const ::grpc::Status status =
       ToGRPCStatus(TensorflowRegressionServiceImpl::Regress(
-          run_options, core_, *request, response));
+          run_options, core_, thread_pool_options, *request, response));
   if (!status.ok()) {
     VLOG(1) << "Regress request failed: " << status.error_message();
   }
