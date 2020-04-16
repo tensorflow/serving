@@ -121,9 +121,9 @@ TEST_F(MultiInferenceTest, MissingInputTest) {
   PopulateTask("regress_x_to_y", kRegressMethodName, -1, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(RunMultiInferenceWithServerCore(RunOptions(),
-                                                    GetServerCore(),
-                                                    request, &response),
+  ExpectStatusError(RunMultiInferenceWithServerCore(
+                        RunOptions(), GetServerCore(),
+                        thread::ThreadPoolOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT, "Input is empty");
 }
 
@@ -134,9 +134,9 @@ TEST_F(MultiInferenceTest, UndefinedSignatureTest) {
                request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(RunMultiInferenceWithServerCore(RunOptions(),
-                                                    GetServerCore(),
-                                                    request, &response),
+  ExpectStatusError(RunMultiInferenceWithServerCore(
+                        RunOptions(), GetServerCore(),
+                        thread::ThreadPoolOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT, "signature not found");
 }
 
@@ -156,9 +156,9 @@ TEST_F(MultiInferenceTest, InconsistentModelSpecsInRequestTest) {
   task->set_method_name(kRegressMethodName);
 
   MultiInferenceResponse response;
-  ExpectStatusError(RunMultiInferenceWithServerCore(RunOptions(),
-                                                    GetServerCore(),
-                                                    request, &response),
+  ExpectStatusError(RunMultiInferenceWithServerCore(
+                        RunOptions(), GetServerCore(),
+                        thread::ThreadPoolOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT,
                     "must access the same model name");
 }
@@ -171,9 +171,9 @@ TEST_F(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
   PopulateTask("regress_x_to_y", kRegressMethodName, -1, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(RunMultiInferenceWithServerCore(RunOptions(),
-                                                    GetServerCore(),
-                                                    request, &response),
+  ExpectStatusError(RunMultiInferenceWithServerCore(
+                        RunOptions(), GetServerCore(),
+                        thread::ThreadPoolOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT,
                     "Duplicate evaluation of signature: regress_x_to_y");
 }
@@ -184,9 +184,9 @@ TEST_F(MultiInferenceTest, UsupportedSignatureTypeTest) {
   PopulateTask("serving_default", kPredictMethodName, -1, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(RunMultiInferenceWithServerCore(RunOptions(),
-                                                    GetServerCore(),
-                                                    request, &response),
+  ExpectStatusError(RunMultiInferenceWithServerCore(
+                        RunOptions(), GetServerCore(),
+                        thread::ThreadPoolOptions(), request, &response),
                     tensorflow::error::UNIMPLEMENTED, "Unsupported signature");
 }
 
@@ -197,9 +197,9 @@ TEST_F(MultiInferenceTest, SignaturesWithDifferentInputsTest) {
   PopulateTask("regress_x2_to_y3", kRegressMethodName, -1, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(RunMultiInferenceWithServerCore(RunOptions(),
-                                                    GetServerCore(),
-                                                    request, &response),
+  ExpectStatusError(RunMultiInferenceWithServerCore(
+                        RunOptions(), GetServerCore(),
+                        thread::ThreadPoolOptions(), request, &response),
                     tensorflow::error::INVALID_ARGUMENT,
                     "Input tensor must be the same");
 }
@@ -220,6 +220,7 @@ TEST_F(MultiInferenceTest, ValidSingleSignatureTest) {
 
   MultiInferenceResponse response;
   TF_ASSERT_OK(RunMultiInferenceWithServerCore(RunOptions(), GetServerCore(),
+                                               thread::ThreadPoolOptions(),
                                                request, &response));
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
@@ -252,6 +253,7 @@ TEST_F(MultiInferenceTest, MultipleValidRegressSignaturesTest) {
 
   MultiInferenceResponse response;
   TF_ASSERT_OK(RunMultiInferenceWithServerCore(RunOptions(), GetServerCore(),
+                                               thread::ThreadPoolOptions(),
                                                request, &response));
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
@@ -282,6 +284,7 @@ TEST_F(MultiInferenceTest, RegressAndClassifySignaturesTest) {
 
   MultiInferenceResponse response;
   TF_ASSERT_OK(RunMultiInferenceWithServerCore(RunOptions(), GetServerCore(),
+                                               thread::ThreadPoolOptions(),
                                                request, &response));
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
@@ -299,13 +302,44 @@ TEST_F(MultiInferenceTest, ModelSpecOverride) {
   MultiInferenceResponse response;
   EXPECT_NE(tensorflow::error::NOT_FOUND,
             RunMultiInferenceWithServerCore(RunOptions(), GetServerCore(),
+                                            thread::ThreadPoolOptions(),
                                             request, &response)
                 .code());
   EXPECT_EQ(tensorflow::error::NOT_FOUND,
             RunMultiInferenceWithServerCoreWithModelSpec(
-                RunOptions(), GetServerCore(), model_spec_override, request,
-                &response)
+                RunOptions(), GetServerCore(), thread::ThreadPoolOptions(),
+                model_spec_override, request, &response)
                 .code());
+}
+
+TEST_F(MultiInferenceTest, ThreadPoolOptions) {
+  MultiInferenceRequest request;
+  AddInput({{"x", 2}}, &request);
+  PopulateTask("regress_x_to_y", kRegressMethodName, servable_version_,
+               request.add_tasks());
+
+  MultiInferenceResponse expected_response;
+  auto* inference_result = expected_response.add_results();
+  auto* model_spec = inference_result->mutable_model_spec();
+  *model_spec = request.tasks(0).model_spec();
+  model_spec->mutable_version()->set_value(servable_version_);
+  auto* regression_result = inference_result->mutable_regression_result();
+  regression_result->add_regressions()->set_value(3.0);
+
+  test_util::CountingThreadPool inter_op_threadpool(Env::Default(), "InterOp",
+                                                    /*num_threads=*/1);
+  test_util::CountingThreadPool intra_op_threadpool(Env::Default(), "IntraOp",
+                                                    /*num_threads=*/1);
+  thread::ThreadPoolOptions thread_pool_options;
+  thread_pool_options.inter_op_threadpool = &inter_op_threadpool;
+  thread_pool_options.intra_op_threadpool = &intra_op_threadpool;
+  MultiInferenceResponse response;
+  TF_ASSERT_OK(RunMultiInferenceWithServerCore(
+      RunOptions(), GetServerCore(), thread_pool_options, request, &response));
+  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
+
+  // The intra_op_threadpool doesn't have anything scheduled.
+  ASSERT_GE(inter_op_threadpool.NumScheduled(), 1);
 }
 
 }  // namespace

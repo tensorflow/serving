@@ -96,7 +96,7 @@ Status TensorFlowMultiInferenceRunner::Infer(
   int num_examples;
   TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
       run_options, request.input(), input_tensor_name, output_tensor_names,
-      session_, &outputs, &num_examples));
+      session_, &outputs, &num_examples, thread_pool_options_));
   RecordRequestExampleCount(model_name, num_examples);
 
   TRACELITERAL("PostProcessResults");
@@ -129,15 +129,15 @@ Status TensorFlowMultiInferenceRunner::Infer(
   return Status::OK();
 }
 
-Status RunMultiInference(const RunOptions& run_options,
-                         const MetaGraphDef& meta_graph_def,
-                         const optional<int64>& servable_version,
-                         Session* session, const MultiInferenceRequest& request,
-                         MultiInferenceResponse* response) {
+Status RunMultiInference(
+    const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
+    const optional<int64>& servable_version, Session* session,
+    const MultiInferenceRequest& request, MultiInferenceResponse* response,
+    const tensorflow::thread::ThreadPoolOptions& thread_pool_options) {
   TRACELITERAL("RunMultiInference");
 
-  TensorFlowMultiInferenceRunner inference_runner(session, &meta_graph_def,
-                                                  servable_version);
+  TensorFlowMultiInferenceRunner inference_runner(
+      session, &meta_graph_def, servable_version, thread_pool_options);
   return inference_runner.Infer(run_options, request, response);
 }
 

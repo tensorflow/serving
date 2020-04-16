@@ -384,6 +384,41 @@ TEST_F(MultiInferenceTest, RegressAndClassifySignaturesTest) {
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 }
 
+TEST_F(MultiInferenceTest, ThreadPoolOptions) {
+  std::unique_ptr<TensorFlowMultiInferenceRunner> inference_runner;
+  TF_ASSERT_OK(GetInferenceRunner(&inference_runner));
+
+  MultiInferenceRequest request;
+  AddInput({{"x", 2}}, &request);
+  PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
+
+  MultiInferenceResponse expected_response;
+  auto* inference_result = expected_response.add_results();
+  auto* model_spec = inference_result->mutable_model_spec();
+  *model_spec = request.tasks(0).model_spec();
+  model_spec->mutable_version()->set_value(servable_version_);
+  auto* regression_result = inference_result->mutable_regression_result();
+  regression_result->add_regressions()->set_value(3.0);
+
+  test_util::CountingThreadPool inter_op_threadpool(Env::Default(), "InterOp",
+                                                    /*num_threads=*/1);
+  test_util::CountingThreadPool intra_op_threadpool(Env::Default(), "IntraOp",
+                                                    /*num_threads=*/1);
+  thread::ThreadPoolOptions thread_pool_options;
+  thread_pool_options.inter_op_threadpool = &inter_op_threadpool;
+  thread_pool_options.intra_op_threadpool = &intra_op_threadpool;
+  MultiInferenceResponse response;
+  ServableHandle<SavedModelBundle> bundle;
+  TF_ASSERT_OK(GetServableHandle(&bundle));
+  TF_ASSERT_OK(RunMultiInference(RunOptions(), bundle->meta_graph_def,
+                                 servable_version_, bundle->session.get(),
+                                 request, &response, thread_pool_options));
+  EXPECT_THAT(response, test_util::EqualsProto(expected_response));
+
+  // The intra_op_threadpool doesn't have anything scheduled.
+  ASSERT_GE(inter_op_threadpool.NumScheduled(), 1);
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

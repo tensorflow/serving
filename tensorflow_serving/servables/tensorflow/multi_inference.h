@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_MULTI_INFERENCE_H_
 
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/inference.pb.h"
@@ -32,14 +33,17 @@ class TensorFlowMultiInferenceRunner {
   TensorFlowMultiInferenceRunner(Session* session,
                                  const MetaGraphDef* meta_graph_def)
       : TensorFlowMultiInferenceRunner(session, meta_graph_def,
-                                       /*servable_version*/ {}) {}
+                                       /*servable_version=*/{}) {}
 
-  TensorFlowMultiInferenceRunner(Session* session,
-                                 const MetaGraphDef* meta_graph_def,
-                                 optional<int64> servable_version)
+  TensorFlowMultiInferenceRunner(
+      Session* session, const MetaGraphDef* meta_graph_def,
+      optional<int64> servable_version,
+      const thread::ThreadPoolOptions& thread_pool_options =
+          thread::ThreadPoolOptions())
       : session_(session),
         meta_graph_def_(meta_graph_def),
-        servable_version_(servable_version) {}
+        servable_version_(servable_version),
+        thread_pool_options_(thread_pool_options) {}
 
   // Run inference and return the inference results in the same order as the
   // InferenceTasks in the request.
@@ -55,14 +59,16 @@ class TensorFlowMultiInferenceRunner {
   // If available, servable_version is used to set the ModelSpec version in the
   // InferenceResults of the MultiInferenceResponse.
   const optional<int64> servable_version_;
+  const tensorflow::thread::ThreadPoolOptions thread_pool_options_;
 };
 
 // Creates TensorFlowMultiInferenceRunner and calls Infer on it.
-Status RunMultiInference(const RunOptions& run_options,
-                         const MetaGraphDef& meta_graph_def,
-                         const optional<int64>& servable_version,
-                         Session* session, const MultiInferenceRequest& request,
-                         MultiInferenceResponse* response);
+Status RunMultiInference(
+    const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
+    const optional<int64>& servable_version, Session* session,
+    const MultiInferenceRequest& request, MultiInferenceResponse* response,
+    const tensorflow::thread::ThreadPoolOptions& thread_pool_options =
+        tensorflow::thread::ThreadPoolOptions());
 
 }  // namespace serving
 }  // namespace tensorflow

@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_MULTI_INFERENCE_HELPER_H_
 
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/util/optional.h"
@@ -25,15 +26,16 @@ namespace tensorflow {
 namespace serving {
 
 // Runs MultiInference
-Status RunMultiInferenceWithServerCore(const RunOptions& run_options,
-                                       ServerCore* core,
-                                       const MultiInferenceRequest& request,
-                                       MultiInferenceResponse* response);
+Status RunMultiInferenceWithServerCore(
+    const RunOptions& run_options, ServerCore* core,
+    const thread::ThreadPoolOptions& thread_pool_options,
+    const MultiInferenceRequest& request, MultiInferenceResponse* response);
 
 // Like RunMultiInferenceWithServerCore(), but uses 'model_spec' instead of the
 // one(s) embedded in 'request'.
 Status RunMultiInferenceWithServerCoreWithModelSpec(
     const RunOptions& run_options, ServerCore* core,
+    const thread::ThreadPoolOptions& thread_pool_options,
     const ModelSpec& model_spec, const MultiInferenceRequest& request,
     MultiInferenceResponse* response);
 

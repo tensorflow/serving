@@ -34,24 +34,26 @@ const ModelSpec& GetModelSpecFromRequest(const MultiInferenceRequest& request) {
 
 }  // namespace
 
-Status RunMultiInferenceWithServerCore(const RunOptions& run_options,
-                                       ServerCore* core,
-                                       const MultiInferenceRequest& request,
-                                       MultiInferenceResponse* response) {
+Status RunMultiInferenceWithServerCore(
+    const RunOptions& run_options, ServerCore* core,
+    const tensorflow::thread::ThreadPoolOptions& thread_pool_options,
+    const MultiInferenceRequest& request, MultiInferenceResponse* response) {
   return RunMultiInferenceWithServerCoreWithModelSpec(
-      run_options, core, GetModelSpecFromRequest(request), request, response);
+      run_options, core, thread_pool_options, GetModelSpecFromRequest(request),
+      request, response);
 }
 
 Status RunMultiInferenceWithServerCoreWithModelSpec(
     const RunOptions& run_options, ServerCore* core,
+    const tensorflow::thread::ThreadPoolOptions& thread_pool_options,
     const ModelSpec& model_spec, const MultiInferenceRequest& request,
     MultiInferenceResponse* response) {
   ServableHandle<SavedModelBundle> bundle;
   TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &bundle));
 
   return RunMultiInference(run_options, bundle->meta_graph_def,
-                           bundle.id().version, bundle->session.get(),
-                           request, response);
+                           bundle.id().version, bundle->session.get(), request,
+                           response, thread_pool_options);
 }
 
 }  // namespace serving

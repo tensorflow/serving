@@ -34,6 +34,18 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
                    gpr_now(GPR_CLOCK_MONOTONIC)));
 }
 
+thread::ThreadPoolOptions GetThreadPoolOptions(
+    ThreadPoolFactory *thread_pool_factory) {
+  thread::ThreadPoolOptions thread_pool_options;
+  if (thread_pool_factory != nullptr) {
+    thread_pool_options.inter_op_threadpool =
+        thread_pool_factory->GetInterOpThreadPool();
+    thread_pool_options.intra_op_threadpool =
+        thread_pool_factory->GetIntraOpThreadPool();
+  }
+  return thread_pool_options;
+}
+
 }  // namespace
 
 ::grpc::Status PredictionServiceImpl::Predict(::grpc::ServerContext *context,
@@ -79,16 +91,10 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
-  thread::ThreadPoolOptions thread_pool_options;
-  if (thread_pool_factory_ != nullptr) {
-    thread_pool_options.inter_op_threadpool =
-        thread_pool_factory_->GetInterOpThreadPool();
-    thread_pool_options.intra_op_threadpool =
-        thread_pool_factory_->GetIntraOpThreadPool();
-  }
   const ::grpc::Status status =
       ToGRPCStatus(TensorflowClassificationServiceImpl::Classify(
-          run_options, core_, thread_pool_options, *request, response));
+          run_options, core_, GetThreadPoolOptions(thread_pool_factory_),
+          *request, response));
   if (!status.ok()) {
     VLOG(1) << "Classify request failed: " << status.error_message();
   }
@@ -104,16 +110,10 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
-  thread::ThreadPoolOptions thread_pool_options;
-  if (thread_pool_factory_ != nullptr) {
-    thread_pool_options.inter_op_threadpool =
-        thread_pool_factory_->GetInterOpThreadPool();
-    thread_pool_options.intra_op_threadpool =
-        thread_pool_factory_->GetIntraOpThreadPool();
-  }
   const ::grpc::Status status =
       ToGRPCStatus(TensorflowRegressionServiceImpl::Regress(
-          run_options, core_, thread_pool_options, *request, response));
+          run_options, core_, GetThreadPoolOptions(thread_pool_factory_),
+          *request, response));
   if (!status.ok()) {
     VLOG(1) << "Regress request failed: " << status.error_message();
   }
@@ -129,8 +129,9 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
-  const ::grpc::Status status = ToGRPCStatus(
-      RunMultiInferenceWithServerCore(run_options, core_, *request, response));
+  const ::grpc::Status status = ToGRPCStatus(RunMultiInferenceWithServerCore(
+      run_options, core_, GetThreadPoolOptions(thread_pool_factory_), *request,
+      response));
   if (!status.ok()) {
     VLOG(1) << "MultiInference request failed: " << status.error_message();
   }
