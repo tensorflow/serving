@@ -10,8 +10,8 @@ workspace(name = "tf_serving")
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "6cb1da6b285db2d486510c20896c6e6dc0ac70476af58bfb0e70b82643dc0406",
-    git_commit = "064e1535a7ba3cb9f67b9d9171309a1e9ebca2b0",
+    sha256 = "3da7acb7161ef303265fb305acdfc221b5115f30351e26ae27ff7eecc2c6a452",
+    git_commit = "f270180a6caa8693f2b2888ac7e6b8e69c4feaa8",
 )
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
@@ -29,8 +29,8 @@ http_archive(
 )
 http_archive(
     name = "bazel_skylib",
-    sha256 = "2ef429f5d7ce7111263289644d233707dba35e39696377ebab8b0bc701f7818e",
-    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/0.8.0/bazel-skylib.0.8.0.tar.gz"],
+    sha256 = "1dde365491125a3db70731e25658dfdd3bc5dbdfd11b840b3e987ecf043c7ca0",
+    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/0.9.0/bazel-skylib.0.9.0.tar.gz"],
 )  # https://github.com/bazelbuild/bazel-skylib/releases
 # END: Upstream TensorFlow dependencies
 
