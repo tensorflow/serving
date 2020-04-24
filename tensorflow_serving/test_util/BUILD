@@ -22,6 +22,9 @@ cc_library(
     testonly = 1,
     srcs = ["test_util.cc"],
     hdrs = ["test_util.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "@com_google_googletest//:gtest",
         "@com_google_protobuf//:protobuf",

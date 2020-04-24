@@ -889,6 +889,9 @@ serving_proto_library(
 cc_library(
     name = "thread_pool_factory",
     hdrs = ["thread_pool_factory.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "//tensorflow_serving/util:class_registration",
         "@org_tensorflow//tensorflow/core:lib",
