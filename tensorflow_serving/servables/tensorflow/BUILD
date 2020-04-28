@@ -354,6 +354,7 @@ cc_test(
     size = "small",
     srcs = ["tflite_session_test.cc"],
     data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:mobilenet_v1_quant_tflite",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
     ],
     deps = [
@@ -366,6 +367,7 @@ cc_test(
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
         "@org_tensorflow//tensorflow/lite:util",
+        "@org_tensorflow//tensorflow/lite:version",
     ],
 )
 

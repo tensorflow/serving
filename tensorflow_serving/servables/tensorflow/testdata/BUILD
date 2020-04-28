@@ -114,6 +114,13 @@ filegroup(
     ),
 )
 
+filegroup(
+    name = "mobilenet_v1_quant_tflite",
+    srcs = glob(
+        ["mobilenet_v1_quant_tflite/**"],
+    ),
+)
+
 exports_files([
     "saved_model_half_plus_three/00000123/saved_model.pb",
     "saved_model_half_plus_three/00000123/assets/foo.txt",
