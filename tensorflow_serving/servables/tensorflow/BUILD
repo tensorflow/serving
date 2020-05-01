@@ -183,6 +183,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":machine_learning_metadata",
         ":saved_model_bundle_factory",
         ":saved_model_bundle_source_adapter_cc_proto",
         ":saved_model_warmup",
@@ -205,6 +206,7 @@ cc_test(
     size = "medium",
     srcs = ["saved_model_bundle_source_adapter_test.cc"],
     data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_mlmd",
         "//tensorflow_serving/session_bundle:session_bundle_half_plus_two",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
@@ -872,6 +874,35 @@ cc_test(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
+    ],
+)
+
+cc_library(
+    name = "machine_learning_metadata",
+    srcs = ["machine_learning_metadata.cc"],
+    hdrs = ["machine_learning_metadata.h"],
+    deps = [
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "machine_learning_metadata_test",
+    size = "small",
+    srcs = ["machine_learning_metadata_test.cc"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_mlmd",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
+    deps = [
+        ":bundle_factory_test_util",
+        ":machine_learning_metadata",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:testlib",
     ],
 )

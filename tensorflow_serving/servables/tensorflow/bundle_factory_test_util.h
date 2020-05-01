@@ -28,6 +28,7 @@ namespace test_util {
 // Returns the path of the Saved Model (the pb version) for the half plus two
 // model.
 string GetTestSavedModelPath();
+string GetTestMLMetadataSavedModelPath();
 
 // Returns the Session Bundle export path for the half plus two model.
 string GetTestSessionBundleExportPath();

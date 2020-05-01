@@ -47,8 +47,8 @@ py_binary(
     srcs = [
         "export_bad_half_plus_two.py",
     ],
-    python_version = "PY2",
-    srcs_version = "PY2AND3",
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
 )
 
@@ -67,8 +67,8 @@ py_binary(
     srcs = [
         "saved_model_half_plus_two.py",
     ],
-    python_version = "PY2",
-    srcs_version = "PY2AND3",
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
 )
 
@@ -76,6 +76,13 @@ filegroup(
     name = "saved_model_half_plus_two_cpu",
     srcs = glob(
         ["saved_model_half_plus_two_cpu/**"],
+    ),
+)
+
+filegroup(
+    name = "saved_model_half_plus_two_mlmd",
+    srcs = glob(
+        ["saved_model_half_plus_two_mlmd/**"],
     ),
 )
 
