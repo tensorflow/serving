@@ -208,7 +208,9 @@ int GetPercentileTotal(string label) {
   const std::unique_ptr<monitoring::CollectedMetrics> collected_metrics =
       collection_registry->CollectMetrics(options);
   int total_samples = 0;
-  const monitoring::PointSet& lps = *collected_metrics->point_set_map.at(label);
+  const auto& point_set_map = collected_metrics->point_set_map;
+  if (point_set_map.find(label) == point_set_map.end()) return 0;
+  const monitoring::PointSet& lps = *point_set_map.at(label);
   for (int i = 0; i < lps.points.size(); ++i) {
     total_samples += lps.points[i]->percentiles_value.accumulator;
   }
