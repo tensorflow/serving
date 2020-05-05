@@ -28,47 +28,47 @@ namespace {
 
 const char mlmd_streamz[] = "/tensorflow/serving/mlmd_map";
 
-class MachineLearningMetaDataTest : public ::testing::Test {
- protected:
-  MachineLearningMetaDataTest() {}
-  virtual ~MachineLearningMetaDataTest() = default;
-};
+bool GetMlmdUuid(const string& model_name, const string& version,
+                 std::string* mlmd_uuid) {
+  auto* collection_registry = monitoring::CollectionRegistry::Default();
+  monitoring::CollectionRegistry::CollectMetricsOptions options;
+  const std::unique_ptr<monitoring::CollectedMetrics> collected_metrics =
+      collection_registry->CollectMetrics(options);
+  const auto& point_set_map = collected_metrics->point_set_map;
+  if (point_set_map.empty() ||
+      point_set_map.find(mlmd_streamz) == point_set_map.end())
+    return false;
+  const monitoring::PointSet& lps =
+      *collected_metrics->point_set_map.at(mlmd_streamz);
+  for (int i = 0; i < lps.points.size(); ++i) {
+    if ((lps.points[i]->labels[0].name == "model_name") &&
+        (lps.points[i]->labels[0].value == model_name) &&
+        (lps.points[i]->labels[1].name == "version") &&
+        (lps.points[i]->labels[1].value == version)) {
+      *mlmd_uuid = lps.points[i]->string_value;
+      return true;
+    }
+  }
+  return false;
+}
 
-TEST_F(MachineLearningMetaDataTest, BasicTest) {
-  // Keep both cases in the same test as there's no way to reset the TFStreamz
-  // between reads. This leads to ordering/sharding dependencies on the test.
-  {
-    // No MLMD in SavedModel case.
-    string test_data_path = test_util::GetTestSavedModelPath();
-    MaybePublishMLMDStreamz(test_data_path, "missing_model", 9696);
-    auto* collection_registry = monitoring::CollectionRegistry::Default();
-    monitoring::CollectionRegistry::CollectMetricsOptions options;
-    const std::unique_ptr<monitoring::CollectedMetrics> collected_metrics =
-        collection_registry->CollectMetrics(options);
-    const monitoring::PointSet& lps =
-        *collected_metrics->point_set_map.at(mlmd_streamz);
-    EXPECT_EQ(0, lps.points.size());
-  }
-  {
-    // MLMD in SavedModel case.
-    const string test_data_path = test_util::TestSrcDirPath(
-        strings::StrCat("/servables/tensorflow/testdata/",
-                        "saved_model_half_plus_two_mlmd/00000123"));
-    MaybePublishMLMDStreamz(test_data_path, "test_model", 9696);
-    auto* collection_registry = monitoring::CollectionRegistry::Default();
-    monitoring::CollectionRegistry::CollectMetricsOptions options;
-    const std::unique_ptr<monitoring::CollectedMetrics> collected_metrics =
-        collection_registry->CollectMetrics(options);
-    const monitoring::PointSet& lps =
-        *collected_metrics->point_set_map.at(mlmd_streamz);
-    EXPECT_EQ(1, lps.points.size());
-    EXPECT_EQ(2, lps.points[0]->labels.size());
-    EXPECT_EQ("model_name", lps.points[0]->labels[0].name);
-    EXPECT_EQ("test_model", lps.points[0]->labels[0].value);
-    EXPECT_EQ("version", lps.points[0]->labels[1].name);
-    EXPECT_EQ("9696", lps.points[0]->labels[1].value);
-    EXPECT_EQ("test_mlmd_uuid", lps.points[0]->string_value);
-  }
+TEST(MachineLearningMetaDataTest, BasicTest_MLMD_missing) {
+  std::string mlmd_uuid;
+  ASSERT_FALSE(GetMlmdUuid("missing_model", "9696", &mlmd_uuid));
+  string test_data_path = test_util::GetTestSavedModelPath();
+  MaybePublishMLMDStreamz(test_data_path, "missing_model", 9696);
+  EXPECT_FALSE(GetMlmdUuid("missing_model", "9696", &mlmd_uuid));
+}
+
+TEST(MachineLearningMetaDataTest, BasicTest_MLMD_present) {
+  std::string mlmd_uuid;
+  ASSERT_FALSE(GetMlmdUuid("test_model", "9696", &mlmd_uuid));
+  const string test_data_path = test_util::TestSrcDirPath(
+      strings::StrCat("/servables/tensorflow/testdata/",
+                      "saved_model_half_plus_two_mlmd/00000123"));
+  MaybePublishMLMDStreamz(test_data_path, "test_model", 9696);
+  EXPECT_TRUE(GetMlmdUuid("test_model", "9696", &mlmd_uuid));
+  EXPECT_EQ("test_mlmd_uuid", mlmd_uuid);
 }
 
 }  // namespace
