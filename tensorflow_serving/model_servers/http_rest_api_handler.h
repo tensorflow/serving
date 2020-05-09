@@ -45,6 +45,7 @@ class ModelSpec;
 //
 //   POST /v1/models/<model_name>:(classify|regress|predict)
 //   POST /v1/models/<model_name>/versions/<ver>:(classify|regress|predict)
+//   POST /v1/models/protobuf/versions/<ver>:(classify|regress|predict)
 //
 // o Model status
 //
@@ -97,6 +98,12 @@ class HttpRestApiHandler {
                                const absl::optional<int64>& model_version,
                                const absl::string_view request_body,
                                string* output);
+  Status ProcessProtobufClassifyRequest(const absl::string_view request_body,
+				       string* output);
+  Status ProcessProtobufRegressRequest(const absl::string_view request_body,
+				       string* output);
+  Status ProcessProtobufPredictRequest(const absl::string_view request_body,
+				       string* output);
   Status ProcessModelStatusRequest(const absl::string_view model_name,
                                    const absl::string_view model_version_str,
                                    string* output);

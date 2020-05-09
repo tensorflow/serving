@@ -94,24 +94,34 @@ Status HttpRestApiHandler::ProcessRequest(
   if (http_method == "POST" &&
       RE2::FullMatch(string(request_path), prediction_api_regex_, &model_name,
                      &model_version_str, &method)) {
-    absl::optional<int64> model_version;
-    if (!model_version_str.empty()) {
-      int64 version;
-      if (!absl::SimpleAtoi(model_version_str, &version)) {
-        return errors::InvalidArgument(
-            "Failed to convert version: ", model_version_str, " to numeric.");
+    if (model_name == "protobuf") {
+      if (method == "classify") {
+	status = ProcessProtobufClassifyRequest(request_body, output);
+      } else if (method == "regress") {
+	status = ProcessProtobufRegressRequest(request_body, output);
+      } else if (method == "predict") {
+	status = ProcessProtobufPredictRequest(request_body, output);
       }
-      model_version = version;
-    }
-    if (method == "classify") {
-      status = ProcessClassifyRequest(model_name, model_version, request_body,
-                                      output);
-    } else if (method == "regress") {
-      status = ProcessRegressRequest(model_name, model_version, request_body,
-                                     output);
-    } else if (method == "predict") {
-      status = ProcessPredictRequest(model_name, model_version, request_body,
-                                     output);
+    } else {
+      absl::optional<int64> model_version;
+      if (!model_version_str.empty()) {
+	int64 version;
+	if (!absl::SimpleAtoi(model_version_str, &version)) {
+	  return errors::InvalidArgument(
+              "Failed to convert version: ", model_version_str, " to numeric.");
+	}
+	model_version = version;
+      }
+      if (method == "classify") {
+	status = ProcessClassifyRequest(model_name, model_version, request_body,
+					output);
+      } else if (method == "regress") {
+	status = ProcessRegressRequest(model_name, model_version, request_body,
+				       output);
+      } else if (method == "predict") {
+	status = ProcessPredictRequest(model_name, model_version, request_body,
+				       output);
+      }
     }
   } else if (http_method == "GET" &&
              RE2::FullMatch(string(request_path), modelstatus_api_regex_,
@@ -193,6 +203,55 @@ Status HttpRestApiHandler::ProcessPredictRequest(
   TF_RETURN_IF_ERROR(
       predictor_->Predict(run_options_, core_, request, &response));
   TF_RETURN_IF_ERROR(MakeJsonFromTensors(response.outputs(), format, output));
+  return Status::OK();
+}
+
+Status HttpRestApiHandler::ProcessProtobufClassifyRequest(const absl::string_view request_body, string* output) {
+  string request_body_str(request_body);
+  ClassificationRequest request;
+  if (!request.ParseFromString(request_body_str)) {
+    return errors::InvalidArgument("Invalid protobuf request: '", request_body, "'");
+  }
+
+  ClassificationResponse response;
+  TF_RETURN_IF_ERROR(
+      TensorflowClassificationServiceImpl::Classify(run_options_, core_, thread::ThreadPoolOptions(),
+						    request, &response));
+  if (!response.SerializeToString(output)) {
+    return errors::InvalidArgument("Invalid protobuf response: '", output, "'");
+  }
+  return Status::OK();
+}
+
+Status HttpRestApiHandler::ProcessProtobufRegressRequest(const absl::string_view request_body, string* output) {
+  string request_body_str(request_body);
+  RegressionRequest request;
+  if (!request.ParseFromString(request_body_str)) {
+    return errors::InvalidArgument("Invalid protobuf request: '", request_body, "'");
+  }
+
+  RegressionResponse response;
+  TF_RETURN_IF_ERROR(TensorflowRegressionServiceImpl::Regress(run_options_, core_, thread::ThreadPoolOptions(),
+							      request, &response));
+  if (!response.SerializeToString(output)) {
+    return errors::InvalidArgument("Invalid protobuf response: '", output, "'");
+  }
+  return Status::OK();
+}
+
+Status HttpRestApiHandler::ProcessProtobufPredictRequest(const absl::string_view request_body, string* output) {
+  string request_body_str(request_body);
+  PredictRequest request;
+  if (!request.ParseFromString(request_body_str)) {
+    return errors::InvalidArgument("Invalid protobuf request: '", request_body, "'");
+  }
+
+  PredictResponse response;
+  TF_RETURN_IF_ERROR(
+      predictor_->Predict(run_options_, core_, request, &response));
+  if (!response.SerializeToString(output)) {
+    return errors::InvalidArgument("Invalid protobuf response: '", output, "'");
+  }
   return Status::OK();
 }
 
