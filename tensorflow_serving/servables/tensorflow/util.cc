@@ -47,6 +47,48 @@ auto* example_count_total = monitoring::Counter<1>::New(
     "/tensorflow/serving/request_example_count_total",
     "The total number of tensorflow.Examples.", "model");
 
+// Metrics by model
+auto* model_request_count_total = monitoring::Counter<1>::New(
+    "/tensorflow/serving/model_request_count",
+    "The total number of requests.", "model");
+
+auto* model_request_fail_count_total = monitoring::Counter<1>::New(
+    "/tensorflow/serving/model_request_fail_count",
+    "The total number of faled requests.", "model");
+
+auto* model_latency_total = monitoring::Counter<1>::New(
+    "/tensorflow/serving/model_request_latency_usec",
+    "The total time spent on executing graphs in microseconds.", "model");
+
+auto* model_latency_histogram = monitoring::Sampler<1>::New(
+    {"/tensorflow/serving/model_request_latency_histogram_usec",							    
+     "The total time spent on executing graphs in microseconds.", "model"},
+    // It would be nice to be able to set the parameters flexibly.
+    monitoring::Buckets::Explicit({
+	1000, 2000, 3000, 4000, 5000, 7000, 9000, 11000, 13000, 15000,
+	17000, 19000, 21000, 24000, 27000, 30000, 33000, 35000, 38000}));
+
+// All processing metrics
+auto* all_request_count_total = monitoring::Counter<0>::New(
+    "/tensorflow/serving/all_request_count",
+    "The total number of requests.");
+
+auto* all_request_fail_count_total = monitoring::Counter<0>::New(
+    "/tensorflow/serving/all_request_fail_count",
+    "The total number of faled requests.");
+
+auto* all_latency_total = monitoring::Counter<0>::New(
+    "/tensorflow/serving/all_request_latency_usec",
+    "The total time spent on serving in microseconds.");
+
+auto* all_latency_histogram = monitoring::Sampler<0>::New(
+    {"/tensorflow/serving/all_request_latency_histogram_usec",
+     "The total time spent on serving in microseconds."},
+    // It would be nice to be able to set the parameters flexibly.
+    monitoring::Buckets::Explicit({
+	1000, 2000, 3000, 4000, 5000, 7000, 9000, 11000, 13000, 15000,
+	17000, 19000, 21000, 24000, 27000, 30000, 33000, 35000, 38000}));
+
 // Returns the number of examples in the Input.
 int NumInputExamples(const internal::SerializedInput& input) {
   switch (input.kind_case()) {
@@ -69,6 +111,38 @@ monitoring::Sampler<1>* GetExampleCounts() { return example_counts; }
 monitoring::Counter<1>* GetExampleCountTotal() { return example_count_total; }
 
 }  // namespace internal
+
+// Metrics by model
+void RecordModelRequestCount(const string& model_name) {
+  model_request_count_total->GetCell(model_name)->IncrementBy(1);
+}
+
+void RecordModelRequestFailCount(const string& model_name) {
+  model_request_fail_count_total->GetCell(model_name)->IncrementBy(1);
+}
+
+void UpdateModelLatencyTime(const string& model_name, const uint64 running_time_usecs) {
+  if (running_time_usecs > 0) {
+    model_latency_total->GetCell(model_name)->IncrementBy(running_time_usecs);
+    model_latency_histogram->GetCell(model_name)->Add(running_time_usecs);
+  }
+}
+
+// All processing metrics
+void RecordAllRequestCount() {
+  all_request_count_total->GetCell()->IncrementBy(1);
+}
+
+void RecordAllRequestFailCount() {
+  all_request_fail_count_total->GetCell()->IncrementBy(1);
+}
+
+void UpdateAllLatencyTime(const uint64 running_time_usecs) {
+  if (running_time_usecs > 0) {
+    all_latency_total->GetCell()->IncrementBy(running_time_usecs);
+    all_latency_histogram->GetCell()->Add(running_time_usecs);
+  }
+}
 
 void RecordRequestExampleCount(const string& model_name, size_t count) {
   example_counts->GetCell(model_name)->Add(count);

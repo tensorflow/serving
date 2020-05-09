@@ -22,6 +22,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
 #include "tensorflow_serving/servables/tensorflow/multi_inference_helper.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
+#include "tensorflow_serving/servables/tensorflow/util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -51,6 +52,7 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
 ::grpc::Status PredictionServiceImpl::Predict(::grpc::ServerContext *context,
                                               const PredictRequest *request,
                                               PredictResponse *response) {
+  const uint64 start = Env::Default()->NowMicros();
   tensorflow::RunOptions run_options = tensorflow::RunOptions();
   if (enforce_session_run_timeout_) {
     run_options.set_timeout_in_ms(
@@ -59,10 +61,13 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
 
   const ::grpc::Status status =
       ToGRPCStatus(predictor_->Predict(run_options, core_, *request, response));
+  UpdateAllLatencyTime(Env::Default()->NowMicros() - start);
 
   if (!status.ok()) {
     VLOG(1) << "Predict failed: " << status.error_message();
+    RecordAllRequestFailCount();
   }
+  RecordAllRequestCount();
   return status;
 }
 

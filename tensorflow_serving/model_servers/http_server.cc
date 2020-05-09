@@ -25,6 +25,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/http_rest_api_handler.h"
 #include "tensorflow_serving/model_servers/http_server.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/servables/tensorflow/util.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
 #include "tensorflow_serving/util/net_http/server/public/response_code_enum.h"
 #include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
@@ -143,6 +144,7 @@ class RestApiRequestDispatcher {
 
  private:
   void ProcessRequest(net_http::ServerRequestInterface* req) {
+    const uint64 start = Env::Default()->NowMicros();
     string body;
     int64_t num_bytes = 0;
     auto request_chunk = req->ReadRequestBytes(&num_bytes);
@@ -164,11 +166,14 @@ class RestApiRequestDispatcher {
       req->OverwriteResponseHeader(kv.first, kv.second);
     }
     req->WriteResponseString(output);
+    UpdateAllLatencyTime(Env::Default()->NowMicros() - start);
     if (http_status != net_http::HTTPStatusCode::OK) {
       VLOG(1) << "Error Processing HTTP/REST request: " << req->http_method()
               << " " << req->uri_path() << " Error: " << status.ToString();
+      RecordAllRequestFailCount();
     }
     req->ReplyWithStatus(http_status);
+    RecordAllRequestCount();
   }
 
   const RE2 regex_;
