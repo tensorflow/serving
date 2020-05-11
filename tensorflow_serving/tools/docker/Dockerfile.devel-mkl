@@ -47,6 +47,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
+    python3 get-pip.py && \
+    rm get-pip.py
+
 # Install python 3.6.
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && apt-get install -y \
@@ -58,10 +62,6 @@ RUN add-apt-repository ppa:deadsnakes/ppa && \
 # Make python3.6 the default python version
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.6 0
 
-RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
-    python3 get-pip.py && \
-    rm get-pip.py
-
 RUN pip3 --no-cache-dir install \
     future>=0.17.1 \
     grpcio \
@@ -71,10 +71,11 @@ RUN pip3 --no-cache-dir install \
     mock \
     numpy \
     requests \
+    --ignore-installed setuptools \
     --ignore-installed six
 
 # Set up Bazel
-ARG BAZEL_VERSION=2.0.0
+ENV BAZEL_VERSION 2.0.0
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \
@@ -91,12 +92,11 @@ RUN git clone --branch=${TF_SERVING_VERSION_GIT_BRANCH} https://github.com/tenso
     git remote add upstream https://github.com/tensorflow/serving.git && \
     if [ "${TF_SERVING_VERSION_GIT_COMMIT}" != "head" ]; then git checkout ${TF_SERVING_VERSION_GIT_COMMIT} ; fi
 
-FROM base_build as binary_build
 
+FROM base_build as binary_build
 # Build, and install TensorFlow Serving
 ARG TF_SERVING_BUILD_OPTIONS="--config=mkl --config=release"
 RUN echo "Building with build options: ${TF_SERVING_BUILD_OPTIONS}"
-
 ARG TF_SERVING_BAZEL_OPTIONS=""
 RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
 
@@ -118,7 +118,8 @@ RUN bazel build --color=yes --curses=yes \
     tensorflow_serving/tools/pip_package:build_pip_package && \
     bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package \
     /tmp/pip && \
-    pip --no-cache-dir install --upgrade /tmp/pip/tensorflow_serving*.whl && \
+    pip --no-cache-dir install --upgrade \
+    /tmp/pip/tensorflow_serving_api-*.whl && \
     rm -rf /tmp/pip
 
 # Copy MKL libraries
