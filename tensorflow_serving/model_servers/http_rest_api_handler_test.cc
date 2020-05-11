@@ -267,6 +267,13 @@ TEST_F(HttpRestApiHandlerTest, PredictRequestErrors) {
       "POST", req_path, R"({ "instances": ["x", "y"] })", &headers, &output);
   EXPECT_TRUE(errors::IsInvalidArgument(status));
   EXPECT_THAT(status.error_message(), HasSubstr("not of expected type: float"));
+
+  // Incorrect signature_name type.
+  status = handler_.ProcessRequest(
+      "POST", req_path, R"({ "signature_name": 100 })", &headers, &output);
+  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_THAT(GetJsonErrorMsg(output),
+              HasSubstr("'signature_name' key must be a string value."));
 }
 
 TEST_F(HttpRestApiHandlerTest, Predict) {

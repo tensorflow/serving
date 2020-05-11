@@ -68,14 +68,6 @@ void AddHeaders(std::vector<std::pair<string, string>>* headers) {
   headers->push_back({"Content-Type", "application/json"});
 }
 
-void FillJsonErrorMsg(const string& errmsg, string* output) {
-  // Errors are represented as following JSON object:
-  // {
-  //   "error": "<CEscaped error message string>"
-  // }
-  absl::StrAppend(output, R"({ "error": ")", absl::CEscape(errmsg), R"(" })");
-}
-
 }  // namespace
 
 Status HttpRestApiHandler::ProcessRequest(
@@ -125,9 +117,7 @@ Status HttpRestApiHandler::ProcessRequest(
     }
   }
 
-  if (!status.ok()) {
-    FillJsonErrorMsg(status.error_message(), output);
-  }
+  MakeJsonFromStatus(status, output);
   return status;
 }
 
