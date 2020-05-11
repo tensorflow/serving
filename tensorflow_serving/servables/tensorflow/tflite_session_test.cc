@@ -44,6 +44,10 @@ constexpr char kTestModel[] =
     "/servables/tensorflow/testdata/saved_model_half_plus_two_tflite/00000123/"
     "model.tflite";
 
+constexpr char kMobileNetModel[] =
+    "/servables/tensorflow/testdata/mobilenet_v1_quant_tflite/00000123/"
+    "model.tflite";
+
 TEST(TfLiteSession, BasicTest) {
   string model_bytes;
   TF_ASSERT_OK(ReadFileToString(tensorflow::Env::Default(),
@@ -332,6 +336,31 @@ void BM_HalfPlusTwo(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_HalfPlusTwo)->ThreadRange(1, 64);
+
+void BM_MobileNet(benchmark::State& state) {
+  static TfLiteSession* session;
+  if (state.thread_index() == 0) {
+    string model_bytes;
+    TF_ASSERT_OK(ReadFileToString(Env::Default(),
+                                  test_util::TestSrcDirPath(kMobileNetModel),
+                                  &model_bytes));
+    ::google::protobuf::Map<string, SignatureDef> signatures;
+    std::unique_ptr<TfLiteSession> sess;
+    TF_ASSERT_OK(
+        TfLiteSession::Create(std::move(model_bytes), &sess, &signatures));
+    session = sess.release();
+  }
+  std::vector<int8> x_data(1 * 224 * 224 * 3, 1);
+  Tensor x = test::AsTensor<int8>(x_data, TensorShape({1, 224, 224, 3}));
+  std::vector<Tensor> outputs;
+  testing::UseRealTime();
+  for (auto _ : state) {
+    outputs.clear();
+    TF_ASSERT_OK(session->Run(
+        {{"input", x}}, {"MobilenetV1/Predictions/Reshape_1"}, {}, &outputs));
+  }
+}
+BENCHMARK(BM_MobileNet)->ThreadRange(1, 64);
 
 #endif  // PLATFORM_GOOGLE
 

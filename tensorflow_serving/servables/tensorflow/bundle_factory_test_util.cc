@@ -37,11 +37,17 @@ const char kTestSessionBundleExportPath[] =
     "session_bundle/testdata/half_plus_two/00000123";
 const char kTestTfLiteModelPath[] =
     "servables/tensorflow/testdata/saved_model_half_plus_two_tflite/00000123";
+const char kTestMLMDSavedModelPath[] =
+    "servables/tensorflow/testdata/half_plus_two_mlmd/00000123";
 
 }  // namespace
 
 string GetTestSavedModelPath() {
   return test_util::TensorflowTestSrcDirPath(kTestSavedModelPath);
+}
+
+string GetTestMLMetadataSavedModelPath() {
+  return test_util::TensorflowTestSrcDirPath(kTestMLMDSavedModelPath);
 }
 
 string GetTestSessionBundleExportPath() {

@@ -74,6 +74,9 @@ constexpr char kPredictResponseOutputsKey[] = "outputs";
 // in the JSON response object.
 constexpr char kClassifyRegressResponseKey[] = "results";
 
+// All error messages are keyed off this in the JSON response object.
+constexpr char kErrorResponseKey[] = "error";
+
 // All binary (base64 encoded) strings are keyd off this in JSON.
 constexpr char kBase64Key[] = "b64";
 
@@ -1117,6 +1120,18 @@ Status MakeJsonFromRegressionResult(const RegressionResult& result,
   writer.EndObject();
   json->assign(buffer.GetString());
   return Status::OK();
+}
+
+void MakeJsonFromStatus(const tensorflow::Status& status, string* json) {
+  if (status.ok()) return;
+  const string& error_message = status.error_message();
+  rapidjson::StringBuffer buffer;
+  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+  writer.StartObject();
+  writer.Key(kErrorResponseKey);
+  writer.String(error_message.c_str(), error_message.size());
+  writer.EndObject();
+  json->append(buffer.GetString());
 }
 
 }  // namespace serving

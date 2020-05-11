@@ -183,6 +183,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":machine_learning_metadata",
         ":saved_model_bundle_factory",
         ":saved_model_bundle_source_adapter_cc_proto",
         ":saved_model_warmup",
@@ -205,6 +206,7 @@ cc_test(
     size = "medium",
     srcs = ["saved_model_bundle_source_adapter_test.cc"],
     data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_mlmd",
         "//tensorflow_serving/session_bundle:session_bundle_half_plus_two",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
@@ -354,6 +356,7 @@ cc_test(
     size = "small",
     srcs = ["tflite_session_test.cc"],
     data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:mobilenet_v1_quant_tflite",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
     ],
     deps = [
@@ -366,6 +369,7 @@ cc_test(
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
         "@org_tensorflow//tensorflow/lite:util",
+        "@org_tensorflow//tensorflow/lite:version",
     ],
 )
 
@@ -874,6 +878,35 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "machine_learning_metadata",
+    srcs = ["machine_learning_metadata.cc"],
+    hdrs = ["machine_learning_metadata.h"],
+    deps = [
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "machine_learning_metadata_test",
+    size = "small",
+    srcs = ["machine_learning_metadata_test.cc"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_mlmd",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
+    deps = [
+        ":bundle_factory_test_util",
+        ":machine_learning_metadata",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:testlib",
+    ],
+)
+
 serving_proto_library(
     name = "thread_pool_factory_config_proto",
     srcs = ["thread_pool_factory_config.proto"],
@@ -889,6 +922,9 @@ serving_proto_library(
 cc_library(
     name = "thread_pool_factory",
     hdrs = ["thread_pool_factory.h"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "//tensorflow_serving/util:class_registration",
         "@org_tensorflow//tensorflow/core:lib",

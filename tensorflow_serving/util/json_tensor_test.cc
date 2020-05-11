@@ -1399,6 +1399,22 @@ TEST(ClassifyRegressnResultTest, JsonFromResultErrors) {
   EXPECT_THAT(status.error_message(), HasSubstr("empty RegressionResults"));
 }
 
+TEST(MakeJsonFromTensors, StatusOK) {
+  string json;
+  MakeJsonFromStatus(Status::OK(), &json);
+  EXPECT_EQ(json, "");
+}
+
+TEST(MakeJsonFromTensors, StatusError) {
+  string json;
+  MakeJsonFromStatus(errors::InvalidArgument("Bad key: \"key\""), &json);
+  TF_EXPECT_OK(CompareJson(json, R"({ "error": "Bad key: \"key\"" })"));
+
+  json.clear();
+  MakeJsonFromStatus(errors::InvalidArgument("Bad key: 'key'"), &json);
+  TF_EXPECT_OK(CompareJson(json, R"({ "error": "Bad key: 'key'" })"));
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow
