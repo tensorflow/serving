@@ -431,6 +431,11 @@ cc_test(
 )
 
 cc_library(
+    name = "predict_response_tensor_serialization_option",
+    hdrs = ["predict_response_tensor_serialization_option.h"],
+)
+
+cc_library(
     name = "predict_util",
     srcs = ["predict_util.cc"],
     hdrs = ["predict_util.h"],
@@ -438,6 +443,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":predict_response_tensor_serialization_option",
         ":util",
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/util:optional",
