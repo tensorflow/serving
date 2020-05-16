@@ -1022,7 +1022,7 @@ TEST(JsontensorTest, FromJsonSingleZeroBatchTensor) {
   ASSERT_TRUE(TextFormat::ParseFromString(R"(
     dtype: DT_INT32
     tensor_shape {
-      dim { }
+      dim { size: 0 }
       dim { size: 2 }
     }
     )",
@@ -1039,7 +1039,7 @@ TEST(JsontensorTest, FromJsonMultipleZeroBatchTensors) {
   ASSERT_TRUE(TextFormat::ParseFromString(R"(
     dtype: DT_STRING
     tensor_shape {
-      dim { }
+      dim { size: 0 }
       dim { size: 1 }
       dim { size: 2 }
     }
@@ -1049,9 +1049,9 @@ TEST(JsontensorTest, FromJsonMultipleZeroBatchTensors) {
   ASSERT_TRUE(TextFormat::ParseFromString(R"(
     dtype: DT_FLOAT
     tensor_shape {
-      dim { }
-      dim { size: 1 }
-      dim { size: 2 }
+      dim { size: 0 }
+      dim { size: 3 }
+      dim { size: 4 }
     }
     )",
                                           &tensormap["float_tensor"]));
