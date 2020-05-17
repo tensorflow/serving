@@ -237,15 +237,15 @@ void AddNamedSignatureToSavedModelBundle(
   TensorInfo scores_tensor_info;
   scores_tensor_info.set_name(output_scores_tensor_name);
   (*sig_def.mutable_outputs())["scores"] = scores_tensor_info;
-  string methond_name = "tensorflow/serving/regress";
+  string method_name = "tensorflow/serving/regress";
   if (is_classification) {
     TensorInfo class_tensor_info;
     class_tensor_info.set_name(kClassTensor);
     (*sig_def.mutable_outputs())["classes"] = class_tensor_info;
 
-    methond_name = "tensorflow/serving/classify";
+    method_name = "tensorflow/serving/classify";
   }
-  sig_def.set_method_name(methond_name);
+  sig_def.set_method_name(method_name);
   (*signature_defs)[signature_name] = sig_def;
 }
 
@@ -390,7 +390,7 @@ TEST_F(ClassifierTest, ExampleListWithContext) {
       request_.mutable_input()->mutable_example_list_with_context();
   // Context gets copied to each example.
   *list_and_context->mutable_context() = example({{"dos", 2}, {"uno", 1}});
-  // Add empty examples to recieve the context.
+  // Add empty examples to receive the context.
   list_and_context->add_examples();
   list_and_context->add_examples();
   TF_ASSERT_OK(classifier_->Classify(request_, &result_));

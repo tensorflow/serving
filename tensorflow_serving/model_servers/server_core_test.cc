@@ -843,7 +843,7 @@ TEST_P(ServerCoreTest, AssignExistingLabelToUnavailableVersion) {
       test_util::kTestModelLargerVersion;
   TF_ASSERT_OK(server_core->ReloadConfig(two_version_config));
 
-  // Attempt to assign an exsiting label to a different version that isn't
+  // Attempt to assign an existing label to a different version that isn't
   // one of the loaded ones.
   ASSERT_EQ(1, two_version_config.model_config_list().config().size());
   model_config =

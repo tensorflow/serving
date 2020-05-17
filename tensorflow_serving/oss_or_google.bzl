@@ -1,5 +1,5 @@
 """
-Module for build utilities to distiguish different build environment.
+Module for build utilities to distinguish different build environment.
 """
 
 # Whether the compilation environment is open source environment.

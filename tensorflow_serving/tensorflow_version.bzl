@@ -1,5 +1,5 @@
 """
-Module for build utilities to distiguish different tensorflow versions.
+Module for build utilities to distinguish different tensorflow versions.
 """
 
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "VERSION_MAJOR")

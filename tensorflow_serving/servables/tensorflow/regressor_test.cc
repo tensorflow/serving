@@ -192,7 +192,7 @@ void AddNamedSignatureToSavedModelBundle(
     tensorflow::MetaGraphDef* meta_graph_def) {
   auto* signature_defs = meta_graph_def->mutable_signature_def();
   SignatureDef sig_def;
-  string methond_name;
+  string method_name;
   if (is_regression) {
     TensorInfo input_tensor_info;
     input_tensor_info.set_name(input_tensor_name);
@@ -200,7 +200,7 @@ void AddNamedSignatureToSavedModelBundle(
     TensorInfo scores_tensor_info;
     scores_tensor_info.set_name(output_scores_tensor_name);
     (*sig_def.mutable_outputs())["outputs"] = scores_tensor_info;
-    methond_name = "tensorflow/serving/regress";
+    method_name = "tensorflow/serving/regress";
   } else {
     TensorInfo input_tensor_info;
     input_tensor_info.set_name(input_tensor_name);
@@ -208,9 +208,9 @@ void AddNamedSignatureToSavedModelBundle(
     TensorInfo class_tensor_info;
     class_tensor_info.set_name(kOutputPlusOneTensor);
     (*sig_def.mutable_outputs())["classes"] = class_tensor_info;
-    methond_name = "tensorflow/serving/classify";
+    method_name = "tensorflow/serving/classify";
   }
-  sig_def.set_method_name(methond_name);
+  sig_def.set_method_name(method_name);
   (*signature_defs)[signature_name] = sig_def;
 }
 
