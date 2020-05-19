@@ -1017,6 +1017,80 @@ TEST(JsontensorTest, FromJsonMultipleNamedTensorsErrors) {
   EXPECT_THAT(status.error_message(), HasSubstr("inconsistent batch size"));
 }
 
+TEST(JsontensorTest, FromJsonSingleZeroBatchTensor) {
+  TensorMap tensormap;
+  ASSERT_TRUE(TextFormat::ParseFromString(R"(
+    dtype: DT_INT32
+    tensor_shape {
+      dim { size: 0 }
+      dim { size: 2 }
+    }
+    )",
+                                          &tensormap["int_tensor"]));
+
+  string json;
+  TF_EXPECT_OK(
+      MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json));
+  TF_EXPECT_OK(CompareJson(json, R"({ "predictions": [] })"));
+}
+
+TEST(JsontensorTest, FromJsonMultipleZeroBatchTensors) {
+  TensorMap tensormap;
+  ASSERT_TRUE(TextFormat::ParseFromString(R"(
+    dtype: DT_STRING
+    tensor_shape {
+      dim { size: 0 }
+      dim { size: 1 }
+      dim { size: 2 }
+    }
+    )",
+                                          &tensormap["str_tensor"]));
+
+  ASSERT_TRUE(TextFormat::ParseFromString(R"(
+    dtype: DT_FLOAT
+    tensor_shape {
+      dim { size: 0 }
+      dim { size: 3 }
+      dim { size: 4 }
+    }
+    )",
+                                          &tensormap["float_tensor"]));
+
+  string json;
+  TF_EXPECT_OK(
+      MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json));
+  TF_EXPECT_OK(CompareJson(json, R"({ "predictions": [] })"));
+}
+
+TEST(JsontensorTest, FromJsonMultipleZeroBatchTensorsErrors) {
+  TensorMap tensormap;
+  ASSERT_TRUE(TextFormat::ParseFromString(R"(
+    dtype: DT_INT32
+    tensor_shape {
+      dim { size: 0 }
+      dim { size: 2 }
+    }
+    )",
+                                          &tensormap["int_tensor"]));
+
+  ASSERT_TRUE(TextFormat::ParseFromString(R"(
+    dtype: DT_STRING
+    tensor_shape {
+      dim { size: 1 }
+      dim { size: 2 }
+    }
+    string_val: "foo"
+    string_val: "bar"
+    )",
+                                          &tensormap["str_tensor"]));
+
+  string json;
+  const auto& status =
+      MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json);
+  ASSERT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_THAT(status.error_message(), HasSubstr("inconsistent batch size"));
+}
+
 template <typename RequestType>
 class ClassifyRegressRequestTest : public ::testing::Test {
  protected:
