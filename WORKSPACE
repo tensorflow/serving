@@ -70,7 +70,7 @@ http_archive(
     urls = [
         "https://github.com/unicode-org/icu/archive/release-64-2.zip",
     ],
-    build_file = "//third_party/icu:BUILD.bzl",
+    build_file = "//third_party/icu:BUILD",
 )
 
 # END: Upstream TensorFlow dependencies
