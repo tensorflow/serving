@@ -71,8 +71,6 @@ http_archive(
         "https://github.com/unicode-org/icu/archive/release-64-2.zip",
     ],
     build_file = "//third_party/icu:BUILD.bzl",
-    patches = ["//third_party/icu:udata.patch"],
-    patch_args = ["-p1", "-s"],
 )
 
 # END: Upstream TensorFlow dependencies
