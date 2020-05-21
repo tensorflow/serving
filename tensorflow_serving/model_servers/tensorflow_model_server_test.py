@@ -34,6 +34,7 @@ from tensorflow.python.eager import profiler_client
 from tensorflow.python.platform import flags
 from tensorflow.python.saved_model import signature_constants
 from tensorflow_serving.apis import classification_pb2
+from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import get_model_status_pb2
 from tensorflow_serving.apis import inference_pb2
 from tensorflow_serving.apis import model_service_pb2_grpc
@@ -101,6 +102,27 @@ class TensorflowModelServerTest(
     self.assertEqual(123, result.model_version_status[0].version)
     # OK error code (0) indicates no error occurred
     self.assertEqual(0, result.model_version_status[0].status.error_code)
+
+  def testGetModelMetadata(self):
+    """Test PredictionService.GetModelMetadata implementation."""
+    model_path = self._GetSavedModelBundlePath()
+    model_server_address = TensorflowModelServerTest.RunServer(
+        'default', model_path)[1]
+
+    print('Sending GetModelMetadata request...')
+    # Send request
+    request = get_model_metadata_pb2.GetModelMetadataRequest()
+    request.model_spec.name = 'default'
+    request.metadata_field.append('signature_def')
+    channel = grpc.insecure_channel(model_server_address)
+    stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
+    result = stub.GetModelMetadata(request, RPC_TIMEOUT)  # 5 secs timeout
+    # Verify response
+    self.assertEqual('default', result.model_spec.name)
+    self.assertEqual(
+        self._GetModelVersion(model_path), result.model_spec.version.value)
+    self.assertEqual(1, len(result.metadata))
+    self.assertIn('signature_def', result.metadata)
 
   def testClassify(self):
     """Test PredictionService.Classify implementation."""

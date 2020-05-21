@@ -56,11 +56,6 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
 ::grpc::Status PredictionServiceImpl::GetModelMetadata(
     ::grpc::ServerContext *context, const GetModelMetadataRequest *request,
     GetModelMetadataResponse *response) {
-  if (!use_saved_model_) {
-    return ToGRPCStatus(
-        errors::InvalidArgument("GetModelMetadata API is only available when "
-                                "use_saved_model is set to true"));
-  }
   const ::grpc::Status status = ToGRPCStatus(
       GetModelMetadataImpl::GetModelMetadata(core_, *request, response));
   if (!status.ok()) {
