@@ -396,6 +396,7 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.index",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite_with_sigdef",
         "//tensorflow_serving/servables/tensorflow/testdata:tf_text_regression",
     ] + if_google([
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",

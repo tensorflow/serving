@@ -56,6 +56,7 @@ import sys
 # This is a placeholder for a Google-internal import.
 import tensorflow.compat.v1 as tf
 
+from tensorflow.lite.tools.signature import signature_def_utils
 from tensorflow.python.lib.io import file_io
 
 FLAGS = None
@@ -155,6 +156,7 @@ def _write_mlmd(export_dir, mlmd_uuid):
 def _generate_saved_model_for_half_plus_two(export_dir,
                                             as_text=False,
                                             as_tflite=False,
+                                            as_tflite_with_sigdef=False,
                                             use_main_op=False,
                                             include_mlmd=False,
                                             device_type="cpu"):
@@ -164,6 +166,8 @@ def _generate_saved_model_for_half_plus_two(export_dir,
     export_dir: The directory to which the SavedModel should be written.
     as_text: Writes the SavedModel protocol buffer in text format to disk.
     as_tflite: Writes the Model in Tensorflow Lite format to disk.
+    as_tflite_with_sigdef: Writes the Model with SignatureDefs in Tensorflow
+      Lite format to disk.
     use_main_op: Whether to supply a main op during SavedModel build time.
     include_mlmd: Whether to include an MLMD key in the SavedModel.
     device_type: Device to force ops to run on.
@@ -198,8 +202,18 @@ def _generate_saved_model_for_half_plus_two(export_dir,
       # parse_example only works on CPU
       with tf.device("/cpu:0"):
         tf_example = tf.parse_example(serialized_tf_example, feature_configs)
-      # Use tf.identity() to assign name
-      x = tf.identity(tf_example["x"], name="x")
+
+      if as_tflite:
+        # TFLite v1 converter does not support unknown shape.
+        x = tf.ensure_shape(tf_example["x"], (1, 1), name="x")
+      else:
+        # Use tf.identity() to assign name
+        x = tf.identity(tf_example["x"], name="x")
+
+      if as_tflite_with_sigdef:
+        # Resulting TFLite model will have input named "tflite_input".
+        x = tf.ensure_shape(tf_example["x"], (1, 1), name="tflite_input")
+
       if device_type == "mkl":
         # Create a small convolution op to trigger MKL
         # The op will return 0s so this won't affect the
@@ -268,9 +282,13 @@ def _generate_saved_model_for_half_plus_two(export_dir,
     # Initialize all variables and then save the SavedModel.
     sess.run(tf.global_variables_initializer())
 
-    if as_tflite:
+    if as_tflite or as_tflite_with_sigdef:
       converter = tf.lite.TFLiteConverter.from_session(sess, [x], [y])
       tflite_model = converter.convert()
+      if as_tflite_with_sigdef:
+        k = tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
+        tflite_model = signature_def_utils.set_signature_defs(
+            tflite_model, {k: predict_signature_def})
       open(export_dir + "/model.tflite", "wb").write(tflite_model)
     else:
       if use_main_op:
@@ -330,6 +348,15 @@ def main(_):
       "dir": FLAGS.output_dir_mlmd,
   })
 
+  _generate_saved_model_for_half_plus_two(
+      FLAGS.output_dir_tflite_with_sigdef, device_type=FLAGS.device,
+      as_tflite_with_sigdef=True)
+  print("SavedModel in TFLite format with SignatureDef generated for "
+        "%(device)s at: %(dir)s " % {
+            "device": FLAGS.device,
+            "dir": FLAGS.output_dir_tflite_with_sigdef,
+        })
+
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
@@ -358,6 +385,12 @@ if __name__ == "__main__":
       type=str,
       default="/tmp/saved_model_half_plus_two_mlmd",
       help="Directory where to output the SavedModel with ML Metadata.")
+  parser.add_argument(
+      "--output_dir_tflite_with_sigdef",
+      type=str,
+      default="/tmp/saved_model_half_plus_two_tflite_with_sigdef",
+      help=("Directory where to output model with signature def in "
+            "TensorFlow Lite format."))
   parser.add_argument(
       "--device",
       type=str,

@@ -339,15 +339,15 @@ cc_library(
         ":serving_session",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/synchronization",
-        "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/lite:framework",
         "@org_tensorflow//tensorflow/lite:string_util",
-        "@org_tensorflow//tensorflow/lite/core/api",
+        "@org_tensorflow//tensorflow/lite:util",
         "@org_tensorflow//tensorflow/lite/delegates/flex:delegate",
         "@org_tensorflow//tensorflow/lite/kernels:builtin_ops",
+        "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_util",
     ],
 )
 
@@ -364,12 +364,14 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
         "@flatbuffers",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
         "@org_tensorflow//tensorflow/lite:util",
         "@org_tensorflow//tensorflow/lite:version",
+        "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_util",
     ],
 )
 

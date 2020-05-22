@@ -591,6 +591,16 @@ class TensorflowModelServerTest(
         specify_output=False,
         expected_version=self._GetModelVersion(self._GetTfLiteModelPath()))
 
+  def testPredictWithSignatureDefOnTfLite(self):
+    """Test saved model prediction on a TF Lite mode."""
+    model_server_address = TensorflowModelServerTest.RunServer(
+        'default', self._GetTfLiteModelWithSigDefPath(), model_type='tflite')[1]
+    self.VerifyPredictRequest(
+        model_server_address,
+        expected_output=3.0,
+        specify_output=False,
+        expected_version=self._GetModelVersion(self._GetTfLiteModelPath()))
+
   def test_tf_saved_model_save(self):
     base_path = os.path.join(self.get_temp_dir(), 'tf_saved_model_save')
     export_path = os.path.join(base_path, '00000123')
