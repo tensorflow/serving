@@ -538,9 +538,9 @@ Status FillTensorMapFromInstancesList(
       std::set<string> object_keys;
       for (const auto& kv : elem.GetObject()) {
         const string& name = kv.name.GetString();
-	if (!tensorinfo_map.count(name)) {
-	  continue;
-	}
+        if (!tensorinfo_map.count(name)) {
+          continue;
+        }
         object_keys.insert(name);
         const auto status = AddInstanceItem(kv.value, name, tensorinfo_map,
                                             &size_map, &shape_map, tensor_map);
