@@ -1,0 +1,30 @@
+ICU currently does not have public BUILD files for Bazel, so we've created
+our own based upon the currently downloaded version of Bazel. This BUILD
+is similar to the one used in TensorFlow and TF Text.
+
+TensorFlow and TF Text also patch Bazel to include data files necessary
+which are not a part of the core release, but are built into the code. This
+patch file is a combination of the two. Below are the steps to generate:
+1.  Checkout ICU and update to the correct version.
+    `cd /tmp`
+    `git clone https://github.com/unicode-org/icu.git`
+    `git checkout release-64-2`
+2.  Apply TF Text patch.
+    `cp third_party/tensorflow_text/oss_scripts/third_party/icu/udata.patch.oss /tmp/icu`
+    `patch -p1 < udata.patch.oss`
+3.  Copy the files and stash the changes.
+    `git status`
+    `cp icu4c/source/common/udata.cpp ..`
+    `cp icu4c/source/common/unicode/uconfig.h ..`
+    `git stash`
+4.  Apply TF patch.
+    `cp third_party/tensorflow/third_party/icu/udata.patch.oss /tmp/icu`
+    `patch -p1 < udate.patch.oss`
+5.  Combine changes.
+    `git add . && git commit -m .`
+    `git stash pop`
+    < resolve differences with vim >
+    `git add .`
+    `git reset HEAD^`
+6.  Generate new patch file.
+    `git diff > icu.data.patch`
