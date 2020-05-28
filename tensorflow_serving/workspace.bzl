@@ -54,6 +54,8 @@ def tf_serving_workspace():
             "https://github.com/unicode-org/icu/archive/release-64-2.zip",
         ],
         build_file = "//third_party/icu:BUILD",
+        patches = ["//third_party/icu:data.patch"],
+        patch_args = ["-p1", "-s"],
     )
 
     # ===== Pin `com_google_absl` with the same version(and patch) with Tensorflow.
