@@ -49,8 +49,9 @@ def tf_serving_workspace():
     http_archive(
         name = "icu",
         strip_prefix = "icu-release-64-2",
-        sha256 = "10cd92f1585c537d937ecbb587f6c3b36a5275c87feabe05d777a828677ec32f",
+        sha256 = "dfc62618aa4bd3ca14a3df548cd65fe393155edd213e49c39f3a30ccd618fc27",
         urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/unicode-org/icu/archive/release-64-2.zip",
             "https://github.com/unicode-org/icu/archive/release-64-2.zip",
         ],
         build_file = "//third_party/icu:BUILD",
