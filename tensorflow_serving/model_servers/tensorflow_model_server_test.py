@@ -30,8 +30,8 @@ import grpc
 from six.moves import range
 import tensorflow.compat.v1 as tf
 
-from tensorflow.python.eager import profiler_client
 from tensorflow.python.platform import flags
+from tensorflow.python.profiler import profiler_client
 from tensorflow.python.saved_model import signature_constants
 from tensorflow_serving.apis import classification_pb2
 from tensorflow_serving.apis import get_model_metadata_pb2
@@ -729,14 +729,13 @@ class TensorflowModelServerTest(
     # Prepare args to ProfilerClient
     logdir = os.path.join(self.temp_dir, 'logs')
     worker_list = ''
-    include_dataset_ops = True
     duration_ms = 1000
     num_tracing_attempts = 3
     os.makedirs(logdir)
 
     # Send a tracing request
-    profiler_client.start_tracing(grpc_addr, logdir, duration_ms, worker_list,
-                                  include_dataset_ops, num_tracing_attempts)
+    profiler_client.trace(grpc_addr, logdir, duration_ms, worker_list,
+                          num_tracing_attempts)
 
     #  Log stdout & stderr of subprocess issuing predict requests for debugging
     out, err = proc.communicate()
