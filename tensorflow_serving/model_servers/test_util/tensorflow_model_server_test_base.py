@@ -296,6 +296,11 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
     """Returns a path to a model in TF Lite format."""
     return os.path.join(self.testdata_dir, 'saved_model_half_plus_two_tflite')
 
+  def _GetTfLiteModelWithSigDefPath(self):
+    """Returns a path to a model in TF Lite format."""
+    return os.path.join(self.testdata_dir,
+                        'saved_model_half_plus_two_tflite_with_sigdef')
+
   def _GetSessionBundlePath(self):
     """Returns a path to a model in SessionBundle format."""
     return os.path.join(self.session_bundle_testdata_dir, 'half_plus_two')

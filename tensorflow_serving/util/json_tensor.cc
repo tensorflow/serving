@@ -969,7 +969,7 @@ Status MakeRowFormatJsonFromTensors(
   // Verify if each named tensor has same first dimension. The first dimension
   // is the batchsize and for an output to be consistent, all named tensors must
   // be batched to the same size.
-  int batch_size = 0;
+  int batch_size = -1;
   // Track offset into value list for each tensor (used in the next section).
   std::unordered_map<string, int> offset_map;
   for (const auto& kv : tensor_map) {
@@ -980,11 +980,7 @@ Status MakeRowFormatJsonFromTensors(
                                      " has no shape information ");
     }
     const int cur_batch_size = tensor.tensor_shape().dim(0).size();
-    if (cur_batch_size < 1) {
-      return errors::InvalidArgument(
-          "Tensor name: ", name, " has invalid batch size: ", cur_batch_size);
-    }
-    if (batch_size != 0 && batch_size != cur_batch_size) {
+    if (batch_size >= 0 && batch_size != cur_batch_size) {
       return errors::InvalidArgument(
           "Tensor name: ", name,
           " has inconsistent batch size: ", cur_batch_size,

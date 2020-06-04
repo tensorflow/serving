@@ -69,7 +69,10 @@ py_binary(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
+    deps = [
+        "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils",
+    ],
 )
 
 filegroup(
@@ -104,6 +107,13 @@ filegroup(
     name = "saved_model_half_plus_two_tflite",
     srcs = glob(
         ["saved_model_half_plus_two_tflite/**"],
+    ),
+)
+
+filegroup(
+    name = "saved_model_half_plus_two_tflite_with_sigdef",
+    srcs = glob(
+        ["saved_model_half_plus_two_tflite_with_sigdef/**"],
     ),
 )
 

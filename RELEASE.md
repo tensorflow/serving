@@ -1,3 +1,40 @@
+# Release 2.2.0
+
+## Major Features and Improvements
+
+* Upgrade to CUDA Version 10.1. (commit: 3ab70a7811f63b994da076e2688ccc66feccee96)
+* Update TF Text to v2.2.0. (commit: fd9842816eddb4782579eadd119156190d6d2fec)
+
+## Breaking Changes
+
+## Bug Fixes and Other Changes
+
+* This release is based on TensorFlow version 2.2.0
+* Add a SourceAdapter that adds a prefix to StoragePath. (commit: f337623da81521eefd8cdc2da1c4a450ecf1d028)
+* Switch users of `tensorflow::Env::Now*()` to `EnvTime::Now*()`. (commit: 8a0895eb8127941b2e9dada20718dd28f3dbaee1)
+* Remove SessionBundle support from Predictor. (commit: 2090d67f4e5e8ee5aa7faf8437bea096a438450a)
+* Replace the error_codes.proto references in tf serving. (commit: ab475bf6c5e5e4b3b42ffa2aecf18b39fd481ad3)
+* Adds [performance guide and documentation](tensorflow_serving/g3doc/tensorboard.md) for TensorBoard integration (commit: f1e4eb2259da90bb9c5fe028ba824ac18a436f67)
+* Remove SessionBundleSourceAdapter as we load Session bundles via (commit: d50aa2b0b986b11368ddcf6b6eb20b9381af474c)
+* Use SavedModelBundleSourceAdapterConfig instead of (commit: 8ed3ceea985529a350290cf782cb34c3c66827d4)
+* Update minimum bazel version to 1.2.1. (commit: 1a36026198df5f7dec1e626ef9b112fecdd2916b)
+* Drop support for beta gRPC APIs. (commit: 13d01fc64330ff883bd1553122d9fd114a5a7368)
+* API spec for httpserver response-streaming (with flow-control). (commit: fd597f074ce127056515bc52ee3a3d4ff4b727bb)
+* Change Python version to PY3. (commit: 7516746a311f96b57a60598feba40cbdd3989e73)
+* Update Python tests in PY3. (commit: 0cf65d2105c191c00fba8918ba75fc955bbeace3)
+* Upgrade bazel version for Dockerfiles. (commit: e507aa193b9f3520d40e3da5e4d2263280ff35e4)
+* Change dockerfile for PY3. (commit: 7cbd06e8b7720b82b1d2dfae54c3a828d3a52eb4)
+* Reduce contention in FastReadDynamicPtr by sharding the ReadPtrs, by default one per CPU. (commit: d3b374bc70348f2e5e22b7e9ebb191ee9d5b3268)
+* Ensure that all outstanding ReadPtrs are destroyed before allowing a (commit: e41ee40826652b6aa5a3f071107074923d6ff6c7)
+* Allow splitting fields from batched session metadata into individual sessions (commit: caf2a92ba07ca4d10515f0b018c920e9b325c6c8)
+* Allow passing ThreadPoolOptions in various Session implementations. (commit: 2b6212cf0aa88b719ee00267f83c89d4f7599ef1)
+* Update bazel version used in the docker images. (commit: 162f72949c6ecbe9e610182c923dec0aa5924cf2)
+* Format error strings correctly in JSON response (Fixes #1600). (commit: 1ff4d31cd9a0a736162813c149139cce0ccaaa2c)
+* Fix broken GetModelMetadata request processing (#1612) (commit: 55c40374b548b89e8de6d899ef2b0b355c0fa9e5)
+* Support Python 3.7 in tensorflow-serving-api package (Fixes #1640) (commit: f775bb25e80a6c7b3c66842eb9085d44d9752ec2)
+* Update ICU library to include knowledge of built-in data files. (commit: 774f2489384cf985c534298d1303474c268efe5c)
+* Adds storage.googleapis.com as the primary download location for the ICU, and resets the sha256 to match this archive. (commit: 028d05095c4e302c06096e5ea32917718828ea47)
+
 # Release 2.1.0
 
 ## Major Features and Improvements

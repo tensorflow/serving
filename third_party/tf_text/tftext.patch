@@ -1,5 +1,5 @@
 diff --git a/tensorflow_text/core/kernels/BUILD b/tensorflow_text/core/kernels/BUILD
-index d03ec5f..6e8cd87 100644
+index bdca365..5f5cdf6 100644
 --- a/tensorflow_text/core/kernels/BUILD
 +++ b/tensorflow_text/core/kernels/BUILD
 @@ -16,8 +16,7 @@ OSS_DEPS = [
@@ -11,7 +11,7 @@ index d03ec5f..6e8cd87 100644
 +    "@org_tensorflow//tensorflow/core:tensorflow_opensource",
  ]
  
- tf_kernel_library(
+ cc_library(
 diff --git a/tensorflow_text/tftext.bzl b/tensorflow_text/tftext.bzl
 index aa5e275..5eaff73 100644
 --- a/tensorflow_text/tftext.bzl

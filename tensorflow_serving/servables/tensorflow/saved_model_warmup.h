@@ -21,21 +21,15 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/protobuf/saved_model.pb.h"
 #include "tensorflow/core/public/session.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_warmup_util.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 
 namespace tensorflow {
 namespace serving {
 
-struct WarmupConsts {
-  static constexpr char kRequestsFileName[] = "tf_serving_warmup_requests";
-  static constexpr int kMaxNumRecords = 1000;
-};
-
-// Reads sample warmup requests from assets.extra/tf_serving_warmup_requests
-// file (if exists) and invokes them one by one on the given saved_model_bundle,
-// to trigger lazy initializations (such as TF optimizations, XLA compilations)
-// at load time, and consequently improve first request latency.
-// Warmup is skipped if no warmup file present.
+// Run warmup requests to trigger lazy initializations (such as TF
+// optimizations, XLA compilations) at load time, and consequently improve first
+// request latency.
 // Supported request types: Regress, Classify, Predict, MultiInference.
 Status RunSavedModelWarmup(const ModelWarmupOptions& model_warmup_options,
                            const RunOptions& run_options,

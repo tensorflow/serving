@@ -29,7 +29,6 @@ class PredictionServiceImpl final : public PredictionService::Service {
   // Options for configuring a PredictionServiceImpl object.
   struct Options {
     ServerCore* server_core;
-    bool use_saved_model;
     bool enforce_session_run_timeout;
     ThreadPoolFactory* thread_pool_factory = nullptr;
   };
@@ -37,7 +36,6 @@ class PredictionServiceImpl final : public PredictionService::Service {
   explicit PredictionServiceImpl(const Options& options)
       : core_(options.server_core),
         predictor_(new TensorflowPredictor(options.thread_pool_factory)),
-        use_saved_model_(options.use_saved_model),
         enforce_session_run_timeout_(options.enforce_session_run_timeout),
         thread_pool_factory_(options.thread_pool_factory) {}
 
@@ -64,7 +62,6 @@ class PredictionServiceImpl final : public PredictionService::Service {
  private:
   ServerCore* core_;
   std::unique_ptr<TensorflowPredictor> predictor_;
-  const bool use_saved_model_;
   const bool enforce_session_run_timeout_;
   ThreadPoolFactory* thread_pool_factory_;
 };

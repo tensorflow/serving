@@ -23,10 +23,12 @@ limitations under the License.
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_replace.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/platform/errors.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
@@ -55,9 +57,9 @@ HttpRestApiHandler::HttpRestApiHandler(const RunOptions& run_options,
       core_(core),
       predictor_(new TensorflowPredictor()),
       prediction_api_regex_(
-          R"((?i)/v1/models/([^/:]+)(?:/versions/(\d+))?:(classify|regress|predict))"),
+          R"((?i)/v1/models/([^/:]+)(?:(?:/versions/(\d+))|(?:/labels/(\w+)))?:(classify|regress|predict))"),
       modelstatus_api_regex_(
-          R"((?i)/v1/models(?:/([^/:]+))?(?:/versions/(\d+))?(?:\/(metadata))?)") {
+          R"((?i)/v1/models(?:/([^/:]+))?(?:(?:/versions/(\d+))|(?:/labels/(\w+)))?(?:\/(metadata))?)") {
 }
 
 HttpRestApiHandler::~HttpRestApiHandler() {}
@@ -66,6 +68,29 @@ namespace {
 
 void AddHeaders(std::vector<std::pair<string, string>>* headers) {
   headers->push_back({"Content-Type", "application/json"});
+}
+
+Status FillModelSpecWithNameVersionAndLabel(
+    const absl::string_view model_name,
+    const absl::optional<int64>& model_version,
+    const absl::optional<absl::string_view> model_version_label,
+    ::tensorflow::serving::ModelSpec* model_spec) {
+  model_spec->set_name(string(model_name));
+
+  if (model_version.has_value() && model_version_label.has_value()) {
+    return errors::InvalidArgument(
+        "Both model version (", model_version.value(),
+        ") and model version label (", model_version_label.value(),
+        ") cannot be supplied.");
+  }
+
+  if (model_version.has_value()) {
+    model_spec->mutable_version()->set_value(model_version.value());
+  }
+  if (model_version_label.has_value()) {
+    model_spec->set_version_label(string(model_version_label.value()));
+  }
+  return Status::OK();
 }
 
 }  // namespace
@@ -79,41 +104,57 @@ Status HttpRestApiHandler::ProcessRequest(
   AddHeaders(headers);
   string model_name;
   string model_version_str;
+  string model_version_label_str;
   string method;
   string model_subresource;
   Status status = errors::InvalidArgument("Malformed request: ", http_method,
                                           " ", request_path);
-  if (http_method == "POST" &&
-      RE2::FullMatch(string(request_path), prediction_api_regex_, &model_name,
-                     &model_version_str, &method)) {
-    absl::optional<int64> model_version;
-    if (!model_version_str.empty()) {
-      int64 version;
-      if (!absl::SimpleAtoi(model_version_str, &version)) {
-        return errors::InvalidArgument(
-            "Failed to convert version: ", model_version_str, " to numeric.");
-      }
-      model_version = version;
+
+  // Parse request parameters
+  bool parse_successful = false;
+  if (http_method == "POST") {
+    parse_successful =
+        RE2::FullMatch(string(request_path), prediction_api_regex_, &model_name,
+                       &model_version_str, &model_version_label_str, &method);
+  } else if (http_method == "GET") {
+    parse_successful = RE2::FullMatch(
+        string(request_path), modelstatus_api_regex_, &model_name,
+        &model_version_str, &model_version_label_str, &model_subresource);
+  }
+
+  absl::optional<int64> model_version;
+  absl::optional<absl::string_view> model_version_label;
+  if (!model_version_str.empty()) {
+    int64 version;
+    if (!absl::SimpleAtoi(model_version_str, &version)) {
+      return errors::InvalidArgument(
+          "Failed to convert version: ", model_version_str, " to numeric.");
     }
+    model_version = version;
+  }
+  if (!model_version_label_str.empty()) {
+    model_version_label = model_version_label_str;
+  }
+
+  // Dispatch request to appropriate processor
+  if (http_method == "POST" && parse_successful) {
     if (method == "classify") {
-      status = ProcessClassifyRequest(model_name, model_version, request_body,
-                                      output);
+      status = ProcessClassifyRequest(
+          model_name, model_version, model_version_label, request_body, output);
     } else if (method == "regress") {
-      status = ProcessRegressRequest(model_name, model_version, request_body,
-                                     output);
+      status = ProcessRegressRequest(model_name, model_version,
+                                     model_version_label, request_body, output);
     } else if (method == "predict") {
-      status = ProcessPredictRequest(model_name, model_version, request_body,
-                                     output);
+      status = ProcessPredictRequest(model_name, model_version,
+                                     model_version_label, request_body, output);
     }
-  } else if (http_method == "GET" &&
-             RE2::FullMatch(string(request_path), modelstatus_api_regex_,
-                            &model_name, &model_version_str,
-                            &model_subresource)) {
+  } else if (http_method == "GET" && parse_successful) {
     if (!model_subresource.empty() && model_subresource == "metadata") {
-      status =
-          ProcessModelMetadataRequest(model_name, model_version_str, output);
+      status = ProcessModelMetadataRequest(model_name, model_version,
+                                           model_version_label, output);
     } else {
-      status = ProcessModelStatusRequest(model_name, model_version_str, output);
+      status = ProcessModelStatusRequest(model_name, model_version,
+                                         model_version_label, output);
     }
   }
 
@@ -124,13 +165,12 @@ Status HttpRestApiHandler::ProcessRequest(
 Status HttpRestApiHandler::ProcessClassifyRequest(
     const absl::string_view model_name,
     const absl::optional<int64>& model_version,
+    const absl::optional<absl::string_view>& model_version_label,
     const absl::string_view request_body, string* output) {
   ClassificationRequest request;
-  request.mutable_model_spec()->set_name(string(model_name));
-  if (model_version.has_value()) {
-    request.mutable_model_spec()->mutable_version()->set_value(
-        model_version.value());
-  }
+  TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
+      model_name, model_version, model_version_label,
+      request.mutable_model_spec()));
   TF_RETURN_IF_ERROR(FillClassificationRequestFromJson(request_body, &request));
 
   ClassificationResponse response;
@@ -144,13 +184,12 @@ Status HttpRestApiHandler::ProcessClassifyRequest(
 Status HttpRestApiHandler::ProcessRegressRequest(
     const absl::string_view model_name,
     const absl::optional<int64>& model_version,
+    const absl::optional<absl::string_view>& model_version_label,
     const absl::string_view request_body, string* output) {
   RegressionRequest request;
-  request.mutable_model_spec()->set_name(string(model_name));
-  if (model_version.has_value()) {
-    request.mutable_model_spec()->mutable_version()->set_value(
-        model_version.value());
-  }
+  TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
+      model_name, model_version, model_version_label,
+      request.mutable_model_spec()));
   TF_RETURN_IF_ERROR(FillRegressionRequestFromJson(request_body, &request));
 
   RegressionResponse response;
@@ -163,13 +202,13 @@ Status HttpRestApiHandler::ProcessRegressRequest(
 Status HttpRestApiHandler::ProcessPredictRequest(
     const absl::string_view model_name,
     const absl::optional<int64>& model_version,
+    const absl::optional<absl::string_view>& model_version_label,
     const absl::string_view request_body, string* output) {
   PredictRequest request;
-  request.mutable_model_spec()->set_name(string(model_name));
-  if (model_version.has_value()) {
-    request.mutable_model_spec()->mutable_version()->set_value(
-        model_version.value());
-  }
+  TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
+      model_name, model_version, model_version_label,
+      request.mutable_model_spec()));
+
   JsonPredictRequestFormat format;
   TF_RETURN_IF_ERROR(FillPredictRequestFromJson(
       request_body,
@@ -188,22 +227,19 @@ Status HttpRestApiHandler::ProcessPredictRequest(
 
 Status HttpRestApiHandler::ProcessModelStatusRequest(
     const absl::string_view model_name,
-    const absl::string_view model_version_str, string* output) {
-  GetModelStatusRequest request;
+    const absl::optional<int64>& model_version,
+    const absl::optional<absl::string_view>& model_version_label,
+    string* output) {
   // We do not yet support returning status of all models
   // to be in-sync with the gRPC GetModelStatus API.
   if (model_name.empty()) {
     return errors::InvalidArgument("Missing model name in request.");
   }
-  request.mutable_model_spec()->set_name(string(model_name));
-  if (!model_version_str.empty()) {
-    int64 version;
-    if (!absl::SimpleAtoi(model_version_str, &version)) {
-      return errors::InvalidArgument(
-          "Failed to convert version: ", model_version_str, " to numeric.");
-    }
-    request.mutable_model_spec()->mutable_version()->set_value(version);
-  }
+
+  GetModelStatusRequest request;
+  TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
+      model_name, model_version, model_version_label,
+      request.mutable_model_spec()));
 
   GetModelStatusResponse response;
   TF_RETURN_IF_ERROR(
@@ -222,22 +258,18 @@ Status HttpRestApiHandler::ProcessModelStatusRequest(
 
 Status HttpRestApiHandler::ProcessModelMetadataRequest(
     const absl::string_view model_name,
-    const absl::string_view model_version_str, string* output) {
-  GetModelMetadataRequest request;
+    const absl::optional<int64>& model_version,
+    const absl::optional<absl::string_view>& model_version_label,
+    string* output) {
   if (model_name.empty()) {
     return errors::InvalidArgument("Missing model name in request.");
   }
-  request.mutable_model_spec()->set_name(string(model_name));
+  GetModelMetadataRequest request;
   // We currently only support the kSignatureDef metadata field
   request.add_metadata_field(GetModelMetadataImpl::kSignatureDef);
-  if (!model_version_str.empty()) {
-    int64 version;
-    if (!absl::SimpleAtoi(model_version_str, &version)) {
-      return errors::InvalidArgument(
-          "Failed to convert version: ", model_version_str, " to numeric.");
-    }
-    request.mutable_model_spec()->mutable_version()->set_value(version);
-  }
+  TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
+      model_name, model_version, model_version_label,
+      request.mutable_model_spec()));
 
   GetModelMetadataResponse response;
   TF_RETURN_IF_ERROR(
