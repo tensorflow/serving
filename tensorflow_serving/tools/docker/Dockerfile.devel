@@ -75,7 +75,7 @@ RUN pip3 --no-cache-dir install \
     --ignore-installed six
 
 # Set up Bazel
-ENV BAZEL_VERSION 2.0.0
+ENV BAZEL_VERSION 3.0.0
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \

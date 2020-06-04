@@ -72,7 +72,7 @@ tf_serving_workspace()
 # Specify the minimum required bazel version.
 load("@org_tensorflow//tensorflow:version_check.bzl", "check_bazel_version_at_least")
 
-check_bazel_version_at_least("2.0.0")
+check_bazel_version_at_least("3.0.0")
 
 # GPRC deps, required to match TF's.  Only after calling tf_serving_workspace()
 load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
