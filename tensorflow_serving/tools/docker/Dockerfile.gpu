@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         cuda-command-line-tools-10-1 \
         libcublas10=10.2.1.243-1 \
         libcublas-dev=10.2.1.243-1 \
+        cuda-nvrtc-10-1 \
         cuda-cufft-10-1 \
         cuda-curand-10-1 \
         cuda-cusolver-10-1 \
