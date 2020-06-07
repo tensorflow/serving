@@ -205,7 +205,7 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
       raise ValueError('Both model_config_file and model_path cannot be empty!')
 
     if model_type == 'tflite':
-      command += ' --use_tflite_model=true'
+      command += ' --prefer_tflite_model=true'
 
     if monitoring_config_file:
       command += ' --monitoring_config_file=' + monitoring_config_file

@@ -188,11 +188,13 @@ int main(int argc, char** argv) {
           &options.remove_unused_fields_from_bundle_metagraph,
           "Removes unused fields from MetaGraphDef proto message to save "
           "memory."),
-      tensorflow::Flag("use_tflite_model", &options.use_tflite_model,
-                       "EXPERIMENTAL; CAN BE REMOVED ANYTIME! Load and use "
-                       "TensorFlow Lite model from `model.tflite` file in "
-                       "SavedModel directory instead of the TensorFlow model "
-                       "from `saved_model.pb` file.")};
+      tensorflow::Flag("prefer_tflite_model", &options.prefer_tflite_model,
+                       "EXPERIMENTAL; CAN BE REMOVED ANYTIME! "
+                       "Prefer TensorFlow Lite model from `model.tflite` file "
+                       "in SavedModel directory, instead of the TensorFlow "
+                       "model from `saved_model.pb` file. "
+                       "If no TensorFlow Lite model found, fallback to "
+                       "TensorFlow model.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {
