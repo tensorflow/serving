@@ -23,6 +23,8 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/string_util.h"
+#include "tensorflow/lite/tools/signature/signature_def_util.h"
+#include "tensorflow/lite/util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -219,6 +221,37 @@ Status TfLiteSession::Create(string&& buffer,
     return errors::InvalidArgument("Cannot build FlatBufferModel from buffer.");
   }
 
+  SignatureDef lite_signature_def;
+  std::map<string, SignatureDef> signature_defs;
+  const auto status =
+      tflite::GetSignatureDefMap(model->GetModel(), &signature_defs);
+  if (status != Status::OK()) {
+    return errors::InvalidArgument(
+        "Invalid SignatureDefs found in TfLite model: %s",
+        status.error_message());
+  }
+  const bool has_lite_signature_def = !signature_defs.empty();
+  if (has_lite_signature_def) {
+    // TODO(b/157098128): Support multiple SignatureDefs by key.
+    if (signature_defs.size() > 1) {
+      return errors::InvalidArgument(
+          "Multiple SignatureDefs found in TfLite model: %s",
+          status.error_message());
+    }
+    lite_signature_def = signature_defs.begin()->second;
+  }
+  std::string method = kPredictMethodName;
+  std::map<std::string, std::string> tensor_to_sigdef_name;
+  if (has_lite_signature_def) {
+    method = std::string(lite_signature_def.method_name());
+    for (const auto& t : lite_signature_def.inputs()) {
+      tensor_to_sigdef_name[TfToTfLiteTensorName(t.second.name())] = t.first;
+    }
+    for (const auto& t : lite_signature_def.outputs()) {
+      tensor_to_sigdef_name[TfToTfLiteTensorName(t.second.name())] = t.first;
+    }
+  }
+
   // TODO(b/140959776): Add support for non-builtin ops (flex or custom ops).
   tflite::ops::builtin::BuiltinOpResolver resolver;
   std::unique_ptr<tflite::Interpreter> interpreter;
@@ -237,19 +270,37 @@ Status TfLiteSession::Create(string&& buffer,
   std::map<string, int> input_tensor_to_index;
   std::map<string, int> output_tensor_to_index;
 
-  // Build a default SignatureDef map.
-  // TODO(b/140959776): Add support to read this map from tflite model.
   signatures->clear();
   SignatureDef* sigdef = &(*signatures)[kDefaultServingSignatureDefKey];
   for (const auto& info : inputs) {
-    (*sigdef->mutable_inputs())[info.first] = info.second.first;
+    auto name = info.first;
+    if (has_lite_signature_def) {
+      auto it = tensor_to_sigdef_name.find(info.first);
+      if (it == tensor_to_sigdef_name.end()) {
+        return errors::Internal(
+            "Cannot find signature def input name from tflite input tensor",
+            name);
+      }
+      name = it->second;
+    }
+    (*sigdef->mutable_inputs())[name] = info.second.first;
     input_tensor_to_index[info.first] = info.second.second;
   }
   for (const auto& info : outputs) {
-    (*sigdef->mutable_outputs())[info.first] = info.second.first;
+    auto name = info.first;
+    if (has_lite_signature_def) {
+      auto it = tensor_to_sigdef_name.find(info.first);
+      if (it == tensor_to_sigdef_name.end()) {
+        return errors::Internal(
+            "Cannot find signature def output name from tflite output tensor",
+            name);
+      }
+      name = it->second;
+    }
+    (*sigdef->mutable_outputs())[name] = info.second.first;
     output_tensor_to_index[info.first] = info.second.second;
   }
-  sigdef->set_method_name(kPredictMethodName);
+  sigdef->set_method_name(method);
 
   tflite_session->reset(new TfLiteSession(
       std::move(input_tensor_to_index), std::move(output_tensor_to_index),

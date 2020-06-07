@@ -86,6 +86,11 @@ Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle) {
   return Status::OK();
 }
 
+bool TfLiteModelFound(const string& model_dir) {
+  const string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
+  return Env::Default()->FilesExist({fname}, nullptr);
+}
+
 }  // namespace
 
 Status SavedModelBundleFactory::Create(
@@ -138,7 +143,7 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
     return result;
   }();
 
-  if (config_.use_tflite_model()) {
+  if (config_.prefer_tflite_model() && TfLiteModelFound(path)) {
     TF_RETURN_IF_ERROR(LoadTfLiteModel(path, bundle->get()));
   } else {
     TF_RETURN_IF_ERROR(session_bundle::LoadSessionBundleOrSavedModelBundle(

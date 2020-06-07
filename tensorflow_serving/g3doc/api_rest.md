@@ -27,11 +27,11 @@ gRPC API. It returns the status of a model in the ModelServer.
 ### URL
 
 ```
-GET http://host:port/v1/models/${MODEL_NAME}[/versions/${MODEL_VERSION}]
+GET http://host:port/v1/models/${MODEL_NAME}[/versions/${VERSION}|/labels/${LABEL}]
 ```
 
-`/versions/${MODEL_VERSION}` is optional. If omitted status for all versions is
-returned in the response.
+Including `/versions/${VERSION}` or `/labels/${LABEL}` is optional. If omitted
+status for all versions is returned in the response.
 
 ### Response format
 
@@ -48,11 +48,11 @@ gRPC API. It returns the metadata of a model in the ModelServer.
 ### URL
 
 ```
-GET http://host:port/v1/models/${MODEL_NAME}[/versions/${MODEL_VERSION}]/metadata
+GET http://host:port/v1/models/${MODEL_NAME}[/versions/${VERSION}|/labels/${LABEL}]/metadata
 ```
 
-`/versions/${MODEL_VERSION}` is optional. If omitted the model metadata for
-the latest version is returned in the response.
+Including `/versions/${VERSION}` or `/labels/${LABEL}` is optional. If omitted
+the model metadata for the latest version is returned in the response.
 
 ### Response format
 
@@ -69,10 +69,11 @@ gRPC API.
 ### URL
 
 ```
-POST http://host:port/v1/models/${MODEL_NAME}[/versions/${MODEL_VERSION}]:(classify|regress)
+POST http://host:port/v1/models/${MODEL_NAME}[/versions/${VERSION}|/labels/${LABEL}]:(classify|regress)
 ```
 
-`/versions/${MODEL_VERSION}` is optional. If omitted the latest version is used.
+Including `/versions/${VERSION}` or `/labels/${LABEL}` is optional. If omitted
+the latest version is used.
 
 ### Request format
 
@@ -165,10 +166,11 @@ gRPC API.
 ### URL
 
 ```
-POST http://host:port/v1/models/${MODEL_NAME}[/versions/${MODEL_VERSION}]:predict
+POST http://host:port/v1/models/${MODEL_NAME}[/versions/${VERSION}|/labels/${LABEL}]:predict
 ```
 
-`/versions/${MODEL_VERSION}` is optional. If omitted the latest version is used.
+Including `/versions/${VERSION}` or `/labels/${LABEL}` is optional. If omitted
+the latest version is used.
 
 ### Request format
 

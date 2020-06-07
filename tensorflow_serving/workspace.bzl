@@ -45,27 +45,33 @@ def tf_serving_workspace():
         build_file = "@//third_party/libevent:BUILD",
     )
 
-    # ===== Override TF defined `com_google_absl` (we need a recent version).
-    tf_http_archive(
-        name = "com_google_absl",
-        build_file = str(Label("@org_tensorflow//third_party:com_google_absl.BUILD")),
-        sha256 = "b6aa25c8283cca9de282bb7f5880b04492af76213b2f48c135c4963c6333a21e",
-        strip_prefix = "abseil-cpp-36d37ab992038f52276ca66b9da80c1cf0f57dc2",
-        urls = [
-            "http://mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/36d37ab992038f52276ca66b9da80c1cf0f57dc2.tar.gz",
-            "https://github.com/abseil/abseil-cpp/archive/36d37ab992038f52276ca66b9da80c1cf0f57dc2.tar.gz",
-        ],
-    )
-
     # ===== Override TF & TF Text defined 'ICU'. (we need a version that contains all data).
     http_archive(
         name = "icu",
         strip_prefix = "icu-release-64-2",
         sha256 = "dfc62618aa4bd3ca14a3df548cd65fe393155edd213e49c39f3a30ccd618fc27",
         urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/unicode-org/icu/archive/release-64-2.zip",
             "https://github.com/unicode-org/icu/archive/release-64-2.zip",
         ],
         build_file = "//third_party/icu:BUILD",
+        patches = ["//third_party/icu:data.patch"],
+        patch_args = ["-p1", "-s"],
+    )
+
+    # ===== Pin `com_google_absl` with the same version(and patch) with Tensorflow.
+    tf_http_archive(
+        name = "com_google_absl",
+        build_file = str(Label("@org_tensorflow//third_party:com_google_absl.BUILD")),
+        # TODO: Remove the patch when https://github.com/abseil/abseil-cpp/issues/326 is resolved
+        # and when TensorFlow is build against CUDA 10.2
+        patch_file = str(Label("@org_tensorflow//third_party:com_google_absl_fix_mac_and_nvcc_build.patch")),
+        sha256 = "f368a8476f4e2e0eccf8a7318b98dafbe30b2600f4e3cf52636e5eb145aba06a",  # SHARED_ABSL_SHA
+        strip_prefix = "abseil-cpp-df3ea785d8c30a9503321a3d35ee7d35808f190d",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/df3ea785d8c30a9503321a3d35ee7d35808f190d.tar.gz",
+            "https://github.com/abseil/abseil-cpp/archive/df3ea785d8c30a9503321a3d35ee7d35808f190d.tar.gz",
+        ],
     )
 
     # ===== TF.Text dependencies
@@ -74,10 +80,10 @@ def tf_serving_workspace():
     # https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/save_models.py
     http_archive(
         name = "org_tensorflow_text",
-        sha256 = "83e4ed74661b5ec6a956f45edf515b26e5ac7b357ee1382146117dfa47729b61",
-        strip_prefix = "text-2.1.1",
+        sha256 = "f64647276f7288d1b1fe4c89581d51404d0ce4ae97f2bcc4c19bd667549adca8",
+        strip_prefix = "text-2.2.0",
         urls = [
-            "https://github.com/tensorflow/text/archive/v2.1.1.zip",
+            "https://github.com/tensorflow/text/archive/v2.2.0.zip",
         ],
         patches = ["@//third_party/tf_text:tftext.patch"],
         patch_args = ["-p1"],

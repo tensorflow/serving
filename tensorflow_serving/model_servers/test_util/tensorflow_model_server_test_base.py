@@ -205,7 +205,7 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
       raise ValueError('Both model_config_file and model_path cannot be empty!')
 
     if model_type == 'tflite':
-      command += ' --use_tflite_model=true'
+      command += ' --prefer_tflite_model=true'
 
     if monitoring_config_file:
       command += ' --monitoring_config_file=' + monitoring_config_file
@@ -295,6 +295,11 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
   def _GetTfLiteModelPath(self):
     """Returns a path to a model in TF Lite format."""
     return os.path.join(self.testdata_dir, 'saved_model_half_plus_two_tflite')
+
+  def _GetTfLiteModelWithSigDefPath(self):
+    """Returns a path to a model in TF Lite format."""
+    return os.path.join(self.testdata_dir,
+                        'saved_model_half_plus_two_tflite_with_sigdef')
 
   def _GetSessionBundlePath(self):
     """Returns a path to a model in SessionBundle format."""

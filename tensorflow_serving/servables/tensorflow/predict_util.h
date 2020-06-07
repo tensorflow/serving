@@ -22,17 +22,13 @@ limitations under the License.
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/predict.pb.h"
+#include "tensorflow_serving/servables/tensorflow/predict_response_tensor_serialization_option.h"
 #include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
 
 namespace internal {
-// Whether to serialize proto as field or content.
-enum class PredictResponseTensorSerializationOption {
-  kAsProtoField = 0,
-  kAsProtoContent = 1,
-};
 
 // Similar to RunPredict below, but allows specification of a serialization
 // option for the TensorProtos in the response.

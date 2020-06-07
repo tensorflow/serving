@@ -84,7 +84,7 @@ class Server {
     // Tensorflow session run options.
     bool enforce_session_run_timeout = true;
     bool remove_unused_fields_from_bundle_metagraph = true;
-    bool use_tflite_model = false;
+    bool prefer_tflite_model = false;
     tensorflow::string thread_pool_factory_config_file;
 
     Options();

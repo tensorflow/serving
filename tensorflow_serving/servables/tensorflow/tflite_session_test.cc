@@ -22,6 +22,7 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "flatbuffers/flexbuffers.h"
+#include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
@@ -32,6 +33,7 @@ limitations under the License.
 #include "tensorflow/core/platform/test_benchmark.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/config.pb.h"
+#include "tensorflow/lite/tools/signature/signature_def_util.h"
 #include "tensorflow/lite/util.h"
 #include "tensorflow/lite/version.h"
 #include "tensorflow_serving/test_util/test_util.h"
@@ -42,6 +44,10 @@ namespace {
 
 constexpr char kTestModel[] =
     "/servables/tensorflow/testdata/saved_model_half_plus_two_tflite/00000123/"
+    "model.tflite";
+
+constexpr char kMobileNetModel[] =
+    "/servables/tensorflow/testdata/mobilenet_v1_quant_tflite/00000123/"
     "model.tflite";
 
 TEST(TfLiteSession, BasicTest) {
@@ -124,7 +130,8 @@ tensorflow::DataType ToTfTensorType(tflite::TensorType tflite_type) {
 // Elements of list are expected to be of `tensor_type` type. `use_flex_op`
 // sets up the model to use the `Reshape` *flex* op as opposed to using the
 // builtin `Reshape` op from TF Lite.
-string BuildTestModel(tflite::TensorType tensor_type, bool use_flex_op) {
+string BuildTestModel(tflite::TensorType tensor_type, bool use_flex_op,
+                      SignatureDef* signature_def = nullptr) {
   std::vector<int32_t> inputs;
   std::vector<int32_t> outputs;
   std::vector<flatbuffers::Offset<tflite::Tensor>> tensors;
@@ -198,6 +205,19 @@ string BuildTestModel(tflite::TensorType tensor_type, bool use_flex_op) {
       builder, TFLITE_SCHEMA_VERSION, builder.CreateVector(opcodes),
       builder.CreateVector(&subgraph, 1), builder.CreateString("testmodel"),
       builder.CreateVector(buffers)));
+
+  if (signature_def) {
+    std::string model_buffer = string(
+        reinterpret_cast<char*>(builder.GetBufferPointer()), builder.GetSize());
+    std::string model_buffer_with_signature_def;
+    auto model = tflite::FlatBufferModel::BuildFromModel(
+        flatbuffers::GetRoot<tflite::Model>(model_buffer.data()));
+    std::map<string, SignatureDef> signature_def_map = {
+        {kDefaultServingSignatureDefKey, *signature_def}};
+    TF_CHECK_OK(tflite::SetSignatureDefMap(model->GetModel(), signature_def_map,
+                                           &model_buffer_with_signature_def));
+    return model_buffer_with_signature_def;
+  }
 
   return string(reinterpret_cast<char*>(builder.GetBufferPointer()),
                 builder.GetSize());
@@ -275,6 +295,39 @@ TEST(TfLiteSession, ThreadPoolOptions) {
   EXPECT_EQ(intra_op_threadpool.NumScheduled(), 0);
 }
 
+TEST(TfLiteSession, SimpleSignatureDef) {
+  auto test_signature_def = SignatureDef();
+  TensorInfo input_list_tensor;
+  TensorInfo input_shape_tensor;
+  TensorInfo output_tensor;
+  constexpr char kSignatureInputList[] = "input_list";
+  constexpr char kSignatureInputShape[] = "input_shape";
+  constexpr char kSignatureOutput[] = "sigdef_output";
+  *input_list_tensor.mutable_name() = absl::StrCat(kTestModelInputList, ":0");
+  *input_shape_tensor.mutable_name() = absl::StrCat(kTestModelInputShape, ":0");
+  *output_tensor.mutable_name() = absl::StrCat(kTestModelOutput, ":0");
+  *test_signature_def.mutable_method_name() = kClassifyMethodName;
+  (*test_signature_def.mutable_inputs())[kSignatureInputList] =
+      input_list_tensor;
+  (*test_signature_def.mutable_inputs())[kSignatureInputShape] =
+      input_shape_tensor;
+  (*test_signature_def.mutable_outputs())[kSignatureOutput] = output_tensor;
+  string model_bytes = BuildTestModel(
+      tflite::TensorType_STRING, /*use_flex_op=*/false, &test_signature_def);
+  ::google::protobuf::Map<string, SignatureDef> signatures;
+  std::unique_ptr<TfLiteSession> session;
+  TF_EXPECT_OK(
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+
+  auto sigdef = signatures[kDefaultServingSignatureDefKey];
+  ASSERT_EQ(sigdef.inputs().at(kSignatureInputList).name(),
+            kTestModelInputList);
+  ASSERT_EQ(sigdef.inputs().at(kSignatureInputShape).name(),
+            kTestModelInputShape);
+  ASSERT_EQ(sigdef.outputs().at(kSignatureOutput).name(), kTestModelOutput);
+  ASSERT_EQ(sigdef.method_name(), kClassifyMethodName);
+}
+
 #ifdef PLATFORM_GOOGLE
 // These benchmarks rely on https://github.com/google/benchmark features,
 // not available in open-sourced TF codebase.
@@ -332,6 +385,31 @@ void BM_HalfPlusTwo(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_HalfPlusTwo)->ThreadRange(1, 64);
+
+void BM_MobileNet(benchmark::State& state) {
+  static TfLiteSession* session;
+  if (state.thread_index() == 0) {
+    string model_bytes;
+    TF_ASSERT_OK(ReadFileToString(Env::Default(),
+                                  test_util::TestSrcDirPath(kMobileNetModel),
+                                  &model_bytes));
+    ::google::protobuf::Map<string, SignatureDef> signatures;
+    std::unique_ptr<TfLiteSession> sess;
+    TF_ASSERT_OK(
+        TfLiteSession::Create(std::move(model_bytes), &sess, &signatures));
+    session = sess.release();
+  }
+  std::vector<int8> x_data(1 * 224 * 224 * 3, 1);
+  Tensor x = test::AsTensor<int8>(x_data, TensorShape({1, 224, 224, 3}));
+  std::vector<Tensor> outputs;
+  testing::UseRealTime();
+  for (auto _ : state) {
+    outputs.clear();
+    TF_ASSERT_OK(session->Run(
+        {{"input", x}}, {"MobilenetV1/Predictions/Reshape_1"}, {}, &outputs));
+  }
+}
+BENCHMARK(BM_MobileNet)->ThreadRange(1, 64);
 
 #endif  // PLATFORM_GOOGLE
 

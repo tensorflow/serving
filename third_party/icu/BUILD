@@ -56,10 +56,9 @@ cc_library(
     ]),
     copts = [
         "-DU_COMMON_IMPLEMENTATION",
-        "-ffunction-sections",
-        "-fdata-sections",
     ] + select({
         ":android": [
+            "-fdata-sections",
             "-DU_HAVE_NL_LANGINFO_CODESET=0",
             "-Wno-deprecated-declarations",
         ],

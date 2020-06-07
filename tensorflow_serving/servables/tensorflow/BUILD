@@ -183,6 +183,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":machine_learning_metadata",
         ":saved_model_bundle_factory",
         ":saved_model_bundle_source_adapter_cc_proto",
         ":saved_model_warmup",
@@ -205,6 +206,7 @@ cc_test(
     size = "medium",
     srcs = ["saved_model_bundle_source_adapter_test.cc"],
     data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_mlmd",
         "//tensorflow_serving/session_bundle:session_bundle_half_plus_two",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
@@ -337,15 +339,15 @@ cc_library(
         ":serving_session",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/synchronization",
-        "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/lite:framework",
         "@org_tensorflow//tensorflow/lite:string_util",
-        "@org_tensorflow//tensorflow/lite/core/api",
+        "@org_tensorflow//tensorflow/lite:util",
         "@org_tensorflow//tensorflow/lite/delegates/flex:delegate",
         "@org_tensorflow//tensorflow/lite/kernels:builtin_ops",
+        "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_util",
     ],
 )
 
@@ -354,6 +356,7 @@ cc_test(
     size = "small",
     srcs = ["tflite_session_test.cc"],
     data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:mobilenet_v1_quant_tflite",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
     ],
     deps = [
@@ -361,11 +364,14 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
         "@flatbuffers",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
         "@org_tensorflow//tensorflow/lite:util",
+        "@org_tensorflow//tensorflow/lite:version",
+        "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_util",
     ],
 )
 
@@ -427,6 +433,11 @@ cc_test(
 )
 
 cc_library(
+    name = "predict_response_tensor_serialization_option",
+    hdrs = ["predict_response_tensor_serialization_option.h"],
+)
+
+cc_library(
     name = "predict_util",
     srcs = ["predict_util.cc"],
     hdrs = ["predict_util.h"],
@@ -434,6 +445,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":predict_response_tensor_serialization_option",
         ":util",
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/util:optional",
@@ -831,6 +843,68 @@ cc_test(
 )
 
 cc_library(
+    name = "saved_model_warmup_util",
+    srcs = ["saved_model_warmup_util.cc"],
+    hdrs = ["saved_model_warmup_util.h"],
+    deps = [
+        ":session_bundle_config_cc_proto",
+        ":util",
+        "//tensorflow_serving/apis:prediction_log_cc_proto",
+        "@com_google_protobuf//:cc_wkt_protos",
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+    ],
+)
+
+cc_library(
+    name = "saved_model_warmup_test_util",
+    testonly = 1,
+    srcs = ["saved_model_warmup_test_util.cc"],
+    hdrs = ["saved_model_warmup_test_util.h"],
+    deps = [
+        ":session_bundle_config_cc_proto",
+        "//tensorflow_serving/apis:classification_cc_proto",
+        "//tensorflow_serving/apis:inference_cc_proto",
+        "//tensorflow_serving/apis:input_cc_proto",
+        "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/apis:prediction_log_cc_proto",
+        "//tensorflow_serving/apis:regression_cc_proto",
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+    ],
+)
+
+cc_test(
+    name = "saved_model_warmup_util_test",
+    size = "small",
+    srcs = ["saved_model_warmup_util_test.cc"],
+    deps = [
+        ":saved_model_warmup_test_util",
+        ":saved_model_warmup_util",
+        ":session_bundle_config_cc_proto",
+        "//tensorflow_serving/apis:classification_cc_proto",
+        "//tensorflow_serving/apis:inference_cc_proto",
+        "//tensorflow_serving/apis:input_cc_proto",
+        "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/apis:prediction_log_cc_proto",
+        "//tensorflow_serving/apis:regression_cc_proto",
+        "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_protobuf//:cc_wkt_protos",
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
     name = "saved_model_warmup",
     srcs = ["saved_model_warmup.cc"],
     hdrs = ["saved_model_warmup.h"],
@@ -839,6 +913,7 @@ cc_library(
         ":multi_inference",
         ":predict_util",
         ":regressor",
+        ":saved_model_warmup_util",
         ":session_bundle_config_cc_proto",
         ":util",
         "//tensorflow_serving/apis:prediction_log_cc_proto",
@@ -857,6 +932,7 @@ cc_test(
     srcs = ["saved_model_warmup_test.cc"],
     deps = [
         ":saved_model_warmup",
+        ":saved_model_warmup_test_util",
         ":session_bundle_config_cc_proto",
         "//tensorflow_serving/apis:input_cc_proto",
         "//tensorflow_serving/apis:model_cc_proto",
@@ -870,6 +946,35 @@ cc_test(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
+    ],
+)
+
+cc_library(
+    name = "machine_learning_metadata",
+    srcs = ["machine_learning_metadata.cc"],
+    hdrs = ["machine_learning_metadata.h"],
+    deps = [
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "machine_learning_metadata_test",
+    size = "small",
+    srcs = ["machine_learning_metadata_test.cc"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_mlmd",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
+    deps = [
+        ":bundle_factory_test_util",
+        ":machine_learning_metadata",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:testlib",
     ],
 )

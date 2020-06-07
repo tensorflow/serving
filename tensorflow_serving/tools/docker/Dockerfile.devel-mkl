@@ -74,7 +74,7 @@ RUN pip3 --no-cache-dir install \
     --ignore-installed six
 
 # Set up Bazel
-ENV BAZEL_VERSION 2.0.0
+ENV BAZEL_VERSION 3.0.0
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \
@@ -94,7 +94,7 @@ RUN git clone --branch=${TF_SERVING_VERSION_GIT_BRANCH} https://github.com/tenso
 FROM base_build as binary_build
 
 # Build, and install TensorFlow Serving
-ARG TF_SERVING_BUILD_OPTIONS="--config=mkl --config=nativeopt"
+ARG TF_SERVING_BUILD_OPTIONS="--config=mkl --config=release"
 RUN echo "Building with build options: ${TF_SERVING_BUILD_OPTIONS}"
 
 ARG TF_SERVING_BAZEL_OPTIONS=""

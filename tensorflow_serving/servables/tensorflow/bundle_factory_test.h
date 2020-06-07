@@ -36,7 +36,6 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-using ::testing::_;
 using test_util::EqualsProto;
 
 // The base class for SessionBundleFactoryTest and SavedModelBundleFactoryTest.
@@ -52,6 +51,10 @@ class BundleFactoryTest : public ::testing::Test {
   void TestBasic() const {
     const SessionBundleConfig config = GetSessionBundleConfig();
     std::unique_ptr<Session> session;
+    if (ExpectCreateBundleFailure()) {
+      EXPECT_FALSE(CreateSession(config, &session).ok());
+      return;
+    }
     TF_ASSERT_OK(CreateSession(config, &session));
     TestSingleRequest(session.get());
   }
@@ -62,6 +65,10 @@ class BundleFactoryTest : public ::testing::Test {
     batching_params->mutable_max_batch_size()->set_value(2);
     batching_params->mutable_max_enqueued_batches()->set_value(INT_MAX);
     std::unique_ptr<Session> session;
+    if (ExpectCreateBundleFailure()) {
+      EXPECT_FALSE(CreateSession(config, &session).ok());
+      return;
+    }
     TF_ASSERT_OK(CreateSession(config, &session));
 
     // Run multiple requests concurrently. They should be executed as 5 batches,
@@ -100,6 +107,10 @@ class BundleFactoryTest : public ::testing::Test {
     // Since the session_run_load_threadpool_index in the config is set, the
     // session-bundle should be loaded successfully from path with RunOptions.
     std::unique_ptr<Session> session;
+    if (ExpectCreateBundleFailure()) {
+      EXPECT_FALSE(CreateSession(config, &session).ok());
+      return;
+    }
     TF_ASSERT_OK(CreateSession(config, &session));
 
     TestSingleRequest(session.get());
@@ -136,6 +147,9 @@ class BundleFactoryTest : public ::testing::Test {
 
   // Returns true if RunOptions is supported by underlying session.
   virtual bool IsRunOptionsSupported() const { return true; }
+
+  // Returns true if CreateBundle is expected to fail.
+  virtual bool ExpectCreateBundleFailure() const { return false; }
 };
 
 }  // namespace test_util

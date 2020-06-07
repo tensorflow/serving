@@ -11,8 +11,8 @@ load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "934906242bf06e2856ad9937954b37cd6bb9bd3f2cb40503b0efb4de6fcb43b2",
-    git_commit = "71f066b350e13837e0fce8270ca37ba6ef25dab1",
+    sha256 = "70daac490bde59120698023855290b73fc796dc0f2815796837e0902c13510a6",
+    git_commit = "9c9e961174a02f20ec26d114fa02912d0f524598",
 )
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
@@ -72,7 +72,7 @@ tf_serving_workspace()
 # Specify the minimum required bazel version.
 load("@org_tensorflow//tensorflow:version_check.bzl", "check_bazel_version_at_least")
 
-check_bazel_version_at_least("2.0.0")
+check_bazel_version_at_least("3.0.0")
 
 # GPRC deps, required to match TF's.  Only after calling tf_serving_workspace()
 load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")

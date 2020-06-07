@@ -47,8 +47,8 @@ py_binary(
     srcs = [
         "export_bad_half_plus_two.py",
     ],
-    python_version = "PY2",
-    srcs_version = "PY2AND3",
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
 )
 
@@ -67,15 +67,25 @@ py_binary(
     srcs = [
         "saved_model_half_plus_two.py",
     ],
-    python_version = "PY2",
-    srcs_version = "PY2AND3",
-    deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils",
+    ],
 )
 
 filegroup(
     name = "saved_model_half_plus_two_cpu",
     srcs = glob(
         ["saved_model_half_plus_two_cpu/**"],
+    ),
+)
+
+filegroup(
+    name = "saved_model_half_plus_two_mlmd",
+    srcs = glob(
+        ["saved_model_half_plus_two_mlmd/**"],
     ),
 )
 
@@ -101,6 +111,13 @@ filegroup(
 )
 
 filegroup(
+    name = "saved_model_half_plus_two_tflite_with_sigdef",
+    srcs = glob(
+        ["saved_model_half_plus_two_tflite_with_sigdef/**"],
+    ),
+)
+
+filegroup(
     name = "saved_model_half_plus_two_gpu_trt",
     srcs = glob(
         ["saved_model_half_plus_two_gpu_trt/**"],
@@ -111,6 +128,13 @@ filegroup(
     name = "tf_text_regression",
     srcs = glob(
         ["tf_text_regression/**"],
+    ),
+)
+
+filegroup(
+    name = "mobilenet_v1_quant_tflite",
+    srcs = glob(
+        ["mobilenet_v1_quant_tflite/**"],
     ),
 )
 
