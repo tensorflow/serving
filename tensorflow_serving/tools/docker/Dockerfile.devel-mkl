@@ -71,8 +71,7 @@ RUN pip3 --no-cache-dir install \
     mock \
     numpy \
     requests \
-    --ignore-installed setuptools \
-    --ignore-installed six
+    --ignore-installed six>=1.12.0
 
 # Set up Bazel
 ENV BAZEL_VERSION 3.0.0
