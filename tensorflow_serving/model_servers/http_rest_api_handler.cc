@@ -18,6 +18,7 @@ limitations under the License.
 #include <string>
 
 #include "google/protobuf/any.pb.h"
+#include "google/protobuf/arena.h"
 #include "google/protobuf/util/json_util.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/numbers.h"
@@ -167,17 +168,20 @@ Status HttpRestApiHandler::ProcessClassifyRequest(
     const absl::optional<int64>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
     const absl::string_view request_body, string* output) {
-  ClassificationRequest request;
+  ::google::protobuf::Arena arena;
+
+  auto* request = ::google::protobuf::Arena::CreateMessage<ClassificationRequest>(&arena);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
-      request.mutable_model_spec()));
-  TF_RETURN_IF_ERROR(FillClassificationRequestFromJson(request_body, &request));
+      request->mutable_model_spec()));
+  TF_RETURN_IF_ERROR(FillClassificationRequestFromJson(request_body, request));
 
-  ClassificationResponse response;
+  auto* response =
+      ::google::protobuf::Arena::CreateMessage<ClassificationResponse>(&arena);
   TF_RETURN_IF_ERROR(TensorflowClassificationServiceImpl::Classify(
-      run_options_, core_, thread::ThreadPoolOptions(), request, &response));
+      run_options_, core_, thread::ThreadPoolOptions(), *request, response));
   TF_RETURN_IF_ERROR(
-      MakeJsonFromClassificationResult(response.result(), output));
+      MakeJsonFromClassificationResult(response->result(), output));
   return Status::OK();
 }
 
@@ -186,16 +190,18 @@ Status HttpRestApiHandler::ProcessRegressRequest(
     const absl::optional<int64>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
     const absl::string_view request_body, string* output) {
-  RegressionRequest request;
+  ::google::protobuf::Arena arena;
+
+  auto* request = ::google::protobuf::Arena::CreateMessage<RegressionRequest>(&arena);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
-      request.mutable_model_spec()));
-  TF_RETURN_IF_ERROR(FillRegressionRequestFromJson(request_body, &request));
+      request->mutable_model_spec()));
+  TF_RETURN_IF_ERROR(FillRegressionRequestFromJson(request_body, request));
 
-  RegressionResponse response;
+  auto* response = ::google::protobuf::Arena::CreateMessage<RegressionResponse>(&arena);
   TF_RETURN_IF_ERROR(TensorflowRegressionServiceImpl::Regress(
-      run_options_, core_, thread::ThreadPoolOptions(), request, &response));
-  TF_RETURN_IF_ERROR(MakeJsonFromRegressionResult(response.result(), output));
+      run_options_, core_, thread::ThreadPoolOptions(), *request, response));
+  TF_RETURN_IF_ERROR(MakeJsonFromRegressionResult(response->result(), output));
   return Status::OK();
 }
 
@@ -204,24 +210,26 @@ Status HttpRestApiHandler::ProcessPredictRequest(
     const absl::optional<int64>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
     const absl::string_view request_body, string* output) {
-  PredictRequest request;
+  ::google::protobuf::Arena arena;
+
+  auto* request = ::google::protobuf::Arena::CreateMessage<PredictRequest>(&arena);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
-      request.mutable_model_spec()));
+      request->mutable_model_spec()));
 
   JsonPredictRequestFormat format;
   TF_RETURN_IF_ERROR(FillPredictRequestFromJson(
       request_body,
-      [this, &request](const string& sig,
-                       ::google::protobuf::Map<string, TensorInfo>* map) {
-        return this->GetInfoMap(request.model_spec(), sig, map);
+      [this, request](const string& sig,
+                      ::google::protobuf::Map<string, TensorInfo>* map) {
+        return this->GetInfoMap(request->model_spec(), sig, map);
       },
-      &request, &format));
+      request, &format));
 
-  PredictResponse response;
+  auto* response = ::google::protobuf::Arena::CreateMessage<PredictResponse>(&arena);
   TF_RETURN_IF_ERROR(
-      predictor_->Predict(run_options_, core_, request, &response));
-  TF_RETURN_IF_ERROR(MakeJsonFromTensors(response.outputs(), format, output));
+      predictor_->Predict(run_options_, core_, *request, response));
+  TF_RETURN_IF_ERROR(MakeJsonFromTensors(response->outputs(), format, output));
   return Status::OK();
 }
 
@@ -236,19 +244,22 @@ Status HttpRestApiHandler::ProcessModelStatusRequest(
     return errors::InvalidArgument("Missing model name in request.");
   }
 
-  GetModelStatusRequest request;
+  ::google::protobuf::Arena arena;
+
+  auto* request = ::google::protobuf::Arena::CreateMessage<GetModelStatusRequest>(&arena);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
-      request.mutable_model_spec()));
+      request->mutable_model_spec()));
 
-  GetModelStatusResponse response;
+  auto* response =
+      ::google::protobuf::Arena::CreateMessage<GetModelStatusResponse>(&arena);
   TF_RETURN_IF_ERROR(
-      GetModelStatusImpl::GetModelStatus(core_, request, &response));
+      GetModelStatusImpl::GetModelStatus(core_, *request, response));
   JsonPrintOptions opts;
   opts.add_whitespace = true;
   opts.always_print_primitive_fields = true;
   // Note this is protobuf::util::Status (not TF Status) object.
-  const auto& status = MessageToJsonString(response, output, opts);
+  const auto& status = MessageToJsonString(*response, output, opts);
   if (!status.ok()) {
     return errors::Internal("Failed to convert proto to json. Error: ",
                             status.ToString());
@@ -264,16 +275,21 @@ Status HttpRestApiHandler::ProcessModelMetadataRequest(
   if (model_name.empty()) {
     return errors::InvalidArgument("Missing model name in request.");
   }
-  GetModelMetadataRequest request;
+
+  ::google::protobuf::Arena arena;
+
+  auto* request =
+      ::google::protobuf::Arena::CreateMessage<GetModelMetadataRequest>(&arena);
   // We currently only support the kSignatureDef metadata field
-  request.add_metadata_field(GetModelMetadataImpl::kSignatureDef);
+  request->add_metadata_field(GetModelMetadataImpl::kSignatureDef);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
-      request.mutable_model_spec()));
+      request->mutable_model_spec()));
 
-  GetModelMetadataResponse response;
+  auto* response =
+      ::google::protobuf::Arena::CreateMessage<GetModelMetadataResponse>(&arena);
   TF_RETURN_IF_ERROR(
-      GetModelMetadataImpl::GetModelMetadata(core_, request, &response));
+      GetModelMetadataImpl::GetModelMetadata(core_, *request, response));
   JsonPrintOptions opts;
   opts.add_whitespace = true;
   opts.always_print_primitive_fields = true;
@@ -287,7 +303,7 @@ Status HttpRestApiHandler::ProcessModelMetadataRequest(
 
   string model_spec_output;
   const auto& status1 =
-      MessageToJsonString(response.model_spec(), &model_spec_output, opts);
+      MessageToJsonString(response->model_spec(), &model_spec_output, opts);
   if (!status1.ok()) {
     return errors::Internal(
         "Failed to convert model spec proto to json. Error: ",
@@ -295,13 +311,13 @@ Status HttpRestApiHandler::ProcessModelMetadataRequest(
   }
 
   tensorflow::serving::SignatureDefMap signature_def_map;
-  if (response.metadata().end() ==
-      response.metadata().find(GetModelMetadataImpl::kSignatureDef)) {
+  if (response->metadata().end() ==
+      response->metadata().find(GetModelMetadataImpl::kSignatureDef)) {
     return errors::Internal(
         "Failed to find 'signature_def' key in the GetModelMetadataResponse "
         "metadata map.");
   }
-  bool unpack_status = response.metadata()
+  bool unpack_status = response->metadata()
                            .at(GetModelMetadataImpl::kSignatureDef)
                            .UnpackTo(&signature_def_map);
   if (!unpack_status) {
