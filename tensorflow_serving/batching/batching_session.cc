@@ -47,8 +47,8 @@ namespace {
 void RecordPaddingSize(int32 padding_size, int32 execution_batch_size) {
   static auto* cell = tensorflow::monitoring::PercentileSampler<1>::New(
       {"/tensorflow/serving/batching_session/padding_size",
-       "execution_batch_size",
-       "Tracks the padding size distribution on batches."},
+       "Tracks the padding size distribution on batches.",
+       "execution_batch_size"},
       /*percentiles=*/{25.0, 50.0, 75.0, 90.0, 95.0, 99.0},
       /*max_samples=*/1024, tensorflow::monitoring::UnitOfMeasure::kNumber);
   cell->GetCell(absl::StrCat(execution_batch_size))
