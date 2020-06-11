@@ -227,7 +227,7 @@ Status TfLiteSession::Create(string&& buffer,
       tflite::GetSignatureDefMap(model->GetModel(), &signature_defs);
   if (status != Status::OK()) {
     return errors::InvalidArgument(
-        "Invalid SignatureDefs found in TfLite model: %s",
+        "Invalid SignatureDefs found in TfLite model: ",
         status.error_message());
   }
   const bool has_lite_signature_def = !signature_defs.empty();
@@ -235,7 +235,7 @@ Status TfLiteSession::Create(string&& buffer,
     // TODO(b/157098128): Support multiple SignatureDefs by key.
     if (signature_defs.size() > 1) {
       return errors::InvalidArgument(
-          "Multiple SignatureDefs found in TfLite model: %s",
+          "Multiple SignatureDefs found in TfLite model: ",
           status.error_message());
     }
     lite_signature_def = signature_defs.begin()->second;
