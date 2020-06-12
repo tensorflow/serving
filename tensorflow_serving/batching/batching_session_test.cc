@@ -217,6 +217,25 @@ int GetPercentileTotal(string label) {
   return static_cast<int>(total_samples);
 }
 
+bool CheckDescriptor(string label, const string& description,
+                     const std::vector<string>& labels) {
+  auto* collection_registry = monitoring::CollectionRegistry::Default();
+  monitoring::CollectionRegistry::CollectMetricsOptions options;
+  const std::unique_ptr<monitoring::CollectedMetrics> collected_metrics =
+      collection_registry->CollectMetrics(options);
+  const auto& metric_descriptor_map = collected_metrics->metric_descriptor_map;
+  if (metric_descriptor_map.find(label) == metric_descriptor_map.end()) {
+    return false;
+  }
+  const monitoring::MetricDescriptor& desc = *metric_descriptor_map.at(label);
+  if (desc.description != description) return false;
+  if (labels.size() != desc.label_names.size()) return false;
+  for (int i = 0; i < labels.size(); ++i) {
+    if (labels[i] != desc.label_names[i]) return false;
+  }
+  return true;
+}
+
 TEST(BatchingSessionTest, TensorSignatureFromSignatureDef) {
   const SignatureDef signature_def =
       CreateSignatureDef({{"x0", "x1"}, {"y0", "y1"}});
@@ -497,6 +516,17 @@ TEST(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
       "/tensorflow/serving/batching_session/processed_batch_size");
   int32 start_pad_value =
       GetPercentileTotal("/tensorflow/serving/batching_session/padding_size");
+  EXPECT_TRUE(
+      CheckDescriptor("/tensorflow/serving/batching_session/padding_size",
+                      "Tracks the padding size distribution on batches.",
+                      {"execution_batch_size"}));
+  EXPECT_TRUE(
+      CheckDescriptor("/tensorflow/serving/batching_session/input_batch_size",
+                      "Tracks the batch size distribution on the inputs.", {}));
+  EXPECT_TRUE(CheckDescriptor(
+      "/tensorflow/serving/batching_session/processed_batch_size",
+      "Tracks the batch size distribution on processing.", {}));
+
   // Arrange to capture the batch size.
   std::unique_ptr<BatchSizeCapturingSession> batch_size_capturing_session(
       new BatchSizeCapturingSession(CreateHalfPlusTwoSession()));

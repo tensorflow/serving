@@ -39,7 +39,7 @@ Status ValidateGetModelMetadataRequest(const GetModelMetadataRequest& request) {
   for (const auto& metadata_field : request.metadata_field()) {
     if (metadata_field != GetModelMetadataImpl::kSignatureDef) {
       return tensorflow::errors::InvalidArgument(
-          "Metadata field %s is not supported", metadata_field);
+          "Metadata field ", metadata_field, " is not supported");
     }
   }
   return tensorflow::Status::OK();
@@ -90,7 +90,7 @@ Status GetModelMetadataImpl::GetModelMetadataWithModelSpec(
           SavedModelGetSignatureDef(core, model_spec, request, response));
     } else {
       return tensorflow::errors::InvalidArgument(
-          "MetadataField %s is not supported", metadata_field);
+          "MetadataField ", metadata_field, " is not supported");
     }
   }
   return tensorflow::Status::OK();
