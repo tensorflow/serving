@@ -519,7 +519,7 @@ Status BatchingSession::MergeInputTensors(
           }
         }
       }
-      tensor_vec.push_back(optionally_padded_tensor);
+      tensor_vec.push_back(std::move(optionally_padded_tensor));
       if (i == batch.num_tasks() - 1 && padding_size > 0) {
         // This is the last task. Insert padding.
         //
@@ -529,7 +529,7 @@ Status BatchingSession::MergeInputTensors(
         //
         // Slice() operates on the 0th dimension, which is the batch dimension.
         // It avoids a deep copy, which is a nice efficiency bonus.
-        const Tensor padding_tensor = optionally_padded_tensor.Slice(0, 1);
+        const Tensor padding_tensor = tensor_vec.back().Slice(0, 1);
         for (int i = 0; i < padding_size; ++i) {
           tensor_vec.push_back(padding_tensor);
         }
@@ -557,7 +557,7 @@ Status BatchingSession::MergeInputTensors(
       return errors::Internal("Tensor concat operation failed: ",
                               concat_status.ToString());
     }
-    merged_inputs->push_back({tensor_name, concated});
+    merged_inputs->push_back({tensor_name, std::move(concated)});
   }
 
   return Status::OK();
@@ -634,7 +634,7 @@ Status BatchingSession::SplitOutputTensors(
       if (split_tensor == split_tensors.end()) {
         return errors::Internal("Task does not conform to batch signature");
       }
-      task->outputs->push_back(split_tensor->second[i]);
+      task->outputs->push_back(std::move(split_tensor->second[i]));
     }
   }
   // (Ignore a possible final split_tensors entry containing the padding.)
