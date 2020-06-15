@@ -25,6 +25,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/monitoring/percentile_sampler.h"
+#include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/threadpool_options.h"
@@ -40,6 +41,13 @@ namespace tensorflow {
 namespace serving {
 
 namespace {
+
+auto* queuing_latency = monitoring::Sampler<1>::New(
+    {"/tensorflow/serving/batching_session/queuing_latency",
+     "Distribution of wall time spent (in microseconds) in queuing",
+     "thread_pool_name"},
+    // Scale of 100, power of 1.2 with bucket count 52 (~1 second).
+    monitoring::Buckets::Exponential(100, 1.2, 52));
 
 // For all metrics: consider adding breakdowns based on model name or status if
 // needed. Note that model name is not available as a session property or on any
@@ -187,6 +195,7 @@ class BatchingSession : public ServingSession {
       const BatchingSessionOptions& options, std::unique_ptr<Session> wrapped,
       const std::vector<SignatureWithBatchingSessionSchedulerCreator>&
           signatures_with_scheduler_creators,
+      const std::string& thread_pool_name,
       std::unique_ptr<BatchingSession>* result);
 
   ~BatchingSession() override = default;
@@ -224,7 +233,8 @@ class BatchingSession : public ServingSession {
   Status ListDevices(std::vector<DeviceAttributes>* response) override;
 
  private:
-  explicit BatchingSession(const BatchingSessionOptions& options);
+  explicit BatchingSession(const BatchingSessionOptions& options,
+                           const std::string& thread_pool_name);
 
   // Helper fucntion to run the session.
   Status InternalRun(const RunOptions& run_options,
@@ -278,6 +288,9 @@ class BatchingSession : public ServingSession {
                      std::unique_ptr<BatchScheduler<BatchingSessionTask>>,
                      HashTensorSignature, EqTensorSignature>
       batch_schedulers_;
+  // The name of the thread pool of the underlying batch scheduler. It is used
+  // for monitoring purpose, and can be empty if not known.
+  const std::string thread_pool_name_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(BatchingSession);
 };
@@ -286,9 +299,10 @@ Status BatchingSession::Create(
     const BatchingSessionOptions& options, std::unique_ptr<Session> wrapped,
     const std::vector<SignatureWithBatchingSessionSchedulerCreator>&
         signatures_with_scheduler_creators,
+    const std::string& thread_pool_name,
     std::unique_ptr<BatchingSession>* result) {
-  auto batching_session =
-      std::unique_ptr<BatchingSession>(new BatchingSession(options));
+  auto batching_session = std::unique_ptr<BatchingSession>(
+      new BatchingSession(options, thread_pool_name));
   BatchingSession* raw_batching_session = batching_session.get();
   batching_session->wrapped_ = std::move(wrapped);
 
@@ -355,7 +369,8 @@ Status BatchingSession::InternalRun(
         "BatchingSession does not support target nodes");
   }
 
-  profiler::TraceMe trace_me("BatchingSessionRun");
+  profiler::TraceMe trace_me(
+      strings::StrCat("BatchingSessionRun:", thread_pool_name_));
   const TensorSignature signature =
       TensorSignatureFromRunArgs(inputs, output_tensor_names);
   auto batch_scheduler_it = batch_schedulers_.find(signature);
@@ -411,8 +426,9 @@ Status BatchingSession::ListDevices(std::vector<DeviceAttributes>* response) {
   return wrapped_->ListDevices(response);
 }
 
-BatchingSession::BatchingSession(const BatchingSessionOptions& options)
-    : options_(options) {}
+BatchingSession::BatchingSession(const BatchingSessionOptions& options,
+                                 const std::string& thread_pool_name)
+    : options_(options), thread_pool_name_(thread_pool_name) {}
 
 Status BatchingSession::ComputeInputSize(
     const std::vector<std::pair<string, Tensor>>& inputs, size_t* size) const {
@@ -713,6 +729,8 @@ void BatchingSession::ProcessBatch(
         batch_deadline_micros = task_deadline_micros;
       }
     }
+    queuing_latency->GetCell(thread_pool_name_)
+        ->Add(dequeue_time_micros - task.enqueue_time_micros);
   }
   if (all_tasks_timeout_exceeded) {
     status = Status(error::RESOURCE_EXHAUSTED,
@@ -769,9 +787,9 @@ Status CreateBatchingSession(
     std::unique_ptr<Session> session,
     std::unique_ptr<Session>* batching_session) {
   std::unique_ptr<BatchingSession> internal_batching_session;
-  TF_RETURN_IF_ERROR(BatchingSession::Create(options, std::move(session),
-                                             signatures_with_scheduler_creators,
-                                             &internal_batching_session));
+  TF_RETURN_IF_ERROR(BatchingSession::Create(
+      options, std::move(session), signatures_with_scheduler_creators,
+      /*thread_pool_name=*/"", &internal_batching_session));
   *batching_session = std::move(internal_batching_session);
   return Status::OK();
 }
@@ -805,9 +823,14 @@ Status CreateBasicBatchingSession(
         *batch_scheduler = std::move(basic_batch_scheduler);
         return Status::OK();
       };
-  return CreateBatchingSession(batching_session_options,
-                               {{signature, scheduler_creator}},
-                               std::move(session), batching_session);
+
+  std::unique_ptr<BatchingSession> internal_batching_session;
+  TF_RETURN_IF_ERROR(BatchingSession::Create(
+      batching_session_options, std::move(session),
+      {{signature, scheduler_creator}}, schedule_options.thread_pool_name,
+      &internal_batching_session));
+  *batching_session = std::move(internal_batching_session);
+  return Status::OK();
 }
 
 }  // namespace serving
