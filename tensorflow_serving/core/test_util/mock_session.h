@@ -30,45 +30,49 @@ class MockSession : public tensorflow::Session {
   MockSession() : Session() {
     ON_CALL(*this, Close()).WillByDefault(::testing::Return(Status::OK()));
   }
-  MOCK_METHOD1(Create, ::tensorflow::Status(const GraphDef& graph));
-  MOCK_METHOD1(Extend, ::tensorflow::Status(const GraphDef& graph));
-  MOCK_METHOD4(Run, ::tensorflow::Status(
-                        const std::vector<std::pair<string, Tensor>>& inputs,
-                        const std::vector<string>& output_names,
-                        const std::vector<string>& target_nodes,
-                        std::vector<Tensor>* outputs));
-  MOCK_METHOD6(Run,
-               ::tensorflow::Status(
-                   const RunOptions& run_options,
-                   const std::vector<std::pair<string, Tensor>>& inputs,
-                   const std::vector<string>& output_names,
-                   const std::vector<string>& target_nodes,
-                   std::vector<Tensor>* outputs, RunMetadata* run_metadata));
-  MOCK_METHOD7(
-      Run,
-      ::tensorflow::Status(
-          const RunOptions& run_options,
-          const std::vector<std::pair<string, Tensor>>& inputs,
-          const std::vector<string>& output_names,
-          const std::vector<string>& target_nodes, std::vector<Tensor>* outputs,
-          RunMetadata* run_metadata,
-          const tensorflow::thread::ThreadPoolOptions& thread_pool_options));
-  MOCK_METHOD4(PRunSetup,
-               ::tensorflow::Status(const std::vector<string>& input_names,
-                                    const std::vector<string>& output_names,
-                                    const std::vector<string>& target_nodes,
-                                    string* handle));
-  MOCK_METHOD4(PRun, ::tensorflow::Status(
-                         const string& handle,
-                         const std::vector<std::pair<string, Tensor>>& inputs,
-                         const std::vector<string>& output_names,
-                         std::vector<Tensor>* outputs));
+  MOCK_METHOD(::tensorflow::Status, Create, (const GraphDef& graph),
+              (override));
+  MOCK_METHOD(::tensorflow::Status, Extend, (const GraphDef& graph),
+              (override));
+  MOCK_METHOD(::tensorflow::Status, Run,
+              ((const std::vector<std::pair<string, Tensor>>& inputs),
+               const std::vector<string>& output_names,
+               const std::vector<string>& target_nodes,
+               std::vector<Tensor>* outputs),
+              (override));
+  MOCK_METHOD(::tensorflow::Status, Run,
+              (const RunOptions& run_options,
+               (const std::vector<std::pair<string, Tensor>>& inputs),
+               const std::vector<string>& output_names,
+               const std::vector<string>& target_nodes,
+               std::vector<Tensor>* outputs, RunMetadata* run_metadata),
+              (override));
+  MOCK_METHOD(
+      ::tensorflow::Status, Run,
+      (const RunOptions& run_options,
+       (const std::vector<std::pair<string, Tensor>>& inputs),
+       const std::vector<string>& output_names,
+       const std::vector<string>& target_nodes, std::vector<Tensor>* outputs,
+       RunMetadata* run_metadata,
+       const tensorflow::thread::ThreadPoolOptions& thread_pool_options),
+      (override));
+  MOCK_METHOD(::tensorflow::Status, PRunSetup,
+              (const std::vector<string>& input_names,
+               const std::vector<string>& output_names,
+               const std::vector<string>& target_nodes, string* handle),
+              (override));
+  MOCK_METHOD(::tensorflow::Status, PRun,
+              (const string& handle,
+               (const std::vector<std::pair<string, Tensor>>& inputs),
+               const std::vector<string>& output_names,
+               std::vector<Tensor>* outputs),
+              (override));
 
-  MOCK_METHOD1(ListDevices,
-               ::tensorflow::Status(
-                   std::vector<::tensorflow::DeviceAttributes>* response));
+  MOCK_METHOD(::tensorflow::Status, ListDevices,
+              (std::vector<::tensorflow::DeviceAttributes> * response),
+              (override));
 
-  MOCK_METHOD0(Close, ::tensorflow::Status());
+  MOCK_METHOD(::tensorflow::Status, Close, (), (override));
 };
 
 }  // namespace test_util

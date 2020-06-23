@@ -27,8 +27,9 @@ namespace serving {
 class MockLogCollector : public LogCollector {
  public:
   MockLogCollector() = default;
-  MOCK_METHOD1(CollectMessage, Status(const google::protobuf::Message& message));
-  MOCK_METHOD0(Flush, Status());
+  MOCK_METHOD(Status, CollectMessage, (const google::protobuf::Message& message),
+              (override));
+  MOCK_METHOD(Status, Flush, (), (override));
 };
 
 }  // namespace serving

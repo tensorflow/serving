@@ -1170,9 +1170,9 @@ TEST_P(AspiredVersionsManagerTest, UnaspireNewServableThenImmediatelyReaspire) {
 
 class MockAspiredVersionPolicy : public AspiredVersionPolicy {
  public:
-  MOCK_CONST_METHOD1(GetNextAction,
-                     optional<ServableAction>(
-                         const std::vector<AspiredServableStateSnapshot>&));
+  MOCK_METHOD(optional<ServableAction>, GetNextAction,
+              (const std::vector<AspiredServableStateSnapshot>&),
+              (const, override));
 };
 
 TEST(AspiredVersionsManagerTest, CallPolicyWithAllVersions) {
