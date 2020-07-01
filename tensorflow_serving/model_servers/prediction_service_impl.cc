@@ -23,8 +23,15 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/multi_inference_helper.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
 
+#include <chrono>
+
 namespace tensorflow {
 namespace serving {
+
+bvar::LatencyRecorder PredictionServiceImpl::predict_latency_recorder("predict_statistics");
+bvar::LatencyRecorder PredictionServiceImpl::classify_latency_recorder("classify_statistics");
+bvar::LatencyRecorder PredictionServiceImpl::regress_latency_recorder("regress_statistics");
+bvar::LatencyRecorder PredictionServiceImpl::multiinference_latency_recorder("multiinference_statistics");
 
 namespace {
 
@@ -57,8 +64,12 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
 
+  auto start = std::chrono::system_clock::now();
   const ::grpc::Status status =
       ToGRPCStatus(predictor_->Predict(run_options, core_, *request, response));
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end - start;
+  predict_latency_recorder<<elapsed_seconds.count()*1000000;
 
   if (!status.ok()) {
     VLOG(1) << "Predict failed: " << status.error_message();
@@ -86,10 +97,14 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
+  auto start = std::chrono::system_clock::now();
   const ::grpc::Status status =
       ToGRPCStatus(TensorflowClassificationServiceImpl::Classify(
           run_options, core_, GetThreadPoolOptions(thread_pool_factory_),
           *request, response));
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end - start;
+  classify_latency_recorder<<elapsed_seconds.count()*1000000;
   if (!status.ok()) {
     VLOG(1) << "Classify request failed: " << status.error_message();
   }
@@ -105,10 +120,14 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
+  auto start = std::chrono::system_clock::now();
   const ::grpc::Status status =
       ToGRPCStatus(TensorflowRegressionServiceImpl::Regress(
           run_options, core_, GetThreadPoolOptions(thread_pool_factory_),
           *request, response));
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end - start;
+  regress_latency_recorder<<elapsed_seconds.count()*1000000;
   if (!status.ok()) {
     VLOG(1) << "Regress request failed: " << status.error_message();
   }
@@ -124,9 +143,13 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
+  auto start = std::chrono::system_clock::now();
   const ::grpc::Status status = ToGRPCStatus(RunMultiInferenceWithServerCore(
       run_options, core_, GetThreadPoolOptions(thread_pool_factory_), *request,
       response));
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end - start;
+  multiinference_latency_recorder<<elapsed_seconds.count()*1000000;
   if (!status.ok()) {
     VLOG(1) << "MultiInference request failed: " << status.error_message();
   }

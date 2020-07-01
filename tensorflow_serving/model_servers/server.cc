@@ -51,6 +51,8 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/thread_pool_factory_config.pb.h"
 
+#include <brpc/server.h>
+
 namespace tensorflow {
 namespace serving {
 namespace main {
@@ -393,6 +395,9 @@ Status Server::BuildAndStart(const Options& server_options) {
                  << "Please use a different port for HTTP/REST API. "
                  << "Skipped exporting HTTP/REST API.";
     }
+  }
+  if (0 != server_options.brpc_port) {
+    brpc::StartDummyServerAt(server_options.brpc_port);
   }
   return Status::OK();
 }

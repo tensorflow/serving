@@ -4,6 +4,7 @@
 load("@org_tensorflow//third_party:repo.bzl", "tf_http_archive")
 load("@org_tensorflow//tensorflow:workspace.bzl", "tf_workspace")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 def tf_serving_workspace():
     """All TensorFlow Serving external dependencies."""
@@ -107,4 +108,25 @@ def tf_serving_workspace():
             "https://mirror.bazel.build/github.com/google/glog/archive/028d37889a1e80e8a07da1b8945ac706259e5fd8.tar.gz",
             "https://github.com/google/glog/archive/028d37889a1e80e8a07da1b8945ac706259e5fd8.tar.gz",
         ],
+    )
+
+    # ==== brpc dependencies ====
+    http_archive(
+        name = "com_github_google_glog",
+        build_file = "@//third_party/glog:BUILD",
+        strip_prefix = "glog-a6a166db069520dbbd653c97c2e5b12e08a8bb26",
+        url = "https://github.com/google/glog/archive/a6a166db069520dbbd653c97c2e5b12e08a8bb26.tar.gz"
+    )
+
+    http_archive(
+        name = "com_github_google_leveldb",
+        build_file = "@//third_party/leveldb:BUILD",
+        strip_prefix = "leveldb-a53934a3ae1244679f812d998a4f16f2c7f309a6",
+        url = "https://github.com/google/leveldb/archive/a53934a3ae1244679f812d998a4f16f2c7f309a6.tar.gz"
+    )
+
+    git_repository(
+        name = "brpc",
+        remote = "https://github.com/apache/incubator-brpc",
+        tag = "0.9.7",
     )

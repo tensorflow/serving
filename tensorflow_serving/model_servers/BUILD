@@ -234,6 +234,7 @@ cc_library(
         "@com_github_grpc_grpc//:grpc++",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@brpc//:bvar",
     ],
 )
 
@@ -339,6 +340,7 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:predict_impl",
         "//tensorflow_serving/servables/tensorflow:thread_pool_factory",
         "//tensorflow_serving/servables/tensorflow:thread_pool_factory_config_cc_proto",
+        "@brpc//:brpc",
     ] + SUPPORTED_TENSORFLOW_OPS,
 )
 

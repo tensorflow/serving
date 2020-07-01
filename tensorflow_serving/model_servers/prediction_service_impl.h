@@ -21,6 +21,8 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
 #include "tensorflow_serving/servables/tensorflow/thread_pool_factory.h"
 
+#include <bvar/bvar.h>
+
 namespace tensorflow {
 namespace serving {
 
@@ -64,6 +66,10 @@ class PredictionServiceImpl final : public PredictionService::Service {
   std::unique_ptr<TensorflowPredictor> predictor_;
   const bool enforce_session_run_timeout_;
   ThreadPoolFactory* thread_pool_factory_;
+  static bvar::LatencyRecorder predict_latency_recorder;
+  static bvar::LatencyRecorder classify_latency_recorder;
+  static bvar::LatencyRecorder regress_latency_recorder;
+  static bvar::LatencyRecorder multiinference_latency_recorder;
 };
 
 }  // namespace serving

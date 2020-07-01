@@ -179,6 +179,7 @@ int main(int argc, char** argv) {
                        "initializations (such as TF optimizations) at load "
                        "time, to reduce first request latency."),
       tensorflow::Flag("version", &display_version, "Display version"),
+      tensorflow::Flag("brpc_port", &options.brpc_port, "Port to listen on for the BRPC dummy server"),
       tensorflow::Flag(
           "monitoring_config_file", &options.monitoring_config_file,
           "If non-empty, read an ascii MonitoringConfig protobuf from "

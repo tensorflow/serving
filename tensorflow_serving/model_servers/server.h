@@ -86,6 +86,8 @@ class Server {
     bool remove_unused_fields_from_bundle_metagraph = true;
     bool prefer_tflite_model = false;
     tensorflow::string thread_pool_factory_config_file;
+    // BRPC configuration
+    tensorflow::int32 brpc_port = 0;
 
     Options();
   };

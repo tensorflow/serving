@@ -48,3 +48,4 @@ build --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0
 build --workspace_status_command=/proc/self/cwd/tools/gen_status_stamp.sh
 
 build --experimental_repo_remote_exec
+build --define=with_glog=true
