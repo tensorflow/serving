@@ -62,6 +62,7 @@ cc_library(
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:basic_batch_scheduler",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:batch_scheduler",
