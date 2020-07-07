@@ -21,7 +21,7 @@ FROM ubuntu:18.04
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=head
 
-LABEL maintainer="Karthik Vadla <karthik.vadla@intel.com>"
+LABEL maintainer="Clayne Robison <clayne.b.robison@intel.com>"
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
@@ -42,7 +42,6 @@ COPY --from=build_image /usr/local/lib/libmklml_intel.so /usr/local/lib
 ENV LIBRARY_PATH '/usr/local/lib:$LIBRARY_PATH'
 ENV LD_LIBRARY_PATH '/usr/local/lib:$LD_LIBRARY_PATH'
 
-
 # Expose ports
 # gRPC
 EXPOSE 8500
@@ -56,9 +55,6 @@ RUN mkdir -p ${MODEL_BASE_PATH}
 
 # The only required piece is the model name in order to differentiate endpoints
 ENV MODEL_NAME=model
-
-# Create a script that runs the model server so we can use environment variables
-# while also passing in arguments from the docker command line
 
 # Setting MKL environment variables can improve performance.
 # https://www.tensorflow.org/guide/performance/overview
@@ -97,6 +93,8 @@ ENV MKLDNN_VERBOSE=0
 ENV TENSORFLOW_INTRA_OP_PARALLELISM=2
 ENV TENSORFLOW_INTER_OP_PARALLELISM=2
 
+# Create a script that runs the model server so we can use environment variables
+# while also passing in arguments from the docker command line
 RUN echo '#!/bin/bash \n\n\
 tensorflow_model_server --port=8500 --rest_api_port=8501 \
 --tensorflow_intra_op_parallelism=${TENSORFLOW_INTRA_OP_PARALLELISM} \
