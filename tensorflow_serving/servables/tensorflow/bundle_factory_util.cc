@@ -92,7 +92,7 @@ Status CreateBatchScheduler(const BatchingParameters& batching_config,
         batching_config.allowed_batch_sizes().size() - 1);
     const int max_size = batching_config.has_max_batch_size()
                              ? batching_config.max_batch_size().value()
-                             : Batcher::QueueOptions().input_batch_size_limit;
+                             : Batcher::QueueOptions().max_batch_size;
     if (last_allowed_size != max_size) {
       return errors::InvalidArgument(
           "Last entry in allowed_batch_sizes must match max_batch_size; last "
@@ -161,8 +161,7 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
 
   Batcher::QueueOptions queue_options;
   if (batching_config.has_max_batch_size()) {
-    queue_options.input_batch_size_limit =
-        batching_config.max_batch_size().value();
+    queue_options.max_batch_size = batching_config.max_batch_size().value();
   }
   if (batching_config.has_batch_timeout_micros()) {
     queue_options.batch_timeout_micros =
