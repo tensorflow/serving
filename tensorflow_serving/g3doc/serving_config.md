@@ -76,10 +76,12 @@ model_config_list {
   config {
     name: 'my_first_model'
     base_path: '/tmp/my_first_model/'
+    model_platform: 'tensorflow'
   }
   config {
     name: 'my_second_model'
     base_path: '/tmp/my_second_model/'
+    model_platform: 'tensorflow'
   }
 }
 ```
