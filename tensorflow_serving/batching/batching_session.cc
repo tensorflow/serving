@@ -17,10 +17,13 @@ limitations under the License.
 
 #include <stddef.h>
 
+#include <memory>
+
 #include "tensorflow/core/framework/cost_graph.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_util.h"
+#include "tensorflow/core/kernels/batching_util/threadsafe_status.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -33,6 +36,7 @@ limitations under the License.
 #include "tensorflow/core/profiler/lib/traceme.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/batching/batching_util.h"
+#include "tensorflow_serving/batching/incremental_barrier.h"
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
 #include "tensorflow_serving/util/cleanup.h"
 #include "tensorflow_serving/util/hash.h"
@@ -129,15 +133,23 @@ TensorSignature TensorSignatureFromRunArgs(
   return signature;
 }
 
+// Constructs vector of one task input from one BatchingSessionTask.
+const std::vector<std::pair<string, Tensor>>& GetTaskInput(
+    const BatchingSessionTask& batching_session_task) {
+  if (batching_session_task.is_partial) {
+    return *batching_session_task.owned_split_inputs;
+  }
+  return *batching_session_task.inputs;
+}
+
 // Constructs vector of all task inputs from Batch of BatchingSessionTasks.
 // Input for each task is a vector of pairs (tensor_name, tensor_value).
 std::vector<std::vector<std::pair<string, Tensor>>> GetTaskInputsVector(
     const Batch<BatchingSessionTask>& batch) {
   std::vector<std::vector<std::pair<string, Tensor>>> all_task_inputs;
+  all_task_inputs.reserve(batch.num_tasks());
   for (int i = 0; i < batch.num_tasks(); ++i) {
-    const std::vector<std::pair<string, Tensor>>& task_inputs =
-        *batch.task(i).inputs;
-    all_task_inputs.push_back(task_inputs);
+    all_task_inputs.push_back(GetTaskInput(batch.task(i)));
   }
   return all_task_inputs;
 }
@@ -213,6 +225,13 @@ class BatchingSession : public ServingSession {
   //
   // RunMetadata:
   // We copy the batched call's RunMetadata to each non-batched call's output.
+  // When input of a call is processed in multiple batches as opposed to one
+  // (i.e., `enable_large_batch_splitting` is true for batch scheduler),
+  // `RunMetadata.CostGraphDef.AggregatedCost` is the sum of all splits of the
+  // corresponding input and as correct as if the input is not split (again
+  // assuming all individual tasks in a batch have equal cost, which is the
+  // assumption before splitting is introduced), the rest of fields in
+  // `RunMetadata` are copied from the processing result of first split.
   Status Run(const RunOptions& run_options,
              const std::vector<std::pair<string, Tensor>>& inputs,
              const std::vector<string>& output_tensor_names,
@@ -416,6 +435,9 @@ Status BatchingSession::InternalRun(
   task->outputs = outputs;
   task->run_metadata = run_metadata;
   task->thread_pool_options = thread_pool_options;
+  task->thread_safe_status = std::make_shared<ThreadSafeStatus>();
+  task->shared_outputs = std::make_shared<std::vector<std::vector<Tensor>>>();
+  task->split_run_metadatas = absl::make_unique<std::vector<RunMetadata>>();
 
   TF_RETURN_IF_ERROR(batch_scheduler->Schedule(&task));
   done.WaitForNotification();
@@ -508,7 +530,7 @@ Status BatchingSession::MergeInputTensors(
   // Populate 'tensors_to_merge'.
   for (int i = 0; i < batch.num_tasks(); ++i) {
     const std::vector<std::pair<string, Tensor>>& task_inputs =
-        *batch.task(i).inputs;
+        GetTaskInput(batch.task(i));
     for (const auto& entry : task_inputs) {
       const string& tensor_name = entry.first;
       const Tensor& tensor = entry.second;
@@ -650,7 +672,14 @@ Status BatchingSession::SplitOutputTensors(
       if (split_tensor == split_tensors.end()) {
         return errors::Internal("Task does not conform to batch signature");
       }
-      task->outputs->push_back(std::move(split_tensor->second[i]));
+
+      if (task->is_partial) {
+        std::vector<Tensor>& tensor_vector =
+            (*task->shared_outputs)[task->split_index];
+        tensor_vector.push_back(std::move(split_tensor->second[i]));
+      } else {
+        task->outputs->push_back(std::move(split_tensor->second[i]));
+      }
     }
   }
   // (Ignore a possible final split_tensors entry containing the padding.)
@@ -673,9 +702,19 @@ Status BatchingSession::SplitRunMetadata(RunMetadata* batch_metadata,
     }
 
     for (size_t i = 0; i < batch->num_tasks(); ++i) {
-      RunMetadata* run_metadata = batch->mutable_task(i)->run_metadata;
-      if (run_metadata != nullptr) {
-        *run_metadata = *batch_metadata;
+      BatchingSessionTask* batching_session_task = batch->mutable_task(i);
+      if (batching_session_task->is_partial) {
+        // If 'is_partial', 'split_run_metadatas' is not nullptr and points
+        // to a vector of size
+        // 'batching_session_task->output_tensor_names->size'.
+        (*batching_session_task
+              ->split_run_metadatas)[batching_session_task->split_index] =
+            *batch_metadata;
+      } else {
+        RunMetadata* run_metadata = batching_session_task->run_metadata;
+        if (run_metadata != nullptr) {
+          *run_metadata = *batch_metadata;
+        }
       }
     }
   }
@@ -703,8 +742,14 @@ void BatchingSession::ProcessBatch(
   Status status;
   auto finally = MakeCleanup([&status, &batch] {
     for (int i = 0; i < batch->num_tasks(); ++i) {
-      *batch->mutable_task(i)->status = status;
-      batch->mutable_task(i)->done->Notify();
+      BatchingSessionTask* task = batch->mutable_task(i);
+      if (task->is_partial) {
+        task->thread_safe_status->Update(status);
+        task->done_callback();
+      } else {
+        *batch->mutable_task(i)->status = status;
+        batch->mutable_task(i)->done->Notify();
+      }
     }
   });
 
@@ -780,6 +825,156 @@ void BatchingSession::ProcessBatch(
   status = SplitOutputTensors(signature, combined_outputs, batch.get());
 }
 
+// TODO(b/158393551):
+// Share implementation between `SplitInputTask` here and
+// `BatchResource::SplitInputTask` by refactoring and unifying the naming or
+// type differences of data members.
+Status SplitInputTask(
+    std::unique_ptr<BatchingSessionTask>* input_task_ptr,
+    int open_batch_remaining_slot, int max_batch_size,
+    std::vector<std::unique_ptr<BatchingSessionTask>>* output_tasks) {
+  BatchingSessionTask& input_task = *(*input_task_ptr);
+  const int64 input_task_size = input_task.size();
+
+  DCHECK_GT(input_task_size, open_batch_remaining_slot);
+
+  // `split_task_done_callback` runs only after all split tasks are complete.
+  std::function<void()> split_task_done_callback =
+      [done_notification = input_task.done,
+       shared_outputs = input_task.shared_outputs,
+       shared_status = input_task.thread_safe_status,
+       num_output = input_task.output_tensor_names->size(),
+       outputs = input_task.outputs, status = input_task.status,
+       run_metadata = input_task.run_metadata,
+       split_run_metadatas = input_task.split_run_metadatas]() {
+        // `cost_dimension_map` aggregates costs from all splits for each
+        // dimension.
+        absl::flat_hash_map<string, float> cost_dimension_map;
+        for (int i = 0; i < num_output; ++i) {
+          Tensor output_tensor;
+
+          // Concat i-th tensor from each split into i-th tensor of output.
+          std::vector<Tensor> to_concatenate;
+          to_concatenate.reserve(shared_outputs->size());
+          for (int j = 0; j < shared_outputs->size(); ++j) {
+            to_concatenate.push_back(std::move((*shared_outputs)[j][i]));
+          }
+          const auto concat_status =
+              tensor::Concat(to_concatenate, &output_tensor);
+          if (!concat_status.ok()) {
+            shared_status->Update(concat_status);
+          }
+
+          outputs->push_back(std::move(output_tensor));
+        }
+
+        for (const auto& split : *split_run_metadatas) {
+          if (split.has_cost_graph()) {
+            for (const auto& cost : split.cost_graph().cost()) {
+              cost_dimension_map[cost.dimension()] += cost.cost();
+            }
+          }
+        }
+        *status = shared_status->status();
+
+        *run_metadata = (*split_run_metadatas)[0];
+        std::vector<string> cost_dimensions;
+        for (const auto& cost_and_dimension :
+             run_metadata->cost_graph().cost()) {
+          cost_dimensions.push_back(cost_and_dimension.dimension());
+        }
+        run_metadata->mutable_cost_graph()->clear_cost();
+        for (const auto& dimension : cost_dimensions) {
+          const auto iter = cost_dimension_map.find(dimension);
+          if (iter != cost_dimension_map.end()) {
+            auto graph_cost = run_metadata->mutable_cost_graph()->add_cost();
+            graph_cost->set_dimension(iter->first);
+            graph_cost->set_cost(iter->second);
+          }
+        }
+
+        done_notification->Notify();
+      };
+  IncrementalBarrier barrier(split_task_done_callback);
+
+  std::vector<int64> output_task_sizes;
+
+  if (open_batch_remaining_slot > 0) {
+    output_task_sizes.push_back(open_batch_remaining_slot);
+  }
+
+  for (int left_task_size = input_task_size - open_batch_remaining_slot;
+       left_task_size > 0; left_task_size -= max_batch_size) {
+    int next_task_size = std::min(left_task_size, max_batch_size);
+    output_task_sizes.push_back(next_task_size);
+  }
+
+  const int output_task_num = output_task_sizes.size();
+
+  input_task.shared_outputs->resize(output_task_num);
+
+  for (int i = 0; i < output_task_num; ++i) {
+    (*input_task.shared_outputs)[i].reserve(
+        input_task.output_tensor_names->size());
+  }
+
+  input_task.split_run_metadatas->resize(output_task_num);
+
+  output_tasks->reserve(output_task_num);
+  for (int i = 0; i < output_task_num; i++) {
+    auto task = absl::make_unique<BatchingSessionTask>();
+    task->enqueue_time_micros = input_task.enqueue_time_micros;
+    task->run_options = input_task.run_options;
+    task->zeroth_dim_size = output_task_sizes[i];
+    // `task->owned_input` will be initialized separately out of this for-loop.
+    task->output_tensor_names = input_task.output_tensor_names;
+
+    task->owned_split_inputs =
+        absl::make_unique<std::vector<std::pair<string, Tensor>>>();
+    task->split_index = i;
+    task->shared_outputs = input_task.shared_outputs;
+    task->thread_safe_status = input_task.thread_safe_status;
+    task->is_partial = true;
+    task->done_callback = barrier.Inc();
+
+    task->split_run_metadatas = input_task.split_run_metadatas;
+
+    output_tasks->push_back(std::move(task));
+  }
+
+  const int num_input_tensors = input_task.inputs->size();
+
+  // Splits each input tensor according to `output_task_sizes`, and
+  // initializes input of `output_tasks` with split results.
+  for (int i = 0; i < num_input_tensors; ++i) {
+    std::vector<Tensor> split_tensors;
+    const string& tensor_name = (*input_task.inputs)[i].first;
+    const Tensor& input_tensor = (*input_task.inputs)[i].second;
+    // TODO(b/158393551):
+    // Figure out the optimal implementation of Split, by using
+    // 'Tensor::Slice' and eliminating unnecessary memcpy as much as possible.
+    const Status split_status =
+        tensor::Split(input_tensor, output_task_sizes, &split_tensors);
+    if (!split_status.ok()) {
+      return errors::Internal(
+          "When splitting input, Tensor split operation failed: ",
+          split_status.ToString());
+    }
+    if (split_tensors.size() != output_task_sizes.size()) {
+      return errors::Internal(
+          "When splitting input, tensor split operation did not work as "
+          "expected; got ",
+          split_tensors.size(), " splits; expected ", output_task_sizes.size());
+    }
+    for (int j = 0; j < output_tasks->size(); ++j) {
+      BatchingSessionTask& output_task = *((*output_tasks)[j]);
+      output_task.owned_split_inputs->push_back(
+          std::make_pair(tensor_name, split_tensors[j]));
+    }
+  }
+  return Status::OK();
+}
+
 Status CreateBatchingSession(
     const BatchingSessionOptions& options,
     const std::vector<SignatureWithBatchingSessionSchedulerCreator>&
@@ -799,9 +994,40 @@ Status CreateBasicBatchingSession(
     const BatchingSessionOptions& batching_session_options,
     const TensorSignature& signature, std::unique_ptr<Session> session,
     std::unique_ptr<Session>* batching_session) {
-  if (!batching_session_options.allowed_batch_sizes.empty()) {
-    if (batching_session_options.allowed_batch_sizes.back() !=
-        schedule_options.max_batch_size) {
+  const auto& allowed_batch_sizes =
+      batching_session_options.allowed_batch_sizes;
+  if (!allowed_batch_sizes.empty()) {
+    if (schedule_options.enable_large_batch_splitting) {
+      const int max_allowed_batch_size = allowed_batch_sizes.back();
+      int32 last_size = 0;
+      for (size_t i = 0; i < allowed_batch_sizes.size(); ++i) {
+        const int32 size = allowed_batch_sizes.at(i);
+        if (i > 0 && size <= last_size) {
+          return errors::InvalidArgument(
+              "allowed_batch_sizes entries must be monotonically increasing");
+        }
+        last_size = size;
+      }
+      if (max_allowed_batch_size > schedule_options.max_batch_size) {
+        return errors::InvalidArgument(
+            "Last entry in allowed_batch_sizes must be less than or equal to "
+            "max_batch_size; last "
+            "entry was ",
+            max_allowed_batch_size, "; expected ",
+            schedule_options.max_batch_size);
+      }
+      if (schedule_options.max_batch_size != max_allowed_batch_size) {
+        return errors::InvalidArgument(
+            "Last entry in allowed_batch_sizes must be equal to "
+            "max_execution_batch_size; last "
+            "entry was ",
+            max_allowed_batch_size, "; expected ",
+            schedule_options.max_batch_size);
+      }
+    } else if (allowed_batch_sizes.back() != schedule_options.max_batch_size) {
+      // TODO(b/b/161641195):
+      // Validate `allowed_batch_sizes` increase monotonically for non
+      // large_batch_splitting case.
       return errors::InvalidArgument(
           "Last entry in allowed_batch_sizes must match max_batch_size; last "
           "entry was ",

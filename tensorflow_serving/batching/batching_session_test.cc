@@ -30,6 +30,7 @@ limitations under the License.
 #include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/macros.h"
+#include "tensorflow/core/platform/thread_annotations.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/protobuf/config.pb.h"
@@ -74,8 +75,12 @@ class BatchSizeCapturingSession : public ServingSession {
              const std::vector<string>& output_tensor_names,
              const std::vector<string>& target_node_names,
              std::vector<Tensor>* outputs, RunMetadata* run_metadata,
-             const thread::ThreadPoolOptions& thread_pool_options) override {
-    latest_batch_size_ = inputs[0].second.shape().dim_size(0);
+             const thread::ThreadPoolOptions& thread_pool_options) override
+      TF_LOCKS_EXCLUDED(latest_batch_size_mu_) {
+    {
+      mutex_lock l(latest_batch_size_mu_);
+      latest_batch_size_ = inputs[0].second.shape().dim_size(0);
+    }
     Status status = wrapped_->Run(run_options, inputs, output_tensor_names,
                                   target_node_names, outputs, run_metadata,
                                   thread_pool_options);
@@ -87,15 +92,19 @@ class BatchSizeCapturingSession : public ServingSession {
     return wrapped_->ListDevices(response);
   }
 
-  int latest_batch_size() const { return latest_batch_size_; }
+  int latest_batch_size() const TF_LOCKS_EXCLUDED(latest_batch_size_mu_) {
+    mutex_lock l(latest_batch_size_mu_);
+    return latest_batch_size_;
+  }
 
   CostGraphDef* mutable_cost_graph() { return &cost_graph_; }
 
  private:
   std::unique_ptr<Session> wrapped_;
 
+  mutable mutex latest_batch_size_mu_;
   // The size of the batch most recently submitted to Run().
-  int latest_batch_size_ = -1;
+  int latest_batch_size_ TF_GUARDED_BY(latest_batch_size_mu_) = -1;
 
   // Cost graph associated with the latest call to Run().
   CostGraphDef cost_graph_;
@@ -162,10 +171,9 @@ void TestSingleRequest(float input_0, float input_1, Session* session) {
                     /*intra_op_threadpool=*/nullptr);
 }
 
-void TestRequestToMatrixHalfPlusTwo(const std::vector<float>& x_values,
-                                    TensorShape x_shape,
-                                    const std::vector<float>& y_values,
-                                    TensorShape y_shape, Session* session) {
+void TestRequest(const std::vector<float>& x_values, TensorShape x_shape,
+                 const std::vector<float>& y_values, TensorShape y_shape,
+                 Session* session) {
   Tensor input = test::AsTensor<float>(x_values, x_shape);
   Tensor expected_output = test::AsTensor<float>(y_values, y_shape);
   std::vector<Tensor> output;
@@ -236,7 +244,7 @@ bool CheckDescriptor(string label, const string& description,
   return true;
 }
 
-TEST(BatchingSessionTest, TensorSignatureFromSignatureDef) {
+TEST(BatchingSessionSignatureTest, TensorSignatureFromSignatureDef) {
   const SignatureDef signature_def =
       CreateSignatureDef({{"x0", "x1"}, {"y0", "y1"}});
   const TensorSignature tensor_signature =
@@ -246,7 +254,7 @@ TEST(BatchingSessionTest, TensorSignatureFromSignatureDef) {
               UnorderedElementsAre("y0", "y1"));
 }
 
-TEST(BatchingSessionTest, TensorSignatureFromSignatureDefs) {
+TEST(BatchingSessionSignatureTest, TensorSignatureFromSignatureDefs) {
   const SignatureDef signature_def_0 =
       CreateSignatureDef({{"x0", "x1"}, {"y0", "y1"}});
   const SignatureDef signature_def_1 =
@@ -259,11 +267,55 @@ TEST(BatchingSessionTest, TensorSignatureFromSignatureDefs) {
               UnorderedElementsAre("y0", "y1", "y3"));
 }
 
-TEST(BatchingSessionTest, Basic) {
+class BatchingSessionTest : public ::testing::TestWithParam<bool> {
+ public:
+  BatchingSessionTest() {}
+
+  bool enable_large_batch_splitting() const { return GetParam(); }
+
+  std::function<
+      Status(std::unique_ptr<BatchingSessionTask>* input_task,
+             int first_output_task_size, int max_batch_size,
+             std::vector<std::unique_ptr<BatchingSessionTask>>* output_tasks)>
+  get_split_input_task_func() const {
+    const bool enable_large_batch_splitting =
+        this->enable_large_batch_splitting();
+    return [enable_large_batch_splitting](
+               std::unique_ptr<BatchingSessionTask>* input_task,
+               int open_batch_remaining_slot, int max_batch_size,
+               std::vector<std::unique_ptr<BatchingSessionTask>>* output_tasks)
+               -> Status {
+      if (enable_large_batch_splitting) {
+        return SplitInputTask(input_task, open_batch_remaining_slot,
+                              max_batch_size, output_tasks);
+      } else {
+        return Status::OK();
+      }
+    };
+  }
+
+  // If 'enable_large_batch_splitting' is true, annotate `input_options` with
+  // parameters for splitting large batches.
+  BasicBatchScheduler<BatchingSessionTask>::Options annotate_options(
+      const BasicBatchScheduler<BatchingSessionTask>::Options input_options) {
+    BasicBatchScheduler<BatchingSessionTask>::Options output_options =
+        input_options;
+    if (enable_large_batch_splitting()) {
+      output_options.enable_large_batch_splitting = true;
+      output_options.split_input_task_func = get_split_input_task_func();
+      output_options.max_execution_batch_size = input_options.max_batch_size;
+    }
+    return output_options;
+  }
+};
+
+TEST_P(BatchingSessionTest, Basic) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 4;  // fits two 2-unit tasks
   schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
   schedule_options.num_batch_threads = 1;
+  schedule_options = annotate_options(schedule_options);
+
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
   TF_ASSERT_OK(CreateBasicBatchingSession(
@@ -282,11 +334,12 @@ TEST(BatchingSessionTest, Basic) {
       }));
 }
 
-TEST(BatchingSessionTest, BatchingWithPadding) {
+TEST_P(BatchingSessionTest, BatchingWithPadding) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 2;
   schedule_options.batch_timeout_micros = 1e6;
   schedule_options.num_batch_threads = 1;
+  schedule_options = annotate_options(schedule_options);
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
   batching_session_options.pad_variable_length_inputs = true;
@@ -298,17 +351,72 @@ TEST(BatchingSessionTest, BatchingWithPadding) {
   // if padding doesn't work, test will fail.
   std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
       ThreadOptions(), "first_request", [&batching_session] {
-        TestRequestToMatrixHalfPlusTwo(
-            {1, 2, 3, 4}, {1, 2, 2}, {2.5, 3, 2.5, 3.5, 4, 2.5, 2.5, 2.5, 2.5},
-            {1, 3, 3}, batching_session.get());
+        TestRequest({1, 2, 3, 4}, {1, 2, 2},
+                    {2.5, 3, 2.5, 3.5, 4, 2.5, 2.5, 2.5, 2.5}, {1, 3, 3},
+                    batching_session.get());
       }));
   std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
       ThreadOptions(), "second_request", [&batching_session] {
-        TestRequestToMatrixHalfPlusTwo({5, 6, 7, 8, 9, 10, 11, 12, 13},
-                                       {1, 3, 3},
-                                       {4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5},
-                                       {1, 3, 3}, batching_session.get());
+        TestRequest({5, 6, 7, 8, 9, 10, 11, 12, 13}, {1, 3, 3},
+                    {4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5}, {1, 3, 3},
+                    batching_session.get());
       }));
+}
+
+TEST_P(BatchingSessionTest, BatchingWithLargeBatch) {
+  BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
+  schedule_options.max_batch_size = 3;
+  schedule_options.batch_timeout_micros = 1e6;
+  schedule_options.num_batch_threads = 2;
+  schedule_options = annotate_options(schedule_options);
+  schedule_options.max_execution_batch_size = 2;
+  std::unique_ptr<Session> batching_session;
+  BatchingSessionOptions batching_session_options;
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, {{"x"}, {"y"}},
+      CreateHalfPlusTwoSession(), &batching_session));
+  if (enable_large_batch_splitting()) {
+    // `max_execution_batch_size` is 2, so input of second request will be
+    // split for processing.
+    std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
+        ThreadOptions(), "first_request", [&batching_session] {
+          TestRequest({5, 6, 7, 8}, {1, 2, 2}, {4.5, 5, 5.5, 6}, {1, 2, 2},
+                      batching_session.get());
+        }));
+    std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
+        ThreadOptions(), "second_request", [&batching_session] {
+          TestRequest({5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}, {3, 2, 2},
+                      {4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10},
+                      {3, 2, 2}, batching_session.get());
+        }));
+  } else {
+    Tensor input1 = test::AsTensor<float>({5, 6, 7, 8}, {1, 2, 2});
+    Tensor expected_output1 =
+        test::AsTensor<float>({4.5, 5, 5.5, 6}, {1, 2, 2});
+    std::vector<Tensor> output1;
+    absl::Notification notify;
+    std::unique_ptr<Thread> first_request_thread(
+        Env::Default()->StartThread(ThreadOptions(), "first_request", [&] {
+          auto status =
+              batching_session->Run({{"x", input1}}, {"y"}, {}, &output1);
+          EXPECT_TRUE(status.ok());
+          test::ExpectTensorEqual<float>(expected_output1, output1[0]);
+        }));
+
+    // `max_batch_size` is 3, so input2 (of size 4) will be invalidated.
+    Tensor input2 = test::AsTensor<float>(
+        {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}, {4, 2, 2});
+    std::vector<Tensor> output2;
+    std::unique_ptr<Thread> second_request_thread(
+        Env::Default()->StartThread(ThreadOptions(), "second_request", [&] {
+          auto status =
+              batching_session->Run({{"x", input2}}, {"y"}, {}, &output2);
+          EXPECT_FALSE(status.ok());
+          EXPECT_THAT(status.error_message(),
+                      HasSubstr("Task size 4 is larger than "
+                                "maximum input batch size 3"));
+        }));
+  }
 }
 
 TEST(BatchingSessionTest, BatchingWithPaddingAndCost) {
@@ -374,11 +482,100 @@ TEST(BatchingSessionTest, BatchingWithPaddingAndCost) {
       }));
 }
 
-TEST(BatchingSessionTest, UnequalTensorShapesWithPaddingTurnedOff) {
+TEST_P(BatchingSessionTest, BatchingWithCost) {
+  BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
+  schedule_options.max_batch_size = 3;
+  schedule_options.batch_timeout_micros = 1e6;
+  schedule_options.num_batch_threads = 2;
+  schedule_options = annotate_options(schedule_options);
+  schedule_options.max_execution_batch_size = 2;
+  std::unique_ptr<Session> batching_session;
+  BatchingSessionOptions batching_session_options;
+  std::unique_ptr<BatchSizeCapturingSession> batch_size_capturing_session(
+      new BatchSizeCapturingSession(CreateHalfPlusTwoSession()));
+  auto batch_size_capturing_session_raw = batch_size_capturing_session.get();
+
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, {{"x"}, {"y"}},
+      std::move(batch_size_capturing_session), &batching_session));
+
+  CostGraphDef* cg = batch_size_capturing_session_raw->mutable_cost_graph();
+  CostGraphDef_AggregatedCost* ag = cg->add_cost();
+  ag->set_cost(7.0);
+  ag = cg->add_cost();
+  ag->set_dimension("named-cost");
+  ag->set_cost(1.0);
+
+  // two requests form a batch and first input gets padded with zeros to match
+  // [1, 3, 3] shape that is accepted by the model.
+  // if padding doesn't work, test will fail.
+  std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "first_request", [&batching_session] {
+        Tensor input = test::AsTensor<float>({1, 2, 3, 4, 5, 6}, {1, 2, 3});
+        Tensor expected_output =
+            test::AsTensor<float>({2.5, 3, 3.5, 4, 4.5, 5}, {1, 2, 3});
+        std::vector<Tensor> output;
+        RunMetadata run_metadata;
+        TF_ASSERT_OK(batching_session->Run({}, {{"x", input}}, {"y"}, {},
+                                           &output, &run_metadata));
+        ASSERT_EQ(1, output.size());
+        test::ExpectTensorEqual<float>(expected_output, output[0]);
+        const CostGraphDef& cgs = run_metadata.cost_graph();
+        EXPECT_EQ(2, cgs.cost_size());
+        EXPECT_NEAR(3.5, cgs.cost(0).cost(), 0.001);
+        EXPECT_NEAR(0.5, cgs.cost(1).cost(), 0.001);
+        EXPECT_EQ("named-cost", cgs.cost(1).dimension());
+      }));
+  if (enable_large_batch_splitting()) {
+    std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
+        ThreadOptions(), "second_request", [&batching_session] {
+          Tensor input =
+              test::AsTensor<float>({5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+                                     17, 18, 19, 20, 21, 22},
+                                    {3, 2, 3});
+          Tensor expected_output =
+              test::AsTensor<float>({4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9,
+                                     9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13},
+                                    {3, 2, 3});
+          std::vector<Tensor> output;
+          RunMetadata run_metadata;
+          TF_ASSERT_OK(batching_session->Run({}, {{"x", input}}, {"y"}, {},
+                                             &output, &run_metadata));
+          ASSERT_EQ(1, output.size());
+          test::ExpectTensorEqual<float>(expected_output, output[0]);
+          const CostGraphDef& cgs = run_metadata.cost_graph();
+          EXPECT_EQ(2, cgs.cost_size());
+          EXPECT_NEAR(10.5, cgs.cost(0).cost(), 0.001);
+          EXPECT_NEAR(1.5, cgs.cost(1).cost(), 0.001);
+          EXPECT_EQ("named-cost", cgs.cost(1).dimension());
+        }));
+  } else {
+    std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
+        ThreadOptions(), "second_request", [&batching_session] {
+          Tensor input = test::AsTensor<float>({5, 6, 7, 8, 9, 10}, {1, 2, 3});
+          Tensor expected_output =
+              test::AsTensor<float>({4.5, 5, 5.5, 6, 6.5, 7}, {1, 2, 3});
+          std::vector<Tensor> output;
+          RunMetadata run_metadata;
+          TF_ASSERT_OK(batching_session->Run({}, {{"x", input}}, {"y"}, {},
+                                             &output, &run_metadata));
+          ASSERT_EQ(1, output.size());
+          test::ExpectTensorEqual<float>(expected_output, output[0]);
+          const CostGraphDef& cgs = run_metadata.cost_graph();
+          EXPECT_EQ(2, cgs.cost_size());
+          EXPECT_NEAR(3.5, cgs.cost(0).cost(), 0.001);
+          EXPECT_NEAR(0.5, cgs.cost(1).cost(), 0.001);
+          EXPECT_EQ("named-cost", cgs.cost(1).dimension());
+        }));
+  }
+}
+
+TEST_P(BatchingSessionTest, UnequalTensorShapesWithPaddingTurnedOff) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 2;
   schedule_options.batch_timeout_micros = 1e6;
   schedule_options.num_batch_threads = 1;
+  schedule_options = annotate_options(schedule_options);
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
   batching_session_options.pad_variable_length_inputs = false;
@@ -408,11 +605,12 @@ TEST(BatchingSessionTest, UnequalTensorShapesWithPaddingTurnedOff) {
       }));
 }
 
-TEST(BatchingSessionTest, SingletonBatch) {
+TEST_P(BatchingSessionTest, SingletonBatch) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 4;  // fits two 2-unit tasks
   schedule_options.batch_timeout_micros = 0;
   schedule_options.num_batch_threads = 1;
+  schedule_options = annotate_options(schedule_options);
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
   TF_ASSERT_OK(CreateBasicBatchingSession(
@@ -421,12 +619,13 @@ TEST(BatchingSessionTest, SingletonBatch) {
   TestSingleRequest(100.0f, 42.0f, batching_session.get());
 }
 
-TEST(BatchingSessionTest, RequestThatDoesntMatchSignatureGetsRunAnyway) {
+TEST_P(BatchingSessionTest, RequestThatDoesntMatchSignatureGetsRunAnyway) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   // Set the batching parameters s.t. if the request is batched the test will
   // timeout.
   schedule_options.max_batch_size = 100;
   schedule_options.batch_timeout_micros = INT_MAX;
+  schedule_options = annotate_options(schedule_options);
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
   TF_ASSERT_OK(CreateBasicBatchingSession(
@@ -436,8 +635,9 @@ TEST(BatchingSessionTest, RequestThatDoesntMatchSignatureGetsRunAnyway) {
   TestSingleRequest(100.0f, 42.0f, batching_session.get());
 }
 
-TEST(BatchingSessionTest, RequestWithIncompatibleInputTensorSizes) {
+TEST_P(BatchingSessionTest, RequestWithIncompatibleInputTensorSizes) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
+  schedule_options = annotate_options(schedule_options);
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
 
@@ -470,7 +670,7 @@ TEST(BatchingSessionTest, RequestWithIncompatibleInputTensorSizes) {
       GetPercentileTotal("/tensorflow/serving/batching_session/padding_size"));
 }
 
-TEST(BatchingSessionTest, AllowedBatchSizesNoPaddingNeeded) {
+TEST_P(BatchingSessionTest, AllowedBatchSizesNoPaddingNeeded) {
   int32 start_input_value = GetPercentileTotal(
       "/tensorflow/serving/batching_session/input_batch_size");
   int32 start_process_value = GetPercentileTotal(
@@ -486,6 +686,7 @@ TEST(BatchingSessionTest, AllowedBatchSizesNoPaddingNeeded) {
   schedule_options.max_batch_size = 4;
   schedule_options.batch_timeout_micros = 0;
   schedule_options.num_batch_threads = 1;
+  schedule_options = annotate_options(schedule_options);
   BatchingSessionOptions batching_session_options;
   batching_session_options.allowed_batch_sizes = {2, 4};
   std::unique_ptr<Session> batching_session;
@@ -509,7 +710,7 @@ TEST(BatchingSessionTest, AllowedBatchSizesNoPaddingNeeded) {
       GetPercentileTotal("/tensorflow/serving/batching_session/padding_size"));
 }
 
-TEST(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
+TEST_P(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
   int32 start_input_value = GetPercentileTotal(
       "/tensorflow/serving/batching_session/input_batch_size");
   int32 start_process_value = GetPercentileTotal(
@@ -536,6 +737,7 @@ TEST(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
   schedule_options.max_batch_size = 4;
   schedule_options.batch_timeout_micros = 0;
   schedule_options.num_batch_threads = 1;
+  schedule_options = annotate_options(schedule_options);
   BatchingSessionOptions batching_session_options;
   batching_session_options.allowed_batch_sizes = {1, 3, 4};
   std::unique_ptr<Session> batching_session;
@@ -559,9 +761,10 @@ TEST(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
       GetPercentileTotal("/tensorflow/serving/batching_session/padding_size"));
 }
 
-TEST(BatchingSessionTest, UnsortedAllowedBatchSizesRejected) {
+TEST_P(BatchingSessionTest, UnsortedAllowedBatchSizesRejected) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 4;
+  schedule_options = annotate_options(schedule_options);
   BatchingSessionOptions batching_session_options;
   batching_session_options.allowed_batch_sizes = {4, 2};  // Not sorted.
   std::unique_ptr<Session> batching_session;
@@ -571,10 +774,11 @@ TEST(BatchingSessionTest, UnsortedAllowedBatchSizesRejected) {
                    .ok());
 }
 
-TEST(BatchingSessionTest,
-     FinalAllowedBatchSizeDifferingFromMaxBatchSizeRejected) {
+TEST_P(BatchingSessionTest,
+       FinalAllowedBatchSizeLargerThanMaxBatchSizeRejected) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 4;
+  schedule_options = annotate_options(schedule_options);
   BatchingSessionOptions batching_session_options;
   batching_session_options.allowed_batch_sizes = {2, 8};  // Final entry != 4.
   std::unique_ptr<Session> batching_session;
@@ -584,11 +788,12 @@ TEST(BatchingSessionTest,
                    .ok());
 }
 
-TEST(BatchingSessionTest, DifferentOrderForInputAndOutputTensors) {
+TEST_P(BatchingSessionTest, DifferentOrderForInputAndOutputTensors) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 6;  // fits three 2-unit tasks
   schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
   schedule_options.num_batch_threads = 1;
+  schedule_options = annotate_options(schedule_options);
   BatchingSessionOptions batching_session_options;
   std::unique_ptr<Session> batching_session;
   TF_ASSERT_OK(CreateBasicBatchingSession(
@@ -632,29 +837,33 @@ TEST(BatchingSessionTest, DifferentOrderForInputAndOutputTensors) {
       }));
 }
 
-TEST(BatchingSessionTest, MultipleSignatures) {
+TEST_P(BatchingSessionTest, MultipleSignatures) {
   std::vector<BatchScheduler<BatchingSessionTask>*> schedulers;
-  auto create_scheduler = [&schedulers](
-      std::function<void(std::unique_ptr<Batch<BatchingSessionTask>>)>
-          process_batch_callback,
-      std::unique_ptr<BatchScheduler<BatchingSessionTask>>* scheduler) {
-    BasicBatchScheduler<BatchingSessionTask>::Options options;
-    options.max_batch_size = 4;                      // fits two 2-unit tasks
-    options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
-    options.num_batch_threads = 1;
-    std::unique_ptr<BasicBatchScheduler<BatchingSessionTask>> basic_scheduler;
-    TF_RETURN_IF_ERROR(BasicBatchScheduler<BatchingSessionTask>::Create(
-        options, process_batch_callback, &basic_scheduler));
-    schedulers.push_back(basic_scheduler.get());
-    *scheduler = std::move(basic_scheduler);
-    return Status::OK();
-  };
+  auto create_scheduler =
+      [&schedulers, this](
+          std::function<void(std::unique_ptr<Batch<BatchingSessionTask>>)>
+              process_batch_callback,
+          std::unique_ptr<BatchScheduler<BatchingSessionTask>>* scheduler) {
+        BasicBatchScheduler<BatchingSessionTask>::Options options;
+        options.max_batch_size = 4;  // fits two 2-unit tasks
+        options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
+        options.num_batch_threads = 1;
+        options = annotate_options(options);
+        std::unique_ptr<BasicBatchScheduler<BatchingSessionTask>>
+            basic_scheduler;
+        TF_RETURN_IF_ERROR(BasicBatchScheduler<BatchingSessionTask>::Create(
+            options, process_batch_callback, &basic_scheduler));
+        schedulers.push_back(basic_scheduler.get());
+        *scheduler = std::move(basic_scheduler);
+        return Status::OK();
+      };
   BatchingSessionOptions batching_session_options;
   std::unique_ptr<Session> batching_session;
-  TF_CHECK_OK(CreateBatchingSession(
-      batching_session_options, {{{{"x"}, {"y"}}, create_scheduler},
-                                 {{{"x2"}, {"y3"}}, create_scheduler}},
-      CreateHalfPlusTwoSession(), &batching_session));
+  TF_CHECK_OK(CreateBatchingSession(batching_session_options,
+                                    {{{{"x"}, {"y"}}, create_scheduler},
+                                     {{{"x2"}, {"y3"}}, create_scheduler}},
+                                    CreateHalfPlusTwoSession(),
+                                    &batching_session));
   ASSERT_EQ(2, schedulers.size());
 
   // Create lambdas for 2-unit inference requests to each signature.
@@ -696,23 +905,26 @@ TEST(BatchingSessionTest, MultipleSignatures) {
   EXPECT_EQ(0, schedulers[1]->NumEnqueuedTasks());
 }
 
-TEST(BatchingSessionTest, EnqueuedLongerThanTimeout) {
+TEST_P(BatchingSessionTest, EnqueuedLongerThanTimeout) {
   BatchScheduler<BatchingSessionTask>* scheduler = nullptr;
-  auto create_scheduler = [&scheduler](
-      std::function<void(std::unique_ptr<Batch<BatchingSessionTask>>)>
-          process_batch_callback,
-      std::unique_ptr<BatchScheduler<BatchingSessionTask>>* new_scheduler) {
-    BasicBatchScheduler<BatchingSessionTask>::Options options;
-    options.max_batch_size = 4;                      // fits two 2-unit tasks
-    options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
-    options.num_batch_threads = 1;
-    std::unique_ptr<BasicBatchScheduler<BatchingSessionTask>> basic_scheduler;
-    TF_RETURN_IF_ERROR(BasicBatchScheduler<BatchingSessionTask>::Create(
-        options, process_batch_callback, &basic_scheduler));
-    scheduler = basic_scheduler.get();
-    *new_scheduler = std::move(basic_scheduler);
-    return Status::OK();
-  };
+  auto create_scheduler =
+      [&scheduler, this](
+          std::function<void(std::unique_ptr<Batch<BatchingSessionTask>>)>
+              process_batch_callback,
+          std::unique_ptr<BatchScheduler<BatchingSessionTask>>* new_scheduler) {
+        BasicBatchScheduler<BatchingSessionTask>::Options options;
+        options.max_batch_size = 4;  // fits two 2-unit tasks
+        options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
+        options.num_batch_threads = 1;
+        options = annotate_options(options);
+        std::unique_ptr<BasicBatchScheduler<BatchingSessionTask>>
+            basic_scheduler;
+        TF_RETURN_IF_ERROR(BasicBatchScheduler<BatchingSessionTask>::Create(
+            options, process_batch_callback, &basic_scheduler));
+        scheduler = basic_scheduler.get();
+        *new_scheduler = std::move(basic_scheduler);
+        return Status::OK();
+      };
   BatchingSessionOptions batching_session_options;
   std::unique_ptr<Session> batching_session;
   TF_CHECK_OK(CreateBatchingSession(
@@ -751,11 +963,12 @@ TEST(BatchingSessionTest, EnqueuedLongerThanTimeout) {
   request_returned.WaitForNotification();
 }
 
-TEST(BatchingSessionTest, ThreadPoolOptions) {
+TEST_P(BatchingSessionTest, ThreadPoolOptions) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 4;  // fits two 2-unit tasks
   schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
   schedule_options.num_batch_threads = 1;
+  schedule_options = annotate_options(schedule_options);
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
   TF_ASSERT_OK(CreateBasicBatchingSession(
@@ -780,6 +993,9 @@ TEST(BatchingSessionTest, ThreadPoolOptions) {
                           &inter_op_threadpool, &intra_op_threadpool);
       }));
 }
+
+INSTANTIATE_TEST_CASE_P(WithOrWithoutThreadPools, BatchingSessionTest,
+                        ::testing::Bool());
 
 }  // namespace
 }  // namespace serving
