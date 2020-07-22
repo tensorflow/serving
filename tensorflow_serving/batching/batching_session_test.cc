@@ -18,6 +18,7 @@ limitations under the License.
 #include <memory>
 
 #include <gtest/gtest.h>
+#include "absl/synchronization/notification.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/framework/cost_graph.pb.h"
@@ -394,7 +395,7 @@ TEST_P(BatchingSessionTest, BatchingWithLargeBatch) {
     Tensor expected_output1 =
         test::AsTensor<float>({4.5, 5, 5.5, 6}, {1, 2, 2});
     std::vector<Tensor> output1;
-    absl::Notification notify;
+    Notification notify;
     std::unique_ptr<Thread> first_request_thread(
         Env::Default()->StartThread(ThreadOptions(), "first_request", [&] {
           auto status =
