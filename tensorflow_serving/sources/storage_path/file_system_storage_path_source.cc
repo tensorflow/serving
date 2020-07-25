@@ -265,7 +265,9 @@ Status PollFileSystemForServable(
 
   if (!at_least_one_version_found) {
     LOG(WARNING) << "No versions of servable " << servable.servable_name()
-                 << " found under base path " << servable.base_path();
+                 << " found under base path " << servable.base_path()
+                 << ". Did you forget to name your leaf directory as a number "
+                    "(eg. '/1/')?";
   }
 
   return Status::OK();
