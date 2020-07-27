@@ -4,7 +4,7 @@ package(
     default_visibility = ["//tensorflow_serving:internal"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 exports_files(["LICENSE"])
 
