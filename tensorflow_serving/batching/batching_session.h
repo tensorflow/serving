@@ -28,11 +28,11 @@ limitations under the License.
 
 #include "tensorflow/core/kernels/batching_util/basic_batch_scheduler.h"
 #include "tensorflow/core/kernels/batching_util/batch_scheduler.h"
-#include "tensorflow/core/kernels/batching_util/threadsafe_status.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
+#include "tensorflow_serving/batching/threadsafe_status.h"
 #include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
