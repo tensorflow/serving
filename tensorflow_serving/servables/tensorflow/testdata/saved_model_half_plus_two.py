@@ -397,4 +397,4 @@ if __name__ == "__main__":
       default="cpu",
       help="Force model to run on 'cpu', 'mkl', or 'gpu'")
   FLAGS, unparsed = parser.parse_known_args()
-  tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  tf.compat.v1.app.run(main=main, argv=[sys.argv[0]] + unparsed)

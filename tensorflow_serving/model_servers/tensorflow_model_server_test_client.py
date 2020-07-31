@@ -29,9 +29,9 @@ from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 
 
-tf.app.flags.DEFINE_string('server', 'localhost:8500',
-                           'inception_inference service host:port')
-FLAGS = tf.app.flags.FLAGS
+tf.compat.v1.app.flags.DEFINE_string('server', 'localhost:8500',
+                                     'inception_inference service host:port')
+FLAGS = tf.compat.v1.app.flags.FLAGS
 
 
 def main(_):
@@ -48,4 +48,4 @@ def main(_):
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  tf.compat.v1.app.run()
