@@ -388,8 +388,9 @@ Status BatchingSession::InternalRun(
         "BatchingSession does not support target nodes");
   }
 
-  profiler::TraceMe trace_me(
-      strings::StrCat("BatchingSessionRun:", thread_pool_name_));
+  profiler::TraceMe trace_me([this] {
+    return strings::StrCat("BatchingSessionRun:", thread_pool_name_);
+  });
   const TensorSignature signature =
       TensorSignatureFromRunArgs(inputs, output_tensor_names);
   auto batch_scheduler_it = batch_schedulers_.find(signature);
