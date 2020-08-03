@@ -29,7 +29,6 @@ limitations under the License.
 #include "tensorflow/core/kernels/batching_util/basic_batch_scheduler.h"
 #include "tensorflow/core/kernels/batching_util/batch_scheduler.h"
 #include "tensorflow/core/platform/threadpool_options.h"
-#include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/batching/threadsafe_status.h"
@@ -194,15 +193,6 @@ Status CreateBasicBatchingSession(
     const TensorSignature& signature, std::unique_ptr<Session> session,
     std::unique_ptr<Session>* batching_session);
 
-// The default implementation of
-// `BasicBatchScheduler::Options.split_input_task_func` if corresponding batch
-// scheduler for a batching session sets
-// `BasicBatchScheduler::Options.enable_large_batch_splitting` to true.
-Status SplitInputTask(
-    std::unique_ptr<BatchingSessionTask>* input_task_ptr,
-    int open_batch_remaining_slot, int max_batch_size,
-    std::vector<std::unique_ptr<BatchingSessionTask>>* output_tasks);
-
 //////////
 // Implementation details follow. API users need not read.
 
@@ -217,38 +207,12 @@ struct BatchingSessionTask : public BatchTask {
   const std::vector<std::pair<string, Tensor>>* inputs;
   const std::vector<string>* output_tensor_names;
 
-  // Fields populated when a task is processed (as part of a batch), and
-  // returned by BatchingSession when a task is complete.
+  // Fields populated when a task is processed (as part of a batch).
   Notification* done;
   Status* status;
   std::vector<Tensor>* outputs;
   RunMetadata* run_metadata;
   optional<thread::ThreadPoolOptions> thread_pool_options;
-
-  // Fields populated when a task is processed (as part of a batch), and
-  // substantially used in the intermediate stage if a task is a slice of
-  // input task (i.e., is_partial=true).
-  bool is_partial = false;
-  // 'owned_split_inputs' stores pairs of tensor names and input tensors
-  // if 'is_partial' = true.
-  std::unique_ptr<std::vector<std::pair<string, Tensor>>> owned_split_inputs;
-  // The index of this split, along the 0-th dimension of input from op
-  // invocation.
-  int split_index = 0;
-  std::function<void()> done_callback;
-  typedef std::vector<std::vector<Tensor>> TensorMatrix;
-  // For shared_ptr objects, ownership shared by:
-  // 1) each split of task (to fill one row in this matrix)
-  // and
-  // 2) callback that runs to merge output of individual splits for an op
-  // invocation, after all splits complete.
-  // Two-dimensional tensor matrix,
-  std::shared_ptr<TensorMatrix> shared_outputs;
-  // 'status' records error (could be from any split) if at least one split
-  // returns error, OK otherwise.
-  std::shared_ptr<ThreadSafeStatus> thread_safe_status;
-  // 'split_run_metadatas' records `run_metadata` of each split.
-  std::shared_ptr<std::vector<RunMetadata>> split_run_metadatas;
 };
 
 }  // namespace serving
