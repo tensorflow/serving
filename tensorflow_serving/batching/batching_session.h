@@ -31,7 +31,6 @@ limitations under the License.
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
-#include "tensorflow_serving/batching/threadsafe_status.h"
 #include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {

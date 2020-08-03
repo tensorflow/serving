@@ -70,6 +70,18 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "threadsafe_status",
+    srcs = ["threadsafe_status.cc"],
+    hdrs = ["threadsafe_status.h"],
+    deps = [
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/synchronization",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
 cc_test(
     name = "batching_session_test",
     srcs = [
