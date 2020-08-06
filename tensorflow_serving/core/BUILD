@@ -430,6 +430,7 @@ cc_test(
     deps = [
         ":servable_state_monitor",
         "//tensorflow_serving/core/test_util:test_main",
+        "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:fake_clock_env",
     ],
 )

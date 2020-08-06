@@ -174,6 +174,24 @@ ServableStateMonitor::ServableMap ServableStateMonitor::GetLiveServableStates()
   return live_states_;
 }
 
+void ServableStateMonitor::ForgetUnloadedServableStates() {
+  mutex_lock l(mu_);
+
+  for (auto& state : states_) {
+    std::vector<Version> versions_to_forget;
+    auto& version_map = state.second;
+    for (const auto& version : version_map) {
+      if (version.second.state.manager_state ==
+          ServableState::ManagerState::kEnd) {
+        versions_to_forget.emplace_back(version.first);
+      }
+    }
+    for (const auto& version : versions_to_forget) {
+      version_map.erase(version);
+    }
+  }
+}
+
 ServableStateMonitor::ServableSet
 ServableStateMonitor::GetAvailableServableStates() const {
   ServableSet available_servable_set;

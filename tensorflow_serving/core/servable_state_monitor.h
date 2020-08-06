@@ -105,6 +105,10 @@ class ServableStateMonitor {
   /// transitioned to state ServableState::ManagerState::kEnd.
   ServableMap GetLiveServableStates() const TF_LOCKS_EXCLUDED(mu_);
 
+  /// Removes all servable versions from the ServableMap whose
+  /// states have transitioned to kEnd.
+  void ForgetUnloadedServableStates() TF_LOCKS_EXCLUDED(mu_);
+
   // Returns all servables that are in state
   // ServableState::ManagerState::kAvailable.
   // Note that as opposed to GetAllServableStates() and GetLiveServableStates(),
