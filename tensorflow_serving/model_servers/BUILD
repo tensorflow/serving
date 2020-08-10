@@ -266,12 +266,28 @@ cc_library(
 )
 
 cc_library(
+    name = "http_rest_api_util",
+    srcs = ["http_rest_api_util.cc"],
+    hdrs = ["http_rest_api_util.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tensorflow_serving/apis:get_model_status_cc_proto",
+        "//tensorflow_serving/apis:model_cc_proto",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:optional",
+        "@com_googlesource_code_re2//:re2",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
     name = "http_rest_api_handler",
     srcs = ["http_rest_api_handler.cc"],
     hdrs = ["http_rest_api_handler.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":get_model_status_impl",
+        ":http_rest_api_util",
         ":server_core",
         "//tensorflow_serving/apis:model_cc_proto",
         "//tensorflow_serving/apis:predict_cc_proto",

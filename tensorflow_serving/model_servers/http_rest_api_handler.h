@@ -116,8 +116,6 @@ class HttpRestApiHandler {
   const RunOptions run_options_;
   ServerCore* core_;
   std::unique_ptr<TensorflowPredictor> predictor_;
-  const RE2 prediction_api_regex_;
-  const RE2 modelstatus_api_regex_;
 };
 
 }  // namespace serving
