@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import os.path
 # This is a placeholder for a Google-internal import.
-import tensorflow.google.compat.v1 as tf
+import tensorflow.compat.v1 as tf
 
 from tensorflow_serving.experimental.tensorflow.ops.remote_predict.ops import gen_remote_predict_op
 # pylint: disable=wildcard-import

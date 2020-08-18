@@ -1,6 +1,7 @@
 # Description:
 # Remote Predict Op Prototype
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_custom_op_library", "tf_gen_op_libs", "tf_gen_op_wrapper_cc", "tf_gen_op_wrapper_py", "tf_kernel_library")
+load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_custom_op_py_library")
 
 licenses(["notice"])
 
@@ -97,6 +98,23 @@ tf_custom_op_library(
         "ops/remote_predict_op.cc",
     ],
     deps = [":remote_predict_op_kernel_lib"],
+)
+
+tf_custom_op_py_library(
+    name = "remote_predict_py",
+    srcs = glob(["python/ops/*.py"]) + ["__init__.py"],
+    dso = [":python/ops/_remote_predict_op.so"],
+    kernels = [
+        ":remote_predict_op_kernel",
+        ":remote_predict_op_op_lib",
+    ],
+    srcs_version = "PY2AND3",
+    visibility = ["//tensorflow_serving/experimental/example:__subpackages__"],
+    deps = [
+        ":gen_remote_predict_op",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/python:framework_for_generated_wrappers",
+    ],
 )
 
 cc_test(
