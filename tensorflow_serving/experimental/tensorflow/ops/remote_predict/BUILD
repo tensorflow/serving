@@ -18,6 +18,7 @@ cc_library(
         "//tensorflow_serving/apis:prediction_service_cc_proto",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/time",
         "@com_google_protobuf//:protobuf_lite",
         "@org_tensorflow//tensorflow/core:framework_headers_lib",
         "@org_tensorflow//tensorflow/core/kernels:ops_util_hdrs",
@@ -96,6 +97,59 @@ tf_custom_op_library(
         "ops/remote_predict_op.cc",
     ],
     deps = [":remote_predict_op_kernel_lib"],
+)
+
+cc_test(
+    name = "remote_predict_ops_cc_test",
+    size = "small",
+    srcs = [
+        "kernels/remote_predict_op_kernel.h",
+        "kernels/remote_predict_op_kernel_test.cc",
+    ],
+    deps = [
+        ":remote_predict_ops_cc",
+        "//tensorflow_serving/apis:prediction_service_cc_proto",
+        "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/time",
+        "@com_google_protobuf//:protobuf_lite",
+        "@org_tensorflow//tensorflow/cc:client_session",
+        "@org_tensorflow//tensorflow/cc:const_op",
+        "@org_tensorflow//tensorflow/core:all_kernels",
+        "@org_tensorflow//tensorflow/core:direct_session",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
+        "@org_tensorflow//tensorflow/core/kernels:ops_util",
+    ],
+)
+
+cc_library(
+    name = "prediction_service_grpc",
+    srcs = ["kernels/prediction_service_grpc.cc"],
+    hdrs = ["kernels/prediction_service_grpc.h"],
+    deps = [
+        "//tensorflow_serving/apis:prediction_service_cc_proto",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_test(
+    name = "prediction_service_grpc_test",
+    size = "small",
+    srcs = [
+        "kernels/prediction_service_grpc_test.cc",
+    ],
+    deps = [
+        ":prediction_service_grpc",
+        "//tensorflow_serving/core/test_util:test_main",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/time",
+        "@org_tensorflow//tensorflow/core:testlib",
+    ],
 )
 
 filegroup(

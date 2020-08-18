@@ -140,11 +140,8 @@ class RemotePredictOp : public AsyncOpKernel {
       } else {
         // Allocate some empty output for the output_tensors.
         for (int i = 0; i < output_tensors_list.size(); ++i) {
-          Tensor* unused;
-          OP_REQUIRES_OK_ASYNC(
-              context,
-              output_tensors_list.allocate(i, TensorShape({}), &unused),
-              rpc_cleaner.release());
+          Tensor output_tensor;
+          output_tensors_list.set(i, output_tensor);
         }
         return;
       }
