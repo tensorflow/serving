@@ -35,7 +35,7 @@ tf.app.flags.DEFINE_string("output_dir", "/tmp/half_plus_two_with_rpop/1/",
                            "Savedmodel export path")
 tf.app.flags.DEFINE_string("target_address", "",
                            "Target address for the RemotePredictOp.")
-tf.app.flags.DEFINE_string("remote_model_name", "half_plus_two_with_rpop",
+tf.app.flags.DEFINE_string("remote_model_name", "half_plus_two",
                            "Model name for the RemotePredictOp.")
 tf.app.flags.DEFINE_integer("remote_model_version", -1,
                             "Model version for the RemotePredictOp.")
