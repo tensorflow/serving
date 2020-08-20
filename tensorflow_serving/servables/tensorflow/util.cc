@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/util.h"
 
+#include <atomic>
+
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/example/example.pb.h"
@@ -60,6 +62,8 @@ int NumInputExamples(const internal::SerializedInput& input) {
   return 0;
 }
 
+std::atomic<bool> signature_method_check{true};
+
 }  // namespace
 
 namespace internal {
@@ -69,6 +73,10 @@ monitoring::Sampler<1>* GetExampleCounts() { return example_counts; }
 monitoring::Counter<1>* GetExampleCountTotal() { return example_count_total; }
 
 }  // namespace internal
+
+void SetSignatureMethodNameCheckFeature(bool v) { signature_method_check = v; }
+
+bool GetSignatureMethodNameCheckFeature() { return signature_method_check; }
 
 void RecordRequestExampleCount(const string& model_name, size_t count) {
   example_counts->GetCell(model_name)->Add(count);

@@ -124,9 +124,8 @@ class TensorflowModelServerTest(
     self.assertEqual(1, len(result.metadata))
     self.assertIn('signature_def', result.metadata)
 
-  def testClassify(self):
+  def _TestClassify(self, model_path):
     """Test PredictionService.Classify implementation."""
-    model_path = self._GetSavedModelBundlePath()
     model_server_address = TensorflowModelServerTest.RunServer(
         'default', model_path)[1]
 
@@ -153,9 +152,16 @@ class TensorflowModelServerTest(
                           request.model_spec.signature_name,
                           self._GetModelVersion(model_path))
 
-  def testRegress(self):
+  def testClassify(self):
+    """Test PredictionService.Classify implementation for TF1 model."""
+    self._TestClassify(self._GetSavedModelBundlePath())
+
+  def testClassifyTf2(self):
+    """Test PredictionService.Classify implementation for TF2 model."""
+    self._TestClassify(self._GetSavedModelHalfPlusTwoTf2())
+
+  def _TestRegress(self, model_path):
     """Test PredictionService.Regress implementation."""
-    model_path = self._GetSavedModelBundlePath()
     model_server_address = TensorflowModelServerTest.RunServer(
         'default', model_path)[1]
 
@@ -180,9 +186,16 @@ class TensorflowModelServerTest(
                           request.model_spec.signature_name,
                           self._GetModelVersion(model_path))
 
-  def testMultiInference(self):
+  def testRegress(self):
+    """Test PredictionService.Regress implementation for TF1 model."""
+    self._TestRegress(self._GetSavedModelBundlePath())
+
+  def testRegressTf2(self):
+    """Test PredictionService.Regress implementation for TF2 model."""
+    self._TestRegress(self._GetSavedModelHalfPlusTwoTf2())
+
+  def _TestMultiInference(self, model_path):
     """Test PredictionService.MultiInference implementation."""
-    model_path = self._GetSavedModelBundlePath()
     model_server_address = TensorflowModelServerTest.RunServer(
         'default', model_path)[1]
 
@@ -217,6 +230,10 @@ class TensorflowModelServerTest(
                             request.tasks[i].model_spec.name,
                             request.tasks[i].model_spec.signature_name,
                             self._GetModelVersion(model_path))
+
+  def testMultiInference(self):
+    """Test PredictionService.MultiInference implementation for TF1 model."""
+    self._TestMultiInference(self._GetSavedModelBundlePath())
 
   def testPredictSavedModel(self):
     """Test PredictionService.Predict implementation with SavedModel."""

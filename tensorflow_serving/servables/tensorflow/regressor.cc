@@ -149,10 +149,14 @@ Status GetRegressionSignatureDef(const ModelSpec& model_spec,
     return errors::InvalidArgument(strings::StrCat(
         "No signature was found with the name: ", signature_name));
   }
-  if (iter->second.method_name() != kRegressMethodName) {
-    return errors::InvalidArgument(strings::StrCat(
-        "Expected regression signature method_name to be ", kRegressMethodName,
-        ". Was: ", iter->second.method_name()));
+  if (GetSignatureMethodNameCheckFeature()) {
+    if (iter->second.method_name() != kRegressMethodName) {
+      return errors::InvalidArgument(strings::StrCat(
+          "Expected regression signature method_name to be ",
+          kRegressMethodName, ". Was: ", iter->second.method_name()));
+    }
+  } else {
+    TF_RETURN_IF_ERROR(PreProcessRegression(iter->second, nullptr, nullptr));
   }
   *signature = iter->second;
   return Status::OK();
@@ -161,7 +165,8 @@ Status GetRegressionSignatureDef(const ModelSpec& model_spec,
 Status PreProcessRegression(const SignatureDef& signature,
                             string* input_tensor_name,
                             std::vector<string>* output_tensor_names) {
-  if (signature.method_name() != kRegressMethodName) {
+  if (GetSignatureMethodNameCheckFeature() &&
+      signature.method_name() != kRegressMethodName) {
     return errors::InvalidArgument(strings::StrCat(
         "Expected regression signature method_name to be ", kRegressMethodName,
         ". Was: ", signature.method_name()));
@@ -177,19 +182,23 @@ Status PreProcessRegression(const SignatureDef& signature,
 
   auto input_iter = signature.inputs().find(kRegressInputs);
   if (input_iter == signature.inputs().end()) {
-    return errors::FailedPrecondition(
+    return errors::InvalidArgument(
         "No regression inputs found in SignatureDef: ",
         signature.DebugString());
   }
-  *input_tensor_name = input_iter->second.name();
+  if (input_tensor_name != nullptr) {
+    *input_tensor_name = input_iter->second.name();
+  }
 
   auto output_iter = signature.outputs().find(kRegressOutputs);
   if (output_iter == signature.outputs().end()) {
-    return errors::FailedPrecondition(
+    return errors::InvalidArgument(
         "No regression outputs found in SignatureDef: ",
         signature.DebugString());
   }
-  output_tensor_names->push_back(output_iter->second.name());
+  if (output_tensor_names != nullptr) {
+    output_tensor_names->push_back(output_iter->second.name());
+  }
   return Status::OK();
 }
 

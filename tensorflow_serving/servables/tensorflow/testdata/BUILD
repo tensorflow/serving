@@ -16,6 +16,7 @@ exports_files(
     [
         "half_plus_two_model_metadata.json",
         "saved_model_half_plus_two_2_versions_metadata.json",
+        "saved_model_half_plus_two_tf2_2_versions_metadata.json",
     ],
     visibility = ["//tensorflow_serving:internal"],
 )
@@ -79,6 +80,13 @@ filegroup(
     name = "saved_model_half_plus_two_cpu",
     srcs = glob(
         ["saved_model_half_plus_two_cpu/**"],
+    ),
+)
+
+filegroup(
+    name = "saved_model_half_plus_two_tf2_cpu",
+    srcs = glob(
+        ["saved_model_half_plus_two_tf2_cpu/**"],
     ),
 )
 

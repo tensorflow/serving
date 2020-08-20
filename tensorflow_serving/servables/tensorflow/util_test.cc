@@ -268,6 +268,14 @@ TEST(ModelSpecTest, AllOptionalSet) {
   EXPECT_THAT(model_spec.version().value(), Eq(1));
 }
 
+TEST(SignatureMethodNameCheckFeature, SetGet) {
+  SetSignatureMethodNameCheckFeature(true);
+  EXPECT_TRUE(GetSignatureMethodNameCheckFeature());
+
+  SetSignatureMethodNameCheckFeature(false);
+  EXPECT_FALSE(GetSignatureMethodNameCheckFeature());
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

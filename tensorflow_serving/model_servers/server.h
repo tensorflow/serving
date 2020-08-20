@@ -86,6 +86,7 @@ class Server {
     bool remove_unused_fields_from_bundle_metagraph = true;
     bool prefer_tflite_model = false;
     tensorflow::string thread_pool_factory_config_file;
+    bool enable_signature_method_name_check = false;
 
     Options();
   };

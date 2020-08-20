@@ -194,7 +194,12 @@ int main(int argc, char** argv) {
                        "in SavedModel directory, instead of the TensorFlow "
                        "model from `saved_model.pb` file. "
                        "If no TensorFlow Lite model found, fallback to "
-                       "TensorFlow model.")};
+                       "TensorFlow model."),
+      tensorflow::Flag(
+          "enable_signature_method_name_check",
+          &options.enable_signature_method_name_check,
+          "Enable method_name check for SignatureDef. Disable this if serving "
+          "native TF2 regression/classification models.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {

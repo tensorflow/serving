@@ -476,6 +476,7 @@ cc_test(
         ":predict_util",
         ":saved_model_bundle_source_adapter_cc_proto",
         ":session_bundle_config_cc_proto",
+        ":util",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/model_servers:model_platform_types",
@@ -570,6 +571,7 @@ cc_test(
     srcs = ["classifier_test.cc"],
     deps = [
         ":classifier",
+        ":util",
         "//tensorflow_serving/apis:classification_cc_proto",
         "//tensorflow_serving/apis:input_cc_proto",
         "//tensorflow_serving/apis:model_cc_proto",
@@ -693,6 +695,7 @@ cc_test(
     srcs = ["regressor_test.cc"],
     deps = [
         ":regressor",
+        ":util",
         "//tensorflow_serving/apis:input_cc_proto",
         "//tensorflow_serving/apis:model_cc_proto",
         "//tensorflow_serving/apis:regression_cc_proto",

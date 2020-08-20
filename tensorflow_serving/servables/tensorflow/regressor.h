@@ -60,8 +60,8 @@ Status GetRegressionSignatureDef(const ModelSpec& model_spec,
                                  const MetaGraphDef& meta_graph_def,
                                  SignatureDef* signature);
 
-// Validate a SignatureDef to make sure it's compatible with Regression, and if
-// so, populate the input and output tensor names.
+// Validate a SignatureDef to make sure it's compatible with Regression.
+// Populate the input and output tensor names, if the args are not nullptr.
 //
 // NOTE: output_tensor_names may already have elements in it (e.g. when building
 // a full list of outputs from multiple signatures), and this function will just

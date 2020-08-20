@@ -38,6 +38,17 @@ monitoring::Counter<1>* GetExampleCountTotal();
 
 }  // namespace internal
 
+// Enable/disable `method_name` checks on `SignatureDef` for predict, classify,
+// regress APIs. Native TF2 models use fixed `method_name` for all APIs, and
+// the check needs to be disabled to support both TF1 and (native) TF2 models.
+//
+// Disabling the check (typically done at process startup) should be OK and
+// safe for most API users. By default the checks are enabled.
+void SetSignatureMethodNameCheckFeature(bool v);
+
+// Get current state of `method_name` check (see above for details).
+bool GetSignatureMethodNameCheckFeature();
+
 // Records the example count of this request with the metric tracking the
 // histogram of number of examples per request.
 void RecordRequestExampleCount(const string& model_name, size_t count);

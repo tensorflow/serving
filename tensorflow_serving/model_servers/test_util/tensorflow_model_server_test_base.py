@@ -288,6 +288,10 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
     """
     return int(os.listdir(model_path)[0])
 
+  def _GetSavedModelHalfPlusTwoTf2(self):
+    """Returns a path to a TF2 half_plus_two model in SavedModel format."""
+    return os.path.join(self.testdata_dir, 'saved_model_half_plus_two_tf2_cpu')
+
   def _GetSavedModelHalfPlusThreePath(self):
     """Returns a path to a half_plus_three model in SavedModel format."""
     return os.path.join(self.testdata_dir, 'saved_model_half_plus_three')

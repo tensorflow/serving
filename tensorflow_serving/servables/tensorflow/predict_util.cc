@@ -34,7 +34,8 @@ namespace serving {
 namespace {
 
 Status VerifySignature(const SignatureDef& signature) {
-  if (signature.method_name() != kPredictMethodName &&
+  if (GetSignatureMethodNameCheckFeature() &&
+      signature.method_name() != kPredictMethodName &&
       signature.method_name() != kClassifyMethodName &&
       signature.method_name() != kRegressMethodName) {
     return errors::Internal(strings::StrCat(

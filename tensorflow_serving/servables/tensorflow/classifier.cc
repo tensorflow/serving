@@ -154,10 +154,15 @@ Status GetClassificationSignatureDef(const ModelSpec& model_spec,
     return errors::InvalidArgument(strings::StrCat(
         "No signature was found with the name: ", signature_name));
   }
-  if (iter->second.method_name() != kClassifyMethodName) {
-    return errors::InvalidArgument(strings::StrCat(
-        "Expected classification signature method_name to be ",
-        kClassifyMethodName, ". Was: ", iter->second.method_name()));
+  if (GetSignatureMethodNameCheckFeature()) {
+    if (iter->second.method_name() != kClassifyMethodName) {
+      return errors::InvalidArgument(strings::StrCat(
+          "Expected classification signature method_name to be ",
+          kClassifyMethodName, ". Was: ", iter->second.method_name()));
+    }
+  } else {
+    TF_RETURN_IF_ERROR(
+        PreProcessClassification(iter->second, nullptr, nullptr));
   }
   *signature = iter->second;
   return Status::OK();
@@ -166,7 +171,8 @@ Status GetClassificationSignatureDef(const ModelSpec& model_spec,
 Status PreProcessClassification(const SignatureDef& signature,
                                 string* input_tensor_name,
                                 std::vector<string>* output_tensor_names) {
-  if (signature.method_name() != kClassifyMethodName) {
+  if (GetSignatureMethodNameCheckFeature() &&
+      signature.method_name() != kClassifyMethodName) {
     return errors::InvalidArgument(strings::StrCat(
         "Expected classification signature method_name to be ",
         kClassifyMethodName, ". Was: ", signature.method_name()));
@@ -183,26 +189,30 @@ Status PreProcessClassification(const SignatureDef& signature,
 
   auto input_iter = signature.inputs().find(kClassifyInputs);
   if (input_iter == signature.inputs().end()) {
-    return errors::FailedPrecondition(
+    return errors::InvalidArgument(
         "No classification inputs found in SignatureDef: ",
         signature.DebugString());
   }
-  *input_tensor_name = input_iter->second.name();
+  if (input_tensor_name != nullptr) {
+    *input_tensor_name = input_iter->second.name();
+  }
 
   auto classes_iter = signature.outputs().find(kClassifyOutputClasses);
   auto scores_iter = signature.outputs().find(kClassifyOutputScores);
   if (classes_iter == signature.outputs().end() &&
       scores_iter == signature.outputs().end()) {
-    return errors::FailedPrecondition(strings::StrCat(
+    return errors::InvalidArgument(strings::StrCat(
         "Expected classification signature outputs to contain at least one of ",
         "\"", kClassifyOutputClasses, "\" or \"", kClassifyOutputScores,
         "\". Signature was: ", signature.DebugString()));
   }
-  if (classes_iter != signature.outputs().end()) {
-    output_tensor_names->push_back(classes_iter->second.name());
-  }
-  if (scores_iter != signature.outputs().end()) {
-    output_tensor_names->push_back(scores_iter->second.name());
+  if (output_tensor_names != nullptr) {
+    if (classes_iter != signature.outputs().end()) {
+      output_tensor_names->push_back(classes_iter->second.name());
+    }
+    if (scores_iter != signature.outputs().end()) {
+      output_tensor_names->push_back(scores_iter->second.name());
+    }
   }
   return Status::OK();
 }
