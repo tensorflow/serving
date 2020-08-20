@@ -33,7 +33,7 @@ To run this client example locally, please create a server config file like:
     }
   }
 And then run
-tensorflow_model_server --port=8850 --model_config_file=/tmp/config_file.txt
+tensorflow_model_server --port=8500 --model_config_file=/tmp/config_file.txt
 
 """
 from __future__ import print_function
@@ -46,7 +46,7 @@ import tensorflow.compat.v1 as tf
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 
-tf.app.flags.DEFINE_string('server', 'localhost:8850',
+tf.app.flags.DEFINE_string('server', 'localhost:8500',
                            'PredictionService host:port')
 FLAGS = tf.app.flags.FLAGS
 

@@ -15,7 +15,7 @@ limitations under the License.
 #include "tensorflow/core/framework/common_shape_fns.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
-// TODO(b/159739577): add unit tests.
+
 namespace tensorflow {
 
 REGISTER_OP("TfServingRemotePredict")

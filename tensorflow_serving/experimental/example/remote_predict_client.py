@@ -31,7 +31,7 @@ tf.app.flags.DEFINE_float("input_value", 1.0, "input value")
 tf.app.flags.DEFINE_string("output_tensor_aliases", "y",
                            "Aliases of output tensors")
 
-tf.app.flags.DEFINE_string("target_address", "localhost:8850",
+tf.app.flags.DEFINE_string("target_address", "localhost:8500",
                            "PredictionService address host:port")
 tf.app.flags.DEFINE_string("model_name", "half_plus_two", "Name of the model")
 tf.app.flags.DEFINE_integer("model_version", -1, "Version of the model")

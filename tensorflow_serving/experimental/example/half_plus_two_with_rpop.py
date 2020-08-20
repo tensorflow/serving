@@ -23,7 +23,7 @@ This graph calculates,
   y = a*x + b
 \\)
 
-where `a` is variable with `a=0.5`, and  `b` is the first output tensors from
+where `a` is variable with `a=0.5`, and `b` is the first output tensors from
 RemotePredictOp.
 """
 
