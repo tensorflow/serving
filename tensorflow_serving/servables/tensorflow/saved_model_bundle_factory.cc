@@ -127,8 +127,8 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
   bundle->reset(new SavedModelBundle);
   std::unordered_set<string> saved_model_tags(
       config_.saved_model_tags().begin(), config_.saved_model_tags().end());
-  // Defaults to loading the meta graph def corresponding to the `serve` tag if
-  // no `saved_model_tags` are specified.
+  // Defaults to loading the meta graph def corresponding to the `serve` tag
+  // if no `saved_model_tags` are specified.
   if (saved_model_tags.empty()) {
     saved_model_tags.insert(kSavedModelTagServe);
   }
@@ -176,8 +176,8 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
       return errors::Internal("batch_scheduler_ not set");
     }
     // Enable batching of requests to any one signature_def in the SavedModel.
-    // Note that in the future, the plan is to enable explicit configuration of
-    // the one or many SignatureDefs to enable.
+    // Note that in the future, the plan is to enable explicit configuration
+    // of the one or many SignatureDefs to enable.
     const std::vector<SignatureDef> signatures = GetSignatureDefs(**bundle);
     return WrapSessionForBatching(config_.batching_parameters(),
                                   batch_scheduler_, signatures,

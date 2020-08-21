@@ -96,10 +96,11 @@ message SessionBundleConfig {
 // default value from the relevant batching config struct (SharedBatchScheduler
 // ::Options or BatchSchedulerRetrier::Options) is used.
 message BatchingParameters {
-  // SharedBatchScheduler options (see shared_batch_scheduler.h):
+  // SharedBatchScheduler options (see shared_batch_scheduler.h for more details
+  // about what each field means):
   //
 
-  // The maximum size of each batch.
+  // The maximum size of each input batch.
   //
   // IMPORTANT: As discussed above, use 'max_batch_size * 2' client threads to
   // achieve high throughput with batching.
@@ -122,6 +123,20 @@ message BatchingParameters {
 
   // The name to use for the pool of batch threads.
   google.protobuf.StringValue thread_pool_name = 5;
+
+  // If true, queue implementation would split one input batch task into
+  // subtasks (as specified by `split_input_task_func` below) and fit subtasks
+  // into different batches.
+  google.protobuf.BoolValue enable_large_batch_splitting = 8;
+
+  // The maximum size of each enqueued batch to be processed (i.e., in
+  // `batches_`). Relevant iff enable_large_batch_splitting is true. And when
+  // relevant, 'max_batch_size' should be greater or equal than
+  // `max_execution_batch_size`
+  //
+  // The scheduler may form batches of any size between 1 and this number
+  // (inclusive).
+  google.protobuf.Int64Value max_execution_batch_size = 9;
 
   // BatchingSession options (see batching_session.h):
   //

@@ -21,6 +21,7 @@ limitations under the License.
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow_serving/batching/batching_session.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
 
@@ -171,6 +172,29 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
   if (batching_config.has_max_enqueued_batches()) {
     queue_options.max_enqueued_batches =
         batching_config.max_enqueued_batches().value();
+  }
+  if (batching_config.has_enable_large_batch_splitting() &&
+      batching_config.enable_large_batch_splitting().value()) {
+    queue_options.enable_large_batch_splitting = true;
+
+    if (batching_config.has_max_execution_batch_size()) {
+      queue_options.max_execution_batch_size =
+          batching_config.max_execution_batch_size().value();
+    } else {
+      queue_options.max_execution_batch_size =
+          batching_config.max_batch_size().value();
+    }
+
+    queue_options.split_input_task_func =
+        [](std::unique_ptr<tensorflow::serving::BatchingSessionTask>*
+               input_task,
+           int open_batch_remaining_slot, int max_batch_size,
+           std::vector<
+               std::unique_ptr<tensorflow::serving::BatchingSessionTask>>*
+               output_tasks) -> tensorflow::Status {
+      return SplitInputTask(input_task, open_batch_remaining_slot,
+                            max_batch_size, output_tasks);
+    };
   }
 
   BatchingSessionOptions batching_session_options;

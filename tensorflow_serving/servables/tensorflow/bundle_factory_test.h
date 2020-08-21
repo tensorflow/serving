@@ -59,11 +59,17 @@ class BundleFactoryTest : public ::testing::Test {
     TestSingleRequest(session.get());
   }
 
-  void TestBatching() const {
+  void TestBatching(bool enable_large_batch_splitting) const {
     SessionBundleConfig config = GetSessionBundleConfig();
+
     BatchingParameters *batching_params = config.mutable_batching_parameters();
     batching_params->mutable_max_batch_size()->set_value(2);
     batching_params->mutable_max_enqueued_batches()->set_value(INT_MAX);
+
+    if (enable_large_batch_splitting) {
+      batching_params->mutable_enable_large_batch_splitting()->set_value(true);
+      batching_params->mutable_max_execution_batch_size()->set_value(1);
+    }
     std::unique_ptr<Session> session;
     if (ExpectCreateBundleFailure()) {
       EXPECT_FALSE(CreateSession(config, &session).ok());

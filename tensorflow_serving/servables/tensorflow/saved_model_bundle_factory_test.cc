@@ -263,7 +263,13 @@ TEST_P(SavedModelBundleFactoryTest, RemoveUnusedFieldsFromMetaGraphEnabled) {
   EXPECT_FALSE(bundle->meta_graph_def.signature_def().empty());
 }
 
-TEST_P(SavedModelBundleFactoryTest, Batching) { TestBatching(); }
+TEST_P(SavedModelBundleFactoryTest, Batching) {
+  // Most test cases don't cover batching session code path so call
+  // 'TestBatching' twice with different options for batching test case, as
+  // opposed to parameterize test.
+  TestBatching(false /* enable_large_batch_splitting */);
+  TestBatching(true /* enable_large_batch_splitting */);
+}
 
 TEST_P(SavedModelBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
   const double kTotalFileSize = test_util::GetTotalFileSize(GetModelFiles());

@@ -141,6 +141,8 @@ cc_library(
         "//tensorflow_serving/resources:resources_cc_proto",
         "//tensorflow_serving/session_bundle:session_bundle_util",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:optional",
+        "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:core_cpu",
