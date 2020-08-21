@@ -425,6 +425,7 @@ py_test(
     srcs_version = "PY2AND3",
     tags = [
         "noasan",  # b/136281879
+        "nomsan",  # b/165917680
     ],
     deps = [
         "//tensorflow_serving/apis:model_service_proto_py_pb2",
