@@ -235,6 +235,10 @@ class TensorflowModelServerTest(
     """Test PredictionService.MultiInference implementation for TF1 model."""
     self._TestMultiInference(self._GetSavedModelBundlePath())
 
+  def testMultiInferenceTf2(self):
+    """Test PredictionService.MultiInference implementation for TF2 model."""
+    self._TestMultiInference(self._GetSavedModelHalfPlusTwoTf2())
+
   def testPredictSavedModel(self):
     """Test PredictionService.Predict implementation with SavedModel."""
     self._TestPredict(self._GetSavedModelBundlePath())

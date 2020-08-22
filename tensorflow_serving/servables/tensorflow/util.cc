@@ -173,6 +173,29 @@ Status PerformOneShotTensorComputation(
                       thread_pool_options);
 }
 
+Status PerformOneShotTensorComputation(
+    const RunOptions& run_options, const Input& input,
+    const std::set<string>& input_tensor_names,
+    const std::vector<string>& output_tensor_names, Session* session,
+    std::vector<Tensor>* outputs, int* num_input_examples,
+    const thread::ThreadPoolOptions& thread_pool_options) {
+  // Setup the input Tensor to be a vector of string containing the serialized
+  // tensorflow.Example.
+  Tensor input_tensor;
+  TF_RETURN_IF_ERROR(InputToSerializedExampleTensor(input, &input_tensor));
+  *num_input_examples = input_tensor.dim_size(0);
+
+  std::vector<std::pair<string, Tensor>> inputs;
+  inputs.reserve(input_tensor_names.size());
+  for (const auto& name : input_tensor_names) {
+    inputs.emplace_back(name, input_tensor);
+  }
+
+  RunMetadata run_metadata;
+  return session->Run(run_options, inputs, output_tensor_names, {}, outputs,
+                      &run_metadata, thread_pool_options);
+}
+
 void MakeModelSpec(const string& model_name,
                    const optional<string>& signature_name,
                    const optional<int64>& version, ModelSpec* model_spec) {

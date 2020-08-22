@@ -78,6 +78,16 @@ Status PerformOneShotTensorComputation(
     const thread::ThreadPoolOptions& thread_pool_options =
         thread::ThreadPoolOptions());
 
+// Same as PerformOneShotTensorComputation() above, except allows for multiple
+// input tensor names (each tensor is fed the *same* `input`).
+Status PerformOneShotTensorComputation(
+    const RunOptions& run_options, const Input& input,
+    const std::set<string>& input_tensor_names,
+    const std::vector<string>& output_tensor_names, Session* session,
+    std::vector<Tensor>* outputs, int* num_input_examples,
+    const thread::ThreadPoolOptions& thread_pool_options =
+        thread::ThreadPoolOptions());
+
 // Populates given model_spec based on the model name and optional
 // signature/version information.
 // If signature_name has a value and is empty, model_spec's signature_name is

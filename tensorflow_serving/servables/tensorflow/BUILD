@@ -739,10 +739,12 @@ cc_test(
     size = "medium",
     srcs = ["multi_inference_test.cc"],
     data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tf2_cpu",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
     deps = [
         ":multi_inference",
+        ":util",
         "//tensorflow_serving/apis:classification_cc_proto",
         "//tensorflow_serving/apis:input_cc_proto",
         "//tensorflow_serving/apis:regression_cc_proto",
@@ -786,10 +788,12 @@ cc_test(
     size = "medium",
     srcs = ["multi_inference_helper_test.cc"],
     data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tf2_cpu",
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
     deps = [
         ":multi_inference_helper",
+        ":util",
         "//tensorflow_serving/apis:classification_cc_proto",
         "//tensorflow_serving/apis:input_cc_proto",
         "//tensorflow_serving/apis:regression_cc_proto",
