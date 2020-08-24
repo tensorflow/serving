@@ -36,7 +36,6 @@ limitations under the License.
 #include "tensorflow/core/platform/thread_annotations.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/batching/batch_scheduler_retrier.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -277,7 +276,7 @@ class SingleTaskScheduler {
   };
 
   // A newly-scheduled task hasn't yet been picked up by 'thread_'.
-  optional<Task> updated_task_ TF_GUARDED_BY(mu_);
+  absl::optional<Task> updated_task_ TF_GUARDED_BY(mu_);
 
   // The time parameter passed in the most recent Schedule() invocation.
   // Used to enforce monotonicity.

@@ -26,6 +26,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/kernels/batching_util/basic_batch_scheduler.h"
 #include "tensorflow/core/kernels/batching_util/batch_scheduler.h"
 #include "tensorflow/core/platform/threadpool_options.h"
@@ -33,7 +34,6 @@ limitations under the License.
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/batching/threadsafe_status.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -223,7 +223,7 @@ struct BatchingSessionTask : public BatchTask {
   Status* status;
   std::vector<Tensor>* outputs;
   RunMetadata* run_metadata;
-  optional<thread::ThreadPoolOptions> thread_pool_options;
+  absl::optional<thread::ThreadPoolOptions> thread_pool_options;
 
   // Fields populated when a task is processed (as part of a batch), and
   // substantially used in the intermediate stage if a task is a slice of

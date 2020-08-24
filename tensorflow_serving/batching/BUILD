@@ -25,7 +25,7 @@ cc_library(
     visibility = ["//visibility:private"],
     deps = [
         ":batch_scheduler_retrier",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:batch_scheduler",
     ],
@@ -70,7 +70,7 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/util:cleanup",
         "//tensorflow_serving/util:hash",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",

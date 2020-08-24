@@ -256,12 +256,13 @@ class BatchingSession : public ServingSession {
                            const std::string& thread_pool_name);
 
   // Helper fucntion to run the session.
-  Status InternalRun(const RunOptions& run_options,
-                     const std::vector<std::pair<string, Tensor>>& inputs,
-                     const std::vector<string>& output_tensor_names,
-                     const std::vector<string>& target_node_names,
-                     std::vector<Tensor>* outputs, RunMetadata* run_metadata,
-                     optional<thread::ThreadPoolOptions> thread_pool_options);
+  Status InternalRun(
+      const RunOptions& run_options,
+      const std::vector<std::pair<string, Tensor>>& inputs,
+      const std::vector<string>& output_tensor_names,
+      const std::vector<string>& target_node_names,
+      std::vector<Tensor>* outputs, RunMetadata* run_metadata,
+      absl::optional<thread::ThreadPoolOptions> thread_pool_options);
 
   // Computes the size of an input tensor list for batching purposes, by
   // analyzing the 0th dimension size of each of the tensors. All tensors in the
@@ -361,7 +362,7 @@ Status BatchingSession::Run(
     const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
     RunMetadata* run_metadata) {
   return InternalRun(run_options, inputs, output_tensor_names,
-                     target_node_names, outputs, run_metadata, nullopt);
+                     target_node_names, outputs, run_metadata, absl::nullopt);
 }
 
 Status BatchingSession::Run(
@@ -382,7 +383,7 @@ Status BatchingSession::InternalRun(
     const std::vector<string>& output_tensor_names,
     const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
     RunMetadata* run_metadata,
-    optional<thread::ThreadPoolOptions> thread_pool_options) {
+    absl::optional<thread::ThreadPoolOptions> thread_pool_options) {
   if (!target_node_names.empty()) {
     return errors::PermissionDenied(
         "BatchingSession does not support target nodes");
@@ -522,7 +523,7 @@ Status BatchingSession::MergeInputTensors(
   std::map<string, std::vector<Tensor>> tensors_to_merge;
   // For each input tensor name a vector of maximum dimension sizes
   // among tensors from individual tasks.
-  optional<std::map<string, std::vector<int>>> max_dim_sizes;
+  absl::optional<std::map<string, std::vector<int>>> max_dim_sizes;
   if (options_.pad_variable_length_inputs) {
     std::vector<std::vector<std::pair<string, Tensor>>> all_task_inputs =
         GetTaskInputsVector(batch);
@@ -798,7 +799,7 @@ void BatchingSession::ProcessBatch(
     return;
   }
 
-  optional<thread::ThreadPoolOptions> thread_pool_options =
+  absl::optional<thread::ThreadPoolOptions> thread_pool_options =
       batch->task(0).thread_pool_options;
 
   const std::vector<string> output_tensor_names(
