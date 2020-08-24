@@ -303,7 +303,7 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
                                      " model(s) did not become available: {");
     for (const auto& id_and_state : states_reached) {
       if (id_and_state.second != ServableState::ManagerState::kAvailable) {
-        optional<ServableState> maybe_state =
+        absl::optional<ServableState> maybe_state =
             monitor->GetState(id_and_state.first);
         const string error_msg =
             maybe_state && !maybe_state.value().health.ok()
@@ -320,7 +320,7 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
 }
 
 Status ServerCore::AddModelsViaModelConfigList() {
-  const bool is_first_config = storage_path_source_and_router_ == nullopt;
+  const bool is_first_config = storage_path_source_and_router_ == absl::nullopt;
 
   // Create/reload the source, source router and source adapters.
   const FileSystemStoragePathSourceConfig source_config =

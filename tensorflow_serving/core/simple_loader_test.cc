@@ -179,10 +179,10 @@ TYPED_TEST(SimpleLoaderTest, ResourceEstimationWithPostLoadRelease) {
         *estimate = pre_load_resources;
         return Status::OK();
       },
-      [&post_load_resources](ResourceAllocation* estimate) {
+      absl::make_optional([&post_load_resources](ResourceAllocation* estimate) {
         *estimate = post_load_resources;
         return Status::OK();
-      });
+      }));
 
   // Run it twice, to exercise memoization.
   for (int i = 0; i < 2; ++i) {

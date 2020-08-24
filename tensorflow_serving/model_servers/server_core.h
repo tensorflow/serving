@@ -24,6 +24,7 @@ limitations under the License.
 
 #include "google/protobuf/any.pb.h"
 #include "absl/base/macros.h"
+#include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow/core/platform/macros.h"
@@ -44,7 +45,6 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/predict_util.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/util/event_bus.h"
-#include "tensorflow_serving/util/optional.h"
 #include "tensorflow_serving/util/unique_ptr_with_deps.h"
 
 namespace tensorflow {
@@ -93,7 +93,7 @@ class ServerCore : public Manager {
     ModelServerConfig model_server_config;
     // Relative (non-absolute) base-paths in model_server_config will
     // be prepended with model_config_list_root_dir.
-    optional<string> model_config_list_root_dir;
+    absl::optional<string> model_config_list_root_dir;
 
     // The AspiredVersionPolicy to use for the manager. Must be non-null.
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy;
@@ -429,7 +429,7 @@ class ServerCore : public Manager {
   // If the configuration uses a file-system source, this is populated with
   // pointers to the source and router (to enable reconfiguration later). Both
   // are owned by 'manager_'.
-  optional<StoragePathSourceAndRouter> storage_path_source_and_router_
+  absl::optional<StoragePathSourceAndRouter> storage_path_source_and_router_
       TF_GUARDED_BY(config_mu_);
 
   // A mutex for reconfiguration, used by ReloadConfig().

@@ -18,9 +18,9 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-optional<ServableId> AspiredVersionPolicy::GetHighestAspiredNewServableId(
+absl::optional<ServableId> AspiredVersionPolicy::GetHighestAspiredNewServableId(
     const std::vector<AspiredServableStateSnapshot>& all_versions) {
-  optional<ServableId> highest_version_id;
+  absl::optional<ServableId> highest_version_id;
   for (const auto& version : all_versions) {
     if (version.is_aspired && version.state == LoaderHarness::State::kNew) {
       if (!highest_version_id ||

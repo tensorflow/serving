@@ -19,6 +19,7 @@ limitations under the License.
 #include <functional>
 #include <memory>
 
+#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -30,7 +31,6 @@ limitations under the License.
 #include "tensorflow_serving/resources/resource_util.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/util/any_ptr.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -115,7 +115,7 @@ class SimpleLoader : public Loader {
   // Constructor which accepts all variations of the params.
   SimpleLoader(CreatorVariant creator_variant,
                ResourceEstimator resource_estimator,
-               optional<ResourceEstimator> post_load_resource_estimator);
+               absl::optional<ResourceEstimator> post_load_resource_estimator);
 
   ~SimpleLoader() override = default;
 
@@ -142,10 +142,10 @@ class SimpleLoader : public Loader {
   // An optional function that estimates the resources needed for the servable
   // after it has been loaded. (If omitted, 'resource_estimator_' should be used
   // for all estimates, i.e. before, during and after load.)
-  optional<ResourceEstimator> post_load_resource_estimator_;
+  absl::optional<ResourceEstimator> post_load_resource_estimator_;
 
   // The memoized estimated resource requirement of the servable.
-  mutable optional<ResourceAllocation> memoized_resource_estimate_;
+  mutable absl::optional<ResourceAllocation> memoized_resource_estimate_;
 
   std::unique_ptr<ResourceUtil> resource_util_;
   Resource ram_resource_;
@@ -231,14 +231,15 @@ SimpleLoader<ServableType>::EstimateNoResources() {
 template <typename ServableType>
 SimpleLoader<ServableType>::SimpleLoader(Creator creator,
                                          ResourceEstimator resource_estimator)
-    : SimpleLoader(CreatorVariant(creator), resource_estimator, nullopt) {}
+    : SimpleLoader(CreatorVariant(creator), resource_estimator, absl::nullopt) {
+}
 
 template <typename ServableType>
 SimpleLoader<ServableType>::SimpleLoader(
     CreatorWithMetadata creator_with_metadata,
     ResourceEstimator resource_estimator)
     : SimpleLoader(CreatorVariant(creator_with_metadata), resource_estimator,
-                   nullopt) {}
+                   absl::nullopt) {}
 
 template <typename ServableType>
 SimpleLoader<ServableType>::SimpleLoader(
@@ -258,7 +259,7 @@ SimpleLoader<ServableType>::SimpleLoader(
 template <typename ServableType>
 SimpleLoader<ServableType>::SimpleLoader(
     CreatorVariant creator_variant, ResourceEstimator resource_estimator,
-    optional<ResourceEstimator> post_load_resource_estimator)
+    absl::optional<ResourceEstimator> post_load_resource_estimator)
     : creator_variant_(creator_variant),
       resource_estimator_(resource_estimator),
       post_load_resource_estimator_(post_load_resource_estimator) {

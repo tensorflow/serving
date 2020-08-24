@@ -33,7 +33,6 @@ limitations under the License.
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.h"
 #include "tensorflow_serving/core/test_util/manager_test_util.h"
 #include "tensorflow_serving/util/event_bus.h"
-#include "tensorflow_serving/util/optional.h"
 #include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {

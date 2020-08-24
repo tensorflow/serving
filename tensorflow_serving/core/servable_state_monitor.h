@@ -20,6 +20,7 @@ limitations under the License.
 #include <functional>
 #include <map>
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/mutex.h"
@@ -28,7 +29,6 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_id.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/util/event_bus.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -85,12 +85,12 @@ class ServableStateMonitor {
 
   /// Returns the current state of one servable, or nullopt if that servable is
   /// not being tracked.
-  optional<ServableState> GetState(const ServableId& servable_id) const
+  absl::optional<ServableState> GetState(const ServableId& servable_id) const
       TF_LOCKS_EXCLUDED(mu_);
 
   /// Returns the current state and time of one servable, or nullopt if that
   /// servable is not being tracked.
-  optional<ServableStateAndTime> GetStateAndTime(
+  absl::optional<ServableStateAndTime> GetStateAndTime(
       const ServableId& servable_id) const TF_LOCKS_EXCLUDED(mu_);
 
   /// Returns the current states of all tracked versions of the given servable,
@@ -167,8 +167,9 @@ class ServableStateMonitor {
   void Notify(const NotifyFn& notify_fn) TF_LOCKS_EXCLUDED(notify_mu_);
 
  private:
-  optional<ServableStateMonitor::ServableStateAndTime> GetStateAndTimeInternal(
-      const ServableId& servable_id) const TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  absl::optional<ServableStateMonitor::ServableStateAndTime>
+  GetStateAndTimeInternal(const ServableId& servable_id) const
+      TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // Request to send notification, setup using
   // NotifyWhenServablesReachState(...).
@@ -181,7 +182,8 @@ class ServableStateMonitor {
   // Checks whether the notification request is satisfied and we cand send it.
   // If so, returns the 'reached_goal_state' bool and the 'states_reached' by
   // each servable.  Oterwise returns nullopt.
-  optional<std::pair<bool, std::map<ServableId, ServableState::ManagerState>>>
+  absl::optional<
+      std::pair<bool, std::map<ServableId, ServableState::ManagerState>>>
   ShouldSendStateReachedNotification(
       const ServableStateNotificationRequest& notification_request)
       TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
@@ -203,7 +205,7 @@ class ServableStateMonitor {
       const EventBus<ServableState>::EventAndTime& state_and_time);
 
   // Handles a bus event.
-  void HandleEvent(const EventBus<ServableState>::EventAndTime& state_and_time)
+  void HandleEvent(const EventBus<ServableState>::EventAndTime& event_and_time)
       TF_LOCKS_EXCLUDED(mu_, notify_mu_);
 
   const Options options_;

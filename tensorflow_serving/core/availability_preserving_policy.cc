@@ -14,6 +14,8 @@ limitations under the License.
 ==============================================================================*/
 
 #include "tensorflow_serving/core/availability_preserving_policy.h"
+
+#include "absl/types/optional.h"
 #include "tensorflow_serving/core/loader_harness.h"
 
 namespace tensorflow {
@@ -22,7 +24,7 @@ namespace serving {
 namespace {
 
 // Returns the ServableId with the lowest version, if any exists.
-optional<ServableId> GetLowestServableId(
+absl::optional<ServableId> GetLowestServableId(
     const std::vector<AspiredServableStateSnapshot>& all_versions) {
   const auto& iterator =
       std::min_element(all_versions.begin(), all_versions.end(),
@@ -31,7 +33,7 @@ optional<ServableId> GetLowestServableId(
                          return a.id.version < b.id.version;
                        });
   if (iterator == all_versions.end()) {
-    return nullopt;
+    return absl::nullopt;
   } else {
     return iterator->id;
   }
@@ -39,7 +41,7 @@ optional<ServableId> GetLowestServableId(
 
 }  // namespace
 
-optional<AspiredVersionPolicy::ServableAction>
+absl::optional<AspiredVersionPolicy::ServableAction>
 AvailabilityPreservingPolicy::GetNextAction(
     const std::vector<AspiredServableStateSnapshot>& all_versions) const {
   // We first try to unload non-aspired versions (if any).
@@ -62,7 +64,7 @@ AvailabilityPreservingPolicy::GetNextAction(
   // ready, unload the lowest non-aspired version.
   if (!has_aspired || has_aspired_serving ||
       unaspired_serving_versions.size() > 1) {
-    optional<ServableId> version_to_unload =
+    absl::optional<ServableId> version_to_unload =
         GetLowestServableId(unaspired_serving_versions);
     if (version_to_unload) {
       return {{Action::kUnload, version_to_unload.value()}};
@@ -71,7 +73,7 @@ AvailabilityPreservingPolicy::GetNextAction(
 
   // If there is at least one new aspired version, load the one with the
   // highest version number.
-  optional<ServableId> highest_new_aspired_version_id =
+  absl::optional<ServableId> highest_new_aspired_version_id =
       GetHighestAspiredNewServableId(all_versions);
   if (highest_new_aspired_version_id) {
     VLOG(1) << "AvailabilityPreservingPolicy requesting to load servable "
@@ -79,7 +81,7 @@ AvailabilityPreservingPolicy::GetNextAction(
     return {{Action::kLoad, highest_new_aspired_version_id.value()}};
   }
 
-  return nullopt;
+  return absl::nullopt;
 }
 
 }  // namespace serving

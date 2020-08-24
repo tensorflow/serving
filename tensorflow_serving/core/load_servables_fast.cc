@@ -19,6 +19,7 @@ limitations under the License.
 #include <string>
 #include <utility>
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow_serving/core/servable_state.h"
@@ -96,7 +97,7 @@ Status ConnectSourcesWithFastInitialLoad(
           for (const auto& id_and_state : states_reached) {
             if (id_and_state.second !=
                 ServableState::ManagerState::kAvailable) {
-              optional<ServableState> maybe_state =
+              absl::optional<ServableState> maybe_state =
                   servable_state_monitor->GetState(id_and_state.first);
               const string error_msg =
                   maybe_state && !maybe_state.value().health.ok()

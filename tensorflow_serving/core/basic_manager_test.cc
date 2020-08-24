@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/blocking_counter.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -39,6 +40,8 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
+using test_util::FakeLoader;
+using test_util::WaitUntilServableManagerStateIsOneOf;
 using ::testing::_;
 using ::testing::AnyOf;
 using ::testing::HasSubstr;
@@ -50,8 +53,6 @@ using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::UnorderedElementsAre;
 using ::testing::UnorderedElementsAreArray;
-using test_util::FakeLoader;
-using test_util::WaitUntilServableManagerStateIsOneOf;
 
 constexpr char kServableName[] = "kServableName";
 constexpr char kServableName2[] = "kServableName2";
@@ -223,7 +224,7 @@ TEST_P(BasicManagerTest, StopManagingDisabledServable) {
       id, [](const Status& status) { TF_EXPECT_OK(status); });
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
-  const optional<ServableStateSnapshot<>> snapshot =
+  const absl::optional<ServableStateSnapshot<>> snapshot =
       basic_manager_->GetManagedServableStateSnapshot(id);
   EXPECT_EQ(LoaderHarness::State::kDisabled, snapshot->state);
   const ServableState expected_state = {id, ServableState::ManagerState::kEnd,
@@ -245,7 +246,7 @@ TEST_P(BasicManagerTest, DontStopManagingOnError) {
   });
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                        {ServableState::ManagerState::kEnd});
-  const optional<ServableStateSnapshot<>> snapshot =
+  const absl::optional<ServableStateSnapshot<>> snapshot =
       basic_manager_->GetManagedServableStateSnapshot(id);
   EXPECT_EQ(LoaderHarness::State::kError, snapshot->state);
   const ServableState expected_error_state = {
@@ -456,7 +457,7 @@ TEST_P(BasicManagerTest, GetManagedServableStateSnapshot) {
   // Check servable state snapshot corresponding to a servable-id that is in
   // ready state.
   const ServableId id_ready = {kServableName, 1};
-  const optional<ServableStateSnapshot<>> actual_ready_snapshot =
+  const absl::optional<ServableStateSnapshot<>> actual_ready_snapshot =
       basic_manager_->GetManagedServableStateSnapshot(id_ready);
   EXPECT_TRUE(actual_ready_snapshot);
   const ServableStateSnapshot<> expected_ready_snapshot = {
@@ -725,11 +726,10 @@ TEST_P(BasicManagerTest, EventBusServableLifecycle) {
 
   Notification unload_called;
   Notification unload_continue;
-  EXPECT_CALL(*loader, Unload())
-      .WillOnce(Invoke([&]() {
-        unload_called.Notify();
-        unload_continue.WaitForNotification();
-      }));
+  EXPECT_CALL(*loader, Unload()).WillOnce(Invoke([&]() {
+    unload_called.Notify();
+    unload_continue.WaitForNotification();
+  }));
   // Scoped to ensure UnloadServable() is scheduled.
   std::unique_ptr<Thread> unload_thread(
       Env::Default()->StartThread(ThreadOptions(), "UnloadThread", [&]() {
@@ -1362,7 +1362,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
               EqualsServableState(expected_error_state));
 
   // Make sure we're still managing the rejected servable.
-  const optional<ServableStateSnapshot<>> snapshot =
+  const absl::optional<ServableStateSnapshot<>> snapshot =
       basic_manager_->GetManagedServableStateSnapshot(rejected_id);
   EXPECT_EQ(LoaderHarness::State::kError, snapshot->state);
 }

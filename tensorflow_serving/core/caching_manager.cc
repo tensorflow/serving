@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <utility>
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -24,7 +25,6 @@ limitations under the License.
 #include "tensorflow_serving/core/servable_data.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_id.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -124,7 +124,7 @@ Status CachingManager::LoadServable(
 
     // Retrieve the state of the servable from the wrapped basic-manager. The
     // servable should already be managed by the basic-manager.
-    const optional<ServableStateSnapshot<>> snapshot =
+    const absl::optional<ServableStateSnapshot<>> snapshot =
         basic_manager_->GetManagedServableStateSnapshot(servable_id);
     if (snapshot) {
       // The servable is already being managed by 'basic_manager_'. Hence it

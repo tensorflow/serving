@@ -19,12 +19,11 @@ limitations under the License.
 #include <string>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/loader_harness.h"
 #include "tensorflow_serving/core/servable_id.h"
-#include "tensorflow_serving/util/optional.h"
-
 namespace tensorflow {
 namespace serving {
 
@@ -75,13 +74,13 @@ class AspiredVersionPolicy {
   ///
   /// If no action is to be performed, we don't return an action, meaning
   /// that the servable stream is up to date.
-  virtual optional<ServableAction> GetNextAction(
+  virtual absl::optional<ServableAction> GetNextAction(
       const std::vector<AspiredServableStateSnapshot>& all_versions) const = 0;
 
  protected:
   /// Returns the aspired ServableId with the highest version that matches
   /// kNew state, if any exists.
-  static optional<ServableId> GetHighestAspiredNewServableId(
+  static absl::optional<ServableId> GetHighestAspiredNewServableId(
       const std::vector<AspiredServableStateSnapshot>& all_versions);
 
  private:

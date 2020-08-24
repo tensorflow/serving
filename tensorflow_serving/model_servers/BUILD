@@ -90,9 +90,9 @@ cc_library(
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_cc_proto",
         "//tensorflow_serving/util:event_bus",
-        "//tensorflow_serving/util:optional",
         "//tensorflow_serving/util:unique_ptr_with_deps",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/types:optional",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
     ],
@@ -140,6 +140,7 @@ cc_library(
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/util:status_cc_proto",
         "//tensorflow_serving/util:status_util",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

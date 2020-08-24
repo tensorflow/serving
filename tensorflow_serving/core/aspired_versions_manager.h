@@ -21,6 +21,7 @@ limitations under the License.
 #include <unordered_map>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/kernels/batching_util/periodic_function.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
@@ -40,7 +41,6 @@ limitations under the License.
 #include "tensorflow_serving/core/target.h"
 #include "tensorflow_serving/util/event_bus.h"
 #include "tensorflow_serving/util/observer.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -254,7 +254,7 @@ class AspiredVersionsManager : public Manager,
   // Goes through the harness map and calls the configured servable_policy with
   // the state snapshots to get a list of suggested actions. The actions are
   // then ordered and finally the topmost one is performed.
-  optional<AspiredVersionPolicy::ServableAction> GetNextAction()
+  absl::optional<AspiredVersionPolicy::ServableAction> GetNextAction()
       TF_EXCLUSIVE_LOCKS_REQUIRED(basic_manager_read_modify_write_mu_);
 
   // Checks for servables that are not aspired and at some final state and tells

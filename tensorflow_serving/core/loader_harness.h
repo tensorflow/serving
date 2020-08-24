@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <memory>
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/mutex.h"
@@ -25,7 +26,6 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/servable_id.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -253,7 +253,7 @@ template <typename T = std::nullptr_t>
 struct ServableStateSnapshot final {
   ServableId id;
   LoaderHarness::State state;
-  optional<T> additional_state;
+  absl::optional<T> additional_state;
 };
 
 template <typename T>
