@@ -12,9 +12,7 @@ exports_files(["LICENSE"])
 
 package_group(
     name = "internal",
-    packages = [
-        "//tensorflow_serving/...",
-    ],
+    packages = ["//tensorflow_serving/..."],
 )
 
 filegroup(
