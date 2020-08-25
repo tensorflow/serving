@@ -26,6 +26,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/lib/gtl/cleanup.h"
 #include "tensorflow/core/lib/monitoring/percentile_sampler.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/lib/strings/str_util.h"
@@ -38,7 +39,6 @@ limitations under the License.
 #include "tensorflow_serving/batching/incremental_barrier.h"
 #include "tensorflow_serving/batching/threadsafe_status.h"
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
-#include "tensorflow_serving/util/cleanup.h"
 #include "tensorflow_serving/util/hash.h"
 
 namespace tensorflow {
@@ -742,7 +742,7 @@ void BatchingSession::ProcessBatch(
   // individual tasks and signal that they are done. We use MakeCleanup() to
   // ensure that this happens no matter how we exit the method below.
   Status status;
-  auto finally = MakeCleanup([&status, &batch] {
+  auto finally = gtl::MakeCleanup([&status, &batch] {
     for (int i = 0; i < batch->num_tasks(); ++i) {
       BatchingSessionTask* task = batch->mutable_task(i);
       if (task->is_partial) {

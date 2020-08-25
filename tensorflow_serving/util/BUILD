@@ -192,24 +192,6 @@ cc_test(
 )
 
 cc_library(
-    name = "cleanup",
-    hdrs = ["cleanup.h"],
-    deps = [
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
-cc_test(
-    name = "cleanup_test",
-    size = "small",
-    srcs = ["cleanup_test.cc"],
-    deps = [
-        ":cleanup",
-        "//tensorflow_serving/core/test_util:test_main",
-    ],
-)
-
-cc_library(
     name = "executor",
     hdrs = ["executor.h"],
     deps = [

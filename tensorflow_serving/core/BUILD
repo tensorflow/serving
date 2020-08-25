@@ -479,7 +479,6 @@ cc_library(
         ":servable_state",
         ":source",
         "//tensorflow_serving/resources:resource_tracker",
-        "//tensorflow_serving/util:cleanup",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:executor",
         "//tensorflow_serving/util:fast_read_dynamic_ptr",

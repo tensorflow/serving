@@ -68,7 +68,6 @@ cc_library(
         ":threadsafe_status",
         "//tensorflow_serving/batching:incremental_barrier",
         "//tensorflow_serving/servables/tensorflow:serving_session",
-        "//tensorflow_serving/util:cleanup",
         "//tensorflow_serving/util:hash",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:core_cpu",

@@ -29,7 +29,6 @@ limitations under the License.
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/source.h"
-#include "tensorflow_serving/util/cleanup.h"
 #include "tensorflow_serving/util/hash.h"
 #include "tensorflow_serving/util/inline_executor.h"
 #include "tensorflow_serving/util/retrier.h"
