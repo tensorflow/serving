@@ -55,12 +55,13 @@ Status ResourceTracker::ReserveResources(const Loader& servable,
     util_->Add(servable_resources, &used_resources_);
     *success = true;
   } else {
-    LOG(INFO) << "Insufficient resources to load servable "
-              << "\ntotal resources:\n"
-              << total_resources_.DebugString() << "used/reserved resources:\n"
-              << used_resources_.DebugString()
-              << "resources requested by servable:\n"
-              << servable_resources.DebugString();
+    LOG(WARNING) << "Insufficient resources to load servable "
+                 << "\ntotal resources:\n"
+                 << total_resources_.DebugString()
+                 << "used/reserved resources:\n"
+                 << used_resources_.DebugString()
+                 << "resources requested by servable:\n"
+                 << servable_resources.DebugString();
     *success = false;
   }
 
