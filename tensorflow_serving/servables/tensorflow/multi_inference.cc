@@ -125,7 +125,7 @@ Status TensorFlowMultiInferenceRunner::Infer(
 
 Status RunMultiInference(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
-    const optional<int64>& servable_version, Session* session,
+    const absl::optional<int64>& servable_version, Session* session,
     const MultiInferenceRequest& request, MultiInferenceResponse* response,
     const tensorflow::thread::ThreadPoolOptions& thread_pool_options) {
   TRACELITERAL("RunMultiInference");

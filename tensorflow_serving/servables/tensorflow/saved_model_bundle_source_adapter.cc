@@ -27,7 +27,6 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/machine_learning_metadata.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {

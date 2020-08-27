@@ -320,8 +320,8 @@ Status PostProcessClassificationResult(
 
 Status RunClassify(const RunOptions& run_options,
                    const MetaGraphDef& meta_graph_def,
-                   const optional<int64>& servable_version, Session* session,
-                   const ClassificationRequest& request,
+                   const absl::optional<int64>& servable_version,
+                   Session* session, const ClassificationRequest& request,
                    ClassificationResponse* response,
                    const thread::ThreadPoolOptions& thread_pool_options) {
   SignatureDef signature;

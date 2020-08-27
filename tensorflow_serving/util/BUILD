@@ -157,29 +157,6 @@ cc_test(
     ],
 )
 
-cc_library(
-    name = "optional",
-    srcs = ["optional.cc"],
-    hdrs = ["optional.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
-cc_test(
-    name = "optional_test",
-    size = "small",
-    srcs = [
-        "optional_test.cc",
-    ],
-    deps = [
-        ":optional",
-        "//tensorflow_serving/core/test_util:test_main",
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
 cc_test(
     name = "any_ptr_test",
     srcs = [

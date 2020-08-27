@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_PREDICT_UTIL_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_PREDICT_UTIL_H_
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/config.pb.h"
@@ -23,7 +24,6 @@ limitations under the License.
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/servables/tensorflow/predict_response_tensor_serialization_option.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -34,7 +34,7 @@ namespace internal {
 // option for the TensorProtos in the response.
 Status RunPredict(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
-    const optional<int64>& servable_version,
+    const absl::optional<int64>& servable_version,
     const PredictResponseTensorSerializationOption tensor_serialization_option,
     Session* session, const PredictRequest& request, PredictResponse* response,
     const thread::ThreadPoolOptions& thread_pool_options =
@@ -48,8 +48,9 @@ Status RunPredict(
 // specifying serialization option as kAsProtoField for backward compatibility.
 Status RunPredict(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
-                  const optional<int64>& servable_version, Session* session,
-                  const PredictRequest& request, PredictResponse* response,
+                  const absl::optional<int64>& servable_version,
+                  Session* session, const PredictRequest& request,
+                  PredictResponse* response,
                   const thread::ThreadPoolOptions& thread_pool_options =
                       thread::ThreadPoolOptions());
 

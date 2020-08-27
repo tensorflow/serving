@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_UTIL_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_UTIL_H_
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/monitoring/counter.h"
@@ -24,7 +25,6 @@ limitations under the License.
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -93,8 +93,8 @@ Status PerformOneShotTensorComputation(
 // If signature_name has a value and is empty, model_spec's signature_name is
 // set to tensorflow::kDefaultServingSignatureDefKey.
 void MakeModelSpec(const string& model_name,
-                   const optional<string>& signature_name,
-                   const optional<int64>& version, ModelSpec* model_spec);
+                   const absl::optional<string>& signature_name,
+                   const absl::optional<int64>& version, ModelSpec* model_spec);
 
 }  // namespace serving
 }  // namespace tensorflow

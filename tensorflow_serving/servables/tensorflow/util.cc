@@ -32,7 +32,6 @@ limitations under the License.
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/internal/serialized_input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -197,8 +196,9 @@ Status PerformOneShotTensorComputation(
 }
 
 void MakeModelSpec(const string& model_name,
-                   const optional<string>& signature_name,
-                   const optional<int64>& version, ModelSpec* model_spec) {
+                   const absl::optional<string>& signature_name,
+                   const absl::optional<int64>& version,
+                   ModelSpec* model_spec) {
   model_spec->Clear();
   model_spec->set_name(model_name);
   if (signature_name) {

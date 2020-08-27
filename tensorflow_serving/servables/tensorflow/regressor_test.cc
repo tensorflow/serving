@@ -21,6 +21,7 @@ limitations under the License.
 #include <vector>
 
 #include "google/protobuf/map.h"
+#include "absl/types/optional.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/example/feature.pb.h"
@@ -37,15 +38,14 @@ limitations under the License.
 #include "tensorflow_serving/core/test_util/mock_session.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
 #include "tensorflow_serving/test_util/test_util.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
 namespace {
 
-using ::testing::_;
 using test_util::EqualsProto;
 using test_util::MockSession;
+using ::testing::_;
 
 const char kInputTensor[] = "input:0";
 const char kOutputTensor[] = "output:0";
@@ -62,7 +62,7 @@ const char kImproperlySizedOutputSignature[] = "ImproperlySizedOutputSignature";
 // Copies the "output" float feature from each Example.
 class FakeSession : public tensorflow::Session {
  public:
-  explicit FakeSession(optional<int64> expected_timeout)
+  explicit FakeSession(absl::optional<int64> expected_timeout)
       : expected_timeout_(expected_timeout) {}
   ~FakeSession() override = default;
   Status Create(const GraphDef& graph) override {
@@ -182,7 +182,7 @@ class FakeSession : public tensorflow::Session {
   }
 
  private:
-  const optional<int64> expected_timeout_;
+  const absl::optional<int64> expected_timeout_;
 };
 
 class RegressorTest : public ::testing::TestWithParam<bool> {
@@ -191,7 +191,7 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
     SetSignatureMethodNameCheckFeature(IsMethodNameCheckEnabled());
     saved_model_bundle_.reset(new SavedModelBundle);
     meta_graph_def_ = &saved_model_bundle_->meta_graph_def;
-    optional<int64> expected_timeout = GetRunOptions().timeout_in_ms();
+    absl::optional<int64> expected_timeout = GetRunOptions().timeout_in_ms();
     fake_session_ = new FakeSession(expected_timeout);
     saved_model_bundle_->session.reset(fake_session_);
 

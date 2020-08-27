@@ -20,11 +20,11 @@ limitations under the License.
 
 #include <memory>
 
+#include "absl/types/optional.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/apis/regressor.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -79,8 +79,8 @@ Status PostProcessRegressionResult(
 // Creates SavedModelTensorflowRegressor and runs Regression on it.
 Status RunRegress(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
-                  const optional<int64>& servable_version, Session* session,
-                  const RegressionRequest& request,
+                  const absl::optional<int64>& servable_version,
+                  Session* session, const RegressionRequest& request,
                   RegressionResponse* response,
                   const thread::ThreadPoolOptions& thread_pool_options =
                       thread::ThreadPoolOptions());

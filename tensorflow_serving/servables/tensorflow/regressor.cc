@@ -263,8 +263,8 @@ Status PostProcessRegressionResult(
 
 Status RunRegress(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
-                  const optional<int64>& servable_version, Session* session,
-                  const RegressionRequest& request,
+                  const absl::optional<int64>& servable_version,
+                  Session* session, const RegressionRequest& request,
                   RegressionResponse* response,
                   const thread::ThreadPoolOptions& thread_pool_options) {
   SignatureDef signature;

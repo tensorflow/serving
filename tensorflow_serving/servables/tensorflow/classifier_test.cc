@@ -22,6 +22,7 @@ limitations under the License.
 #include <vector>
 
 #include "google/protobuf/map.h"
+#include "absl/types/optional.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/example/feature.pb.h"
@@ -38,15 +39,14 @@ limitations under the License.
 #include "tensorflow_serving/core/test_util/mock_session.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
 #include "tensorflow_serving/test_util/test_util.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
 namespace {
 
-using ::testing::_;
 using test_util::EqualsProto;
 using test_util::MockSession;
+using ::testing::_;
 
 const char kInputTensor[] = "input:0";
 const char kClassTensor[] = "output:0";
@@ -66,7 +66,7 @@ const char kImproperlySizedScoresSignature[] = "ImproperlySizedScoresSignature";
 // class for that example.
 class FakeSession : public tensorflow::Session {
  public:
-  explicit FakeSession(optional<int64> expected_timeout)
+  explicit FakeSession(absl::optional<int64> expected_timeout)
       : expected_timeout_(expected_timeout) {}
   ~FakeSession() override = default;
   Status Create(const GraphDef& graph) override {
@@ -221,7 +221,7 @@ class FakeSession : public tensorflow::Session {
   }
 
  private:
-  const optional<int64> expected_timeout_;
+  const absl::optional<int64> expected_timeout_;
 };
 
 class ClassifierTest : public ::testing::TestWithParam<bool> {
@@ -230,7 +230,7 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
     SetSignatureMethodNameCheckFeature(IsMethodNameCheckEnabled());
     saved_model_bundle_.reset(new SavedModelBundle);
     meta_graph_def_ = &saved_model_bundle_->meta_graph_def;
-    optional<int64> expected_timeout = GetRunOptions().timeout_in_ms();
+    absl::optional<int64> expected_timeout = GetRunOptions().timeout_in_ms();
     fake_session_ = new FakeSession(expected_timeout);
     saved_model_bundle_->session.reset(fake_session_);
 
@@ -367,30 +367,29 @@ TEST_P(ClassifierTest, ExampleList) {
                                    "   } "
                                    " } "));
   // Test RunClassify
-    ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(),
-                             saved_model_bundle_->meta_graph_def, {},
-                             fake_session_, request_, &response));
-    EXPECT_THAT(response.result(), EqualsProto(" classifications { "
-                                               "   classes { "
-                                               "     label: 'dos' "
-                                               "     score: 2 "
-                                               "   } "
-                                               "   classes { "
-                                               "     label: 'uno' "
-                                               "     score: 1 "
-                                               "   } "
-                                               " } "
-                                               " classifications { "
-                                               "   classes { "
-                                               "     label: 'cuatro' "
-                                               "     score: 4 "
-                                               "   } "
-                                               "   classes { "
-                                               "     label: 'tres' "
-                                               "     score: 3 "
-                                               "   } "
-                                               " } "));
+  ClassificationResponse response;
+  TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
+                           {}, fake_session_, request_, &response));
+  EXPECT_THAT(response.result(), EqualsProto(" classifications { "
+                                             "   classes { "
+                                             "     label: 'dos' "
+                                             "     score: 2 "
+                                             "   } "
+                                             "   classes { "
+                                             "     label: 'uno' "
+                                             "     score: 1 "
+                                             "   } "
+                                             " } "
+                                             " classifications { "
+                                             "   classes { "
+                                             "     label: 'cuatro' "
+                                             "     score: 4 "
+                                             "   } "
+                                             "   classes { "
+                                             "     label: 'tres' "
+                                             "     score: 3 "
+                                             "   } "
+                                             " } "));
 }
 
 TEST_P(ClassifierTest, ExampleListWithContext) {
@@ -424,30 +423,29 @@ TEST_P(ClassifierTest, ExampleListWithContext) {
                                    "   } "
                                    " } "));
 
-    ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(),
-                             saved_model_bundle_->meta_graph_def, {},
-                             fake_session_, request_, &response));
-    EXPECT_THAT(response.result(), EqualsProto(" classifications { "
-                                               "   classes { "
-                                               "     label: 'dos' "
-                                               "     score: 2 "
-                                               "   } "
-                                               "   classes { "
-                                               "     label: 'uno' "
-                                               "     score: 1 "
-                                               "   } "
-                                               " } "
-                                               " classifications { "
-                                               "   classes { "
-                                               "     label: 'dos' "
-                                               "     score: 2 "
-                                               "   } "
-                                               "   classes { "
-                                               "     label: 'uno' "
-                                               "     score: 1 "
-                                               "   } "
-                                               " } "));
+  ClassificationResponse response;
+  TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
+                           {}, fake_session_, request_, &response));
+  EXPECT_THAT(response.result(), EqualsProto(" classifications { "
+                                             "   classes { "
+                                             "     label: 'dos' "
+                                             "     score: 2 "
+                                             "   } "
+                                             "   classes { "
+                                             "     label: 'uno' "
+                                             "     score: 1 "
+                                             "   } "
+                                             " } "
+                                             " classifications { "
+                                             "   classes { "
+                                             "     label: 'dos' "
+                                             "     score: 2 "
+                                             "   } "
+                                             "   classes { "
+                                             "     label: 'uno' "
+                                             "     score: 1 "
+                                             "   } "
+                                             " } "));
 }
 
 TEST_P(ClassifierTest, ExampleListWithContext_DuplicateFeatures) {
@@ -483,30 +481,29 @@ TEST_P(ClassifierTest, ExampleListWithContext_DuplicateFeatures) {
                                    "   } "
                                    " } "));
 
-    ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(),
-                             saved_model_bundle_->meta_graph_def, {},
-                             fake_session_, request_, &response));
-    EXPECT_THAT(response.result(), EqualsProto(" classifications { "
-                                               "   classes { "
-                                               "     label: 'uno' "
-                                               "     score: 1 "
-                                               "   } "
-                                               "   classes { "
-                                               "     label: 'dos' "
-                                               "     score: 2 "
-                                               "   } "
-                                               " } "
-                                               " classifications { "
-                                               "   classes { "
-                                               "     label: 'tres' "
-                                               "     score: 3 "
-                                               "   } "
-                                               "   classes { "
-                                               "     label: 'cuatro' "
-                                               "     score: 4 "
-                                               "   } "
-                                               " } "));
+  ClassificationResponse response;
+  TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
+                           {}, fake_session_, request_, &response));
+  EXPECT_THAT(response.result(), EqualsProto(" classifications { "
+                                             "   classes { "
+                                             "     label: 'uno' "
+                                             "     score: 1 "
+                                             "   } "
+                                             "   classes { "
+                                             "     label: 'dos' "
+                                             "     score: 2 "
+                                             "   } "
+                                             " } "
+                                             " classifications { "
+                                             "   classes { "
+                                             "     label: 'tres' "
+                                             "     score: 3 "
+                                             "   } "
+                                             "   classes { "
+                                             "     label: 'cuatro' "
+                                             "     score: 4 "
+                                             "   } "
+                                             " } "));
 }
 
 TEST_P(ClassifierTest, ClassesOnly) {
@@ -536,26 +533,25 @@ TEST_P(ClassifierTest, ClassesOnly) {
                                    "   } "
                                    " } "));
 
-    ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(),
-                             saved_model_bundle_->meta_graph_def, {},
-                             fake_session_, request_, &response));
-    EXPECT_THAT(response.result(), EqualsProto(" classifications { "
-                                               "   classes { "
-                                               "     label: 'dos' "
-                                               "   } "
-                                               "   classes { "
-                                               "     label: 'uno' "
-                                               "   } "
-                                               " } "
-                                               " classifications { "
-                                               "   classes { "
-                                               "     label: 'cuatro' "
-                                               "   } "
-                                               "   classes { "
-                                               "     label: 'tres' "
-                                               "   } "
-                                               " } "));
+  ClassificationResponse response;
+  TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
+                           {}, fake_session_, request_, &response));
+  EXPECT_THAT(response.result(), EqualsProto(" classifications { "
+                                             "   classes { "
+                                             "     label: 'dos' "
+                                             "   } "
+                                             "   classes { "
+                                             "     label: 'uno' "
+                                             "   } "
+                                             " } "
+                                             " classifications { "
+                                             "   classes { "
+                                             "     label: 'cuatro' "
+                                             "   } "
+                                             "   classes { "
+                                             "     label: 'tres' "
+                                             "   } "
+                                             " } "));
 }
 
 TEST_P(ClassifierTest, ScoresOnly) {
@@ -586,26 +582,25 @@ TEST_P(ClassifierTest, ScoresOnly) {
                                    "   } "
                                    " } "));
 
-    ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(),
-                             saved_model_bundle_->meta_graph_def, {},
-                             fake_session_, request_, &response));
-    EXPECT_THAT(response.result(), EqualsProto(" classifications { "
-                                               "   classes { "
-                                               "     score: 2 "
-                                               "   } "
-                                               "   classes { "
-                                               "     score: 1 "
-                                               "   } "
-                                               " } "
-                                               " classifications { "
-                                               "   classes { "
-                                               "     score: 4 "
-                                               "   } "
-                                               "   classes { "
-                                               "     score: 3 "
-                                               "   } "
-                                               " } "));
+  ClassificationResponse response;
+  TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
+                           {}, fake_session_, request_, &response));
+  EXPECT_THAT(response.result(), EqualsProto(" classifications { "
+                                             "   classes { "
+                                             "     score: 2 "
+                                             "   } "
+                                             "   classes { "
+                                             "     score: 1 "
+                                             "   } "
+                                             " } "
+                                             " classifications { "
+                                             "   classes { "
+                                             "     score: 4 "
+                                             "   } "
+                                             "   classes { "
+                                             "     score: 3 "
+                                             "   } "
+                                             " } "));
 }
 
 TEST_P(ClassifierTest, ZeroScoresArePresent) {
@@ -628,19 +623,18 @@ TEST_P(ClassifierTest, ZeroScoresArePresent) {
     EXPECT_NEAR(classification.classes(i).score(), expected_outputs[i], 1e-7);
   }
 
-    ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(),
-                             saved_model_bundle_->meta_graph_def, {},
-                             fake_session_, request_, &response));
-    // Parse the protos and compare the results with expected scores.
-    ASSERT_EQ(response.result().classifications_size(), 1);
-    auto& classification_resp = result_.classifications(0);
-    ASSERT_EQ(classification_resp.classes_size(), 3);
+  ClassificationResponse response;
+  TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
+                           {}, fake_session_, request_, &response));
+  // Parse the protos and compare the results with expected scores.
+  ASSERT_EQ(response.result().classifications_size(), 1);
+  auto& classification_resp = result_.classifications(0);
+  ASSERT_EQ(classification_resp.classes_size(), 3);
 
-    for (int i = 0; i < 3; ++i) {
-      EXPECT_NEAR(classification_resp.classes(i).score(), expected_outputs[i],
-                  1e-7);
-    }
+  for (int i = 0; i < 3; ++i) {
+    EXPECT_NEAR(classification_resp.classes(i).score(), expected_outputs[i],
+                1e-7);
+  }
 }
 
 TEST_P(ClassifierTest, ValidNamedSignature) {
@@ -652,51 +646,50 @@ TEST_P(ClassifierTest, ValidNamedSignature) {
   *examples->Add() = example({{"cuatro", 4}, {"tres", 3}});
   TF_ASSERT_OK(classifier_->Classify(request_, &result_));
 
-    EXPECT_THAT(result_, EqualsProto(" classifications { "
-                                     "   classes { "
-                                     "     label: 'dos' "
-                                     "     score: 3 "
-                                     "   } "
-                                     "   classes { "
-                                     "     label: 'uno' "
-                                     "     score: 2 "
-                                     "   } "
-                                     " } "
-                                     " classifications { "
-                                     "   classes { "
-                                     "     label: 'cuatro' "
-                                     "     score: 5 "
-                                     "   } "
-                                     "   classes { "
-                                     "     label: 'tres' "
-                                     "     score: 4 "
-                                     "   } "
-                                     " } "));
+  EXPECT_THAT(result_, EqualsProto(" classifications { "
+                                   "   classes { "
+                                   "     label: 'dos' "
+                                   "     score: 3 "
+                                   "   } "
+                                   "   classes { "
+                                   "     label: 'uno' "
+                                   "     score: 2 "
+                                   "   } "
+                                   " } "
+                                   " classifications { "
+                                   "   classes { "
+                                   "     label: 'cuatro' "
+                                   "     score: 5 "
+                                   "   } "
+                                   "   classes { "
+                                   "     label: 'tres' "
+                                   "     score: 4 "
+                                   "   } "
+                                   " } "));
 
-    ClassificationResponse response;
-    TF_ASSERT_OK(RunClassify(GetRunOptions(),
-                             saved_model_bundle_->meta_graph_def, {},
-                             fake_session_, request_, &response));
-    EXPECT_THAT(response.result(), EqualsProto(" classifications { "
-                                               "   classes { "
-                                               "     label: 'dos' "
-                                               "     score: 3 "
-                                               "   } "
-                                               "   classes { "
-                                               "     label: 'uno' "
-                                               "     score: 2 "
-                                               "   } "
-                                               " } "
-                                               " classifications { "
-                                               "   classes { "
-                                               "     label: 'cuatro' "
-                                               "     score: 5 "
-                                               "   } "
-                                               "   classes { "
-                                               "     label: 'tres' "
-                                               "     score: 4 "
-                                               "   } "
-                                               " } "));
+  ClassificationResponse response;
+  TF_ASSERT_OK(RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
+                           {}, fake_session_, request_, &response));
+  EXPECT_THAT(response.result(), EqualsProto(" classifications { "
+                                             "   classes { "
+                                             "     label: 'dos' "
+                                             "     score: 3 "
+                                             "   } "
+                                             "   classes { "
+                                             "     label: 'uno' "
+                                             "     score: 2 "
+                                             "   } "
+                                             " } "
+                                             " classifications { "
+                                             "   classes { "
+                                             "     label: 'cuatro' "
+                                             "     score: 5 "
+                                             "   } "
+                                             "   classes { "
+                                             "     label: 'tres' "
+                                             "     score: 4 "
+                                             "   } "
+                                             " } "));
 }
 
 TEST_P(ClassifierTest, InvalidNamedSignature) {
@@ -731,11 +724,11 @@ TEST_P(ClassifierTest, MalformedScores) {
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
 
-    ClassificationResponse response;
-    status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
-                         {}, fake_session_, request_, &response);
-    ASSERT_FALSE(status.ok());
-    EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  ClassificationResponse response;
+  status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                       fake_session_, request_, &response);
+  ASSERT_FALSE(status.ok());
+  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
 }
 
 TEST_P(ClassifierTest, MissingClassificationSignature) {
@@ -749,13 +742,13 @@ TEST_P(ClassifierTest, MissingClassificationSignature) {
   // TODO(b/26220896): This error should move to construction time.
   Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
-    EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
 
-    ClassificationResponse response;
-    status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
-                         {}, fake_session_, request_, &response);
-    ASSERT_FALSE(status.ok());
-    EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  ClassificationResponse response;
+  status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                       fake_session_, request_, &response);
+  ASSERT_FALSE(status.ok());
+  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
 }
 
 TEST_P(ClassifierTest, EmptyInput) {
@@ -767,12 +760,12 @@ TEST_P(ClassifierTest, EmptyInput) {
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Invalid argument: Input is empty"));
 
-    ClassificationResponse response;
-    status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
-                         {}, fake_session_, request_, &response);
-    ASSERT_FALSE(status.ok());
-    EXPECT_THAT(status.ToString(),
-                ::testing::HasSubstr("Invalid argument: Input is empty"));
+  ClassificationResponse response;
+  status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                       fake_session_, request_, &response);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.ToString(),
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(ClassifierTest, EmptyExampleList) {
@@ -784,12 +777,12 @@ TEST_P(ClassifierTest, EmptyExampleList) {
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Invalid argument: Input is empty"));
 
-    ClassificationResponse response;
-    status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
-                         {}, fake_session_, request_, &response);
-    ASSERT_FALSE(status.ok());
-    EXPECT_THAT(status.ToString(),
-                ::testing::HasSubstr("Invalid argument: Input is empty"));
+  ClassificationResponse response;
+  status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                       fake_session_, request_, &response);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.ToString(),
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(ClassifierTest, EmptyExampleListWithContext) {
@@ -803,38 +796,38 @@ TEST_P(ClassifierTest, EmptyExampleListWithContext) {
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Invalid argument: Input is empty"));
 
-    ClassificationResponse response;
-    status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
-                         {}, fake_session_, request_, &response);
-    ASSERT_FALSE(status.ok());
-    EXPECT_THAT(status.ToString(),
-                ::testing::HasSubstr("Invalid argument: Input is empty"));
+  ClassificationResponse response;
+  status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                       fake_session_, request_, &response);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.ToString(),
+              ::testing::HasSubstr("Invalid argument: Input is empty"));
 }
 
 TEST_P(ClassifierTest, RunsFails) {
   MockSession* mock = new MockSession;
-    saved_model_bundle_->session.reset(mock);
-    EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
-        .WillRepeatedly(
-            ::testing::Return(errors::Internal("Run totally failed")));
-    TF_ASSERT_OK(Create());
-    auto* examples =
-        request_.mutable_input()->mutable_example_list()->mutable_examples();
-    *examples->Add() = example({{"dos", 2}});
-    Status status = classifier_->Classify(request_, &result_);
-    ASSERT_FALSE(status.ok());
-    EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
+  saved_model_bundle_->session.reset(mock);
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
+      .WillRepeatedly(
+          ::testing::Return(errors::Internal("Run totally failed")));
+  TF_ASSERT_OK(Create());
+  auto* examples =
+      request_.mutable_input()->mutable_example_list()->mutable_examples();
+  *examples->Add() = example({{"dos", 2}});
+  Status status = classifier_->Classify(request_, &result_);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
 
-    ClassificationResponse response;
-    status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
-                         {}, mock, request_, &response);
-    ASSERT_FALSE(status.ok());
-    EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
+  ClassificationResponse response;
+  status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                       mock, request_, &response);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
 }
 
 TEST_P(ClassifierTest, ClassesIncorrectTensorBatchSize) {
   MockSession* mock = new MockSession;
-    saved_model_bundle_->session.reset(mock);
+  saved_model_bundle_->session.reset(mock);
   // This Tensor only has one batch item but we will have two inputs.
   Tensor classes(DT_STRING, TensorShape({1, 2}));
   Tensor scores(DT_FLOAT, TensorShape({2, 2}));
@@ -852,16 +845,16 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorBatchSize) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
 
-    ClassificationResponse response;
-    status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
-                         {}, mock, request_, &response);
-    ASSERT_FALSE(status.ok());
-    EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
+  ClassificationResponse response;
+  status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                       mock, request_, &response);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
 }
 
 TEST_P(ClassifierTest, ClassesIncorrectTensorType) {
   MockSession* mock = new MockSession;
-    saved_model_bundle_->session.reset(mock);
+  saved_model_bundle_->session.reset(mock);
 
   // This Tensor is the wrong type for class.
   Tensor classes(DT_FLOAT, TensorShape({2, 2}));
@@ -880,17 +873,17 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorType) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Expected classes Tensor of DT_STRING"));
-    ClassificationResponse response;
-    status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
-                         {}, mock, request_, &response);
-    ASSERT_FALSE(status.ok());
-    EXPECT_THAT(status.ToString(),
-                ::testing::HasSubstr("Expected classes Tensor of DT_STRING"));
+  ClassificationResponse response;
+  status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                       mock, request_, &response);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.ToString(),
+              ::testing::HasSubstr("Expected classes Tensor of DT_STRING"));
 }
 
 TEST_P(ClassifierTest, ScoresIncorrectTensorBatchSize) {
   MockSession* mock = new MockSession;
-    saved_model_bundle_->session.reset(mock);
+  saved_model_bundle_->session.reset(mock);
   Tensor classes(DT_STRING, TensorShape({2, 2}));
   // This Tensor only has one batch item but we will have two inputs.
   Tensor scores(DT_FLOAT, TensorShape({1, 2}));
@@ -908,16 +901,16 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorBatchSize) {
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
 
-    ClassificationResponse response;
-    status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
-                         {}, mock, request_, &response);
-    ASSERT_FALSE(status.ok());
-    EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
+  ClassificationResponse response;
+  status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                       mock, request_, &response);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
 }
 
 TEST_P(ClassifierTest, ScoresIncorrectTensorType) {
   MockSession* mock = new MockSession;
-    saved_model_bundle_->session.reset(mock);
+  saved_model_bundle_->session.reset(mock);
   Tensor classes(DT_STRING, TensorShape({2, 2}));
   // This Tensor is the wrong type for class.
   Tensor scores(DT_STRING, TensorShape({2, 2}));
@@ -936,17 +929,17 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorType) {
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Expected scores Tensor of DT_FLOAT"));
 
-    ClassificationResponse response;
-    status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
-                         {}, mock, request_, &response);
-    ASSERT_FALSE(status.ok());
-    EXPECT_THAT(status.ToString(),
-                ::testing::HasSubstr("Expected scores Tensor of DT_FLOAT"));
+  ClassificationResponse response;
+  status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                       mock, request_, &response);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.ToString(),
+              ::testing::HasSubstr("Expected scores Tensor of DT_FLOAT"));
 }
 
 TEST_P(ClassifierTest, MismatchedNumberOfTensorClasses) {
   MockSession* mock = new MockSession;
-    saved_model_bundle_->session.reset(mock);
+  saved_model_bundle_->session.reset(mock);
   Tensor classes(DT_STRING, TensorShape({2, 2}));
   // Scores Tensor has three scores but classes only has two labels.
   Tensor scores(DT_FLOAT, TensorShape({2, 3}));
@@ -967,13 +960,13 @@ TEST_P(ClassifierTest, MismatchedNumberOfTensorClasses) {
       ::testing::HasSubstr(
           "Tensors class and score should match in dim_size(1). Got 2 vs. 3"));
 
-    ClassificationResponse response;
-    status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def,
-                         {}, mock, request_, &response);
-    ASSERT_FALSE(status.ok());
-    EXPECT_THAT(status.ToString(),
-                ::testing::HasSubstr("Tensors class and score should match in "
-                                     "dim_size(1). Got 2 vs. 3"));
+  ClassificationResponse response;
+  status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
+                       mock, request_, &response);
+  ASSERT_FALSE(status.ok());
+  EXPECT_THAT(status.ToString(),
+              ::testing::HasSubstr("Tensors class and score should match in "
+                                   "dim_size(1). Got 2 vs. 3"));
 }
 
 TEST_P(ClassifierTest, MethodNameCheck) {

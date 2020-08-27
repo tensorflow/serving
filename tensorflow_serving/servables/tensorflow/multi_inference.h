@@ -16,12 +16,12 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_MULTI_INFERENCE_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_MULTI_INFERENCE_H_
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/inference.pb.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -37,7 +37,7 @@ class TensorFlowMultiInferenceRunner {
 
   TensorFlowMultiInferenceRunner(
       Session* session, const MetaGraphDef* meta_graph_def,
-      optional<int64> servable_version,
+      absl::optional<int64> servable_version,
       const thread::ThreadPoolOptions& thread_pool_options =
           thread::ThreadPoolOptions())
       : session_(session),
@@ -58,14 +58,14 @@ class TensorFlowMultiInferenceRunner {
   const MetaGraphDef* const meta_graph_def_;
   // If available, servable_version is used to set the ModelSpec version in the
   // InferenceResults of the MultiInferenceResponse.
-  const optional<int64> servable_version_;
+  const absl::optional<int64> servable_version_;
   const tensorflow::thread::ThreadPoolOptions thread_pool_options_;
 };
 
 // Creates TensorFlowMultiInferenceRunner and calls Infer on it.
 Status RunMultiInference(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
-    const optional<int64>& servable_version, Session* session,
+    const absl::optional<int64>& servable_version, Session* session,
     const MultiInferenceRequest& request, MultiInferenceResponse* response,
     const tensorflow::thread::ThreadPoolOptions& thread_pool_options =
         tensorflow::thread::ThreadPoolOptions());
