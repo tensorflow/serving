@@ -27,15 +27,21 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/cord.h"
 #include "tensorflow/core/platform/errors.h"
+#include "tensorflow/core/platform/path.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/internal/serialized_input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
+#include "tensorflow_serving/resources/resource_values.h"
 
 namespace tensorflow {
 namespace serving {
 namespace {
+
+// Constants used in the resource estimation heuristic.
+static constexpr double kResourceEstimateRAMMultiplier = 1.2;
+static constexpr int kResourceEstimateRAMPadBytes = 0;
 
 auto* example_counts = monitoring::Sampler<1>::New(
     {"/tensorflow/serving/request_example_counts",
@@ -62,6 +68,35 @@ int NumInputExamples(const internal::SerializedInput& input) {
 }
 
 std::atomic<bool> signature_method_check{true};
+
+// Returns all the descendants, both directories and files, recursively under
+// 'dirname'. The paths returned are all prefixed with 'dirname'.
+Status GetAllDescendants(const string& dirname, FileProbingEnv* env,
+                         std::vector<string>* const descendants) {
+  descendants->clear();
+  // Make sure that dirname exists;
+  TF_RETURN_IF_ERROR(env->FileExists(dirname));
+  std::deque<string> dir_q;      // Queue for the BFS
+  std::vector<string> dir_list;  // List of all dirs discovered
+  dir_q.push_back(dirname);
+  // Do a BFS on the directory to discover all immediate children.
+  while (!dir_q.empty()) {
+    const string dir = dir_q.front();
+    dir_q.pop_front();
+    std::vector<string> children;
+    // GetChildren might fail if we don't have appropriate permissions.
+    TF_RETURN_IF_ERROR(env->GetChildren(dir, &children));
+    for (const string& child : children) {
+      const string child_path = io::JoinPath(dir, child);
+      descendants->push_back(child_path);
+      // If the child is a directory add it to the queue.
+      if (env->IsDirectory(child_path).ok()) {
+        dir_q.push_back(child_path);
+      }
+    }
+  }
+  return Status::OK();
+}
 
 }  // namespace
 
@@ -209,6 +244,44 @@ void MakeModelSpec(const string& model_name,
   if (version) {
     model_spec->mutable_version()->set_value(*version);
   }
+}
+
+Status GetModelDiskSize(const string& path, FileProbingEnv* env,
+                        uint64* total_file_size) {
+  if (env == nullptr) {
+    return errors::Internal("FileProbingEnv not set");
+  }
+
+  std::vector<string> descendants;
+  TF_RETURN_IF_ERROR(GetAllDescendants(path, env, &descendants));
+  *total_file_size = 0;
+  for (const string& descendant : descendants) {
+    if (!(env->IsDirectory(descendant).ok())) {
+      uint64 file_size;
+      TF_RETURN_IF_ERROR(env->GetFileSize(descendant, &file_size));
+      *total_file_size += file_size;
+    }
+  }
+  return Status::OK();
+}
+
+Status EstimateResourceFromPathUsingDiskState(const string& path,
+                                              FileProbingEnv* env,
+                                              ResourceAllocation* estimate) {
+  uint64 total_file_size = 0;
+  TF_RETURN_IF_ERROR(GetModelDiskSize(path, env, &total_file_size));
+
+  const uint64 ram_requirement =
+      total_file_size * kResourceEstimateRAMMultiplier +
+      kResourceEstimateRAMPadBytes;
+
+  ResourceAllocation::Entry* ram_entry = estimate->add_resource_quantities();
+  Resource* ram_resource = ram_entry->mutable_resource();
+  ram_resource->set_device(device_types::kMain);
+  ram_resource->set_kind(resource_kinds::kRamBytes);
+  ram_entry->set_quantity(ram_requirement);
+
+  return Status::OK();
 }
 
 }  // namespace serving

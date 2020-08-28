@@ -107,7 +107,8 @@ Status SavedModelBundleFactory::Create(
 
 Status SavedModelBundleFactory::EstimateResourceRequirement(
     const string& path, ResourceAllocation* estimate) const {
-  return EstimateResourceFromPath(path, estimate);
+  return EstimateResourceFromPath(
+      path, config_.resource_estimation_uses_validation_result(), estimate);
 }
 
 Status SavedModelBundleFactory::CreateSavedModelBundleWithMetadata(

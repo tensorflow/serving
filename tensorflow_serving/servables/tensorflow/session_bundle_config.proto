@@ -90,6 +90,9 @@ message SessionBundleConfig {
   // directory, instead of the TensorFlow model from `saved_model.pb` file.
   // If no TensorFlow Lite model found, fallback to TensorFlow model.
   bool prefer_tflite_model = 783;
+
+  // Tries to use infra validation result to estimate resource usage.
+  bool resource_estimation_uses_validation_result = 784;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

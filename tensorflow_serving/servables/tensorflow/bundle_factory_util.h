@@ -23,6 +23,7 @@ limitations under the License.
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/batching/batching_session.h"
 #include "tensorflow_serving/resources/resources.pb.h"
+#include "tensorflow_serving/servables/tensorflow/resource_estimator.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/util/file_probing_env.h"
 
@@ -49,16 +50,12 @@ Status CreateBatchScheduler(
 // loaded, from its export or saved model path. tensorflow::Env::Default() will
 // be used to access the file system.
 //
-// Uses the following crude heuristic, for now: estimated main-memory RAM =
-// (combined size of all exported file(s)) * kResourceEstimateRAMMultiplier +
-// kResourceEstimateRAMPadBytes.
+// If use_validation_result = true, tries to use the result from infra validtion
+// first. Otherwise, uses the following crude heuristic: estimated main-memory
+// RAM = (combined size of all exported file(s)) *
+// kResourceEstimateRAMMultiplier + kResourceEstimateRAMPadBytes.
 // TODO(b/27694447): Improve the heuristic. At a minimum, account for GPU RAM.
-Status EstimateResourceFromPath(const string& path,
-                                ResourceAllocation* estimate);
-
-// Similar to the above function, but also supplies a FileProbingEnv to use in
-// lieu of tensorflow::Env::Default().
-Status EstimateResourceFromPath(const string& path, FileProbingEnv* env,
+Status EstimateResourceFromPath(const string& path, bool use_validation_result,
                                 ResourceAllocation* estimate);
 
 // Wraps a session in a new session that automatically batches Run() calls, for

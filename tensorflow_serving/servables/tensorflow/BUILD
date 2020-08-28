@@ -1,6 +1,6 @@
 # Description: TensorFlow servables.
 
-load("//tensorflow_serving:oss_or_google.bzl", "if_google")
+load("//tensorflow_serving:oss_or_google.bzl", "if_google", "if_oss")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_tensorflow_proto_dep")
 
 package(
@@ -39,6 +39,14 @@ serving_proto_library(
 )
 
 cc_library(
+    name = "resource_estimator",
+    hdrs = ["resource_estimator.h"],
+    deps = ["//tensorflow_serving/util:oss_or_google"] + if_oss([
+        "//tensorflow_serving/servables/tensorflow/oss:resource_estimator",
+    ]) + if_google(["//tensorflow_serving/servables/tensorflow/google:resource_estimator"]),
+)
+
+cc_library(
     name = "bundle_factory_util",
     srcs = ["bundle_factory_util.cc"],
     hdrs = ["bundle_factory_util.h"],
@@ -46,6 +54,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":resource_estimator",
         ":serving_session",
         ":session_bundle_config_cc_proto",
         "//tensorflow_serving/batching:batching_session",
@@ -823,6 +832,9 @@ cc_library(
         "//tensorflow_serving/apis:input_cc_proto",
         "//tensorflow_serving/apis:model_cc_proto",
         "//tensorflow_serving/apis/internal:serialized_input_cc_proto",
+        "//tensorflow_serving/resources:resource_values",
+        "//tensorflow_serving/resources:resources_cc_proto",
+        "//tensorflow_serving/util:file_probing_env",
         "@com_google_absl//absl/types:optional",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
@@ -840,7 +852,9 @@ cc_test(
     deps = [
         ":util",
         "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/servables/tensorflow:bundle_factory_test_util",
         "//tensorflow_serving/test_util",
+        "//tensorflow_serving/util/test_util:mock_file_probing_env",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:framework",

@@ -25,6 +25,8 @@ limitations under the License.
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
+#include "tensorflow_serving/resources/resources.pb.h"
+#include "tensorflow_serving/util/file_probing_env.h"
 
 namespace tensorflow {
 namespace serving {
@@ -95,6 +97,17 @@ Status PerformOneShotTensorComputation(
 void MakeModelSpec(const string& model_name,
                    const absl::optional<string>& signature_name,
                    const absl::optional<int64>& version, ModelSpec* model_spec);
+
+// Gets the disk size of the model in the given path.
+Status GetModelDiskSize(const string& path, FileProbingEnv* env,
+                        uint64* total_file_size);
+
+// Estimates the resources a session bundle or saved model bundle will use once
+// loaded, from its export or saved model path. Directly uses disk state for
+// estimation.
+Status EstimateResourceFromPathUsingDiskState(const string& path,
+                                              FileProbingEnv* env,
+                                              ResourceAllocation* estimate);
 
 }  // namespace serving
 }  // namespace tensorflow
