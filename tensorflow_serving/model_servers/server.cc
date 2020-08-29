@@ -137,7 +137,7 @@ BuildServerCredentialsFromSSLConfigFile(const string& ssl_config_file) {
 
   ssl_ops.force_client_auth = ssl_config.client_verify();
 
-  if (ssl_config.custom_ca().size() > 0) {
+  if (!ssl_config.custom_ca().empty()) {
     ssl_ops.pem_root_certs = ssl_config.custom_ca();
   }
 
