@@ -334,7 +334,7 @@ Status Server::BuildAndStart(const Options& server_options) {
   prediction_service_ =
       absl::make_unique<PredictionServiceImpl>(predict_server_options);
 
-  profiler_service_ = tensorflow::CreateProfilerService();
+  profiler_service_ = tensorflow::profiler::CreateProfilerService();
 
   ::grpc::ServerBuilder builder;
   builder.AddListeningPort(
