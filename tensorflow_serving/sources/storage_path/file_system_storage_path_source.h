@@ -19,6 +19,7 @@ limitations under the License.
 #include <functional>
 #include <memory>
 #include <utility>
+#include <unordered_set>
 
 #include "absl/types/variant.h"
 #include "tensorflow/core/kernels/batching_util/periodic_function.h"
@@ -77,6 +78,9 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
     mutex_lock l(mu_);
     return config_;
   }
+  
+  std::unordered_set<int64> GetSpecificVersionsInConfig(
+      const std::string& servable_name) const;
 
  private:
   friend class internal::FileSystemStoragePathSourceTestAccess;
