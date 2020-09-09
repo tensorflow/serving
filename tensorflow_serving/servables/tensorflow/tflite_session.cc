@@ -21,6 +21,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/tensor_shape.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/lite/kernels/hashtable/hashtable_ops.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/string_util.h"
 #include "tensorflow/lite/tools/signature/signature_def_util.h"
@@ -254,6 +255,8 @@ Status TfLiteSession::Create(string&& buffer,
 
   // TODO(b/140959776): Add support for non-builtin ops (flex or custom ops).
   tflite::ops::builtin::BuiltinOpResolver resolver;
+  // TODO(b/165643512): Remove adding Hashtable to resolver by default.
+  tflite::ops::custom::AddHashtableOps(&resolver);
   std::unique_ptr<tflite::Interpreter> interpreter;
   if (tflite::InterpreterBuilder(*model, resolver)(&interpreter) != kTfLiteOk) {
     return errors::Internal("Cannot build Interpreter from buffer.");

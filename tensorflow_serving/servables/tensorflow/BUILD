@@ -356,6 +356,7 @@ cc_library(
         "@org_tensorflow//tensorflow/lite:util",
         "@org_tensorflow//tensorflow/lite/delegates/flex:delegate",
         "@org_tensorflow//tensorflow/lite/kernels:builtin_ops",
+        "@org_tensorflow//tensorflow/lite/kernels/hashtable:hashtable_op_kernels",
         "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_util",
     ],
 )
