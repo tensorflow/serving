@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM nvidia/cuda:10.1-base-ubuntu18.04 as base_build
+FROM nvidia/cuda:11.0-cudnn8-devel-ubuntu18.04 as base_build
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=head
@@ -20,30 +20,30 @@ LABEL maintainer=gvasudevan@google.com
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
-ENV CUDNN_VERSION=7.6.4.38
-ENV TF_TENSORRT_VERSION=6.0.1
-ENV CUDA=10.1
+ENV CUDNN_VERSION=8.0.2.39
+ENV TF_TENSORRT_VERSION=7.1.3
+ENV CUDA=11.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         automake \
         build-essential \
         ca-certificates \
-        cuda-command-line-tools-10-1 \
-        libcublas10=10.2.1.243-1 \
-        libcublas-dev=10.2.1.243-1 \
-        cuda-nvrtc-10-1 \
-        cuda-nvrtc-dev-10-1 \
-        cuda-cudart-dev-10-1 \
-        cuda-cufft-dev-10-1 \
-        cuda-curand-dev-10-1 \
-        cuda-cusolver-dev-10-1 \
-        cuda-cusparse-dev-10-1 \
+        cuda-command-line-tools-11-0 \
+        libcublas-11-0 \
+        libcublas-dev-11-0 \
+        cuda-nvrtc-11-0 \
+        cuda-nvrtc-dev-11-0 \
+        cuda-cudart-dev-11-0 \
+        libcufft-dev-11-0 \
+        libcurand-dev-11-0 \
+        libcusolver-dev-11-0 \
+        libcusparse-dev-11-0 \
         curl \
         git \
         libfreetype6-dev \
         libtool \
-        libcudnn7=${CUDNN_VERSION}-1+cuda${CUDA} \
-        libcudnn7-dev=${CUDNN_VERSION}-1+cuda${CUDA} \
+        libcudnn8=${CUDNN_VERSION}-1+cuda${CUDA} \
+        libcudnn8-dev=${CUDNN_VERSION}-1+cuda${CUDA} \
         libcurl3-dev \
         libzmq3-dev \
         mlocate \
@@ -62,16 +62,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    find /usr/local/cuda-10.1/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete && \
-    rm /usr/lib/x86_64-linux-gnu/libcudnn_static_v7.a
+    find /usr/local/cuda-11.0/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete && \
+    rm /usr/lib/x86_64-linux-gnu/libcudnn_static_v8.a
 
 RUN apt-get update && \
-        apt-get install -y --no-install-recommends libnvinfer6=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
+        apt-get install -y --no-install-recommends libnvinfer7=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
         libnvinfer-dev=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
         libnvinfer-plugin-dev=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
-        libnvinfer-plugin6=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
-        libnvonnxparsers6=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
-        libnvparsers6=${TF_TENSORRT_VERSION}-1+cuda${CUDA}\
+        libnvinfer-plugin7=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
+        # TODO: need to verify
+        libnvonnxparsers7=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
+        libnvparsers7=${TF_TENSORRT_VERSION}-1+cuda${CUDA}\
         libnvonnxparsers-dev=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
         libnvparsers-dev=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
         && apt-get clean \
@@ -117,12 +118,13 @@ RUN mkdir /bazel && \
 
 # Build TensorFlow with the CUDA configuration
 ENV CI_BUILD_PYTHON python
-ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:/usr/include/x86_64-linux-gnu:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:/usr/include/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+
 ENV TF_NEED_CUDA 1
 ENV TF_NEED_TENSORRT 1
 ENV TENSORRT_INSTALL_PATH=/usr/lib/x86_64-linux-gnu
-ENV TF_CUDA_VERSION=10.1
-ENV TF_CUDNN_VERSION=7
+ENV TF_CUDA_VERSION=11.0
+ENV TF_CUDNN_VERSION=8
 
 # Fix paths so that CUDNN can be found: https://github.com/tensorflow/tensorflow/issues/8264
 WORKDIR /
