@@ -34,6 +34,7 @@ limitations under the License.
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/profiler/lib/traceme.h"
+#include "tensorflow/core/profiler/lib/traceme_encode.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/batching/batching_util.h"
 #include "tensorflow_serving/batching/incremental_barrier.h"
@@ -390,7 +391,8 @@ Status BatchingSession::InternalRun(
   }
 
   profiler::TraceMe trace_me([this] {
-    return strings::StrCat("BatchingSessionRun:", thread_pool_name_);
+    return profiler::TraceMeEncode("BatchingSessionRun",
+                                   {{"thread_pool_name", thread_pool_name_}});
   });
   const TensorSignature signature =
       TensorSignatureFromRunArgs(inputs, output_tensor_names);
