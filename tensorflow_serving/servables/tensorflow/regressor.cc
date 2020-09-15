@@ -68,9 +68,13 @@ class SavedModelTensorFlowRegressor : public RegressorInterface {
 
     std::vector<Tensor> outputs;
     int num_examples;
+    int64 runtime_latency;
     TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
         run_options_, request.input(), input_tensor_name, output_tensor_names,
-        session_, &outputs, &num_examples, thread_pool_options_));
+        session_, &outputs, &num_examples, thread_pool_options_,
+        &runtime_latency));
+    RecordRuntimeLatency(request.model_spec().name(), /*api=*/"Regress",
+                         /*runtime=*/"TF1", runtime_latency);
 
     TRACELITERAL("ConvertToRegressionResult");
     return PostProcessRegressionResult(*signature_, num_examples,

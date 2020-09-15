@@ -207,9 +207,14 @@ Status RunPredict(
                                           &output_tensor_aliases));
   std::vector<Tensor> outputs;
   RunMetadata run_metadata;
+  const uint64 start_microseconds = EnvTime::NowMicros();
   TF_RETURN_IF_ERROR(session->Run(run_options, input_tensors,
                                   output_tensor_names, {}, &outputs,
                                   &run_metadata, thread_pool_options));
+  const uint64 end_microseconds = EnvTime::NowMicros();
+  RecordRuntimeLatency(request.model_spec().name(), /*api=*/"Predict",
+                       /*runtime=*/"TF1",
+                       end_microseconds - start_microseconds);
 
   return PostProcessPredictionResult(output_tensor_aliases, outputs, option,
                                      response);

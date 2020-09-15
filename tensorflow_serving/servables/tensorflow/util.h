@@ -78,7 +78,8 @@ Status PerformOneShotTensorComputation(
     const std::vector<string>& output_tensor_names, Session* session,
     std::vector<Tensor>* outputs, int* num_input_examples,
     const thread::ThreadPoolOptions& thread_pool_options =
-        thread::ThreadPoolOptions());
+        thread::ThreadPoolOptions(),
+    int64* runtime_latency = nullptr);
 
 // Same as PerformOneShotTensorComputation() above, except allows for multiple
 // input tensor names (each tensor is fed the *same* `input`).
@@ -108,6 +109,10 @@ Status GetModelDiskSize(const string& path, FileProbingEnv* env,
 Status EstimateResourceFromPathUsingDiskState(const string& path,
                                               FileProbingEnv* env,
                                               ResourceAllocation* estimate);
+
+// Update metrics for runtime latency.
+void RecordRuntimeLatency(const string& model_name, const string& api,
+                          const string& runtime, int64 latency_usec);
 
 }  // namespace serving
 }  // namespace tensorflow

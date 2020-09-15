@@ -54,6 +54,16 @@ auto* example_count_total = monitoring::Counter<1>::New(
     "/tensorflow/serving/request_example_count_total",
     "The total number of tensorflow.Examples.", "model");
 
+auto* runtime_latency = monitoring::Sampler<3>::New(
+    {
+        "/tensorflow/serving/runtime_latency",
+        "Distribution of wall time (in microseconds) for Tensorflow runtime.",
+        "model_name",
+        "API",
+        "runtime",
+    },  // Scale of 10, power of 1.8 with bucket count 33 (~20 minutes).
+    monitoring::Buckets::Exponential(10, 1.8, 33));
+
 // Returns the number of examples in the Input.
 int NumInputExamples(const internal::SerializedInput& input) {
   switch (input.kind_case()) {
@@ -194,17 +204,24 @@ Status PerformOneShotTensorComputation(
     const string& input_tensor_name,
     const std::vector<string>& output_tensor_names, Session* session,
     std::vector<Tensor>* outputs, int* num_input_examples,
-    const thread::ThreadPoolOptions& thread_pool_options) {
+    const thread::ThreadPoolOptions& thread_pool_options,
+    int64* runtime_latency) {
   // Setup the input Tensor to be a vector of string containing the serialized
   // tensorflow.Example.
   Tensor input_tensor;
   TF_RETURN_IF_ERROR(InputToSerializedExampleTensor(input, &input_tensor));
   *num_input_examples = input_tensor.dim_size(0);
 
+  const uint64 start_microseconds = EnvTime::NowMicros();
   RunMetadata run_metadata;
-  return session->Run(run_options, {{input_tensor_name, input_tensor}},
-                      output_tensor_names, {}, outputs, &run_metadata,
-                      thread_pool_options);
+  TF_RETURN_IF_ERROR(session->Run(
+      run_options, {{input_tensor_name, input_tensor}}, output_tensor_names, {},
+      outputs, &run_metadata, thread_pool_options));
+  const uint64 end_microseconds = EnvTime::NowMicros();
+  if (runtime_latency != nullptr) {
+    *runtime_latency = end_microseconds - start_microseconds;
+  }
+  return Status::OK();
 }
 
 Status PerformOneShotTensorComputation(
@@ -282,6 +299,11 @@ Status EstimateResourceFromPathUsingDiskState(const string& path,
   ram_entry->set_quantity(ram_requirement);
 
   return Status::OK();
+}
+
+void RecordRuntimeLatency(const string& model_name, const string& api,
+                          const string& runtime, int64 latency_usec) {
+  runtime_latency->GetCell(model_name, api, runtime)->Add(latency_usec);
 }
 
 }  // namespace serving
