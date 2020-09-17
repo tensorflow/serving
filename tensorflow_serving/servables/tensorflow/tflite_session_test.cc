@@ -106,9 +106,9 @@ TEST(TfLiteSession, BasicTest) {
   }
 }
 
-constexpr char kTestModelInputList[] = "list";
-constexpr char kTestModelInputShape[] = "shape";
-constexpr char kTestModelOutput[] = "output";
+constexpr char kTestModelInputList[] = "list:0";
+constexpr char kTestModelInputShape[] = "shape:0";
+constexpr char kTestModelOutput[] = "output:0";
 
 tensorflow::DataType ToTfTensorType(tflite::TensorType tflite_type) {
   switch (tflite_type) {
@@ -303,9 +303,9 @@ TEST(TfLiteSession, SimpleSignatureDef) {
   constexpr char kSignatureInputList[] = "input_list";
   constexpr char kSignatureInputShape[] = "input_shape";
   constexpr char kSignatureOutput[] = "sigdef_output";
-  *input_list_tensor.mutable_name() = absl::StrCat(kTestModelInputList, ":0");
-  *input_shape_tensor.mutable_name() = absl::StrCat(kTestModelInputShape, ":0");
-  *output_tensor.mutable_name() = absl::StrCat(kTestModelOutput, ":0");
+  *input_list_tensor.mutable_name() = kTestModelInputList;
+  *input_shape_tensor.mutable_name() = kTestModelInputShape;
+  *output_tensor.mutable_name() = kTestModelOutput;
   *test_signature_def.mutable_method_name() = kClassifyMethodName;
   (*test_signature_def.mutable_inputs())[kSignatureInputList] =
       input_list_tensor;
@@ -326,6 +326,60 @@ TEST(TfLiteSession, SimpleSignatureDef) {
             kTestModelInputShape);
   ASSERT_EQ(sigdef.outputs().at(kSignatureOutput).name(), kTestModelOutput);
   ASSERT_EQ(sigdef.method_name(), kClassifyMethodName);
+}
+
+TEST(TfLiteSession, SimpleSignatureDefAndRun) {
+  auto test_signature_def = SignatureDef();
+  TensorInfo input_list_tensor;
+  TensorInfo input_shape_tensor;
+  TensorInfo output_tensor;
+  constexpr char kSignatureInputList[] = "input_list";
+  constexpr char kSignatureInputShape[] = "input_shape";
+  constexpr char kSignatureOutput[] = "sigdef_output";
+  std::string liteTestModelInputList = kTestModelInputList;
+  std::string liteTestModelInputShape = kTestModelInputShape;
+  std::string liteTestModelOutput = kTestModelOutput;
+  liteTestModelInputList =
+      liteTestModelInputList.substr(0, liteTestModelInputList.size() - 2);
+  liteTestModelInputShape =
+      liteTestModelInputShape.substr(0, liteTestModelInputShape.size() - 2);
+  liteTestModelOutput =
+      liteTestModelOutput.substr(0, liteTestModelOutput.size() - 2);
+  *input_list_tensor.mutable_name() = liteTestModelInputList;
+  *input_shape_tensor.mutable_name() = liteTestModelInputShape;
+  *output_tensor.mutable_name() = liteTestModelOutput;
+  *test_signature_def.mutable_method_name() = kClassifyMethodName;
+  (*test_signature_def.mutable_inputs())[kSignatureInputList] =
+      input_list_tensor;
+  (*test_signature_def.mutable_inputs())[kSignatureInputShape] =
+      input_shape_tensor;
+  (*test_signature_def.mutable_outputs())[kSignatureOutput] = output_tensor;
+  string model_bytes = BuildTestModel(
+      tflite::TensorType_STRING, /*use_flex_op=*/false, &test_signature_def);
+  ::google::protobuf::Map<string, SignatureDef> signatures;
+  std::unique_ptr<TfLiteSession> session;
+  TF_EXPECT_OK(
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+
+  auto sigdef = signatures[kDefaultServingSignatureDefKey];
+  ASSERT_EQ(sigdef.inputs().at(kSignatureInputList).name(),
+            kTestModelInputList);
+  ASSERT_EQ(sigdef.inputs().at(kSignatureInputShape).name(),
+            kTestModelInputShape);
+  ASSERT_EQ(sigdef.outputs().at(kSignatureOutput).name(), kTestModelOutput);
+  ASSERT_EQ(sigdef.method_name(), kClassifyMethodName);
+
+  Tensor input_list =
+      test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({4}));
+  Tensor input_shape = test::AsTensor<int32>({2, 2}, TensorShape({2}));
+  std::vector<Tensor> outputs;
+  TF_EXPECT_OK(session->Run(
+      {{kTestModelInputList, input_list}, {kTestModelInputShape, input_shape}},
+      {kTestModelOutput}, {}, &outputs));
+  ASSERT_EQ(outputs.size(), 1);
+  test::ExpectTensorEqual<tstring>(
+      outputs[0],
+      test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({2, 2})));
 }
 
 #ifdef PLATFORM_GOOGLE

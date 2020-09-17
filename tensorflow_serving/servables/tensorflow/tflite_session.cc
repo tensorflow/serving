@@ -278,30 +278,36 @@ Status TfLiteSession::Create(string&& buffer,
   for (const auto& info : inputs) {
     auto name = info.first;
     if (has_lite_signature_def) {
-      auto it = tensor_to_sigdef_name.find(info.first);
+      const auto& lite_name = TfToTfLiteTensorName(name);
+      auto it = tensor_to_sigdef_name.find(lite_name);
       if (it == tensor_to_sigdef_name.end()) {
         return errors::Internal(
             "Cannot find signature def input name from tflite input tensor",
             name);
       }
       name = it->second;
+      input_tensor_to_index[lite_name] = info.second.second;
+    } else {
+      input_tensor_to_index[info.first] = info.second.second;
     }
     (*sigdef->mutable_inputs())[name] = info.second.first;
-    input_tensor_to_index[info.first] = info.second.second;
   }
   for (const auto& info : outputs) {
     auto name = info.first;
     if (has_lite_signature_def) {
-      auto it = tensor_to_sigdef_name.find(info.first);
+      const auto& lite_name = TfToTfLiteTensorName(name);
+      auto it = tensor_to_sigdef_name.find(lite_name);
       if (it == tensor_to_sigdef_name.end()) {
         return errors::Internal(
             "Cannot find signature def output name from tflite output tensor",
             name);
       }
       name = it->second;
+      output_tensor_to_index[lite_name] = info.second.second;
+    } else {
+      output_tensor_to_index[info.first] = info.second.second;
     }
     (*sigdef->mutable_outputs())[name] = info.second.first;
-    output_tensor_to_index[info.first] = info.second.second;
   }
   sigdef->set_method_name(method);
 
@@ -353,7 +359,10 @@ Status TfLiteSession::Run(
   // happen in-parallel.
   absl::MutexLock lock(&mutex_);
   for (const auto& input : inputs) {
-    const string& name = TfToTfLiteTensorName(input.first);
+    string name = input.first;
+    if (input_tensor_to_index_.find(name) == input_tensor_to_index_.end()) {
+      name = TfToTfLiteTensorName(input.first);
+    }
     if (input_tensor_to_index_.find(name) == input_tensor_to_index_.end()) {
       return errors::InvalidArgument("Missing input TFLite tensor: ", name);
     }
@@ -368,7 +377,10 @@ Status TfLiteSession::Run(
 
   outputs->clear();
   for (const auto& tfname : output_tensor_names) {
-    const string& name = TfToTfLiteTensorName(tfname);
+    string name = tfname;
+    if (output_tensor_to_index_.find(name) == output_tensor_to_index_.end()) {
+      name = TfToTfLiteTensorName(tfname);
+    }
     if (output_tensor_to_index_.find(name) == output_tensor_to_index_.end()) {
       return errors::InvalidArgument("Missing output TFLite tensor: ", name);
     }
