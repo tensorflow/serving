@@ -15,7 +15,7 @@ limitations under the License.
 
 // libevent based client implementation
 
-#include "tensorflow_serving/util/net_http/client/evhttp_connection.h"
+#include "tensorflow_serving/util/net_http/client/internal/evhttp_connection.h"
 
 #include "absl/strings/str_cat.h"
 #include "tensorflow_serving/util/net_http/internal/net_logging.h"

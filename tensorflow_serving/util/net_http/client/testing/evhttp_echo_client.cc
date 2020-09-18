@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <iostream>
 
-#include "tensorflow_serving/util/net_http/client/evhttp_connection.h"
+#include "tensorflow_serving/util/net_http/client/internal/evhttp_connection.h"
 
 namespace {
 

@@ -13,10 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-// API for the HTTP client
-
-#ifndef TENSORFLOW_SERVING_UTIL_NET_HTTP_CLIENT_EVHTTP_CONNECTION_H_
-#define TENSORFLOW_SERVING_UTIL_NET_HTTP_CLIENT_EVHTTP_CONNECTION_H_
+#ifndef TENSORFLOW_SERVING_UTIL_NET_HTTP_CLIENT_INTERNAL_EVHTTP_CONNECTION_H_
+#define TENSORFLOW_SERVING_UTIL_NET_HTTP_CLIENT_INTERNAL_EVHTTP_CONNECTION_H_
 
 #include <functional>
 #include <memory>
@@ -35,6 +33,7 @@ limitations under the License.
 #include "libevent/include/event2/util.h"
 
 // TODO(wenboz): move EventExecutor to net_http/common
+#include "tensorflow_serving/util/net_http/client/public/httpclient_interface.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
 
 namespace tensorflow {
@@ -43,36 +42,17 @@ namespace net_http {
 
 // The following types may be moved to an API interface in future.
 
-// Data to be copied
-struct ClientRequest {
-  typedef std::pair<absl::string_view, absl::string_view> HeaderKeyValue;
-
-  absl::string_view uri_path;
-  absl::string_view method;  // must be in upper-case
-  std::vector<HeaderKeyValue> headers;
-  absl::string_view body;
-};
-
-// Caller allocates the data for output
-struct ClientResponse {
-  typedef std::pair<std::string, std::string> HeaderKeyValue;
-
-  int status = 0;
-  std::vector<HeaderKeyValue> headers;
-  std::string body;
-
-  std::function<void()> done;  // callback
-};
-
-class EvHTTPConnection final {
+class EvHTTPConnection final : public HTTPClientInterface {
  public:
-  ~EvHTTPConnection();
+  EvHTTPConnection() = default;
+
+  ~EvHTTPConnection() override;
 
   EvHTTPConnection(const EvHTTPConnection& other) = delete;
   EvHTTPConnection& operator=(const EvHTTPConnection& other) = delete;
 
   // Terminates the connection.
-  void Terminate();
+  void Terminate() override;
 
   // Returns a new connection given an absolute URL.
   // Always treat the URL scheme as "http" for now.
@@ -94,20 +74,19 @@ class EvHTTPConnection final {
   // or any error has happened.
   // Returns false if any error.
   bool BlockingSendRequest(const ClientRequest& request,
-                           ClientResponse* response);
+                           ClientResponse* response) override;
 
   // Sends a request and returns immediately. The response will be handled
   // asynchronously via the response->done callback.
   // Returns false if any error in sending the request, or if the executor
   // has not been configured.
-  bool SendRequest(const ClientRequest& request, ClientResponse* response);
+  bool SendRequest(const ClientRequest& request,
+                   ClientResponse* response) override;
 
   // Sets the executor for processing requests asynchronously.
-  void SetExecutor(std::unique_ptr<EventExecutor> executor);
+  void SetExecutor(std::unique_ptr<EventExecutor> executor) override;
 
  private:
-  EvHTTPConnection() = default;
-
   struct event_base* ev_base_;
   struct evhttp_uri* http_uri_;
   struct evhttp_connection* evcon_;

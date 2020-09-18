@@ -18,11 +18,9 @@ limitations under the License.
 #include <memory>
 
 #include <gtest/gtest.h>
-
 #include "absl/memory/memory.h"
 #include "absl/synchronization/notification.h"
-
-#include "tensorflow_serving/util/net_http/client/evhttp_connection.h"
+#include "tensorflow_serving/util/net_http/client/internal/evhttp_connection.h"
 #include "tensorflow_serving/util/net_http/internal/fixed_thread_pool.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
