@@ -41,7 +41,7 @@ bool SendRequest(const char* url) {
   }
 
   std::cout << "Response received: " << std::endl
-            << "Status: " << response.status << std::endl;
+            << "Status: " << static_cast<int>(response.status) << std::endl;
 
   for (const auto& keyval : response.headers) {
     std::cout << keyval.first << " : " << keyval.second << std::endl;

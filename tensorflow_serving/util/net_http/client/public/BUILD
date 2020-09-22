@@ -2,7 +2,15 @@
 
 package(
     default_visibility = [
+        ":http_client_users",
         "//tensorflow_serving/util/net_http:__subpackages__",
+    ],
+)
+
+package_group(
+    name = "http_client_users",
+    packages = [
+        "//third_party/ecclesia/...",
     ],
 )
 

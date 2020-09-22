@@ -17,6 +17,7 @@ limitations under the License.
 #define THIRD_PARTY_TENSORFLOW_SERVING_UTIL_NET_HTTP_CLIENT_PUBLIC_HTTPCLIENT_INTERFACE_H_
 
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
+#include "tensorflow_serving/util/net_http/server/public/response_code_enum.h"
 
 // API for the HTTP Client
 // NOTE: This API is not yet finalized, and should be considered experimental.
@@ -39,7 +40,7 @@ struct ClientRequest {
 struct ClientResponse {
   typedef std::pair<std::string, std::string> HeaderKeyValue;
 
-  int status = 0;
+  HTTPStatusCode status = HTTPStatusCode::UNDEFINED;
   std::vector<HeaderKeyValue> headers;
   std::string body;
 

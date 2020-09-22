@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "absl/strings/str_cat.h"
 #include "tensorflow_serving/util/net_http/internal/net_logging.h"
+#include "tensorflow_serving/util/net_http/server/public/response_code_enum.h"
 
 namespace tensorflow {
 namespace serving {
@@ -103,7 +104,8 @@ namespace {
 
 // Copy ev response data to ClientResponse.
 void PopulateResponse(evhttp_request* req, ClientResponse* response) {
-  response->status = evhttp_request_get_response_code(req);
+  response->status =
+      static_cast<HTTPStatusCode>(evhttp_request_get_response_code(req));
 
   struct evkeyvalq* headers = evhttp_request_get_input_headers(req);
   struct evkeyval* header;
