@@ -100,6 +100,13 @@ Status RunSavedModelWarmup(
     status = tf_record_file_reader->ReadRecord(&record);
   }
 
+  // OUT_OF_RANGE error means EOF was reached, re-write it to OK; in this way
+  // the 'model_warm_up_latency' metric below records OK upon successful
+  // warm-up.
+  if (errors::IsOutOfRange(status)) {
+    status = Status::OK();
+  }
+
   const auto warmup_latency = GetLatencyMicroseconds(start_microseconds);
   model_warm_up_latency->GetCell(export_dir, status.ToString())
       ->Add(warmup_latency);
@@ -110,10 +117,7 @@ Status RunSavedModelWarmup(
         ". Please verify your warmup data is in TFRecord format.");
   }
 
-  // OUT_OF_RANGE error means EOF was reached, do not return error in this case
-  if (!errors::IsOutOfRange(status)) {
-    return status;
-  }
+  TF_RETURN_IF_ERROR(status);
 
   LOG(INFO) << "Finished reading warmup data for model at " << warmup_path
             << ". Number of warmup records read: " << num_warmup_records
