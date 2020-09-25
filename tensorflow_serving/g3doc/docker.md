@@ -22,7 +22,7 @@ One of the easiest ways to get started using TensorFlow Serving is with
 # Returns => { "predictions": [2.5, 3.0, 4.5] }
 </pre>
 
-For additional serving endpoints, see the <a href="./api_rest">Client REST API</a>.
+For additional serving endpoints, see the <a href="./api_rest.md">Client REST API</a>.
 
 ## Install Docker
 
