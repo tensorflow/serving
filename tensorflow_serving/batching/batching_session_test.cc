@@ -718,16 +718,6 @@ TEST_P(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
       "/tensorflow/serving/batching_session/processed_batch_size");
   int32 start_pad_value =
       GetPercentileTotal("/tensorflow/serving/batching_session/padding_size");
-  EXPECT_TRUE(
-      CheckDescriptor("/tensorflow/serving/batching_session/padding_size",
-                      "Tracks the padding size distribution on batches.",
-                      {"execution_batch_size"}));
-  EXPECT_TRUE(
-      CheckDescriptor("/tensorflow/serving/batching_session/input_batch_size",
-                      "Tracks the batch size distribution on the inputs.", {}));
-  EXPECT_TRUE(CheckDescriptor(
-      "/tensorflow/serving/batching_session/processed_batch_size",
-      "Tracks the batch size distribution on processing.", {}));
 
   // Arrange to capture the batch size.
   std::unique_ptr<BatchSizeCapturingSession> batch_size_capturing_session(
@@ -760,6 +750,16 @@ TEST_P(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
   EXPECT_EQ(
       start_pad_value + 1,
       GetPercentileTotal("/tensorflow/serving/batching_session/padding_size"));
+  EXPECT_TRUE(
+      CheckDescriptor("/tensorflow/serving/batching_session/padding_size",
+                      "Tracks the padding size distribution on batches.",
+                      {"execution_batch_size"}));
+  EXPECT_TRUE(
+      CheckDescriptor("/tensorflow/serving/batching_session/input_batch_size",
+                      "Tracks the batch size distribution on the inputs.", {}));
+  EXPECT_TRUE(CheckDescriptor(
+      "/tensorflow/serving/batching_session/processed_batch_size",
+      "Tracks the batch size distribution on processing.", {}));
 }
 
 TEST_P(BatchingSessionTest, UnsortedAllowedBatchSizesRejected) {
