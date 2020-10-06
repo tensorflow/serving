@@ -20,7 +20,7 @@ LABEL maintainer=gvasudevan@google.com
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
-ENV CUDNN_VERSION=8.0.2.39
+ENV CUDNN_VERSION=8.0.4.30
 ENV TF_TENSORRT_VERSION=7.1.3
 ENV CUDA=11.0
 
