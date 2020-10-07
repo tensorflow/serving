@@ -20,6 +20,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/types/span.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/status.h"
 
@@ -59,8 +60,54 @@ std::map<string, std::vector<int>> CalculateMaxDimSizes(
 //
 // Supported tensor ranks: from 1 to 6.
 
-Status AddPadding(const Tensor& tensor, const std::vector<int>& max_dim_sizes,
+Status AddPadding(const Tensor& tensor, absl::Span<const int> max_dim_sizes,
                   Tensor* padded_tensor);
+
+// Returns the smallest entry in `allowed_batch_sizes` that is greater than or
+// equal to `batch_size`. If `allowed_batch_sizes` is empty, simply returns
+// `batch_size`.
+int RoundToLowestAllowedBatchSize(absl::Span<const int> allowed_batch_sizes,
+                                  int batch_size);
+
+// Returns true iff all dims of shape1 are equal to dims of shape2 starting with
+// the first (not zeroth) dimension.
+// For example, for shapes [1, 2, 3] and [4, 2, 3] the result is true.
+bool AreShapesEqualExceptZeroDim(const TensorShape& shape1,
+                                 const TensorShape& shape2);
+
+// Returns the first dimension size (batching dimension) of each tensor in
+// `inputs`. If their first dimension sizes don't match, returns an error.
+template <typename TensorList, typename DimFunc, typename DimSizeFunc>
+Status ComputeTensorBatchSize(TensorList inputs, size_t* size, DimFunc dim_func,
+                              DimSizeFunc dim_size_func) {
+  if (inputs.empty()) {
+    return errors::InvalidArgument(
+        "Batching Run() must have at least one input tensor");
+  }
+
+  bool first = true;
+  for (const auto& tensor : inputs) {
+    if (dim_func(tensor) == 0) {
+      return errors::InvalidArgument(
+          "Batching Run() input tensors must have at least one "
+          "dimension");
+    }
+    const size_t this_size = dim_size_func(tensor, 0);
+
+    if (first) {
+      *size = this_size;
+      first = false;
+    } else {
+      if (this_size != *size) {
+        return errors::InvalidArgument(
+            "Batching Run() input tensors must have equal "
+            "0th-dimension size");
+      }
+    }
+  }
+  return Status::OK();
+}
+
 }  // namespace serving
 }  // namespace tensorflow
 #endif  // TENSORFLOW_SERVING_BATCHING_BATCHING_UTIL_H_

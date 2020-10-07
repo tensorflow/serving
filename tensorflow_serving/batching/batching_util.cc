@@ -21,6 +21,7 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/types.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/platform/env_time.h"
 
 namespace tensorflow {
 namespace serving {
@@ -48,7 +49,7 @@ struct OneDimPadding {
 // is ignored, because we don't perform padding in that dimension.
 template <int num_dims>
 Eigen::array<OneDimPadding, num_dims> CreatePadding(
-    Tensor tensor, const std::vector<int>& max_dim_sizes) {
+    Tensor tensor, absl::Span<const int> max_dim_sizes) {
   Eigen::array<OneDimPadding, num_dims> padding;
   for (unsigned int i = 0; i < max_dim_sizes.size(); ++i) {
     if (i > 0 && max_dim_sizes[i] - tensor.dim_size(i) > 0) {
@@ -101,7 +102,7 @@ struct PadTensor {
 // Only ranks from 1 to 6 are supported (like in PadOp).
 template <typename T>
 Status PadTensorOfSpecificType(const Tensor& tensor,
-                               const std::vector<int>& max_dim_sizes,
+                               absl::Span<const int> max_dim_sizes,
                                Tensor* output_tensor) {
   int num_dims = tensor.dims();
   switch (num_dims) {
@@ -180,7 +181,7 @@ std::map<string, std::vector<int>> CalculateMaxDimSizes(
   return max_dim_sizes;
 }
 
-Status AddPadding(const Tensor& tensor, const std::vector<int>& max_dim_sizes,
+Status AddPadding(const Tensor& tensor, absl::Span<const int> max_dim_sizes,
                   Tensor* padded_tensor) {
   const DataType input_dtype = tensor.dtype();
   Status padding_status;
@@ -202,5 +203,34 @@ Status AddPadding(const Tensor& tensor, const std::vector<int>& max_dim_sizes,
 #undef CASE
   return padding_status;
 }
+
+int RoundToLowestAllowedBatchSize(absl::Span<const int> allowed_batch_sizes,
+                                  int batch_size) {
+  if (allowed_batch_sizes.empty()) {
+    return batch_size;
+  }
+  for (int allowed_size : allowed_batch_sizes) {
+    if (allowed_size >= batch_size) {
+      return allowed_size;
+    }
+  }
+  LOG(WARNING) << "Maximum batch size greater than largest allowed size; "
+                  "ignoring allowed sizes constraint";
+  return batch_size;
+}
+
+bool AreShapesEqualExceptZeroDim(const TensorShape& shape1,
+                                 const TensorShape& shape2) {
+  if (shape1.dims() != shape2.dims()) {
+    return false;
+  }
+  for (int i = 1; i < shape1.dims(); ++i) {
+    if (shape1.dim_size(i) != shape2.dim_size(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 }  // namespace serving
 }  // namespace tensorflow

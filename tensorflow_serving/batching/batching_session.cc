@@ -154,21 +154,6 @@ std::vector<std::vector<std::pair<string, Tensor>>> GetTaskInputsVector(
   }
   return all_task_inputs;
 }
-// Returns true iff all dims of shape1 are equal to dims of shape2 starting with
-// the first (not zeroth) dimension.
-// For example, for shapes [1, 2, 3] and [4, 2, 3] the result is true.
-bool AreShapesEqualExceptZeroDim(const TensorShape& shape1,
-                                 const TensorShape& shape2) {
-  if (shape1.dims() != shape2.dims()) {
-    return false;
-  }
-  for (int i = 1; i < shape1.dims(); ++i) {
-    if (shape1.dim_size(i) != shape2.dim_size(i)) {
-      return false;
-    }
-  }
-  return true;
-}
 
 }  // namespace
 
@@ -271,11 +256,6 @@ class BatchingSession : public ServingSession {
   // are not all identical, returns an error.
   Status ComputeInputSize(const std::vector<std::pair<string, Tensor>>& inputs,
                           size_t* size) const;
-
-  // Returns the smallest entry in 'options_.allowed_batch_sizes' that is
-  // greater than or equal to 'batch_size'. If 'options_.allowed_batch_sizes' is
-  // empty, simply returns 'batch_size'.
-  int RoundToLowestAllowedBatchSize(int batch_size) const;
 
   // Merges the input tensors in a batch, via concatenation of correspondingly-
   // named tensors. Puts the merged inputs in the order they are in in the
@@ -458,52 +438,19 @@ BatchingSession::BatchingSession(const BatchingSessionOptions& options,
 
 Status BatchingSession::ComputeInputSize(
     const std::vector<std::pair<string, Tensor>>& inputs, size_t* size) const {
-  if (inputs.empty()) {
-    return errors::InvalidArgument(
-        "Batching session Run() must have at least one input tensor");
-  }
-
-  bool first = true;
-  for (const auto& entry : inputs) {
-    const Tensor& tensor = entry.second;
-
-    if (tensor.shape().dims() == 0) {
-      return errors::InvalidArgument(
-          "Batching session Run() input tensors must have at least one "
-          "dimension");
-    }
-    const size_t this_size = tensor.shape().dim_size(0);
-
-    if (first) {
-      *size = this_size;
-      first = false;
-    } else {
-      if (this_size != *size) {
-        return errors::InvalidArgument(
-            "Batching session Run() input tensors must have equal "
-            "0th-dimension size");
-      }
-    }
-  }
+  TF_RETURN_IF_ERROR(::tensorflow::serving::ComputeTensorBatchSize(
+      inputs, size,
+      [](const std::pair<std::string, Tensor>& tensor) {
+        return tensor.second.shape().dims();
+      },
+      [](const std::pair<std::string, Tensor>& tensor, size_t dim) {
+        return tensor.second.shape().dim_size(dim);
+      }));
   for (const auto& entry : inputs) {
     const Tensor& tensor = entry.second;
     RecordInputBatchSize(tensor.shape().dim_size(0));
   }
   return Status::OK();
-}
-
-int BatchingSession::RoundToLowestAllowedBatchSize(int batch_size) const {
-  if (options_.allowed_batch_sizes.empty()) {
-    return batch_size;
-  }
-  for (int allowed_size : options_.allowed_batch_sizes) {
-    if (allowed_size >= batch_size) {
-      return allowed_size;
-    }
-  }
-  LOG(ERROR) << "Maximum batch size greater than largest allowed size; "
-                "ignoring allowed sizes constraint";
-  return batch_size;
 }
 
 Status BatchingSession::MergeInputTensors(
@@ -516,7 +463,7 @@ Status BatchingSession::MergeInputTensors(
   }
 
   const int lowest_allowed_batch_size =
-      RoundToLowestAllowedBatchSize(batch.size());
+      RoundToLowestAllowedBatchSize(options_.allowed_batch_sizes, batch.size());
   const int padding_size = lowest_allowed_batch_size - batch.size();
   RecordPaddingSize(padding_size, lowest_allowed_batch_size);
   RecordProcessedBatchSize(lowest_allowed_batch_size);
@@ -620,8 +567,9 @@ Status BatchingSession::SplitOutputTensors(
   for (int i = 0; i < batch->num_tasks(); ++i) {
     task_sizes_plus_optional_padding.push_back(batch->task(i).zeroth_dim_size);
   }
-  const int padding_size =
-      RoundToLowestAllowedBatchSize(batch->size()) - batch->size();
+  const int padding_size = RoundToLowestAllowedBatchSize(
+                               options_.allowed_batch_sizes, batch->size()) -
+                           batch->size();
   if (padding_size > 0) {
     task_sizes_plus_optional_padding.push_back(padding_size);
   }

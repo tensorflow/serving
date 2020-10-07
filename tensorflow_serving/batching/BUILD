@@ -57,6 +57,12 @@ cc_library(
 )
 
 cc_library(
+    name = "batching_options",
+    hdrs = ["batching_options.h"],
+    deps = [],
+)
+
+cc_library(
     name = "batching_session",
     srcs = ["batching_session.cc"],
     hdrs = ["batching_session.h"],
@@ -64,9 +70,10 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":batching_options",
         ":batching_util",
+        ":incremental_barrier",
         ":threadsafe_status",
-        "//tensorflow_serving/batching:incremental_barrier",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/util:hash",
         "@com_google_absl//absl/types:optional",
@@ -148,6 +155,7 @@ cc_library(
     srcs = ["batching_util.cc"],
     hdrs = ["batching_util.h"],
     deps = [
+        "@com_google_absl//absl/types:span",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
     ],

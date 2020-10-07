@@ -653,11 +653,10 @@ TEST_P(BatchingSessionTest, RequestWithIncompatibleInputTensorSizes) {
       {{"input_0", "input_1"}, {"output"}}, CreateHalfPlusTwoSession(),
       &batching_session));
 
-  ExpectError(
-      "Batching session Run() input tensors must have equal 0th-dimension size",
-      {{"input_0", test::AsTensor<int>({3}, {1})},
-       {"input_1", test::AsTensor<int>({5, 7}, {2})}},
-      {"output"}, batching_session.get());
+  ExpectError("Batching Run() input tensors must have equal 0th-dimension size",
+              {{"input_0", test::AsTensor<int>({3}, {1})},
+               {"input_1", test::AsTensor<int>({5, 7}, {2})}},
+              {"output"}, batching_session.get());
 
   // We expect no change.
   EXPECT_EQ(start_input_value,
