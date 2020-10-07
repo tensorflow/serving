@@ -53,5 +53,11 @@ int main(int argc, char** argv) {
   }
   std::cout << "Successfully created TF Lite Session for model file: "
             << filename << std::endl;
+
+  std::cout << "Signatures: " << std::endl;
+  for (const auto& signature_info : signatures) {
+    std::cout << "  " << signature_info.first << ": "
+              << signature_info.second.DebugString() << std::endl;
+  }
   return 0;
 }

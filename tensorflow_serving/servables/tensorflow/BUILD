@@ -390,7 +390,7 @@ cc_binary(
     srcs = ["tflite_session_main.cc"],
     deps = [
         ":tflite_session_lib",
-        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
