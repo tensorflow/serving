@@ -465,6 +465,12 @@ Status BatchingSession::MergeInputTensors(
   const int lowest_allowed_batch_size =
       RoundToLowestAllowedBatchSize(options_.allowed_batch_sizes, batch.size());
   const int padding_size = lowest_allowed_batch_size - batch.size();
+  profiler::TraceMe trace_me([lowest_allowed_batch_size, padding_size]() {
+    return profiler::TraceMeEncode(
+        "MergeInputTensors",
+        {{"batch_size_after_padding", lowest_allowed_batch_size},
+         {"padding_amount", padding_size}});
+  });
   RecordPaddingSize(padding_size, lowest_allowed_batch_size);
   RecordProcessedBatchSize(lowest_allowed_batch_size);
 
