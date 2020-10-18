@@ -537,6 +537,18 @@ Status ServerCore::UpdateModelVersionLabelMap() {
     return Status::OK();
   }
 
+  if (VLOG_IS_ON(4)) {
+    VLOG(4) << "Updated model label map is: ";
+    for (const auto& model_name_and_version_labels : *new_label_map) {
+      for (const auto& label_and_version :
+           model_name_and_version_labels.second) {
+        VLOG(4) << "\t Model name: " << model_name_and_version_labels.first
+                << "\t label: " << label_and_version.first
+                << " at version: " << label_and_version.second;
+      }
+    }
+  }
+
   mutex_lock l(model_labels_to_versions_mu_);
   model_labels_to_versions_.swap(new_label_map);
 
