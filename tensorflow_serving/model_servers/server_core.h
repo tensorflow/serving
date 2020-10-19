@@ -156,6 +156,12 @@ class ServerCore : public Manager {
 
     // If set to true, the server will fail to start up (or fail a config
     // reload) if, for any configured model, no versions of the model are found
+    // in the filesystem under the model's base path.
+    ABSL_DEPRECATED("Use servable_versions_always_present.")
+    bool fail_if_no_model_versions_found = false;
+
+    // If set to true, the server will fail to start up (or fail a config
+    // reload) if, for any configured model, no versions of the model are found
     // in the filesystem under the model's base path. In addition, if the
     // filesystem polling finds no servables under the base path for a
     // configured model, it will do nothing, rather than unloading all versions.
