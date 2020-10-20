@@ -31,5 +31,89 @@ _remote_predict_op_module = tf.load_op_library(
     os.path.join(tf.compat.v1.resource_loader.get_data_files_path(),
                  '_remote_predict_op.so'))
 
-# Alias
-run = gen_remote_predict_op.tf_serving_remote_predict
+
+# Aliases
+def run(input_tensor_alias,
+        input_tensors,
+        output_tensor_alias,
+        target_address,
+        model_name,
+        model_version=-1,
+        max_rpc_deadline_millis=3000,
+        output_types=None,
+        name=None):
+  """Runs a predict in remote process through rpc.
+
+  Args:
+    input_tensor_alias: input tensor alias for Predict
+    input_tensors: input tensors for Predict
+    output_tensor_alias: output tensor alias for Predict
+    target_address: target_address where the rpc is sent to
+    model_name: model_name that the Predict is running on
+    model_version: the model version for the Predict call. If unset, the highest
+      version available for serving will be targeted.
+    max_rpc_deadline_millis: rpc deadline in millis
+    output_types: output types for Predict
+    name: name for the op in the graph
+
+  Returns:
+    output_tensors as a result of the Predict.
+
+  Raises ValueError if model_name value is missing.
+  """
+  if model_name is None:
+    raise ValueError('model_name must be specified.')
+  return (gen_remote_predict_op.tf_serving_remote_predict(
+      input_tensor_alias,
+      input_tensors,
+      output_tensor_alias,
+      target_address=target_address,
+      model_name=model_name,
+      model_version=model_version,
+      fail_op_on_rpc_error=True,
+      max_rpc_deadline_millis=max_rpc_deadline_millis,
+      output_types=output_types,
+      name=name))[2]
+
+
+def run_returning_status(input_tensor_alias,
+                         input_tensors,
+                         output_tensor_alias,
+                         target_address,
+                         model_name,
+                         model_version=-1,
+                         max_rpc_deadline_millis=3000,
+                         output_types=None,
+                         name=None):
+  """Runs a predict in remote process through rpc.
+
+  Args:
+    input_tensor_alias: input tensor alias for Predict
+    input_tensors: input tensors for Predict
+    output_tensor_alias: output tensor alias for Predict
+    target_address: target_address where the rpc is sent to
+    model_name: model_name that the Predict is running on
+    model_version: the model version for the Predict call. If unset, the highest
+      version available for serving will be targeted.
+    max_rpc_deadline_millis: rpc deadline in millis
+    output_types: output types for Predict
+    name: name for the op in the graph.
+
+  Returns:
+    status_code, status_error_message and output_tensors.
+
+  Raises ValueError if model_name value is missing.
+  """
+  if model_name is None:
+    raise ValueError('model_name must be specified.')
+  return (gen_remote_predict_op.tf_serving_remote_predict(
+      input_tensor_alias,
+      input_tensors,
+      output_tensor_alias,
+      target_address=target_address,
+      model_name=model_name,
+      model_version=model_version,
+      fail_op_on_rpc_error=False,
+      max_rpc_deadline_millis=max_rpc_deadline_millis,
+      output_types=output_types,
+      name=name))

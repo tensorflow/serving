@@ -15,6 +15,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_EXPERIMENTAL_TENSORFLOW_OPS_REMOTE_PREDICT_KERNELS_REMOTE_PREDICT_OP_KERNEL_H_
 #define TENSORFLOW_SERVING_EXPERIMENTAL_TENSORFLOW_OPS_REMOTE_PREDICT_KERNELS_REMOTE_PREDICT_OP_KERNEL_H_
 
+#include "google/protobuf/wrappers.pb.h"
 #include "google/protobuf/map.h"
 #include "absl/status/status.h"
 #include "absl/time/time.h"
@@ -23,10 +24,14 @@ limitations under the License.
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/resource_mgr.h"
 #include "tensorflow/core/framework/shape_inference.h"
+#include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/kernels/ops_util.h"
 #include "tensorflow/core/lib/core/threadpool.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
-#include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
+#include "tensorflow/core/protobuf/named_tensor.pb.h"
+#include "tensorflow_serving/apis/model.pb.h"
+#include "tensorflow_serving/apis/predict.pb.h"
 
 namespace tensorflow {
 namespace serving {
@@ -134,9 +139,12 @@ class RemotePredictOp : public AsyncOpKernel {
     // Process the response.
     if (!rpc_status.ok()) {
       if (fail_op_on_rpc_error) {
-        OP_REQUIRES_ASYNC(context, rpc_status.ok(),
-                          tensorflow::errors::Aborted(rpc_status.message()),
-                          rpc_cleaner.release());
+        OP_REQUIRES_OK_ASYNC(
+            context,
+            tensorflow::Status(
+                static_cast<tensorflow::error::Code>(rpc_status.code()),
+                rpc_status.message()),
+            rpc_cleaner.release());
       } else {
         // Allocate some empty output for the output_tensors.
         for (int i = 0; i < output_tensors_list.size(); ++i) {

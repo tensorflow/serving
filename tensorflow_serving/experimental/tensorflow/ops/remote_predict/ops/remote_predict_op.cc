@@ -74,6 +74,7 @@ REGISTER_OP("TfServingRemotePredict")
 
       return Status::OK();
     })
+    .SetIsStateful()
     .Doc(R"doc(
 Invokes Predict on a remote graph.
 fail_op_on_rpc_error: If set true, the Op fails if the rpc fails, and returns
