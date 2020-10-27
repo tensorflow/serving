@@ -101,6 +101,7 @@ RUN pip3 --no-cache-dir install \
     keras_preprocessing>=1.1.0 \
     mock \
     numpy \
+    portpicker \
     requests \
      --ignore-installed six>=1.12.0
 
