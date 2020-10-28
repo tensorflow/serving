@@ -448,6 +448,16 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "profiler_client",
+    srcs = ["profiler_client.py"],
+    python_version = "PY3",
+    srcs_version = "PY2AND3",
+    deps = [
+        "@org_tensorflow//tensorflow:tensorflow_py",
+    ],
+)
+
 pkg_tar(
     name = "tensorflow_model_server_tar",
     srcs = [
