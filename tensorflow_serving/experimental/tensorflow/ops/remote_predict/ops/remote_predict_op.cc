@@ -25,6 +25,7 @@ REGISTER_OP("TfServingRemotePredict")
     .Attr("model_version: int = -1")
     .Attr("fail_op_on_rpc_error: bool = true")
     .Attr("max_rpc_deadline_millis: int = 30000")
+    .Attr("signature_name: string = 'serving_default'")
     .Input("input_tensor_aliases: string")
     .Input("input_tensors: T")
     .Input("output_tensor_aliases: string")
@@ -83,6 +84,8 @@ fail_op_on_rpc_error: If set true, the Op fails if the rpc fails, and returns
   Set true by default.
 max_rpc_deadline_millis: The rpc deadline for remote predict. The actual
 deadline is min(incoming_rpc_deadline, max_rpc_deadline_millis).
+signature_name: the signature def for remote graph inference, defaulting to 
+"serving_default".
 target_address: Address of the server hosting the remote graph.
 model_name: Model name of the remote TF graph.
 model_version: the target version for the Predict call. When unset, the

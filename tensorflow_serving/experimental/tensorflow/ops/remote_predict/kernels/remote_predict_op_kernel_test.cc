@@ -90,7 +90,7 @@ using RemotePredict = ops::TfServingRemotePredict;
     const absl::optional<::absl::Duration> deadline = absl::nullopt,
     bool fail_on_rpc_error = true,
     const string& target_address = "target_address",
-    int64 target_model_version = -1) {
+    int64 target_model_version = -1, const string& signature_name = "") {
   const Scope scope = Scope::DisabledShapeInferenceScope();
   // Model_name will decide the result of the RPC.
   auto input_tensor_aliases = ops::Const(
@@ -102,7 +102,8 @@ using RemotePredict = ops::TfServingRemotePredict;
   std::vector<Output> fetch_outputs;
   RemotePredict::Attrs attrs = RemotePredict::Attrs()
                                    .TargetAddress(target_address)
-                                   .ModelName(model_name);
+                                   .ModelName(model_name)
+                                   .SignatureName(signature_name);
 
   if (target_model_version >= 0) {
     attrs = attrs.ModelVersion(target_model_version);

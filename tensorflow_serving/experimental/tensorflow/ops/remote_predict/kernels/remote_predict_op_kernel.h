@@ -54,6 +54,8 @@ class RemotePredictOp : public AsyncOpKernel {
                                              &max_rpc_deadline_millis_));
     OP_REQUIRES_OK(context, context->GetAttr("fail_op_on_rpc_error",
                                              &fail_op_on_rpc_error_));
+    OP_REQUIRES_OK(context,
+                   context->GetAttr("signature_name", &signature_name_));
     absl::Status prediction_service_status =
         PredictionServiceStubType::Create(target_address, &prediction_service_);
     OP_REQUIRES(context, prediction_service_status.ok(),
@@ -80,6 +82,9 @@ class RemotePredictOp : public AsyncOpKernel {
     PredictRequest* request = new PredictRequest();
 
     request->mutable_model_spec()->set_name(model_name_);
+
+    request->mutable_model_spec()->set_signature_name(signature_name_);
+
     if (model_version_ >= 0) {
       request->mutable_model_spec()->mutable_version()->set_value(
           model_version_);
@@ -179,6 +184,7 @@ class RemotePredictOp : public AsyncOpKernel {
   int64 model_version_;
   bool fail_op_on_rpc_error_;
   int64 max_rpc_deadline_millis_;
+  string signature_name_;
   std::unique_ptr<PredictionServiceStubType> prediction_service_;
 };
 

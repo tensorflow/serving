@@ -41,7 +41,8 @@ def run(input_tensor_alias,
         model_version=-1,
         max_rpc_deadline_millis=3000,
         output_types=None,
-        name=None):
+        name=None,
+        signature_name='serving_default'):
   """Runs a predict in remote process through rpc.
 
   Args:
@@ -55,6 +56,7 @@ def run(input_tensor_alias,
     max_rpc_deadline_millis: rpc deadline in millis
     output_types: output types for Predict
     name: name for the op in the graph
+    signature_name: the signature def for remote graph inference
 
   Returns:
     output_tensors as a result of the Predict.
@@ -72,6 +74,7 @@ def run(input_tensor_alias,
       model_version=model_version,
       fail_op_on_rpc_error=True,
       max_rpc_deadline_millis=max_rpc_deadline_millis,
+      signature_name=signature_name,
       output_types=output_types,
       name=name))[2]
 
@@ -84,7 +87,8 @@ def run_returning_status(input_tensor_alias,
                          model_version=-1,
                          max_rpc_deadline_millis=3000,
                          output_types=None,
-                         name=None):
+                         name=None,
+                         signature_name='serving_default'):
   """Runs a predict in remote process through rpc.
 
   Args:
@@ -97,7 +101,8 @@ def run_returning_status(input_tensor_alias,
       version available for serving will be targeted.
     max_rpc_deadline_millis: rpc deadline in millis
     output_types: output types for Predict
-    name: name for the op in the graph.
+    name: name for the op in the graph
+    signature_name: the signature def for remote graph inference
 
   Returns:
     status_code, status_error_message and output_tensors.
@@ -115,5 +120,6 @@ def run_returning_status(input_tensor_alias,
       model_version=model_version,
       fail_op_on_rpc_error=False,
       max_rpc_deadline_millis=max_rpc_deadline_millis,
+      signature_name=signature_name,
       output_types=output_types,
       name=name))
