@@ -64,6 +64,24 @@ auto* runtime_latency = monitoring::Sampler<3>::New(
     },  // Scale of 10, power of 1.8 with bucket count 33 (~20 minutes).
     monitoring::Buckets::Exponential(10, 1.8, 33));
 
+auto* runtime_latency_total = monitoring::Counter<2>::New(
+    "/tensorflow/serving/per_model_latency_total_usec",
+    "Total inference time across all graphs (microseconds).", "API", "runtime");
+
+auto* per_model_count_total = monitoring::Counter<3>::New(
+    "/tensorflow/serving/per_model_count_total",
+    "The total number of successful requests.", "model", "API", "runtime");
+auto* all_models_count_total = monitoring::Counter<2>::New(
+    "/tensorflow/serving/all_models_count_total",
+    "Aggregated number of requests across all models.", "API", "runtime");
+
+auto* per_model_fail_count_total = monitoring::Counter<3>::New(
+    "/tensorflow/serving/per_model_fail_count_total",
+    "The total number of failed requests.", "model", "API", "runtime");
+auto* all_models_fail_count_total = monitoring::Counter<2>::New(
+    "/tensorflow/serving/all_models_fail_count_total",
+    "Aggregated number of failed requests across all models.", "API", "runtime");
+
 // Returns the number of examples in the Input.
 int NumInputExamples(const internal::SerializedInput& input) {
   switch (input.kind_case()) {
@@ -304,6 +322,17 @@ Status EstimateResourceFromPathUsingDiskState(const string& path,
 void RecordRuntimeLatency(const string& model_name, const string& api,
                           const string& runtime, int64 latency_usec) {
   runtime_latency->GetCell(model_name, api, runtime)->Add(latency_usec);
+  runtime_latency_total->GetCell(api,runtime)->IncrementBy(latency_usec);
+}
+void UpdateSuccessfulPredictionCounters(const string& model_name, const string& api, 
+                              const string& runtime) {
+  per_model_count_total->GetCell(model_name, api, runtime)->IncrementBy(1);
+  all_models_count_total->GetCell(api,runtime)->IncrementBy(1);
+}
+void UpdateFailedPredictionCounters(const string& model_name, const string& api, 
+                              const string& runtime) {
+  per_model_fail_count_total->GetCell(model_name, api, runtime)->IncrementBy(1);
+  all_models_fail_count_total->GetCell(api,runtime)->IncrementBy(1);
 }
 
 }  // namespace serving
