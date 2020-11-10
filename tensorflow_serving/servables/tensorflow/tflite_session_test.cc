@@ -499,14 +499,14 @@ void BM_MobileNet(benchmark::State& state) {
         TfLiteSession::Create(std::move(model_bytes), &sess, &signatures));
     session = sess.release();
   }
-  std::vector<int8> x_data(1 * 224 * 224 * 3, 1);
-  Tensor x = test::AsTensor<int8>(x_data, TensorShape({1, 224, 224, 3}));
+  std::vector<uint8> x_data(1 * 224 * 224 * 3, 1);
+  Tensor x = test::AsTensor<uint8>(x_data, TensorShape({1, 224, 224, 3}));
   std::vector<Tensor> outputs;
   testing::UseRealTime();
   for (auto _ : state) {
     outputs.clear();
     TF_ASSERT_OK(session->Run(
-        {{"x:0", x}}, {"MobilenetV1/Predictions/Reshape_1"}, {}, &outputs));
+        {{"input", x}}, {"MobilenetV1/Predictions/Reshape_1"}, {}, &outputs));
   }
 }
 BENCHMARK(BM_MobileNet)->ThreadRange(1, 64);
