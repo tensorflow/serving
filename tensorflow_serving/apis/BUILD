@@ -1,9 +1,6 @@
 # Description: Tensorflow Serving APIs.
 
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
-load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library")
-load("//tensorflow_serving:serving.bzl", "serving_tensorflow_proto_dep")
+load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
 load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
 
 package(
@@ -334,6 +331,11 @@ tf_pyclif_proto_library(
     name = "inference_pyclif",
     proto_lib = ":inference_proto",
     proto_srcfile = "inference.proto",
+)
+
+tf_jspb_proto_library(
+    name = "inference_jspb_proto",
+    deps = [":inference_proto"],
 )
 
 serving_proto_library(
