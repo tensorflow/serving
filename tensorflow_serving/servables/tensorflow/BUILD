@@ -368,11 +368,13 @@ cc_test(
     data = [
         "//tensorflow_serving/servables/tensorflow/testdata:mobilenet_v1_quant_tflite",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite_with_sigdef",
     ],
     deps = [
         ":tflite_session_lib",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
+        "@com_google_protobuf//:protobuf",
         "@flatbuffers",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:lib",

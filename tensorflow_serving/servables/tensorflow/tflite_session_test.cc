@@ -30,6 +30,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/logging.h"
+#include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/platform/test_benchmark.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/config.pb.h"
@@ -44,11 +45,16 @@ namespace {
 
 using ::testing::_;
 using ::testing::Pair;
+using ::testing::SizeIs;
 using ::testing::UnorderedElementsAre;
 
 constexpr char kTestModel[] =
     "/servables/tensorflow/testdata/saved_model_half_plus_two_tflite/00000123/"
     "model.tflite";
+
+constexpr char kTestModelWithSigdef[] =
+    "/servables/tensorflow/testdata/"
+    "saved_model_half_plus_two_tflite_with_sigdef/00000123/model.tflite";
 
 constexpr char kMobileNetModel[] =
     "/servables/tensorflow/testdata/mobilenet_v1_quant_tflite/00000123/"
@@ -110,6 +116,69 @@ TEST(TfLiteSession, BasicTest) {
   }
 }
 
+TEST(TfLiteSession, ModelFromLegacyConverterWithSigdef) {
+  // A model converted with TF v1 converter, having a signature def.
+  // The signature def references an input tensor named "tflite_input:0", but
+  // the converter striped the tensor name to "tflite_input".
+  string model_bytes;
+  TF_ASSERT_OK(ReadFileToString(tensorflow::Env::Default(),
+                                test_util::TestSrcDirPath(kTestModelWithSigdef),
+                                &model_bytes));
+
+  ::google::protobuf::Map<string, SignatureDef> signatures;
+  std::unique_ptr<TfLiteSession> session;
+  TF_ASSERT_OK(
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+  EXPECT_EQ(signatures.size(), 1);
+  EXPECT_EQ(signatures.begin()->first, "serving_default");
+  // While, in the model, the tensor name of input "x" is "tflite_input:0". in
+  // the output signature the name must have falled back to "tflite_input".
+  EXPECT_THAT(signatures.begin()->second, test_util::EqualsProto(R"(
+                inputs {
+                  key: "x"
+                  value {
+                    name: "tflite_input"
+                    dtype: DT_FLOAT
+                    tensor_shape {
+                      dim { size: 1 }
+                      dim { size: 1 }
+                    }
+                  }
+                }
+                outputs {
+                  key: "y"
+                  value {
+                    name: "y"
+                    dtype: DT_FLOAT
+                    tensor_shape {
+                      dim { size: 1 }
+                      dim { size: 1 }
+                    }
+                  }
+                }
+                method_name: "tensorflow/serving/predict"
+              )"));
+
+  Tensor input = test::AsTensor<float>({1.0, 2.0, 3.0}, TensorShape({3}));
+  {
+    // Use TF Lite tensor names.
+    std::vector<Tensor> outputs;
+    TF_EXPECT_OK(session->Run({{"tflite_input", input}}, {"y"}, {}, &outputs));
+    ASSERT_EQ(outputs.size(), 1);
+    test::ExpectTensorEqual<float>(
+        outputs[0], test::AsTensor<float>({2.5, 3, 3.5}, TensorShape({3})));
+  }
+  {
+    // Use TF tensor names (with `:0` suffix).
+    std::vector<Tensor> outputs;
+    TF_EXPECT_OK(
+        session->Run({{"tflite_input:0", input}}, {"y:0"}, {}, &outputs));
+    ASSERT_EQ(outputs.size(), 1);
+    test::ExpectTensorEqual<float>(
+        outputs[0], test::AsTensor<float>({2.5, 3, 3.5}, TensorShape({3})));
+  }
+}
+
 constexpr char kTestModelInputList[] = "list";
 constexpr char kTestModelInputShape[] = "shape";
 constexpr char kTestModelOutput[] = "output";
@@ -146,16 +215,9 @@ tensorflow::DataType ToTfTensorType(tflite::TensorType tflite_type) {
   }
 }
 
-// Returns a serialized FlatBuffer tflite model.
-//
-// The model has two inputs (kTestModelInputList|Shape) and one output
-// kTestModelOutput. The output is list that is reshaped to shape via
-// tf.reshape operator.
-//
-// Elements of list are expected to be of `tensor_type` type. `use_flex_op`
-// sets up the model to use the `Reshape` *flex* op as opposed to using the
-// builtin `Reshape` op from TF Lite.
-string BuildTestModel(tflite::TensorType tensor_type, bool use_flex_op,
+string BuildTestModel(tflite::TensorType tensor_type,
+                      const string& input1_tensor_name,
+                      const string& input2_tensor_name, bool use_flex_op,
                       std::map<string, SignatureDef>* signature_def_map) {
   std::vector<int32_t> inputs;
   std::vector<int32_t> outputs;
@@ -169,14 +231,14 @@ string BuildTestModel(tflite::TensorType tensor_type, bool use_flex_op,
   inputs.push_back(tensors.size());
   tensors.push_back(CreateTensor(builder, builder.CreateVector<int>({1}),
                                  tensor_type, /*buffer=*/0,
-                                 builder.CreateString(kTestModelInputList),
+                                 builder.CreateString(input1_tensor_name),
                                  /*quantization=*/0, /*is_variable=*/false));
 
   // Input shape: 1D tensor for shape.
   inputs.push_back(tensors.size());
   tensors.push_back(CreateTensor(builder, builder.CreateVector<int>({1}),
                                  tflite::TensorType_INT32, /*buffer=*/0,
-                                 builder.CreateString(kTestModelInputShape),
+                                 builder.CreateString(input2_tensor_name),
                                  /*quantization=*/0, /*is_variable=*/false));
 
   // Output: Reshaped list to shape.
@@ -245,6 +307,21 @@ string BuildTestModel(tflite::TensorType tensor_type, bool use_flex_op,
 
   return string(reinterpret_cast<char*>(builder.GetBufferPointer()),
                 builder.GetSize());
+}
+
+// Returns a serialized FlatBuffer tflite model.
+//
+// The model has two inputs (kTestModelInputList|Shape) and one output
+// kTestModelOutput. The output is list that is reshaped to shape via
+// tf.reshape operator.
+//
+// Elements of list are expected to be of `tensor_type` type. `use_flex_op`
+// sets up the model to use the `Reshape` *flex* op as opposed to using the
+// builtin `Reshape` op from TF Lite.
+string BuildTestModel(tflite::TensorType tensor_type, bool use_flex_op,
+                      std::map<string, SignatureDef>* signature_def_map) {
+  return BuildTestModel(tensor_type, kTestModelInputList, kTestModelInputShape,
+                        use_flex_op, signature_def_map);
 }
 
 TEST(TfLiteSession, ProcessStrings) {
@@ -393,6 +470,51 @@ TEST(TfLiteSession, MultipleSignatureDef) {
   EXPECT_EQ(result_signature2.outputs().at(kSignatureOutput).name(),
             kTestModelOutput);
   EXPECT_EQ(result_signature2.method_name(), kClassifyMethodName);
+}
+
+TEST(TfLiteSession, SignatureDefWithCommonTensorPrefix) {
+  // Attempts to normalize behaviors of different TFLite converter versions
+  // (which at one point striped the :<index> suffix from tensor names),
+  // must not create name collisions when signatures have tensors with the same
+  // prefix.
+  SignatureDef signature;
+  protobuf::TextFormat::ParseFromString(R"(
+          inputs {
+            key: "x0"
+            value {
+              name: "myTensor:0"
+              dtype: DT_FLOAT
+              tensor_shape { dim { size: 1 } }
+            }
+          }
+          inputs {
+            key: "x1"
+            value {
+              name: "myTensor:1"
+              dtype: DT_FLOAT
+              tensor_shape { dim { size: 1 } }
+            }
+          }
+          method_name: "tensorflow/serving/predict"
+        )",
+                                        &signature);
+  std::map<string, SignatureDef> signature_def_map = {
+      {kDefaultServingSignatureDefKey, signature}};
+  string model_bytes =
+      BuildTestModel(tflite::TensorType_STRING, "myTensor:0", "myTensor:1",
+                     /*use_flex_op=*/false, &signature_def_map);
+  ::google::protobuf::Map<string, SignatureDef> signatures;
+  std::unique_ptr<TfLiteSession> session;
+  TF_ASSERT_OK(
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+
+  // Inputs must still be processed as two different tensors.
+  auto outputSigdef = signatures[kDefaultServingSignatureDefKey];
+  std::set<string> tensorNamesSet;
+  for (const auto& input : outputSigdef.inputs()) {
+    tensorNamesSet.insert(input.second.name());
+  }
+  EXPECT_THAT(tensorNamesSet, SizeIs(2));
 }
 
 TEST(TfLiteSession, SimpleSignatureDefAndRun) {

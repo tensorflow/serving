@@ -73,12 +73,30 @@ Status TfLiteTypeToTfType(TfLiteType tflite_type, DataType* type) {
   return Status::OK();
 }
 
-std::string CanonicalTfLiteTensorName(const string& tf_name) {
+std::string TfToTfLiteLegacyTensorName(const string& tf_name) {
   // TF variable names have ':0' suffix, early versions of the TF Lite converter
-  // used to strip this suffix. Enforce this behavior for compatibility.
+  // used to strip this suffix.
   std::pair<absl::string_view, absl::string_view> name_index =
       absl::StrSplit(tf_name, absl::MaxSplits(':', 1));
   return std::string(name_index.first);
+}
+
+// Checks that an input/output tensor actually exists. If not, attempts to
+// update the tensor name with legacy TFLite tensor naming.
+Status FixTfLiteTensorName(const std::map<string, int>& tensor_name_map,
+                           string& tensor_name) {
+  if (tensor_name_map.find(tensor_name) != tensor_name_map.end()) {
+    return Status::OK();
+  }
+
+  // Try to update with the legacy tflite tensor name.
+  const string& legacy_tflite_name = TfToTfLiteLegacyTensorName(tensor_name);
+  if (tensor_name_map.find(legacy_tflite_name) != tensor_name_map.end()) {
+    tensor_name = legacy_tflite_name;
+    return Status::OK();
+  }
+
+  return errors::Internal("Unknown tensor '", tensor_name, "'.");
 }
 
 Status TfLiteTensorToTensorInfo(const TfLiteTensor* tflite_tensor,
@@ -244,11 +262,11 @@ Status TfLiteSession::Create(string&& buffer,
   std::map<string, int> input_tensor_to_index;
   std::map<string, int> output_tensor_to_index;
   for (const auto& info : inputs) {
-    const string& tflite_tensor_name = CanonicalTfLiteTensorName(info.first);
+    const string& tflite_tensor_name = info.first;
     input_tensor_to_index[tflite_tensor_name] = info.second.second;
   }
   for (const auto& info : outputs) {
-    const string& tflite_tensor_name = CanonicalTfLiteTensorName(info.first);
+    const string& tflite_tensor_name = info.first;
     output_tensor_to_index[tflite_tensor_name] = info.second.second;
   }
 
@@ -265,17 +283,25 @@ Status TfLiteSession::Create(string&& buffer,
 
   signatures->clear();
   if (has_lite_signature_def) {
-    // Ensure that canonical TFLite tensor names are used in signature defs
+    // Check that input/output tensors in the signature defs refer to existing
+    // tensors.
+    // If not found, try to match with legacy TFLite name (without suffix).
     for (const auto& signature_item : signature_defs) {
       SignatureDef* tflite_signature = &(*signatures)[signature_item.first];
       tflite_signature->CopyFrom(signature_item.second);
       for (auto& input : *tflite_signature->mutable_inputs()) {
         TensorInfo* tensor_info = &input.second;
-        tensor_info->set_name(CanonicalTfLiteTensorName(tensor_info->name()));
+        TF_RETURN_WITH_CONTEXT_IF_ERROR(
+            FixTfLiteTensorName(input_tensor_to_index,
+                                *tensor_info->mutable_name()),
+            "Signature input ", input.first, " references an unknown tensor");
       }
       for (auto& output : *tflite_signature->mutable_outputs()) {
         TensorInfo* tensor_info = &output.second;
-        tensor_info->set_name(CanonicalTfLiteTensorName(tensor_info->name()));
+        TF_RETURN_WITH_CONTEXT_IF_ERROR(
+            FixTfLiteTensorName(output_tensor_to_index,
+                                *tensor_info->mutable_name()),
+            "Signature output ", output.first, " references an unknown tensor");
       }
     }
   } else {
@@ -284,11 +310,11 @@ Status TfLiteSession::Create(string&& buffer,
     LOG(WARNING) << "No signature def found in TFLite model. Generating one.";
     SignatureDef* sigdef = &(*signatures)[kDefaultServingSignatureDefKey];
     for (const auto& info : inputs) {
-      string tflite_tensor_name = CanonicalTfLiteTensorName(info.first);
+      string tflite_tensor_name = TfToTfLiteLegacyTensorName(info.first);
       (*sigdef->mutable_inputs())[tflite_tensor_name] = info.second.first;
     }
     for (const auto& info : outputs) {
-      string tflite_tensor_name = CanonicalTfLiteTensorName(info.first);
+      string tflite_tensor_name = TfToTfLiteLegacyTensorName(info.first);
       (*sigdef->mutable_outputs())[tflite_tensor_name] = info.second.first;
     }
     sigdef->set_method_name(kPredictMethodName);
@@ -342,10 +368,10 @@ Status TfLiteSession::Run(
   // happen in-parallel.
   absl::MutexLock lock(&mutex_);
   for (const auto& input : inputs) {
-    const string& name = CanonicalTfLiteTensorName(input.first);
-    if (input_tensor_to_index_.find(name) == input_tensor_to_index_.end()) {
-      return errors::InvalidArgument("Missing input TFLite tensor: ", name);
-    }
+    string name = input.first;
+    TF_RETURN_WITH_CONTEXT_IF_ERROR(
+        FixTfLiteTensorName(input_tensor_to_index_, name),
+        "Missing input TFLite tensor: ", name);
     const int index = input_tensor_to_index_.at(name);
     TF_RETURN_IF_ERROR(FillTfLiteTensorFromInput(name, input.second,
                                                  interpreter_.get(), index));
@@ -356,11 +382,10 @@ Status TfLiteSession::Run(
   }
 
   outputs->clear();
-  for (const auto& tfname : output_tensor_names) {
-    const string& name = CanonicalTfLiteTensorName(tfname);
-    if (output_tensor_to_index_.find(name) == output_tensor_to_index_.end()) {
-      return errors::InvalidArgument("Missing output TFLite tensor: ", name);
-    }
+  for (string name : output_tensor_names) {
+    TF_RETURN_WITH_CONTEXT_IF_ERROR(
+        FixTfLiteTensorName(output_tensor_to_index_, name),
+        "Missing output TFLite tensor: ", name);
     const int index = output_tensor_to_index_.at(name);
     auto* tflite_tensor = interpreter_->tensor(index);
     if (tflite_tensor == nullptr) {
