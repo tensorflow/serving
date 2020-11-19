@@ -93,6 +93,11 @@ message SessionBundleConfig {
 
   // Tries to use infra validation result to estimate resource usage.
   bool resource_estimation_uses_validation_result = 784;
+
+  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
+  //
+  // Number of TFLite interpreters in an interpreter pool of TfLiteSession.
+  int32 num_tflite_interpreters = 785;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

@@ -196,6 +196,12 @@ int main(int argc, char** argv) {
                        "If no TensorFlow Lite model found, fallback to "
                        "TensorFlow model."),
       tensorflow::Flag(
+          "num_tflite_interpreters", &options.num_tflite_interpreters,
+          "EXPERIMENTAL; CAN BE REMOVED ANYTIME! Number of TFLite interpreters "
+          "in an interpreter pool of TfLiteSession. Typically there is one "
+          "TfLiteSession for each TF Lite model that is loaded. If not "
+          "set, will be auto set based on number of CPUs."),
+      tensorflow::Flag(
           "enable_signature_method_name_check",
           &options.enable_signature_method_name_check,
           "Enable method_name check for SignatureDef. Disable this if serving "

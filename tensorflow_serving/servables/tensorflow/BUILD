@@ -342,8 +342,14 @@ cc_test(
 
 cc_library(
     name = "tflite_session_lib",
-    srcs = ["tflite_session.cc"],
-    hdrs = ["tflite_session.h"],
+    srcs = [
+        "tflite_interpreter_pool.cc",
+        "tflite_session.cc",
+    ],
+    hdrs = [
+        "tflite_interpreter_pool.h",
+        "tflite_session.h",
+    ],
     deps = [
         ":serving_session",
         "@com_google_absl//absl/base:core_headers",
@@ -374,6 +380,7 @@ cc_test(
         ":tflite_session_lib",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
+        "@com_google_absl//absl/flags:flag",
         "@com_google_protobuf//:protobuf",
         "@flatbuffers",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",

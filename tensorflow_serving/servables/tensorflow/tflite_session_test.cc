@@ -21,6 +21,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/flags/flag.h"
 #include "flatbuffers/flexbuffers.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/attr_value.pb.h"
@@ -38,6 +39,10 @@ limitations under the License.
 #include "tensorflow/lite/util.h"
 #include "tensorflow/lite/version.h"
 #include "tensorflow_serving/test_util/test_util.h"
+
+ABSL_FLAG(int, num_tflite_interpreters, 1,
+          "Number of TFLite interpreters "
+          "in an interpreter pool of a TfLiteSession.");
 
 namespace tensorflow {
 namespace serving {
@@ -69,7 +74,8 @@ TEST(TfLiteSession, BasicTest) {
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> session;
   TF_ASSERT_OK(
-      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures,
+                            absl::GetFlag(FLAGS_num_tflite_interpreters)));
   EXPECT_EQ(signatures.size(), 1);
   EXPECT_EQ(signatures.begin()->first, "serving_default");
   EXPECT_THAT(signatures.begin()->second, test_util::EqualsProto(R"(
@@ -128,7 +134,8 @@ TEST(TfLiteSession, ModelFromLegacyConverterWithSigdef) {
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> session;
   TF_ASSERT_OK(
-      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures,
+                            absl::GetFlag(FLAGS_num_tflite_interpreters)));
   EXPECT_EQ(signatures.size(), 1);
   EXPECT_EQ(signatures.begin()->first, "serving_default");
   // While, in the model, the tensor name of input "x" is "tflite_input:0". in
@@ -332,7 +339,8 @@ TEST(TfLiteSession, ProcessStrings) {
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> session;
   TF_ASSERT_OK(
-      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures,
+                            absl::GetFlag(FLAGS_num_tflite_interpreters)));
   Tensor input_list =
       test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({4}));
   Tensor input_shape = test::AsTensor<int32>({2, 2}, TensorShape({2}));
@@ -354,7 +362,8 @@ TEST(TfLiteSession, ProcessStringsFlex) {
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> session;
   TF_ASSERT_OK(
-      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures,
+                            absl::GetFlag(FLAGS_num_tflite_interpreters)));
   Tensor input_list =
       test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({4}));
   Tensor input_shape = test::AsTensor<int32>({2, 2}, TensorShape({2}));
@@ -376,7 +385,8 @@ TEST(TfLiteSession, ThreadPoolOptions) {
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> session;
   TF_ASSERT_OK(
-      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures,
+                            absl::GetFlag(FLAGS_num_tflite_interpreters)));
   Tensor input_list =
       test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({4}));
   Tensor input_shape = test::AsTensor<int32>({2, 2}, TensorShape({2}));
@@ -415,7 +425,8 @@ TEST(TfLiteSession, SimpleSignatureDef) {
 
   std::unique_ptr<TfLiteSession> session;
   TF_ASSERT_OK(
-      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures,
+                            absl::GetFlag(FLAGS_num_tflite_interpreters)));
 
   ASSERT_THAT(signatures,
               UnorderedElementsAre(Pair(kDefaultServingSignatureDefKey, _)));
@@ -454,7 +465,8 @@ TEST(TfLiteSession, MultipleSignatureDef) {
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> session;
   TF_EXPECT_OK(
-      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures,
+                            absl::GetFlag(FLAGS_num_tflite_interpreters)));
 
   ASSERT_THAT(signatures, UnorderedElementsAre(Pair(kSignatureKey1, _),
                                                Pair(kSignatureKey2, _)));
@@ -506,7 +518,8 @@ TEST(TfLiteSession, SignatureDefWithCommonTensorPrefix) {
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> session;
   TF_ASSERT_OK(
-      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures,
+                            absl::GetFlag(FLAGS_num_tflite_interpreters)));
 
   // Inputs must still be processed as two different tensors.
   auto outputSigdef = signatures[kDefaultServingSignatureDefKey];
@@ -525,7 +538,8 @@ TEST(TfLiteSession, SimpleSignatureDefAndRun) {
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> session;
   TF_EXPECT_OK(
-      TfLiteSession::Create(std::move(model_bytes), &session, &signatures));
+      TfLiteSession::Create(std::move(model_bytes), &session, &signatures,
+                            absl::GetFlag(FLAGS_num_tflite_interpreters)));
 
   auto sigdef = signatures[kDefaultServingSignatureDefKey];
   ASSERT_EQ(sigdef.inputs().at(kSignatureInputList).name(),
@@ -561,7 +575,8 @@ static void BM_Reshape(benchmark::State& state, bool use_flex_op) {
     ::google::protobuf::Map<string, SignatureDef> signatures;
     std::unique_ptr<TfLiteSession> sess;
     TF_ASSERT_OK(
-        TfLiteSession::Create(std::move(model_bytes), &sess, &signatures));
+        TfLiteSession::Create(std::move(model_bytes), &sess, &signatures,
+                              absl::GetFlag(FLAGS_num_tflite_interpreters)));
     session = sess.release();
   }
   Tensor input = test::AsTensor<int32>({1, 2, 3, 4, 5, 6}, TensorShape({6}));
@@ -595,7 +610,8 @@ void BM_HalfPlusTwo(benchmark::State& state) {
     ::google::protobuf::Map<string, SignatureDef> signatures;
     std::unique_ptr<TfLiteSession> sess;
     TF_ASSERT_OK(
-        TfLiteSession::Create(std::move(model_bytes), &sess, &signatures));
+        TfLiteSession::Create(std::move(model_bytes), &sess, &signatures,
+                              absl::GetFlag(FLAGS_num_tflite_interpreters)));
     session = sess.release();
   }
   Tensor input = test::AsTensor<float>({1.0, 2.0, 3.0}, TensorShape({3}));
@@ -618,7 +634,8 @@ void BM_MobileNet(benchmark::State& state) {
     ::google::protobuf::Map<string, SignatureDef> signatures;
     std::unique_ptr<TfLiteSession> sess;
     TF_ASSERT_OK(
-        TfLiteSession::Create(std::move(model_bytes), &sess, &signatures));
+        TfLiteSession::Create(std::move(model_bytes), &sess, &signatures,
+                              absl::GetFlag(FLAGS_num_tflite_interpreters)));
     session = sess.release();
   }
   std::vector<uint8> x_data(1 * 224 * 224 * 3, 1);
