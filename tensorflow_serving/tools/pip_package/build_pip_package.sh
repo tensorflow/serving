@@ -72,10 +72,8 @@ function main() {
 
   echo "Adding package setup files"
   cp ${PIP_SRC_DIR}/setup.py "${TMPDIR}"
-  cp LICENSE "${TMPDIR}"
 
   pushd "${TMPDIR}"
-  python3 -m pip install --upgrade wheel -q
   echo $(date) : "=== Building wheel (CPU)"
   python3 setup.py bdist_wheel --universal \
     --project_name tensorflow-serving-api # >/dev/null
