@@ -111,6 +111,8 @@ RUN bazel build --color=yes --curses=yes \
     /usr/local/bin/
 
 # Build and install TensorFlow Serving API
+# Temporary fix. Remove after 2.4.0-rc2 release.
+RUN echo tensorflow==2.4.0rc2 > /tmp/constraints.txt
 RUN bazel build --color=yes --curses=yes \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
@@ -119,7 +121,7 @@ RUN bazel build --color=yes --curses=yes \
     tensorflow_serving/tools/pip_package:build_pip_package && \
     bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package \
     /tmp/pip && \
-    pip --no-cache-dir install --upgrade \
+    pip --no-cache-dir install --upgrade -c /tmp/constraints.txt \
     /tmp/pip/tensorflow_serving_api-*.whl && \
     rm -rf /tmp/pip
 
