@@ -168,7 +168,7 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
 
 # Build and install TensorFlow Serving API
 # Temporary fix. Remove after 2.4.0-rc2 release.
-RUN echo tensorflow==2.4.0rc2 > /tmp/constraints.txt
+RUN echo tensorflow-gpu==2.4.0rc2 > /tmp/constraints.txt
 RUN bazel build --color=yes --curses=yes \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
