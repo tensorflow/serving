@@ -670,7 +670,7 @@ Status FillPredictRequestFromJson(
         kPredictRequestInstancesKey, "' keys to exist ");
     }
     if (!itr_instances->value.IsArray()) {
-      return FormatError(doc, "Excepting '",
+      return FormatError(doc, "Expecting '",
         kPredictRequestInstancesKey, "' to be an list/array");
     }
     if (!itr_instances->value.Capacity()) {
