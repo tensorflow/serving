@@ -23,7 +23,6 @@ import json
 import os
 import subprocess
 import time
-import unittest
 
 # This is a placeholder for a Google-internal import.
 
@@ -33,7 +32,6 @@ import tensorflow.compat.v1 as tf
 
 from tensorflow.python.platform import flags
 from tensorflow.python.profiler import profiler_client
-
 from tensorflow.python.saved_model import signature_constants
 from tensorflow_serving.apis import classification_pb2
 from tensorflow_serving.apis import get_model_metadata_pb2
@@ -725,7 +723,6 @@ class TensorflowModelServerTest(
         expected_output=2.0,
         expected_version=expected_version)
 
-  @unittest.skip('b/170966383')
   def test_profiler_service_with_valid_trace_request(self):
     """Test integration with profiler service by sending tracing requests."""
 
