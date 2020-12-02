@@ -167,8 +167,6 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
     rm /usr/local/cuda/lib64/stubs/libcuda.so.1
 
 # Build and install TensorFlow Serving API
-# Temporary fix. Remove after 2.4.0-rc2 release.
-RUN echo tensorflow-gpu==2.4.0rc2 > /tmp/constraints.txt
 RUN bazel build --color=yes --curses=yes \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
@@ -177,7 +175,7 @@ RUN bazel build --color=yes --curses=yes \
     tensorflow_serving/tools/pip_package:build_pip_package && \
     bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package \
     /tmp/pip && \
-    pip --no-cache-dir install --upgrade -c /tmp/constraints.txt \
+    pip --no-cache-dir install --upgrade \
     /tmp/pip/tensorflow_serving_api_gpu-*.whl && \
     rm -rf /tmp/pip
 
