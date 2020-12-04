@@ -258,9 +258,7 @@ bool EvHTTPRequest::NeedUncompressGzipContent() {
   if (handler_options_ != nullptr &&
       handler_options_->auto_uncompress_input()) {
     auto content_encoding = GetRequestHeader(HTTPHeaders::CONTENT_ENCODING);
-    if (content_encoding != nullptr) {
-      return content_encoding.find("gzip") != absl::string_view::npos;
-    }
+    return content_encoding.find("gzip") != absl::string_view::npos;
   }
 
   return false;
