@@ -73,7 +73,8 @@ class BenchmarkState {
       : update_micros_(update_micros), do_work_(do_work) {}
 
   // Actually perform iters reads on the fast read ptr.
-  void RunBenchmarkReadIterations(int num_threads, int iters);
+  void RunBenchmarkReadIterations(int num_threads,
+                                  ::testing::benchmark::State& state);
 
   // Sets up the state for a benchmark run.
   // update_micros: Number of micros to sleep between updates. If set to 0, does
@@ -120,8 +121,6 @@ void BenchmarkState::RunUpdateThread() {
 }
 
 void BenchmarkState::Setup() {
-  testing::StopTiming();
-
   // setup fast read int ptr:
   std::unique_ptr<int> i(new int(0));
   fast_ptr_.Update(std::move(i));
@@ -133,24 +132,18 @@ void BenchmarkState::Setup() {
     update_thread_.reset(new PeriodicFunction([this] { RunUpdateThread(); },
                                               update_micros_, pf_options));
   }
-
-  testing::StartTiming();
 }
 
 void BenchmarkState::Teardown() {
-  testing::StopTiming();
-
   // Destruct the update thread which blocks until it exits.
   update_thread_.reset();
-
-  testing::StartTiming();
 }
 
 void BenchmarkState::RunBenchmarkReads(int iters) {
   // Wait until all_read_threads_scheduled_ has been notified.
   all_read_threads_scheduled_.WaitForNotification();
 
-  for (int i = 0; i < iters; i++) {
+  for (int i = 0; i < iters; ++i) {
     std::shared_ptr<const int> current = fast_ptr_.get();
     int bigger = *current + 1;
     testing::DoNotOptimize(bigger);
@@ -160,63 +153,90 @@ void BenchmarkState::RunBenchmarkReads(int iters) {
   }
 }
 
-void BenchmarkState::RunBenchmarkReadIterations(int num_threads, int iters) {
-  testing::StopTiming();
+void BenchmarkState::RunBenchmarkReadIterations(
+    int num_threads, ::testing::benchmark::State& state) {
+  CHECK_GE(num_threads, 1) << " ****unexpected thread number";
+  // To be compatible with the Google benchmark framework, the tensorflow new
+  // benchmark API requires that each benchmark routine has exactly one.
+  // `for (auto s : state)` benchmark loop (in all threads).
+  // Therefore we cannot have multiple threads executing the same for-each loop.
+  // We need to introduce a new parameter for the fixed number of iteration in
+  // each thread.
 
-  // The benchmarking system by default uses cpu time to calculate items per
-  // second, which would include time spent by all the threads on the cpu.
-  // Instead of that we use real-time here so that we can see items/s increasing
-  // with increasing threads, which is easier to understand.
-  testing::UseRealTime();
-  testing::ItemsProcessed(num_threads * iters);
+  // Pick a reasonably large value.
+  const int kSubIters = 100;
 
-  thread::ThreadPool pool(Env::Default(), "RunBenchmarkReadThread",
-                          num_threads);
-  for (int thread_index = 0; thread_index < num_threads; ++thread_index) {
-    std::function<void()> run_reads_fn = [iters, this]() {
-      RunBenchmarkReads(iters);
-    };
-    pool.Schedule(run_reads_fn);
+  // The benchmark timing loop. Timer automatically starts/stops.
+  // In each iteration, we spin up a thread-pool and execute kSubIters in each
+  // thread.
+  for (auto s : state) {
+    // Exlucde scheduling setup time.
+    state.PauseTiming();
+
+    thread::ThreadPool pool(Env::Default(), "RunBenchmarkReadThread",
+                            num_threads);
+    for (int thread_index = 0; thread_index < num_threads; ++thread_index) {
+      std::function<void()> run_reads_fn = [&]() {
+        RunBenchmarkReads(kSubIters);
+      };
+      pool.Schedule(run_reads_fn);
+    }
+    state.ResumeTiming();
+    all_read_threads_scheduled_.Notify();
+
+    // Note that destructing the threadpool blocks on completion of all
+    // scheduled execution. This is intentional as we want all threads to
+    // complete iters iterations. It also means that the timing may be off (work
+    // done == iters * num_threads) and includes time scheduling work on the
+    // threads.
   }
-  testing::StartTiming();
-  all_read_threads_scheduled_.Notify();
-
-  // Note that destructing the threadpool blocks on completion of all scheduled
-  // execution.
-  // This is intentional as we want all threads to complete iters iterations.
-  // It also means that the timing may be off (work done == iters *
-  // num_threads) and includes time scheduling work on the threads.
+  testing::ItemsProcessed(num_threads * kSubIters * state.iterations());
 }
 
-static void BenchmarkReadsAndUpdates(int update_micros, bool do_work, int iters,
-                                     int num_threads) {
-  BenchmarkState state(update_micros, do_work);
-  state.Setup();
-  state.RunBenchmarkReadIterations(num_threads, iters);
-  state.Teardown();
+void BenchmarkReadsAndUpdates(int update_micros, bool do_work,
+                              ::testing::benchmark::State& state,
+                              int num_threads) {
+  BenchmarkState bm_state(update_micros, do_work);
+  bm_state.Setup();
+  bm_state.RunBenchmarkReadIterations(num_threads, state);
+  bm_state.Teardown();
 }
 
-static void BM_Work_NoUpdates_Reads(int iters, int num_threads) {
+void BM_Work_NoUpdates_Reads(::testing::benchmark::State& state) {
+  const int num_threads = state.range(0);
+  CHECK_GT(num_threads, 0);
   // No updates. 0 update_micros signals not to update at all.
-  BenchmarkReadsAndUpdates(0, true, iters, num_threads);
+  BenchmarkReadsAndUpdates(0, true, state, num_threads);
 }
 
-static void BM_Work_FrequentUpdates_Reads(int iters, int num_threads) {
+void BM_Work_FrequentUpdates_Reads(::testing::benchmark::State& state) {
+  const int num_threads = state.range(0);
+  CHECK_GT(num_threads, 0);
   // Frequent updates: 1000 micros == 1 millisecond or 1000qps of updates
-  BenchmarkReadsAndUpdates(1000, true, iters, num_threads);
+  BenchmarkReadsAndUpdates(1000, true, state, num_threads);
 }
 
-static void BM_NoWork_NoUpdates_Reads(int iters, int num_threads) {
+void BM_NoWork_NoUpdates_Reads(::testing::benchmark::State& state) {
+  const int num_threads = state.range(0);
+  CHECK_GT(num_threads, 0);
   // No updates. 0 update_micros signals not to update at all.
-  BenchmarkReadsAndUpdates(0, false, iters, num_threads);
+  BenchmarkReadsAndUpdates(0, false, state, num_threads);
 }
 
-static void BM_NoWork_FrequentUpdates_Reads(int iters, int num_threads) {
+void BM_NoWork_FrequentUpdates_Reads(::testing::benchmark::State& state) {
+  const int num_threads = state.range(0);
+  CHECK_GT(num_threads, 0);
   // Frequent updates: 1000 micros == 1 millisecond or 1000qps of updates
-  BenchmarkReadsAndUpdates(1000, false, iters, num_threads);
+  BenchmarkReadsAndUpdates(1000, false, state, num_threads);
 }
+
+// The benchmarking system by default uses cpu time to calculate items per
+// second, which would include time spent by all the threads on the cpu.
+// Instead of that we use real-time here so that we can see items/s increasing
+// with increasing threads, which is easier to understand.
 
 BENCHMARK(BM_Work_NoUpdates_Reads)
+    ->UseRealTime()
     ->Arg(1)
     ->Arg(2)
     ->Arg(4)
@@ -226,6 +246,7 @@ BENCHMARK(BM_Work_NoUpdates_Reads)
     ->Arg(64);
 
 BENCHMARK(BM_Work_FrequentUpdates_Reads)
+    ->UseRealTime()
     ->Arg(1)
     ->Arg(2)
     ->Arg(4)
@@ -235,6 +256,7 @@ BENCHMARK(BM_Work_FrequentUpdates_Reads)
     ->Arg(64);
 
 BENCHMARK(BM_NoWork_NoUpdates_Reads)
+    ->UseRealTime()
     ->Arg(1)
     ->Arg(2)
     ->Arg(4)
@@ -244,6 +266,7 @@ BENCHMARK(BM_NoWork_NoUpdates_Reads)
     ->Arg(64);
 
 BENCHMARK(BM_NoWork_FrequentUpdates_Reads)
+    ->UseRealTime()
     ->Arg(1)
     ->Arg(2)
     ->Arg(4)

@@ -146,6 +146,7 @@ cc_test(
 
 cc_test(
     name = "fast_read_dynamic_ptr_benchmark",
+    timeout = "long",
     srcs = ["fast_read_dynamic_ptr_benchmark.cc"],
     deps = [
         ":fast_read_dynamic_ptr",
