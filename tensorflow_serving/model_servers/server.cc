@@ -28,6 +28,7 @@ limitations under the License.
 #include "grpcpp/server_builder.h"
 #include "grpcpp/server_context.h"
 #include "grpcpp/support/status.h"
+#include "grpcpp/resource_quota.h"
 #include "absl/memory/memory.h"
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
@@ -366,6 +367,10 @@ Status Server::BuildAndStart(const Options& server_options) {
       builder.AddChannelArgument(channel_argument.key, channel_argument.value);
     }
   }
+  ::grpc::ResourceQuota res_quota;
+  res_quota.SetMaxThreads(server_options.grpc_max_threads);
+  builder.SetResourceQuota(res_quota);
+
   grpc_server_ = builder.BuildAndStart();
   if (grpc_server_ == nullptr) {
     return errors::InvalidArgument("Failed to BuildAndStart gRPC server");

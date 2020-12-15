@@ -43,6 +43,7 @@ class Server {
     tensorflow::int32 grpc_port = 8500;
     tensorflow::string grpc_channel_arguments;
     tensorflow::string grpc_socket_path;
+    tensorflow::int32 grpc_max_threads = 4.0 * port::NumSchedulableCPUs();
 
     //
     // HTTP Server options.
