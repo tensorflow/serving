@@ -158,6 +158,9 @@ struct BatchingSessionTask : public BatchTask {
   ~BatchingSessionTask() override = default;
   size_t size() const override { return zeroth_dim_size; }
 
+  // For monitoring purpose.
+  static std::string Name() { return "batching_session"; }
+
   // Fields populated when a task is received.
   uint64 enqueue_time_micros;
   RunOptions run_options;

@@ -54,42 +54,6 @@ auto* queuing_latency = monitoring::Sampler<1>::New(
     // Scale of 100, power of 1.2 with bucket count 52 (~1 second).
     monitoring::Buckets::Exponential(100, 1.2, 52));
 
-// For all metrics: consider adding breakdowns based on model name or status if
-// needed. Note that model name is not available as a session property or on any
-// of the inputs currently.
-void RecordPaddingSize(int32 padding_size, int32 execution_batch_size) {
-  static auto* cell = tensorflow::monitoring::PercentileSampler<1>::New(
-      {"/tensorflow/serving/batching_session/padding_size",
-       "Tracks the padding size distribution on batches.",
-       "execution_batch_size"},
-      /*percentiles=*/{25.0, 50.0, 75.0, 90.0, 95.0, 99.0},
-      /*max_samples=*/1024, tensorflow::monitoring::UnitOfMeasure::kNumber);
-  cell->GetCell(absl::StrCat(execution_batch_size))
-      ->Add(static_cast<double>(padding_size));
-}
-
-void RecordInputBatchSize(int32 batch_size) {
-  static tensorflow::monitoring::PercentileSamplerCell* cell =
-      tensorflow::monitoring::PercentileSampler<0>::New(
-          {"/tensorflow/serving/batching_session/input_batch_size",
-           "Tracks the batch size distribution on the inputs."},
-          /*percentiles=*/{25.0, 50.0, 75.0, 90.0, 95.0, 99.0},
-          /*max_samples=*/1024, tensorflow::monitoring::UnitOfMeasure::kNumber)
-          ->GetCell();
-  cell->Add(static_cast<double>(batch_size));
-}
-
-void RecordProcessedBatchSize(int32 batch_size) {
-  static tensorflow::monitoring::PercentileSamplerCell* cell =
-      tensorflow::monitoring::PercentileSampler<0>::New(
-          {"/tensorflow/serving/batching_session/processed_batch_size",
-           "Tracks the batch size distribution on processing."},
-          /*percentiles=*/{25.0, 50.0, 75.0, 90.0, 95.0, 99.0},
-          /*max_samples=*/1024, tensorflow::monitoring::UnitOfMeasure::kNumber)
-          ->GetCell();
-  cell->Add(static_cast<double>(batch_size));
-}
-
 string TensorSignatureDebugString(const TensorSignature& signature) {
   return strings::StrCat("{input_tensors: <",
                          str_util::Join(signature.input_tensors, ", "),
@@ -448,7 +412,7 @@ Status BatchingSession::ComputeInputSize(
       }));
   for (const auto& entry : inputs) {
     const Tensor& tensor = entry.second;
-    RecordInputBatchSize(tensor.shape().dim_size(0));
+    RecordInputBatchSize<BatchingSessionTask>(tensor.shape().dim_size(0));
   }
   return Status::OK();
 }
@@ -471,8 +435,9 @@ Status BatchingSession::MergeInputTensors(
         {{"batch_size_after_padding", lowest_allowed_batch_size},
          {"padding_amount", padding_size}});
   });
-  RecordPaddingSize(padding_size, lowest_allowed_batch_size);
-  RecordProcessedBatchSize(lowest_allowed_batch_size);
+  RecordPaddingSize<BatchingSessionTask>(padding_size,
+                                         lowest_allowed_batch_size);
+  RecordProcessedBatchSize<BatchingSessionTask>(lowest_allowed_batch_size);
 
   // For each input tensor name, a vector of tensors from the individual tasks.
   std::map<string, std::vector<Tensor>> tensors_to_merge;

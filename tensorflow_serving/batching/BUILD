@@ -155,6 +155,7 @@ cc_library(
     srcs = ["batching_util.cc"],
     hdrs = ["batching_util.h"],
     deps = [
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
