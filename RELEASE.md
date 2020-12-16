@@ -1,3 +1,63 @@
+# Release 2.4.0
+
+## Major Features and Improvements
+
+* Update TF Text to v2.3.0.
+* Upgrade to CUDA Version 11.0.
+* Update CUDNN_VERSION to 8.0.4.30.
+* Adds user guide for Remote Predict Op.
+* Add support for serving regress/classify (native keras) TF2 models.
+
+## Breaking Changes
+
+## Bug Fixes and Other Changes
+
+* Adding /usr/local/cuda/extras/CUPTI/lib64 to LD_LIBRARY_PATH in order to unblock profiling (commit: 1270b8ce192225edcaafb00a50822216dd0b1de0)
+* Improve error message when version directory is not found (commit: d687d3e8827c82f4f1b68337c67b2cbe6e4126e7)
+* Migrate the remaining references of tf.app to compat.v1. (commit: 06fbf878a98c8bd4202e33bc1c097a6ce184d06e)
+* Cleanup TraceMe idioms (commit: f22f802c73bfdd548f85dacffc24022b0d79dfc7)
+* Adds LICENSE file to tensorflow-serving-api python package. (commit: 41188d482beb693d4e79e6934d25f1edd44321ac)
+* Enable a way to 'forget' unloaded models in the ServableStateMonitor. (commit: 53c5a65e8158dc1a2a85a2394482cc6acc1736bc)
+* Added abstract layer for remote predict op over different RPC protocols with template. (commit: c54ca7ec95928b6eec39f350140835ebbe3caeb0)
+* Add an example which call the Remote Predict Op directly. (commit: d5b980f487996aa1f890a559eae968735dfebf5d)
+* For batching session in TF serving model server, introduce options to enable large batch splitting. (commit: f84187e8d3e19a298656a661a888c0563c21910e)
+* Add multi-inference support for TF2 models that use (commit: abb8d3b516a310ec4269cd6bf892644d5150485a)
+* Use absl::optional instead of tensorflow::serving::optional. (commit: c809305a50412a2b47f2287c76ea0be1070aabd6)
+* Use absl::optional instead of tensorflow::serving::optional. (commit: cf1cf93eac1896c3c482d17b440489edea110670)
+* Remove tensorflow::serving::MakeCleanup and use tensorflow::gtl::MakeCleanup. (commit: 6ccb003eb45f4961128e5cc2edf5d8b61ef51111)
+* Use absl::optional and remove tensorflow::serving::optional. (commit: e8e5222abbb39e84d1d4e5e9813626b2cc51daac)
+* Deprecate tensorflow::CreateProfilerService() and update serving client. (commit: 98a55030e10a61ee0c3f6b8fc57e2cf63fc59719)
+* Change the SASS & PTX we ship with TF (commit: 086929269b5f2c0f5d71c30accb79d74694c9ece)
+* Adding custom op support. (commit: 892ea42864676b67cbccdfa0794a15d30e65a1b6)
+* Upgrade to PY3 for tests. (commit: 02624a83f70060095df7c132fa46a7a09f9bff6a)
+* Makes clear how to make a default config file for serving multiple models. (commit: 084eaeb15fdc87d83b8c19f558dc1f56bd3a024e)
+* Use TraceMeEncode in BatchingSession's TraceMe. (commit: 78ff058501274aa37b6bbc18aec225604d4cda47)
+* Export metrics for runtime latency for predict/classify/regress. (commit: c317582981cfc1550b27d9d73f71c6ca38e5c8c5)
+* Refactor net_http/client to expose request/response functionality as a public API (not yet finalized) for usage testing ServerRequestInterface and HttpServerInterface instances. (commit: 0b951c807375f1f305280a96124d8b6d6e045bd2)
+* In model warm-up path, re-write error code out-of-range (intended when reading EOF in a file) to ok. (commit: d9bde73569385b4ef3ef8e36d2c832a8ae9a92ad)
+* fix Client Rest API endpoint (commit: b847bac5f2e1dc6a98f431b1fdf42ceebceceeb6)
+* Support multiple SignatureDefs by key in TFLite models (commit: 2e14cd9dc2647127d7cb8c44ceab5dfcf6ac28c4)
+* Add dedicated aliases field to ModelServerConfig. (commit: 718152dc386f9fa7b21ed36d9d85518e987d7bf5)
+* Remove deprecated flag fail_if_no_model_versions_found from tensorflow serving binary (commit: 4b624628977a12b1757b9ddcd3312b3768de8231)
+* Fix TraceMe instrumentation for the padding size. (commit: 0cb94cd79aacb965b3923d4a51b4091cf84d5e22)
+* Add vlog to dump updated model label map (for debugging) each time the map is updated. (commit: ac10e74078123189dc1c8a3cd29d530b7c972782)
+* Add python wrapper for remote predict op and clean the build and include files. (commit: d0daa1064ecdd56ecb5c0a8aca37c3e198cb313d)
+* Add `portpicker` module required to run modelserver e2e tests. (commit: 82f8cc039d091916b8186dfa1ff4b6c006e7277c)
+* changing "infintiy" to "really high value" (commit: c96474cfcca46b1216e52634efb68986cf8aa9b8)
+* Minimal commandline client to trigger profiler on the modelserver. (commit: c0a5619a01e3af69459aa6396d614945370bbd02)
+* Add signature name to RPOp. (commit: 84dfc8b66ff6c1a693766613034ddc3ff044a330)
+* When RPC error occurs, the output tensors should still get allocated. (commit: 9113de22353350443bdd42c5d594ec653e57c0da)
+* Fix BM_MobileNet benchmark (commit: af665627b8152d4c62d207a97c6e712cb2e9a120)
+* Add JSPB BUILD targets for inference and example proto files. (commit: f1009eb0e6bdae2e35dbfb9f4ad7270e74705e2e)
+* Fall back to legacy TFLite tensor naming when parsing signature defs in TFLiteSession. (commit: 3884187cb9253bb9baa240b2009cfc6d4847b9f9)
+
+## Thanks to our Contributors
+
+This release contains contributions from many people at Google, as well as:
+
+Adarshreddy Adelli, Lescurel
+
+
 # Release 2.3.0
 
 ## Bug Fixes and Other Changes
