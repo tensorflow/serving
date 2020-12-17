@@ -174,6 +174,9 @@ int main(int argc, char** argv) {
                        "A comma separated list of arguments to be passed to "
                        "the grpc server. (e.g. "
                        "grpc.max_connection_age_ms=2000)"),
+      tensorflow::Flag("grpc_max_threads",
+                       &options.grpc_max_threads,
+                       "Max grpc server threads to handle grpc messages."),
       tensorflow::Flag("enable_model_warmup", &options.enable_model_warmup,
                        "Enables model warmup, which triggers lazy "
                        "initializations (such as TF optimizations) at load "
