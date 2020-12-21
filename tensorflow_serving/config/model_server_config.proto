@@ -20,10 +20,6 @@ message ModelConfig {
   // Name of the model.
   string name = 1;
 
-  // List of aliases which can be used for addressing this model instead of
-  // using the model name. This is an experimental field.
-  repeated string alias = 9;
-
   // Base path to the model, excluding the version directory.
   // E.g> for a model at /foo/bar/my_model/123, where 123 is the version, the
   // base path is /foo/bar/my_model.
@@ -42,7 +38,7 @@ message ModelConfig {
   // (This cannot be changed once a model is in serving.)
   string model_platform = 4;
 
-  reserved 5;
+  reserved 5, 9;
 
   // Version policy for the model indicating which version(s) of the model to
   // load and make available for serving simultaneously.
