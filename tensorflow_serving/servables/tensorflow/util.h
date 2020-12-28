@@ -39,14 +39,9 @@ monitoring::Counter<1>* GetExampleCountTotal();
 }  // namespace internal
 
 // Metrics by model
-void RecordModelRequestCount(const string& model_name);
+void RecordModelRequestCount(const string& model_name, const Status& status);
 void RecordModelRequestFailCount(const string& model_name);
 void UpdateModelLatencyTime(const string& model_name, const uint64 running_time_usecs);
-
-// All processing metrics
-void RecordAllRequestCount();
-void RecordAllRequestFailCount();
-void UpdateAllLatencyTime(const uint64 running_time_usecs);
 
 // Records the example count of this request with the metric tracking the
 // histogram of number of examples per request.

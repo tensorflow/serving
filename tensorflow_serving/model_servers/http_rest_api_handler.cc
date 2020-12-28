@@ -81,18 +81,17 @@ void FillJsonErrorMsg(const string& errmsg, string* output) {
 Status HttpRestApiHandler::ProcessRequest(
     const absl::string_view http_method, const absl::string_view request_path,
     const absl::string_view request_body,
-    std::vector<std::pair<string, string>>* headers, string* output) {
+    std::vector<std::pair<string, string>>* headers, string* output, string* model_name) {
   headers->clear();
   output->clear();
   AddHeaders(headers);
-  string model_name;
   string model_version_str;
   string method;
   string model_subresource;
   Status status = errors::InvalidArgument("Malformed request: ", http_method,
                                           " ", request_path);
   if (http_method == "POST" &&
-      RE2::FullMatch(string(request_path), prediction_api_regex_, &model_name,
+      RE2::FullMatch(string(request_path), prediction_api_regex_, model_name,
                      &model_version_str, &method)) {
     absl::optional<int64> model_version;
     if (!model_version_str.empty()) {
@@ -104,24 +103,24 @@ Status HttpRestApiHandler::ProcessRequest(
       model_version = version;
     }
     if (method == "classify") {
-      status = ProcessClassifyRequest(model_name, model_version, request_body,
+      status = ProcessClassifyRequest(*model_name, model_version, request_body,
                                       output);
     } else if (method == "regress") {
-      status = ProcessRegressRequest(model_name, model_version, request_body,
+      status = ProcessRegressRequest(*model_name, model_version, request_body,
                                      output);
     } else if (method == "predict") {
-      status = ProcessPredictRequest(model_name, model_version, request_body,
+      status = ProcessPredictRequest(*model_name, model_version, request_body,
                                      output);
     }
   } else if (http_method == "GET" &&
              RE2::FullMatch(string(request_path), modelstatus_api_regex_,
-                            &model_name, &model_version_str,
+                            model_name, &model_version_str,
                             &model_subresource)) {
     if (!model_subresource.empty() && model_subresource == "metadata") {
       status =
-          ProcessModelMetadataRequest(model_name, model_version_str, output);
+          ProcessModelMetadataRequest(*model_name, model_version_str, output);
     } else {
-      status = ProcessModelStatusRequest(model_name, model_version_str, output);
+      status = ProcessModelStatusRequest(*model_name, model_version_str, output);
     }
   }
 

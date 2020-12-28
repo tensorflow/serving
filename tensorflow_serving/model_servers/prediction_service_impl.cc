@@ -59,15 +59,15 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
 
-  const ::grpc::Status status =
-      ToGRPCStatus(predictor_->Predict(run_options, core_, *request, response));
-  UpdateAllLatencyTime(Env::Default()->NowMicros() - start);
+  const ::tensorflow::Status tf_status = predictor_->Predict(run_options, core_, *request, response);
+  const ::grpc::Status status = ToGRPCStatus(tf_status);
 
   if (!status.ok()) {
     VLOG(1) << "Predict failed: " << status.error_message();
-    RecordAllRequestFailCount();
   }
-  RecordAllRequestCount();
+  UpdateModelLatencyTime(request->model_spec().name(), Env::Default()->NowMicros() - start);
+  RecordModelRequestCount(request->model_spec().name(), tf_status);
+
   return status;
 }
 

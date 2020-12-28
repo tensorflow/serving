@@ -206,17 +206,9 @@ Status RunPredict(
                                           &output_tensor_aliases));
   std::vector<Tensor> outputs;
   RunMetadata run_metadata;
-
-  const uint64 start = Env::Default()->NowMicros();
-  Status status = session->Run(run_options, input_tensors,
-                               output_tensor_names, {}, &outputs,
-                               &run_metadata);
-  UpdateModelLatencyTime(request.model_spec().name(), Env::Default()->NowMicros() - start);
-  if (status != Status::OK()) {
-    RecordModelRequestFailCount(request.model_spec().name());
-  }
-  RecordModelRequestCount(request.model_spec().name());
-  TF_RETURN_IF_ERROR(status);
+  TF_RETURN_IF_ERROR(session->Run(run_options, input_tensors,
+                                  output_tensor_names, {}, &outputs,
+                                  &run_metadata, thread_pool_options));
 
   return PostProcessPredictionResult(output_tensor_aliases, outputs, option,
                                      response);

@@ -82,7 +82,7 @@ class HttpRestApiHandler {
                         const absl::string_view request_path,
                         const absl::string_view request_body,
                         std::vector<std::pair<string, string>>* headers,
-                        string* output);
+                        string* output, string* model_name);
 
  private:
   Status ProcessClassifyRequest(const absl::string_view model_name,
