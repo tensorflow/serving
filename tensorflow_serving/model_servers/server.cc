@@ -182,8 +182,9 @@ void Server::PollFilesystemAndReloadConfig(const string& config_file_path) {
 }
 
 Status Server::BuildAndStart(const Options& server_options) {
-  if (server_options.grpc_port <= 0 && server_options.grpc_socket_path.empty()) {
-    return errors::InvalidArgument("one of server_options.grpc_port/server_options.grpc_socket_path should be set.");
+  if (server_options.grpc_port == 0 && server_options.grpc_socket_path.empty()) {
+      return errors::InvalidArgument(
+              "At least one of server_options.grpc_port or server_options.grpc_socket_path must be set.");
   }
 
   if (server_options.model_base_path.empty() &&
@@ -342,9 +343,9 @@ Status Server::BuildAndStart(const Options& server_options) {
   ::grpc::ServerBuilder builder;
   // If defined, listen to a http port for gRPC.
   if (server_options.grpc_port > 0) {
-      builder.AddListeningPort(
-              server_address,
-              BuildServerCredentialsFromSSLConfigFile(server_options.ssl_config_file));
+    builder.AddListeningPort(
+          server_address,
+          BuildServerCredentialsFromSSLConfigFile(server_options.ssl_config_file));
   }
   // If defined, listen to a UNIX socket for gRPC.
   if (!server_options.grpc_socket_path.empty()) {
@@ -378,7 +379,7 @@ Status Server::BuildAndStart(const Options& server_options) {
   if (grpc_server_ == nullptr) {
     return errors::InvalidArgument("Failed to BuildAndStart gRPC server");
   }
-  if(server_options.grpc_port > 0) {
+  if (server_options.grpc_port > 0) {
     LOG(INFO) << "Running gRPC ModelServer at " << server_address << " ...";
   }
   if (!server_options.grpc_socket_path.empty()) {
