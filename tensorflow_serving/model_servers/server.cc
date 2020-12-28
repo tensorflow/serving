@@ -342,7 +342,7 @@ Status Server::BuildAndStart(const Options& server_options) {
 
   ::grpc::ServerBuilder builder;
   // If defined, listen to a http port for gRPC.
-  if (server_options.grpc_port > 0) {
+  if (server_options.grpc_port != 0) {
     builder.AddListeningPort(
           server_address,
           BuildServerCredentialsFromSSLConfigFile(server_options.ssl_config_file));
@@ -379,7 +379,7 @@ Status Server::BuildAndStart(const Options& server_options) {
   if (grpc_server_ == nullptr) {
     return errors::InvalidArgument("Failed to BuildAndStart gRPC server");
   }
-  if (server_options.grpc_port > 0) {
+  if (server_options.grpc_port != 0) {
     LOG(INFO) << "Running gRPC ModelServer at " << server_address << " ...";
   }
   if (!server_options.grpc_socket_path.empty()) {
