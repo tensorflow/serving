@@ -184,7 +184,8 @@ void Server::PollFilesystemAndReloadConfig(const string& config_file_path) {
 Status Server::BuildAndStart(const Options& server_options) {
   if (server_options.grpc_port == 0 && server_options.grpc_socket_path.empty()) {
       return errors::InvalidArgument(
-              "At least one of server_options.grpc_port or server_options.grpc_socket_path must be set.");
+              "At least one of server_options.grpc_port or "
+              "server_options.grpc_socket_path must be set.");
   }
 
   if (server_options.model_base_path.empty() &&

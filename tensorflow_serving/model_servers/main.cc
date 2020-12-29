@@ -58,7 +58,8 @@ int main(int argc, char** argv) {
   bool display_version = false;
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &options.grpc_port,
-                       "Port to listen on for gRPC API"),
+                       "TCP port to listen on for gRPC/HTTP API. Disabled if "
+                       "port set to zero."),
       tensorflow::Flag("grpc_socket_path", &options.grpc_socket_path,
                        "If non-empty, listen to a UNIX socket for gRPC API "
                        "on the given path. Can be either relative or absolute "
