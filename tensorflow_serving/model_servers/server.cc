@@ -182,8 +182,11 @@ void Server::PollFilesystemAndReloadConfig(const string& config_file_path) {
 }
 
 Status Server::BuildAndStart(const Options& server_options) {
-  if (server_options.grpc_port == 0) {
-    return errors::InvalidArgument("server_options.grpc_port is not set.");
+  if (server_options.grpc_port == 0 &&
+      server_options.grpc_socket_path.empty()) {
+    return errors::InvalidArgument(
+      "At least one of server_options.grpc_port or "
+      "server_options.grpc_socket_path must be set.");
   }
 
   if (server_options.model_base_path.empty() &&
@@ -340,9 +343,12 @@ Status Server::BuildAndStart(const Options& server_options) {
   profiler_service_ = tensorflow::profiler::CreateProfilerService();
 
   ::grpc::ServerBuilder builder;
-  builder.AddListeningPort(
-      server_address,
-      BuildServerCredentialsFromSSLConfigFile(server_options.ssl_config_file));
+  // If defined, listen to a tcp port for gRPC/HTTP.
+  if (server_options.grpc_port != 0) {
+    builder.AddListeningPort(server_address,
+                             BuildServerCredentialsFromSSLConfigFile(
+                               server_options.ssl_config_file));
+  }
   // If defined, listen to a UNIX socket for gRPC.
   if (!server_options.grpc_socket_path.empty()) {
     const string grpc_socket_uri = "unix:" + server_options.grpc_socket_path;
@@ -375,7 +381,9 @@ Status Server::BuildAndStart(const Options& server_options) {
   if (grpc_server_ == nullptr) {
     return errors::InvalidArgument("Failed to BuildAndStart gRPC server");
   }
-  LOG(INFO) << "Running gRPC ModelServer at " << server_address << " ...";
+  if (server_options.grpc_port != 0) {
+    LOG(INFO) << "Running gRPC ModelServer at " << server_address << " ...";
+  }
   if (!server_options.grpc_socket_path.empty()) {
     LOG(INFO) << "Running gRPC ModelServer at UNIX socket "
               << server_options.grpc_socket_path << " ...";
