@@ -52,10 +52,6 @@ auto* model_request_status_count_total = monitoring::Counter<2>::New(
     "/tensorflow/serving/model_request_count",
     "The total number of requests.", "model_name", "status");
 
-auto* model_latency_total = monitoring::Counter<1>::New(
-    "/tensorflow/serving/model_request_latency_usec",
-    "The total time spent on executing graphs in microseconds.", "model_name");
-
 auto* model_latency_histogram = monitoring::Sampler<1>::New(
     {"/tensorflow/serving/model_request_latency_histogram_usec",							    
      "The total time spent on executing graphs in microseconds.", "model_name"},
@@ -98,7 +94,6 @@ void RecordModelRequestCount(const string& model_name, const Status& status) {
 
 void UpdateModelLatencyTime(const string& model_name, const uint64 running_time_usecs) {
   if (running_time_usecs > 0) {
-    model_latency_total->GetCell(model_name)->IncrementBy(running_time_usecs);
     model_latency_histogram->GetCell(model_name)->Add(running_time_usecs);
   }
 }
