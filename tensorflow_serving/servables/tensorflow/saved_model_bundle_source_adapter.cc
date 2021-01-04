@@ -24,9 +24,9 @@ limitations under the License.
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
+#include "tensorflow_serving/servables/tensorflow/machine_learning_metadata.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -56,6 +56,8 @@ SavedModelBundleSourceAdapter::GetServableCreator(
                                   std::unique_ptr<SavedModelBundle>* bundle) {
       TF_RETURN_IF_ERROR(bundle_factory->CreateSavedModelBundleWithMetadata(
           metadata, path, bundle));
+      MaybePublishMLMDStreamz(path, metadata.servable_id.name,
+                              metadata.servable_id.version);
       if (bundle_factory->config().enable_model_warmup()) {
         return RunSavedModelWarmup(
             bundle_factory->config().model_warmup_options(),

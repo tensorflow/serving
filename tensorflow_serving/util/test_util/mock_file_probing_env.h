@@ -26,11 +26,12 @@ namespace test_util {
 
 class MockFileProbingEnv : public FileProbingEnv {
  public:
-  MOCK_METHOD1(FileExists, Status(const string& fname));
-  MOCK_METHOD2(GetChildren,
-               Status(const string& fname, std::vector<string>* children));
-  MOCK_METHOD1(IsDirectory, Status(const string& fname));
-  MOCK_METHOD2(GetFileSize, Status(const string& fname, uint64* file_size));
+  MOCK_METHOD(Status, FileExists, (const string& fname), (override));
+  MOCK_METHOD(Status, GetChildren,
+              (const string& fname, std::vector<string>* children), (override));
+  MOCK_METHOD(Status, IsDirectory, (const string& fname), (override));
+  MOCK_METHOD(Status, GetFileSize, (const string& fname, uint64* file_size),
+              (override));
 };
 
 }  // namespace test_util

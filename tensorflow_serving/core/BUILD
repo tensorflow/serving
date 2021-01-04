@@ -92,7 +92,8 @@ cc_library(
         "//tensorflow_serving/resources:resource_util",
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/util:any_ptr",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
+        "@com_google_absl//absl/types:variant",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -338,7 +339,7 @@ cc_library(
     deps = [
         ":servable_handle",
         ":servable_id",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -418,7 +419,7 @@ cc_library(
         ":servable_id",
         ":servable_state",
         "//tensorflow_serving/util:event_bus",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -430,6 +431,7 @@ cc_test(
     deps = [
         ":servable_state_monitor",
         "//tensorflow_serving/core/test_util:test_main",
+        "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:fake_clock_env",
     ],
 )
@@ -441,8 +443,8 @@ cc_library(
     deps = [
         ":loader",
         ":servable_id",
-        "//tensorflow_serving/util:optional",
         "//tensorflow_serving/util:retrier",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -475,14 +477,16 @@ cc_library(
         ":servable_handle",
         ":servable_id",
         ":servable_state",
+        ":source",
         "//tensorflow_serving/resources:resource_tracker",
-        "//tensorflow_serving/util:cleanup",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:executor",
         "//tensorflow_serving/util:fast_read_dynamic_ptr",
         "//tensorflow_serving/util:hash",
         "//tensorflow_serving/util:inline_executor",
+        "//tensorflow_serving/util:retrier",
         "//tensorflow_serving/util:threadpool_executor",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -502,6 +506,7 @@ cc_test(
         "//tensorflow_serving/util:any_ptr",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:threadpool_executor",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
@@ -529,7 +534,7 @@ cc_library(
         ":target",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:observer",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:periodic_function_dynamic",
     ],
@@ -550,6 +555,7 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:any_ptr",
         "//tensorflow_serving/util:event_bus",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
@@ -616,7 +622,7 @@ cc_library(
         ":servable_handle",
         ":servable_id",
         ":source_adapter",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -636,7 +642,6 @@ cc_test(
         "//tensorflow_serving/core/test_util:manager_test_util",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:event_bus",
-        "//tensorflow_serving/util:optional",
         "//tensorflow_serving/util:threadpool_executor",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
@@ -653,7 +658,7 @@ cc_library(
     deps = [
         ":loader_harness",
         ":servable_id",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -666,7 +671,7 @@ cc_test(
         ":loader_harness",
         ":servable_id",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
     ],
 )
 
@@ -680,7 +685,7 @@ cc_library(
     deps = [
         ":aspired_version_policy",
         ":loader_harness",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
     ],
 )
 
@@ -704,7 +709,7 @@ cc_library(
     deps = [
         ":aspired_version_policy",
         ":loader_harness",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
     ],
 )
 
@@ -733,6 +738,7 @@ cc_library(
         ":servable_state_monitor",
         ":source",
         ":target",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

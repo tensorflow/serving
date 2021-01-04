@@ -127,7 +127,7 @@ helpful in selecting values to experiment with.
 #### Overall Guidelines
 
 First of all, while experimenting you should temporarily set
-`max_enqueued_batches` to infinity. Later, for your production setup, set it as
+`max_enqueued_batches` to a really high value. Later, for your production setup, set it as
 follows: If you are performing online serving, depending on the policy used to
 (re-)route requests to server instances, consider setting `max_enqueued_batches`
 equal to `num_batch_threads` to minimize queueing delay at a given server while
@@ -144,7 +144,7 @@ code to pad the batches with dummy elements.
 
 If your system is CPU-only (no GPU), then consider starting with the following
 values: `num_batch_threads` equal to the number of CPU cores; `max_batch_size`
-to infinity; `batch_timeout_micros` to 0. Then experiment with
+to a really high value; `batch_timeout_micros` to 0. Then experiment with
 `batch_timeout_micros` values in the 1-10 millisecond (1000-10000 microsecond)
 range, while keeping in mind that 0 may be the optimal value.
 
@@ -155,7 +155,7 @@ consider the following approach:
 
 1. Set `num_batch_threads` to the number of CPU cores.
 
-2. Temporarily set `batch_timeout_micros` to infinity while you tune
+2. Temporarily set `batch_timeout_micros` to a really high value while you tune
 `max_batch_size` to achieve the desired balance between throughput and average
 latency. Consider values in the hundreds or thousands.
 

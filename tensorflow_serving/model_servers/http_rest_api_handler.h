@@ -85,32 +85,37 @@ class HttpRestApiHandler {
                         string* output, string* model_name);
 
  private:
-  Status ProcessClassifyRequest(const absl::string_view model_name,
-                                const absl::optional<int64>& model_version,
-                                const absl::string_view request_body,
-                                string* output);
-  Status ProcessRegressRequest(const absl::string_view model_name,
-                               const absl::optional<int64>& model_version,
-                               const absl::string_view request_body,
-                               string* output);
-  Status ProcessPredictRequest(const absl::string_view model_name,
-                               const absl::optional<int64>& model_version,
-                               const absl::string_view request_body,
-                               string* output);
-  Status ProcessModelStatusRequest(const absl::string_view model_name,
-                                   const absl::string_view model_version_str,
-                                   string* output);
-  Status ProcessModelMetadataRequest(const absl::string_view model_name,
-                                     const absl::string_view model_version_str,
-                                     string* output);
+  Status ProcessClassifyRequest(
+      const absl::string_view model_name,
+      const absl::optional<int64>& model_version,
+      const absl::optional<absl::string_view>& model_version_label,
+      const absl::string_view request_body, string* output);
+  Status ProcessRegressRequest(
+      const absl::string_view model_name,
+      const absl::optional<int64>& model_version,
+      const absl::optional<absl::string_view>& model_version_label,
+      const absl::string_view request_body, string* output);
+  Status ProcessPredictRequest(
+      const absl::string_view model_name,
+      const absl::optional<int64>& model_version,
+      const absl::optional<absl::string_view>& model_version_label,
+      const absl::string_view request_body, string* output);
+  Status ProcessModelStatusRequest(
+      const absl::string_view model_name,
+      const absl::optional<int64>& model_version,
+      const absl::optional<absl::string_view>& model_version_label,
+      string* output);
+  Status ProcessModelMetadataRequest(
+      const absl::string_view model_name,
+      const absl::optional<int64>& model_version,
+      const absl::optional<absl::string_view>& model_version_label,
+      string* output);
   Status GetInfoMap(const ModelSpec& model_spec, const string& signature_name,
                     ::google::protobuf::Map<string, tensorflow::TensorInfo>* infomap);
 
   const RunOptions run_options_;
   ServerCore* core_;
   std::unique_ptr<TensorflowPredictor> predictor_;
-  const RE2 prediction_api_regex_;
-  const RE2 modelstatus_api_regex_;
 };
 
 }  // namespace serving

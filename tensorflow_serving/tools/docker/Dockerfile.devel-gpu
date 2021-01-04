@@ -11,36 +11,39 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM nvidia/cuda:10.0-base-ubuntu16.04 as base_build
+FROM nvidia/cuda:11.0-cudnn8-devel-ubuntu18.04 as base_build
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
-ARG TF_SERVING_VERSION_GIT_COMMIT=head
+ARG TF_SERVING_VERSION_GIT_COMMIT=HEAD
 
 LABEL maintainer=gvasudevan@google.com
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
-ENV CUDNN_VERSION=7.4.1.5
-ENV TF_TENSORRT_VERSION=5.0.2
+ENV CUDNN_VERSION=8.0.4.30
+ENV TF_TENSORRT_VERSION=7.1.3
+ENV CUDA=11.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         automake \
         build-essential \
         ca-certificates \
-        cuda-command-line-tools-10-0 \
-        cuda-cublas-dev-10-0 \
-        cuda-cudart-dev-10-0 \
-        cuda-cufft-dev-10-0 \
-        cuda-curand-dev-10-0 \
-        cuda-cusolver-dev-10-0 \
-        cuda-cusparse-dev-10-0 \
+        cuda-command-line-tools-11-0 \
+        libcublas-11-0 \
+        libcublas-dev-11-0 \
+        cuda-nvrtc-11-0 \
+        cuda-nvrtc-dev-11-0 \
+        cuda-cudart-dev-11-0 \
+        libcufft-dev-11-0 \
+        libcurand-dev-11-0 \
+        libcusolver-dev-11-0 \
+        libcusparse-dev-11-0 \
         curl \
         git \
         libfreetype6-dev \
-        libpng12-dev \
         libtool \
-        libcudnn7=${CUDNN_VERSION}-1+cuda10.0 \
-        libcudnn7-dev=${CUDNN_VERSION}-1+cuda10.0 \
+        libcudnn8=${CUDNN_VERSION}-1+cuda${CUDA} \
+        libcudnn8-dev=${CUDNN_VERSION}-1+cuda${CUDA} \
         libcurl3-dev \
         libzmq3-dev \
         mlocate \
@@ -54,29 +57,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         wget \
         zip \
         zlib1g-dev \
+        python3-distutils \
         python-distutils-extra \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    find /usr/local/cuda-10.0/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete && \
-    rm /usr/lib/x86_64-linux-gnu/libcudnn_static_v7.a
+    find /usr/local/cuda-11.0/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete && \
+    rm /usr/lib/x86_64-linux-gnu/libcudnn_static_v8.a
 
-# The 'apt-get install' of the nvinfer-runtime-trt-repo-* library adds a new
-# list which contains libnvinfer library, so it needs another 'apt-get update'
-# to retrieve that list before it can actually install the library.
 RUN apt-get update && \
-    apt-get install --no-install-recommends \
-        nvinfer-runtime-trt-repo-ubuntu1604-${TF_TENSORRT_VERSION}-ga-cuda10.0 && \
-    apt-get update && \
-    apt-get install --no-install-recommends \
-        libnvinfer5=${TF_TENSORRT_VERSION}-1+cuda10.0 \
-        libnvinfer-dev=${TF_TENSORRT_VERSION}-1+cuda10.0 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    rm /usr/lib/x86_64-linux-gnu/libnvinfer_static.a && \
-    rm /usr/lib/x86_64-linux-gnu/libnvinfer_plugin_static.a && \
-    rm /usr/lib/x86_64-linux-gnu/libnvcaffe_parser* && \
-    rm /usr/lib/x86_64-linux-gnu/libnvparsers*
+        apt-get install -y --no-install-recommends libnvinfer7=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
+        libnvinfer-dev=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
+        libnvinfer-plugin-dev=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
+        libnvinfer-plugin7=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
+        # TODO: need to verify
+        libnvonnxparsers7=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
+        libnvparsers7=${TF_TENSORRT_VERSION}-1+cuda${CUDA}\
+        libnvonnxparsers-dev=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
+        libnvparsers-dev=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*;
 
 # Install python 3.6.
 RUN add-apt-repository ppa:deadsnakes/ppa && \
@@ -101,11 +101,12 @@ RUN pip3 --no-cache-dir install \
     keras_preprocessing>=1.1.0 \
     mock \
     numpy \
+    portpicker \
     requests \
-     --ignore-installed six
+     --ignore-installed six>=1.12.0
 
 # Set up Bazel
-ENV BAZEL_VERSION 2.0.0
+ENV BAZEL_VERSION 3.0.0
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \
@@ -118,13 +119,13 @@ RUN mkdir /bazel && \
 
 # Build TensorFlow with the CUDA configuration
 ENV CI_BUILD_PYTHON python
-ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:/usr/include/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+
 ENV TF_NEED_CUDA 1
 ENV TF_NEED_TENSORRT 1
 ENV TENSORRT_INSTALL_PATH=/usr/lib/x86_64-linux-gnu
-ENV TF_CUDA_COMPUTE_CAPABILITIES=3.0,3.5,5.2,6.0,6.1,7.0
-ENV TF_CUDA_VERSION=10.0
-ENV TF_CUDNN_VERSION=7
+ENV TF_CUDA_VERSION=11.0
+ENV TF_CUDNN_VERSION=8
 
 # Fix paths so that CUDNN can be found: https://github.com/tensorflow/tensorflow/issues/8264
 WORKDIR /
@@ -142,13 +143,11 @@ ENV TMP="/tmp"
 
 # Download TF Serving sources (optionally at specific commit).
 WORKDIR /tensorflow-serving
-RUN git clone --branch=${TF_SERVING_VERSION_GIT_BRANCH} https://github.com/tensorflow/serving . && \
-    git remote add upstream https://github.com/tensorflow/serving.git && \
-    if [ "${TF_SERVING_VERSION_GIT_COMMIT}" != "head" ]; then git checkout ${TF_SERVING_VERSION_GIT_COMMIT} ; fi
+RUN curl -sSL --retry 5 https://github.com/tensorflow/serving/tarball/${TF_SERVING_VERSION_GIT_COMMIT} | tar --strip-components=1 -xzf -
 
 FROM base_build as binary_build
 # Build, and install TensorFlow Serving
-ARG TF_SERVING_BUILD_OPTIONS="--config=nativeopt"
+ARG TF_SERVING_BUILD_OPTIONS="--config=release"
 RUN echo "Building with build options: ${TF_SERVING_BUILD_OPTIONS}"
 ARG TF_SERVING_BAZEL_OPTIONS=""
 RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"

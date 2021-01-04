@@ -324,6 +324,63 @@ TEST(ServableStateMonitorTest, VersionMapDescendingOrder) {
                                                   Pair(7, state_1_and_time)))));
 }
 
+TEST(ServableStateMonitorTest, ForgetUnloadedServableStates) {
+  test_util::FakeClockEnv env(Env::Default());
+  EventBus<ServableState>::Options bus_options;
+  bus_options.env = &env;
+  auto bus = EventBus<ServableState>::CreateEventBus(bus_options);
+  ServableStateMonitor monitor(bus.get());
+
+  const ServableState state_0 = {ServableId{"foo", 42},
+                                 ServableState::ManagerState::kAvailable,
+                                 Status::OK()};
+  env.AdvanceByMicroseconds(1);
+  const ServableStateAndTime state_0_and_time = {state_0, 1};
+  bus->Publish(state_0);
+  EXPECT_THAT(monitor.GetLiveServableStates(),
+              UnorderedElementsAre(
+                  Pair("foo", ElementsAre(Pair(42, state_0_and_time)))));
+
+  const ServableState state_1 = {ServableId{"bar", 1},
+                                 ServableState::ManagerState::kAvailable,
+                                 Status::OK()};
+  env.AdvanceByMicroseconds(1);
+  const ServableStateAndTime state_1_and_time = {state_1, 2};
+  bus->Publish(state_1);
+  EXPECT_THAT(monitor.GetLiveServableStates(),
+              UnorderedElementsAre(
+                  Pair("foo", ElementsAre(Pair(42, state_0_and_time))),
+                  Pair("bar", ElementsAre(Pair(1, state_1_and_time)))));
+
+  const ServableState state_2 = {ServableId{"foo", 42},
+                                 ServableState::ManagerState::kUnloading,
+                                 Status::OK()};
+  env.AdvanceByMicroseconds(1);
+  const ServableStateAndTime state_2_and_time = {state_2, 3};
+  bus->Publish(state_2);
+  monitor.ForgetUnloadedServableStates();
+  // "foo" state should still be recorded since it hasn't reached kEnd.
+  EXPECT_THAT(monitor.GetAllServableStates(),
+              UnorderedElementsAre(
+                  Pair("foo", ElementsAre(Pair(42, state_2_and_time))),
+                  Pair("bar", ElementsAre(Pair(1, state_1_and_time)))));
+
+  const ServableState state_3 = {
+      ServableId{"foo", 42}, ServableState::ManagerState::kEnd, Status::OK()};
+  env.AdvanceByMicroseconds(1);
+  const ServableStateAndTime state_3_and_time = {state_3, 4};
+  bus->Publish(state_3);
+  EXPECT_THAT(monitor.GetAllServableStates(),
+              UnorderedElementsAre(
+                  Pair("foo", ElementsAre(Pair(42, state_3_and_time))),
+                  Pair("bar", ElementsAre(Pair(1, state_1_and_time)))));
+  monitor.ForgetUnloadedServableStates();
+  EXPECT_THAT(monitor.GetAllServableStates(),
+              UnorderedElementsAre(
+                  Pair("foo", IsEmpty()),
+                  Pair("bar", ElementsAre(Pair(1, state_1_and_time)))));
+}
+
 TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateZeroServables) {
   auto bus = EventBus<ServableState>::CreateEventBus({});
   ServableStateMonitor monitor(bus.get());

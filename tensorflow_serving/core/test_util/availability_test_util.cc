@@ -14,6 +14,8 @@ limitations under the License.
 ==============================================================================*/
 
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
+
+#include "absl/types/optional.h"
 #include "tensorflow/core/platform/env.h"
 
 namespace tensorflow {
@@ -27,7 +29,7 @@ namespace {
 bool ServableManagerStateIsOneOf(
     const ServableStateMonitor& monitor, const ServableId& servable,
     const std::vector<ServableState::ManagerState>& states) {
-  optional<ServableState> maybe_state = monitor.GetState(servable);
+  absl::optional<ServableState> maybe_state = monitor.GetState(servable);
   if (!maybe_state) {
     return false;
   }

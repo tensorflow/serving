@@ -50,8 +50,9 @@ struct Aspired {
 // Note that this returns a strict weak ordering.
 struct CompareActions {
  public:
-  bool operator()(const optional<AspiredVersionPolicy::ServableAction>& lhs,
-                  const optional<AspiredVersionPolicy::ServableAction>& rhs) {
+  bool operator()(
+      const absl::optional<AspiredVersionPolicy::ServableAction>& lhs,
+      const absl::optional<AspiredVersionPolicy::ServableAction>& rhs) {
     if (!lhs) {
       return false;
     }
@@ -324,9 +325,9 @@ bool AspiredVersionsManager::ContainsAnyReaspiredVersions(
 
 // We collect the version policy actions for each servable stream first. Then
 // we sort them based on the global policy and pick the first one.
-optional<AspiredVersionPolicy::ServableAction>
+absl::optional<AspiredVersionPolicy::ServableAction>
 AspiredVersionsManager::GetNextAction() {
-  std::vector<optional<AspiredVersionPolicy::ServableAction>> actions;
+  std::vector<absl::optional<AspiredVersionPolicy::ServableAction>> actions;
   for (const string& servable_name :
        basic_manager_->GetManagedServableNames()) {
     std::vector<AspiredServableStateSnapshot> aspired_state_snapshots;
@@ -342,8 +343,8 @@ AspiredVersionsManager::GetNextAction() {
   }
 
   std::sort(actions.begin(), actions.end(), CompareActions());
-  const optional<AspiredVersionPolicy::ServableAction> next_action =
-      !actions.empty() ? actions[0] : nullopt;
+  const absl::optional<AspiredVersionPolicy::ServableAction> next_action =
+      !actions.empty() ? actions[0] : absl::nullopt;
   if (next_action) {
     VLOG(1) << "Taking action: " << next_action->DebugString();
   }
@@ -430,7 +431,7 @@ void AspiredVersionsManager::HandlePendingAspiredVersionsRequests() {
 void AspiredVersionsManager::InvokePolicyAndExecuteAction() {
   mutex_lock l(basic_manager_read_modify_write_mu_);
 
-  const optional<AspiredVersionPolicy::ServableAction> next_action =
+  const absl::optional<AspiredVersionPolicy::ServableAction> next_action =
       GetNextAction();
   if (!next_action) {
     return;

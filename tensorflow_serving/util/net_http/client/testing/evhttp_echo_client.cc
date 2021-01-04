@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <iostream>
 
-#include "tensorflow_serving/util/net_http/client/evhttp_connection.h"
+#include "tensorflow_serving/util/net_http/client/internal/evhttp_connection.h"
 
 namespace {
 
@@ -41,7 +41,7 @@ bool SendRequest(const char* url) {
   }
 
   std::cout << "Response received: " << std::endl
-            << "Status: " << response.status << std::endl;
+            << "Status: " << static_cast<int>(response.status) << std::endl;
 
   for (const auto& keyval : response.headers) {
     std::cout << keyval.first << " : " << keyval.second << std::endl;

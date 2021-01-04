@@ -28,6 +28,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
+#include "tensorflow_serving/servables/tensorflow/util.h"
 #include "tensorflow_serving/test_util/test_util.h"
 #include "tensorflow_serving/util/oss_or_google.h"
 
@@ -40,6 +41,52 @@ constexpr int kTestModelVersion = 123;
 
 const char kInputTensorKey[] = "x";
 const char kOutputTensorKey[] = "y";
+
+// Fake Session, that copies input tensors to output.
+class FakeSession : public tensorflow::Session {
+ public:
+  FakeSession() {}
+  ~FakeSession() override = default;
+  Status Create(const GraphDef& graph) override {
+    return errors::Unimplemented("not available in fake");
+  }
+  Status Extend(const GraphDef& graph) override {
+    return errors::Unimplemented("not available in fake");
+  }
+  Status Close() override {
+    return errors::Unimplemented("not available in fake");
+  }
+  Status ListDevices(std::vector<DeviceAttributes>* response) override {
+    return errors::Unimplemented("not available in fake");
+  }
+  Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_names,
+             const std::vector<string>& target_nodes,
+             std::vector<Tensor>* outputs) override {
+    RunMetadata run_metadata;
+    return Run(RunOptions(), inputs, output_names, target_nodes, outputs,
+               &run_metadata);
+  }
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_names,
+             const std::vector<string>& target_nodes,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+    return Run(run_options, inputs, output_names, target_nodes, outputs,
+               run_metadata, thread::ThreadPoolOptions());
+  }
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_names,
+             const std::vector<string>& target_nodes,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata,
+             const thread::ThreadPoolOptions& thread_pool_options) override {
+    for (const auto& t : inputs) {
+      outputs->push_back(t.second);
+    }
+    return Status::OK();
+  }
+};
 
 class PredictImplTest : public ::testing::Test {
  public:
@@ -479,6 +526,57 @@ TEST_F(PredictImplTest, ThreadPoolOptions) {
 
   // The intra_op_threadpool doesn't have anything scheduled.
   ASSERT_GE(inter_op_threadpool.NumScheduled(), 1);
+}
+
+TEST_F(PredictImplTest, MethodNameCheck) {
+  ServableHandle<SavedModelBundle> bundle;
+  TF_ASSERT_OK(GetSavedModelServableHandle(GetServerCore(), &bundle));
+  MetaGraphDef meta_graph_def = bundle->meta_graph_def;
+  auto* signature_defs = meta_graph_def.mutable_signature_def();
+
+  PredictRequest request;
+  ModelSpec* model_spec = request.mutable_model_spec();
+  model_spec->set_name(kTestModelName);
+  model_spec->mutable_version()->set_value(kTestModelVersion);
+  TensorProto tensor_proto;
+  tensor_proto.add_float_val(2.0);
+  tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  (*request.mutable_inputs())[kInputTensorKey] = tensor_proto;
+
+  FakeSession fake_session;
+  PredictResponse response;
+
+  bool old_val = GetSignatureMethodNameCheckFeature();
+
+  SetSignatureMethodNameCheckFeature(true);
+  // Legit method name.
+  (*signature_defs)[kDefaultServingSignatureDefKey].set_method_name(
+      kPredictMethodName);
+  TF_EXPECT_OK(RunPredict(GetRunOptions(), meta_graph_def, kTestModelVersion,
+                          &fake_session, request, &response,
+                          thread::ThreadPoolOptions()));
+  // Unsupported method name will fail check.
+  (*signature_defs)[kDefaultServingSignatureDefKey].set_method_name(
+      "not/supported/method");
+  EXPECT_FALSE(RunPredict(GetRunOptions(), meta_graph_def, kTestModelVersion,
+                          &fake_session, request, &response,
+                          thread::ThreadPoolOptions())
+                   .ok());
+
+  SetSignatureMethodNameCheckFeature(false);
+  (*signature_defs)[kDefaultServingSignatureDefKey].set_method_name(
+      kPredictMethodName);
+  TF_EXPECT_OK(RunPredict(GetRunOptions(), meta_graph_def, kTestModelVersion,
+                          &fake_session, request, &response,
+                          thread::ThreadPoolOptions()));
+  // Unsupported method name should also work.
+  (*signature_defs)[kDefaultServingSignatureDefKey].set_method_name(
+      "not/supported/method");
+  TF_EXPECT_OK(RunPredict(GetRunOptions(), meta_graph_def, kTestModelVersion,
+                          &fake_session, request, &response,
+                          thread::ThreadPoolOptions()));
+
+  SetSignatureMethodNameCheckFeature(old_val);
 }
 
 }  // namespace

@@ -146,6 +146,7 @@ cc_test(
 
 cc_test(
     name = "fast_read_dynamic_ptr_benchmark",
+    timeout = "long",
     srcs = ["fast_read_dynamic_ptr_benchmark.cc"],
     deps = [
         ":fast_read_dynamic_ptr",
@@ -157,29 +158,6 @@ cc_test(
     ],
 )
 
-cc_library(
-    name = "optional",
-    srcs = ["optional.cc"],
-    hdrs = ["optional.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
-cc_test(
-    name = "optional_test",
-    size = "small",
-    srcs = [
-        "optional_test.cc",
-    ],
-    deps = [
-        ":optional",
-        "//tensorflow_serving/core/test_util:test_main",
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
 cc_test(
     name = "any_ptr_test",
     srcs = [
@@ -187,24 +165,6 @@ cc_test(
     ],
     deps = [
         ":any_ptr",
-        "//tensorflow_serving/core/test_util:test_main",
-    ],
-)
-
-cc_library(
-    name = "cleanup",
-    hdrs = ["cleanup.h"],
-    deps = [
-        "@org_tensorflow//tensorflow/core:lib",
-    ],
-)
-
-cc_test(
-    name = "cleanup_test",
-    size = "small",
-    srcs = ["cleanup_test.cc"],
-    deps = [
-        ":cleanup",
         "//tensorflow_serving/core/test_util:test_main",
     ],
 )

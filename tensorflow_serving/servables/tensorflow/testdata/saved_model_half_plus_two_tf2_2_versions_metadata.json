@@ -1,0 +1,237 @@
+{
+ "model_spec": {
+  "name": "saved_model_half_plus_two_2_versions",
+  "signature_name": "",
+  "version": "123"
+ },
+ "metadata": {
+  "signature_def": {
+   "signature_def": {
+    "regress_x_to_y": {
+     "inputs": {
+      "inputs": {
+       "dtype": "DT_STRING",
+       "tensor_shape": {
+        "dim": [
+         {
+          "size": "-1",
+          "name": ""
+         }
+        ],
+        "unknown_rank": false
+       },
+       "name": "regress_x_to_y_inputs:0"
+      }
+     },
+     "outputs": {
+      "outputs": {
+       "dtype": "DT_FLOAT",
+       "tensor_shape": {
+        "dim": [
+         {
+          "size": "-1",
+          "name": ""
+         },
+         {
+          "size": "1",
+          "name": ""
+         }
+        ],
+        "unknown_rank": false
+       },
+       "name": "StatefulPartitionedCall_3:0"
+      }
+     },
+     "method_name": "tensorflow/serving/predict"
+    },
+    "regress_x_to_y2": {
+     "inputs": {
+      "inputs": {
+       "dtype": "DT_STRING",
+       "tensor_shape": {
+        "dim": [
+         {
+          "size": "-1",
+          "name": ""
+         }
+        ],
+        "unknown_rank": false
+       },
+       "name": "regress_x_to_y2_inputs:0"
+      }
+     },
+     "outputs": {
+      "outputs": {
+       "dtype": "DT_FLOAT",
+       "tensor_shape": {
+        "dim": [
+         {
+          "size": "-1",
+          "name": ""
+         },
+         {
+          "size": "1",
+          "name": ""
+         }
+        ],
+        "unknown_rank": false
+       },
+       "name": "StatefulPartitionedCall_4:0"
+      }
+     },
+     "method_name": "tensorflow/serving/predict"
+    },
+    "classify_x_to_y": {
+     "inputs": {
+      "inputs": {
+       "dtype": "DT_STRING",
+       "tensor_shape": {
+        "dim": [
+         {
+          "size": "-1",
+          "name": ""
+         }
+        ],
+        "unknown_rank": false
+       },
+       "name": "classify_x_to_y_inputs:0"
+      }
+     },
+     "outputs": {
+      "scores": {
+       "dtype": "DT_FLOAT",
+       "tensor_shape": {
+        "dim": [
+         {
+          "size": "-1",
+          "name": ""
+         },
+         {
+          "size": "1",
+          "name": ""
+         }
+        ],
+        "unknown_rank": false
+       },
+       "name": "StatefulPartitionedCall_1:0"
+      }
+     },
+     "method_name": "tensorflow/serving/predict"
+    },
+    "serving_default": {
+     "inputs": {
+      "x": {
+       "dtype": "DT_FLOAT",
+       "tensor_shape": {
+        "dim": [
+         {
+          "size": "1",
+          "name": ""
+         }
+        ],
+        "unknown_rank": false
+       },
+       "name": "serving_default_x:0"
+      }
+     },
+     "outputs": {
+      "y": {
+       "dtype": "DT_FLOAT",
+       "tensor_shape": {
+        "dim": [
+         {
+          "size": "1",
+          "name": ""
+         }
+        ],
+        "unknown_rank": false
+       },
+       "name": "StatefulPartitionedCall_5:0"
+      }
+     },
+     "method_name": "tensorflow/serving/predict"
+    },
+    "regress_x2_to_y3": {
+     "inputs": {
+      "inputs": {
+       "dtype": "DT_FLOAT",
+       "tensor_shape": {
+        "dim": [
+         {
+          "size": "1",
+          "name": ""
+         }
+        ],
+        "unknown_rank": false
+       },
+       "name": "regress_x2_to_y3_inputs:0"
+      }
+     },
+     "outputs": {
+      "outputs": {
+       "dtype": "DT_FLOAT",
+       "tensor_shape": {
+        "dim": [
+         {
+          "size": "1",
+          "name": ""
+         }
+        ],
+        "unknown_rank": false
+       },
+       "name": "StatefulPartitionedCall_2:0"
+      }
+     },
+     "method_name": "tensorflow/serving/predict"
+    },
+    "classify_x2_to_y3": {
+     "inputs": {
+      "inputs": {
+       "dtype": "DT_FLOAT",
+       "tensor_shape": {
+        "dim": [
+         {
+          "size": "1",
+          "name": ""
+         }
+        ],
+        "unknown_rank": false
+       },
+       "name": "classify_x2_to_y3_inputs:0"
+      }
+     },
+     "outputs": {
+      "scores": {
+       "dtype": "DT_FLOAT",
+       "tensor_shape": {
+        "dim": [
+         {
+          "size": "1",
+          "name": ""
+         }
+        ],
+        "unknown_rank": false
+       },
+       "name": "StatefulPartitionedCall:0"
+      }
+     },
+     "method_name": "tensorflow/serving/predict"
+    },
+    "__saved_model_init_op": {
+     "inputs": {},
+     "outputs": {
+      "__saved_model_init_op": {
+       "dtype": "DT_INVALID",
+       "tensor_shape": {
+        "dim": [],
+        "unknown_rank": true
+       },
+       "name": "NoOp"
+      }
+     },
+     "method_name": ""
+    }
+   }
+  }
+ }
+}

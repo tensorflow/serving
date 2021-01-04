@@ -22,13 +22,13 @@ limitations under the License.
 #include <string>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_id.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -47,7 +47,7 @@ struct ServableRequest {
   string name;
 
   // An optional specific version number to use.
-  optional<int64> version;
+  absl::optional<int64> version;
 
   // How to choose a version number automatically, if 'version' is left unset.
   enum class AutoVersionPolicy {
@@ -65,7 +65,8 @@ struct ServableRequest {
   ////////
   // Legacy constructors. Do not use in new code.
   ServableRequest() = default;
-  ServableRequest(const string& name_in, const optional<int64>& version_in)
+  ServableRequest(const string& name_in,
+                  const absl::optional<int64>& version_in)
       : name(name_in),
         version(version_in),
         auto_version_policy(AutoVersionPolicy::kLatest) {}

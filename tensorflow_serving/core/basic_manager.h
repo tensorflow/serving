@@ -22,6 +22,7 @@ limitations under the License.
 #include <unordered_map>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/hash/hash.h"
@@ -40,7 +41,6 @@ limitations under the License.
 #include "tensorflow_serving/util/event_bus.h"
 #include "tensorflow_serving/util/executor.h"
 #include "tensorflow_serving/util/fast_read_dynamic_ptr.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -212,7 +212,7 @@ class BasicManager : public Manager {
   /// REQUIRES: This manager should have been managing this servable already,
   /// else we return nullopt.
   template <typename T = std::nullptr_t>
-  optional<ServableStateSnapshot<T>> GetManagedServableStateSnapshot(
+  absl::optional<ServableStateSnapshot<T>> GetManagedServableStateSnapshot(
       const ServableId& id);
 
   /// @return the additional state for the servable. Returns nullptr if there is
@@ -549,13 +549,13 @@ BasicManager::GetManagedServableStateSnapshots(
 }
 
 template <typename T>
-optional<ServableStateSnapshot<T>>
+absl::optional<ServableStateSnapshot<T>>
 BasicManager::GetManagedServableStateSnapshot(const ServableId& id) {
   mutex_lock l(mu_);
 
   auto iter = FindHarnessInMap(id);
   if (iter == managed_map_.end()) {
-    return nullopt;
+    return absl::nullopt;
   }
   return iter->second->loader_state_snapshot<T>();
 }

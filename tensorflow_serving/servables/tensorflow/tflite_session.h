@@ -29,6 +29,7 @@ limitations under the License.
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/model.h"
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
+#include "tensorflow_serving/servables/tensorflow/tflite_interpreter_pool.h"
 
 namespace tensorflow {
 namespace serving {
@@ -43,7 +44,8 @@ class TfLiteSession : public ServingSession {
   // input/outputs to the model.
   static Status Create(string&& buffer,
                        std::unique_ptr<TfLiteSession>* tflite_session,
-                       ::google::protobuf::Map<string, SignatureDef>* signatures);
+                       ::google::protobuf::Map<string, SignatureDef>* signatures,
+                       int num_interpreters);
 
   ~TfLiteSession() override = default;
 
@@ -68,17 +70,17 @@ class TfLiteSession : public ServingSession {
   Status ListDevices(std::vector<DeviceAttributes>* response) override;
 
  private:
-  TfLiteSession(std::map<string, int>&& input_tensor_to_index,
-                std::map<string, int>&& output_tensor_to_index, string&& buffer,
-                std::unique_ptr<tflite::FlatBufferModel> model,
-                std::unique_ptr<tflite::Interpreter> interpreter);
+  TfLiteSession(
+      std::map<string, int>&& input_tensor_to_index,
+      std::map<string, int>&& output_tensor_to_index, string&& buffer,
+      std::unique_ptr<tflite::FlatBufferModel> model,
+      std::unique_ptr<internal::TfLiteInterpreterPool> interpreter_pool);
 
   const std::map<string, int> input_tensor_to_index_;
   const std::map<string, int> output_tensor_to_index_;
   const string model_serialized_bytes_;
   const std::unique_ptr<tflite::FlatBufferModel> model_;
-  mutable absl::Mutex mutex_;
-  std::unique_ptr<tflite::Interpreter> interpreter_ ABSL_GUARDED_BY(mutex_);
+  std::unique_ptr<internal::TfLiteInterpreterPool> interpreter_pool_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(TfLiteSession);
 };

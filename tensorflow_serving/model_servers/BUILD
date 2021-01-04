@@ -17,7 +17,10 @@ licenses(["notice"])  # Apache 2.0
 # vanilla TensorFlow ModelServer without any other modifications. Exclusively
 # for adding custom TensorFlow ops. Does not grant access to private headers
 # or other implementation details.
-package_group(name = "tensorflow_model_server_custom_op_clients")
+package_group(
+    name = "tensorflow_model_server_custom_op_clients",
+    packages = ["//cloud/ai/documentai/..."],
+)
 
 package_group(
     name = "testing",
@@ -90,9 +93,9 @@ cc_library(
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_cc_proto",
         "//tensorflow_serving/util:event_bus",
-        "//tensorflow_serving/util:optional",
         "//tensorflow_serving/util:unique_ptr_with_deps",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/types:optional",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
     ],
@@ -140,6 +143,7 @@ cc_library(
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/util:status_cc_proto",
         "//tensorflow_serving/util:status_util",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -266,12 +270,28 @@ cc_library(
 )
 
 cc_library(
+    name = "http_rest_api_util",
+    srcs = ["http_rest_api_util.cc"],
+    hdrs = ["http_rest_api_util.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tensorflow_serving/apis:get_model_status_cc_proto",
+        "//tensorflow_serving/apis:model_cc_proto",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:optional",
+        "@com_googlesource_code_re2//:re2",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
     name = "http_rest_api_handler",
     srcs = ["http_rest_api_handler.cc"],
     hdrs = ["http_rest_api_handler.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":get_model_status_impl",
+        ":http_rest_api_util",
         ":server_core",
         "//tensorflow_serving/apis:model_cc_proto",
         "//tensorflow_serving/apis:predict_cc_proto",
@@ -337,6 +357,7 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:regression_service",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
         "//tensorflow_serving/servables/tensorflow:predict_impl",
+        "//tensorflow_serving/servables/tensorflow:util",
         "//tensorflow_serving/servables/tensorflow:thread_pool_factory",
         "//tensorflow_serving/servables/tensorflow:thread_pool_factory_config_cc_proto",
     ] + SUPPORTED_TENSORFLOW_OPS,
@@ -395,7 +416,9 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_three/00000123/variables/variables.index",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tf2_cpu",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite_with_sigdef",
         "//tensorflow_serving/servables/tensorflow/testdata:tf_text_regression",
     ] + if_google([
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
@@ -406,6 +429,7 @@ py_test(
     srcs_version = "PY2AND3",
     tags = [
         "noasan",  # b/136281879
+        "nomsan",  # b/165917680
     ],
     deps = [
         "//tensorflow_serving/apis:model_service_proto_py_pb2",
@@ -423,6 +447,16 @@ py_binary(
     srcs_version = "PY2AND3",
     deps = [
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
+        "@org_tensorflow//tensorflow:tensorflow_py",
+    ],
+)
+
+py_binary(
+    name = "profiler_client",
+    srcs = ["profiler_client.py"],
+    python_version = "PY3",
+    srcs_version = "PY2AND3",
+    deps = [
         "@org_tensorflow//tensorflow:tensorflow_py",
     ],
 )

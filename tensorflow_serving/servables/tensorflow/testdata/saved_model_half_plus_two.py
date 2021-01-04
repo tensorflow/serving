@@ -54,11 +54,21 @@ import os
 import sys
 
 # This is a placeholder for a Google-internal import.
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
+from tensorflow.lite.tools.signature import signature_def_utils
 from tensorflow.python.lib.io import file_io
 
 FLAGS = None
+
+
+def _get_feature_spec():
+  """Returns feature spec for parsing tensorflow.Example."""
+  # tensorflow.Example contains two features "x" and "x2".
+  return {
+      "x": tf.FixedLenFeature([1], dtype=tf.float32),
+      "x2": tf.FixedLenFeature([1], dtype=tf.float32, default_value=[0.0])
+  }
 
 
 def _write_assets(assets_directory, assets_filename):
@@ -79,6 +89,18 @@ def _write_assets(assets_directory, assets_filename):
       tf.compat.as_bytes(assets_directory), tf.compat.as_bytes(assets_filename))
   file_io.write_string_to_file(path, "asset-file-contents")
   return path
+
+
+def _build_predict_signature(input_tensor, output_tensor):
+  """Helper function for building a predict SignatureDef."""
+  input_tensor_info = tf.saved_model.utils.build_tensor_info(input_tensor)
+  signature_inputs = {"x": input_tensor_info}
+
+  output_tensor_info = tf.saved_model.utils.build_tensor_info(output_tensor)
+  signature_outputs = {"y": output_tensor_info}
+  return tf.saved_model.signature_def_utils.build_signature_def(
+      signature_inputs, signature_outputs,
+      tf.saved_model.signature_constants.PREDICT_METHOD_NAME)
 
 
 def _build_regression_signature(input_tensor, output_tensor):
@@ -114,7 +136,7 @@ def _build_classification_signature(input_tensor, scores_tensor):
       tf.saved_model.signature_constants.CLASSIFY_METHOD_NAME)
 
 
-def _create_asset_file():
+def _create_asset_file(tf2=False):
   """Helper to create assets file. Returns a tensor for the filename."""
   # Create an assets file that can be saved and restored as part of the
   # SavedModel.
@@ -122,6 +144,9 @@ def _create_asset_file():
   original_assets_filename = "foo.txt"
   original_assets_filepath = _write_assets(original_assets_directory,
                                            original_assets_filename)
+
+  if tf2:
+    return tf.saved_model.Asset(original_assets_filepath)
 
   # Set up the assets collection.
   assets_filepath = tf.constant(original_assets_filepath)
@@ -134,20 +159,114 @@ def _create_asset_file():
   return filename_tensor.assign(original_assets_filename)
 
 
+def _write_mlmd(export_dir, mlmd_uuid):
+  """Writes an ML Metadata UUID into the assets.extra directory.
+
+  Args:
+    export_dir: The export directory for the SavedModel.
+    mlmd_uuid: The string to write as the ML Metadata UUID.
+
+  Returns:
+    The path to which the MLMD UUID was written.
+  """
+  assets_extra_directory = os.path.join(export_dir, "assets.extra")
+  if not file_io.file_exists(assets_extra_directory):
+    file_io.recursive_create_dir(assets_extra_directory)
+  path = os.path.join(assets_extra_directory, "mlmd_uuid")
+  file_io.write_string_to_file(path, mlmd_uuid)
+  return path
+
+
+class HalfPlusTwoModel(tf.Module):
+  """Native TF2 half-plus-two model."""
+
+  def __init__(self):
+    self.a = tf.Variable(0.5, name="a")
+    self.b = tf.Variable(2.0, name="b")
+    self.c = tf.Variable(3.0, name="c")
+    self.asset = _create_asset_file(tf2=True)
+
+  def compute(self, x, inc):
+    return tf.add(tf.multiply(self.a, x), inc)
+
+  def get_serving_signatures(self):
+    return {
+        "regress_x_to_y": self.regress_xy,
+        "regress_x_to_y2": self.regress_xy2,
+        "regress_x2_to_y3": self.regress_x2y3,
+        "classify_x_to_y": self.classify_xy,
+        "classify_x2_to_y3": self.classify_x2y3,
+        tf.saved_model.DEFAULT_SERVING_SIGNATURE_DEF_KEY: self.predict,
+    }
+
+  @tf.function(input_signature=[tf.TensorSpec(shape=[1], dtype=tf.float32)])
+  def predict(self, x):
+    return {"y": self.compute(x, self.b)}
+
+  @tf.function(input_signature=[
+      tf.TensorSpec([None], dtype=tf.string, name=tf.saved_model.REGRESS_INPUTS)
+  ])
+  def regress_xy(self, serialized_proto):
+    x = tf.parse_example(serialized_proto, _get_feature_spec())["x"]
+    return {tf.saved_model.REGRESS_OUTPUTS: self.compute(x, self.b)}
+
+  @tf.function(input_signature=[
+      tf.TensorSpec([None], dtype=tf.string, name=tf.saved_model.REGRESS_INPUTS)
+  ])
+  def regress_xy2(self, serialized_proto):
+    x = tf.parse_example(serialized_proto, _get_feature_spec())["x"]
+    return {tf.saved_model.REGRESS_OUTPUTS: self.compute(x, self.c)}
+
+  @tf.function(input_signature=[
+      tf.TensorSpec(
+          shape=[1], dtype=tf.float32, name=tf.saved_model.REGRESS_INPUTS)
+  ])
+  def regress_x2y3(self, x2):
+    return {tf.saved_model.REGRESS_OUTPUTS: self.compute(x2, self.c)}
+
+  @tf.function(input_signature=[
+      tf.TensorSpec([None],
+                    dtype=tf.string,
+                    name=tf.saved_model.CLASSIFY_INPUTS)
+  ])
+  def classify_xy(self, serialized_proto):
+    x = tf.parse_example(serialized_proto, _get_feature_spec())["x"]
+    return {tf.saved_model.CLASSIFY_OUTPUT_SCORES: self.compute(x, self.b)}
+
+  @tf.function(input_signature=[
+      tf.TensorSpec(
+          shape=[1], dtype=tf.float32, name=tf.saved_model.CLASSIFY_INPUTS)
+  ])
+  def classify_x2y3(self, x2):
+    return {tf.saved_model.CLASSIFY_OUTPUT_SCORES: self.compute(x2, self.c)}
+
+
 def _generate_saved_model_for_half_plus_two(export_dir,
+                                            tf2=False,
                                             as_text=False,
                                             as_tflite=False,
+                                            as_tflite_with_sigdef=False,
                                             use_main_op=False,
+                                            include_mlmd=False,
                                             device_type="cpu"):
   """Generates SavedModel for half plus two.
 
   Args:
     export_dir: The directory to which the SavedModel should be written.
+    tf2: If True generates a SavedModel using native (non compat) TF2 APIs.
     as_text: Writes the SavedModel protocol buffer in text format to disk.
     as_tflite: Writes the Model in Tensorflow Lite format to disk.
+    as_tflite_with_sigdef: Writes the Model with SignatureDefs in Tensorflow
+      Lite format to disk.
     use_main_op: Whether to supply a main op during SavedModel build time.
+    include_mlmd: Whether to include an MLMD key in the SavedModel.
     device_type: Device to force ops to run on.
   """
+  if tf2:
+    hp = HalfPlusTwoModel()
+    tf.saved_model.save(hp, export_dir, signatures=hp.get_serving_signatures())
+    return
+
   builder = tf.saved_model.builder.SavedModelBuilder(export_dir)
 
   device_name = "/cpu:0"
@@ -166,19 +285,25 @@ def _generate_saved_model_for_half_plus_two(export_dir,
 
       # Create a placeholder for serialized tensorflow.Example messages to be
       # fed.
-      serialized_tf_example = tf.placeholder(tf.string, name="tf_example")
+      serialized_tf_example = tf.placeholder(
+          tf.string, name="tf_example", shape=[None])
 
-      # Parse the tensorflow.Example looking for a feature named "x" with a
-      # single floating point value.
-      feature_configs = {
-          "x": tf.FixedLenFeature([1], dtype=tf.float32),
-          "x2": tf.FixedLenFeature([1], dtype=tf.float32, default_value=[0.0])
-      }
       # parse_example only works on CPU
       with tf.device("/cpu:0"):
-        tf_example = tf.parse_example(serialized_tf_example, feature_configs)
-      # Use tf.identity() to assign name
-      x = tf.identity(tf_example["x"], name="x")
+        tf_example = tf.parse_example(serialized_tf_example,
+                                      _get_feature_spec())
+
+      if as_tflite:
+        # TFLite v1 converter does not support unknown shape.
+        x = tf.ensure_shape(tf_example["x"], (1, 1), name="x")
+      else:
+        # Use tf.identity() to assign name
+        x = tf.identity(tf_example["x"], name="x")
+
+      if as_tflite_with_sigdef:
+        # Resulting TFLite model will have input named "tflite_input".
+        x = tf.ensure_shape(tf_example["x"], (1, 1), name="tflite_input")
+
       if device_type == "mkl":
         # Create a small convolution op to trigger MKL
         # The op will return 0s so this won't affect the
@@ -220,17 +345,7 @@ def _generate_saved_model_for_half_plus_two(export_dir,
 
     assign_filename_op = _create_asset_file()
 
-    # Set up the signature for Predict with input and output tensor
-    # specification.
-    predict_input_tensor = tf.saved_model.utils.build_tensor_info(x)
-    predict_signature_inputs = {"x": predict_input_tensor}
-
-    predict_output_tensor = tf.saved_model.utils.build_tensor_info(y)
-    predict_signature_outputs = {"y": predict_output_tensor}
-    predict_signature_def = (
-        tf.saved_model.signature_def_utils.build_signature_def(
-            predict_signature_inputs, predict_signature_outputs,
-            tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
+    predict_signature_def = _build_predict_signature(x, y)
 
     signature_def_map = {
         "regress_x_to_y":
@@ -242,14 +357,18 @@ def _generate_saved_model_for_half_plus_two(export_dir,
         "classify_x_to_y":
             _build_classification_signature(serialized_tf_example, y),
         tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
-            predict_signature_def
+            _build_predict_signature(x, y)
     }
     # Initialize all variables and then save the SavedModel.
     sess.run(tf.global_variables_initializer())
 
-    if as_tflite:
+    if as_tflite or as_tflite_with_sigdef:
       converter = tf.lite.TFLiteConverter.from_session(sess, [x], [y])
       tflite_model = converter.convert()
+      if as_tflite_with_sigdef:
+        k = tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
+        tflite_model = signature_def_utils.set_signature_defs(
+            tflite_model, {k: predict_signature_def})
       open(export_dir + "/model.tflite", "wb").write(tflite_model)
     else:
       if use_main_op:
@@ -269,6 +388,9 @@ def _generate_saved_model_for_half_plus_two(export_dir,
   if not as_tflite:
     builder.save(as_text)
 
+  if include_mlmd:
+    _write_mlmd(export_dir, "test_mlmd_uuid")
+
 
 def main(_):
   _generate_saved_model_for_half_plus_two(
@@ -277,6 +399,16 @@ def main(_):
       "device": FLAGS.device,
       "dir": FLAGS.output_dir
   })
+
+  _generate_saved_model_for_half_plus_two(
+      "%s_%s" % (FLAGS.output_dir_tf2, FLAGS.device),
+      tf2=True,
+      device_type=FLAGS.device)
+  print(
+      "SavedModel TF2 generated for %(device)s at: %(dir)s" % {
+          "device": FLAGS.device,
+          "dir": "%s_%s" % (FLAGS.output_dir_tf2, FLAGS.device),
+      })
 
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir_pbtxt, as_text=True, device_type=FLAGS.device)
@@ -299,6 +431,22 @@ def main(_):
       "dir": FLAGS.output_dir_tflite,
   })
 
+  _generate_saved_model_for_half_plus_two(
+      FLAGS.output_dir_mlmd, include_mlmd=True, device_type=FLAGS.device)
+  print("SavedModel with MLMD generated for %(device)s at: %(dir)s " % {
+      "device": FLAGS.device,
+      "dir": FLAGS.output_dir_mlmd,
+  })
+
+  _generate_saved_model_for_half_plus_two(
+      FLAGS.output_dir_tflite_with_sigdef, device_type=FLAGS.device,
+      as_tflite_with_sigdef=True)
+  print("SavedModel in TFLite format with SignatureDef generated for "
+        "%(device)s at: %(dir)s " % {
+            "device": FLAGS.device,
+            "dir": FLAGS.output_dir_tflite_with_sigdef,
+        })
+
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
@@ -307,6 +455,11 @@ if __name__ == "__main__":
       type=str,
       default="/tmp/saved_model_half_plus_two",
       help="Directory where to output SavedModel.")
+  parser.add_argument(
+      "--output_dir_tf2",
+      type=str,
+      default="/tmp/saved_model_half_plus_two_tf2",
+      help="Directory where to output TF2 SavedModel.")
   parser.add_argument(
       "--output_dir_pbtxt",
       type=str,
@@ -323,9 +476,20 @@ if __name__ == "__main__":
       default="/tmp/saved_model_half_plus_two_tflite",
       help="Directory where to output model in TensorFlow Lite format.")
   parser.add_argument(
+      "--output_dir_mlmd",
+      type=str,
+      default="/tmp/saved_model_half_plus_two_mlmd",
+      help="Directory where to output the SavedModel with ML Metadata.")
+  parser.add_argument(
+      "--output_dir_tflite_with_sigdef",
+      type=str,
+      default="/tmp/saved_model_half_plus_two_tflite_with_sigdef",
+      help=("Directory where to output model with signature def in "
+            "TensorFlow Lite format."))
+  parser.add_argument(
       "--device",
       type=str,
       default="cpu",
       help="Force model to run on 'cpu', 'mkl', or 'gpu'")
   FLAGS, unparsed = parser.parse_known_args()
-  tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  tf.compat.v1.app.run(main=main, argv=[sys.argv[0]] + unparsed)

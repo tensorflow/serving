@@ -48,10 +48,11 @@ class MockRequestLogger : public RequestLogger {
     }
   }
 
-  MOCK_METHOD4(CreateLogMessage, Status(const google::protobuf::Message& request,
-                                        const google::protobuf::Message& response,
-                                        const LogMetadata& log_metadata,
-                                        std::unique_ptr<google::protobuf::Message>* log));
+  MOCK_METHOD(Status, CreateLogMessage,
+              (const google::protobuf::Message& request, const google::protobuf::Message& response,
+               const LogMetadata& log_metadata,
+               std::unique_ptr<google::protobuf::Message>* log),
+              (override));
 
  private:
   std::function<void(void)> notify_destruction_;

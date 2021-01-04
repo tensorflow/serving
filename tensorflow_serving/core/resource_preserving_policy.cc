@@ -18,7 +18,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-optional<AspiredVersionPolicy::ServableAction>
+absl::optional<AspiredVersionPolicy::ServableAction>
 ResourcePreservingPolicy::GetNextAction(
     const std::vector<AspiredServableStateSnapshot>& all_versions) const {
   // First iterate over all_versions and find any in kReady that are no longer
@@ -41,20 +41,20 @@ ResourcePreservingPolicy::GetNextAction(
                            version.state != LoaderHarness::State::kError;
                   });
   if (not_aspired_not_finished) {
-    return nullopt;
+    return absl::nullopt;
   }
 
   // Third and only if no action was found earlier, load the aspired new
   // servable with the highest version if any.
-  optional<ServableId> highest_aspired_new_version_id =
+  absl::optional<ServableId> highest_aspired_new_version_id =
       GetHighestAspiredNewServableId(all_versions);
   if (highest_aspired_new_version_id) {
     VLOG(1) << "ResourcePreservingPolicy requesting to load servable "
-            << highest_aspired_new_version_id;
+            << highest_aspired_new_version_id.value();
     return {{Action::kLoad, highest_aspired_new_version_id.value()}};
   }
 
-  return nullopt;
+  return absl::nullopt;
 }
 
 }  // namespace serving

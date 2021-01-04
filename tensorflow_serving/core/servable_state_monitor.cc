@@ -58,9 +58,9 @@ void UpdateLiveStates(
 
 // Returns the state reached iff the servable has reached 'goal_state' or kEnd,
 // otherwise nullopt.
-optional<ServableState::ManagerState> HasSpecificServableReachedState(
+absl::optional<ServableState::ManagerState> HasSpecificServableReachedState(
     const ServableId& servable_id, const ServableState::ManagerState goal_state,
-    const optional<ServableStateMonitor::ServableStateAndTime>
+    const absl::optional<ServableStateMonitor::ServableStateAndTime>
         opt_servable_state_time) {
   if (!opt_servable_state_time) {
     return {};
@@ -75,10 +75,10 @@ optional<ServableState::ManagerState> HasSpecificServableReachedState(
 
 // Returns the id of the servable in the stream which has reached 'goal_state'
 // or kEnd. If no servable has done so, returns nullopt.
-optional<ServableId> HasAnyServableInStreamReachedState(
+absl::optional<ServableId> HasAnyServableInStreamReachedState(
     const string& stream_name, const ServableState::ManagerState goal_state,
     const ServableStateMonitor::ServableMap& states) {
-  optional<ServableId> opt_servable_id;
+  absl::optional<ServableId> opt_servable_id;
   const auto found_it = states.find(stream_name);
   if (found_it == states.end()) {
     return {};
@@ -121,33 +121,33 @@ ServableStateMonitor::~ServableStateMonitor() {
   bus_subscription_ = nullptr;
 }
 
-optional<ServableStateMonitor::ServableStateAndTime>
+absl::optional<ServableStateMonitor::ServableStateAndTime>
 ServableStateMonitor::GetStateAndTimeInternal(
     const ServableId& servable_id) const {
   auto it = states_.find(servable_id.name);
   if (it == states_.end()) {
-    return nullopt;
+    return absl::nullopt;
   }
   const VersionMap& versions = it->second;
   auto it2 = versions.find(servable_id.version);
   if (it2 == versions.end()) {
-    return nullopt;
+    return absl::nullopt;
   }
   return it2->second;
 }
 
-optional<ServableStateMonitor::ServableStateAndTime>
+absl::optional<ServableStateMonitor::ServableStateAndTime>
 ServableStateMonitor::GetStateAndTime(const ServableId& servable_id) const {
   mutex_lock l(mu_);
   return GetStateAndTimeInternal(servable_id);
 }
 
-optional<ServableState> ServableStateMonitor::GetState(
+absl::optional<ServableState> ServableStateMonitor::GetState(
     const ServableId& servable_id) const {
-  const optional<ServableStateAndTime>& state_and_time =
+  const absl::optional<ServableStateAndTime>& state_and_time =
       GetStateAndTime(servable_id);
   if (!state_and_time) {
-    return nullopt;
+    return absl::nullopt;
   }
   return state_and_time->state;
 }
@@ -172,6 +172,24 @@ ServableStateMonitor::ServableMap ServableStateMonitor::GetLiveServableStates()
     const {
   mutex_lock l(mu_);
   return live_states_;
+}
+
+void ServableStateMonitor::ForgetUnloadedServableStates() {
+  mutex_lock l(mu_);
+
+  for (auto& state : states_) {
+    std::vector<Version> versions_to_forget;
+    auto& version_map = state.second;
+    for (const auto& version : version_map) {
+      if (version.second.state.manager_state ==
+          ServableState::ManagerState::kEnd) {
+        versions_to_forget.emplace_back(version.first);
+      }
+    }
+    for (const auto& version : versions_to_forget) {
+      version_map.erase(version);
+    }
+  }
 }
 
 ServableStateMonitor::ServableSet
@@ -260,7 +278,8 @@ void ServableStateMonitor::HandleEvent(
   log_.emplace_back(state_and_time.state, state_and_time.event_time_micros);
 }
 
-optional<std::pair<bool, std::map<ServableId, ServableState::ManagerState>>>
+absl::optional<
+    std::pair<bool, std::map<ServableId, ServableState::ManagerState>>>
 ServableStateMonitor::ShouldSendStateReachedNotification(
     const ServableStateNotificationRequest& notification_request) {
   bool reached_goal_state = true;
@@ -269,7 +288,7 @@ ServableStateMonitor::ShouldSendStateReachedNotification(
     if (servable_request.version) {
       const ServableId servable_id = {servable_request.name,
                                       *servable_request.version};
-      const optional<ServableState::ManagerState> opt_state =
+      const absl::optional<ServableState::ManagerState> opt_state =
           HasSpecificServableReachedState(servable_id,
                                           notification_request.goal_state,
                                           GetStateAndTimeInternal(servable_id));
@@ -281,7 +300,7 @@ ServableStateMonitor::ShouldSendStateReachedNotification(
           reached_goal_state && *opt_state == notification_request.goal_state;
       states_reached[servable_id] = *opt_state;
     } else {
-      const optional<ServableId> opt_servable_id =
+      const absl::optional<ServableId> opt_servable_id =
           HasAnyServableInStreamReachedState(
               servable_request.name, notification_request.goal_state, states_);
       if (!opt_servable_id) {
@@ -302,7 +321,7 @@ void ServableStateMonitor::MaybeSendStateReachedNotifications() {
   for (auto iter = servable_state_notification_requests_.begin();
        iter != servable_state_notification_requests_.end();) {
     const ServableStateNotificationRequest& notification_request = *iter;
-    const optional<
+    const absl::optional<
         std::pair<bool, std::map<ServableId, ServableState::ManagerState>>>
         opt_state_and_states_reached =
             ShouldSendStateReachedNotification(notification_request);

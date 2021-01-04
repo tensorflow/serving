@@ -30,10 +30,11 @@ from tensorflow_serving.apis import prediction_service_pb2_grpc
 # The image URL is the location of the image we should send to the server
 IMAGE_URL = 'https://tensorflow.org/images/blogs/serving/cat.jpg'
 
-tf.app.flags.DEFINE_string('server', 'localhost:8500',
-                           'PredictionService host:port')
-tf.app.flags.DEFINE_string('image', '', 'path to image in JPEG format')
-FLAGS = tf.app.flags.FLAGS
+tf.compat.v1.app.flags.DEFINE_string('server', 'localhost:8500',
+                                     'PredictionService host:port')
+tf.compat.v1.app.flags.DEFINE_string('image', '',
+                                     'path to image in JPEG format')
+FLAGS = tf.compat.v1.app.flags.FLAGS
 
 
 def main(_):

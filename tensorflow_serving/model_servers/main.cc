@@ -174,6 +174,9 @@ int main(int argc, char** argv) {
                        "A comma separated list of arguments to be passed to "
                        "the grpc server. (e.g. "
                        "grpc.max_connection_age_ms=2000)"),
+      tensorflow::Flag("grpc_max_threads",
+                       &options.grpc_max_threads,
+                       "Max grpc server threads to handle grpc messages."),
       tensorflow::Flag("enable_model_warmup", &options.enable_model_warmup,
                        "Enables model warmup, which triggers lazy "
                        "initializations (such as TF optimizations) at load "
@@ -188,11 +191,24 @@ int main(int argc, char** argv) {
           &options.remove_unused_fields_from_bundle_metagraph,
           "Removes unused fields from MetaGraphDef proto message to save "
           "memory."),
-      tensorflow::Flag("use_tflite_model", &options.use_tflite_model,
-                       "EXPERIMENTAL; CAN BE REMOVED ANYTIME! Load and use "
-                       "TensorFlow Lite model from `model.tflite` file in "
-                       "SavedModel directory instead of the TensorFlow model "
-                       "from `saved_model.pb` file.")};
+      tensorflow::Flag("prefer_tflite_model", &options.prefer_tflite_model,
+                       "EXPERIMENTAL; CAN BE REMOVED ANYTIME! "
+                       "Prefer TensorFlow Lite model from `model.tflite` file "
+                       "in SavedModel directory, instead of the TensorFlow "
+                       "model from `saved_model.pb` file. "
+                       "If no TensorFlow Lite model found, fallback to "
+                       "TensorFlow model."),
+      tensorflow::Flag(
+          "num_tflite_interpreters", &options.num_tflite_interpreters,
+          "EXPERIMENTAL; CAN BE REMOVED ANYTIME! Number of TFLite interpreters "
+          "in an interpreter pool of TfLiteSession. Typically there is one "
+          "TfLiteSession for each TF Lite model that is loaded. If not "
+          "set, will be auto set based on number of CPUs."),
+      tensorflow::Flag(
+          "enable_signature_method_name_check",
+          &options.enable_signature_method_name_check,
+          "Enable method_name check for SignatureDef. Disable this if serving "
+          "native TF2 regression/classification models.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {

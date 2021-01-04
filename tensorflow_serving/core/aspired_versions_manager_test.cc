@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -38,6 +39,8 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
+using test_util::FakeLoader;
+using test_util::WaitUntilServableManagerStateIsOneOf;
 using ::testing::_;
 using ::testing::Invoke;
 using ::testing::InvokeWithoutArgs;
@@ -45,8 +48,6 @@ using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::UnorderedElementsAre;
 using ::testing::UnorderedElementsAreArray;
-using test_util::FakeLoader;
-using test_util::WaitUntilServableManagerStateIsOneOf;
 
 constexpr char kServableName[] = "kServableName";
 constexpr char kServableName2[] = "kServableName2";
@@ -1170,9 +1171,9 @@ TEST_P(AspiredVersionsManagerTest, UnaspireNewServableThenImmediatelyReaspire) {
 
 class MockAspiredVersionPolicy : public AspiredVersionPolicy {
  public:
-  MOCK_CONST_METHOD1(GetNextAction,
-                     optional<ServableAction>(
-                         const std::vector<AspiredServableStateSnapshot>&));
+  MOCK_METHOD(absl::optional<ServableAction>, GetNextAction,
+              (const std::vector<AspiredServableStateSnapshot>&),
+              (const, override));
 };
 
 TEST(AspiredVersionsManagerTest, CallPolicyWithAllVersions) {
@@ -1199,11 +1200,12 @@ TEST(AspiredVersionsManagerTest, CallPolicyWithAllVersions) {
 
   std::vector<AspiredServableStateSnapshot> all_versions;
   EXPECT_CALL(*policy, GetNextAction(_))
-      .WillOnce(Invoke([&all_versions](
-          const std::vector<AspiredServableStateSnapshot>& snapshots) {
-        all_versions = snapshots;
-        return nullopt;
-      }));
+      .WillOnce(Invoke(
+          [&all_versions](
+              const std::vector<AspiredServableStateSnapshot>& snapshots) {
+            all_versions = snapshots;
+            return absl::nullopt;
+          }));
   test_util::AspiredVersionsManagerTestAccess(manager.get())
       .InvokePolicyAndExecuteAction();
   EXPECT_EQ(kNumVersionsPerServable, all_versions.size());

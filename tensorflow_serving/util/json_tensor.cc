@@ -74,6 +74,9 @@ constexpr char kPredictResponseOutputsKey[] = "outputs";
 // in the JSON response object.
 constexpr char kClassifyRegressResponseKey[] = "results";
 
+// All error messages are keyed off this in the JSON response object.
+constexpr char kErrorResponseKey[] = "error";
+
 // All binary (base64 encoded) strings are keyd off this in JSON.
 constexpr char kBase64Key[] = "b64";
 
@@ -555,7 +558,7 @@ Status FillTensorMapFromInstancesList(
         return errors::InvalidArgument(
             "Failed to process element: ", tensor_count,
             " of 'instances' list. JSON object: ", JsonValueToString(elem),
-            " must only have keys: ", absl::StrJoin(input_names, ","));
+            " keys must be equal to: ", absl::StrJoin(input_names, ","));
       }
     } else {
       if (IsElementObject(elem)) {
@@ -667,7 +670,7 @@ Status FillPredictRequestFromJson(
         kPredictRequestInstancesKey, "' keys to exist ");
     }
     if (!itr_instances->value.IsArray()) {
-      return FormatError(doc, "Excepting '",
+      return FormatError(doc, "Expecting '",
         kPredictRequestInstancesKey, "' to be an list/array");
     }
     if (!itr_instances->value.Capacity()) {
@@ -966,7 +969,7 @@ Status MakeRowFormatJsonFromTensors(
   // Verify if each named tensor has same first dimension. The first dimension
   // is the batchsize and for an output to be consistent, all named tensors must
   // be batched to the same size.
-  int batch_size = 0;
+  int batch_size = -1;
   // Track offset into value list for each tensor (used in the next section).
   std::unordered_map<string, int> offset_map;
   for (const auto& kv : tensor_map) {
@@ -977,11 +980,7 @@ Status MakeRowFormatJsonFromTensors(
                                      " has no shape information ");
     }
     const int cur_batch_size = tensor.tensor_shape().dim(0).size();
-    if (cur_batch_size < 1) {
-      return errors::InvalidArgument(
-          "Tensor name: ", name, " has invalid batch size: ", cur_batch_size);
-    }
-    if (batch_size != 0 && batch_size != cur_batch_size) {
+    if (batch_size >= 0 && batch_size != cur_batch_size) {
       return errors::InvalidArgument(
           "Tensor name: ", name,
           " has inconsistent batch size: ", cur_batch_size,
@@ -1117,6 +1116,18 @@ Status MakeJsonFromRegressionResult(const RegressionResult& result,
   writer.EndObject();
   json->assign(buffer.GetString());
   return Status::OK();
+}
+
+void MakeJsonFromStatus(const tensorflow::Status& status, string* json) {
+  if (status.ok()) return;
+  const string& error_message = status.error_message();
+  rapidjson::StringBuffer buffer;
+  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+  writer.StartObject();
+  writer.Key(kErrorResponseKey);
+  writer.String(error_message.c_str(), error_message.size());
+  writer.EndObject();
+  json->append(buffer.GetString());
 }
 
 }  // namespace serving

@@ -38,7 +38,7 @@ message ModelConfig {
   // (This cannot be changed once a model is in serving.)
   string model_platform = 4;
 
-  reserved 5;
+  reserved 5, 9;
 
   // Version policy for the model indicating which version(s) of the model to
   // load and make available for serving simultaneously.

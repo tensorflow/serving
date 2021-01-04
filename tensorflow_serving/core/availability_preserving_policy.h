@@ -20,7 +20,6 @@ limitations under the License.
 
 #include "tensorflow_serving/core/aspired_version_policy.h"
 #include "tensorflow_serving/core/loader_harness.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -39,7 +38,7 @@ namespace serving {
 // load the aspired new version with the highest version number.
 class AvailabilityPreservingPolicy final : public AspiredVersionPolicy {
  public:
-  optional<ServableAction> GetNextAction(
+  absl::optional<ServableAction> GetNextAction(
       const std::vector<AspiredServableStateSnapshot>& all_versions)
       const override;
 };

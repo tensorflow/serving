@@ -46,7 +46,7 @@ cc_test(
 py_binary(
     name = "matrix_half_plus_two_saved_model",
     srcs = ["matrix_half_plus_two_saved_model.py"],
-    python_version = "PY2",
-    srcs_version = "PY2AND3",
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
 )

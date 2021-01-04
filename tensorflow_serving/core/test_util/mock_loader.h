@@ -27,11 +27,12 @@ namespace test_util {
 
 class MockLoader : public Loader {
  public:
-  MOCK_CONST_METHOD1(EstimateResources, Status(ResourceAllocation* estimate));
-  MOCK_METHOD0(Load, Status());
-  MOCK_METHOD1(LoadWithMetadata, Status(const Metadata&));
-  MOCK_METHOD0(Unload, void());
-  MOCK_METHOD0(servable, AnyPtr());
+  MOCK_METHOD(Status, EstimateResources, (ResourceAllocation * estimate),
+              (const, override));
+  MOCK_METHOD(Status, Load, (), (override));
+  MOCK_METHOD(Status, LoadWithMetadata, (const Metadata&), (override));
+  MOCK_METHOD(void, Unload, (), (override));
+  MOCK_METHOD(AnyPtr, servable, (), (override));
 };
 
 }  // namespace test_util

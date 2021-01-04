@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/util.h"
 
+#include <atomic>
+
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/example/example.pb.h"
@@ -25,16 +27,21 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/cord.h"
 #include "tensorflow/core/platform/errors.h"
+#include "tensorflow/core/platform/path.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/internal/serialized_input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
-#include "tensorflow_serving/util/optional.h"
+#include "tensorflow_serving/resources/resource_values.h"
 
 namespace tensorflow {
 namespace serving {
 namespace {
+
+// Constants used in the resource estimation heuristic.
+static constexpr double kResourceEstimateRAMMultiplier = 1.2;
+static constexpr int kResourceEstimateRAMPadBytes = 0;
 
 auto* example_counts = monitoring::Sampler<1>::New(
     {"/tensorflow/serving/request_example_counts",
@@ -60,6 +67,16 @@ auto* model_latency_histogram = monitoring::Sampler<1>::New(
 	1000, 2000, 3000, 4000, 5000, 7000, 9000, 11000, 13000, 15000,
 	17000, 19000, 21000, 24000, 27000, 30000, 33000, 35000, 38000}));
 
+auto* runtime_latency = monitoring::Sampler<3>::New(
+    {
+        "/tensorflow/serving/runtime_latency",
+        "Distribution of wall time (in microseconds) for Tensorflow runtime.",
+        "model_name",
+        "API",
+        "runtime",
+    },  // Scale of 10, power of 1.8 with bucket count 33 (~20 minutes).
+    monitoring::Buckets::Exponential(10, 1.8, 33));
+
 // Returns the number of examples in the Input.
 int NumInputExamples(const internal::SerializedInput& input) {
   switch (input.kind_case()) {
@@ -71,6 +88,37 @@ int NumInputExamples(const internal::SerializedInput& input) {
       break;
   }
   return 0;
+}
+
+std::atomic<bool> signature_method_check{true};
+
+// Returns all the descendants, both directories and files, recursively under
+// 'dirname'. The paths returned are all prefixed with 'dirname'.
+Status GetAllDescendants(const string& dirname, FileProbingEnv* env,
+                         std::vector<string>* const descendants) {
+  descendants->clear();
+  // Make sure that dirname exists;
+  TF_RETURN_IF_ERROR(env->FileExists(dirname));
+  std::deque<string> dir_q;      // Queue for the BFS
+  std::vector<string> dir_list;  // List of all dirs discovered
+  dir_q.push_back(dirname);
+  // Do a BFS on the directory to discover all immediate children.
+  while (!dir_q.empty()) {
+    const string dir = dir_q.front();
+    dir_q.pop_front();
+    std::vector<string> children;
+    // GetChildren might fail if we don't have appropriate permissions.
+    TF_RETURN_IF_ERROR(env->GetChildren(dir, &children));
+    for (const string& child : children) {
+      const string child_path = io::JoinPath(dir, child);
+      descendants->push_back(child_path);
+      // If the child is a directory add it to the queue.
+      if (env->IsDirectory(child_path).ok()) {
+        dir_q.push_back(child_path);
+      }
+    }
+  }
+  return Status::OK();
 }
 
 }  // namespace
@@ -98,6 +146,9 @@ void UpdateModelLatencyTime(const string& model_name, const uint64 running_time_
   }
 }
 
+void SetSignatureMethodNameCheckFeature(bool v) { signature_method_check = v; }
+
+bool GetSignatureMethodNameCheckFeature() { return signature_method_check; }
 
 void RecordRequestExampleCount(const string& model_name, size_t count) {
   example_counts->GetCell(model_name)->Add(count);
@@ -181,6 +232,31 @@ Status PerformOneShotTensorComputation(
     const string& input_tensor_name,
     const std::vector<string>& output_tensor_names, Session* session,
     std::vector<Tensor>* outputs, int* num_input_examples,
+    const thread::ThreadPoolOptions& thread_pool_options,
+    int64* runtime_latency) {
+  // Setup the input Tensor to be a vector of string containing the serialized
+  // tensorflow.Example.
+  Tensor input_tensor;
+  TF_RETURN_IF_ERROR(InputToSerializedExampleTensor(input, &input_tensor));
+  *num_input_examples = input_tensor.dim_size(0);
+
+  const uint64 start_microseconds = EnvTime::NowMicros();
+  RunMetadata run_metadata;
+  TF_RETURN_IF_ERROR(session->Run(
+      run_options, {{input_tensor_name, input_tensor}}, output_tensor_names, {},
+      outputs, &run_metadata, thread_pool_options));
+  const uint64 end_microseconds = EnvTime::NowMicros();
+  if (runtime_latency != nullptr) {
+    *runtime_latency = end_microseconds - start_microseconds;
+  }
+  return Status::OK();
+}
+
+Status PerformOneShotTensorComputation(
+    const RunOptions& run_options, const Input& input,
+    const std::set<string>& input_tensor_names,
+    const std::vector<string>& output_tensor_names, Session* session,
+    std::vector<Tensor>* outputs, int* num_input_examples,
     const thread::ThreadPoolOptions& thread_pool_options) {
   // Setup the input Tensor to be a vector of string containing the serialized
   // tensorflow.Example.
@@ -188,15 +264,21 @@ Status PerformOneShotTensorComputation(
   TF_RETURN_IF_ERROR(InputToSerializedExampleTensor(input, &input_tensor));
   *num_input_examples = input_tensor.dim_size(0);
 
+  std::vector<std::pair<string, Tensor>> inputs;
+  inputs.reserve(input_tensor_names.size());
+  for (const auto& name : input_tensor_names) {
+    inputs.emplace_back(name, input_tensor);
+  }
+
   RunMetadata run_metadata;
-  return session->Run(run_options, {{input_tensor_name, input_tensor}},
-                      output_tensor_names, {}, outputs, &run_metadata,
-                      thread_pool_options);
+  return session->Run(run_options, inputs, output_tensor_names, {}, outputs,
+                      &run_metadata, thread_pool_options);
 }
 
 void MakeModelSpec(const string& model_name,
-                   const optional<string>& signature_name,
-                   const optional<int64>& version, ModelSpec* model_spec) {
+                   const absl::optional<string>& signature_name,
+                   const absl::optional<int64>& version,
+                   ModelSpec* model_spec) {
   model_spec->Clear();
   model_spec->set_name(model_name);
   if (signature_name) {
@@ -207,6 +289,49 @@ void MakeModelSpec(const string& model_name,
   if (version) {
     model_spec->mutable_version()->set_value(*version);
   }
+}
+
+Status GetModelDiskSize(const string& path, FileProbingEnv* env,
+                        uint64* total_file_size) {
+  if (env == nullptr) {
+    return errors::Internal("FileProbingEnv not set");
+  }
+
+  std::vector<string> descendants;
+  TF_RETURN_IF_ERROR(GetAllDescendants(path, env, &descendants));
+  *total_file_size = 0;
+  for (const string& descendant : descendants) {
+    if (!(env->IsDirectory(descendant).ok())) {
+      uint64 file_size;
+      TF_RETURN_IF_ERROR(env->GetFileSize(descendant, &file_size));
+      *total_file_size += file_size;
+    }
+  }
+  return Status::OK();
+}
+
+Status EstimateResourceFromPathUsingDiskState(const string& path,
+                                              FileProbingEnv* env,
+                                              ResourceAllocation* estimate) {
+  uint64 total_file_size = 0;
+  TF_RETURN_IF_ERROR(GetModelDiskSize(path, env, &total_file_size));
+
+  const uint64 ram_requirement =
+      total_file_size * kResourceEstimateRAMMultiplier +
+      kResourceEstimateRAMPadBytes;
+
+  ResourceAllocation::Entry* ram_entry = estimate->add_resource_quantities();
+  Resource* ram_resource = ram_entry->mutable_resource();
+  ram_resource->set_device(device_types::kMain);
+  ram_resource->set_kind(resource_kinds::kRamBytes);
+  ram_entry->set_quantity(ram_requirement);
+
+  return Status::OK();
+}
+
+void RecordRuntimeLatency(const string& model_name, const string& api,
+                          const string& runtime, int64 latency_usec) {
+  runtime_latency->GetCell(model_name, api, runtime)->Add(latency_usec);
 }
 
 }  // namespace serving

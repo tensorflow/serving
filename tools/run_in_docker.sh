@@ -28,11 +28,11 @@
 # Typical usage (to build from lastest upstream source):
 # $ git clone https://github.com/tensorflow/serving.git
 # $ cd serving
-# $ ./run_in_docker.sh bazel build tensorflow_serving/model_servers:tensorflow_model_server
+# $ ./tools/run_in_docker.sh bazel build tensorflow_serving/model_servers:tensorflow_model_server
 #
 # Running a python script:
-# $ cd tensorflow_serving/example
-# $ ./run_in_docker.sh mnist_saved_model.py /tmp/mnist
+# $ cd serving
+# $ ./tools/run_in_docker.sh python tensorflow_serving/example/mnist_saved_model.py /tmp/mnist
 
 set -e
 

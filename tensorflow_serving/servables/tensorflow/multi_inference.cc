@@ -33,8 +33,8 @@ Status TensorFlowMultiInferenceRunner::Infer(
   TRACELITERAL("TensorFlowMultiInferenceRunner::Infer");
 
   string model_name = "";
-  string input_tensor_name = "";
   std::set<string> signature_names;
+  std::set<string> input_tensor_name_set;
   std::set<string> output_tensor_name_set;
   for (const auto& task : request.tasks()) {
     if (task.model_spec().name().empty()) {
@@ -77,13 +77,7 @@ Status TensorFlowMultiInferenceRunner::Infer(
       return errors::Unimplemented("Unsupported signature method_name: ",
                                    task.method_name());
     }
-    if (input_tensor_name.empty()) {
-      input_tensor_name = input_name;
-    } else if (input_tensor_name != input_name) {
-      return errors::InvalidArgument(
-          "Input tensor must be the same for all Signatures.");
-    }
-
+    input_tensor_name_set.insert(input_name);
     for (const auto& output_tensor_name : output_names) {
       output_tensor_name_set.insert(output_tensor_name);
     }
@@ -95,7 +89,7 @@ Status TensorFlowMultiInferenceRunner::Infer(
   std::vector<Tensor> outputs;
   int num_examples;
   TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
-      run_options, request.input(), input_tensor_name, output_tensor_names,
+      run_options, request.input(), input_tensor_name_set, output_tensor_names,
       session_, &outputs, &num_examples, thread_pool_options_));
   RecordRequestExampleCount(model_name, num_examples);
 
@@ -131,7 +125,7 @@ Status TensorFlowMultiInferenceRunner::Infer(
 
 Status RunMultiInference(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
-    const optional<int64>& servable_version, Session* session,
+    const absl::optional<int64>& servable_version, Session* session,
     const MultiInferenceRequest& request, MultiInferenceResponse* response,
     const tensorflow::thread::ThreadPoolOptions& thread_pool_options) {
   TRACELITERAL("RunMultiInference");

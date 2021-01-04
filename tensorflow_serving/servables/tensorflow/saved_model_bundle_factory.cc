@@ -63,7 +63,8 @@ Status ParseFixedInputTensors(
 // TODO(b/140959776): Move this upstream alongside `kSavedModelFilenamePb`.
 const char kTfLiteModelFilename[] = "model.tflite";
 
-Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle) {
+Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
+                       int num_interpreters) {
   std::unique_ptr<TfLiteSession> session;
 
   const string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
@@ -79,11 +80,16 @@ Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle) {
   TF_RETURN_IF_ERROR(file->Read(0, size, &sv, &model_bytes[0]));
 
   std::unique_ptr<TfLiteSession> tflite_session;
-  TF_RETURN_IF_ERROR(
-      TfLiteSession::Create(std::move(model_bytes), &tflite_session,
-                            bundle->meta_graph_def.mutable_signature_def()));
+  TF_RETURN_IF_ERROR(TfLiteSession::Create(
+      std::move(model_bytes), &tflite_session,
+      bundle->meta_graph_def.mutable_signature_def(), num_interpreters));
   bundle->session = std::move(tflite_session);
   return Status::OK();
+}
+
+bool TfLiteModelFound(const string& model_dir) {
+  const string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
+  return Env::Default()->FilesExist({fname}, nullptr);
 }
 
 }  // namespace
@@ -102,7 +108,8 @@ Status SavedModelBundleFactory::Create(
 
 Status SavedModelBundleFactory::EstimateResourceRequirement(
     const string& path, ResourceAllocation* estimate) const {
-  return EstimateResourceFromPath(path, estimate);
+  return EstimateResourceFromPath(
+      path, config_.resource_estimation_uses_validation_result(), estimate);
 }
 
 Status SavedModelBundleFactory::CreateSavedModelBundleWithMetadata(
@@ -122,8 +129,8 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
   bundle->reset(new SavedModelBundle);
   std::unordered_set<string> saved_model_tags(
       config_.saved_model_tags().begin(), config_.saved_model_tags().end());
-  // Defaults to loading the meta graph def corresponding to the `serve` tag if
-  // no `saved_model_tags` are specified.
+  // Defaults to loading the meta graph def corresponding to the `serve` tag
+  // if no `saved_model_tags` are specified.
   if (saved_model_tags.empty()) {
     saved_model_tags.insert(kSavedModelTagServe);
   }
@@ -138,8 +145,9 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
     return result;
   }();
 
-  if (config_.use_tflite_model()) {
-    TF_RETURN_IF_ERROR(LoadTfLiteModel(path, bundle->get()));
+  if (config_.prefer_tflite_model() && TfLiteModelFound(path)) {
+    TF_RETURN_IF_ERROR(LoadTfLiteModel(path, bundle->get(),
+                                       config_.num_tflite_interpreters()));
   } else {
     TF_RETURN_IF_ERROR(session_bundle::LoadSessionBundleOrSavedModelBundle(
         session_options, GetRunOptions(config_), path, saved_model_tags,
@@ -171,8 +179,8 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
       return errors::Internal("batch_scheduler_ not set");
     }
     // Enable batching of requests to any one signature_def in the SavedModel.
-    // Note that in the future, the plan is to enable explicit configuration of
-    // the one or many SignatureDefs to enable.
+    // Note that in the future, the plan is to enable explicit configuration
+    // of the one or many SignatureDefs to enable.
     const std::vector<SignatureDef> signatures = GetSignatureDefs(**bundle);
     return WrapSessionForBatching(config_.batching_parameters(),
                                   batch_scheduler_, signatures,

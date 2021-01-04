@@ -388,7 +388,7 @@ string ModelNameForPlatform(const string& platform) {
   if (it != platform_to_model_map->end()) {
     return it->second;
   }
-  const string random = strings::Printf("%llu", random::New64());
+  const string random = strings::StrCat(random::New64());
   const string model_name =
       strings::StrCat("model_", random, "_for_", platform);
   (*platform_to_model_map)[platform] = model_name;

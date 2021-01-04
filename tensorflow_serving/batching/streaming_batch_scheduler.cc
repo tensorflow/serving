@@ -17,6 +17,8 @@ limitations under the License.
 
 #include <utility>
 
+#include "absl/types/optional.h"
+
 namespace tensorflow {
 namespace serving {
 
@@ -50,7 +52,7 @@ void SingleTaskScheduler::Schedule(uint64 time_micros,
 }
 
 void SingleTaskScheduler::ThreadLogic() {
-  optional<Task> current_task = nullopt;
+  absl::optional<Task> current_task = absl::nullopt;
   for (;;) {
     // Sleep until the time specified in the current task, if any.
     if (current_task) {
@@ -65,7 +67,7 @@ void SingleTaskScheduler::ThreadLogic() {
       mutex_lock l(mu_);
       if (updated_task_) {
         current_task = updated_task_;
-        updated_task_ = nullopt;
+        updated_task_ = absl::nullopt;
         // We've got an updated task. Start over.
         continue;
       }
@@ -75,7 +77,7 @@ void SingleTaskScheduler::ThreadLogic() {
     // nothing to do, so sleep for a spell.
     if (current_task) {
       current_task->closure();
-      current_task = nullopt;
+      current_task = absl::nullopt;
     } else {
       if (stop_.HasBeenNotified()) {
         return;

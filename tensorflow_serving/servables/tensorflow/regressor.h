@@ -20,11 +20,11 @@ limitations under the License.
 
 #include <memory>
 
+#include "absl/types/optional.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/apis/regressor.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -60,8 +60,8 @@ Status GetRegressionSignatureDef(const ModelSpec& model_spec,
                                  const MetaGraphDef& meta_graph_def,
                                  SignatureDef* signature);
 
-// Validate a SignatureDef to make sure it's compatible with Regression, and if
-// so, populate the input and output tensor names.
+// Validate a SignatureDef to make sure it's compatible with Regression.
+// Populate the input and output tensor names, if the args are not nullptr.
 //
 // NOTE: output_tensor_names may already have elements in it (e.g. when building
 // a full list of outputs from multiple signatures), and this function will just
@@ -79,8 +79,8 @@ Status PostProcessRegressionResult(
 // Creates SavedModelTensorflowRegressor and runs Regression on it.
 Status RunRegress(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
-                  const optional<int64>& servable_version, Session* session,
-                  const RegressionRequest& request,
+                  const absl::optional<int64>& servable_version,
+                  Session* session, const RegressionRequest& request,
                   RegressionResponse* response,
                   const thread::ThreadPoolOptions& thread_pool_options =
                       thread::ThreadPoolOptions());

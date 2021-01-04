@@ -29,7 +29,6 @@ limitations under the License.
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/source.h"
-#include "tensorflow_serving/util/cleanup.h"
 #include "tensorflow_serving/util/hash.h"
 #include "tensorflow_serving/util/inline_executor.h"
 #include "tensorflow_serving/util/retrier.h"
@@ -729,10 +728,12 @@ Status BasicManager::ReserveResources(LoaderHarness* harness,
         },
         [&]() { return harness->cancel_load_retry(); });
     if (!reserve_resources_status.ok()) {
-      return errors::Internal(strings::StrCat(
-          "Error while attempting to reserve resources to load servable ",
-          harness->id().DebugString(), ": ",
-          reserve_resources_status.error_message()));
+      return Status(
+          reserve_resources_status.code(),
+          strings::StrCat(
+              "Error while attempting to reserve resources to load servable ",
+              harness->id().DebugString(), ": ",
+              reserve_resources_status.error_message()));
     }
     if (resources_reserved) {
       // Woohoo! We got our resources.

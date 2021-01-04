@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/tflite_session.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -23,6 +24,9 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/string_util.h"
+#include "tensorflow/lite/tools/signature/signature_def_util.h"
+#include "tensorflow/lite/util.h"
+#include "tensorflow_serving/servables/tensorflow/tflite_interpreter_pool.h"
 
 namespace tensorflow {
 namespace serving {
@@ -70,11 +74,30 @@ Status TfLiteTypeToTfType(TfLiteType tflite_type, DataType* type) {
   return Status::OK();
 }
 
-std::string TfToTfLiteTensorName(const string& tf_name) {
-  // TF variable names have ':0' suffix, TF Lite variables dont.
+std::string TfToTfLiteLegacyTensorName(const string& tf_name) {
+  // TF variable names have ':0' suffix, early versions of the TF Lite converter
+  // used to strip this suffix.
   std::pair<absl::string_view, absl::string_view> name_index =
       absl::StrSplit(tf_name, absl::MaxSplits(':', 1));
   return std::string(name_index.first);
+}
+
+// Checks that an input/output tensor actually exists. If not, attempts to
+// update the tensor name with legacy TFLite tensor naming.
+Status FixTfLiteTensorName(const std::map<string, int>& tensor_name_map,
+                           string& tensor_name) {
+  if (tensor_name_map.find(tensor_name) != tensor_name_map.end()) {
+    return Status::OK();
+  }
+
+  // Try to update with the legacy tflite tensor name.
+  const string& legacy_tflite_name = TfToTfLiteLegacyTensorName(tensor_name);
+  if (tensor_name_map.find(legacy_tflite_name) != tensor_name_map.end()) {
+    tensor_name = legacy_tflite_name;
+    return Status::OK();
+  }
+
+  return errors::Internal("Unknown tensor '", tensor_name, "'.");
 }
 
 Status TfLiteTensorToTensorInfo(const TfLiteTensor* tflite_tensor,
@@ -90,13 +113,13 @@ Status TfLiteTensorToTensorInfo(const TfLiteTensor* tflite_tensor,
   return Status::OK();
 }
 
-Status GetTensorInfoMap(const tflite::Interpreter& interpreter, bool input,
+Status GetTensorInfoMap(const tflite::Interpreter* interpreter, bool input,
                         TensorInfoMap* infomap) {
   const std::vector<int>& indices =
-      input ? interpreter.inputs() : interpreter.outputs();
+      input ? interpreter->inputs() : interpreter->outputs();
   const string& input_str = input ? "Input" : "Output";
   for (int index : indices) {
-    const TfLiteTensor* tensor = interpreter.tensor(index);
+    const TfLiteTensor* tensor = interpreter->tensor(index);
     if (tensor->name == nullptr) {
       return errors::Internal(input_str,
                               " name missing for tensor index: ", index);
@@ -212,61 +235,104 @@ Status AppendTfLiteToTfTensorList(const TfLiteTensor* tflite_tensor,
 
 Status TfLiteSession::Create(string&& buffer,
                              std::unique_ptr<TfLiteSession>* tflite_session,
-                             ::google::protobuf::Map<string, SignatureDef>* signatures) {
+                             ::google::protobuf::Map<string, SignatureDef>* signatures,
+                             int num_interpreters) {
   auto model = tflite::FlatBufferModel::BuildFromModel(
       flatbuffers::GetRoot<tflite::Model>(buffer.data()));
   if (model == nullptr) {
     return errors::InvalidArgument("Cannot build FlatBufferModel from buffer.");
   }
 
-  // TODO(b/140959776): Add support for non-builtin ops (flex or custom ops).
-  tflite::ops::builtin::BuiltinOpResolver resolver;
-  std::unique_ptr<tflite::Interpreter> interpreter;
-  if (tflite::InterpreterBuilder(*model, resolver)(&interpreter) != kTfLiteOk) {
-    return errors::Internal("Cannot build Interpreter from buffer.");
-  }
-  if (interpreter->AllocateTensors() != kTfLiteOk) {
-    return errors::Internal("Cannot allocator tensors in Interpreter.");
-  }
+  std::unique_ptr<internal::TfLiteInterpreterPool> interpreter_pool;
+  TF_RETURN_IF_ERROR(
+      internal::TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
+          *model, num_interpreters, interpreter_pool));
+  auto interpreter_wrapper = interpreter_pool->GetInterpreter();
+  const tflite::Interpreter* interpreter = interpreter_wrapper->Get();
 
   TensorInfoMap inputs;
-  TF_RETURN_IF_ERROR(GetTensorInfoMap(*interpreter, true, &inputs));
+  TF_RETURN_IF_ERROR(GetTensorInfoMap(interpreter, true, &inputs));
   TensorInfoMap outputs;
-  TF_RETURN_IF_ERROR(GetTensorInfoMap(*interpreter, false, &outputs));
+  TF_RETURN_IF_ERROR(GetTensorInfoMap(interpreter, false, &outputs));
 
+  // Map of TFLite tensor name -> tensor index
   std::map<string, int> input_tensor_to_index;
   std::map<string, int> output_tensor_to_index;
-
-  // Build a default SignatureDef map.
-  // TODO(b/140959776): Add support to read this map from tflite model.
-  signatures->clear();
-  SignatureDef* sigdef = &(*signatures)[kDefaultServingSignatureDefKey];
   for (const auto& info : inputs) {
-    (*sigdef->mutable_inputs())[info.first] = info.second.first;
-    input_tensor_to_index[info.first] = info.second.second;
+    const string& tflite_tensor_name = info.first;
+    input_tensor_to_index[tflite_tensor_name] = info.second.second;
   }
   for (const auto& info : outputs) {
-    (*sigdef->mutable_outputs())[info.first] = info.second.first;
-    output_tensor_to_index[info.first] = info.second.second;
+    const string& tflite_tensor_name = info.first;
+    output_tensor_to_index[tflite_tensor_name] = info.second.second;
   }
-  sigdef->set_method_name(kPredictMethodName);
+
+  // Attempt to read signature defs from the model file
+  std::map<string, SignatureDef> signature_defs;
+  const auto status =
+      tflite::GetSignatureDefMap(model->GetModel(), &signature_defs);
+  if (status != Status::OK()) {
+    return errors::InvalidArgument(
+        "Invalid SignatureDefs found in TfLite model: ",
+        status.error_message());
+  }
+  const bool has_lite_signature_def = !signature_defs.empty();
+
+  signatures->clear();
+  if (has_lite_signature_def) {
+    // Check that input/output tensors in the signature defs refer to existing
+    // tensors.
+    // If not found, try to match with legacy TFLite name (without suffix).
+    for (const auto& signature_item : signature_defs) {
+      SignatureDef* tflite_signature = &(*signatures)[signature_item.first];
+      tflite_signature->CopyFrom(signature_item.second);
+      for (auto& input : *tflite_signature->mutable_inputs()) {
+        TensorInfo* tensor_info = &input.second;
+        TF_RETURN_WITH_CONTEXT_IF_ERROR(
+            FixTfLiteTensorName(input_tensor_to_index,
+                                *tensor_info->mutable_name()),
+            "Signature input ", input.first, " references an unknown tensor");
+      }
+      for (auto& output : *tflite_signature->mutable_outputs()) {
+        TensorInfo* tensor_info = &output.second;
+        TF_RETURN_WITH_CONTEXT_IF_ERROR(
+            FixTfLiteTensorName(output_tensor_to_index,
+                                *tensor_info->mutable_name()),
+            "Signature output ", output.first, " references an unknown tensor");
+      }
+    }
+  } else {
+    // Build a mock signature from the input/output tensors of the model.
+    // TODO(b/169239308)
+    LOG(WARNING) << "No signature def found in TFLite model. Generating one.";
+    SignatureDef* sigdef = &(*signatures)[kDefaultServingSignatureDefKey];
+    for (const auto& info : inputs) {
+      string tflite_tensor_name = TfToTfLiteLegacyTensorName(info.first);
+      (*sigdef->mutable_inputs())[tflite_tensor_name] = info.second.first;
+    }
+    for (const auto& info : outputs) {
+      string tflite_tensor_name = TfToTfLiteLegacyTensorName(info.first);
+      (*sigdef->mutable_outputs())[tflite_tensor_name] = info.second.first;
+    }
+    sigdef->set_method_name(kPredictMethodName);
+  }
 
   tflite_session->reset(new TfLiteSession(
       std::move(input_tensor_to_index), std::move(output_tensor_to_index),
-      std::move(buffer), std::move(model), std::move(interpreter)));
+      std::move(buffer), std::move(model), std::move(interpreter_pool)));
   return Status::OK();
 }
 
-TfLiteSession::TfLiteSession(std::map<string, int>&& input_tensor_to_index,
-                             std::map<string, int>&& output_tensor_to_index,
-                             string&& buffer,
-                             std::unique_ptr<tflite::FlatBufferModel> model,
-                             std::unique_ptr<tflite::Interpreter> interpreter)
+TfLiteSession::TfLiteSession(
+    std::map<string, int>&& input_tensor_to_index,
+    std::map<string, int>&& output_tensor_to_index, string&& buffer,
+    std::unique_ptr<tflite::FlatBufferModel> model,
+    std::unique_ptr<internal::TfLiteInterpreterPool> interpreter_pool)
     : input_tensor_to_index_(std::move(input_tensor_to_index)),
       output_tensor_to_index_(std::move(output_tensor_to_index)),
       model_serialized_bytes_(std::move(buffer)),
       model_(std::move(model)),
-      interpreter_(std::move(interpreter)) {}
+      interpreter_pool_(std::move(interpreter_pool)) {}
 
 Status TfLiteSession::Run(const std::vector<std::pair<string, Tensor>>& inputs,
                           const std::vector<string>& output_tensor_names,
@@ -294,32 +360,29 @@ Status TfLiteSession::Run(
     const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
     RunMetadata* run_metadata,
     const thread::ThreadPoolOptions& thread_pool_options) {
-  // TODO(b/140959776): Remove serialized Run() calls, and support
-  // multi-threaded execution -- allowing multiple Run() calls to
-  // happen in-parallel.
-  absl::MutexLock lock(&mutex_);
+  auto interpreter_wrapper = interpreter_pool_->GetInterpreter();
+  tflite::Interpreter* interpreter = interpreter_wrapper->Get();
   for (const auto& input : inputs) {
-    const string& name = TfToTfLiteTensorName(input.first);
-    if (input_tensor_to_index_.find(name) == input_tensor_to_index_.end()) {
-      return errors::InvalidArgument("Missing input TFLite tensor: ", name);
-    }
+    string name = input.first;
+    TF_RETURN_WITH_CONTEXT_IF_ERROR(
+        FixTfLiteTensorName(input_tensor_to_index_, name),
+        "Missing input TFLite tensor: ", name);
     const int index = input_tensor_to_index_.at(name);
-    TF_RETURN_IF_ERROR(FillTfLiteTensorFromInput(name, input.second,
-                                                 interpreter_.get(), index));
+    TF_RETURN_IF_ERROR(
+        FillTfLiteTensorFromInput(name, input.second, interpreter, index));
   }
 
-  if (interpreter_->Invoke() != kTfLiteOk) {
+  if (interpreter->Invoke() != kTfLiteOk) {
     return errors::Internal("Failed to run interpreter.");
   }
 
   outputs->clear();
-  for (const auto& tfname : output_tensor_names) {
-    const string& name = TfToTfLiteTensorName(tfname);
-    if (output_tensor_to_index_.find(name) == output_tensor_to_index_.end()) {
-      return errors::InvalidArgument("Missing output TFLite tensor: ", name);
-    }
+  for (string name : output_tensor_names) {
+    TF_RETURN_WITH_CONTEXT_IF_ERROR(
+        FixTfLiteTensorName(output_tensor_to_index_, name),
+        "Missing output TFLite tensor: ", name);
     const int index = output_tensor_to_index_.at(name);
-    auto* tflite_tensor = interpreter_->tensor(index);
+    auto* tflite_tensor = interpreter->tensor(index);
     if (tflite_tensor == nullptr) {
       return errors::InvalidArgument(
           "Failed to get output TFLite tensor: ", name, " at index: ", index);

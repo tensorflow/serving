@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <string>
 
+#include "absl/types/optional.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/util/status.pb.h"
@@ -82,7 +83,8 @@ Status GetModelStatusImpl::GetModelStatusWithModelSpec(
     // Only gets status for specified version of specified model.
     const int64 version = model_spec.version().value();
     const ServableId id = {model_name, version};
-    const optional<ServableState> opt_servable_state = monitor.GetState(id);
+    const absl::optional<ServableState> opt_servable_state =
+        monitor.GetState(id);
     if (!opt_servable_state) {
       return tensorflow::errors::NotFound("Could not find version ", version,
                                           " of model ", model_name);

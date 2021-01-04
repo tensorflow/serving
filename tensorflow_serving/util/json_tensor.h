@@ -297,6 +297,17 @@ tensorflow::Status MakeJsonFromClassificationResult(
 tensorflow::Status MakeJsonFromRegressionResult(const RegressionResult& result,
                                                 string* json);
 
+// Make JSON object from Status.
+//
+// The output JSON object is formatted as follows:
+//
+// {
+//   "error": "<status error message>"
+// }
+//
+// If `status` is OK then we do not append anything to output `json`.
+void MakeJsonFromStatus(const tensorflow::Status& status, string* json);
+
 }  // namespace serving
 }  // namespace tensorflow
 

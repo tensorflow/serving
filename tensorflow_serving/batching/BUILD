@@ -25,7 +25,7 @@ cc_library(
     visibility = ["//visibility:private"],
     deps = [
         ":batch_scheduler_retrier",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:batch_scheduler",
     ],
@@ -47,6 +47,22 @@ cc_test(
 )
 
 cc_library(
+    name = "incremental_barrier",
+    srcs = ["incremental_barrier.cc"],
+    hdrs = ["incremental_barrier.h"],
+    deps = [
+        "@com_google_absl//absl/functional:bind_front",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
+    name = "batching_options",
+    hdrs = ["batching_options.h"],
+    deps = [],
+)
+
+cc_library(
     name = "batching_session",
     srcs = ["batching_session.cc"],
     hdrs = ["batching_session.h"],
@@ -54,18 +70,34 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":batching_options",
         ":batching_util",
+        ":incremental_barrier",
+        ":threadsafe_status",
         "//tensorflow_serving/servables/tensorflow:serving_session",
-        "//tensorflow_serving/util:cleanup",
         "//tensorflow_serving/util:hash",
-        "//tensorflow_serving/util:optional",
+        "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:basic_batch_scheduler",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:batch_scheduler",
         "@org_tensorflow//tensorflow/core/profiler/lib:traceme",
+        "@org_tensorflow//tensorflow/core/profiler/lib:traceme_encode",
+    ],
+)
+
+cc_library(
+    name = "threadsafe_status",
+    srcs = ["threadsafe_status.cc"],
+    hdrs = ["threadsafe_status.h"],
+    deps = [
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/synchronization",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 
@@ -123,6 +155,8 @@ cc_library(
     srcs = ["batching_util.cc"],
     hdrs = ["batching_util.h"],
     deps = [
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
     ],
@@ -139,5 +173,30 @@ cc_test(
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
+    ],
+)
+
+cc_test(
+    name = "incremental_barrier_test",
+    srcs = ["incremental_barrier_test.cc"],
+    deps = [
+        ":incremental_barrier",
+        "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/functional:bind_front",
+        "@com_google_absl//absl/time",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_test(
+    name = "threadsafe_status_test",
+    srcs = ["threadsafe_status_test.cc"],
+    deps = [
+        ":threadsafe_status",
+        "//tensorflow_serving/core/test_util:test_main",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
     ],
 )

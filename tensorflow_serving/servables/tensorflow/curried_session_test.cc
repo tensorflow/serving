@@ -42,10 +42,10 @@ MATCHER_P(EqualsTensor, value, "") {
 
 class MockThreadPool : public thread::ThreadPoolInterface {
  public:
-  MOCK_METHOD1(Schedule, void(std::function<void()>));
-  MOCK_METHOD0(Cancel, void());
-  MOCK_CONST_METHOD0(NumThreads, int());
-  MOCK_CONST_METHOD0(CurrentThreadId, int());
+  MOCK_METHOD(void, Schedule, (std::function<void()>), (override));
+  MOCK_METHOD(void, Cancel, (), (override));
+  MOCK_METHOD(int, NumThreads, (), (const, override));
+  MOCK_METHOD(int, CurrentThreadId, (), (const, override));
 };
 
 TEST(CurriedSessionTest, ZeroCurriedInputs) {

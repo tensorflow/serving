@@ -42,7 +42,7 @@ cc_test(
     deps = [
         ":evhttp_server",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/util/net_http/client:evhttp_client",
+        "//tensorflow_serving/util/net_http/client/internal:evhttp_client",
         "//tensorflow_serving/util/net_http/internal:fixed_thread_pool",
         "//tensorflow_serving/util/net_http/server/public:http_server",
         "//tensorflow_serving/util/net_http/server/public:http_server_api",
@@ -59,7 +59,7 @@ cc_test(
     deps = [
         ":evhttp_server",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/util/net_http/client:evhttp_client",
+        "//tensorflow_serving/util/net_http/client/internal:evhttp_client",
         "//tensorflow_serving/util/net_http/compression:gzip_zlib",
         "//tensorflow_serving/util/net_http/internal:fixed_thread_pool",
         "//tensorflow_serving/util/net_http/server/public:http_server",

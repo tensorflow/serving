@@ -87,14 +87,20 @@ Status CreateBundleFromPath(const CreationType creation_type,
   return Status::OK();
 }
 
+struct SavedModelBundleFactoryTestParam {
+  CreationType creation_type;
+  ModelType model_type;
+  bool prefer_tflite_model;
+};
+
 // Tests SavedModelBundleFactory with native SavedModel.
 class SavedModelBundleFactoryTest
     : public test_util::BundleFactoryTest,
-      public ::testing::WithParamInterface<std::pair<CreationType, ModelType>> {
+      public ::testing::WithParamInterface<SavedModelBundleFactoryTestParam> {
  public:
   SavedModelBundleFactoryTest()
       : test_util::BundleFactoryTest(
-            GetParam().second == ModelType::kTfModel
+            GetParam().model_type == ModelType::kTfModel
                 ? test_util::GetTestSavedModelPath()
                 : test_util::GetTestTfLiteModelPath()) {}
 
@@ -104,27 +110,32 @@ class SavedModelBundleFactoryTest
   Status CreateSession(const SessionBundleConfig& config,
                        std::unique_ptr<Session>* session) const override {
     std::unique_ptr<SavedModelBundle> bundle;
-    TF_RETURN_IF_ERROR(
-        CreateBundleFromPath(GetParam().first, config, export_dir_, &bundle));
+    TF_RETURN_IF_ERROR(CreateBundleFromPath(GetParam().creation_type, config,
+                                            export_dir_, &bundle));
     *session = std::move(bundle->session);
     return Status::OK();
   }
 
   SessionBundleConfig GetSessionBundleConfig() const override {
     SessionBundleConfig config;
-    if (GetParam().second == ModelType::kTfLiteModel) {
-      config.set_use_tflite_model(true);
-    }
+    config.set_prefer_tflite_model(GetParam().prefer_tflite_model);
     return config;
   }
 
   bool IsRunOptionsSupported() const override {
     // Presently TensorFlow Lite sessions do NOT support RunOptions.
-    return GetParam().second != ModelType::kTfLiteModel;
+    return GetParam().prefer_tflite_model == false ||
+           GetParam().model_type != ModelType::kTfLiteModel;
+  }
+
+  bool ExpectCreateBundleFailure() const override {
+    // The test Tensorflow Lite model does not include saved_model artifacts
+    return GetParam().prefer_tflite_model == false &&
+           GetParam().model_type == ModelType::kTfLiteModel;
   }
 
   std::vector<string> GetModelFiles() {
-    switch (GetParam().second) {
+    switch (GetParam().model_type) {
       case ModelType::kTfModel: {
         const string& dir = test_util::GetTestSavedModelPath();
         return {
@@ -147,10 +158,38 @@ class SavedModelBundleFactoryTest
 INSTANTIATE_TEST_SUITE_P(
     CreationType, SavedModelBundleFactoryTest,
     ::testing::Values(
-        std::make_pair(CreationType::kWithoutMetadata, ModelType::kTfModel),
-        std::make_pair(CreationType::kWithoutMetadata, ModelType::kTfLiteModel),
-        std::make_pair(CreationType::kWithMetadata, ModelType::kTfModel),
-        std::make_pair(CreationType::kWithMetadata, ModelType::kTfLiteModel)));
+        SavedModelBundleFactoryTestParam{
+            CreationType::kWithoutMetadata, ModelType::kTfModel,
+            true  // prefer_tflite_model
+        },
+        SavedModelBundleFactoryTestParam{
+            CreationType::kWithoutMetadata, ModelType::kTfModel,
+            false  // prefer_tflite_model
+        },
+        SavedModelBundleFactoryTestParam{
+            CreationType::kWithoutMetadata, ModelType::kTfLiteModel,
+            true  // prefer_tflite_model
+        },
+        SavedModelBundleFactoryTestParam{
+            CreationType::kWithoutMetadata, ModelType::kTfLiteModel,
+            false  // prefer_tflite_model
+        },
+        SavedModelBundleFactoryTestParam{
+            CreationType::kWithMetadata, ModelType::kTfModel,
+            true  // prefer_tflite_model
+        },
+        SavedModelBundleFactoryTestParam{
+            CreationType::kWithMetadata, ModelType::kTfModel,
+            false  // prefer_tflite_model
+        },
+        SavedModelBundleFactoryTestParam{
+            CreationType::kWithMetadata, ModelType::kTfLiteModel,
+            true  // prefer_tflite_model
+        },
+        SavedModelBundleFactoryTestParam{
+            CreationType::kWithMetadata, ModelType::kTfLiteModel,
+            false  // prefer_tflite_model
+        }));
 
 TEST_P(SavedModelBundleFactoryTest, Basic) { TestBasic(); }
 
@@ -164,6 +203,10 @@ TEST_P(SavedModelBundleFactoryTest, FixedInputTensors) {
   *config.add_saved_model_tags() = kSavedModelTagServe;
   *config.add_experimental_fixed_input_tensors() = fixed_input_proto;
   std::unique_ptr<Session> session;
+  if (ExpectCreateBundleFailure()) {
+    EXPECT_FALSE(CreateSession(config, &session).ok());
+    return;
+  }
   TF_ASSERT_OK(CreateSession(config, &session));
 
   // half plus two: output should be input / 2 + 2.
@@ -185,9 +228,16 @@ TEST_P(SavedModelBundleFactoryTest, RemoveUnusedFieldsFromMetaGraphDefault) {
   SessionBundleConfig config = GetSessionBundleConfig();
   *config.add_saved_model_tags() = kSavedModelTagServe;
   std::unique_ptr<SavedModelBundle> bundle;
-  TF_ASSERT_OK(
-      CreateBundleFromPath(GetParam().first, config, export_dir_, &bundle));
-  if (GetParam().second == ModelType::kTfLiteModel) {
+  if (ExpectCreateBundleFailure()) {
+    EXPECT_FALSE(CreateBundleFromPath(GetParam().creation_type, config,
+                                      export_dir_, &bundle)
+                     .ok());
+    return;
+  }
+  TF_ASSERT_OK(CreateBundleFromPath(GetParam().creation_type, config,
+                                    export_dir_, &bundle));
+  if (GetParam().prefer_tflite_model &&
+      (GetParam().model_type == ModelType::kTfLiteModel)) {
     // TF Lite model never has a graph_def.
     EXPECT_FALSE(bundle->meta_graph_def.has_graph_def());
   } else {
@@ -201,13 +251,25 @@ TEST_P(SavedModelBundleFactoryTest, RemoveUnusedFieldsFromMetaGraphEnabled) {
   *config.add_saved_model_tags() = kSavedModelTagServe;
   config.set_remove_unused_fields_from_bundle_metagraph(true);
   std::unique_ptr<SavedModelBundle> bundle;
-  TF_ASSERT_OK(
-      CreateBundleFromPath(GetParam().first, config, export_dir_, &bundle));
+  if (ExpectCreateBundleFailure()) {
+    EXPECT_FALSE(CreateBundleFromPath(GetParam().creation_type, config,
+                                      export_dir_, &bundle)
+                     .ok());
+    return;
+  }
+  TF_ASSERT_OK(CreateBundleFromPath(GetParam().creation_type, config,
+                                    export_dir_, &bundle));
   EXPECT_FALSE(bundle->meta_graph_def.has_graph_def());
   EXPECT_FALSE(bundle->meta_graph_def.signature_def().empty());
 }
 
-TEST_P(SavedModelBundleFactoryTest, Batching) { TestBatching(); }
+TEST_P(SavedModelBundleFactoryTest, Batching) {
+  // Most test cases don't cover batching session code path so call
+  // 'TestBatching' twice with different options for batching test case, as
+  // opposed to parameterize test.
+  TestBatching(false /* enable_large_batch_splitting */);
+  TestBatching(true /* enable_large_batch_splitting */);
+}
 
 TEST_P(SavedModelBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
   const double kTotalFileSize = test_util::GetTotalFileSize(GetModelFiles());

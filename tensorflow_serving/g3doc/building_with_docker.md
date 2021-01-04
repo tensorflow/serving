@@ -26,7 +26,7 @@ After pulling one of the development Docker images, you can run it while opening
 the gRPC port (8500):
 
 ```shell
-docker run -it -p 8500:8500 tensorflow/serving:latest-devel
+docker run -it -p 8500:8500 --gpus all tensorflow/serving:latest-devel
 ```
 
 #### Testing the development environment

@@ -4,7 +4,7 @@ package(
     default_visibility = ["//tensorflow_serving:internal"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 exports_files(["LICENSE"])
 
@@ -12,9 +12,7 @@ exports_files(["LICENSE"])
 
 package_group(
     name = "internal",
-    packages = [
-        "//tensorflow_serving/...",
-    ],
+    packages = ["//tensorflow_serving/..."],
 )
 
 filegroup(

@@ -17,9 +17,9 @@ limitations under the License.
 #include <vector>
 
 #include <gtest/gtest.h>
+#include "absl/types/optional.h"
 #include "tensorflow_serving/core/loader_harness.h"
 #include "tensorflow_serving/core/servable_id.h"
-#include "tensorflow_serving/util/optional.h"
 
 namespace tensorflow {
 namespace serving {
@@ -28,7 +28,7 @@ class AspiredVersionPolicyTest : public ::testing::Test {
  public:
   // Expose the protected AspiredVersionPolicy::GetHighestAspiredNewServableId()
   // method.
-  optional<ServableId> GetHighestAspiredNewServableId(
+  absl::optional<ServableId> GetHighestAspiredNewServableId(
       const std::vector<AspiredServableStateSnapshot>& all_versions) {
     return AspiredVersionPolicy::GetHighestAspiredNewServableId(all_versions);
   }
@@ -39,7 +39,7 @@ TEST_F(AspiredVersionPolicyTest, NoHighestAspiredNewServableId) {
   std::vector<AspiredServableStateSnapshot> versions;
   versions.push_back({{"test", 10}, LoaderHarness::State::kNew, false});
   versions.push_back({{"test", 9}, LoaderHarness::State::kUnloading, true});
-  optional<ServableId> highest_aspired_new =
+  absl::optional<ServableId> highest_aspired_new =
       GetHighestAspiredNewServableId(versions);
   ASSERT_FALSE(highest_aspired_new);
 }
@@ -53,7 +53,7 @@ TEST_F(AspiredVersionPolicyTest, HighestAspiredNewServableId) {
   versions.push_back({{"test", 5}, LoaderHarness::State::kNew, true});
   versions.push_back({{"test", 3}, LoaderHarness::State::kNew, true});
 
-  optional<ServableId> highest_aspired_new =
+  absl::optional<ServableId> highest_aspired_new =
       GetHighestAspiredNewServableId(versions);
   ASSERT_TRUE(highest_aspired_new);
   EXPECT_EQ("test", highest_aspired_new.value().name);

@@ -303,7 +303,7 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
                                      " model(s) did not become available: {");
     for (const auto& id_and_state : states_reached) {
       if (id_and_state.second != ServableState::ManagerState::kAvailable) {
-        optional<ServableState> maybe_state =
+        absl::optional<ServableState> maybe_state =
             monitor->GetState(id_and_state.first);
         const string error_msg =
             maybe_state && !maybe_state.value().health.ok()
@@ -320,7 +320,7 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
 }
 
 Status ServerCore::AddModelsViaModelConfigList() {
-  const bool is_first_config = storage_path_source_and_router_ == nullopt;
+  const bool is_first_config = storage_path_source_and_router_ == absl::nullopt;
 
   // Create/reload the source, source router and source adapters.
   const FileSystemStoragePathSourceConfig source_config =
@@ -535,6 +535,18 @@ Status ServerCore::UpdateModelVersionLabelMap() {
           "Model version labels are not currently allowed by the server.");
     }
     return Status::OK();
+  }
+
+  if (VLOG_IS_ON(4)) {
+    VLOG(4) << "Updated model label map is: ";
+    for (const auto& model_name_and_version_labels : *new_label_map) {
+      for (const auto& label_and_version :
+           model_name_and_version_labels.second) {
+        VLOG(4) << "\t Model name: " << model_name_and_version_labels.first
+                << "\t label: " << label_and_version.first
+                << " at version: " << label_and_version.second;
+      }
+    }
   }
 
   mutex_lock l(model_labels_to_versions_mu_);

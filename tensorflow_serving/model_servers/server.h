@@ -43,6 +43,7 @@ class Server {
     tensorflow::int32 grpc_port = 8500;
     tensorflow::string grpc_channel_arguments;
     tensorflow::string grpc_socket_path;
+    tensorflow::int32 grpc_max_threads = 4.0 * port::NumSchedulableCPUs();
 
     //
     // HTTP Server options.
@@ -84,8 +85,10 @@ class Server {
     // Tensorflow session run options.
     bool enforce_session_run_timeout = true;
     bool remove_unused_fields_from_bundle_metagraph = true;
-    bool use_tflite_model = false;
+    bool prefer_tflite_model = false;
+    tensorflow::int32 num_tflite_interpreters = port::NumSchedulableCPUs();
     tensorflow::string thread_pool_factory_config_file;
+    bool enable_signature_method_name_check = false;
 
     Options();
   };

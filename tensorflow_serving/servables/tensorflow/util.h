@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_UTIL_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_UTIL_H_
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/monitoring/counter.h"
@@ -24,7 +25,8 @@ limitations under the License.
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
-#include "tensorflow_serving/util/optional.h"
+#include "tensorflow_serving/resources/resources.pb.h"
+#include "tensorflow_serving/util/file_probing_env.h"
 
 namespace tensorflow {
 namespace serving {
@@ -42,6 +44,17 @@ monitoring::Counter<1>* GetExampleCountTotal();
 void RecordModelRequestCount(const string& model_name, const Status& status);
 void RecordModelRequestFailCount(const string& model_name);
 void UpdateModelLatencyTime(const string& model_name, const uint64 running_time_usecs);
+
+// Enable/disable `method_name` checks on `SignatureDef` for predict, classify,
+// regress APIs. Native TF2 models use fixed `method_name` for all APIs, and
+// the check needs to be disabled to support both TF1 and (native) TF2 models.
+//
+// Disabling the check (typically done at process startup) should be OK and
+// safe for most API users. By default the checks are enabled.
+void SetSignatureMethodNameCheckFeature(bool v);
+
+// Get current state of `method_name` check (see above for details).
+bool GetSignatureMethodNameCheckFeature();
 
 // Records the example count of this request with the metric tracking the
 // histogram of number of examples per request.
@@ -70,6 +83,17 @@ Status PerformOneShotTensorComputation(
     const std::vector<string>& output_tensor_names, Session* session,
     std::vector<Tensor>* outputs, int* num_input_examples,
     const thread::ThreadPoolOptions& thread_pool_options =
+        thread::ThreadPoolOptions(),
+    int64* runtime_latency = nullptr);
+
+// Same as PerformOneShotTensorComputation() above, except allows for multiple
+// input tensor names (each tensor is fed the *same* `input`).
+Status PerformOneShotTensorComputation(
+    const RunOptions& run_options, const Input& input,
+    const std::set<string>& input_tensor_names,
+    const std::vector<string>& output_tensor_names, Session* session,
+    std::vector<Tensor>* outputs, int* num_input_examples,
+    const thread::ThreadPoolOptions& thread_pool_options =
         thread::ThreadPoolOptions());
 
 // Populates given model_spec based on the model name and optional
@@ -77,8 +101,23 @@ Status PerformOneShotTensorComputation(
 // If signature_name has a value and is empty, model_spec's signature_name is
 // set to tensorflow::kDefaultServingSignatureDefKey.
 void MakeModelSpec(const string& model_name,
-                   const optional<string>& signature_name,
-                   const optional<int64>& version, ModelSpec* model_spec);
+                   const absl::optional<string>& signature_name,
+                   const absl::optional<int64>& version, ModelSpec* model_spec);
+
+// Gets the disk size of the model in the given path.
+Status GetModelDiskSize(const string& path, FileProbingEnv* env,
+                        uint64* total_file_size);
+
+// Estimates the resources a session bundle or saved model bundle will use once
+// loaded, from its export or saved model path. Directly uses disk state for
+// estimation.
+Status EstimateResourceFromPathUsingDiskState(const string& path,
+                                              FileProbingEnv* env,
+                                              ResourceAllocation* estimate);
+
+// Update metrics for runtime latency.
+void RecordRuntimeLatency(const string& model_name, const string& api,
+                          const string& runtime, int64 latency_usec);
 
 }  // namespace serving
 }  // namespace tensorflow

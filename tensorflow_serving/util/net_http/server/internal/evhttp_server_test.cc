@@ -18,11 +18,9 @@ limitations under the License.
 #include <memory>
 
 #include <gtest/gtest.h>
-
 #include "absl/memory/memory.h"
 #include "absl/synchronization/notification.h"
-
-#include "tensorflow_serving/util/net_http/client/evhttp_connection.h"
+#include "tensorflow_serving/util/net_http/client/internal/evhttp_connection.h"
 #include "tensorflow_serving/util/net_http/internal/fixed_thread_pool.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
@@ -101,7 +99,7 @@ TEST_F(EvHTTPServerTest, ExactPathMatching) {
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
-  EXPECT_EQ(response.status, 200);
+  EXPECT_EQ(response.status, HTTPStatusCode::OK);
   EXPECT_EQ(response.body, "OK");
 
   // no canonicalization for the trailing "/"
@@ -109,7 +107,7 @@ TEST_F(EvHTTPServerTest, ExactPathMatching) {
   response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
-  EXPECT_EQ(response.status, 404);
+  EXPECT_EQ(response.status, HTTPStatusCode::NOT_FOUND);
 
   server->Terminate();
   server->WaitForTermination();
@@ -140,7 +138,7 @@ TEST_F(EvHTTPServerTest, RequestHandlerOverwriting) {
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
-  EXPECT_EQ(response.status, 200);
+  EXPECT_EQ(response.status, HTTPStatusCode::OK);
   EXPECT_EQ(response.body, "OK2");
 
   server->Terminate();
@@ -170,7 +168,7 @@ TEST_F(EvHTTPServerTest, SingleRequestDispather) {
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
-  EXPECT_EQ(response.status, 200);
+  EXPECT_EQ(response.status, HTTPStatusCode::OK);
   EXPECT_EQ(response.body, "OK");
 
   server->Terminate();
@@ -208,14 +206,14 @@ TEST_F(EvHTTPServerTest, UriPrecedesOverRequestDispather) {
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
-  EXPECT_EQ(response.status, 200);
+  EXPECT_EQ(response.status, HTTPStatusCode::OK);
   EXPECT_EQ(response.body, "OK1");
 
   request = {"/okxx", "GET", {}, nullptr};
   response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
-  EXPECT_EQ(response.status, 200);
+  EXPECT_EQ(response.status, HTTPStatusCode::OK);
   EXPECT_EQ(response.body, "OK2");
 
   server->Terminate();
@@ -253,7 +251,7 @@ TEST_F(EvHTTPServerTest, InOrderRequestDispather) {
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
-  EXPECT_EQ(response.status, 200);
+  EXPECT_EQ(response.status, HTTPStatusCode::OK);
   EXPECT_EQ(response.body, "OK1");
 
   server->Terminate();
@@ -291,7 +289,7 @@ TEST_F(EvHTTPServerTest, RequestHandlerInteraction) {
   handler1_start.Notify();
   response_done.WaitForNotification();
 
-  EXPECT_EQ(response.status, 200);
+  EXPECT_EQ(response.status, HTTPStatusCode::OK);
   EXPECT_EQ(response.body, "OK1");
 
   connection->Terminate();

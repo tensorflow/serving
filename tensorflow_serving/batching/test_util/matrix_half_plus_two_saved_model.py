@@ -13,8 +13,11 @@
 # limitations under the License.
 # ==============================================================================
 
-import argparse
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+FLAGS = tf.app.flags.FLAGS
+
+tf.app.flags.DEFINE_string("output_dir", "/tmp/matrix_half_plus_two/1",
+                           "The directory where to write SavedModel files.")
 
 
 def _generate_saved_model_for_matrix_half_plus_two(export_dir):
@@ -47,12 +50,9 @@ def _generate_saved_model_for_matrix_half_plus_two(export_dir):
     builder.save()
 
 
+def main(_):
+  _generate_saved_model_for_matrix_half_plus_two(FLAGS.output_dir)
+
+
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser()
-  parser.add_argument(
-      "--output_dir",
-      type=str,
-      default="/tmp/matrix_half_plus_two/1",
-      help="The directory where to write SavedModel files.")
-  args = parser.parse_args()
-  _generate_saved_model_for_matrix_half_plus_two(args.output_dir)
+  tf.compat.v1.app.run()

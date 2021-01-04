@@ -46,10 +46,7 @@ namespace serving {
 namespace {
 
 using test_util::EqualsProto;
-using ::testing::_;
-using ::testing::DoAll;
-using ::testing::Return;
-using ::testing::SetArgPointee;
+
 using Batcher = SharedBatchScheduler<BatchingSessionTask>;
 
 class BundleFactoryUtilTest : public ::testing::Test {
@@ -129,8 +126,9 @@ TEST_F(BundleFactoryUtilTest, BatchingConfigError) {
 
 TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithBadExport) {
   ResourceAllocation resource_requirement;
-  const Status status =
-      EstimateResourceFromPath("/a/bogus/export/dir", &resource_requirement);
+  const Status status = EstimateResourceFromPath(
+      "/a/bogus/export/dir",
+      /*use_validation_result=*/false, &resource_requirement);
   EXPECT_FALSE(status.ok());
 }
 
@@ -141,33 +139,8 @@ TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithGoodExport) {
       test_util::GetExpectedResourceEstimate(kTotalFileSize);
 
   ResourceAllocation actual;
-  TF_ASSERT_OK(EstimateResourceFromPath(export_dir_, &actual));
-  EXPECT_THAT(actual, EqualsProto(expected));
-}
-
-TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithFileProbingEnv) {
-  const string export_dir = "/foo/bar";
-  const string child = "child";
-  const string child_path = io::JoinPath(export_dir, child);
-  const double file_size = 100;
-
-  // Set up the expectation that the directory contains exactly one child with
-  // the given file size.
-  test_util::MockFileProbingEnv env;
-  EXPECT_CALL(env, FileExists(export_dir)).WillRepeatedly(Return(Status::OK()));
-  EXPECT_CALL(env, GetChildren(export_dir, _))
-      .WillRepeatedly(DoAll(SetArgPointee<1>(std::vector<string>({child})),
-                            Return(Status::OK())));
-  EXPECT_CALL(env, IsDirectory(child_path))
-      .WillRepeatedly(Return(errors::FailedPrecondition("")));
-  EXPECT_CALL(env, GetFileSize(child_path, _))
-      .WillRepeatedly(DoAll(SetArgPointee<1>(file_size), Return(Status::OK())));
-
-  ResourceAllocation actual;
-  TF_ASSERT_OK(EstimateResourceFromPath(export_dir, &env, &actual));
-
-  ResourceAllocation expected =
-      test_util::GetExpectedResourceEstimate(file_size);
+  TF_ASSERT_OK(EstimateResourceFromPath(
+      export_dir_, /*use_validation_result=*/false, &actual));
   EXPECT_THAT(actual, EqualsProto(expected));
 }
 

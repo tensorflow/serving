@@ -26,6 +26,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/lib/monitoring/gauge.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/servable_data.h"
 #include "tensorflow_serving/core/test_util/session_test_util.h"
@@ -157,6 +158,28 @@ TEST_P(SavedModelBundleSourceAdapterTest, BackwardCompatibility) {
   TestSavedModelBundleSourceAdapter(
       test_util::GetTestSessionBundleExportPath());
 }
+
+TEST_P(SavedModelBundleSourceAdapterTest, MLMetadata) {
+  if (!EnableSessionMetadata()) return;
+  TestSavedModelBundleSourceAdapter(test_util::TestSrcDirPath(
+      strings::StrCat("/servables/tensorflow/testdata/",
+                      "saved_model_half_plus_two_mlmd/00000123")));
+  auto* collection_registry = monitoring::CollectionRegistry::Default();
+  monitoring::CollectionRegistry::CollectMetricsOptions options;
+  const std::unique_ptr<monitoring::CollectedMetrics> collected_metrics =
+      collection_registry->CollectMetrics(options);
+  const monitoring::PointSet& lps =
+      *collected_metrics->point_set_map.at("/tensorflow/serving/mlmd_map");
+
+  EXPECT_EQ(1, lps.points.size());
+  EXPECT_EQ(2, lps.points[0]->labels.size());
+  EXPECT_EQ("model_name", lps.points[0]->labels[0].name);
+  EXPECT_EQ("name", lps.points[0]->labels[0].value);
+  EXPECT_EQ("version", lps.points[0]->labels[1].name);
+  EXPECT_EQ("42", lps.points[0]->labels[1].value);
+  EXPECT_EQ("test_mlmd_uuid", lps.points[0]->string_value);
+}
+
 // Test all SavedModelBundleSourceAdapterTest test cases with
 // warmup, num_request_iterations enabled/disabled and session-metadata
 // enabled/disabled.

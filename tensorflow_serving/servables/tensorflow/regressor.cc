@@ -68,9 +68,13 @@ class SavedModelTensorFlowRegressor : public RegressorInterface {
 
     std::vector<Tensor> outputs;
     int num_examples;
+    int64 runtime_latency;
     TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
         run_options_, request.input(), input_tensor_name, output_tensor_names,
-        session_, &outputs, &num_examples, thread_pool_options_));
+        session_, &outputs, &num_examples, thread_pool_options_,
+        &runtime_latency));
+    RecordRuntimeLatency(request.model_spec().name(), /*api=*/"Regress",
+                         /*runtime=*/"TF1", runtime_latency);
 
     TRACELITERAL("ConvertToRegressionResult");
     return PostProcessRegressionResult(*signature_, num_examples,
@@ -149,10 +153,14 @@ Status GetRegressionSignatureDef(const ModelSpec& model_spec,
     return errors::InvalidArgument(strings::StrCat(
         "No signature was found with the name: ", signature_name));
   }
-  if (iter->second.method_name() != kRegressMethodName) {
-    return errors::InvalidArgument(strings::StrCat(
-        "Expected regression signature method_name to be ", kRegressMethodName,
-        ". Was: ", iter->second.method_name()));
+  if (GetSignatureMethodNameCheckFeature()) {
+    if (iter->second.method_name() != kRegressMethodName) {
+      return errors::InvalidArgument(strings::StrCat(
+          "Expected regression signature method_name to be ",
+          kRegressMethodName, ". Was: ", iter->second.method_name()));
+    }
+  } else {
+    TF_RETURN_IF_ERROR(PreProcessRegression(iter->second, nullptr, nullptr));
   }
   *signature = iter->second;
   return Status::OK();
@@ -161,7 +169,8 @@ Status GetRegressionSignatureDef(const ModelSpec& model_spec,
 Status PreProcessRegression(const SignatureDef& signature,
                             string* input_tensor_name,
                             std::vector<string>* output_tensor_names) {
-  if (signature.method_name() != kRegressMethodName) {
+  if (GetSignatureMethodNameCheckFeature() &&
+      signature.method_name() != kRegressMethodName) {
     return errors::InvalidArgument(strings::StrCat(
         "Expected regression signature method_name to be ", kRegressMethodName,
         ". Was: ", signature.method_name()));
@@ -177,19 +186,23 @@ Status PreProcessRegression(const SignatureDef& signature,
 
   auto input_iter = signature.inputs().find(kRegressInputs);
   if (input_iter == signature.inputs().end()) {
-    return errors::FailedPrecondition(
+    return errors::InvalidArgument(
         "No regression inputs found in SignatureDef: ",
         signature.DebugString());
   }
-  *input_tensor_name = input_iter->second.name();
+  if (input_tensor_name != nullptr) {
+    *input_tensor_name = input_iter->second.name();
+  }
 
   auto output_iter = signature.outputs().find(kRegressOutputs);
   if (output_iter == signature.outputs().end()) {
-    return errors::FailedPrecondition(
+    return errors::InvalidArgument(
         "No regression outputs found in SignatureDef: ",
         signature.DebugString());
   }
-  output_tensor_names->push_back(output_iter->second.name());
+  if (output_tensor_names != nullptr) {
+    output_tensor_names->push_back(output_iter->second.name());
+  }
   return Status::OK();
 }
 
@@ -254,8 +267,8 @@ Status PostProcessRegressionResult(
 
 Status RunRegress(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
-                  const optional<int64>& servable_version, Session* session,
-                  const RegressionRequest& request,
+                  const absl::optional<int64>& servable_version,
+                  Session* session, const RegressionRequest& request,
                   RegressionResponse* response,
                   const thread::ThreadPoolOptions& thread_pool_options) {
   SignatureDef signature;

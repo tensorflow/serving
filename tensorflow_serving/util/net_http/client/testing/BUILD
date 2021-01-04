@@ -10,6 +10,6 @@ cc_binary(
     name = "evhttp_echo_client",
     srcs = ["evhttp_echo_client.cc"],
     deps = [
-        "//tensorflow_serving/util/net_http/client:evhttp_client",
+        "//tensorflow_serving/util/net_http/client/internal:evhttp_client",
     ],
 )

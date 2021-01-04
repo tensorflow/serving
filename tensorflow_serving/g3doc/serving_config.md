@@ -76,10 +76,12 @@ model_config_list {
   config {
     name: 'my_first_model'
     base_path: '/tmp/my_first_model/'
+    model_platform: 'tensorflow'
   }
   config {
     name: 'my_second_model'
     base_path: '/tmp/my_second_model/'
+    model_platform: 'tensorflow'
   }
 }
 ```
@@ -128,17 +130,13 @@ model_version_policy {
 
 ### Assigning String Labels to Model Versions, To Simplify Canary and Rollback
 
-_Note: This feature is only available in the gRPC API surface - if you're using
-REST API you cannot specify version labels._
-
 Sometimes it's helpful to add a level of indirection to model versions. Instead
 of letting all of your clients know that they should be querying version 42, you
 can assign an alias such as "stable" to whichever version is currently the one
 clients should query. If you want to redirect a slice of traffic to a tentative
 canary model version, you can use a second alias "canary".
 
-If you're using the gRPC API surface, you can configure these model version
-aliases, or labels, like so:
+You can configure these model version aliases, or labels, like so:
 
 ```proto
 model_version_policy {
@@ -211,6 +209,20 @@ version label, you must assign it only to already-loaded versions. For example,
 if you would like to move a label from pointing to version N to version N+1, you
 may first submit a config containing version N and N+1, and then submit a config
 that contains version N+1, the label pointing to N+1 and no version N.
+
+#### REST Usage
+
+If you're using the REST API surface to make inference requests, instead of
+using
+
+`/v1/models/<model name>/versions/<version number>`
+
+simply request a version using a label by structuring your request path like so
+
+`/v1/models/<model name>/labels/<version label>`.
+
+Note that version label is restricted to a sequence of Word characters, composed
+of alphanumeral characters and underscores (i.e. `[a-zA-Z0-9_]+`).
 
 ## Monitoring Configuration
 

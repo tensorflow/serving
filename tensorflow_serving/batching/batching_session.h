@@ -26,12 +26,15 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "tensorflow/core/kernels/batching_util/basic_batch_scheduler.h"
 #include "tensorflow/core/kernels/batching_util/batch_scheduler.h"
 #include "tensorflow/core/platform/threadpool_options.h"
+#include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
-#include "tensorflow_serving/util/optional.h"
+#include "tensorflow_serving/batching/batching_options.h"
+#include "tensorflow_serving/batching/threadsafe_status.h"
 
 namespace tensorflow {
 namespace serving {
@@ -79,60 +82,7 @@ struct SignatureWithBatchingSessionSchedulerCreator {
 };
 
 // Options for batching tensorflow Sessions; see the Create*() functions below.
-struct BatchingSessionOptions {
-  // If set, restricts the allowed tensor batch sizes.
-  //
-  // When the batch scheduler forms a batch of size N, the batch size is rounded
-  // up to the smallest value M in 'allowed_batch_sizes' s.t. M >= N. The
-  // tensors submitted to the underlying Session are padded with M-N repeats of
-  // one of the first N entries (i.e. a guaranteed valid entry). The last M-N
-  // entries of the output tensors are ignored.
-  //
-  // This option is useful when the underlying platform has some per-batch-size
-  // overhead, to limit the number of distinct batch sizes that can occur. It
-  // may be sensible to use an exponential sequence e.g. [8, 16, 32, ...,
-  // max_batch_size], a linear one e.g. [100, 200, 300, ..., max_batch_size], or
-  // perhaps a hybrid e.g. [8, 16, 32, 64, 100, 200, 300, ..., max_batch_size].
-  //
-  // IMPORTANT: The entries must be in increasing order.
-  //
-  // IMPORTANT: The final entry in 'allowed_batch_sizes' must equal the maximum
-  //            batch size parameter supplied to the batch scheduler.
-  //
-  // If left empty, no rounding/padding is performed.
-  std::vector<int> allowed_batch_sizes;
-
-  // If set to true, padding is performed for tensors of the same name
-  // but with unequal dimensions (modulo zeroth dimension), so that
-  // all tensors of the same name have equal dim sizes.
-  // For each tensor its first element is used as padding value.
-  //
-  // For example:
-  // given input tensors of shapes [1, 500, 101], [2, 300, 101], [1, 400, 101]
-  // they will be padded to shapes [1, 500, 101], [2, 500, 101], [1, 500, 101].
-  // Padding is not performed in zeroth dimension.
-  //
-  // Supported tensor datatypes:
-  // DT_FLOAT, DT_DOUBLE, DT_INT8, DT_UINT8, DT_INT16,
-  // DT_UINT16, DT_INT32, DT_INT64, DT_COMPLEX64, DT_COMPLEX128,
-  // DT_STRING, DT_BOOL, DT_QINT8, DT_QUINT8, DT_QINT16,
-  // DT_QUINT16, DT_QINT32, DT_HALF, DT_RESOURCE.
-  //
-  // Supported ranks: from 1 to 6.
-  //
-  // This option is useful when using recurrent models(like LSTMs) with serving.
-  // These models typically accept variable-length inputs and when
-  // training them typical strategy is to save sequence lengths for decoding
-  // and pad those variable-length dims to maximum in batch.
-  // So, this option is used to achieve similar behavior
-  // when serving with batching, it is assumed that sequence lengths
-  // have already been saved.
-  //
-  // If tensors with the same name have different shapes
-  // (modulo zeroth dimension) and this option is set to false,
-  // then error Status will be returned.
-  bool pad_variable_length_inputs = false;
-};
+using BatchingSessionOptions = BatchingOptions;
 
 // Wraps a session in a new session that automatically batches Run() calls.
 // Uses one batcher for each distinct Run() signature supported. In addition to
@@ -192,12 +142,24 @@ Status CreateBasicBatchingSession(
     const TensorSignature& signature, std::unique_ptr<Session> session,
     std::unique_ptr<Session>* batching_session);
 
+// The default implementation of
+// `BasicBatchScheduler::Options.split_input_task_func` if corresponding batch
+// scheduler for a batching session sets
+// `BasicBatchScheduler::Options.enable_large_batch_splitting` to true.
+Status SplitInputTask(
+    std::unique_ptr<BatchingSessionTask>* input_task_ptr,
+    int open_batch_remaining_slot, int max_batch_size,
+    std::vector<std::unique_ptr<BatchingSessionTask>>* output_tasks);
+
 //////////
 // Implementation details follow. API users need not read.
 
 struct BatchingSessionTask : public BatchTask {
   ~BatchingSessionTask() override = default;
   size_t size() const override { return zeroth_dim_size; }
+
+  // For monitoring purpose.
+  static std::string Name() { return "batching_session"; }
 
   // Fields populated when a task is received.
   uint64 enqueue_time_micros;
@@ -206,12 +168,38 @@ struct BatchingSessionTask : public BatchTask {
   const std::vector<std::pair<string, Tensor>>* inputs;
   const std::vector<string>* output_tensor_names;
 
-  // Fields populated when a task is processed (as part of a batch).
+  // Fields populated when a task is processed (as part of a batch), and
+  // returned by BatchingSession when a task is complete.
   Notification* done;
   Status* status;
   std::vector<Tensor>* outputs;
   RunMetadata* run_metadata;
-  optional<thread::ThreadPoolOptions> thread_pool_options;
+  absl::optional<thread::ThreadPoolOptions> thread_pool_options;
+
+  // Fields populated when a task is processed (as part of a batch), and
+  // substantially used in the intermediate stage if a task is a slice of
+  // input task (i.e., is_partial=true).
+  bool is_partial = false;
+  // 'owned_split_inputs' stores pairs of tensor names and input tensors
+  // if 'is_partial' = true.
+  std::unique_ptr<std::vector<std::pair<string, Tensor>>> owned_split_inputs;
+  // The index of this split, along the 0-th dimension of input from op
+  // invocation.
+  int split_index = 0;
+  std::function<void()> done_callback;
+  typedef std::vector<std::vector<Tensor>> TensorMatrix;
+  // For shared_ptr objects, ownership shared by:
+  // 1) each split of task (to fill one row in this matrix)
+  // and
+  // 2) callback that runs to merge output of individual splits for an op
+  // invocation, after all splits complete.
+  // Two-dimensional tensor matrix,
+  std::shared_ptr<TensorMatrix> shared_outputs;
+  // 'status' records error (could be from any split) if at least one split
+  // returns error, OK otherwise.
+  std::shared_ptr<ThreadSafeStatus> thread_safe_status;
+  // 'split_run_metadatas' records `run_metadata` of each split.
+  std::shared_ptr<std::vector<RunMetadata>> split_run_metadatas;
 };
 
 }  // namespace serving
