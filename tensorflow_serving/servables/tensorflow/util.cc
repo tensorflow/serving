@@ -59,14 +59,6 @@ auto* model_request_status_count_total = monitoring::Counter<2>::New(
     "/tensorflow/serving/model_request_count",
     "The total number of requests.", "model_name", "status");
 
-auto* model_latency_histogram = monitoring::Sampler<1>::New(
-    {"/tensorflow/serving/model_request_latency_histogram_usec",							    
-     "The total time spent on executing graphs in microseconds.", "model_name"},
-    // It would be nice to be able to set the parameters flexibly.
-    monitoring::Buckets::Explicit({
-	1000, 2000, 3000, 4000, 5000, 7000, 9000, 11000, 13000, 15000,
-	17000, 19000, 21000, 24000, 27000, 30000, 33000, 35000, 38000}));
-
 auto* runtime_latency = monitoring::Sampler<3>::New(
     {
         "/tensorflow/serving/runtime_latency",
@@ -138,12 +130,6 @@ void RecordModelRequestCount(const string& model_name, const Status& status) {
     status_label = "failed";
   }
   model_request_status_count_total->GetCell(model_name, status_label)->IncrementBy(1);
-}
-
-void UpdateModelLatencyTime(const string& model_name, const uint64 running_time_usecs) {
-  if (running_time_usecs > 0) {
-    model_latency_histogram->GetCell(model_name)->Add(running_time_usecs);
-  }
 }
 
 void SetSignatureMethodNameCheckFeature(bool v) { signature_method_check = v; }

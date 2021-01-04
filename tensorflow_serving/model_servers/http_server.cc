@@ -155,11 +155,12 @@ class RestApiRequestDispatcher {
 
     std::vector<std::pair<string, string>> headers;
     string model_name;
+    string method;
     string output;
     VLOG(1) << "Processing HTTP request: " << req->http_method() << " "
             << req->uri_path() << " body: " << body.size() << " bytes.";
     const auto status = handler_->ProcessRequest(
-        req->http_method(), req->uri_path(), body, &headers, &output, &model_name);
+        req->http_method(), req->uri_path(), body, &headers, &output, &model_name, &method);
     const auto http_status = ToHTTPStatusCode(status);
     // Note: we add headers+output for non successful status too, in case the
     // output contains details about the error (e.g. error messages).
@@ -173,7 +174,8 @@ class RestApiRequestDispatcher {
     }
     req->ReplyWithStatus(http_status);
 
-    UpdateModelLatencyTime(model_name, Env::Default()->NowMicros() - start);
+    RecordRuntimeLatency(model_name, /*api=*/method, /*runtime=*/"HTTP",
+                         Env::Default()->NowMicros() - start);
     RecordModelRequestCount(model_name, status);
   }
 

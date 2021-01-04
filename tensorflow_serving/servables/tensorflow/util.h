@@ -42,8 +42,6 @@ monitoring::Counter<1>* GetExampleCountTotal();
 
 // Metrics by model
 void RecordModelRequestCount(const string& model_name, const Status& status);
-void RecordModelRequestFailCount(const string& model_name);
-void UpdateModelLatencyTime(const string& model_name, const uint64 running_time_usecs);
 
 // Enable/disable `method_name` checks on `SignatureDef` for predict, classify,
 // regress APIs. Native TF2 models use fixed `method_name` for all APIs, and

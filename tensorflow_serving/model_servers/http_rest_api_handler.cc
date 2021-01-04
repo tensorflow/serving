@@ -64,12 +64,11 @@ HttpRestApiHandler::~HttpRestApiHandler() {}
 Status HttpRestApiHandler::ProcessRequest(
     const absl::string_view http_method, const absl::string_view request_path,
     const absl::string_view request_body,
-    std::vector<std::pair<string, string>>* headers, string* output, string* model_name) {
+    std::vector<std::pair<string, string>>* headers, string* output, string* model_name, string* method) {
   headers->clear();
   output->clear();
   AddHeaders(headers);
   string model_version_str;
-  string method;
   string model_subresource;
   Status status = errors::InvalidArgument("Malformed request: ", http_method,
                                           " ", request_path);
@@ -79,17 +78,17 @@ Status HttpRestApiHandler::ProcessRequest(
 
   TF_RETURN_IF_ERROR(ParseModelInfo(
       http_method, request_path, model_name, &model_version,
-      &model_version_label, &method, &model_subresource, &parse_successful));
+      &model_version_label, method, &model_subresource, &parse_successful));
 
   // Dispatch request to appropriate processor
   if (http_method == "POST" && parse_successful) {
-    if (method == "classify") {
+    if (*method == "classify") {
       status = ProcessClassifyRequest(
           *model_name, model_version, model_version_label, request_body, output);
-    } else if (method == "regress") {
+    } else if (*method == "regress") {
       status = ProcessRegressRequest(*model_name, model_version,
                                      model_version_label, request_body, output);
-    } else if (method == "predict") {
+    } else if (*method == "predict") {
       status = ProcessPredictRequest(*model_name, model_version,
                                      model_version_label, request_body, output);
     }
