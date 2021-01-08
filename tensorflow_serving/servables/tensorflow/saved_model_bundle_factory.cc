@@ -153,14 +153,6 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
         session_options, GetRunOptions(config_), path, saved_model_tags,
         bundle->get()));
   }
-  if (!config_.experimental_fixed_input_tensors().empty()) {
-    LOG(INFO) << "Wrapping session to inject fixed input tensors";
-    std::vector<std::pair<string, Tensor>> fixed_input_tensors;
-    TF_RETURN_IF_ERROR(ParseFixedInputTensors(
-        config_.experimental_fixed_input_tensors(), &fixed_input_tensors));
-    (*bundle)->session.reset(
-        new CurriedSession(std::move((*bundle)->session), fixed_input_tensors));
-  }
   if (config_.remove_unused_fields_from_bundle_metagraph()) {
     // Save memory by removing fields in MetaGraphDef proto message stored
     // in the bundle that we never use. Notably the unused graphdef submessage

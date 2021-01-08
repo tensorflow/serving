@@ -193,37 +193,6 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_P(SavedModelBundleFactoryTest, Basic) { TestBasic(); }
 
-TEST_P(SavedModelBundleFactoryTest, FixedInputTensors) {
-  Tensor fixed_input = test::AsTensor<float>({100.0f, 42.0f}, {2});
-  NamedTensorProto fixed_input_proto;
-  fixed_input_proto.set_name("x:0");
-  fixed_input.AsProtoField(fixed_input_proto.mutable_tensor());
-
-  SessionBundleConfig config = GetSessionBundleConfig();
-  *config.add_saved_model_tags() = kSavedModelTagServe;
-  *config.add_experimental_fixed_input_tensors() = fixed_input_proto;
-  std::unique_ptr<Session> session;
-  if (ExpectCreateBundleFailure()) {
-    EXPECT_FALSE(CreateSession(config, &session).ok());
-    return;
-  }
-  TF_ASSERT_OK(CreateSession(config, &session));
-
-  // half plus two: output should be input / 2 + 2.
-  const Tensor expected_output =
-      test::AsTensor<float>({100.0f / 2 + 2, 42.0f / 2 + 2}, {2});
-
-  const std::vector<std::pair<string, Tensor>> non_fixed_inputs = {};
-  const std::vector<string> output_names = {"y:0"};
-  const std::vector<string> empty_targets;
-  std::vector<Tensor> outputs;
-  TF_ASSERT_OK(
-      session->Run(non_fixed_inputs, output_names, empty_targets, &outputs));
-  ASSERT_EQ(1, outputs.size());
-  const Tensor& single_output = outputs.at(0);
-  test::ExpectTensorEqual<float>(expected_output, single_output);
-}
-
 TEST_P(SavedModelBundleFactoryTest, RemoveUnusedFieldsFromMetaGraphDefault) {
   SessionBundleConfig config = GetSessionBundleConfig();
   *config.add_saved_model_tags() = kSavedModelTagServe;
