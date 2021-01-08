@@ -142,7 +142,6 @@ cc_library(
     ],
     deps = [
         ":bundle_factory_util",
-        ":curried_session",
         ":session_bundle_config_cc_proto",
         ":tflite_session_lib",
         "//tensorflow_serving/batching:batching_session",
@@ -309,34 +308,6 @@ cc_library(
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-    ],
-)
-
-cc_library(
-    name = "curried_session",
-    srcs = ["curried_session.cc"],
-    hdrs = ["curried_session.h"],
-    deps = [
-        ":serving_session",
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-    ],
-)
-
-cc_test(
-    name = "curried_session_test",
-    size = "small",
-    srcs = ["curried_session_test.cc"],
-    deps = [
-        ":curried_session",
-        "//tensorflow_serving/core/test_util:mock_session",
-        "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util",
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:test",
     ],
 )
 

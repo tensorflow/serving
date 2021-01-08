@@ -25,7 +25,6 @@ limitations under the License.
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
-#include "tensorflow_serving/servables/tensorflow/curried_session.h"
 #include "tensorflow_serving/servables/tensorflow/tflite_session.h"
 #include "tensorflow_serving/session_bundle/session_bundle_util.h"
 
