@@ -174,7 +174,7 @@ class RestApiRequestDispatcher {
     }
     req->ReplyWithStatus(http_status);
 
-    RecordRuntimeLatency(model_name, /*api=*/method, /*runtime=*/"HTTP",
+    RecordRequestLatency(model_name, /*api=*/method, /*entrypoint=*/"REST",
                          Env::Default()->NowMicros() - start);
     RecordModelRequestCount(model_name, status);
   }

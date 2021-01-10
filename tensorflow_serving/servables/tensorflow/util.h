@@ -117,6 +117,10 @@ Status EstimateResourceFromPathUsingDiskState(const string& path,
 void RecordRuntimeLatency(const string& model_name, const string& api,
                           const string& runtime, int64 latency_usec);
 
+// Update metrics for request latency.
+void RecordRequestLatency(const string& model_name, const string& api,
+                          const string& entrypoint, int64 latency_usec);
+
 }  // namespace serving
 }  // namespace tensorflow
 
