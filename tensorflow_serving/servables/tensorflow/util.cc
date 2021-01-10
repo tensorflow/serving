@@ -136,12 +136,8 @@ monitoring::Counter<1>* GetExampleCountTotal() { return example_count_total; }
 
 // Metrics by model
 void RecordModelRequestCount(const string& model_name, const Status& status) {
-  string status_label = "success";
-  if (status != Status::OK()) {
-    status_label = "failed";
-  }
   model_request_status_count_total->GetCell(
-      model_name, status_label)->IncrementBy(1);
+      model_name, error::Code_Name(status.code()))->IncrementBy(1);
 }
 
 void SetSignatureMethodNameCheckFeature(bool v) { signature_method_check = v; }
