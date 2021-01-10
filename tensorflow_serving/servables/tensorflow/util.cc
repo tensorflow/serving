@@ -56,7 +56,7 @@ auto* example_count_total = monitoring::Counter<1>::New(
 
 // Metrics by model
 auto* model_request_status_count_total = monitoring::Counter<2>::New(
-    "/tensorflow/serving/model_request_count",
+    "/tensorflow/serving/request_count",
     "The total number of requests.", "model_name", "status");
 
 auto* runtime_latency = monitoring::Sampler<3>::New(
