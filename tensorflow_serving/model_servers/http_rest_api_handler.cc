@@ -64,7 +64,8 @@ HttpRestApiHandler::~HttpRestApiHandler() {}
 Status HttpRestApiHandler::ProcessRequest(
     const absl::string_view http_method, const absl::string_view request_path,
     const absl::string_view request_body,
-    std::vector<std::pair<string, string>>* headers, string* output, string* model_name, string* method) {
+    std::vector<std::pair<string, string>>* headers, string* model_name,
+    string* method, string* output) {
   headers->clear();
   output->clear();
   AddHeaders(headers);
