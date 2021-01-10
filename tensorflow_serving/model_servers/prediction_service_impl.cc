@@ -59,7 +59,8 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
 
-  const ::tensorflow::Status tf_status = predictor_->Predict(run_options, core_, *request, response);
+  const ::tensorflow::Status tf_status = predictor_->Predict(
+      run_options, core_, *request, response);
   const ::grpc::Status status = ToGRPCStatus(tf_status);
 
   if (!status.ok()) {

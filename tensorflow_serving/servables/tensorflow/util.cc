@@ -72,7 +72,8 @@ auto* runtime_latency = monitoring::Sampler<3>::New(
 auto* request_latency = monitoring::Sampler<3>::New(
     {
         "/tensorflow/serving/request_latency",
-        "Distribution of wall time (in microseconds) for Tensorflow Serving request.",
+        "Distribution of wall time (in microseconds) for Tensorflow Serving"
+        " request.",
         "model_name",
         "API",
         "entrypoint",
@@ -139,7 +140,8 @@ void RecordModelRequestCount(const string& model_name, const Status& status) {
   if (status != Status::OK()) {
     status_label = "failed";
   }
-  model_request_status_count_total->GetCell(model_name, status_label)->IncrementBy(1);
+  model_request_status_count_total->GetCell(
+      model_name, status_label)->IncrementBy(1);
 }
 
 void SetSignatureMethodNameCheckFeature(bool v) { signature_method_check = v; }
