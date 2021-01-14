@@ -1,51 +1,42 @@
-# TensorFlow Serving external dependencies that can be loaded in WORKSPACE
-# files.
+"""Provides a macro to import all TensorFlow Serving dependencies.
 
-load("@org_tensorflow//third_party:repo.bzl", "tf_http_archive")
-load("@org_tensorflow//tensorflow:workspace.bzl", "tf_workspace")
+Some of the external dependencies need to be initialized. To do this, duplicate
+the initialization code from TensorFlow Serving's WORKSPACE file.
+"""
+
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 def tf_serving_workspace():
     """All TensorFlow Serving external dependencies."""
 
-    tf_workspace(path_prefix = "", tf_repo_name = "org_tensorflow")
-
-    # ===== gRPC dependencies =====
-    native.bind(
-        name = "libssl",
-        actual = "@boringssl//:ssl",
+    # ===== Bazel package rules dependency =====
+    http_archive(
+        name = "rules_pkg",
+        sha256 = "352c090cc3d3f9a6b4e676cf42a6047c16824959b438895a76c2989c6d7c246a",
+        url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.2.5/rules_pkg-0.2.5.tar.gz",
     )
 
-    # gRPC wants the existence of a cares dependence but its contents are not
-    # actually important since we have set GRPC_ARES=0 in tools/bazel.rc
-    native.bind(
-        name = "cares",
-        actual = "@grpc//third_party/nanopb:nanopb",
-    )
-
-    # ===== RapidJSON (rapidjson.org) dependencies =====
+    # ===== RapidJSON (rapidjson.org) dependency =====
     http_archive(
         name = "com_github_tencent_rapidjson",
-        urls = [
-            "https://github.com/Tencent/rapidjson/archive/v1.1.0.zip",
-        ],
+        url = "https://github.com/Tencent/rapidjson/archive/v1.1.0.zip",
         sha256 = "8e00c38829d6785a2dfb951bb87c6974fa07dfe488aa5b25deec4b8bc0f6a3ab",
         strip_prefix = "rapidjson-1.1.0",
         build_file = "@//third_party/rapidjson:BUILD",
     )
 
-    # ===== libevent (libevent.org) dependencies =====
+    # ===== libevent (libevent.org) dependency =====
     http_archive(
         name = "com_github_libevent_libevent",
-        urls = [
-            "https://github.com/libevent/libevent/archive/release-2.1.8-stable.zip",
-        ],
+        url = "https://github.com/libevent/libevent/archive/release-2.1.8-stable.zip",
         sha256 = "70158101eab7ed44fd9cc34e7f247b3cae91a8e4490745d9d6eb7edc184e4d96",
         strip_prefix = "libevent-release-2.1.8-stable",
         build_file = "@//third_party/libevent:BUILD",
     )
 
-    # ===== Override TF & TF Text defined 'ICU'. (we need a version that contains all data).
+    # ===== ICU dependency =====
+    # Note: This overrides the dependency from TensorFlow with a version
+    # that contains all data.
     http_archive(
         name = "icu",
         strip_prefix = "icu-release-64-2",
@@ -59,21 +50,6 @@ def tf_serving_workspace():
         patch_args = ["-p1", "-s"],
     )
 
-    # ===== Pin `com_google_absl` with the same version(and patch) with Tensorflow.
-    tf_http_archive(
-        name = "com_google_absl",
-        build_file = str(Label("@org_tensorflow//third_party:com_google_absl.BUILD")),
-        # TODO: Remove the patch when https://github.com/abseil/abseil-cpp/issues/326 is resolved
-        # and when TensorFlow is build against CUDA 10.2
-        patch_file = str(Label("@org_tensorflow//third_party:com_google_absl_fix_mac_and_nvcc_build.patch")),
-        sha256 = "f368a8476f4e2e0eccf8a7318b98dafbe30b2600f4e3cf52636e5eb145aba06a",  # SHARED_ABSL_SHA
-        strip_prefix = "abseil-cpp-df3ea785d8c30a9503321a3d35ee7d35808f190d",
-        urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/df3ea785d8c30a9503321a3d35ee7d35808f190d.tar.gz",
-            "https://github.com/abseil/abseil-cpp/archive/df3ea785d8c30a9503321a3d35ee7d35808f190d.tar.gz",
-        ],
-    )
-
     # ===== TF.Text dependencies
     # NOTE: Before updating this version, you must update the test model
     # and double check all custom ops have a test:
@@ -82,9 +58,7 @@ def tf_serving_workspace():
         name = "org_tensorflow_text",
         sha256 = "05cc1b0eda8f4f734cb81d4389a637d26372b8621cb4c4a7e30ee5bc1e8c63da",
         strip_prefix = "text-2.3.0",
-        urls = [
-            "https://github.com/tensorflow/text/archive/v2.3.0.zip",
-        ],
+        url = "https://github.com/tensorflow/text/archive/v2.3.0.zip",
         patches = ["@//third_party/tf_text:tftext.patch"],
         patch_args = ["-p1"],
         repo_mapping = {"@com_google_re2": "@com_googlesource_code_re2"},
@@ -94,9 +68,7 @@ def tf_serving_workspace():
         name = "com_google_sentencepiece",
         strip_prefix = "sentencepiece-1.0.0",
         sha256 = "c05901f30a1d0ed64cbcf40eba08e48894e1b0e985777217b7c9036cac631346",
-        urls = [
-            "https://github.com/google/sentencepiece/archive/1.0.0.zip",
-        ],
+        url = "https://github.com/google/sentencepiece/archive/1.0.0.zip",
     )
 
     http_archive(
