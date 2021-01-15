@@ -60,6 +60,8 @@ class Server {
     float per_process_gpu_memory_fraction = 0;
     tensorflow::string batching_parameters_file;
     tensorflow::string model_name;
+    tensorflow::int32 num_load_threads = 0;
+    tensorflow::int32 num_unload_threads = 0;
     tensorflow::int32 max_num_load_retries = 5;
     tensorflow::int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
     tensorflow::int32 file_system_poll_wait_seconds = 1;

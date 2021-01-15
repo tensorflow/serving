@@ -118,12 +118,12 @@ class BasicManager : public Manager {
     // The number of threads in the thread-pool used to load servables.
     //
     // If set as 0, we don't use a thread-pool, and LoadServable() blocks.
-    uint32 num_load_threads = 1;
+    uint32 num_load_threads = 0;
 
     // The number of threads in the thread-pool used to unload servables.
     //
     // If set as 0, we don't use a thread-pool, and UnloadServable() blocks.
-    uint32 num_unload_threads = 1;
+    uint32 num_unload_threads = 0;
 
     // EventBus to publish servable state changes. This is optional, if unset,
     // we don't publish.

@@ -105,6 +105,18 @@ int main(int argc, char** argv) {
       tensorflow::Flag("model_base_path", &options.model_base_path,
                        "path to export (ignored if --model_config_file flag "
                        "is set, otherwise required)"),
+      tensorflow::Flag("num_load_threads", &options.num_load_threads,
+                       "The number of threads in the thread-pool used to load servables."
+                       "If set as 0, we don't use a thread-pool, and servable loads are "
+                       "performed serially in the manager's main work loop, "
+                       "may casue the Serving request to be delayed. "
+                       "Default: 0"),
+      tensorflow::Flag("num_unload_threads", &options.num_unload_threads,
+                       "The number of threads in the thread-pool used to unload servables."
+                       "If set as 0, we don't use a thread-pool, and servable loads are "
+                       "performed serially in the manager's main work loop, "
+                       "may casue the Serving request to be delayed. "
+                       "Default: 0"),
       tensorflow::Flag("max_num_load_retries", &options.max_num_load_retries,
                        "maximum number of times it retries loading a model "
                        "after the first failure, before giving up. "
