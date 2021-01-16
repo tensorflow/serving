@@ -338,7 +338,6 @@ Status FileSystemStoragePathSource::UpdateConfig(
       normalized_config.servable_versions_always_present();
 
   // Only poll filesystem here if necessary
-  // Only poll filesystem here if necessary
   if (requireVersionPresent || aspired_versions_callback_) {
     std::map<string, std::vector<ServableData<StoragePath>>>
         versions_by_servable_name;
