@@ -119,7 +119,8 @@ void RecordRuntimeLatency(const string& model_name, const string& api,
 
 // Update metrics for request latency.
 void RecordRequestLatency(const string& model_name, const string& api,
-                          const string& entrypoint, int64 latency_usec);
+                          const string& entrypoint, const Status& status,
+                          int64 latency_usec);
 
 }  // namespace serving
 }  // namespace tensorflow
