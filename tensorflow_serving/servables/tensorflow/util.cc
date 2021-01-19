@@ -69,7 +69,7 @@ auto* runtime_latency = monitoring::Sampler<3>::New(
     },  // Scale of 10, power of 1.8 with bucket count 33 (~20 minutes).
     monitoring::Buckets::Exponential(10, 1.8, 33));
 
-auto* request_latency = monitoring::Sampler<4>::New(
+auto* request_latency = monitoring::Sampler<3>::New(
     {
         "/tensorflow/serving/request_latency",
         "Distribution of wall time (in microseconds) for Tensorflow Serving"
@@ -77,7 +77,6 @@ auto* request_latency = monitoring::Sampler<4>::New(
         "model_name",
         "API",
         "entrypoint",
-        "status"
     },  // Scale of 10, power of 1.8 with bucket count 33 (~20 minutes).
     monitoring::Buckets::Exponential(10, 1.8, 33));
 
@@ -330,10 +329,8 @@ void RecordRuntimeLatency(const string& model_name, const string& api,
 }
 
 void RecordRequestLatency(const string& model_name, const string& api,
-                          const string& entrypoint, const Status& status,
-                          int64 latency_usec) {
-  request_latency->GetCell(model_name, api, entrypoint,
-                           error::Code_Name(status.code()))->Add(latency_usec);
+                          const string& entrypoint, int64 latency_usec) {
+  request_latency->GetCell(model_name, api, entrypoint)->Add(latency_usec);
 }
 
 }  // namespace serving
