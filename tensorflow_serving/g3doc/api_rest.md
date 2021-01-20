@@ -112,9 +112,9 @@ formatted as follows:
 }
 ```
 
-`<value>` is a JSON number (whole or decimal) or string, and `<list>` is a list
-of such values. See [Encoding binary values](#encoding-binary-values) section
-below for details on how to represent a binary (stream of bytes) value. This
+`<value>` is a JSON number (whole or decimal), JSON string, or a JSON object
+that represents binary data (see the [Encoding binary values](#encoding-binary-values)
+section below for details). `<list>` is a list of such values. This
 format is similar to gRPC's `ClassificationRequest` and `RegressionRequest`
 protos. Both versions accept list of
 [`Example`](https://github.com/tensorflow/tensorflow/blob/92e6c3e4f5c1cabfda1e61547a6a1b268ef95fa5/tensorflow/core/example/example.proto#L13)
