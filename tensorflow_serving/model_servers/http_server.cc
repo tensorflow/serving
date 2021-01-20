@@ -169,17 +169,15 @@ class RestApiRequestDispatcher {
       req->OverwriteResponseHeader(kv.first, kv.second);
     }
     req->WriteResponseString(output);
-    if (http_status != net_http::HTTPStatusCode::OK) {
-      VLOG(1) << "Error Processing HTTP/REST request: " << req->http_method()
-              << " " << req->uri_path() << " Error: " << status.ToString();
-    }
-    req->ReplyWithStatus(http_status);
-
     if (http_status == net_http::HTTPStatusCode::OK) {
       RecordRequestLatency(model_name, /*api=*/method, /*entrypoint=*/"REST",
                            Env::Default()->NowMicros() - start);
+    } else {
+      VLOG(1) << "Error Processing HTTP/REST request: " << req->http_method()
+              << " " << req->uri_path() << " Error: " << status.ToString();
     }
     RecordModelRequestCount(model_name, status);
+    req->ReplyWithStatus(http_status);
   }
 
   const RE2 regex_;
