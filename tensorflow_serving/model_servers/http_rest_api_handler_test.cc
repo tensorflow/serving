@@ -454,7 +454,7 @@ TEST_F(HttpRestApiHandlerTest, GetStatus) {
   // Get status for all versions.
   TF_EXPECT_OK(handler_.ProcessRequest(
       "GET", absl::StrCat("/v1/models/", kTestModelName), "", &headers,
-      &output));
+      &model_name, &method, &output));
   EXPECT_THAT(headers, UnorderedElementsAreArray(
                            (HeaderList){{"Content-Type", "application/json"}}));
   TF_EXPECT_OK(CompareJson(output, R"({
