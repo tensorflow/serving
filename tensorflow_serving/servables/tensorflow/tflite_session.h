@@ -36,7 +36,6 @@ namespace serving {
 
 // A session to run inference on a TensorFlow Lite model.
 //
-// EXPERIMENTAL: DO NOT use for production workloads.
 class TfLiteSession : public ServingSession {
  public:
   // Creates a TfLiteSession object from `buffer` representing serialized
