@@ -26,6 +26,17 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
+// A test utility that provides access to private ServerCore members.
+class ServerCoreTestAccess {
+ public:
+  explicit ServerCoreTestAccess(ServerCore* core) : core_(core) {}
+
+  ServerCore::Options* mutable_options() { return &core_->options_; }
+
+ private:
+  ServerCore* const core_;
+};
+
 constexpr char kTestModelName[] = "test_model";
 constexpr int kTestModelVersion = 123;
 constexpr int kTestModelLargerVersion = 124;
