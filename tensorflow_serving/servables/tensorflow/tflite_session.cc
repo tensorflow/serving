@@ -22,6 +22,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/tensor_shape.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/string_util.h"
 #include "tensorflow/lite/tools/signature/signature_def_util.h"
@@ -151,26 +152,44 @@ Status FillTfLiteTensorFromInput(const string& name, const Tensor& tensor,
     return errors::InvalidArgument("Failed to get TFLite tensor: ", name,
                                    " at index: ", index);
   }
-  if (tflite_tensor->type != kTfLiteString) {
-    auto tensor_bytes = tensor.tensor_data();
-    if (tensor_bytes.size() != tflite_tensor->bytes) {
-      // Slow path: needs resize+realloc.
-      // TODO(b/140959776): Reduce the chance of taking this path by either
-      // having multiple instances of interpreter or sub-graphs for commonly
-      // used input sizes.
-      if (interpreter->ResizeInputTensor(index, TensorDims(tensor)) !=
-          kTfLiteOk) {
-        return errors::Internal("Failed to resize input tensor: ", name,
-                                " from ", tflite_tensor->bytes, " to ",
-                                tensor_bytes.size(), " bytes.");
-      }
-      if (interpreter->AllocateTensors() != kTfLiteOk) {
-        return errors::Internal(
-            "Failed to AllocateTensors() due to change in input tensor ", name,
-            " size from ", tflite_tensor->bytes, " to ", tensor_bytes.size(),
-            " bytes.");
-      }
+
+  // Fast check for resize and reallocate for non-string data.
+  const auto& tensor_bytes = tensor.tensor_data();
+  bool needs_resize_and_realloc = (tflite_tensor->type != kTfLiteString) &&
+                                  (tensor_bytes.size() != tflite_tensor->bytes);
+
+  TfLiteIntArray* dims_array = nullptr;
+  if (tflite_tensor->type == kTfLiteString) {
+    // Slow check for string inputs.
+    dims_array = TfLiteIntArrayCreate(tensor.dims());
+    for (int i = 0; i < tensor.dims(); ++i) {
+      dims_array->data[i] = static_cast<int>(tensor.dim_size(i));
     }
+    const TfLiteIntArray* previous_dims_array = tflite_tensor->dims;
+    needs_resize_and_realloc =
+        !TfLiteIntArrayEqual(dims_array, previous_dims_array);
+  }
+
+  if (needs_resize_and_realloc) {
+    // Slow path: needs resize+realloc.
+    // TODO(b/140959776): Reduce the chance of taking this path by either
+    // having multiple instances of interpreter or sub-graphs for commonly
+    // used input sizes.
+    if (interpreter->ResizeInputTensor(index, TensorDims(tensor)) !=
+        kTfLiteOk) {
+      return errors::Internal("Failed to resize input tensor: ", name, " from ",
+                              tflite_tensor->bytes, " to ", tensor_bytes.size(),
+                              " bytes.");
+    }
+    if (interpreter->AllocateTensors() != kTfLiteOk) {
+      return errors::Internal(
+          "Failed to AllocateTensors() due to change in input tensor ", name,
+          " size from ", tflite_tensor->bytes, " to ", tensor_bytes.size(),
+          " bytes.");
+    }
+  }
+
+  if (tflite_tensor->type != kTfLiteString) {
     std::memcpy(tflite_tensor->data.raw, tensor_bytes.data(),
                 tensor_bytes.size());
   } else {
@@ -178,10 +197,6 @@ Status FillTfLiteTensorFromInput(const string& name, const Tensor& tensor,
     auto tensor_vec = tensor.flat<tstring>();
     for (int i = 0; i < tensor_vec.size(); i++) {
       buf.AddString(tensor_vec(i).data(), tensor_vec(i).size());
-    }
-    TfLiteIntArray* dims_array = TfLiteIntArrayCreate(tensor.dims());
-    for (int i = 0; i < tensor.dims(); i++) {
-      dims_array->data[i] = static_cast<int>(tensor.dim_size(i));
     }
     // WriteToTensor() takes ownership of dims_array.
     buf.WriteToTensor(tflite_tensor, dims_array);

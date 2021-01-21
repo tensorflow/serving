@@ -19,6 +19,7 @@ limitations under the License.
 #include <vector>
 
 #include "tensorflow/lite/kernels/hashtable/hashtable_ops.h"
+#include "tensorflow/lite/kernels/parse_example/parse_example.h"
 #include "tensorflow/lite/kernels/register.h"
 
 namespace tensorflow {
@@ -32,6 +33,7 @@ Status TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
   tflite::ops::builtin::BuiltinOpResolver resolver;
   // TODO(b/165643512): Remove adding Hashtable to resolver by default.
   tflite::ops::custom::AddHashtableOps(&resolver);
+  tflite::ops::custom::AddParseExampleOp(&resolver);
   num_interpreters = std::max(num_interpreters, 1);
 
   std::vector<std::unique_ptr<tflite::Interpreter>> interpreters;

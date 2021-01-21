@@ -331,9 +331,11 @@ cc_library(
         "@org_tensorflow//tensorflow/lite:framework",
         "@org_tensorflow//tensorflow/lite:string_util",
         "@org_tensorflow//tensorflow/lite:util",
+        "@org_tensorflow//tensorflow/lite/c:common",
         "@org_tensorflow//tensorflow/lite/delegates/flex:delegate",
         "@org_tensorflow//tensorflow/lite/kernels:builtin_ops",
         "@org_tensorflow//tensorflow/lite/kernels/hashtable:hashtable_op_kernels",
+        "@org_tensorflow//tensorflow/lite/kernels/parse_example",
         "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_util",
     ],
 )
@@ -344,6 +346,7 @@ cc_test(
     srcs = ["tflite_session_test.cc"],
     data = [
         "//tensorflow_serving/servables/tensorflow/testdata:mobilenet_v1_quant_tflite",
+        "//tensorflow_serving/servables/tensorflow/testdata:parse_example_tflite",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tflite_with_sigdef",
     ],

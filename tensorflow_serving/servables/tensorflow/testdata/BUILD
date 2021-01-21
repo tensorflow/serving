@@ -76,6 +76,20 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "parse_example_tflite_with_string",
+    srcs = [
+        "parse_example_tflite.py",
+    ],
+    main = "parse_example_tflite.py",
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        "@org_tensorflow//tensorflow:tensorflow_py",
+        "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils",
+    ],
+)
+
 filegroup(
     name = "saved_model_half_plus_two_cpu",
     srcs = glob(
@@ -143,6 +157,13 @@ filegroup(
     name = "mobilenet_v1_quant_tflite",
     srcs = glob(
         ["mobilenet_v1_quant_tflite/**"],
+    ),
+)
+
+filegroup(
+    name = "parse_example_tflite",
+    srcs = glob(
+        ["parse_example_tflite/**"],
     ),
 )
 

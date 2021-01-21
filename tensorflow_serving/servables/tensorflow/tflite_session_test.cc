@@ -24,6 +24,8 @@ limitations under the License.
 #include "absl/flags/flag.h"
 #include "flatbuffers/flexbuffers.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
+#include "tensorflow/core/example/example.pb.h"
+#include "tensorflow/core/example/feature.pb.h"
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
@@ -63,6 +65,10 @@ constexpr char kTestModelWithSigdef[] =
 
 constexpr char kMobileNetModel[] =
     "/servables/tensorflow/testdata/mobilenet_v1_quant_tflite/00000123/"
+    "model.tflite";
+
+constexpr char kParseExampleModel[] =
+    "/servables/tensorflow/testdata/parse_example_tflite/00000123/"
     "model.tflite";
 
 TEST(TfLiteSession, BasicTest) {
@@ -649,6 +655,52 @@ void BM_MobileNet(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_MobileNet)->ThreadRange(1, 64);
+
+void BM_ParseExample(benchmark::State& state) {
+  static TfLiteSession* session;
+  if (state.thread_index() == 0) {
+    string model_bytes;
+    TF_ASSERT_OK(ReadFileToString(Env::Default(),
+                                  test_util::TestSrcDirPath(kParseExampleModel),
+                                  &model_bytes));
+    ::google::protobuf::Map<string, SignatureDef> signatures;
+    std::unique_ptr<TfLiteSession> sess;
+    tensorflow::SessionOptions options;
+    TF_ASSERT_OK(
+        TfLiteSession::Create(std::move(model_bytes), &sess, &signatures,
+                              absl::GetFlag(FLAGS_num_tflite_interpreters)));
+    session = sess.release();
+  }
+  const int kBatchSize = 500;
+  std::vector<tstring> example_list;
+  std::mt19937 random_engine;
+  auto random_func = [&]() {
+    return std::uniform_real_distribution<float>(-0.5, 0.5)(random_engine);
+  };
+  for (int i = 0; i < kBatchSize; i++) {
+    float val = random_func();
+    tensorflow::Example example;
+    std::string str;
+    auto* features = example.mutable_features();
+    (*features->mutable_feature())["x"].mutable_float_list()->add_value(val);
+    (*features->mutable_feature())["y"].mutable_bytes_list()->add_value("Test");
+    example.SerializeToString(&str);
+    example_list.push_back(str);
+  }
+
+  Tensor input_batch =
+      test::AsTensor<tstring>(example_list, TensorShape({kBatchSize}));
+  std::vector<Tensor> outputs;
+  testing::UseRealTime();
+  for (auto _ : state) {
+    outputs.clear();
+    TF_ASSERT_OK(session->Run(
+        {{"input", input_batch}},
+        {"ParseExample/ParseExampleV2", "ParseExample/ParseExampleV2:1"}, {},
+        &outputs));
+  }
+}
+BENCHMARK(BM_ParseExample)->ThreadRange(1, 64);
 
 #endif  // PLATFORM_GOOGLE
 
