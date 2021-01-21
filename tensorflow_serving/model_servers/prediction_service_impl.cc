@@ -22,6 +22,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
 #include "tensorflow_serving/servables/tensorflow/multi_inference_helper.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
+#include "tensorflow_serving/servables/tensorflow/util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -51,18 +52,26 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
 ::grpc::Status PredictionServiceImpl::Predict(::grpc::ServerContext *context,
                                               const PredictRequest *request,
                                               PredictResponse *response) {
+  const uint64 start = Env::Default()->NowMicros();
   tensorflow::RunOptions run_options = tensorflow::RunOptions();
   if (enforce_session_run_timeout_) {
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
 
-  const ::grpc::Status status =
-      ToGRPCStatus(predictor_->Predict(run_options, core_, *request, response));
+  const ::tensorflow::Status tf_status =
+      predictor_->Predict(run_options, core_, *request, response);
+  const ::grpc::Status status = ToGRPCStatus(tf_status);
 
-  if (!status.ok()) {
+  if (status.ok()) {
+    RecordRequestLatency(request->model_spec().name(), /*api=*/"Predict",
+                         /*runtime=*/"GRPC",
+                         Env::Default()->NowMicros() - start);
+  } else {
     VLOG(1) << "Predict failed: " << status.error_message();
   }
+  RecordModelRequestCount(request->model_spec().name(), tf_status);
+
   return status;
 }
 
@@ -80,38 +89,58 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
 ::grpc::Status PredictionServiceImpl::Classify(
     ::grpc::ServerContext *context, const ClassificationRequest *request,
     ClassificationResponse *response) {
+  const uint64 start = Env::Default()->NowMicros();
   tensorflow::RunOptions run_options = tensorflow::RunOptions();
   // By default, this is infinite which is the same default as RunOptions.
   if (enforce_session_run_timeout_) {
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
-  const ::grpc::Status status =
-      ToGRPCStatus(TensorflowClassificationServiceImpl::Classify(
+
+  const ::tensorflow::Status tf_status =
+      TensorflowClassificationServiceImpl::Classify(
           run_options, core_, GetThreadPoolOptions(thread_pool_factory_),
-          *request, response));
-  if (!status.ok()) {
+          *request, response);
+  const ::grpc::Status status = ToGRPCStatus(tf_status);
+
+  if (status.ok()) {
+    RecordRequestLatency(request->model_spec().name(), /*api=*/"Classify",
+                         /*runtime=*/"GRPC",
+                         Env::Default()->NowMicros() - start);
+  } else {
     VLOG(1) << "Classify request failed: " << status.error_message();
   }
+  RecordModelRequestCount(request->model_spec().name(), tf_status);
+
   return status;
 }
 
 ::grpc::Status PredictionServiceImpl::Regress(::grpc::ServerContext *context,
                                               const RegressionRequest *request,
                                               RegressionResponse *response) {
+  const uint64 start = Env::Default()->NowMicros();
   tensorflow::RunOptions run_options = tensorflow::RunOptions();
   // By default, this is infinite which is the same default as RunOptions.
   if (enforce_session_run_timeout_) {
     run_options.set_timeout_in_ms(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
-  const ::grpc::Status status =
-      ToGRPCStatus(TensorflowRegressionServiceImpl::Regress(
+
+  const ::tensorflow::Status tf_status =
+      TensorflowRegressionServiceImpl::Regress(
           run_options, core_, GetThreadPoolOptions(thread_pool_factory_),
-          *request, response));
-  if (!status.ok()) {
+          *request, response);
+  const ::grpc::Status status = ToGRPCStatus(tf_status);
+
+  if (status.ok()) {
+    RecordRequestLatency(request->model_spec().name(), /*api=*/"Regress",
+                         /*runtime=*/"GRPC",
+                         Env::Default()->NowMicros() - start);
+  } else {
     VLOG(1) << "Regress request failed: " << status.error_message();
   }
+  RecordModelRequestCount(request->model_spec().name(), tf_status);
+
   return status;
 }
 

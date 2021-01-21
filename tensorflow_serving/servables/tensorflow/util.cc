@@ -54,6 +54,11 @@ auto* example_count_total = monitoring::Counter<1>::New(
     "/tensorflow/serving/request_example_count_total",
     "The total number of tensorflow.Examples.", "model");
 
+// Metrics by model
+auto* model_request_status_count_total = monitoring::Counter<2>::New(
+    "/tensorflow/serving/request_count", "The total number of requests.",
+    "model_name", "status");
+
 auto* runtime_latency = monitoring::Sampler<3>::New(
     {
         "/tensorflow/serving/runtime_latency",
@@ -61,6 +66,17 @@ auto* runtime_latency = monitoring::Sampler<3>::New(
         "model_name",
         "API",
         "runtime",
+    },  // Scale of 10, power of 1.8 with bucket count 33 (~20 minutes).
+    monitoring::Buckets::Exponential(10, 1.8, 33));
+
+auto* request_latency = monitoring::Sampler<3>::New(
+    {
+        "/tensorflow/serving/request_latency",
+        "Distribution of wall time (in microseconds) for Tensorflow Serving"
+        " request.",
+        "model_name",
+        "API",
+        "entrypoint",
     },  // Scale of 10, power of 1.8 with bucket count 33 (~20 minutes).
     monitoring::Buckets::Exponential(10, 1.8, 33));
 
@@ -117,6 +133,13 @@ monitoring::Sampler<1>* GetExampleCounts() { return example_counts; }
 monitoring::Counter<1>* GetExampleCountTotal() { return example_count_total; }
 
 }  // namespace internal
+
+// Metrics by model
+void RecordModelRequestCount(const string& model_name, const Status& status) {
+  model_request_status_count_total
+      ->GetCell(model_name, error::Code_Name(status.code()))
+      ->IncrementBy(1);
+}
 
 void SetSignatureMethodNameCheckFeature(bool v) { signature_method_check = v; }
 
@@ -304,6 +327,11 @@ Status EstimateResourceFromPathUsingDiskState(const string& path,
 void RecordRuntimeLatency(const string& model_name, const string& api,
                           const string& runtime, int64 latency_usec) {
   runtime_latency->GetCell(model_name, api, runtime)->Add(latency_usec);
+}
+
+void RecordRequestLatency(const string& model_name, const string& api,
+                          const string& entrypoint, int64 latency_usec) {
+  request_latency->GetCell(model_name, api, entrypoint)->Add(latency_usec);
 }
 
 }  // namespace serving

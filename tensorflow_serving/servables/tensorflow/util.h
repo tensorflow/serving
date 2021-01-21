@@ -40,6 +40,9 @@ monitoring::Counter<1>* GetExampleCountTotal();
 
 }  // namespace internal
 
+// Metrics by model
+void RecordModelRequestCount(const string& model_name, const Status& status);
+
 // Enable/disable `method_name` checks on `SignatureDef` for predict, classify,
 // regress APIs. Native TF2 models use fixed `method_name` for all APIs, and
 // the check needs to be disabled to support both TF1 and (native) TF2 models.
@@ -113,6 +116,10 @@ Status EstimateResourceFromPathUsingDiskState(const string& path,
 // Update metrics for runtime latency.
 void RecordRuntimeLatency(const string& model_name, const string& api,
                           const string& runtime, int64 latency_usec);
+
+// Update metrics for request latency.
+void RecordRequestLatency(const string& model_name, const string& api,
+                          const string& entrypoint, int64 latency_usec);
 
 }  // namespace serving
 }  // namespace tensorflow
