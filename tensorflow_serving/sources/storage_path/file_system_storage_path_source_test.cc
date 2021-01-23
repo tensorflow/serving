@@ -670,14 +670,14 @@ TEST(FileSystemStoragePathSourceTest, ServableVersionDirRenamed) {
   TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
                    .PollFileSystemAndInvokeCallback());
 
-  // Blacklist version 2 and 5 by renaming corresponding directories.
-  // Blacklist version 8 by removing the directory alltogether.
-  TF_ASSERT_OK(Env::Default()->RenameFile(
-      io::JoinPath(base_path_prefix, "2"),
-      io::JoinPath(base_path_prefix, "2.blacklisted")));
-  TF_ASSERT_OK(Env::Default()->RenameFile(
-      io::JoinPath(base_path_prefix, "5"),
-      io::JoinPath(base_path_prefix, "5.blacklisted")));
+  // Deny version 2 and 5 by renaming corresponding directories.
+  // Deny version 8 by removing the directory alltogether.
+  TF_ASSERT_OK(
+      Env::Default()->RenameFile(io::JoinPath(base_path_prefix, "2"),
+                                 io::JoinPath(base_path_prefix, "2.denied")));
+  TF_ASSERT_OK(
+      Env::Default()->RenameFile(io::JoinPath(base_path_prefix, "5"),
+                                 io::JoinPath(base_path_prefix, "5.denied")));
   TF_ASSERT_OK(Env::Default()->DeleteDir(io::JoinPath(base_path_prefix, "8")));
 
   EXPECT_CALL(
