@@ -120,6 +120,7 @@ void TestSingleRequest(Session* session) {
 
 void TestMultipleRequests(int num_requests, Session* session) {
   std::vector<std::unique_ptr<Thread>> request_threads;
+  request_threads.reserve(num_requests);
   for (int i = 0; i < num_requests; ++i) {
     request_threads.push_back(
         std::unique_ptr<Thread>(Env::Default()->StartThread(

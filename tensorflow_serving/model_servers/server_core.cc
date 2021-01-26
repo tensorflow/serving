@@ -285,6 +285,7 @@ Status ServerCore::Initialize(std::unique_ptr<AspiredVersionPolicy> policy) {
 Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
                                             ServableStateMonitor* monitor) {
   std::vector<ServableRequest> awaited_servables;
+  awaited_servables.reserve(models.size());
   for (const string& model : models) {
     awaited_servables.push_back(ServableRequest::Latest(model));
   }

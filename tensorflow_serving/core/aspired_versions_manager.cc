@@ -108,6 +108,7 @@ std::set<int64> GetVersionNumbers(
 string ServableVersionsDebugString(
     const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) {
   std::vector<string> version_strings;
+  version_strings.reserve(versions.size());
   for (const ServableData<std::unique_ptr<Loader>>& version : versions) {
     version_strings.push_back(version.id().DebugString());
   }
