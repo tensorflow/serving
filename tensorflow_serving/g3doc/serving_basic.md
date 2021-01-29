@@ -6,11 +6,9 @@ it. If you are already familiar with TensorFlow Serving, and you want to know
 more about how the server internals work, see the
 [TensorFlow Serving advanced tutorial](serving_advanced.md).
 
-This tutorial uses the simple Softmax Regression model introduced in the
-TensorFlow tutorial for handwritten image (MNIST data) classification. If you
-do not know what TensorFlow or MNIST is, see the
-[MNIST For ML Beginners](http://www.tensorflow.org/tutorials/mnist/beginners/index.html#mnist-for-ml-beginners)
-tutorial.
+This tutorial uses a simple Softmax Regression model that classifies handwritten
+digits. It is very similar to the one introduced in the
+[TensorFlow tutorial on image classification using the Fashion MNIST dataset](https://www.tensorflow.org/tutorials/keras/classification).
 
 The code for this tutorial consists of two parts:
 
@@ -28,11 +26,9 @@ Before getting started, first [install Docker](docker.md#installing-docker).
 
 ## Train and export TensorFlow model
 
-As you can see in `mnist_saved_model.py`, the training is done the same way it
-is in the
-[MNIST For ML Beginners tutorial](https://www.tensorflow.org/get_started/mnist/beginners).
-The TensorFlow graph is launched in TensorFlow session `sess`, with the input
-tensor (image) as `x` and output tensor (Softmax score) as `y`.
+For the training phase, the TensorFlow graph is launched in TensorFlow session
+`sess`, with the input tensor (image) as `x` and output tensor (Softmax score)
+as `y`.
 
 Then we use TensorFlow's [SavedModelBuilder module](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/builder.py)
 to export the model. `SavedModelBuilder` saves a "snapshot" of the trained model
@@ -48,19 +44,21 @@ saving a model to disk.
 ```python
 export_path_base = sys.argv[-1]
 export_path = os.path.join(
-      compat.as_bytes(export_path_base),
-      compat.as_bytes(str(FLAGS.model_version)))
+    tf.compat.as_bytes(export_path_base),
+    tf.compat.as_bytes(str(FLAGS.model_version)))
 print('Exporting trained model to', export_path)
 builder = tf.saved_model.builder.SavedModelBuilder(export_path)
 builder.add_meta_graph_and_variables(
-      sess, [tf.saved_model.tag_constants.SERVING],
-      signature_def_map={
-           'predict_images':
-               prediction_signature,
-           signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
-               classification_signature,
-      },
-      main_op=tf.tables_initializer())
+    sess, [tf.compat.v1.saved_model.tag_constants.SERVING],
+    signature_def_map={
+        'predict_images':
+            prediction_signature,
+        tf.compat.v1.saved_model.signature_constants
+            .DEFAULT_SERVING_SIGNATURE_DEF_KEY:
+            classification_signature,
+    },
+    main_op=tf.compat.v1.tables_initializer(),
+    strip_default_attrs=True)
 builder.save()
 ```
 
@@ -98,11 +96,11 @@ You can add meta graph and variables to the builder using
     related to signatures, are defined as part of SavedModel signature
     constants. For more details, see
     [signature_constants.py](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/signature_constants.py)
-    and related
-    [TensorFlow 1.0 API documentation](https://www.tensorflow.org/api_docs/python/tf/saved_model/signature_constants).
+    and
+    [related TensorFlow API documentation](https://www.tensorflow.org/api_docs/python/tf/compat/v1/saved_model/signature_constants).
 
     Further, to help build signature defs easily, the SavedModel API provides
-    [signature def utils](https://www.tensorflow.org/api_docs/python/tf/saved_model/signature_def_utils).
+    [signature def utils](https://www.tensorflow.org/api_docs/python/tf/compat/v1/saved_model/signature_def_utils)..
     Specifically, in the original
     [mnist_saved_model.py](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/mnist_saved_model.py)
     file, we use `signature_def_utils.build_signature_def()` to build
@@ -119,14 +117,16 @@ You can add meta graph and variables to the builder using
         requests, it should be set to `tensorflow/serving/predict`. For other
         method names, see
         [signature_constants.py](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/signature_constants.py)
-        and related
-        [TensorFlow 1.0 API documentation](https://www.tensorflow.org/api_docs/python/tf/saved_model/signature_constants).
+        and
+        [related TensorFlow API documentation](https://www.tensorflow.org/api_docs/python/tf/compat/v1/saved_model/signature_constants).
 
 Note that `tensor_info_x` and `tensor_info_y` have the structure of
-`tensorflow::TensorInfo` protocol buffer defined [here](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/protobuf/meta_graph.proto).
+`tensorflow::TensorInfo` protocol buffer defined
+[here](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/protobuf/meta_graph.proto).
 To easily build tensor infos, the TensorFlow SavedModel API also provides
 [utils.py](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/saved_model/utils.py),
-with [related TensorFlow 1.0 API documentation](https://www.tensorflow.org/api_docs/python/tf/saved_model/utils).
+with
+[related TensorFlow API documentation](https://www.tensorflow.org/api_docs/python/tf/compat/v1/saved_model/utils).
 
 Also, note that `images` and `scores` are tensor alias names. They can be
 whatever unique strings you want, and they will become the logical names
