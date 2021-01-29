@@ -289,7 +289,7 @@ void EvHTTPRequest::UncompressGzipBody(void* input, size_t input_size,
 absl::string_view EvHTTPRequest::GetRequestHeader(
     absl::string_view header) const {
   std::string header_str(header.data(), header.size());
-  return absl::string_view(
+  return absl::NullSafeStringView(
       evhttp_find_header(parsed_request_->headers, header_str.c_str()));
 }
 
