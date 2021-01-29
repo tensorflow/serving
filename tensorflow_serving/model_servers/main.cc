@@ -47,6 +47,7 @@ limitations under the License.
 #include <vector>
 
 #include "tensorflow/c/c_api.h"
+#include "tensorflow/compiler/jit/flags.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/util/command_line_flags.h"
@@ -56,6 +57,7 @@ limitations under the License.
 int main(int argc, char** argv) {
   tensorflow::serving::main::Server::Options options;
   bool display_version = false;
+  bool xla_cpu_compilation_enabled = false;
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &options.grpc_port,
                        "TCP port to listen on for gRPC/HTTP API. Disabled if "
@@ -187,8 +189,7 @@ int main(int argc, char** argv) {
                        "A comma separated list of arguments to be passed to "
                        "the grpc server. (e.g. "
                        "grpc.max_connection_age_ms=2000)"),
-      tensorflow::Flag("grpc_max_threads",
-                       &options.grpc_max_threads,
+      tensorflow::Flag("grpc_max_threads", &options.grpc_max_threads,
                        "Max grpc server threads to handle grpc messages."),
       tensorflow::Flag("enable_model_warmup", &options.enable_model_warmup,
                        "Enables model warmup, which triggers lazy "
@@ -221,7 +222,13 @@ int main(int argc, char** argv) {
           "enable_signature_method_name_check",
           &options.enable_signature_method_name_check,
           "Enable method_name check for SignatureDef. Disable this if serving "
-          "native TF2 regression/classification models.")};
+          "native TF2 regression/classification models."),
+      tensorflow::Flag(
+          "xla_cpu_compilation_enabled", &xla_cpu_compilation_enabled,
+          "EXPERIMENTAL; CAN BE REMOVED ANYTIME! "
+          "Enable XLA:CPU JIT (default is disabled). With XLA:CPU JIT "
+          "disabled, models utilizing this feature will return bad Status "
+          "on first compilation request.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {
@@ -238,6 +245,10 @@ int main(int argc, char** argv) {
   tensorflow::port::InitMain(argv[0], &argc, &argv);
   if (argc != 1) {
     std::cout << "unknown argument: " << argv[1] << "\n" << usage;
+  }
+
+  if (!xla_cpu_compilation_enabled) {
+    tensorflow::DisableXlaCompilation();
   }
 
   tensorflow::serving::main::Server server;
