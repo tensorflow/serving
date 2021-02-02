@@ -95,7 +95,7 @@ TEST_F(EvHTTPServerTest, ExactPathMatching) {
       EvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok?a=foo", "GET", {}, nullptr};
+  ClientRequest request = {"/ok?a=foo", "GET", {}, ""};
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
@@ -103,7 +103,7 @@ TEST_F(EvHTTPServerTest, ExactPathMatching) {
   EXPECT_EQ(response.body, "OK");
 
   // no canonicalization for the trailing "/"
-  request = {"/ok/", "GET", {}, nullptr};
+  request = {"/ok/", "GET", {}, ""};
   response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
@@ -134,7 +134,7 @@ TEST_F(EvHTTPServerTest, RequestHandlerOverwriting) {
       EvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "GET", {}, nullptr};
+  ClientRequest request = {"/ok", "GET", {}, ""};
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
@@ -164,7 +164,7 @@ TEST_F(EvHTTPServerTest, SingleRequestDispather) {
       EvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "GET", {}, nullptr};
+  ClientRequest request = {"/ok", "GET", {}, ""};
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
@@ -202,14 +202,14 @@ TEST_F(EvHTTPServerTest, UriPrecedesOverRequestDispather) {
       EvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "GET", {}, nullptr};
+  ClientRequest request = {"/ok", "GET", {}, ""};
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
   EXPECT_EQ(response.body, "OK1");
 
-  request = {"/okxx", "GET", {}, nullptr};
+  request = {"/okxx", "GET", {}, ""};
   response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
@@ -247,7 +247,7 @@ TEST_F(EvHTTPServerTest, InOrderRequestDispather) {
       EvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "GET", {}, nullptr};
+  ClientRequest request = {"/ok", "GET", {}, ""};
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
@@ -278,7 +278,7 @@ TEST_F(EvHTTPServerTest, RequestHandlerInteraction) {
   connection->SetExecutor(absl::make_unique<MyExecutor>(4));
 
   absl::Notification response_done;
-  ClientRequest request = {"/ok", "GET", {}, nullptr};
+  ClientRequest request = {"/ok", "GET", {}, ""};
   ClientResponse response = {};
   response.done = [&response_done]() { response_done.Notify(); };
 
@@ -320,7 +320,7 @@ TEST_F(EvHTTPServerTest, ActiveRequestCountInShutdown) {
   ASSERT_TRUE(connection != nullptr);
   connection->SetExecutor(absl::make_unique<MyExecutor>(4));
 
-  ClientRequest request = {"/ok", "GET", {}, nullptr};
+  ClientRequest request = {"/ok", "GET", {}, ""};
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->SendRequest(request, &response));

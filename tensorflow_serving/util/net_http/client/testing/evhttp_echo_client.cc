@@ -32,7 +32,7 @@ bool SendRequest(const char* url) {
     std::cerr << "Fail to connect to %s" << url;
   }
 
-  ClientRequest request = {url, "GET", {}, nullptr};
+  ClientRequest request = {url, "GET", {}, ""};
   ClientResponse response = {};
 
   if (!connection->BlockingSendRequest(request, &response)) {

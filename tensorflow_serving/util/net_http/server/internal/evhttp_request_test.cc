@@ -79,7 +79,7 @@ TEST_F(EvHTTPRequestTest, SimpleGETNotFound) {
       EvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/noop", "GET", {}, nullptr};
+  ClientRequest request = {"/noop", "GET", {}, ""};
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
@@ -104,7 +104,7 @@ TEST_F(EvHTTPRequestTest, SimpleGETOK) {
       EvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "GET", {}, nullptr};
+  ClientRequest request = {"/ok", "GET", {}, ""};
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
@@ -175,7 +175,7 @@ TEST_F(EvHTTPRequestTest, RequestUri) {
   ASSERT_TRUE(connection != nullptr);
 
   for (const char* path : kUriPath) {
-    ClientRequest request = {path, "GET", {}, nullptr};
+    ClientRequest request = {path, "GET", {}, ""};
     ClientResponse response = {};
 
     EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
@@ -207,7 +207,7 @@ TEST_F(EvHTTPRequestTest, RequestHeaders) {
                            "GET",
                            {ClientRequest::HeaderKeyValue("H1", "v1"),
                             ClientRequest::HeaderKeyValue("H2", "v2")},
-                           nullptr};
+                           ""};
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
@@ -235,7 +235,7 @@ TEST_F(EvHTTPRequestTest, ResponseHeaders) {
       EvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "GET", {}, nullptr};
+  ClientRequest request = {"/ok", "GET", {}, ""};
   ClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
