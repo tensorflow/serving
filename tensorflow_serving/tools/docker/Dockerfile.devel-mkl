@@ -119,8 +119,8 @@ RUN bazel build --color=yes --curses=yes \
     /tmp/pip/tensorflow_serving_api-*.whl && \
     rm -rf /tmp/pip
 
-# Copy MKL libraries
-RUN cp /root/.cache/bazel/_bazel_root/*/external/mkl_linux/lib/* /usr/local/lib
+# Copy openmp libraries
+# RUN cp /root/.cache/bazel/_bazel_root/*/external/mkl_linux/lib/* /usr/local/lib
 
 ENV LIBRARY_PATH '/usr/local/lib:$LIBRARY_PATH'
 ENV LD_LIBRARY_PATH '/usr/local/lib:$LD_LIBRARY_PATH'
