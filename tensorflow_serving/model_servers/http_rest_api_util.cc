@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "google/protobuf/util/json_util.h"
 #include "absl/strings/numbers.h"
+#include <curl/curl.h>
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/errors.h"
 
@@ -24,9 +25,9 @@ namespace tensorflow {
 namespace serving {
 
 const char* const kPredictionApiGegex =
-    R"((?i)/v1/models/([^/:]+)(?:(?:/versions/(\d+))|(?:/labels/(\w+)))?:(classify|regress|predict))";
+    R"((?i)/v1/models/([^/:]+)(?:(?:/versions/(\d+))|(?:/labels/([^/:]+)))?:(classify|regress|predict))";
 const char* const kModelStatusApiRegex =
-    R"((?i)/v1/models(?:/([^/:]+))?(?:(?:/versions/(\d+))|(?:/labels/(\w+)))?(?:\/(metadata))?)";
+    R"((?i)/v1/models(?:/([^/:]+))?(?:(?:/versions/(\d+))|(?:/labels/([^/:]+)))?(?:\/(metadata))?)";
 
 void AddHeaders(std::vector<std::pair<string, string>>* headers) {
   headers->push_back({"Content-Type", "application/json"});
@@ -55,6 +56,27 @@ Status FillModelSpecWithNameVersionAndLabel(
   return Status::OK();
 }
 
+bool DecodeArg(string* arg) {
+  static const bool run_once ABSL_ATTRIBUTE_UNUSED = [&]() {
+    curl_global_init(CURL_GLOBAL_ALL);
+    return true;
+  }();
+  CURL* curl = curl_easy_init();
+  if (curl != nullptr) {
+    int outlength;
+    char* cres =
+        curl_easy_unescape(curl, arg->c_str(), arg->size(), &outlength);
+    if (cres == nullptr) {
+      return false;
+    }
+    arg->assign(cres, outlength);
+    curl_free(cres);
+    curl_easy_cleanup(curl);
+    return true;
+  }
+  return false;
+}
+
 Status ParseModelInfo(const absl::string_view http_method,
                       const absl::string_view request_path, string* model_name,
                       absl::optional<int64>* model_version,
@@ -73,7 +95,12 @@ Status ParseModelInfo(const absl::string_view http_method,
         string(request_path), kModelStatusApiRegex, model_name,
         &model_version_str, &model_version_label_str, model_subresource);
   }
-
+  if (!model_name->empty()) {
+    if (!DecodeArg(model_name)) {
+      return errors::InvalidArgument("Failed to decode model name:",
+                                     *model_name);
+    }
+  }
   if (!model_version_str.empty()) {
     int64 version;
     if (!absl::SimpleAtoi(model_version_str, &version)) {
@@ -83,6 +110,10 @@ Status ParseModelInfo(const absl::string_view http_method,
     *model_version = version;
   }
   if (!model_version_label_str.empty()) {
+    if (!DecodeArg(&model_version_label_str)) {
+      return errors::InvalidArgument("Failed to decode model version label:",
+                                     model_version_label_str);
+    }
     *model_version_label = model_version_label_str;
   }
   return Status::OK();

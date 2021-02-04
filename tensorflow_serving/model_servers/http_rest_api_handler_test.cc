@@ -46,7 +46,6 @@ namespace serving {
 namespace {
 
 using ::testing::HasSubstr;
-using ::testing::Not;
 using ::testing::UnorderedElementsAreArray;
 
 constexpr char kTestModelBasePath[] = "cc/saved_model/testdata/half_plus_two";
@@ -190,6 +189,10 @@ TEST_F(HttpRestApiHandlerTest, UnsupportedApiCalls) {
                                    &model_name, &method, &output);
   EXPECT_TRUE(errors::IsInvalidArgument(status));
   EXPECT_THAT(status.error_message(), HasSubstr("Missing model name"));
+  status = handler_.ProcessRequest("GET", "/v1/models/debug/model_name", "",
+                                   &headers, &model_name, &method, &output);
+  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_THAT(status.error_message(), HasSubstr("Malformed request"));
 
   status = handler_.ProcessRequest("POST", "/v1/models", "", &headers,
                                    &model_name, &method, &output);
@@ -239,12 +242,6 @@ TEST_F(HttpRestApiHandlerTest, UnsupportedApiCalls) {
   status = handler_.ProcessRequest(
       "POST", "/v1/models/foo/versions/50/labels/some_label:regress", "",
       &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Malformed request"));
-
-  status = handler_.ProcessRequest("POST",
-                                   "/v1/models/foo/labels/some-label:regress",
-                                   "", &headers, &model_name, &method, &output);
   EXPECT_TRUE(errors::IsInvalidArgument(status));
   EXPECT_THAT(status.error_message(), HasSubstr("Malformed request"));
 
