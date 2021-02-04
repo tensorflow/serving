@@ -120,7 +120,7 @@ RUN bazel build --color=yes --curses=yes \
     rm -rf /tmp/pip
 
 # Copy openmp libraries
-# RUN cp /root/.cache/bazel/_bazel_root/*/external/mkl_linux/lib/* /usr/local/lib
+RUN cp /root/.cache/bazel/_bazel_root/*/execroot/tf_serving/bazel-out/k8-opt/bin/external/llvm_openmp/libiomp5.so /usr/local/lib/
 
 ENV LIBRARY_PATH '/usr/local/lib:$LIBRARY_PATH'
 ENV LD_LIBRARY_PATH '/usr/local/lib:$LD_LIBRARY_PATH'
