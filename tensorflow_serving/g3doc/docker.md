@@ -47,7 +47,7 @@ docker image by running:
 docker pull tensorflow/serving
 ```
 
-This will pull down an minimal Docker image with TensorFlow Serving installed.
+This will pull down a minimal Docker image with TensorFlow Serving installed.
 
 See the Docker Hub
 [tensorflow/serving repo](http://hub.docker.com/r/tensorflow/serving/tags/) for
