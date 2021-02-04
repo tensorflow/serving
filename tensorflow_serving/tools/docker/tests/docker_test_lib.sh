@@ -138,7 +138,7 @@ function test_docker_image {
   local docker_opts=" --privileged=true --rm -t -p ${rest_port}:${rest_port}"
   docker_opts+=" -v ${MODEL_FULL_PATH}:${model_base_path}"
   if [ "$USE_NVIDIA_RUNTIME" = true ]; then
-      docker_opts+=" --runtime=nvidia"
+      docker_opts+=" --runtime=nvidia --gpus all"
   fi
 
   if [[ "$IS_MKL_IMAGE" = true ]]; then
