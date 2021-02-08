@@ -24,20 +24,15 @@ limitations under the License.
 #include "absl/synchronization/mutex.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/file_system.h"
-#include "tensorflow/core/platform/threadpool.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
-#include "tensorflow/lite/external_cpu_backend_context.h"
 #include "tensorflow/lite/interpreter.h"
-#include "tensorflow/lite/kernels/cpu_backend_context.h"
 #include "tensorflow/lite/model.h"
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
 #include "tensorflow_serving/servables/tensorflow/tflite_interpreter_pool.h"
 
 namespace tensorflow {
 namespace serving {
-
-using TensorInfoMap = std::map<string, std::pair<TensorInfo, int>>;
 
 // A session to run inference on a TensorFlow Lite model.
 //
@@ -46,15 +41,10 @@ class TfLiteSession : public ServingSession {
   // Creates a TfLiteSession object from `buffer` representing serialized
   // TFLite flatbuffer model. Also returns the SignatureDef map based on
   // input/outputs to the model.
-  //
-  // run in caller thread allows a worker to run on the parent thread,
-  // which may be desired to increase concurrency at the cost of additional
-  // thread context overhead. Defaults to false.
-  static Status Create(string&& buffer, const SessionOptions& options,
-                       int num_pools, int num_interpreters_per_pool,
+  static Status Create(string&& buffer,
                        std::unique_ptr<TfLiteSession>* tflite_session,
                        ::google::protobuf::Map<string, SignatureDef>* signatures,
-                       bool run_in_caller_thread = false);
+                       int num_interpreters);
 
   ~TfLiteSession() override = default;
 
@@ -79,17 +69,18 @@ class TfLiteSession : public ServingSession {
   Status ListDevices(std::vector<DeviceAttributes>* response) override;
 
  private:
-  TfLiteSession(std::map<string, int>&& input_tensor_to_index,
-                std::map<string, int>&& output_tensor_to_index, string&& buffer,
-                std::unique_ptr<tflite::FlatBufferModel> model,
-                std::unique_ptr<internal::TfLiteSessionPool> session_pool,
-                bool run_in_caller_thread);
+  TfLiteSession(
+      std::map<string, int>&& input_tensor_to_index,
+      std::map<string, int>&& output_tensor_to_index, string&& buffer,
+      std::unique_ptr<tflite::FlatBufferModel> model,
+      std::unique_ptr<internal::TfLiteInterpreterPool> interpreter_pool);
+
   const std::map<string, int> input_tensor_to_index_;
   const std::map<string, int> output_tensor_to_index_;
   const string model_serialized_bytes_;
   const std::unique_ptr<tflite::FlatBufferModel> model_;
-  const std::unique_ptr<internal::TfLiteSessionPool> session_pool_;
-  const bool run_in_caller_thread_;
+  std::unique_ptr<internal::TfLiteInterpreterPool> interpreter_pool_;
+
   TF_DISALLOW_COPY_AND_ASSIGN(TfLiteSession);
 };
 

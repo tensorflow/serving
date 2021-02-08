@@ -79,8 +79,9 @@ def _generate_tflite_for_parse_example_with_string(export_dir):
                                   _get_feature_spec())
     converter = tf.lite.TFLiteConverter.from_session(
         sess, [serialized_tf_example], [tf_example["x"], tf_example["y"]])
-    converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS]
-    converter.allow_custom_ops = True
+    converter.target_spec.supported_ops = [
+        tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
+    ]
     tflite_model = converter.convert()
     predict_signature_def = _build_predict_signature(serialized_tf_example,
                                                      tf_example["x"],

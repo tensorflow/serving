@@ -97,12 +97,7 @@ message SessionBundleConfig {
   // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
   //
   // Number of TFLite interpreters in an interpreter pool of TfLiteSession.
-  int32 num_tflite_interpreters_per_pool = 785;
-
-  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
-  //
-  // Number of TFLite interpreter pools in a TfLiteSession.
-  int32 num_tflite_pools = 786;
+  int32 num_tflite_interpreters = 785;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

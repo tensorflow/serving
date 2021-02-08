@@ -44,10 +44,8 @@ int main(int argc, char** argv) {
 
   ::google::protobuf::Map<std::string, tensorflow::SignatureDef> signatures;
   std::unique_ptr<tensorflow::serving::TfLiteSession> session;
-  tensorflow::SessionOptions options;
-  status = tensorflow::serving::TfLiteSession::Create(
-      std::move(model_bytes), options, /*num_pools=*/1,
-      /*num_interpreters_per_pool=*/1, &session, &signatures);
+  status = tensorflow::serving::TfLiteSession::Create(std::move(model_bytes),
+                                                      &session, &signatures, 1);
   if (!status.ok()) {
     std::cerr << "ERROR: Failed to create TF Lite session with error: "
               << status << std::endl;
