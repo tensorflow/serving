@@ -63,7 +63,8 @@ Status ParseFixedInputTensors(
 const char kTfLiteModelFilename[] = "model.tflite";
 
 Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
-                       int num_interpreters) {
+                       const SessionOptions& options, int num_interpreter_pools,
+                       int num_interpreters_per_pool) {
   std::unique_ptr<TfLiteSession> session;
 
   const string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
@@ -80,8 +81,9 @@ Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
 
   std::unique_ptr<TfLiteSession> tflite_session;
   TF_RETURN_IF_ERROR(TfLiteSession::Create(
-      std::move(model_bytes), &tflite_session,
-      bundle->meta_graph_def.mutable_signature_def(), num_interpreters));
+      std::move(model_bytes), options, num_interpreter_pools,
+      num_interpreters_per_pool, &tflite_session,
+      bundle->meta_graph_def.mutable_signature_def()));
   bundle->session = std::move(tflite_session);
   return Status::OK();
 }
@@ -145,8 +147,9 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
   }();
 
   if (config_.prefer_tflite_model() && TfLiteModelFound(path)) {
-    TF_RETURN_IF_ERROR(LoadTfLiteModel(path, bundle->get(),
-                                       config_.num_tflite_interpreters()));
+    TF_RETURN_IF_ERROR(LoadTfLiteModel(
+        path, bundle->get(), session_options, config_.num_tflite_pools(),
+        config_.num_tflite_interpreters_per_pool()));
   } else {
     TF_RETURN_IF_ERROR(session_bundle::LoadSessionBundleOrSavedModelBundle(
         session_options, GetRunOptions(config_), path, saved_model_tags,
