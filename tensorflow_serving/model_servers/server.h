@@ -88,7 +88,8 @@ class Server {
     bool enforce_session_run_timeout = true;
     bool remove_unused_fields_from_bundle_metagraph = true;
     bool prefer_tflite_model = false;
-    tensorflow::int32 num_tflite_interpreters = port::NumSchedulableCPUs();
+    tensorflow::int32 num_tflite_pools = port::NumSchedulableCPUs();
+    tensorflow::int32 num_tflite_interpreters_per_pool = 1;
     tensorflow::string thread_pool_factory_config_file;
     bool enable_signature_method_name_check = false;
 
