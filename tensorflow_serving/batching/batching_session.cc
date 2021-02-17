@@ -344,15 +344,11 @@ Status BatchingSession::InternalRun(
   if (batch_scheduler_it == batch_schedulers_.end()) {
     // We have a Run() call that doesn't match one of our batching signatures.
     // Run it in-line.
-    static uint64 last_log_message_secs = 0;
-    uint64 now_secs = EnvTime::NowSeconds();
-    // The time check is not strictly thread safe, but it doesn't matter.
-    if (now_secs - last_log_message_secs >= 120) {
-      LOG(WARNING) << "Request doesn't match any declared signature. Bypassing "
-                      "batcher. Request signature is: "
-                   << TensorSignatureDebugString(signature);
-      last_log_message_secs = now_secs;
-    }
+    LOG_EVERY_N_SEC(WARNING, 120)
+        << "Request doesn't match any declared signature. Bypassing "
+           "batcher. Request signature is: "
+        << TensorSignatureDebugString(signature);
+
     // Because the wrapped session may not provide an implementation for
     // thread_pool_options, we need to invoke different Run() functions
     // depending on whether thread_pool_options is specified.
