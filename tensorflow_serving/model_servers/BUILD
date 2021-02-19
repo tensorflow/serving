@@ -3,6 +3,7 @@
 load("//tensorflow_serving:oss_or_google.bzl", "if_google")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
+load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_libtpu")
 
 package(
     default_visibility = [
@@ -396,7 +397,9 @@ cc_library(
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
         "@org_tensorflow//tensorflow/core/platform/hadoop:hadoop_file_system",
         "@org_tensorflow//tensorflow/core/platform/s3:s3_file_system",
-    ],
+    ] + if_libtpu([
+        "@org_tensorflow//tensorflow/core/tpu:tpu_model_server_initializer",
+    ]),
 )
 
 cc_binary(
