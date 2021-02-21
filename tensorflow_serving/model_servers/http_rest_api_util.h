@@ -33,6 +33,8 @@ const char* const kHTTPRestApiHandlerPathRegex = "(?i)/v1/.*";
 
 void AddHeaders(std::vector<std::pair<string, string>>* headers);
 
+void AddCORSHeaders(std::vector<std::pair<string, string>>* headers);
+
 Status FillModelSpecWithNameVersionAndLabel(
     const absl::string_view model_name,
     const absl::optional<int64>& model_version,

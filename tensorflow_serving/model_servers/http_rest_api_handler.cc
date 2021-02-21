@@ -69,6 +69,9 @@ Status HttpRestApiHandler::ProcessRequest(
   headers->clear();
   output->clear();
   AddHeaders(headers);
+  if (core_->enable_cors_headers()) {
+    AddCORSHeaders(headers);
+  }
   string model_version_str;
   string model_subresource;
   Status status = errors::InvalidArgument("Malformed request: ", http_method,

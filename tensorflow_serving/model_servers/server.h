@@ -51,6 +51,7 @@ class Server {
     tensorflow::int32 http_port = 0;
     tensorflow::int32 http_num_threads = 4.0 * port::NumSchedulableCPUs();
     tensorflow::int32 http_timeout_in_ms = 30000;  // 30 seconds.
+    bool enable_cors_headers = false;
 
     //
     // Model Server options.

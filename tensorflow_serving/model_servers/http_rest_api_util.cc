@@ -33,6 +33,12 @@ void AddHeaders(std::vector<std::pair<string, string>>* headers) {
   headers->push_back({"Content-Type", "application/json"});
 }
 
+void AddCORSHeaders(std::vector<std::pair<string, string>>* headers) {
+  headers->push_back({"Access-Control-Allow-Origin", "*"});
+  headers->push_back({"Access-Control-Allow-Methods", "POST, GET, OPTIONS"});
+  headers->push_back({"Access-Control-Allow-Headers", "Content-Type"});
+}
+
 Status FillModelSpecWithNameVersionAndLabel(
     const absl::string_view model_name,
     const absl::optional<int64>& model_version,

@@ -190,6 +190,8 @@ class ServerCore : public Manager {
 
     // The prefix to append to the file system storage paths.
     std::string storage_path_prefix;
+
+    bool enable_cors_headers = false;
   };
 
   virtual ~ServerCore() = default;
@@ -265,6 +267,8 @@ class ServerCore : public Manager {
   predict_response_tensor_serialization_option() const {
     return options_.predict_response_tensor_serialization_option;
   }
+
+  bool enable_cors_headers() const { return options_.enable_cors_headers; }
 
  protected:
   ServerCore(Options options);
