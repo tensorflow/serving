@@ -36,8 +36,6 @@ COPY --from=build_image /usr/local/bin/tensorflow_model_server /usr/bin/tensorfl
 
 # Install MKL libraries
 COPY --from=build_image /usr/local/lib/libiomp5.so /usr/local/lib
-COPY --from=build_image /usr/local/lib/libmklml_gnu.so /usr/local/lib
-COPY --from=build_image /usr/local/lib/libmklml_intel.so /usr/local/lib
 
 ENV LIBRARY_PATH '/usr/local/lib:$LIBRARY_PATH'
 ENV LD_LIBRARY_PATH '/usr/local/lib:$LD_LIBRARY_PATH'
