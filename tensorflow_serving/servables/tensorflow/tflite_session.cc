@@ -25,7 +25,6 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/kernels/cpu_backend_context.h"
-#include "tensorflow/lite/kernels/hashtable/hashtable_ops.h"
 #include "tensorflow/lite/kernels/internal/tensor_utils.h"
 #include "tensorflow/lite/kernels/parse_example/parse_example.h"
 #include "tensorflow/lite/kernels/register.h"
@@ -380,7 +379,6 @@ Status TfLiteSession::Create(string&& buffer, const SessionOptions& options,
 
   tflite::ops::builtin::BuiltinOpResolver resolver;
   tflite::ops::custom::AddParseExampleOp(&resolver);
-  tflite::ops::custom::AddHashtableOps(&resolver);
 
   std::unique_ptr<tflite::Interpreter> interpreter;
   if (tflite::InterpreterBuilder(*model, resolver)(&interpreter) != kTfLiteOk) {

@@ -20,7 +20,6 @@ limitations under the License.
 #include <vector>
 
 #include "tensorflow/core/platform/errors.h"
-#include "tensorflow/lite/kernels/hashtable/hashtable_ops.h"
 #include "tensorflow/lite/kernels/parse_example/parse_example.h"
 #include "tensorflow/lite/kernels/register.h"
 
@@ -158,8 +157,6 @@ tensorflow::Status TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
   // TODO(b/140959776): Add support for non-builtin ops (flex or custom ops).
   tflite::ops::builtin::BuiltinOpResolver resolver;
   tflite::ops::custom::AddParseExampleOp(&resolver);
-  // TODO(b/165643512): Remove adding Hashtable to resolver by default.
-  tflite::ops::custom::AddHashtableOps(&resolver);
   int fixed_batch_size = 1;
   if (use_batch_parallelism) {
     if (num_interpreters < 1) {

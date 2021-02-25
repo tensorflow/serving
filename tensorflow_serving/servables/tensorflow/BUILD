@@ -338,7 +338,6 @@ cc_library(
         "@org_tensorflow//tensorflow/lite/delegates/flex:delegate",
         "@org_tensorflow//tensorflow/lite/kernels:builtin_ops",
         "@org_tensorflow//tensorflow/lite/kernels:cpu_backend_context",
-        "@org_tensorflow//tensorflow/lite/kernels/hashtable:hashtable_op_kernels",
         "@org_tensorflow//tensorflow/lite/kernels/internal:tensor_utils",
         "@org_tensorflow//tensorflow/lite/kernels/parse_example",
         "@org_tensorflow//tensorflow/lite/profiling:profile_summarizer",
