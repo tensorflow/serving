@@ -21,7 +21,7 @@ FROM ubuntu:18.04
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=head
 
-LABEL maintainer="Clayne Robison <clayne.b.robison@intel.com>"
+LABEL maintainer="Abolfazl Shahbazi <abolfazl.shahbazi@intel.com>"
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
@@ -36,8 +36,6 @@ COPY --from=build_image /usr/local/bin/tensorflow_model_server /usr/bin/tensorfl
 
 # Install MKL libraries
 COPY --from=build_image /usr/local/lib/libiomp5.so /usr/local/lib
-COPY --from=build_image /usr/local/lib/libmklml_gnu.so /usr/local/lib
-COPY --from=build_image /usr/local/lib/libmklml_intel.so /usr/local/lib
 
 ENV LIBRARY_PATH '/usr/local/lib:$LIBRARY_PATH'
 ENV LD_LIBRARY_PATH '/usr/local/lib:$LD_LIBRARY_PATH'
