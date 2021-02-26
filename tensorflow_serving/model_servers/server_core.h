@@ -160,6 +160,10 @@ class ServerCore : public Manager {
     ABSL_DEPRECATED("Use servable_versions_always_present.")
     bool fail_if_no_model_versions_found = false;
 
+    // For servables which end with LoaderHarness::State::kError, enable
+    // future attempts at reload to progress.
+    bool enable_reload_servables_with_error = false;
+
     // If set to true, the server will fail to start up (or fail a config
     // reload) if, for any configured model, no versions of the model are found
     // in the filesystem under the model's base path. In addition, if the

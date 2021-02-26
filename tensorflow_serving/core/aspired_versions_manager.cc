@@ -170,6 +170,8 @@ Status AspiredVersionsManager::Create(
   manager->reset(new AspiredVersionsManager(
       options.manage_state_interval_micros, options.env,
       std::move(options.aspired_version_policy), std::move(basic_manager)));
+  (manager->get())->enable_reload_servables_with_error_ =
+      options.enable_reload_servables_with_error;
   return Status::OK();
 }
 
@@ -261,12 +263,16 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
   // 2. Set the aspired bool to false for all current servable harnesses which
   // are not aspired.
   std::set<int64> current_aspired_versions;
+  std::set<int64> current_aspired_versions_with_error;
   const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
       basic_manager_->GetManagedServableStateSnapshots<Aspired>(
           string(servable_name));
   for (const ServableStateSnapshot<Aspired>& state_snapshot : state_snapshots) {
     if (state_snapshot.additional_state->is_aspired) {
       current_aspired_versions.insert(state_snapshot.id.version);
+      if (state_snapshot.state == LoaderHarness::State::kError) {
+        current_aspired_versions_with_error.insert(state_snapshot.id.version);
+      }
     }
     // If this version is not part of the aspired versions.
     if (std::find(next_aspired_versions.begin(), next_aspired_versions.end(),
@@ -290,10 +296,31 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
   // We go through the aspired_servable_versions, pull out the versions which
   // need to be added and add them to the harness map.
   for (auto& version : versions) {
-    // if this aspired version is not already present in the map.
+    bool should_add = false;
     if (std::find(additions.begin(), additions.end(), version.id().version) !=
         additions.end()) {
-      VLOG(1) << "Adding " << version.id() << " to BasicManager";
+      should_add = true;
+    }
+    if (enable_reload_servables_with_error_ &&
+        std::find(current_aspired_versions_with_error.begin(),
+                  current_aspired_versions_with_error.end(),
+                  version.id().version) !=
+            current_aspired_versions_with_error.end()) {
+      ServableId id;
+      id.name = servable_name;
+      id.version = version.id().version;
+      const Status manage_status = basic_manager_->StopManagingServable(id);
+      DCHECK(manage_status.ok()) << manage_status.error_message();
+      if (!manage_status.ok()) {
+        LOG(ERROR) << "Internal error: Unable to clear errored servable "
+                   << version.id().DebugString() << " from 'basic_manager_': "
+                   << manage_status.error_message();
+      }
+      should_add = true;
+    }
+
+    // if this aspired version is not already present in the map.
+    if (should_add) {
       const Status manage_status =
           basic_manager_->ManageServableWithAdditionalState(
               std::move(version), std::unique_ptr<Aspired>(new Aspired{true}));

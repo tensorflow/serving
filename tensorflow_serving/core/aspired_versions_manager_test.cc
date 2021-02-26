@@ -69,12 +69,13 @@ struct ThreadPoolSizes {
   uint64 num_unload_threads;
 };
 class AspiredVersionsManagerTest
-    : public ::testing::TestWithParam<ThreadPoolSizes> {
+    : public ::testing::TestWithParam<std::tuple<ThreadPoolSizes, bool>> {
  protected:
   AspiredVersionsManagerTest()
       : servable_event_bus_(EventBus<ServableState>::CreateEventBus()),
         servable_state_monitor_(servable_event_bus_.get()),
-        thread_pool_sizes_(GetParam()) {
+        thread_pool_sizes_(std::get<0>(GetParam())),
+        enable_reload_servables_with_error_(std::get<1>(GetParam())) {
     AspiredVersionsManager::Options manager_options;
     manager_options.num_load_threads = thread_pool_sizes_.num_load_threads;
     manager_options.num_unload_threads = thread_pool_sizes_.num_unload_threads;
@@ -87,6 +88,8 @@ class AspiredVersionsManagerTest
     max_num_load_retries_ = 1;
     manager_options.max_num_load_retries = max_num_load_retries_;
     manager_options.load_retry_interval_micros = 0;
+    manager_options.enable_reload_servables_with_error =
+        enable_reload_servables_with_error_;
     TF_CHECK_OK(
         AspiredVersionsManager::Create(std::move(manager_options), &manager_));
   }
@@ -152,16 +155,25 @@ class AspiredVersionsManagerTest
   ServableStateMonitor servable_state_monitor_;
   ThreadPoolSizes thread_pool_sizes_;
   uint32 max_num_load_retries_;
+  bool enable_reload_servables_with_error_;
   std::unique_ptr<AspiredVersionsManager> manager_;
 };
 
 INSTANTIATE_TEST_CASE_P(
     WithOrWithoutThreadPools, AspiredVersionsManagerTest,
     ::testing::Values(
-        ThreadPoolSizes{0, 0} /* without load or unload threadpools */,
-        ThreadPoolSizes{2, 0} /* with just a load threadpool */,
-        ThreadPoolSizes{0, 2} /* with just an unload threadpool */,
-        ThreadPoolSizes{4, 4} /* with load and unload threadpools */));
+        // without load or unload threadpools
+        std::make_tuple(ThreadPoolSizes{0, 0}, false),
+        // with just a load threadpool
+        std::make_tuple(ThreadPoolSizes{2, 0}, false),
+        // with just an unload threadpool
+        std::make_tuple(ThreadPoolSizes{0, 2}, false),
+        // with load and unload threadpools
+        std::make_tuple(ThreadPoolSizes{4, 4}, false),
+        // without load or unload threadpools and retries of failed loads
+        std::make_tuple(ThreadPoolSizes{0, 0}, true),
+        // with load and unload threadpools and retries of failed loads
+        std::make_tuple(ThreadPoolSizes{4, 4}, true)));
 
 TEST_P(AspiredVersionsManagerTest, ServableHandleNotFoundMissingLoaderName) {
   ServableHandle<int64> handle;
@@ -235,6 +247,68 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleLatestVersionIsZero) {
   TF_ASSERT_OK(status);
   EXPECT_EQ(0, *handle);
   EXPECT_EQ(id, handle.id());
+}
+
+TEST_P(AspiredVersionsManagerTest, ReloadAspiredError) {
+  const char kServableName[] = "kAspiredError";
+  auto callback_fn = manager_->GetAspiredVersionsCallback();
+  // First, load a working Servable under version 1.
+  {
+    std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
+    const ServableId id = {kServableName, 1};
+    aspired_versions.push_back(CreateAspiredVersion(id));
+    callback_fn(kServableName, std::move(aspired_versions));
+    HandlePendingAspiredVersionsRequests();
+    InvokePolicyAndExecuteAction();
+    WaitUntilServableManagerStateIsOneOf(
+        servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
+    ServableHandle<int64> handle;
+    const Status status = manager_->GetServableHandle(
+        ServableRequest::Latest(kServableName), &handle);
+    TF_ASSERT_OK(status);
+    EXPECT_EQ(1, *handle);
+    EXPECT_EQ(id, handle.id());
+  }
+  // Having a failing servable load for version 2.
+  {
+    std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
+    const ServableId id = {kServableName, 2};
+    aspired_versions.push_back(CreateErroneousAspiredVersion(id));
+    callback_fn(kServableName, std::move(aspired_versions));
+    HandlePendingAspiredVersionsRequests();
+    InvokePolicyAndExecuteAction();
+    WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
+                                         {ServableState::ManagerState::kEnd});
+    ServableHandle<int64> handle;
+    Status status = manager_->GetServableHandle(
+        ServableRequest::Specific(kServableName, 2), &handle);
+    EXPECT_FALSE(status.ok()) << status;
+  }
+  // Attempt to reload servable for version 2.
+  {
+    std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
+    const ServableId id = {kServableName, 2};
+    aspired_versions.push_back(CreateAspiredVersion(id));
+    callback_fn(kServableName, std::move(aspired_versions));
+    HandlePendingAspiredVersionsRequests();
+    InvokePolicyAndExecuteAction();
+    if (enable_reload_servables_with_error_) {
+      WaitUntilServableManagerStateIsOneOf(
+          servable_state_monitor_, id,
+          {ServableState::ManagerState::kAvailable});
+      ServableHandle<int64> handle;
+      Status status = manager_->GetServableHandle(
+          ServableRequest::Specific(kServableName, 2), &handle);
+      TF_ASSERT_OK(status) << status;
+    } else {
+      // Sleep for 1ms. There's nothing to wait on as the state will not change.
+      Env::Default()->SleepForMicroseconds(1000 /* 1 ms */);
+      ServableHandle<int64> handle;
+      Status status = manager_->GetServableHandle(
+          ServableRequest::Specific(kServableName, 2), &handle);
+      EXPECT_FALSE(status.ok()) << status;
+    }
+  }
 }
 
 TEST_P(AspiredVersionsManagerTest, ServableHandleSpecificVersion) {

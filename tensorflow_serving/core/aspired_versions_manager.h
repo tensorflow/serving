@@ -140,6 +140,10 @@ class AspiredVersionsManager : public Manager,
     /// Callback to be called just before a servable is to be loaded. This will
     /// called on the same manager load thread which starts the load.
     PreLoadHook pre_load_hook;
+
+    // For servables which end with LoaderHarness::State::kError, enable
+    // future attempts at reload to progress.
+    bool enable_reload_servables_with_error = false;
   };
   static Status Create(Options options,
                        std::unique_ptr<AspiredVersionsManager>* manager);
@@ -314,6 +318,10 @@ class AspiredVersionsManager : public Manager,
   // An observer object that forwards to SetNumLoadThreads(), if not detached.
   // This is declared last here so that it is deleted before basic_manager_.
   std::unique_ptr<Observer<const uint32>> set_num_load_threads_observer_;
+
+  // For servables which end with LoaderHarness::State::kError, enable
+  // future attempts at reload to progress.
+  bool enable_reload_servables_with_error_ = false;
 
   TF_DISALLOW_COPY_AND_ASSIGN(AspiredVersionsManager);
 };
