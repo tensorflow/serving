@@ -307,7 +307,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
                   version.id().version) !=
             current_aspired_versions_with_error.end()) {
       ServableId id;
-      id.name = servable_name;
+      id.name = std::string(servable_name);
       id.version = version.id().version;
       const Status manage_status = basic_manager_->StopManagingServable(id);
       DCHECK(manage_status.ok()) << manage_status.error_message();
