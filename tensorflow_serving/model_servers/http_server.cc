@@ -160,9 +160,20 @@ class RestApiRequestDispatcher {
     string output;
     VLOG(1) << "Processing HTTP request: " << req->http_method() << " "
             << req->uri_path() << " body: " << body.size() << " bytes.";
-    const auto status =
+    auto status =
         handler_->ProcessRequest(req->http_method(), req->uri_path(), body,
                                  &headers, &model_name, &method, &output);
+
+    if (req->http_method() == "OPTIONS") {
+      absl::string_view origin_header = req->GetRequestHeader("Origin");
+      if (RE2::PartialMatch(origin_header, "https?://")) {
+        status = Status::OK();
+      } else {
+        status = errors::FailedPrecondition(
+            "Origin header not found in request: ", req->http_method());
+      }
+    }
+
     const auto http_status = ToHTTPStatusCode(status);
     // Note: we add headers+output for non successful status too, in case the
     // output contains details about the error (e.g. error messages).

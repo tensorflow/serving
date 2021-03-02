@@ -105,8 +105,6 @@ Status HttpRestApiHandler::ProcessRequest(
       status = ProcessModelStatusRequest(*model_name, model_version,
                                          model_version_label, output);
     }
-  } else if (http_method == "OPTIONS") {
-    status = Status::OK();
   }
 
   MakeJsonFromStatus(status, output);
