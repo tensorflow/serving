@@ -335,8 +335,9 @@ Status BatchingSession::InternalRun(
   }
 
   profiler::TraceMe trace_me([this] {
-    return profiler::TraceMeEncode("BatchingSessionRun",
-                                   {{"thread_pool_name", thread_pool_name_}});
+    return profiler::TraceMeEncode(
+        "BatchingSessionRun",
+        {{"thread_pool_name", thread_pool_name_}, {"_r", 1} /*root_event*/});
   });
   const TensorSignature signature =
       TensorSignatureFromRunArgs(inputs, output_tensor_names);
