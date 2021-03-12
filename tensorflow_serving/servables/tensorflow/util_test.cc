@@ -310,6 +310,21 @@ TEST(ResourceEstimatorTest, EstimateResourceFromPathUsingDiskState) {
   EXPECT_THAT(actual, EqualsProto(expected));
 }
 
+TEST(GetMapKeysTest, GetKeys) {
+  std::map<string, string> map = {std::pair<string, string>("key1", "value1"),
+                                  std::pair<string, string>("key2", "value2")};
+  const auto result = GetMapKeys(map);
+  EXPECT_THAT(result, ::testing::UnorderedElementsAre("key1", "key2"));
+}
+
+TEST(SetDifferenceTEST, GetDiff) {
+  std::set<string> result;
+  EXPECT_THAT(SetDifference({"a", "b", "c"}, {"a", "b"}),
+              ::testing::UnorderedElementsAre("c"));
+  EXPECT_THAT(SetDifference({"a", "b", "c"}, {"a", "b", "d"}),
+              ::testing::UnorderedElementsAre("c"));
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

@@ -46,23 +46,6 @@ Status VerifySignature(const SignatureDef& signature) {
   return Status::OK();
 }
 
-template <typename T>
-std::set<string> GetMapKeys(const T& proto_map) {
-  std::set<string> keys;
-  for (const auto& it : proto_map) {
-    keys.insert(it.first);
-  }
-  return keys;
-}
-
-// Returns a \ b, i.e. all items that are in `set_a` but not in `set_b`.
-std::set<string> SetDifference(std::set<string> set_a, std::set<string> set_b) {
-  std::set<string> result;
-  std::set_difference(set_a.begin(), set_a.end(), set_b.begin(), set_b.end(),
-                      std::inserter(result, result.end()));
-  return result;
-}
-
 Status VerifyRequestInputsSize(const SignatureDef& signature,
                                const PredictRequest& request) {
   if (request.inputs().size() != signature.inputs().size()) {

@@ -121,6 +121,19 @@ void RecordRuntimeLatency(const string& model_name, const string& api,
 void RecordRequestLatency(const string& model_name, const string& api,
                           const string& entrypoint, int64 latency_usec);
 
+// Get string keys of a map.
+template <typename T>
+std::set<string> GetMapKeys(const T& map) {
+  std::set<string> keys;
+  for (const auto& it : map) {
+    keys.insert(it.first);
+  }
+  return keys;
+}
+
+// Returns a \ b, i.e. all items that are in `set_a` but not in `set_b`.
+std::set<string> SetDifference(std::set<string> set_a, std::set<string> set_b);
+
 }  // namespace serving
 }  // namespace tensorflow
 

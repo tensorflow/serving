@@ -334,5 +334,12 @@ void RecordRequestLatency(const string& model_name, const string& api,
   request_latency->GetCell(model_name, api, entrypoint)->Add(latency_usec);
 }
 
+std::set<string> SetDifference(std::set<string> set_a, std::set<string> set_b) {
+  std::set<string> result;
+  std::set_difference(set_a.begin(), set_a.end(), set_b.begin(), set_b.end(),
+                      std::inserter(result, result.end()));
+  return result;
+}
+
 }  // namespace serving
 }  // namespace tensorflow
