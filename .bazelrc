@@ -31,9 +31,6 @@ build:nativeopt --copt=-O3
 
 build --keep_going
 build --verbose_failures=true
-build --action_env PYTHON_BIN_PATH="/usr/bin/python3"
-build --define PYTHON_BIN_PATH=/usr/bin/python3
-
 build --spawn_strategy=standalone
 build --genrule_strategy=standalone
 
