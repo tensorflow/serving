@@ -244,6 +244,26 @@ TEST_F(PredictImplTest, InputTensorsDontMatchModelSpecInputs) {
                                                 kInputTensorKey, "}")));
 }
 
+TEST_F(PredictImplTest, PredictionInvalidTensor) {
+  PredictRequest request;
+  PredictResponse response;
+
+  ModelSpec* model_spec = request.mutable_model_spec();
+  model_spec->set_name(kTestModelName);
+  model_spec->mutable_version()->set_value(kTestModelVersion);
+
+  TensorProto tensor_proto;
+  tensor_proto.add_bool_val(true);
+  tensor_proto.set_dtype(tensorflow::DT_BOOL);
+  (*request.mutable_inputs())[kInputTensorKey] = tensor_proto;
+
+  auto status = CallPredict(GetServerCore(), request, &response);
+  EXPECT_EQ(status.code(), tensorflow::error::Code::INVALID_ARGUMENT);
+  EXPECT_THAT(
+      status.error_message(),
+      ::testing::HasSubstr("Expects arg[0] to be float but bool is provided"));
+}
+
 TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
   PredictRequest request;
   PredictResponse response;
