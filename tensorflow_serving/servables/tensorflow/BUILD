@@ -262,6 +262,7 @@ cc_library(
     deps = [
         ":saved_model_bundle_source_adapter",
         ":saved_model_bundle_source_adapter_cc_proto",
+        "//tensorflow_serving/config:file_system_storage_path_source_cc_proto",
         "//tensorflow_serving/core:aspired_versions_manager_builder",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/core:loader",
@@ -271,7 +272,6 @@ cc_library(
         "//tensorflow_serving/core:storage_path",
         "//tensorflow_serving/core:target",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
-        "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_cc_proto",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
     ],

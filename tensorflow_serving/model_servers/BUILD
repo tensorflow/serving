@@ -76,6 +76,7 @@ cc_library(
     deps = [
         ":model_platform_types",
         "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/config:file_system_storage_path_source_cc_proto",
         "//tensorflow_serving/config:logging_config_cc_proto",
         "//tensorflow_serving/config:model_server_config_cc_proto",
         "//tensorflow_serving/config:platform_config_cc_proto",
@@ -92,7 +93,6 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:predict_util",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
-        "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_cc_proto",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:unique_ptr_with_deps",
         "@com_google_absl//absl/base:core_headers",

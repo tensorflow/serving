@@ -24,12 +24,12 @@ limitations under the License.
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/logging.h"
+#include "tensorflow_serving/config/file_system_storage_path_source.pb.h"
 #include "tensorflow_serving/core/load_servables_fast.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
-#include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
 
 namespace tensorflow {
 namespace serving {

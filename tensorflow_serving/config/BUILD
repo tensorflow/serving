@@ -22,12 +22,24 @@ load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 
 serving_proto_library(
+    name = "file_system_storage_path_source_proto",
+    srcs = ["file_system_storage_path_source.proto"],
+    cc_api_version = 2,
+)
+
+serving_proto_library_py(
+    name = "file_system_storage_path_source_proto_py_pb2",
+    srcs = ["file_system_storage_path_source.proto"],
+    proto_library = "file_system_storage_path_source_proto",
+)
+
+serving_proto_library(
     name = "model_server_config_proto",
     srcs = ["model_server_config.proto"],
     cc_api_version = 2,
     deps = [
+        ":file_system_storage_path_source_proto",
         ":logging_config_proto",
-        "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto",
         "@com_google_protobuf//:cc_wkt_protos",
     ],
 )
@@ -37,8 +49,8 @@ serving_proto_library_py(
     srcs = ["model_server_config.proto"],
     proto_library = "model_server_config_proto",
     deps = [
+        "file_system_storage_path_source_proto_py_pb2",
         ":logging_config_proto_py_pb2",
-        "//tensorflow_serving/sources/storage_path:file_system_storage_path_source_proto_py_pb2",
     ],
 )
 

@@ -21,6 +21,7 @@ limitations under the License.
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow_serving/config/file_system_storage_path_source.pb.h"
 #include "tensorflow_serving/core/aspired_versions_manager_builder.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/core/loader.h"
@@ -31,7 +32,6 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
-#include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
 
 namespace tensorflow {
 namespace serving {

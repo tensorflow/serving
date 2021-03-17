@@ -1,7 +1,6 @@
 # Description: Tensorflow Serving storage path sources.
 
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 
 package(
     default_visibility = [
@@ -70,7 +69,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps =
         [
-            ":file_system_storage_path_source_cc_proto",
+            "//tensorflow_serving/config:file_system_storage_path_source_cc_proto",
             "//tensorflow_serving/core:servable_data",
             "//tensorflow_serving/core:servable_id",
             "//tensorflow_serving/core:source",
@@ -82,19 +81,6 @@ cc_library(
         ],
 )
 
-serving_proto_library(
-    name = "file_system_storage_path_source_proto",
-    srcs = ["file_system_storage_path_source.proto"],
-    cc_api_version = 2,
-    visibility = ["//visibility:public"],
-)
-
-serving_proto_library_py(
-    name = "file_system_storage_path_source_proto_py_pb2",
-    srcs = ["file_system_storage_path_source.proto"],
-    proto_library = "file_system_storage_path_source_proto",
-)
-
 cc_test(
     name = "file_system_storage_path_source_test",
     srcs =
@@ -103,7 +89,7 @@ cc_test(
         ],
     deps = [
         ":file_system_storage_path_source",
-        ":file_system_storage_path_source_cc_proto",
+        "//tensorflow_serving/config:file_system_storage_path_source_cc_proto",
         "//tensorflow_serving/core:servable_data",
         "//tensorflow_serving/core:target",
         "//tensorflow_serving/core/test_util:mock_storage_path_target",

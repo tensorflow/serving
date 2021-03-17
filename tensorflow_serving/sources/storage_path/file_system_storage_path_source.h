@@ -26,9 +26,9 @@ limitations under the License.
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow_serving/config/file_system_storage_path_source.pb.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/storage_path.h"
-#include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
 
 namespace tensorflow {
 namespace serving {

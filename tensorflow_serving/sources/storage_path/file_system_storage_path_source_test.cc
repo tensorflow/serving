@@ -28,10 +28,10 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/test.h"
+#include "tensorflow_serving/config/file_system_storage_path_source.pb.h"
 #include "tensorflow_serving/core/servable_data.h"
 #include "tensorflow_serving/core/target.h"
 #include "tensorflow_serving/core/test_util/mock_storage_path_target.h"
-#include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 using ::testing::AnyOf;
