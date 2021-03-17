@@ -1,5 +1,6 @@
 # Description: Tensorflow Serving APIs.
 
+load("//tools/build_defs/proto/cpp:cc_grpc_library.bzl", "cc_grpc_library")
 load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
 load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
 
@@ -250,6 +251,12 @@ serving_proto_library(
         ":get_model_status_proto",
         ":model_management_proto",
     ],
+)
+
+cc_grpc_library(
+    name = "model_service_cc_grpc_proto",
+    srcs = [":model_service_proto"],
+    deps = [":model_service_cc_proto"],
 )
 
 py_library(
