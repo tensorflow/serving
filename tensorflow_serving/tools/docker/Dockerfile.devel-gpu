@@ -70,13 +70,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && \
         apt-get install -y --no-install-recommends libnvinfer7=${TF_TENSORRT_VERSION}-1+cuda11.1 \
         libnvinfer-dev=${TF_TENSORRT_VERSION}-1+cuda11.1 \
-        libnvinfer-plugin-dev=${TF_TENSORRT_VERSION}-1++cuda11.1 \
-        libnvinfer-plugin7=${TF_TENSORRT_VERSION}-1++cuda11.1 \
+        libnvinfer-plugin-dev=${TF_TENSORRT_VERSION}-1+cuda11.1 \
+        libnvinfer-plugin7=${TF_TENSORRT_VERSION}-1+cuda11.1 \
         # TODO: need to verify
-        libnvonnxparsers7=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
-        libnvparsers7=${TF_TENSORRT_VERSION}-1+cuda${CUDA}\
-        libnvonnxparsers-dev=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
-        libnvparsers-dev=${TF_TENSORRT_VERSION}-1+cuda${CUDA} \
+        libnvonnxparsers7=${TF_TENSORRT_VERSION}-1+cuda11.1 \
+        libnvparsers7=${TF_TENSORRT_VERSION}-1+cuda11.1\
+        libnvonnxparsers-dev=${TF_TENSORRT_VERSION}-1+cuda11.1 \
+        libnvparsers-dev=${TF_TENSORRT_VERSION}-1+cuda11.1 \
         && apt-get clean \
         && rm -rf /var/lib/apt/lists/*;
 
