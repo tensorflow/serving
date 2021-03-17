@@ -51,6 +51,7 @@ docker pull tensorflow/serving
 MODELS_DIR="$(pwd)/tensorflow_serving/servables/tensorflow/testdata"
 docker run -it --rm -p 8500:8500 -p 8501:8501 \
 -v $MODELS_DIR/saved_model_half_plus_two_cpu:/models/half_plus_two \
+-v /tmp/tensorboard:/tmp/tensorboard \
 -e MODEL_NAME=half_plus_two \
 tensorflow/serving
 ```
@@ -70,8 +71,8 @@ In another terminal, launch the TensorBoard tool on your machine, providing a
 directory to save the inference trace events to:
 
 ```
-mkdir -p ~/logs/inference_demo
-tensorboard --logdir ~/logs/inference_demo/ --port 6006
+mkdir -p /tmp/tensorboard
+tensorboard --logdir /tmp/tensorboard --port 6006
 ```
 
 Navigate to http://localhost:6006/ to view the TensorBoard UI. Use the drop-down
