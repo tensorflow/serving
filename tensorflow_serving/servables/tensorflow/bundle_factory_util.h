@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_BUNDLE_FACTORY_UTIL_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_BUNDLE_FACTORY_UTIL_H_
 
+#include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/core/kernels/batching_util/shared_batch_scheduler.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/protobuf/config.pb.h"
@@ -41,10 +42,36 @@ SessionOptions GetSessionOptions(const SessionBundleConfig& config);
 RunOptions GetRunOptions(const SessionBundleConfig& config);
 
 // Creates a BatchScheduler based on the batching configuration.
+template <typename TaskType>
 Status CreateBatchScheduler(
     const BatchingParameters& batching_config,
-    std::shared_ptr<SharedBatchScheduler<BatchingSessionTask>>*
-        batch_scheduler);
+    std::shared_ptr<SharedBatchScheduler<TaskType>>* batch_scheduler) {
+  if (!batching_config.allowed_batch_sizes().empty()) {
+    // Verify that the last allowed batch size matches the max batch size.
+    const int last_allowed_size = batching_config.allowed_batch_sizes(
+        batching_config.allowed_batch_sizes().size() - 1);
+    const int max_size =
+        batching_config.has_max_batch_size()
+            ? batching_config.max_batch_size().value()
+            : typename SharedBatchScheduler<TaskType>::QueueOptions()
+                  .input_batch_size_limit;
+    if (last_allowed_size != max_size) {
+      return errors::InvalidArgument(
+          "Last entry in allowed_batch_sizes must match max_batch_size; last "
+          "entry was ",
+          last_allowed_size, "; expected ", max_size);
+    }
+  }
+
+  typename SharedBatchScheduler<TaskType>::Options options;
+  if (batching_config.has_num_batch_threads()) {
+    options.num_batch_threads = batching_config.num_batch_threads().value();
+  }
+  if (batching_config.has_thread_pool_name()) {
+    options.thread_pool_name = batching_config.thread_pool_name().value();
+  }
+  return SharedBatchScheduler<TaskType>::Create(options, batch_scheduler);
+}
 
 // Estimates the resources a session bundle or saved model bundle will use once
 // loaded, from its export or saved model path. tensorflow::Env::Default() will
@@ -71,6 +98,44 @@ Status WrapSessionForBatching(
 
 // Wraps a session in a new session that only supports Run() without batching.
 Status WrapSession(std::unique_ptr<Session>* session);
+
+// Construct Queue Options from BatchingParameters.
+template <typename TaskType>
+typename SharedBatchScheduler<TaskType>::QueueOptions GetQueueOptions(
+    const BatchingParameters& batching_config,
+    std::function<Status(std::unique_ptr<TaskType>* input_task,
+                         int first_output_task_size, int input_batch_size_limit,
+                         std::vector<std::unique_ptr<TaskType>>* output_tasks)>
+        split_input_task_func) {
+  typename SharedBatchScheduler<TaskType>::QueueOptions queue_options;
+  if (batching_config.has_max_batch_size()) {
+    queue_options.input_batch_size_limit =
+        batching_config.max_batch_size().value();
+  }
+  if (batching_config.has_batch_timeout_micros()) {
+    queue_options.batch_timeout_micros =
+        batching_config.batch_timeout_micros().value();
+  }
+  if (batching_config.has_max_enqueued_batches()) {
+    queue_options.max_enqueued_batches =
+        batching_config.max_enqueued_batches().value();
+  }
+  if (batching_config.has_enable_large_batch_splitting() &&
+      batching_config.enable_large_batch_splitting().value()) {
+    queue_options.enable_large_batch_splitting = true;
+
+    if (batching_config.has_max_execution_batch_size()) {
+      queue_options.max_execution_batch_size =
+          batching_config.max_execution_batch_size().value();
+    } else {
+      queue_options.max_execution_batch_size =
+          batching_config.max_batch_size().value();
+    }
+
+    queue_options.split_input_task_func = split_input_task_func;
+  }
+  return queue_options;
+}
 
 }  // namespace serving
 }  // namespace tensorflow
