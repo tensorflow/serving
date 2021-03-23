@@ -20,7 +20,10 @@ licenses(["notice"])  # Apache 2.0
 # or other implementation details.
 package_group(
     name = "tensorflow_model_server_custom_op_clients",
-    packages = ["//cloud/ai/documentai/..."],
+    packages = [
+        "//cloud/ai/documentai/...",
+        "//cloud/ml/tfe/inference_engine/...",
+    ],
 )
 
 package_group(
