@@ -72,18 +72,14 @@ tensorflow::Status TfLiteInterpreterWrapper::SetStringData(
   if (tensor_buffer_.find(tensor_index) == tensor_buffer_.end()) {
     return errors::Internal("Tensor input for index not found: ", tensor_index);
   }
-  if (tensor_buffer_max_bytes_[tensor_index] > 0 &&
-      required_bytes > tensor_buffer_max_bytes_[tensor_index]) {
-    tensor_buffer_max_bytes_[tensor_index] = 0;
-  }
-
-  if (tensor_buffer_max_bytes_[tensor_index] == 0) {
-    tensor_buffer_[tensor_index].reset(
-        reinterpret_cast<char*>(malloc(required_bytes)));
+  if (required_bytes > tensor_buffer_max_bytes_[tensor_index]) {
+    if (tflite_tensor->data.raw) {
+      free(tflite_tensor->data.raw);
+    }
+    tflite_tensor->data.raw = reinterpret_cast<char*>(malloc(required_bytes));
     tensor_buffer_max_bytes_[tensor_index] = required_bytes;
-  } else {
-    tensor_buffer_[tensor_index].reset(tflite_tensor->data.raw);
   }
+  tensor_buffer_[tensor_index].reset(tflite_tensor->data.raw);
   memcpy(tensor_buffer_[tensor_index].get(), &num_strings, sizeof(int32_t));
   int32_t start = sizeof(int32_t) * (num_strings + 2);
   for (size_t i = 0; i < offset_.size(); i++) {
