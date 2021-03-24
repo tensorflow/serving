@@ -18,10 +18,7 @@ licenses(["notice"])  # Apache 2.0
 # vanilla TensorFlow ModelServer without any other modifications. Exclusively
 # for adding custom TensorFlow ops. Does not grant access to private headers
 # or other implementation details.
-package_group(
-    name = "tensorflow_model_server_custom_op_clients",
-    packages = ["//cloud/ai/documentai/..."],
-)
+package_group(name = "tensorflow_model_server_custom_op_clients")
 
 package_group(
     name = "testing",
