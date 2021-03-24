@@ -235,7 +235,9 @@ int main(int argc, char** argv) {
           "EXPERIMENTAL; CAN BE REMOVED ANYTIME! "
           "Enable XLA:CPU JIT (default is disabled). With XLA:CPU JIT "
           "disabled, models utilizing this feature will return bad Status "
-          "on first compilation request.")};
+          "on first compilation request."),
+      tensorflow::Flag("enable_profiler", &options.enable_profiler,
+                       "Enable profiler service.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {

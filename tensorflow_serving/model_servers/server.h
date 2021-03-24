@@ -92,6 +92,7 @@ class Server {
     tensorflow::int32 num_tflite_interpreters_per_pool = 1;
     tensorflow::string thread_pool_factory_config_file;
     bool enable_signature_method_name_check = false;
+    bool enable_profiler = true;
 
     Options();
   };
