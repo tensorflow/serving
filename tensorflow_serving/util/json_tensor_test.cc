@@ -137,6 +137,127 @@ TEST(JsontensorTest, MixedInputForDoubleTensor) {
               )"));
 }
 
+// This test was borne out of b/181409782. Essentially, we expect that
+// inputs 1435774380 and 1435774380.0 behave exactly the same. Prior to the
+// bug fix, the former was rejected because it couldn't be exactly
+// represented by DT_FLOAT, but the latter was accepted, even though it, too,
+// could not be exactly represented by DT_FLOAT. Post-fix, they are both
+// accepted.
+TEST(JsontensorTest, FloatTensorWithPrecisionLoss) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_FLOAT", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  TF_EXPECT_OK(FillPredictRequestFromJson(R"(
+    {
+      "instances": [1435774380]
+    })",
+                                          getmap(infomap), &req, &format));
+  auto tmap = req.inputs();
+  EXPECT_EQ(tmap.size(), 1);
+  EXPECT_EQ(format, JsonPredictRequestFormat::kRow);
+
+  // Please note that the float_val has changed due to precision loss.
+  EXPECT_THAT(tmap["default"], EqualsProto(R"(
+                dtype: DT_FLOAT
+                tensor_shape { dim { size: 1 } }
+                float_val: 1435774380
+              )"));
+
+  // Now, add a decimal point to the end, and expect exactly the same behavior.
+  TF_EXPECT_OK(FillPredictRequestFromJson(R"(
+    {
+      "instances": [1435774380.0]
+    })",
+                                          getmap(infomap), &req, &format));
+  tmap = req.inputs();
+  EXPECT_EQ(tmap.size(), 1);
+  EXPECT_EQ(format, JsonPredictRequestFormat::kRow);
+
+  // As before, the float_val has changed due to precision loss.
+  EXPECT_THAT(tmap["default"], EqualsProto(R"(
+                dtype: DT_FLOAT
+                tensor_shape { dim { size: 1 } }
+                float_val: 1435774380.0
+              )"));
+}
+
+TEST(JsontensorTest, FloatTensorThatExceedsMaxReturnsInf) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_FLOAT", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  TF_EXPECT_OK(FillPredictRequestFromJson(
+      absl::Substitute(R"({ "instances": [$0] })",
+                       std::numeric_limits<double>::max()),
+      getmap(infomap), &req, &format));
+  auto tmap = req.inputs();
+  EXPECT_EQ(tmap.size(), 1);
+  EXPECT_EQ(format, JsonPredictRequestFormat::kRow);
+
+  EXPECT_THAT(tmap["default"], EqualsProto(R"(
+                dtype: DT_FLOAT
+                tensor_shape { dim { size: 1 } }
+                float_val: inf
+              )"));
+
+  // Test for minimum, too (gets converted to -inf)
+  TF_EXPECT_OK(FillPredictRequestFromJson(
+      absl::Substitute(R"({ "instances": [$0] })",
+                       -std::numeric_limits<double>::max()),
+      getmap(infomap), &req, &format));
+  tmap = req.inputs();
+  EXPECT_EQ(tmap.size(), 1);
+  EXPECT_EQ(format, JsonPredictRequestFormat::kRow);
+
+  EXPECT_THAT(tmap["default"], EqualsProto(R"(
+                dtype: DT_FLOAT
+                tensor_shape { dim { size: 1 } }
+                float_val: -inf
+              )"));
+}
+
+TEST(JsontensorTest, FloatTensorThatExceedsMinReturnsZero) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_FLOAT", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  TF_EXPECT_OK(FillPredictRequestFromJson(
+      absl::Substitute(R"({ "instances": [$0] })",
+                       std::numeric_limits<double>::min()),
+      getmap(infomap), &req, &format));
+  auto tmap = req.inputs();
+  EXPECT_EQ(tmap.size(), 1);
+  EXPECT_EQ(format, JsonPredictRequestFormat::kRow);
+
+  EXPECT_THAT(tmap["default"], EqualsProto(R"(
+                dtype: DT_FLOAT
+                tensor_shape { dim { size: 1 } }
+                float_val: 0
+              )"));
+
+  // Test for minimum, too (gets converted to -inf)
+  TF_EXPECT_OK(FillPredictRequestFromJson(
+      absl::Substitute(R"({ "instances": [$0] })",
+                       -std::numeric_limits<double>::min()),
+      getmap(infomap), &req, &format));
+  tmap = req.inputs();
+  EXPECT_EQ(tmap.size(), 1);
+  EXPECT_EQ(format, JsonPredictRequestFormat::kRow);
+
+  EXPECT_THAT(tmap["default"], EqualsProto(R"(
+                dtype: DT_FLOAT
+                tensor_shape { dim { size: 1 } }
+                float_val: -0
+              )"));
+}
+
 TEST(JsontensorTest, SingleUnnamedTensorWithSignature) {
   TensorInfoMap infomap;
   ASSERT_TRUE(
@@ -542,31 +663,6 @@ TEST(JsontensorTest, SingleUnnamedTensorErrors) {
                                       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
   EXPECT_THAT(status.error_message(), HasSubstr("not of expected type"));
-
-  ASSERT_TRUE(
-      TextFormat::ParseFromString("dtype: DT_FLOAT", &infomap["default"]));
-  status = FillPredictRequestFromJson(
-      absl::Substitute(R"({ "instances": [$0] })",
-                       std::numeric_limits<double>::max()),
-      getmap(infomap), &req, &format);
-  ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("loss of precision"));
-
-  ASSERT_TRUE(
-      TextFormat::ParseFromString("dtype: DT_FLOAT", &infomap["default"]));
-  status = FillPredictRequestFromJson(
-      absl::Substitute(R"({ "instances": [$0] })", 16777217), getmap(infomap),
-      &req, &format);
-  ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("loss of precision"));
-
-  ASSERT_TRUE(
-      TextFormat::ParseFromString("dtype: DT_DOUBLE", &infomap["default"]));
-  status = FillPredictRequestFromJson(
-      absl::Substitute(R"({ "instances": [$0] })", 9007199254740993ull),
-      getmap(infomap), &req, &format);
-  ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("loss of precision"));
 }
 
 TEST(JsontensorTest, MultipleNamedTensorErrors) {
@@ -1396,14 +1492,6 @@ TYPED_TEST(ClassifyRegressRequestTest, JsonErrors) {
                              &req);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
   EXPECT_THAT(status.error_message(), HasSubstr("Only int64 is supported"));
-
-  req.Clear();
-  status = this->FillRequest(
-      absl::Substitute(R"({ "examples": [ { "names": $0 } ] })",
-                       std::numeric_limits<double>::max()),
-      &req);
-  ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("loss of precision"));
 }
 
 TEST(ClassifyRegressnResultTest, JsonFromClassificationResult) {

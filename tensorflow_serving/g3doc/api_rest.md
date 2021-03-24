@@ -330,6 +330,21 @@ DT_STRING                                                                       
 DT_INT8, DT_UINT8, DT_INT16, DT_INT32, DT_UINT32, DT_INT64, DT_UINT64                            | number                         | *1, -10, 0*                        | JSON value will be a decimal number.
 DT_FLOAT, DT_DOUBLE                                                                              | number                         | *1.1, -10.0, 0, `NaN`, `Infinity`* | JSON value will be a number or one of the special token values - `NaN`, `Infinity`, and `-Infinity`. See [JSON conformance](#json-conformance) for more info. Exponent notation is also accepted.
 
+## Floating Point Precision
+
+JSON has a single number data type. Thus it is possible to provide a value
+for an input that results in a loss of precision. For instance, if the
+input `x` is a `float` data type, and the input `{"x": 1435774380}` is
+sent to the model running on hardware based on the IEEE 754 floating point
+standard (e.g. Intel or AMD), then the value will be silently converted by the
+underyling hardware to `1435774336` since `1435774380` cannot be exactly
+represented in a 32-bit floating point number. Typically, the inputs
+to serving should be the same distribution as training, so this generally
+won't be problematic because the same conversions happened at training time.
+However, in case full precision is needed, be sure to use an underlying data
+type in your model that can handle the desired precision and/or consider
+client-side checking.
+
 ## Encoding binary values
 
 JSON uses UTF-8 encoding. If you have input feature or tensor values that need

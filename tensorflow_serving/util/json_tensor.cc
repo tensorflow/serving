@@ -226,37 +226,6 @@ Status FormatSignatureError(const rapidjson::Value& val) {
       " not formatted correctly. 'signature_name' key must be a string value.");
 }
 
-Status LossyDecimalError(const rapidjson::Value& val, const string& target) {
-  return errors::InvalidArgument(
-      "Cannot convert JSON value: ", JsonValueToString(val), " to ", target,
-      " without loss of precision.");
-}
-
-template <typename T>
-bool IsLosslessDecimal(const rapidjson::Value& val) {
-  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
-                "Only floating point value types are supported.");
-  static_assert(std::numeric_limits<T>::radix == 2,
-                "Floating point type must have base 2.");
-
-  // Note, we use GetDouble() for both types as std::isfinite() returns false
-  // for decimal values that do not fit in float (due to the static_cast<> used
-  // in converting double to float in GetFloat() call).
-  if (!std::isfinite(val.GetDouble())) return true;
-
-  // Maximum integer value that can be represented by the floating type.
-  static constexpr int64 kMaxInt = (1LL << std::numeric_limits<T>::digits) - 1;
-
-  if (val.IsUint64()) {
-    return val.GetUint64() <= kMaxInt;
-  }
-  if (val.IsInt64()) {
-    return std::abs(val.GetInt64()) <= kMaxInt;
-  }
-  return val.GetDouble() <= std::numeric_limits<T>::max() &&
-         val.GetDouble() >= std::numeric_limits<T>::lowest();
-}
-
 // Adds a JSON value to Tensor. Returns error if value cannot be converted
 // to dtype. In case of error (output) tensor is not modified.
 //
@@ -266,17 +235,11 @@ Status AddValueToTensor(const rapidjson::Value& val, DataType dtype,
   switch (dtype) {
     case DT_FLOAT:
       if (!val.IsNumber()) return TypeError(val, dtype);
-      if (!IsLosslessDecimal<float>(val)) {
-        return LossyDecimalError(val, "float");
-      }
       tensor->add_float_val(val.GetFloat());
       break;
 
     case DT_DOUBLE:
       if (!val.IsNumber()) return TypeError(val, dtype);
-      if (!IsLosslessDecimal<double>(val)) {
-        return LossyDecimalError(val, "double");
-      }
       tensor->add_double_val(val.GetDouble());
       break;
 
@@ -764,9 +727,6 @@ Status AddValueToFeature(const rapidjson::Value& val,
       if (val.IsDouble()) {
         if (!IsFeatureOfKind(*feature, Feature::KindCase::kFloatList)) {
           return IncompatibleFeatureKindError(feature_name, *feature);
-        }
-        if (!IsLosslessDecimal<float>(val)) {
-          return LossyDecimalError(val, "float");
         }
         feature->mutable_float_list()->add_value(val.GetFloat());
       } else {
