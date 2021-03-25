@@ -483,12 +483,15 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
     default:
       return errors::InvalidArgument("Invalid ServerModelConfig");
   }
+  LOG(INFO) << "Finished adding/updating models";
+
   TF_RETURN_IF_ERROR(MaybeUpdateServerRequestLogger(config_.config_case()));
 
   if (options_.flush_filesystem_caches) {
     return Env::Default()->FlushFileSystemCaches();
   }
 
+  LOG(INFO) << "Finished reloading config";
   return Status::OK();
 }
 
