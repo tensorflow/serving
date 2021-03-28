@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
                        "set, will be auto set based on number of CPUs."),
       tensorflow::Flag("rest_api_timeout_in_ms", &options.http_timeout_in_ms,
                        "Timeout for HTTP/REST API calls."),
-      tensorflow::Flag("rest_api_enable_cors_headers", &options.enable_cors_headers,
+      tensorflow::Flag("rest_api_enable_cors_support", &options.enable_cors_support,
                        "Enable CORS headers in response"),
       tensorflow::Flag("enable_batching", &options.enable_batching,
                        "enable batching"),

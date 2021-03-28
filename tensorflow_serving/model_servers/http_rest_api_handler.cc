@@ -69,7 +69,7 @@ Status HttpRestApiHandler::ProcessRequest(
   headers->clear();
   output->clear();
   AddHeaders(headers);
-  if (core_->enable_cors_headers()) {
+  if (core_->enable_cors_support()) {
     AddCORSHeaders(headers);
   }
   string model_version_str;
