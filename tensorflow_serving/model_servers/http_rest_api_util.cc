@@ -35,7 +35,7 @@ void AddHeaders(std::vector<std::pair<string, string>>* headers) {
 
 void AddCORSHeaders(std::vector<std::pair<string, string>>* headers) {
   headers->push_back({"Access-Control-Allow-Origin", "*"});
-  headers->push_back({"Access-Control-Allow-Methods", "POST, GET, OPTIONS"});
+  headers->push_back({"Access-Control-Allow-Methods", "POST, GET"});
   headers->push_back({"Access-Control-Allow-Headers", "Content-Type"});
 }
 
