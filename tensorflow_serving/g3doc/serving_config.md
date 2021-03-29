@@ -60,10 +60,9 @@ and unload model A.
 
 ### Model Server Config Details
 
-The Model Server configuration file provided must be an ASCII
+The Model Server configuration file provided must be a
 [ModelServerConfig](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/config/model_server_config.proto#L76)
-protocol buffer. Refer to the following to understand
-[what an ASCII protocol buffer looks like](https://stackoverflow.com/questions/18873924/what-does-the-protobuf-text-format-look-like).
+[protocol buffer](https://stackoverflow.com/questions/18873924/what-does-the-protobuf-text-format-look-like).
 
 For all but the most advanced use-cases, you'll want to use the ModelConfigList
 option, which is a list of
