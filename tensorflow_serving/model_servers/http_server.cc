@@ -25,6 +25,7 @@ limitations under the License.
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow_serving/model_servers/http_rest_api_handler.h"
+#include "tensorflow_serving/model_servers/http_rest_api_util.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
@@ -126,7 +127,7 @@ class RequestExecutor final : public net_http::EventExecutor {
 class RestApiRequestDispatcher {
  public:
   RestApiRequestDispatcher(int timeout_in_ms, ServerCore* core)
-      : regex_(HttpRestApiHandler::kPathRegex) {
+      : regex_(HttpRestApiHandler::kPathRegex), core_(core) {
     RunOptions run_options = RunOptions();
     run_options.set_timeout_in_ms(timeout_in_ms);
     handler_.reset(new HttpRestApiHandler(run_options, core));
@@ -160,9 +161,25 @@ class RestApiRequestDispatcher {
     string output;
     VLOG(1) << "Processing HTTP request: " << req->http_method() << " "
             << req->uri_path() << " body: " << body.size() << " bytes.";
-    const auto status =
-        handler_->ProcessRequest(req->http_method(), req->uri_path(), body,
-                                 &headers, &model_name, &method, &output);
+
+    Status status;
+    if (req->http_method() == "OPTIONS") {
+      absl::string_view origin_header = req->GetRequestHeader("Origin");
+      if (RE2::PartialMatch(origin_header, "https?://")) {
+        status = Status::OK();
+      } else {
+        status = errors::FailedPrecondition(
+            "Origin header is missing in CORS preflight");
+      }
+    } else {
+      status =
+          handler_->ProcessRequest(req->http_method(), req->uri_path(), body,
+                                   &headers, &model_name, &method, &output);
+    }
+    if (core_->enable_cors_support()) {
+      AddCORSHeaders(&headers);
+    }
+
     const auto http_status = ToHTTPStatusCode(status);
     // Note: we add headers+output for non successful status too, in case the
     // output contains details about the error (e.g. error messages).
@@ -183,6 +200,7 @@ class RestApiRequestDispatcher {
 
   const RE2 regex_;
   std::unique_ptr<HttpRestApiHandler> handler_;
+  ServerCore* core_;
 };
 
 }  // namespace
