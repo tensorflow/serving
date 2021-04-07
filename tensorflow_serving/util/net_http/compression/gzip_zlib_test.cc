@@ -20,7 +20,9 @@ limitations under the License.
 #include <string>
 #include <vector>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 
 namespace tensorflow {
@@ -600,6 +602,98 @@ TEST(ZLibTest, BytewiseRead) {
 
   std::string truncated_output(decompressed.data(), text_len);
   ASSERT_EQ(truncated_output, text);
+}
+
+TEST(ZLibTest, TruncatedData) {
+  const int kBufferLen = 64;
+  std::string uncompressed = "Hello, World!";
+  std::string compressed(
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\xf3\x48\xcd\xc9\xc9"
+      "\xd7\x51\x08\xcf\x2f\xca\x49\x51\x04\x00\xd0\xc3\x4a\xec\x0d"
+      "\x00\x00\x00",
+      33);
+
+  // Verify that "compressed" contains valid gzip data.
+  {
+    ZLib zlib;
+    // zlib.SetGzipHeaderMode();
+    char uncompbuf[kBufferLen];
+    bzero(uncompbuf, kBufferLen);
+    uLongf uncomplen = kBufferLen;
+    int err = zlib.Uncompress(
+        reinterpret_cast<Bytef*>(uncompbuf), &uncomplen,
+        reinterpret_cast<const Bytef*>(compressed.c_str()), compressed.size());
+    ASSERT_EQ(err, Z_OK);
+    ASSERT_EQ(uncompressed, absl::string_view(uncompbuf, uncomplen));
+  }
+
+  // Test truncated data with ZLib::Uncompress().
+  for (int len = compressed.size() - 1; len > 0; len--) {
+    SCOPED_TRACE(absl::StrCat("Decompressing first ", len, " out of ",
+                              compressed.size(), " bytes"));
+    ZLib zlib;
+    // zlib.SetGzipHeaderMode();
+    char uncompbuf[kBufferLen];
+    bzero(uncompbuf, kBufferLen);
+    uLongf uncomplen = kBufferLen;
+    int err = zlib.Uncompress(
+        reinterpret_cast<Bytef*>(uncompbuf), &uncomplen,
+        reinterpret_cast<const Bytef*>(compressed.c_str()), len);
+    ASSERT_NE(err, Z_OK);
+  }
+
+  // Test truncated data with ZLib::UncompressAtMost() and
+  // ZLib::UncompressDone().
+  for (int len = compressed.size() - 1; len > 0; len--) {
+    SCOPED_TRACE(absl::StrCat("Decompressing first ", len, " out of ",
+                              compressed.size(), " bytes"));
+    ZLib zlib;
+    // zlib.SetGzipHeaderMode();
+    char uncompbuf[kBufferLen];
+    bzero(uncompbuf, kBufferLen);
+    uLongf uncomplen = kBufferLen;
+    uLongf complen = len;
+    int err = zlib.UncompressAtMost(
+        reinterpret_cast<Bytef*>(uncompbuf), &uncomplen,
+        reinterpret_cast<const Bytef*>(compressed.c_str()), &complen);
+    ASSERT_EQ(err, Z_OK);
+    ASSERT_EQ(complen, 0);
+    if (uncomplen > 0) {
+      EXPECT_THAT(
+          uncompressed,
+          testing::StartsWith(std::string(uncompbuf).substr(0, uncomplen)));
+    }
+    ASSERT_FALSE(zlib.UncompressChunkDone());
+  }
+}
+
+TEST(ZLibTest, GzipUncompressedLength) {
+  ZLib zlib;
+
+  // "Hello, World!", compressed.
+  std::string hello_world(
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\xf3\x48\xcd\xc9\xc9"
+      "\xd7\x51\x08\xcf\x2f\xca\x49\x51\x04\x00\xd0\xc3\x4a\xec\x0d"
+      "\x00\x00\x00",
+      33);
+  EXPECT_EQ(13, zlib.GzipUncompressedLength(
+                    reinterpret_cast<const Bytef*>(hello_world.c_str()),
+                    hello_world.size()));
+
+  // Empty string, "", compressed.
+  std::string empty(
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\x03\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00",
+      20);
+  EXPECT_EQ(0,
+            zlib.GzipUncompressedLength(
+                reinterpret_cast<const Bytef*>(empty.c_str()), empty.size()));
+
+  std::string bad_data("\x01\x01\x01\x01", 4);
+  for (int len = 0; len <= bad_data.size(); len++) {
+    EXPECT_EQ(0, zlib.GzipUncompressedLength(
+                     reinterpret_cast<const Bytef*>(bad_data.c_str()), len));
+  }
 }
 
 }  // namespace

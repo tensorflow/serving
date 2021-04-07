@@ -173,7 +173,8 @@ class ZLib {
   int Uncompress(Bytef *dest, uLongf *destLen, const Bytef *source,
                  uLong sourceLen);
 
-  // Get the uncompressed size from the gzip footer.
+  // Get the uncompressed size from the gzip footer. Returns 0 if source is too
+  // short (len < 5).
   uLongf GzipUncompressedLength(const Bytef *source, uLong len);
 
   // Special helper function to help uncompress gzipped documents:
