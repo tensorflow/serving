@@ -146,7 +146,8 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
     return result;
   }();
 
-  if (config_.prefer_tflite_model() && TfLiteModelFound(path)) {
+  bool is_tflite = config_.prefer_tflite_model() && TfLiteModelFound(path);
+  if (is_tflite) {
     int num_tflite_pools = config_.num_tflite_pools();
     if (num_tflite_pools == 0 && config_.num_tflite_interpreters() > 0) {
       num_tflite_pools = config_.num_tflite_interpreters();
@@ -179,10 +180,13 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
     // Enable batching of requests to any one signature_def in the SavedModel.
     // Note that in the future, the plan is to enable explicit configuration
     // of the one or many SignatureDefs to enable.
+    // TODO(b/184973097): Remove enable_default_schedule_creator once TFLite is
+    // fixed.
     const std::vector<SignatureDef> signatures = GetSignatureDefs(**bundle);
-    return WrapSessionForBatching(config_.batching_parameters(),
-                                  batch_scheduler_, signatures,
-                                  &(*bundle)->session);
+    return WrapSessionForBatching(
+        config_.batching_parameters(), batch_scheduler_, signatures,
+        &(*bundle)->session,
+        /*enable_default_schedule_creator=*/!is_tflite);
   }
   return WrapSession(&(*bundle)->session);
 }
