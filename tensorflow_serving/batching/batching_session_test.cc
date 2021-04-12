@@ -994,52 +994,6 @@ TEST_P(BatchingSessionTest, ThreadPoolOptions) {
       }));
 }
 
-TEST_P(BatchingSessionTest, SubsetOutputTensors) {
-  BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
-  schedule_options.max_batch_size = 6;  // fits three 2-unit tasks
-  schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
-  schedule_options.num_batch_threads = 1;
-  schedule_options = annotate_options(schedule_options);
-  BatchingSessionOptions batching_session_options;
-  std::unique_ptr<Session> batching_session;
-  TF_ASSERT_OK(CreateBasicBatchingSession(
-      schedule_options, batching_session_options, {{"x", "x2"}, {"y", "y3"}},
-      CreateHalfPlusTwoSession(), &batching_session));
-
-  const Tensor input0 = test::AsTensor<float>({8.0f, 6.0f}, {2});
-  const Tensor expected_output0 = test::AsTensor<float>({6.0f, 5.0f}, {2});
-  const Tensor input1 = test::AsTensor<float>({100.0f, 42.0f}, {2});
-  const Tensor expected_output1 = test::AsTensor<float>({53.0f, 24.0f}, {2});
-
-  std::unique_ptr<Thread> first_request_thread(
-      Env::Default()->StartThread(ThreadOptions(), "first_request_thread", [&] {
-        std::vector<Tensor> outputs;
-        TF_ASSERT_OK(batching_session->Run({{"x", input0}, {"x2", input1}},
-                                           {"y"} /* outputs */,
-                                           {} /* target nodes */, &outputs));
-        ASSERT_EQ(1, outputs.size());
-        test::ExpectTensorEqual<float>(expected_output0, outputs[0]);
-      }));
-  std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
-      ThreadOptions(), "second_request_thread", [&] {
-        std::vector<Tensor> outputs;
-        TF_ASSERT_OK(batching_session->Run({{"x2", input1}, {"x", input0}},
-                                           {"y3"} /* outputs */,
-                                           {} /* target nodes */, &outputs));
-        ASSERT_EQ(1, outputs.size());
-        test::ExpectTensorEqual<float>(expected_output1, outputs[0]);
-      }));
-  std::unique_ptr<Thread> third_request_thread(
-      Env::Default()->StartThread(ThreadOptions(), "third_request_thread", [&] {
-        std::vector<Tensor> outputs;
-        TF_ASSERT_OK(batching_session->Run({{"x2", input1}, {"x", input0}},
-                                           {"y"} /* outputs */,
-                                           {} /* target nodes */, &outputs));
-        ASSERT_EQ(1, outputs.size());
-        test::ExpectTensorEqual<float>(expected_output0, outputs[0]);
-      }));
-}
-
 INSTANTIATE_TEST_CASE_P(WithOrWithoutThreadPools, BatchingSessionTest,
                         ::testing::Bool());
 

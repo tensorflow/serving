@@ -85,15 +85,16 @@ Status CreateBatchScheduler(
 Status EstimateResourceFromPath(const string& path, bool use_validation_result,
                                 ResourceAllocation* estimate);
 
-// Wraps a session in a new session that automatically batches Run() calls.
-// TODO(b/184973097): Remove enable_default_schedule_creator once TFLite is
-// fixed.
+// Wraps a session in a new session that automatically batches Run() calls, for
+// the given signatures.
+// TODO(b/33233998): Support batching for Run() calls that use a combination of
+// signatures -- i.e. sometimes construct a single TensorSignature for a set of
+// SignatureDefs (usually just two of them) -- based on some config.
 Status WrapSessionForBatching(
     const BatchingParameters& batching_config,
     std::shared_ptr<SharedBatchScheduler<BatchingSessionTask>> batch_scheduler,
     const std::vector<SignatureDef>& signatures,
-    std::unique_ptr<Session>* session,
-    bool enable_default_schedule_creator = false);
+    std::unique_ptr<Session>* session);
 
 // Wraps a session in a new session that only supports Run() without batching.
 Status WrapSession(std::unique_ptr<Session>* session);
