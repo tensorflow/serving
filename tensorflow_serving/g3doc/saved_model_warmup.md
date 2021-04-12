@@ -42,7 +42,7 @@ from tensorflow_serving.apis import prediction_log_pb2
 from tensorflow_serving.apis import regression_pb2
 
 def main():
-    with tf.python_io.TFRecordWriter("tf_serving_warmup_requests") as writer:
+    with tf.io.TFRecordWriter("tf_serving_warmup_requests") as writer:
         # replace <request> with one of:
         # predict_pb2.PredictRequest(..)
         # classification_pb2.ClassificationRequest(..)
