@@ -133,6 +133,16 @@ Status CreateBatchingSession(
     std::unique_ptr<Session> session,
     std::unique_ptr<Session>* batching_session);
 
+// Same as above but allows for a default scheduler creator for which signatures
+// that don't match a supplied value during run time can still use batching.
+Status CreateBatchingSession(
+    const BatchingSessionOptions& options,
+    const std::vector<SignatureWithBatchingSessionSchedulerCreator>&
+        signatures_with_scheduler_creators,
+    BatchingSessionSchedulerCreator default_creator,
+    std::unique_ptr<Session> session,
+    std::unique_ptr<Session>* batching_session);
+
 // A convenience for using CreateBatchingSession() to create a
 // BasicBatchScheduler for a single signature.
 Status CreateBasicBatchingSession(

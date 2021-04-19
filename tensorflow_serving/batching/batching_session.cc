@@ -160,6 +160,17 @@ class BatchingSession : public ServingSession {
       const std::string& thread_pool_name,
       std::unique_ptr<BatchingSession>* result);
 
+  // Same as above but allows for specification of a default scheduler creator
+  // which enables requests that don't match an exact signature to also
+  // have batching.
+  static Status Create(
+      const BatchingSessionOptions& options, std::unique_ptr<Session> wrapped,
+      const std::vector<SignatureWithBatchingSessionSchedulerCreator>&
+          signatures_with_scheduler_creators,
+      BatchingSessionSchedulerCreator default_creator,
+      const std::string& thread_pool_name,
+      std::unique_ptr<BatchingSession>* result);
+
   ~BatchingSession() override = default;
 
   Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
@@ -257,8 +268,33 @@ class BatchingSession : public ServingSession {
   // for monitoring purpose, and can be empty if not known.
   const std::string thread_pool_name_;
 
+  // If set, default_scheduler_creator_ is used when the input signature does
+  // not match any existing signature defined during model load. This helps
+  // when the user uses either a combination of signatures or filter certain
+  // output tensors.
+  absl::optional<BatchingSessionSchedulerCreator> default_scheduler_creator_;
+  absl::Mutex mu_;
+  std::unordered_map<TensorSignature,
+                     std::unique_ptr<BatchScheduler<BatchingSessionTask>>,
+                     HashTensorSignature, EqTensorSignature>
+      custom_signature_batch_schedulers_ ABSL_GUARDED_BY(mu_);
+
   TF_DISALLOW_COPY_AND_ASSIGN(BatchingSession);
 };
+
+Status BatchingSession::Create(
+    const BatchingSessionOptions& options, std::unique_ptr<Session> wrapped,
+    const std::vector<SignatureWithBatchingSessionSchedulerCreator>&
+        signatures_with_scheduler_creators,
+    BatchingSessionSchedulerCreator default_creator,
+    const std::string& thread_pool_name,
+    std::unique_ptr<BatchingSession>* result) {
+  auto status = BatchingSession::Create(options, std::move(wrapped),
+                                        signatures_with_scheduler_creators,
+                                        thread_pool_name, result);
+  result->get()->default_scheduler_creator_ = default_creator;
+  return status;
+}
 
 Status BatchingSession::Create(
     const BatchingSessionOptions& options, std::unique_ptr<Session> wrapped,
@@ -343,23 +379,40 @@ Status BatchingSession::InternalRun(
       TensorSignatureFromRunArgs(inputs, output_tensor_names);
   auto batch_scheduler_it = batch_schedulers_.find(signature);
   if (batch_scheduler_it == batch_schedulers_.end()) {
-    // We have a Run() call that doesn't match one of our batching signatures.
-    // Run it in-line.
-    LOG_EVERY_N_SEC(WARNING, 120)
-        << "Request doesn't match any declared signature. Bypassing "
-           "batcher. Request signature is: "
-        << TensorSignatureDebugString(signature);
-
-    // Because the wrapped session may not provide an implementation for
-    // thread_pool_options, we need to invoke different Run() functions
-    // depending on whether thread_pool_options is specified.
-    if (thread_pool_options) {
-      return wrapped_->Run(run_options, inputs, output_tensor_names,
-                           target_node_names, outputs, run_metadata,
-                           thread_pool_options.value());
+    if (default_scheduler_creator_.has_value()) {
+      absl::MutexLock l(&mu_);
+      batch_scheduler_it = custom_signature_batch_schedulers_.find(signature);
+      if (batch_scheduler_it == custom_signature_batch_schedulers_.end()) {
+        std::unique_ptr<BatchScheduler<BatchingSessionTask>> batch_scheduler;
+        TF_RETURN_IF_ERROR(default_scheduler_creator_.value()(
+            [&, signature](std::unique_ptr<Batch<BatchingSessionTask>> batch) {
+              ProcessBatch(signature, std::move(batch));
+            },
+            &batch_scheduler));
+        custom_signature_batch_schedulers_[signature] =
+            std::move(batch_scheduler);
+        batch_scheduler_it = custom_signature_batch_schedulers_.find(signature);
+      }
     } else {
-      return wrapped_->Run(run_options, inputs, output_tensor_names,
-                           target_node_names, outputs, run_metadata);
+      // We have a Run() call that doesn't match one of our batching signatures.
+      // Run it in-line.
+      LOG_EVERY_N_SEC(WARNING, 120)
+          << "Request doesn't match any declared signature and no default "
+             "scheduler creator specified. Bypassing "
+             "batcher. Request signature is: "
+          << TensorSignatureDebugString(signature);
+
+      // Because the wrapped session may not provide an implementation for
+      // thread_pool_options, we need to invoke different Run() functions
+      // depending on whether thread_pool_options is specified.
+      if (thread_pool_options) {
+        return wrapped_->Run(run_options, inputs, output_tensor_names,
+                             target_node_names, outputs, run_metadata,
+                             thread_pool_options.value());
+      } else {
+        return wrapped_->Run(run_options, inputs, output_tensor_names,
+                             target_node_names, outputs, run_metadata);
+      }
     }
   }
   BatchScheduler<BatchingSessionTask>* batch_scheduler =
@@ -892,6 +945,21 @@ Status SplitInputTask(
           std::make_pair(tensor_name, split_tensors[j]));
     }
   }
+  return Status::OK();
+}
+
+Status CreateBatchingSession(
+    const BatchingSessionOptions& options,
+    const std::vector<SignatureWithBatchingSessionSchedulerCreator>&
+        signatures_with_scheduler_creators,
+    BatchingSessionSchedulerCreator default_creator,
+    std::unique_ptr<Session> session,
+    std::unique_ptr<Session>* batching_session) {
+  std::unique_ptr<BatchingSession> internal_batching_session;
+  TF_RETURN_IF_ERROR(BatchingSession::Create(
+      options, std::move(session), signatures_with_scheduler_creators,
+      default_creator, /*thread_pool_name=*/"", &internal_batching_session));
+  *batching_session = std::move(internal_batching_session);
   return Status::OK();
 }
 

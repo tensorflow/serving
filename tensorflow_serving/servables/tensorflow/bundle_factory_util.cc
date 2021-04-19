@@ -60,7 +60,8 @@ Status EstimateResourceFromPath(const string& path, bool use_validation_result,
 Status WrapSessionForBatching(const BatchingParameters& batching_config,
                               std::shared_ptr<Batcher> batch_scheduler,
                               const std::vector<SignatureDef>& signatures,
-                              std::unique_ptr<Session>* session) {
+                              std::unique_ptr<Session>* session,
+                              bool enable_default_schedule_creator) {
   LOG(INFO) << "Wrapping session to perform batch processing";
 
   if (batch_scheduler == nullptr) {
@@ -106,9 +107,17 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
         {tensor_signature, create_queue});
   }
 
-  return CreateBatchingSession(batching_session_options,
-                               signatures_with_scheduler_creators,
-                               std::move(*session), session);
+  // TODO(b/184973097): Remove enable_default_schedule_creator once TFLite is
+  // fixed.
+  if (enable_default_schedule_creator) {
+    return CreateBatchingSession(batching_session_options,
+                                 signatures_with_scheduler_creators,
+                                 create_queue, std::move(*session), session);
+  } else {
+    return CreateBatchingSession(batching_session_options,
+                                 signatures_with_scheduler_creators,
+                                 std::move(*session), session);
+  }
 }
 
 Status WrapSession(std::unique_ptr<Session>* session) {
