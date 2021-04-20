@@ -232,7 +232,7 @@ details, see [running a serving image](#running-a-serving-image).
 Let's run through a full example where we load a model with GPU-bound ops and
 call it using the REST API.
 
-First install [`nvidia-docker`](#install-nvidia-docker). Next you can pull the
+First install [`nvidia-docker`](https://github.com/NVIDIA/nvidia-docker#quick-start). Next you can pull the
 latest TensorFlow Serving GPU docker image by running:
 
 ```shell
