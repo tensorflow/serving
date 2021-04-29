@@ -275,8 +275,8 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
       }
     }
     // If this version is not part of the aspired versions.
-    if (std::find(next_aspired_versions.begin(), next_aspired_versions.end(),
-                  state_snapshot.id.version) == next_aspired_versions.end()) {
+    if (next_aspired_versions.find(state_snapshot.id.version) ==
+        next_aspired_versions.end()) {
       VLOG(1) << "Setting is_aspired=false for " << state_snapshot.id;
       basic_manager_->GetAdditionalServableState<Aspired>(state_snapshot.id)
           ->is_aspired = false;
@@ -297,14 +297,11 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
   // need to be added and add them to the harness map.
   for (auto& version : versions) {
     bool should_add = false;
-    if (std::find(additions.begin(), additions.end(), version.id().version) !=
-        additions.end()) {
+    if (additions.find(version.id().version) != additions.end()) {
       should_add = true;
     }
     if (enable_reload_servables_with_error_ &&
-        std::find(current_aspired_versions_with_error.begin(),
-                  current_aspired_versions_with_error.end(),
-                  version.id().version) !=
+        current_aspired_versions_with_error.find(version.id().version) !=
             current_aspired_versions_with_error.end()) {
       ServableId id;
       id.name = std::string(servable_name);
