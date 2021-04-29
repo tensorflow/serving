@@ -149,8 +149,8 @@ bool WriteDecimal(RapidJsonWriter* writer, dtype val) {
     // numbers -- making it difficult for consumers to pick the correct type to
     // store these numbers (note, JSON does not have metadata to describe types.
     // These are inferred from the tokens).
-    if (decimal_str.find('.') == string::npos &&
-        decimal_str.find('e') == string::npos) {
+    if (!absl::StrContains(decimal_str, '.') &&
+        !absl::StrContains(decimal_str, 'e')) {
       absl::StrAppend(&decimal_str, ".0");
     }
   } else if (std::isnan(val)) {

@@ -26,6 +26,7 @@ limitations under the License.
 #include <string>
 #include <vector>
 
+#include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "libevent/include/event2/buffer.h"
@@ -258,7 +259,7 @@ bool EvHTTPRequest::NeedUncompressGzipContent() {
   if (handler_options_ != nullptr &&
       handler_options_->auto_uncompress_input()) {
     auto content_encoding = GetRequestHeader(HTTPHeaders::CONTENT_ENCODING);
-    return content_encoding.find("gzip") != absl::string_view::npos;
+    return absl::StrContains(content_encoding, "gzip");
   }
 
   return false;
