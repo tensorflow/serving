@@ -780,7 +780,7 @@ TEST_P(BasicManagerTest, LoadsThenUnloads) {
     for (int i = 0; i < 20; ++i) {
       const ServableId id = {kServableName3, i};
       servables.insert(id);
-      load_executor.Schedule([this, id, &servables]() {
+      load_executor.Schedule([this, id]() {
         TF_ASSERT_OK(basic_manager_->ManageServable(CreateServable(id)));
         basic_manager_->LoadServable(
             id, [](const Status& status) { TF_ASSERT_OK(status); });

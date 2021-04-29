@@ -509,8 +509,8 @@ TEST_P(ServerCoreTest, MultiplePlatformsWithConfigChange) {
     EXPECT_EQ(ServableDataForPlatform(root_path, platform, 0 /* version */),
               *servable_handle);
   };
-  auto verify_model_not_loaded = [&root_path](ServerCore* server_core,
-                                              const string& platform) {
+  auto verify_model_not_loaded = [](ServerCore* server_core,
+                                    const string& platform) {
     ServableHandle<string> servable_handle;
     EXPECT_FALSE(server_core
                      ->GetServableHandle<string>(ModelSpecForPlatform(platform),
