@@ -32,10 +32,8 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-using ::testing::_;
 using ::testing::HasSubstr;
 using ::testing::InvokeWithoutArgs;
-using ::testing::InSequence;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::StrictMock;
