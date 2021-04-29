@@ -1,12 +1,12 @@
 syntax = "proto3";
 
-option cc_enable_arenas = true;
+package tensorflow.serving;
 
-import "tensorflow_serving/apis/model.proto";
 import "tensorflow/core/protobuf/config.proto";
 import "tensorflow/core/protobuf/named_tensor.proto";
+import "tensorflow_serving/apis/model.proto";
 
-package tensorflow.serving;
+option cc_enable_arenas = true;
 
 message SessionRunRequest {
   // Model Specification. If version is not specified, will use the latest
@@ -24,6 +24,11 @@ message SessionRunRequest {
   // Target Nodes. A list of node names. The named nodes will be run
   // to but their outputs will not be fetched.
   repeated string target = 4;
+
+  // If true, treat names in feed/fetch/target as alias names than actual tensor
+  // names (that appear in the TF graph). Alias names are resolved to actual
+  // names using `SignatureDef` in SavedModel associated with the model.
+  bool tensor_name_is_alias = 6;
 
   // Options for the run call. **Currently ignored.**
   RunOptions options = 5;
