@@ -199,9 +199,14 @@ Status SetInputAndInvokeMiniBatch(
             "Batch parallelism should not be enabled for non-string inputs");
       }
       auto tensor_bytes = tf_input_tensor->tensor_data();
-      if (tensor_bytes.size() != tflite_input_tensor->bytes) {
-        if (interpreter->ResizeInputTensor(
-                tflite_input_idx, TensorDims(tf_input_tensor)) != kTfLiteOk) {
+      std::vector<int> tf_dims = TensorDims(tf_input_tensor);
+      std::vector<int> tflite_dims(
+          tflite_input_tensor->dims->data,
+          tflite_input_tensor->dims->data + tflite_input_tensor->dims->size);
+      if (tensor_bytes.size() != tflite_input_tensor->bytes ||
+          tf_dims != tflite_dims) {
+        if (interpreter->ResizeInputTensor(tflite_input_idx, tf_dims) !=
+            kTfLiteOk) {
           return errors::Internal(
               "Failed to resize input tensor: ", tflite_input_tensor->name,
               " from ", tflite_input_tensor->bytes, " to ", tensor_bytes.size(),
@@ -354,7 +359,6 @@ Status RunBatchParallel(
   TF_RETURN_IF_ERROR(CreateOutputTensors(
       interpreter_pool, output_tensor_names, output_tensor_to_index,
       tflite_idx_to_output_tensor, outputs, true, actual_batch_size));
-
   // Set the contents of the return tensors.
   for (size_t i = 0; i < num_minibatches; ++i) {
     TF_RETURN_IF_ERROR(SetMiniBatchOutput(

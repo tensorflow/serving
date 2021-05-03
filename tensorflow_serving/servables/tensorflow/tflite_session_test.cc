@@ -132,6 +132,56 @@ TEST(TfLiteSession, BasicTest) {
   }
 }
 
+TEST(TfLiteSession, ResizeWithSameNumElementsTest) {
+  string model_bytes;
+  TF_ASSERT_OK(ReadFileToString(tensorflow::Env::Default(),
+                                test_util::TestSrcDirPath(kTestModel),
+                                &model_bytes));
+
+  ::google::protobuf::Map<string, SignatureDef> signatures;
+  std::unique_ptr<TfLiteSession> session;
+  tensorflow::SessionOptions options;
+  TF_ASSERT_OK(TfLiteSession::Create(
+      std::move(model_bytes), options, absl::GetFlag(FLAGS_num_pools),
+      absl::GetFlag(FLAGS_num_tflite_interpreters), &session, &signatures));
+  EXPECT_EQ(signatures.size(), 1);
+  EXPECT_EQ(signatures.begin()->first, "serving_default");
+  EXPECT_THAT(signatures.begin()->second, test_util::EqualsProto(R"pb(
+                inputs {
+                  key: "x"
+                  value {
+                    name: "x"
+                    dtype: DT_FLOAT
+                    tensor_shape {
+                      dim { size: 1 }
+                      dim { size: 1 }
+                    }
+                  }
+                }
+                outputs {
+                  key: "y"
+                  value {
+                    name: "y"
+                    dtype: DT_FLOAT
+                    tensor_shape {
+                      dim { size: 1 }
+                      dim { size: 1 }
+                    }
+                  }
+                }
+                method_name: "tensorflow/serving/predict"
+              )pb"));
+  Tensor input = test::AsTensor<float>({2.0}, TensorShape({1}));
+  {
+    // Use TF Lite tensor names.
+    std::vector<Tensor> outputs;
+    TF_EXPECT_OK(session->Run({{"x", input}}, {"y"}, {}, &outputs));
+    ASSERT_EQ(outputs.size(), 1);
+    test::ExpectTensorEqual<float>(
+        outputs[0], test::AsTensor<float>({3.0}, TensorShape({1})));
+  }
+}
+
 TEST(TfLiteSession, ModelFromLegacyConverterWithSigdef) {
   // A model converted with TF v1 converter, having a signature def.
   // The signature def references an input tensor named "tflite_input:0", but
