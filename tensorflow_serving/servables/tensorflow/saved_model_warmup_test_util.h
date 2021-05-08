@@ -57,7 +57,11 @@ Status WriteWarmupDataAsSerializedProtos(
     const string& fname, const std::vector<string>& warmup_records,
     int num_warmup_records);
 
-void AddMixedWarmupData(std::vector<string>* warmup_records);
+void AddMixedWarmupData(
+    std::vector<string>* warmup_records,
+    const std::vector<PredictionLog::LogTypeCase>& log_types = {
+        PredictionLog::kRegressLog, PredictionLog::kClassifyLog,
+        PredictionLog::kPredictLog, PredictionLog::kMultiInferenceLog});
 
 // Creates a test SignatureDef with the given parameters
 SignatureDef CreateSignatureDef(const string& method_name,

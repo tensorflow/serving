@@ -21,6 +21,7 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor_shape.pb.h"
 #include "tensorflow/core/framework/types.pb.h"
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow_serving/apis/prediction_log.pb.h"
 
 namespace tensorflow {
 namespace serving {
@@ -122,10 +123,10 @@ Status WriteWarmupDataAsSerializedProtos(
   return Status::OK();
 }
 
-void AddMixedWarmupData(std::vector<string>* warmup_records) {
-  for (auto& log_type :
-       {PredictionLog::kRegressLog, PredictionLog::kClassifyLog,
-        PredictionLog::kPredictLog, PredictionLog::kMultiInferenceLog}) {
+void AddMixedWarmupData(
+    std::vector<string>* warmup_records,
+    const std::vector<PredictionLog::LogTypeCase>& log_types) {
+  for (auto& log_type : log_types) {
     PredictionLog prediction_log;
     PopulatePredictionLog(&prediction_log, log_type);
     warmup_records->push_back(prediction_log.SerializeAsString());
