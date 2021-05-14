@@ -137,9 +137,9 @@ cc_library(
     deps = [
         ":server_core",
         "//tensorflow_serving/apis:get_model_status_cc_proto",
+        "//tensorflow_serving/apis:status_cc_proto",
         "//tensorflow_serving/core:servable_state",
         "//tensorflow_serving/core:servable_state_monitor",
-        "//tensorflow_serving/util:status_cc_proto",
         "//tensorflow_serving/util:status_util",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",

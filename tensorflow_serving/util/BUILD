@@ -1,6 +1,6 @@
 # Description: Tensorflow Serving utils.
 
-load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 package(
     default_visibility = [
@@ -292,7 +292,7 @@ cc_library(
     srcs = ["status_util.cc"],
     hdrs = ["status_util.h"],
     deps = [
-        ":status_cc_proto",
+        "//tensorflow_serving/apis:status_cc_proto",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -351,27 +351,6 @@ serving_proto_library(
     cc_api_version = 2,
     deps = [
         "@com_google_protobuf//:cc_wkt_protos",
-    ],
-)
-
-serving_proto_library(
-    name = "status_proto",
-    srcs = ["status.proto"],
-    cc_api_version = 2,
-    visibility = ["//visibility:public"],
-    deps = [
-        serving_tensorflow_proto_dep(
-            "@org_tensorflow//tensorflow/core:protos_all",
-        ),
-    ],
-)
-
-serving_proto_library_py(
-    name = "status_proto_py_pb2",
-    srcs = ["status.proto"],
-    proto_library = "status_proto",
-    deps = [
-        "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
 )
 

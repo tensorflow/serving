@@ -16,7 +16,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_UTIL_STATUS_UTIL_H_
 
 #include "tensorflow/core/lib/core/status.h"
-#include "tensorflow_serving/util/status.pb.h"
+#include "tensorflow_serving/apis/status.pb.h"
 
 namespace tensorflow {
 namespace serving {

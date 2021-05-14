@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-option cc_enable_arenas = true;
+package tensorflow.serving;
 
 import "tensorflow_serving/apis/model.proto";
-import "tensorflow_serving/util/status.proto";
+import "tensorflow_serving/apis/status.proto";
 
-package tensorflow.serving;
+option cc_enable_arenas = true;
 
 // GetModelStatusRequest contains a ModelSpec indicating the model for which
 // to get status.
