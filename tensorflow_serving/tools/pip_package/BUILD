@@ -27,6 +27,6 @@ sh_binary(
         "//tensorflow_serving/config:logging_config_proto_py_pb2",
         "//tensorflow_serving/config:model_server_config_proto_py_pb2",
         "//tensorflow_serving/config:file_system_storage_path_source_proto_py_pb2",
-        "//tensorflow_serving/core:logging_proto_py_pb2",
+        "//tensorflow_serving/apis:logging_proto_py_pb2",
     ],
 )

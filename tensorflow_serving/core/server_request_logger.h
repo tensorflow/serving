@@ -25,8 +25,8 @@ limitations under the License.
 
 #include "google/protobuf/message.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow_serving/apis/logging.pb.h"
 #include "tensorflow_serving/config/logging_config.pb.h"
-#include "tensorflow_serving/core/logging.pb.h"
 #include "tensorflow_serving/core/request_logger.h"
 #include "tensorflow_serving/util/fast_read_dynamic_ptr.h"
 

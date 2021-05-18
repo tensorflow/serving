@@ -130,16 +130,36 @@ tf_jspb_proto_library(
 )
 
 serving_proto_library(
+    name = "logging_proto",
+    srcs = ["logging.proto"],
+    cc_api_version = 2,
+    deps = [
+        ":model_proto",
+        "//tensorflow_serving/config:logging_config_proto",
+    ],
+)
+
+serving_proto_library_py(
+    name = "logging_proto_py_pb2",
+    srcs = ["logging.proto"],
+    proto_library = "logging_proto",
+    deps = [
+        ":model_proto_py_pb2",
+        "//tensorflow_serving/config:logging_config_proto_py_pb2",
+    ],
+)
+
+serving_proto_library(
     name = "prediction_log_proto",
     srcs = ["prediction_log.proto"],
     cc_api_version = 2,
     deps = [
         ":classification_proto",
         ":inference_proto",
+        ":logging_proto",
         ":predict_proto",
         ":regression_proto",
         ":session_service_proto",
-        "//tensorflow_serving/core:logging_proto",
     ],
 )
 
@@ -153,7 +173,7 @@ serving_proto_library_py(
         ":predict_proto_py_pb2",
         ":regression_proto_py_pb2",
         ":session_service_proto_py_pb2",
-        "//tensorflow_serving/core:logging_proto_py_pb2",
+        "//tensorflow_serving/apis:logging_proto_py_pb2",
     ],
 )
 

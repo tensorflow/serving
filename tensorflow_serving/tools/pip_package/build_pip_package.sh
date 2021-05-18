@@ -36,7 +36,6 @@ function main() {
   echo $(date) : "=== Using tmpdir: ${TMPDIR}"
   mkdir -p ${TMPDIR}/tensorflow_serving/apis
   mkdir -p ${TMPDIR}/tensorflow_serving/config
-  mkdir -p ${TMPDIR}/tensorflow_serving/core
 
   echo "Adding python files"
   cp bazel-out/k8-opt/bin/tensorflow_serving/apis/*_pb2.py \
@@ -51,12 +50,8 @@ function main() {
   cp bazel-out/k8-opt/bin/tensorflow_serving/config/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/config"
 
-  cp bazel-out/k8-opt/bin/tensorflow_serving/core/*_pb2.py \
-    "${TMPDIR}/tensorflow_serving/core"
-
   touch "${TMPDIR}/tensorflow_serving/apis/__init__.py"
   touch "${TMPDIR}/tensorflow_serving/config/__init__.py"
-  touch "${TMPDIR}/tensorflow_serving/core/__init__.py"
   touch "${TMPDIR}/tensorflow_serving/__init__.py"
 
   echo "Adding package setup files"

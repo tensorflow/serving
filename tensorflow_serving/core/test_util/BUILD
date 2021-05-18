@@ -176,7 +176,7 @@ cc_library(
     testonly = 1,
     hdrs = ["mock_request_logger.h"],
     deps = [
-        "//tensorflow_serving/core:logging_cc_proto",
+        "//tensorflow_serving/apis:logging_cc_proto",
         "//tensorflow_serving/core:request_logger",
         "@com_google_googletest//:gtest",
         "@com_google_protobuf//:protobuf",

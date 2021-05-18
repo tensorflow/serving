@@ -21,9 +21,9 @@ limitations under the License.
 #include "google/protobuf/message.h"
 #include <gmock/gmock.h>
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow_serving/apis/logging.pb.h"
 #include "tensorflow_serving/config/logging_config.pb.h"
 #include "tensorflow_serving/core/log_collector.h"
-#include "tensorflow_serving/core/logging.pb.h"
 #include "tensorflow_serving/core/request_logger.h"
 
 namespace tensorflow {

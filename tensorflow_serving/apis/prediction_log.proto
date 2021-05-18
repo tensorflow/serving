@@ -1,15 +1,15 @@
 syntax = "proto3";
 
-option cc_enable_arenas = true;
+package tensorflow.serving;
 
 import "tensorflow_serving/apis/classification.proto";
 import "tensorflow_serving/apis/inference.proto";
+import "tensorflow_serving/apis/logging.proto";
 import "tensorflow_serving/apis/predict.proto";
 import "tensorflow_serving/apis/regression.proto";
 import "tensorflow_serving/apis/session_service.proto";
-import "tensorflow_serving/core/logging.proto";
 
-package tensorflow.serving;
+option cc_enable_arenas = true;
 
 message ClassifyLog {
   ClassificationRequest request = 1;
