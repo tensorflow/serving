@@ -1,8 +1,8 @@
 diff --git a/tensorflow_text/tftext.bzl b/tensorflow_text/tftext.bzl
-index 8ca1a37..c7acdac 100644
+index 7f703b3..d2c590a 100644
 --- a/tensorflow_text/tftext.bzl
 +++ b/tensorflow_text/tftext.bzl
-@@ -98,8 +98,7 @@ def tf_deps(deps = []):
+@@ -93,8 +93,7 @@ def tf_deps(deps = []):
              "@org_tensorflow//tensorflow/core:portable_tensorflow_lib_lite",
          ],
          "//conditions:default": [
