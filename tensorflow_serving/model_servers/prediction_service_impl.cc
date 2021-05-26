@@ -65,7 +65,7 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
 
   if (status.ok()) {
     RecordRequestLatency(request->model_spec().name(), /*api=*/"Predict",
-                         /*runtime=*/"GRPC",
+                         /*entrypoint=*/"GRPC",
                          Env::Default()->NowMicros() - start);
   } else {
     VLOG(1) << "Predict failed: " << status.error_message();
@@ -105,7 +105,7 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
 
   if (status.ok()) {
     RecordRequestLatency(request->model_spec().name(), /*api=*/"Classify",
-                         /*runtime=*/"GRPC",
+                         /*entrypoint=*/"GRPC",
                          Env::Default()->NowMicros() - start);
   } else {
     VLOG(1) << "Classify request failed: " << status.error_message();
@@ -134,7 +134,7 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
 
   if (status.ok()) {
     RecordRequestLatency(request->model_spec().name(), /*api=*/"Regress",
-                         /*runtime=*/"GRPC",
+                         /*entrypoint=*/"GRPC",
                          Env::Default()->NowMicros() - start);
   } else {
     VLOG(1) << "Regress request failed: " << status.error_message();
