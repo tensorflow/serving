@@ -43,22 +43,6 @@ std::vector<SignatureDef> GetSignatureDefs(const SavedModelBundle& bundle) {
   return signature_defs;
 }
 
-// Parses a repeated field of NamedTensorProtos into a corresponding list of
-// name/tensor pairs.
-Status ParseFixedInputTensors(
-    const protobuf::RepeatedPtrField<NamedTensorProto>& protos,
-    std::vector<std::pair<string, Tensor>>* parsed) {
-  for (const NamedTensorProto& proto : protos) {
-    Tensor tensor;
-    if (!tensor.FromProto(proto.tensor())) {
-      return errors::InvalidArgument("Unable to parse tensor proto: ",
-                                     proto.tensor().ShortDebugString());
-    }
-    parsed->push_back({proto.name(), tensor});
-  }
-  return Status::OK();
-}
-
 // TODO(b/140959776): Move this upstream alongside `kSavedModelFilenamePb`.
 const char kTfLiteModelFilename[] = "model.tflite";
 

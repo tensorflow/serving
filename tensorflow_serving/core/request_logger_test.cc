@@ -46,8 +46,6 @@ using ::testing::Invoke;
 using ::testing::NiceMock;
 using ::testing::Return;
 
-constexpr char kSavedModelTags[] = "server,tpu";
-
 class RequestLoggerTest : public ::testing::Test {
  protected:
   RequestLoggerTest() {

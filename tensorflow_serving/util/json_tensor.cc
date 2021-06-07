@@ -298,15 +298,6 @@ void GetDenseTensorShape(const rapidjson::Value& val, TensorShapeProto* shape) {
   }
 }
 
-// Returns size (number of elements) expected in a tensor of given shape.
-int GetTensorSize(const TensorShapeProto& shape) {
-  int size = 1;
-  for (const auto& dim : shape.dim()) {
-    size *= dim.size();
-  }
-  return size;
-}
-
 bool IsValBase64Object(const rapidjson::Value& val) {
   // Base64 encoded data is a JSON object formatted as:
   // { "b64" : "<base64 encoded string" }

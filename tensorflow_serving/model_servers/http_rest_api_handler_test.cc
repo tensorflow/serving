@@ -50,7 +50,6 @@ using ::testing::UnorderedElementsAreArray;
 
 constexpr char kTestModelBasePath[] = "cc/saved_model/testdata/half_plus_two";
 constexpr char kTestModelName[] = "saved_model_half_plus_two_2_versions";
-constexpr char kNonexistentModelName[] = "nonexistent_model";
 constexpr int kTestModelVersion1 = 123;
 constexpr char kTestModelVersionLabel[] = "Version_Label";
 constexpr char kNonexistentModelVersionLabel[] = "Version_Nonexistent";

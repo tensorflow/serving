@@ -37,7 +37,6 @@ namespace serving {
 namespace {
 
 constexpr char kTestModelName[] = "test_model";
-constexpr int kTestModelVersion = 123;
 
 // Test fixture for ClassificationService related tests sets up a ServerCore
 // pointing to the half_plus_two SavedModel.

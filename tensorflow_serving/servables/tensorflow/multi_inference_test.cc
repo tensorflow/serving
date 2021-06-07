@@ -38,7 +38,6 @@ namespace serving {
 namespace {
 
 constexpr char kTestModelName[] = "test_model";
-constexpr int kTestModelVersion = 123;
 
 // Test fixture for MultiInferenceTest related tests sets up a ServerCore
 // pointing to TF1 or TF2 version of half_plus_two SavedModel (based on `T`).
