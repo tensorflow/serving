@@ -166,6 +166,7 @@ cc_test(
     deps = [
         ":any_ptr",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/base:core_headers",
     ],
 )
 

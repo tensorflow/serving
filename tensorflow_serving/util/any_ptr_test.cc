@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/util/any_ptr.h"
 
 #include <gtest/gtest.h>
+#include "absl/base/attributes.h"
 
 namespace tensorflow {
 namespace serving {
@@ -52,7 +53,7 @@ TEST(AnyPtrTest, BaseClass) {
     virtual ~Base() {}
 
    private:
-    int unused_base_var_ = 0;
+    int unused_base_var_ ABSL_ATTRIBUTE_UNUSED = 0;
   };
 
   class Child : public Base {
@@ -60,7 +61,7 @@ TEST(AnyPtrTest, BaseClass) {
     ~Child() override {}
 
    private:
-    int unused_child_var_ = 0;
+    int unused_child_var_ ABSL_ATTRIBUTE_UNUSED = 0;
   };
 
   AnyPtr ptr;
