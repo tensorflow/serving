@@ -166,8 +166,11 @@ Status LoaderHarness::TransitionState(const State from, const State to) {
     const Status error = errors::Internal(
         "Illegal request to transition from state ", StateDebugString(state_),
         " to ", StateDebugString(to));
-    DCHECK(false) << error;
+#ifndef NDEBUG
+    LOG(FATAL) << error;  // Crash OK
+#else
     ErrorInternal(error);
+#endif
     return error;
   }
   state_ = to;
