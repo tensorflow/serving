@@ -297,6 +297,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
   // need to be added and add them to the harness map.
   for (auto& version : versions) {
     bool should_add = false;
+    const auto& version_id = version.id();
     if (additions.find(version.id().version) != additions.end()) {
       should_add = true;
     }
@@ -305,12 +306,12 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
             current_aspired_versions_with_error.end()) {
       ServableId id;
       id.name = std::string(servable_name);
-      id.version = version.id().version;
+      id.version = version_id.version;
       const Status manage_status = basic_manager_->StopManagingServable(id);
       DCHECK(manage_status.ok()) << manage_status.error_message();
       if (!manage_status.ok()) {
         LOG(ERROR) << "Internal error: Unable to clear errored servable "
-                   << version.id().DebugString() << " from 'basic_manager_': "
+                   << version_id.DebugString() << " from 'basic_manager_': "
                    << manage_status.error_message();
       }
       should_add = true;
@@ -324,7 +325,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
       DCHECK(manage_status.ok()) << manage_status.error_message();
       if (!manage_status.ok()) {
         LOG(ERROR) << "Internal error: Unable to transfer servable "
-                   << version.id().DebugString()
+                   << version_id.DebugString()
                    << " to 'basic_manager_': " << manage_status.error_message();
       }
     }
