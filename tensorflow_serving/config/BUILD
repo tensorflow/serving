@@ -63,6 +63,11 @@ serving_proto_library(
     ],
 )
 
+serving_proto_library_py(
+    name = "platform_config_py_pb2",
+    proto_library = "platform_config_proto",
+)
+
 serving_proto_library(
     name = "log_collector_config_proto",
     srcs = ["log_collector_config.proto"],

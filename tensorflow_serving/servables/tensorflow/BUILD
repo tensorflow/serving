@@ -1,7 +1,7 @@
 # Description: TensorFlow servables.
 
 load("//tensorflow_serving:oss_or_google.bzl", "if_google", "if_oss")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_tensorflow_proto_dep")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
 
 package(
     default_visibility = [
@@ -36,6 +36,12 @@ serving_proto_library(
             "@org_tensorflow//tensorflow/core:protos_all",
         ),
     ],
+)
+
+serving_proto_library_py(
+    name = "session_bundle_config_py_pb2",
+    proto_library = "session_bundle_config_proto",
+    visibility = ["//visibility:public"],
 )
 
 cc_library(
@@ -250,6 +256,12 @@ serving_proto_library(
     deps = [
         ":session_bundle_config_proto",
     ],
+)
+
+serving_proto_library_py(
+    name = "saved_model_bundle_source_adapter_py_pb2",
+    proto_library = "saved_model_bundle_source_adapter_proto",
+    visibility = ["//visibility:public"],
 )
 
 cc_library(
