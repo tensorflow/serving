@@ -22,6 +22,7 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "absl/flags/flag.h"
+#include "absl/functional/bind_front.h"
 #include "flatbuffers/flexbuffers.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/example/example.pb.h"
@@ -687,6 +688,93 @@ TEST(TfLiteSession, TestBatchParallelism) {
   test::ExpectTensorEqual<tstring>(
       outputs[1],
       test::AsTensor<tstring>(expected_bytes, TensorShape({batch_size, 1})));
+}
+
+TEST(TfLiteSession, TestSetScheduler) {
+  std::string model_bytes;
+  TF_ASSERT_OK(ReadFileToString(Env::Default(),
+                                test_util::TestSrcDirPath(kParseExampleModel),
+                                &model_bytes));
+  auto model = tflite::FlatBufferModel::BuildFromModel(
+      flatbuffers::GetRoot<tflite::Model>(model_bytes.data()));
+  auto model_signature_def_map = GetTestSignatureDefMap();
+  ::google::protobuf::Map<string, SignatureDef> signatures;
+  std::unique_ptr<TfLiteSession> sess;
+  tensorflow::SessionOptions options;
+
+  int split_called = 0;
+  auto TestSplitTfLiteInputTask =
+      [&split_called](
+          std::unique_ptr<TfLiteBatchTask>* input_task_ptr,
+          int open_batch_remaining_slot, int max_batch_size,
+          std::vector<std::unique_ptr<TfLiteBatchTask>>* output_tasks) {
+        split_called += 1;
+        auto status = TfLiteSession::SplitTfLiteInputTask(
+            input_task_ptr, open_batch_remaining_slot, max_batch_size,
+            output_tasks);
+        return status;
+      };
+
+  BasicBatchScheduler<TfLiteBatchTask>::Options scheduler_options;
+  scheduler_options.num_batch_threads = 1;
+  scheduler_options.max_batch_size = internal::kInitialBatchSize;
+  scheduler_options.enable_large_batch_splitting = true;
+  scheduler_options.max_execution_batch_size = 130;
+  scheduler_options.max_enqueued_batches = 4;
+  scheduler_options.split_input_task_func = TestSplitTfLiteInputTask;
+
+  TF_ASSERT_OK(TfLiteSession::Create(std::move(model_bytes), options, 1, 1,
+                                     &sess, &signatures));
+
+  TF_ASSERT_OK(sess->SetScheduler(
+      TfLiteSession::CreateDefaultBasicBatchScheduler, scheduler_options));
+
+  const int batch_size = 500;
+  const float default_value = 0;
+  std::vector<tstring> example_list;
+  std::vector<float> expected;
+  std::vector<tstring> expected_bytes;
+  std::vector<Tensor> outputs;
+
+  std::mt19937 random_engine;
+  auto random_func = [&]() {
+    return std::uniform_real_distribution<float>(-0.5, 0.5)(random_engine);
+  };
+  const std::string kTestString = "test string";
+  const std::string kDefaultString = "missing";
+  for (int i = 0; i < batch_size; i++) {
+    float val = random_func();
+    tensorflow::Example example;
+    std::string str;
+    if (val < -1) {
+      expected.push_back(default_value);
+      expected_bytes.push_back(kDefaultString);
+    } else {
+      expected.push_back(val);
+      expected_bytes.push_back(kTestString);
+      auto* features = example.mutable_features();
+      (*features->mutable_feature())["x"].mutable_float_list()->add_value(val);
+      (*features->mutable_feature())["y"].mutable_bytes_list()->add_value(
+          kTestString);
+    }
+    example.SerializeToString(&str);
+    example_list.push_back(str);
+  }
+
+  Tensor example_list_tensor =
+      test::AsTensor<tstring>(example_list, TensorShape({batch_size}));
+  TF_EXPECT_OK(sess->Run(
+      {{"input", example_list_tensor}},
+      {"ParseExample/ParseExampleV2", "ParseExample/ParseExampleV2:1"}, {},
+      &outputs));
+  test::ExpectTensorEqual<float>(
+      outputs[0],
+      test::AsTensor<float>(expected, TensorShape({batch_size, 1})));
+  EXPECT_EQ(outputs.size(), 2);
+  test::ExpectTensorEqual<tstring>(
+      outputs[1],
+      test::AsTensor<tstring>(expected_bytes, TensorShape({batch_size, 1})));
+  EXPECT_EQ(split_called, 1);
 }
 
 #ifdef PLATFORM_GOOGLE

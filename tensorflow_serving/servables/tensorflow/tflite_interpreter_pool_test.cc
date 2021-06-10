@@ -46,127 +46,28 @@ TEST(TfLiteInterpreterPool, CreateTfLiteInterpreterPoolTest) {
                                 &model_bytes));
   auto model = tflite::FlatBufferModel::BuildFromModel(
       flatbuffers::GetRoot<tflite::Model>(model_bytes.data()));
-  int id = 0;
-  bool use_batch_parallelism = false;
-  int batch_pool_size = 1;
-  bool run_in_caller = true;
-  const tensorflow::SessionOptions options;
-  std::unique_ptr<TfLiteInterpreterPool> pool;
-  TF_ASSERT_OK(TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
-      *model, run_in_caller, use_batch_parallelism, batch_pool_size, id,
-      options, pool));
-  ASSERT_EQ(pool->NumInterpreters(), batch_pool_size);
-  ASSERT_EQ(pool->Id(), id);
-  ASSERT_EQ(pool->FixedBatchSize(), 1);  // batch_parallelism turned off.
-  pool.reset();
-  run_in_caller = false;
-  use_batch_parallelism = true;
-  TF_ASSERT_OK(TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
-      *model, run_in_caller, use_batch_parallelism, ++batch_pool_size, id,
-      options, pool));
-  ASSERT_EQ(pool->NumInterpreters(), batch_pool_size);
-  ASSERT_EQ(pool->ThreadPool()->NumThreads(), batch_pool_size);
-  ASSERT_EQ(pool->UseBatchParallelism(), use_batch_parallelism);
-  pool.reset();
-  TF_ASSERT_OK(TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
-      *model, run_in_caller, use_batch_parallelism, ++batch_pool_size, id,
-      options, pool));
-  ASSERT_EQ(pool->NumInterpreters(), batch_pool_size);
-  ASSERT_EQ(pool->FixedBatchSize(), (kInitialBatchSize + 2) / batch_pool_size);
-  pool.reset();
-  use_batch_parallelism = false;
-  run_in_caller = true;
-  TF_ASSERT_OK(TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
-      *model, run_in_caller, use_batch_parallelism, batch_pool_size, id,
-      options, pool));
-  ASSERT_EQ(pool->NumInterpreters(), 1);
-  ASSERT_EQ(pool->FixedBatchSize(), 1);  // batch_parallelism turned off.
-  ASSERT_EQ(pool->ThreadPool(), nullptr);
-  ASSERT_EQ(pool->UseBatchParallelism(), use_batch_parallelism);
-  pool.reset();
-  use_batch_parallelism = true;
-  TF_ASSERT_OK(TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
-      *model, run_in_caller, use_batch_parallelism, batch_pool_size, id,
-      options, pool));
-  ASSERT_EQ(pool->NumInterpreters(), batch_pool_size + 1);
-  ASSERT_EQ(pool->ThreadPool()->NumThreads(), batch_pool_size);
-  pool.reset();
-}
-
-TEST(TfLiteSessionPool, CreateTfLiteSessionPoolTest) {
-  string model_bytes;
-  TF_ASSERT_OK(ReadFileToString(Env::Default(),
-                                test_util::TestSrcDirPath(kParseExampleModel),
-                                &model_bytes));
-  auto model = tflite::FlatBufferModel::BuildFromModel(
-      flatbuffers::GetRoot<tflite::Model>(model_bytes.data()));
   int pool_size = 1;
-  int batch_pool_size = 2;
-  bool run_in_caller_thread = false;
   const tensorflow::SessionOptions options;
-  std::unique_ptr<TfLiteSessionPool> session_pool;
-  TF_ASSERT_OK(TfLiteSessionPool::CreateTfLiteSessionPool(
-      model.get(), options, run_in_caller_thread, pool_size, batch_pool_size,
-      session_pool));
-  auto pool = session_pool->GetInterpreterPool();
-  ASSERT_EQ(pool->NumInterpreters(), batch_pool_size);
-  ASSERT_EQ(pool->Id(), 0);
-  ASSERT_EQ(pool->FixedBatchSize(),
-            (kInitialBatchSize + batch_pool_size - 1) / batch_pool_size);
-  session_pool->ReturnInterpreterPool(std::move(pool));
-  session_pool.reset();
+  std::unique_ptr<TfLiteInterpreterPool> interpreter_pool;
+  TF_ASSERT_OK(TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
+      model.get(), options, pool_size, interpreter_pool));
+
+  auto interpreter = interpreter_pool->GetInterpreter();
+  interpreter_pool->ReturnInterpreter(std::move(interpreter));
+  interpreter_pool.reset();
 
   pool_size = 2;
-  batch_pool_size = 2;
-  run_in_caller_thread = false;
-  TF_ASSERT_OK(TfLiteSessionPool::CreateTfLiteSessionPool(
-      model.get(), options, run_in_caller_thread, pool_size, batch_pool_size,
-      session_pool));
-
-  pool = session_pool->GetInterpreterPool();
-  ASSERT_EQ(pool->NumInterpreters(), batch_pool_size);
-  ASSERT_EQ(pool->Id(), 1);
-  ASSERT_EQ(pool->FixedBatchSize(), (kInitialBatchSize + 1) / 2);
-  session_pool->ReturnInterpreterPool(std::move(pool));
-  session_pool.reset();
-}
-
-TEST(TfLiteSessionPool, CreateTfLiteSessionPoolNotBatchParallelTest) {
-  string model_bytes;
-  TF_ASSERT_OK(ReadFileToString(Env::Default(),
-                                test_util::TestSrcDirPath(kMobileNetModel),
-                                &model_bytes));
-  auto model = tflite::FlatBufferModel::BuildFromModel(
-      flatbuffers::GetRoot<tflite::Model>(model_bytes.data()));
-  int pool_size = 1;
-  int batch_pool_size = 1;
-  bool run_in_caller_thread = false;
-  const tensorflow::SessionOptions options;
-  std::unique_ptr<TfLiteSessionPool> session_pool;
-  TF_ASSERT_OK(TfLiteSessionPool::CreateTfLiteSessionPool(
-      model.get(), options, run_in_caller_thread, pool_size, batch_pool_size,
-      session_pool));
-
-  auto pool = session_pool->GetInterpreterPool();
-  ASSERT_EQ(pool->NumInterpreters(), 1);
-  ASSERT_EQ(pool->Id(), 0);
-  ASSERT_EQ(pool->FixedBatchSize(), 1);
-  session_pool->ReturnInterpreterPool(std::move(pool));
-  session_pool.reset();
-
-  pool_size = 2;
-  batch_pool_size = 2;
-  run_in_caller_thread = false;
-  TF_ASSERT_OK(TfLiteSessionPool::CreateTfLiteSessionPool(
-      model.get(), options, run_in_caller_thread, pool_size, batch_pool_size,
-      session_pool));
-
-  pool = session_pool->GetInterpreterPool();
-  ASSERT_EQ(pool->NumInterpreters(), 1);
-  ASSERT_EQ(pool->Id(), 1);
-  ASSERT_EQ(pool->FixedBatchSize(), 1);
-  session_pool->ReturnInterpreterPool(std::move(pool));
-  session_pool.reset();
+  TF_ASSERT_OK(TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
+      model.get(), options, pool_size, interpreter_pool));
+  interpreter = interpreter_pool->GetInterpreter();
+  interpreter_pool->ReturnInterpreter(std::move(interpreter));
+  auto next_interpreter = interpreter_pool->GetInterpreter();
+  interpreter_pool->ReturnInterpreter(std::move(next_interpreter));
+  interpreter = interpreter_pool->GetInterpreter();
+  next_interpreter = interpreter_pool->GetInterpreter();
+  interpreter_pool->ReturnInterpreter(std::move(interpreter));
+  interpreter_pool->ReturnInterpreter(std::move(next_interpreter));
+  interpreter_pool.reset();
 }
 
 int GetTensorSize(const TfLiteTensor* tflite_tensor) {
@@ -214,13 +115,18 @@ TEST(TfLiteInterpreterWrapper, TfLiteInterpreterWrapperTest) {
   int actual_batch_size = 3;
   interpreter->ResizeInputTensor(idx, {fixed_batch_size});
   ASSERT_EQ(interpreter->AllocateTensors(), kTfLiteOk);
+
   auto interpreter_wrapper =
       std::make_unique<TfLiteInterpreterWrapper>(std::move(interpreter));
-  interpreter_wrapper->SetMiniBatchSize(fixed_batch_size);
-  ASSERT_EQ(interpreter_wrapper->GetMiniBatchSize(), fixed_batch_size);
-  std::vector<tensorflow::tstring> data;
+  interpreter_wrapper->SetBatchSize(fixed_batch_size);
+  ASSERT_EQ(interpreter_wrapper->GetBatchSize(), fixed_batch_size);
+  std::vector<const Tensor*> data;
   std::vector<float> expected_floats;
   std::vector<std::string> expected_strs;
+  std::vector<std::string> expected_input_strs;
+  TensorShape shape;
+  shape.AddDim(actual_batch_size);
+  Tensor t(DT_STRING, shape);
   for (int i = 0; i < actual_batch_size; ++i) {
     tensorflow::Example example;
     std::string str;
@@ -234,11 +140,14 @@ TEST(TfLiteInterpreterWrapper, TfLiteInterpreterWrapperTest) {
     (*features->mutable_feature())["y"].mutable_bytes_list()->add_value(
         expected_strs.back());
     example.SerializeToString(&str);
-    data.push_back(str);
+    t.flat<tstring>()(i) = str;
+    expected_input_strs.push_back(str);
   }
-  ASSERT_FALSE(interpreter_wrapper->SetStringData(data, tensor, -1) ==
-               Status::OK());
-  TF_ASSERT_OK(interpreter_wrapper->SetStringData(data, tensor, idx));
+  data.push_back(&t);
+  ASSERT_FALSE(interpreter_wrapper->SetStringData(
+                   data, tensor, -1, actual_batch_size) == Status::OK());
+  TF_ASSERT_OK(
+      interpreter_wrapper->SetStringData(data, tensor, idx, actual_batch_size));
   auto wrapped = interpreter_wrapper->Get();
   ASSERT_EQ(wrapped->inputs().size(), 1);
   int input_idx = wrapped->inputs()[0];
@@ -246,7 +155,7 @@ TEST(TfLiteInterpreterWrapper, TfLiteInterpreterWrapperTest) {
   ASSERT_EQ(GetTensorSize(tflite_input_tensor), fixed_batch_size);
   ASSERT_EQ(tflite::GetStringCount(tflite_input_tensor), actual_batch_size);
   auto input_strs = ExtractVector<std::string>(tflite_input_tensor);
-  EXPECT_THAT(input_strs, ::testing::ElementsAreArray(data));
+  EXPECT_THAT(input_strs, ::testing::ElementsAreArray(expected_input_strs));
   ASSERT_EQ(interpreter_wrapper->Invoke(), kTfLiteOk);
   const std::vector<int>& indices = wrapped->outputs();
   auto* tflite_tensor = wrapped->tensor(indices[0]);

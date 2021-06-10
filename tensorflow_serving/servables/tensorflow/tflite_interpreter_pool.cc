@@ -19,7 +19,10 @@ limitations under the License.
 #include <memory>
 #include <vector>
 
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/platform/errors.h"
+#include "tensorflow/lite/external_cpu_backend_context.h"
+#include "tensorflow/lite/kernels/cpu_backend_context.h"
 #include "tensorflow/lite/kernels/parse_example/parse_example.h"
 #include "tensorflow/lite/kernels/register.h"
 
@@ -28,14 +31,16 @@ namespace serving {
 namespace internal {
 
 TfLiteInterpreterWrapper::TfLiteInterpreterWrapper(
+    std::unique_ptr<tflite::ExternalCpuBackendContext> external_context,
     std::unique_ptr<tflite::Interpreter> interpreter)
     :
 #ifdef TFLITE_PROFILE
+      external_context_(std::move(external_context)),
       interpreter_(std::move(interpreter)),
-      fixed_batch_size_(fixed_batch_size),
       max_num_entries_(TFLITE_PROFILE_EVENTS),
       profiler_(max_num_entries_)
 #else
+      external_context_(std::move(external_context)),
       interpreter_(std::move(interpreter))
 #endif
 {
@@ -53,20 +58,23 @@ TfLiteInterpreterWrapper::TfLiteInterpreterWrapper(
 }
 
 tensorflow::Status TfLiteInterpreterWrapper::SetStringData(
-    const gtl::ArraySlice<tensorflow::tstring>& batch,
-    TfLiteTensor* tflite_tensor, int tensor_index) {
+    const std::vector<const Tensor*>& tensors, TfLiteTensor* tflite_tensor,
+    int tensor_index, int batch_size) {
   // Format of the buffer for tflite:
   //   [0] number of strings (int32_t)
   //   [4] offset of each string (int32_t)
   //   [sizeof(int32_t) * (num_strings + 1)]] total size of strings
   //   [sizeof(int32_t) * (num_strings + 2)] batch.data()
-  int32_t num_strings = batch.size();
+  int32_t num_strings = batch_size;
   offset_.clear();
   size_t total_size = 0;
   offset_.push_back(static_cast<int32_t>(total_size));
-  for (int i = 0; i < num_strings; i++) {
-    total_size += batch[i].size();
-    offset_.push_back(static_cast<int32_t>(total_size));
+  for (const auto& tensor : tensors) {
+    const auto& flat = tensor->flat<tstring>();
+    for (int i = 0; i < flat.size(); ++i) {
+      total_size += flat(i).size();
+      offset_.push_back(static_cast<int32_t>(total_size));
+    }
   }
   size_t required_bytes = total_size + sizeof(int32_t) * (num_strings + 2);
   if (tensor_buffer_.find(tensor_index) == tensor_buffer_.end()) {
@@ -92,10 +100,13 @@ tensorflow::Status TfLiteInterpreterWrapper::SetStringData(
     memcpy(tensor_buffer_[tensor_index].get() + sizeof(int32_t) * (i + 1),
            &offset_i, sizeof(int32_t));
   }
-  for (int i = 0; i < num_strings; i++) {
-    memcpy(tensor_buffer_[tensor_index].get() + start, batch[i].data(),
-           batch[i].size());
-    start += batch[i].size();
+  for (const auto& tensor : tensors) {
+    const auto& flat = tensor->flat<tstring>();
+    for (int i = 0; i < flat.size(); ++i) {
+      memcpy(tensor_buffer_[tensor_index].get() + start, flat(i).data(),
+             flat(i).size());
+      start += flat(i).size();
+    }
   }
 
   // tflite_tensor will take ownership of the pointer.
@@ -128,128 +139,61 @@ TfLiteStatus TfLiteInterpreterWrapper::Invoke() {
   return status;
 }
 
-tensorflow::Status TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
-    const tflite::FlatBufferModel& model, bool run_in_caller,
-    bool use_batch_parallelism, int batch_pool_size, int id,
+tensorflow::Status TfLiteInterpreterWrapper::CreateTfLiteInterpreterWrapper(
+    const tflite::FlatBufferModel& model,
     const tensorflow::SessionOptions& options,
-    std::unique_ptr<TfLiteInterpreterPool>& pool) {
-  // If can't use_batch_parallelism or pool size is 1,
-  // just use 1 interpreter and run in caller.
-  if (!use_batch_parallelism || batch_pool_size == 1) {
-    run_in_caller = true;
-    batch_pool_size = 1;
-    use_batch_parallelism = false;
-  }
-  std::unique_ptr<tensorflow::thread::ThreadPool> thread_pool;
-  int num_interpreters = run_in_caller ? 1 : 0;
-  if (!run_in_caller || use_batch_parallelism) {
-    thread_pool.reset(new tensorflow::thread::ThreadPool(
-        options.env, tensorflow::ThreadOptions(),
-        absl::StrCat(kTfLiteThreadPoolName, id), batch_pool_size, false,
-        nullptr));
-    num_interpreters += thread_pool->NumThreads();
-  }
-
-  // TODO(b/140959776): Add support for non-builtin ops (flex or custom ops).
+    std::unique_ptr<TfLiteInterpreterWrapper>& wrapper) {
   tflite::ops::builtin::BuiltinOpResolver resolver;
   tflite::ops::custom::AddParseExampleOp(&resolver);
-  int fixed_batch_size = 1;
-  if (use_batch_parallelism) {
-    if (num_interpreters < 1) {
-      return errors::InvalidArgument(
-          "CreateTfLiteInterpreterPool requested ",
-          "invalid number of interpreters: ", num_interpreters);
-    }
-    fixed_batch_size =
-        (kInitialBatchSize + num_interpreters - 1) / num_interpreters;
-  }
-  std::vector<std::unique_ptr<TfLiteInterpreterWrapper>> interpreters;
+  std::unique_ptr<tflite::Interpreter> interpreter;
 
-  for (int i = 0; i < num_interpreters; i++) {
-    std::unique_ptr<tflite::Interpreter> interpreter;
-    if (tflite::InterpreterBuilder(model, resolver)(
-            &interpreter, /*num_threads=*/1) != kTfLiteOk) {
-      return errors::Internal(
-          "Failed to create a TFLite interpreter with the given model");
-    }
-    const int idx = interpreter->inputs()[0];
-    const auto* tensor = interpreter->tensor(idx);
-    if (tensor->type == kTfLiteString) {
-      interpreter->ResizeInputTensor(idx, {fixed_batch_size});
-    }
-    if (interpreter->AllocateTensors() != kTfLiteOk) {
-      return errors::Internal("Failed to allocate tensors");
-    }
-    interpreters.push_back(
-        std::make_unique<TfLiteInterpreterWrapper>(std::move(interpreter)));
-    interpreters.back()->SetMiniBatchSize(fixed_batch_size);
+  // Use an initial batch_size of 1, will be resized later.
+  const int batch_size = 1;
+  // Use a single thread to reduce contention across sessions.
+  const int num_threads = 1;
+
+  if (tflite::InterpreterBuilder(model, resolver)(&interpreter, num_threads) !=
+      kTfLiteOk) {
+    return errors::Internal(
+        "Failed to create a TFLite interpreter with the given model");
   }
-  pool.reset(new TfLiteInterpreterPool(
-      id, std::move(interpreters), std::move(thread_pool), num_interpreters,
-      fixed_batch_size, use_batch_parallelism));
+  std::unique_ptr<tflite::ExternalCpuBackendContext> external_context(
+      new tflite::ExternalCpuBackendContext());
+  std::unique_ptr<tflite::CpuBackendContext> cpu_backend_context(
+      new tflite::CpuBackendContext());
+  cpu_backend_context->SetUseCaching(true);
+  cpu_backend_context->SetMaxNumThreads(num_threads);
+  external_context->set_internal_backend_context(
+      std::move(cpu_backend_context));
+  interpreter->SetExternalContext(kTfLiteCpuBackendContext,
+                                  external_context.get());
+  const int idx = interpreter->inputs()[0];
+  const auto* tensor = interpreter->tensor(idx);
+  if (tensor->type == kTfLiteString) {
+    if (interpreter->ResizeInputTensor(idx, {batch_size}) != kTfLiteOk) {
+      return errors::Internal("Failed to resize input");
+    }
+  }
+  if (interpreter->AllocateTensors() != kTfLiteOk) {
+    return errors::Internal("Failed to allocate tensors");
+  }
+  wrapper.reset(new TfLiteInterpreterWrapper(std::move(external_context),
+                                             std::move(interpreter)));
   return tensorflow::Status::OK();
 }
 
-TfLiteInterpreterPool::TfLiteInterpreterPool(
-    int id, std::vector<std::unique_ptr<TfLiteInterpreterWrapper>> interpreters,
-    std::unique_ptr<tensorflow::thread::ThreadPool> thread_pool,
-    int num_interpreters, int fixed_batch_size, bool use_batch_parallelism)
-    : id_(id),
-      interpreters_(std::move(interpreters)),
-      thread_pool_(std::move(thread_pool)),
-      num_interpreters_(num_interpreters),
-      fixed_batch_size_(fixed_batch_size),
-      use_batch_parallelism_(use_batch_parallelism) {}
-
-std::unique_ptr<TfLiteInterpreterWrapper>&
-TfLiteInterpreterPool::GetInterpreter(int interpreter_idx) {
-  return interpreters_[interpreter_idx];
-}
-
-namespace {
-
-bool IsBatchParallelizable(const tflite::Model* model) {
-  auto tflite_model = absl::make_unique<tflite::ModelT>();
-  model->UnPackTo(tflite_model.get(), nullptr);
-  if (tflite_model->subgraphs.empty()) {
-    return false;
-  }
-  const auto& subgraph = tflite_model->subgraphs[0];
-  if (subgraph->inputs.size() != 1) {
-    return false;
-  }
-  int input_tensor_id = subgraph->inputs[0];
-  const std::vector<string> supported_ops = {"ParseExample", "ParseExampleV2"};
-  for (size_t op_idx = 0; op_idx < subgraph->operators.size(); op_idx++) {
-    tflite::OperatorT* op = subgraph->operators[op_idx].get();
-    if (std::find(op->inputs.begin(), op->inputs.end(), input_tensor_id) !=
-        op->inputs.end()) {
-      const std::string& custom_code =
-          tflite_model->operator_codes[op->opcode_index]->custom_code;
-      return std::find(supported_ops.begin(), supported_ops.end(),
-                       custom_code) != supported_ops.end();
-    }
-  }
-  return false;
-}
-
-}  // namespace
-
-tensorflow::Status TfLiteSessionPool::CreateTfLiteSessionPool(
+tensorflow::Status TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
     const tflite::FlatBufferModel* model,
-    const tensorflow::SessionOptions& options, bool run_in_caller,
-    int pool_size, int batch_pool_size,
-    std::unique_ptr<TfLiteSessionPool>& tflite_session_pool) {
-  bool use_batch_parallelism = IsBatchParallelizable(model->GetModel());
-  std::vector<std::unique_ptr<TfLiteInterpreterPool>> pools;
+    const tensorflow::SessionOptions& options, int pool_size,
+    std::unique_ptr<TfLiteInterpreterPool>& interpreter_pool) {
+  std::vector<std::unique_ptr<TfLiteInterpreterWrapper>> interpreters(
+      pool_size);
   for (int i = 0; i < pool_size; i++) {
-    std::unique_ptr<TfLiteInterpreterPool> pool;
-    TF_RETURN_IF_ERROR(TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
-        *model, run_in_caller, use_batch_parallelism, batch_pool_size, i,
-        options, pool));
-    pools.push_back(std::move(pool));
+    auto& wrapper = interpreters[i];
+    TF_RETURN_IF_ERROR(TfLiteInterpreterWrapper::CreateTfLiteInterpreterWrapper(
+        *model, options, wrapper));
   }
-  tflite_session_pool.reset(new TfLiteSessionPool(std::move(pools)));
+  interpreter_pool.reset(new TfLiteInterpreterPool(std::move(interpreters)));
   return tensorflow::Status::OK();
 }
 

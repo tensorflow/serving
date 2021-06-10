@@ -19,10 +19,15 @@ limitations under the License.
 #include <string>
 #include <utility>
 
+#include "absl/functional/bind_front.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/tensor_shape.pb.h"
+#include "tensorflow/core/framework/tensor_util.h"
 #include "tensorflow/core/lib/core/blocking_counter.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/core/notification.h"
+#include "tensorflow/core/lib/gtl/cleanup.h"
+#include "tensorflow/core/platform/errors.h"
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/kernels/cpu_backend_context.h"
 #include "tensorflow/lite/kernels/internal/tensor_utils.h"
@@ -31,6 +36,7 @@ limitations under the License.
 #include "tensorflow/lite/string_util.h"
 #include "tensorflow/lite/tools/signature/signature_def_util.h"
 #include "tensorflow/lite/util.h"
+#include "tensorflow_serving/batching/incremental_barrier.h"
 #include "tensorflow_serving/servables/tensorflow/tflite_interpreter_pool.h"
 
 namespace tensorflow {
@@ -138,22 +144,21 @@ Status GetTensorInfoMap(const tflite::Interpreter* interpreter, bool input,
   return Status::OK();
 }
 
-std::vector<int> TensorDims(const Tensor* tensor) {
-  std::vector<int> dims(tensor->dims());
-  for (int i = 0; i < tensor->dims(); ++i) {
-    dims[i] = static_cast<int>(tensor->dim_size(i));
+std::vector<int> TensorDims(const Tensor& tensor) {
+  std::vector<int> dims(tensor.dims());
+  for (int i = 0; i < tensor.dims(); ++i) {
+    dims[i] = static_cast<int>(tensor.dim_size(i));
   }
   return dims;
 }
 
 // Create output tensors making sure they are the right size. //
 Status CreateOutputTensors(
-    std::unique_ptr<internal::TfLiteInterpreterPool>& interpreter_pool,
+    std::unique_ptr<internal::TfLiteInterpreterWrapper>& interpreter_wrapper,
     const std::vector<string>& output_tensor_names,
     const std::map<string, int>& output_tensor_to_idx,
     std::map<int32_t, Tensor*>& tflite_idx_to_output_tensor,
-    std::vector<Tensor>* output_tensors, bool use_batch_parallelism = false,
-    int actual_batch_size = 0) {
+    std::vector<Tensor>* output_tensors) {
   output_tensors->reserve(output_tensor_names.size());
   for (std::string tfname : output_tensor_names) {
     auto fix_status = FixTfLiteTensorName(output_tensor_to_idx, tfname);
@@ -163,14 +168,9 @@ Status CreateOutputTensors(
     }
     const int tflite_idx = output_tensor_to_idx.at(tfname);
     TensorShape tf_shape;
-    const auto& interpreter = interpreter_pool->GetInterpreter(0)->Get();
+    const auto& interpreter = interpreter_wrapper->Get();
     const auto* tflite_tensor = interpreter->tensor(tflite_idx);
-    if (use_batch_parallelism) {
-      tf_shape.AddDim(actual_batch_size);
-    } else if (tflite_tensor->dims->size > 0) {
-      tf_shape.AddDim(tflite_tensor->dims->data[0]);
-    }
-    for (int i = 1; i < tflite_tensor->dims->size; ++i) {
+    for (int i = 0; i < tflite_tensor->dims->size; ++i) {
       tf_shape.AddDim(tflite_tensor->dims->data[i]);
     }
     DataType tf_type;
@@ -182,24 +182,30 @@ Status CreateOutputTensors(
 }
 
 Status SetInputAndInvokeMiniBatch(
-    std::unique_ptr<internal::TfLiteInterpreterPool>& interpreter_pool,
-    const std::map<int, const Tensor*>& tflite_idx_to_tf_input_tensor,
-    bool use_batch_parallelism = false, int32_t num_minibatches = 1,
-    int minibatch = 0) {
-  const auto& interpreter_wrapper = interpreter_pool->GetInterpreter(minibatch);
+    std::unique_ptr<internal::TfLiteInterpreterWrapper>& interpreter_wrapper,
+    const std::vector<int>& tflite_input_indices,
+    const std::vector<std::vector<const Tensor*>>& inputs, int batch_size,
+    int* fixed_batch_size) {
   auto* interpreter = interpreter_wrapper->Get();
   // Load input data from Tensorflow tensors.
-  for (const auto entry : tflite_idx_to_tf_input_tensor) {
-    int tflite_input_idx = entry.first;
+  for (int i = 0; i < tflite_input_indices.size(); ++i) {
+    int tflite_input_idx = tflite_input_indices[i];
     auto tflite_input_tensor = interpreter->tensor(tflite_input_idx);
-    const auto* tf_input_tensor = entry.second;
+    const auto& tf_input_tensors = inputs[i];
     if (tflite_input_tensor->type != kTfLiteString) {
-      if (use_batch_parallelism) {
-        return errors::Internal(
-            "Batch parallelism should not be enabled for non-string inputs");
+      const Tensor* tf_input_tensor = tf_input_tensors[0];
+      if (tf_input_tensors.size() > 1) {
+        Tensor concated;
+        std::vector<Tensor> to_concatenate;
+        to_concatenate.reserve(tf_input_tensors.size());
+        for (const auto* t : tf_input_tensors) {
+          to_concatenate.push_back(std::move(*t));
+        }
+        TF_RETURN_IF_ERROR(tensor::Concat(to_concatenate, &concated));
+        tf_input_tensor = &concated;
       }
       auto tensor_bytes = tf_input_tensor->tensor_data();
-      std::vector<int> tf_dims = TensorDims(tf_input_tensor);
+      std::vector<int> tf_dims = TensorDims(*tf_input_tensor);
       std::vector<int> tflite_dims(
           tflite_input_tensor->dims->data,
           tflite_input_tensor->dims->data + tflite_input_tensor->dims->size);
@@ -220,30 +226,22 @@ Status SetInputAndInvokeMiniBatch(
                   tensor_bytes.size());
     } else {
       // Copy the string tensor data to the input tflite tensor.
-      const int fixed_batch_size = interpreter_pool->FixedBatchSize();
-      const int actual_batch_size = entry.second->NumElements();
-      const int begin = fixed_batch_size * minibatch;
-      int end = static_cast<int>(actual_batch_size);
-      if (use_batch_parallelism) {
-        end = std::min(end, fixed_batch_size * (minibatch + 1));
-      }
-      const auto batch = gtl::ArraySlice<tstring>(entry.second->flat<tstring>())
-                             .subspan(begin, end - begin);
-      const int minibatch_size = batch.size();
-      // Always resize when not using parallelism.
       const bool needs_resize =
-          use_batch_parallelism
-              ? minibatch_size > interpreter_wrapper->GetMiniBatchSize()
-              : minibatch_size != interpreter_wrapper->GetMiniBatchSize();
+          fixed_batch_size ? batch_size > interpreter_wrapper->GetBatchSize()
+                           : batch_size != interpreter_wrapper->GetBatchSize();
       if (needs_resize) {
-        interpreter->ResizeInputTensor(entry.first, {minibatch_size});
-        interpreter_wrapper->SetMiniBatchSize(minibatch_size);
+        // std::cout << "resizing to: " << batch_size << std::endl;
+        interpreter->ResizeInputTensor(tflite_input_idx, {batch_size});
+        interpreter_wrapper->SetBatchSize(batch_size);
         if (interpreter->AllocateTensors() != kTfLiteOk) {
           return errors::Internal("Failed to allocate tensors");
         }
       }
+      if (fixed_batch_size) {
+        *fixed_batch_size = interpreter_wrapper->GetBatchSize();
+      }
       TF_RETURN_IF_ERROR(interpreter_wrapper->SetStringData(
-          batch, tflite_input_tensor, tflite_input_idx));
+          tf_input_tensors, tflite_input_tensor, tflite_input_idx, batch_size));
     }
   }
   if (interpreter_wrapper->Invoke() != kTfLiteOk) {
@@ -253,43 +251,27 @@ Status SetInputAndInvokeMiniBatch(
 }
 
 Status SetMiniBatchOutput(
-    std::unique_ptr<internal::TfLiteInterpreterPool>& interpreter_pool,
+    std::unique_ptr<internal::TfLiteInterpreterWrapper>& interpreter_wrapper,
     const std::map<int, Tensor*>& tflite_idx_to_output_tensor,
-    std::vector<Tensor>* outputs, bool use_batch_parallelism = false,
-    int actual_batch_size = 0, int num_minibatches = 1, size_t minibatch = 0) {
-  const int fixed_batch_size = interpreter_pool->FixedBatchSize();
+    std::vector<Tensor>* outputs) {
   for (const auto& entry : tflite_idx_to_output_tensor) {
     Tensor* tensor = entry.second;
     const DataType tf_type = tensor->dtype();
-    const int begin = fixed_batch_size * minibatch;
-    const int end = std::min(fixed_batch_size * static_cast<int>(minibatch + 1),
-                             actual_batch_size);
-    const int actual_minibatch_size = end - begin;
-    const auto& interpreter_wrapper =
-        interpreter_pool->GetInterpreter(minibatch);
+    if (tensor->NumElements() == 0) {
+      continue;
+    }
     const auto* interpreter = interpreter_wrapper->Get();
     auto tflite_tensor = interpreter->tensor(entry.first);
     if (DataTypeCanUseMemcpy(tf_type)) {
       auto tensor_bytes = tensor->tensor_data();
       int offset = 0;
       size_t tflite_tensor_bytes = tflite_tensor->bytes;
-      if (use_batch_parallelism) {
-        // Each batch will produce minibatch_size tensors.
-        // We want to make sure we only copy actual_batch_size.
-        offset = minibatch * tflite_tensor_bytes;
-        tflite_tensor_bytes =
-            tflite_tensor_bytes / fixed_batch_size * actual_minibatch_size;
-      }
       std::memcpy(const_cast<char*>(tensor_bytes.data() + offset),
                   tflite_tensor->data.raw, tflite_tensor_bytes);
     } else if (tflite_tensor->type == kTfLiteString) {
       const int string_count = tflite::GetStringCount(tflite_tensor);
       int num_strings = string_count;
       int offset = 0;
-      if (use_batch_parallelism) {
-        offset = minibatch * string_count;
-        num_strings = string_count / fixed_batch_size * actual_minibatch_size;
-      }
       auto str_tensors = tensor->flat<tstring>();
       for (int i = 0; i < num_strings; i++) {
         const auto& ref = tflite::GetString(tflite_tensor, i);
@@ -300,81 +282,125 @@ Status SetMiniBatchOutput(
   return Status::OK();
 }
 
-typedef std::function<Status(std::unique_ptr<internal::TfLiteInterpreterPool>&,
-                             const std::map<int, const Tensor*>&, bool, int32_t,
-                             int)>
-    BatchFunction;
-void ParallelFor(
-    const BatchFunction& f,
-    std::unique_ptr<internal::TfLiteInterpreterPool>& interpreter_pool,
-    const std::map<int, const Tensor*>& tflite_inputs, int n,
-    bool use_batch_parallelism, bool run_in_caller,
-    std::vector<Status>& status) {
-  if (n == 0) return;
-  auto* thread_pool = interpreter_pool->ThreadPool();
-  if (thread_pool == nullptr) {
-    for (int i = 0; i < n; ++i) {
-      status[i] =
-          f(interpreter_pool, tflite_inputs, use_batch_parallelism, n, i);
-    }
-    return;
-  }
-  int num_jobs = run_in_caller ? n - 1 : n;
-  int first_job = run_in_caller ? 1 : 0;
-  tensorflow::BlockingCounter counter(num_jobs);
-  for (int i = first_job; i < n; ++i) {
-    thread_pool->Schedule([&f, &interpreter_pool, &tflite_inputs,
-                           use_batch_parallelism, n, i, &counter, &status] {
-      status[i] =
-          f(interpreter_pool, tflite_inputs, use_batch_parallelism, n, i);
-      counter.DecrementCount();
-    });
-  }
-  if (run_in_caller) {
-    status[0] = f(interpreter_pool, tflite_inputs, use_batch_parallelism, n, 0);
-  }
-  counter.Wait();
-}
+}  // namespace
 
-Status RunBatchParallel(
-    std::unique_ptr<internal::TfLiteInterpreterPool>& interpreter_pool,
-    const std::vector<std::pair<string, Tensor>>& inputs,
-    const std::map<int, const Tensor*>& tflite_idx_to_input_tensor,
-    bool run_in_caller_thread, const std::vector<string>& output_tensor_names,
-    const std::map<string, int>& output_tensor_to_index,
-    std::vector<Tensor>* outputs) {
-  const int actual_batch_size = inputs[0].second.NumElements();
-  const int32_t num_threads = interpreter_pool->NumInterpreters();
-  const int min_batch_size = interpreter_pool->FixedBatchSize();
-  int num_minibatches = std::min(
-      num_threads, (actual_batch_size + min_batch_size - 1) / min_batch_size);
-  std::vector<Status> status_of_minibatches(num_minibatches);
-  ParallelFor(SetInputAndInvokeMiniBatch, interpreter_pool,
-              tflite_idx_to_input_tensor, num_minibatches, true,
-              run_in_caller_thread, status_of_minibatches);
-  for (Status& status_of_minibatch : status_of_minibatches) {
-    TF_RETURN_IF_ERROR(status_of_minibatch);
+// Split an input task up into multiple tasks.
+Status TfLiteSession::SplitTfLiteInputTask(
+    std::unique_ptr<TfLiteBatchTask>* input_task_ptr,
+    int open_batch_remaining_slot, int max_batch_size,
+    std::vector<std::unique_ptr<TfLiteBatchTask>>* output_tasks) {
+  auto* input_task = input_task_ptr->get();
+  auto split_output =
+      std::make_shared<std::vector<std::unique_ptr<std::vector<Tensor>>>>();
+  auto partial_status = std::make_shared<ThreadSafeStatus>();
+  auto split_task_done_callback = [split_output, partial_status, input_task]() {
+    // notify the input task.
+    auto cleanup = gtl::MakeCleanup([done_notification = input_task->done]() {
+      done_notification->Notify();
+    });
+
+    // partial status is set during actual running.
+    if (!partial_status->status().ok()) {
+      *input_task->status = partial_status->status();
+      return;
+    }
+
+    // get the total number of tensors to concatenate (number of tasks)
+    int output_size = split_output->size();
+    // each split contains the same number of output tensors.
+    int tensor_size = (*split_output)[0]->size();
+
+    // for each tensor output
+    for (int tensor_idx = 0; tensor_idx < tensor_size; ++tensor_idx) {
+      Tensor output_tensor;  // the concatened tensor
+      std::vector<Tensor> to_concatenate;
+      to_concatenate.reserve(output_size);
+      // for each split task concatenate the output
+      for (int output_idx = 0; output_idx < output_size; ++output_idx) {
+        to_concatenate.push_back(
+            std::move((*(*split_output)[output_idx])[tensor_idx]));
+      }
+      const auto concat_status = tensor::Concat(to_concatenate, &output_tensor);
+      if (!concat_status.ok()) {
+        *input_task->status = concat_status;
+        return;
+      }
+      // add the concatenated tensor to input_tasks output
+      input_task->outputs->push_back(output_tensor);
+    }
+    *input_task->status = Status::OK();
+  };
+
+  // The Callback will be run only after all partial tasks finished.
+  IncrementalBarrier barrier(std::move(split_task_done_callback));
+  std::vector<int64> output_task_sizes;
+
+  if (open_batch_remaining_slot > 0) {
+    output_task_sizes.push_back(open_batch_remaining_slot);
+    split_output->emplace_back(absl::make_unique<std::vector<Tensor>>());
   }
-  std::map<int32_t, Tensor*> tflite_idx_to_output_tensor;
-  TF_RETURN_IF_ERROR(CreateOutputTensors(
-      interpreter_pool, output_tensor_names, output_tensor_to_index,
-      tflite_idx_to_output_tensor, outputs, true, actual_batch_size));
-  // Set the contents of the return tensors.
-  for (size_t i = 0; i < num_minibatches; ++i) {
-    TF_RETURN_IF_ERROR(SetMiniBatchOutput(
-        interpreter_pool, tflite_idx_to_output_tensor, outputs, true,
-        actual_batch_size, num_minibatches, i));
+
+  for (int left_task_size = input_task->size() - open_batch_remaining_slot;
+       left_task_size > 0; left_task_size -= max_batch_size) {
+    int next_task_size = std::min(left_task_size, max_batch_size);
+    output_task_sizes.push_back(next_task_size);
+    split_output->emplace_back(absl::make_unique<std::vector<Tensor>>());
+  }
+
+  const int output_task_num = output_task_sizes.size();
+  output_tasks->reserve(output_task_num);
+  for (int i = 0; i < output_task_num; ++i) {
+    std::unique_ptr<TfLiteBatchTask> task;
+    TfLiteBatchTask::CreatePartialTfLiteBatchTask(
+        input_task->input_indices, input_task->output_tensor_names,
+        (*split_output)[i].get(), barrier.Inc(), partial_status.get(), &task);
+    output_tasks->push_back(std::move(task));
+  }
+
+  for (int i = 0; i < input_task->inputs.size(); ++i) {
+    const Tensor& input = input_task->inputs[i];
+    std::vector<Tensor> split_tensors;
+    auto status = tensor::Split(input, output_task_sizes, &split_tensors);
+    if (status != Status::OK()) {
+      return status;
+    }
+    for (int output_idx = 0; output_idx < output_task_num; ++output_idx) {
+      auto& output_task = (*output_tasks)[output_idx];
+      output_task->inputs.push_back(std::move(split_tensors[output_idx]));
+    }
   }
   return Status::OK();
 }
 
-}  // namespace
+Status TfLiteSession::CreateDefaultBasicBatchScheduler(
+    const BasicBatchScheduler<TfLiteBatchTask>::Options& options,
+    std::function<void(std::unique_ptr<Batch<TfLiteBatchTask>>)>
+        process_batch_callback,
+    std::unique_ptr<BasicBatchScheduler<TfLiteBatchTask>>* batch_scheduler) {
+  std::unique_ptr<BasicBatchScheduler<TfLiteBatchTask>> basic_batch_scheduler;
+  TF_RETURN_IF_ERROR(BasicBatchScheduler<TfLiteBatchTask>::Create(
+      options, process_batch_callback, &basic_batch_scheduler));
+  *batch_scheduler = std::move(basic_batch_scheduler);
+  return Status::OK();
+}
+
+Status TfLiteSession::SetScheduler(
+    const SchedulerCreator& scheduler_creator,
+    const BasicBatchScheduler<TfLiteBatchTask>::Options& options) {
+  use_fixed_batch_size_ = true;
+  auto bound_scheduler_creator = absl::bind_front(
+      &TfLiteSession::CreateDefaultBasicBatchScheduler, options);
+  return bound_scheduler_creator(
+      [this](std::unique_ptr<Batch<TfLiteBatchTask>> batch) {
+        this->ProcessBatch(std::move(batch));
+      },
+      &scheduler_);
+}
 
 Status TfLiteSession::Create(string&& buffer, const SessionOptions& options,
                              int num_pools, int num_interpreters_per_pool,
                              std::unique_ptr<TfLiteSession>* tflite_session,
-                             ::google::protobuf::Map<string, SignatureDef>* signatures,
-                             bool run_in_caller_thread) {
+                             ::google::protobuf::Map<string, SignatureDef>* signatures) {
   auto model = tflite::FlatBufferModel::BuildFromModel(
       flatbuffers::GetRoot<tflite::Model>(buffer.data()));
   if (model == nullptr) {
@@ -456,18 +482,35 @@ Status TfLiteSession::Create(string&& buffer, const SessionOptions& options,
     sigdef->set_method_name(kPredictMethodName);
   }
 
-  num_pools = std::max(1, num_pools);
-  num_interpreters_per_pool = std::max(1, num_interpreters_per_pool);
-
-  std::unique_ptr<internal::TfLiteSessionPool> session_pool;
-  TF_RETURN_IF_ERROR(internal::TfLiteSessionPool::CreateTfLiteSessionPool(
-      model.get(), options, run_in_caller_thread, num_pools,
-      num_interpreters_per_pool, session_pool));
+  int num_interpreters = std::max(1, num_pools);
+  std::unique_ptr<internal::TfLiteInterpreterPool> interpreter_pool;
+  TF_RETURN_IF_ERROR(
+      internal::TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
+          model.get(), options, num_interpreters, interpreter_pool));
 
   tflite_session->reset(new TfLiteSession(
       std::move(input_tensor_to_index), std::move(output_tensor_to_index),
-      std::move(buffer), std::move(model), std::move(session_pool),
-      run_in_caller_thread));
+      std::move(buffer), std::move(model), std::move(interpreter_pool)));
+
+  if (num_interpreters_per_pool > 1) {
+    // Consider replacing with parameters loaded from the tflite model.
+    const int min_allowed_batch =
+        (internal::kInitialBatchSize + num_interpreters_per_pool - 1) /
+        num_interpreters_per_pool;
+    const int max_enqueued_batches = num_interpreters * 100;
+    BasicBatchScheduler<TfLiteBatchTask>::Options scheduler_options;
+    scheduler_options.num_batch_threads = num_interpreters;
+    scheduler_options.max_batch_size = internal::kInitialBatchSize;
+    scheduler_options.enable_large_batch_splitting = true;
+    scheduler_options.max_execution_batch_size = min_allowed_batch;
+    scheduler_options.max_enqueued_batches = max_enqueued_batches;
+    scheduler_options.split_input_task_func = SplitTfLiteInputTask;
+
+    TF_RETURN_IF_ERROR(
+        (*tflite_session)
+            ->SetScheduler(&TfLiteSession::CreateDefaultBasicBatchScheduler,
+                           scheduler_options));
+  }
   return Status::OK();
 }
 
@@ -475,14 +518,12 @@ TfLiteSession::TfLiteSession(
     std::map<string, int>&& input_tensor_to_index,
     std::map<string, int>&& output_tensor_to_index, string&& buffer,
     std::unique_ptr<tflite::FlatBufferModel> model,
-    std::unique_ptr<internal::TfLiteSessionPool> session_pool,
-    bool run_in_caller_thread)
+    std::unique_ptr<internal::TfLiteInterpreterPool> interpreter_pool)
     : input_tensor_to_index_(std::move(input_tensor_to_index)),
       output_tensor_to_index_(std::move(output_tensor_to_index)),
       model_serialized_bytes_(std::move(buffer)),
       model_(std::move(model)),
-      session_pool_(std::move(session_pool)),
-      run_in_caller_thread_(run_in_caller_thread) {}
+      interpreter_pool_(std::move(interpreter_pool)) {}
 
 Status TfLiteSession::Run(const std::vector<std::pair<string, Tensor>>& inputs,
                           const std::vector<string>& output_tensor_names,
@@ -503,6 +544,41 @@ Status TfLiteSession::Run(const RunOptions& run_options,
              outputs, run_metadata, thread::ThreadPoolOptions());
 }
 
+Status TfLiteSession::RunInternal(
+    const std::vector<int>& tflite_input_indices,
+    const std::vector<std::vector<const Tensor*>>& merged_inputs,
+    const std::vector<string>& output_tensor_names,
+    std::vector<Tensor>* combined_outputs, int batch_size,
+    int* fixed_batch_size) {
+#define RETURN_POOL_IF_ERROR(...)                                   \
+  do {                                                              \
+    ::tensorflow::Status _status = (__VA_ARGS__);                   \
+    if (TF_PREDICT_FALSE(!_status.ok())) {                          \
+      interpreter_pool_->ReturnInterpreter(std::move(interpreter)); \
+      return _status;                                               \
+    }                                                               \
+  } while (0);
+  auto interpreter = interpreter_pool_->GetInterpreter();
+  RETURN_POOL_IF_ERROR(
+      SetInputAndInvokeMiniBatch(interpreter, tflite_input_indices,
+                                 merged_inputs, batch_size, fixed_batch_size));
+
+  // Create return tensors and map the tflite tensor index to the
+  // index of the created tensor.
+  std::map<int32_t, Tensor*> tflite_idx_to_output_tensor;
+  RETURN_POOL_IF_ERROR(CreateOutputTensors(
+      interpreter, output_tensor_names, output_tensor_to_index_,
+      tflite_idx_to_output_tensor, combined_outputs));
+
+  // Set the contents of the return tensors.
+  RETURN_POOL_IF_ERROR(SetMiniBatchOutput(
+      interpreter, tflite_idx_to_output_tensor, combined_outputs));
+
+#undef RETURN_POOL_IF_ERROR
+  interpreter_pool_->ReturnInterpreter(std::move(interpreter));
+  return Status::OK();
+}
+
 Status TfLiteSession::Run(
     const RunOptions& run_options,
     const std::vector<std::pair<string, Tensor>>& inputs,
@@ -519,46 +595,173 @@ Status TfLiteSession::Run(
     const int index = input_tensor_to_index_.at(name);
     tflite_idx_to_input_tensor[index] = &input.second;
   }
-
-#define RETURN_POOL_IF_ERROR(...)                                        \
-  do {                                                                   \
-    ::tensorflow::Status _status = (__VA_ARGS__);                        \
-    if (TF_PREDICT_FALSE(!_status.ok())) {                               \
-      session_pool_->ReturnInterpreterPool(std::move(interpreter_pool)); \
-      return _status;                                                    \
-    }                                                                    \
-  } while (0);
-  auto interpreter_pool = session_pool_->GetInterpreterPool();
-  if (interpreter_pool->UseBatchParallelism()) {
-    RETURN_POOL_IF_ERROR(
-        RunBatchParallel(interpreter_pool, inputs, tflite_idx_to_input_tensor,
-                         run_in_caller_thread_, output_tensor_names,
-                         output_tensor_to_index_, outputs));
-    session_pool_->ReturnInterpreterPool(std::move(interpreter_pool));
-    return Status::OK();
+  outputs->reserve(output_tensor_names.size());
+  if (!scheduler_) {
+    std::vector<int> input_indices;
+    std::vector<std::vector<const Tensor*>> inputs;
+    for (const auto entry : tflite_idx_to_input_tensor) {
+      const auto& tf_tensor = *entry.second;
+      inputs.push_back({&tf_tensor});
+      input_indices.push_back(entry.first);
+    }
+    const int batch_size =
+        inputs.empty() || inputs[0].empty() ? 1 : inputs[0][0]->dim_size(0);
+    return RunInternal(input_indices, inputs, output_tensor_names, outputs,
+                       batch_size);
   }
-
-  RETURN_POOL_IF_ERROR(
-      SetInputAndInvokeMiniBatch(interpreter_pool, tflite_idx_to_input_tensor));
-
-  // Create return tensors and map the tflite tensor index to the
-  // index of the created tensor.
-  std::map<int32_t, Tensor*> tflite_idx_to_output_tensor;
-  RETURN_POOL_IF_ERROR(CreateOutputTensors(
-      interpreter_pool, output_tensor_names, output_tensor_to_index_,
-      tflite_idx_to_output_tensor, outputs));
-
-  // Set the contents of the return tensors.
-  RETURN_POOL_IF_ERROR(SetMiniBatchOutput(
-      interpreter_pool, tflite_idx_to_output_tensor, outputs));
-
-#undef RETURN_POOL_IF_ERROR
-  session_pool_->ReturnInterpreterPool(std::move(interpreter_pool));
-  return Status::OK();
+  Notification done;
+  Status status;
+  std::unique_ptr<TfLiteBatchTask> task;
+  TfLiteBatchTask::CreateTfLiteBatchTask(&output_tensor_names, outputs, &done,
+                                         &status, &task);
+  for (const auto entry : tflite_idx_to_input_tensor) {
+    task->input_indices.push_back(entry.first);
+    task->inputs.push_back(std::move(*entry.second));
+  }
+  TF_RETURN_IF_ERROR(scheduler_->Schedule(&task));
+  done.WaitForNotification();
+  return status;
 }
 
 Status TfLiteSession::ListDevices(std::vector<DeviceAttributes>* response) {
   return errors::Unimplemented("ListDevices is not yet supported.");
+}
+
+Status MergeInputTensors(const Batch<TfLiteBatchTask>& batch,
+                         std::vector<std::vector<const Tensor*>>* merged_inputs,
+                         int* batch_size) {
+  if (batch.num_tasks() < 1) {
+    return errors::Internal("Batch size expected to be positive; was ",
+                            batch.num_tasks());
+  }
+  const int tensors_per_task = batch.task(0).inputs.size();
+  *batch_size = 0;
+  // each entry in merged_inputs is a list of task tensors.
+  for (int i = 0; i < tensors_per_task; ++i) {
+    merged_inputs->emplace_back();
+    std::vector<const Tensor*>& tensors_to_merge = merged_inputs->back();
+    for (int j = 0; j < batch.num_tasks(); ++j) {
+      const std::vector<Tensor>& inputs = batch.task(j).inputs;
+      tensors_to_merge.push_back(&(inputs[i]));
+      if (i == 0) {
+        if (inputs[i].dims()) {
+          *batch_size += inputs[i].dim_size(0);
+        }
+      }
+    }
+  }
+  return Status::OK();
+}
+
+Status SplitOutputTensors(const std::vector<Tensor>& combined_outputs,
+                          Batch<TfLiteBatchTask>* batch, int batch_size) {
+  std::vector<int64> task_sizes(batch->num_tasks());
+  int total_size = 0;
+  for (int i = 0; i < batch->num_tasks(); ++i) {
+    const int task_size = batch->task(i).size();
+    task_sizes[i] = task_size;
+    total_size += task_size;
+  }
+
+  if (total_size < batch_size) {
+    task_sizes.push_back(batch_size - total_size);
+  }
+
+  for (int i = 0; i < combined_outputs.size(); i++) {
+    const auto& output_tensor = combined_outputs[i];
+    std::vector<Tensor> split_tensor;
+    const Status split_status =
+        tensor::Split(output_tensor, task_sizes, &split_tensor);
+    if (!split_status.ok()) {
+      return errors::Internal("Tensor split operation failed: ",
+                              split_status.ToString());
+    }
+    for (int j = 0; j < batch->num_tasks(); ++j) {
+      TfLiteBatchTask& task = *(batch->mutable_task(j));
+      task.set_output(split_tensor[j]);
+    }
+  }
+
+  return Status::OK();
+}
+
+void TfLiteSession::ProcessBatch(
+    std::unique_ptr<Batch<TfLiteBatchTask>> batch) {
+  // As a possible performance optimization, consider overlapping the tensor
+  // concatenation with waiting for the batch to close (i.e. do the
+  // concatenation incrementally as tasks stream into the batch).
+  batch->WaitUntilClosed();
+
+  if (batch->empty()) {
+    return;
+  }
+
+  const uint64 dequeue_time_micros = EnvTime::NowMicros();
+
+  // Regardless of the outcome, we need to propagate the status to the
+  // individual tasks and signal that they are done. We use MakeCleanup() to
+  // ensure that this happens no matter how we exit the method below.
+  Status status;
+  auto finally = gtl::MakeCleanup([&status, &batch] {
+    for (int i = 0; i < batch->num_tasks(); ++i) {
+      TfLiteBatchTask* task = batch->mutable_task(i);
+      if (task->is_partial) {
+        task->partial_status->Update(status);
+        task->done_callback();
+      } else {
+        *batch->mutable_task(i)->status = status;
+        batch->mutable_task(i)->done->Notify();
+      }
+    }
+  });
+
+  // Make sure we have at least one task that hasn't exceeded its timeout from
+  // queue time alone, and find the latest task deadline which we'll use for the
+  // overall batch.
+  bool all_tasks_timeout_exceeded = true;
+  uint64 batch_deadline_micros = 0;
+  for (int i = 0; i < batch->num_tasks(); ++i) {
+    const TfLiteBatchTask& task = batch->task(i);
+    // If the caller doesn't populate RunOptions, the timeout is 0 by default.
+    // Interpret that as "no timeout".
+    if (task.run_options.timeout_in_ms() <= 0) {
+      all_tasks_timeout_exceeded = false;
+      break;
+    }
+    const int64 task_timeout_micros = task.run_options.timeout_in_ms() * 1000;
+    const uint64 task_deadline_micros =
+        task.enqueue_time_micros + task_timeout_micros;
+    if (task_deadline_micros > dequeue_time_micros) {
+      all_tasks_timeout_exceeded = false;
+      if (task_deadline_micros > batch_deadline_micros) {
+        batch_deadline_micros = task_deadline_micros;
+      }
+    }
+  }
+  if (all_tasks_timeout_exceeded) {
+    status = Status(error::RESOURCE_EXHAUSTED,
+                    "Run() timeout exceeded while waiting in batching queue");
+    return;
+  }
+
+  std::vector<std::vector<const Tensor*>> merged_inputs;
+  int batch_size = 0;
+  status = MergeInputTensors(*batch, &merged_inputs, &batch_size);
+  if (!status.ok()) {
+    return;
+  }
+  std::vector<Tensor> combined_outputs;
+  const auto& tflite_input_indices = batch->task(0).input_indices;
+  auto& output_tensor_names = batch->task(0).output_tensor_names;
+  int fixed_batch_size = batch_size;
+  status = RunInternal(tflite_input_indices, merged_inputs,
+                       *output_tensor_names, &combined_outputs, batch_size,
+                       use_fixed_batch_size_ ? &fixed_batch_size : nullptr);
+  if (!status.ok()) {
+    return;
+  }
+  // The size of the batch might be smaller than the fixed_batch_size.
+  status = SplitOutputTensors(combined_outputs, batch.get(), fixed_batch_size);
 }
 
 }  // namespace serving
