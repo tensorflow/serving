@@ -58,8 +58,7 @@ void PredictionServiceGrpc::Predict(
   std::function<void(::grpc::Status)> wrapped_callback =
       [callback](::grpc::Status status) { callback(FromGrpcStatus(status)); };
 
-  stub_->experimental_async()->Predict(rpc, request, response,
-                                       wrapped_callback);
+  stub_->async()->Predict(rpc, request, response, wrapped_callback);
 }
 
 }  // namespace serving
