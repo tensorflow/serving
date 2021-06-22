@@ -45,7 +45,7 @@ Status CreateFlyweightTensorFlowClassifier(
     const SignatureDef* signature,
     std::unique_ptr<ClassifierInterface>* service);
 
-// Similar to the above function, but with an additional thread_pool_factory.
+// Similar to the above function, but with an additional 'thread_pool_options'.
 Status CreateFlyweightTensorFlowClassifier(
     const RunOptions& run_options, Session* session,
     const SignatureDef* signature,

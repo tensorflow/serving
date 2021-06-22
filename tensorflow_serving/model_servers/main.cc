@@ -240,7 +240,11 @@ int main(int argc, char** argv) {
           "disabled, models utilizing this feature will return bad Status "
           "on first compilation request."),
       tensorflow::Flag("enable_profiler", &options.enable_profiler,
-                       "Enable profiler service.")};
+                       "Enable profiler service."),
+      tensorflow::Flag("thread_pool_factory_config_file",
+                       &options.thread_pool_factory_config_file,
+                       "If non-empty, read an ascii ThreadPoolConfig protobuf "
+                       "from the supplied file name.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {
