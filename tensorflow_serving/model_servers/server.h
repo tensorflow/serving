@@ -77,6 +77,9 @@ class Server {
     tensorflow::int64 tensorflow_intra_op_parallelism = 0;
     tensorflow::int64 tensorflow_inter_op_parallelism = 0;
     tensorflow::string platform_config_file;
+    // Only one of ALTS or SSl can be specified. I.e. either
+    // use_alts_credentials must be false or ssl_config_file must be empty.
+    bool use_alts_credentials = false;
     tensorflow::string ssl_config_file;
     string model_config_file;
     // Zero means server will not poll FS for model config file after start-up.

@@ -24,11 +24,11 @@ limitations under the License.
 
 #include "google/protobuf/wrappers.pb.h"
 #include "grpc/grpc.h"
+#include "grpcpp/resource_quota.h"
 #include "grpcpp/security/server_credentials.h"
 #include "grpcpp/server_builder.h"
 #include "grpcpp/server_context.h"
 #include "grpcpp/support/status.h"
-#include "grpcpp/resource_quota.h"
 #include "absl/memory/memory.h"
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
@@ -120,16 +120,23 @@ std::vector<GrpcChannelArgument> parseGrpcChannelArgs(
   return result;
 }
 
-// If 'ssl_config_file' is non-empty, build secure server credentials otherwise
-// insecure channel
-std::shared_ptr<::grpc::ServerCredentials>
-BuildServerCredentialsFromSSLConfigFile(const string& ssl_config_file) {
-  if (ssl_config_file.empty()) {
+// If 'use_alts_credentials', build secure server credentials using ALTS.
+// Else if 'ssl_config_file' is non-empty, build using ssl.
+// Otherwise use insecure channel.
+std::shared_ptr<::grpc::ServerCredentials> BuildServerCredentials(
+    bool use_alts_credentials, const string& ssl_config_file) {
+  if (use_alts_credentials) {
+    LOG(INFO) << "Using ALTS credentials";
+    ::grpc::experimental::AltsServerCredentialsOptions alts_opts;
+    return ::grpc::experimental::AltsServerCredentials(alts_opts);
+  } else if (ssl_config_file.empty()) {
+    LOG(INFO) << "Using InsecureServerCredentials";
     return ::grpc::InsecureServerCredentials();
   }
 
   SSLConfig ssl_config;
   TF_CHECK_OK(ParseProtoTextFile<SSLConfig>(ssl_config_file, &ssl_config));
+  LOG(INFO) << "Using SSL credentials";
 
   ::grpc::SslServerCredentialsOptions ssl_ops(
       ssl_config.client_verify()
@@ -187,6 +194,13 @@ Status Server::BuildAndStart(const Options& server_options) {
     return errors::InvalidArgument(
       "At least one of server_options.grpc_port or "
       "server_options.grpc_socket_path must be set.");
+  }
+
+  if (server_options.use_alts_credentials &&
+      !server_options.ssl_config_file.empty()) {
+    return errors::InvalidArgument(
+        "Either use_alts_credentials must be false or "
+        "ssl_config_file must be empty.");
   }
 
   if (server_options.model_base_path.empty() &&
@@ -348,16 +362,18 @@ Status Server::BuildAndStart(const Options& server_options) {
   ::grpc::ServerBuilder builder;
   // If defined, listen to a tcp port for gRPC/HTTP.
   if (server_options.grpc_port != 0) {
-    builder.AddListeningPort(server_address,
-                             BuildServerCredentialsFromSSLConfigFile(
+    builder.AddListeningPort(
+        server_address,
+        BuildServerCredentials(server_options.use_alts_credentials,
                                server_options.ssl_config_file));
   }
   // If defined, listen to a UNIX socket for gRPC.
   if (!server_options.grpc_socket_path.empty()) {
     const string grpc_socket_uri = "unix:" + server_options.grpc_socket_path;
-    builder.AddListeningPort(grpc_socket_uri,
-                             BuildServerCredentialsFromSSLConfigFile(
-                                 server_options.ssl_config_file));
+    builder.AddListeningPort(
+        grpc_socket_uri,
+        BuildServerCredentials(server_options.use_alts_credentials,
+                               server_options.ssl_config_file));
   }
   builder.RegisterService(model_service_.get());
   builder.RegisterService(prediction_service_.get());
