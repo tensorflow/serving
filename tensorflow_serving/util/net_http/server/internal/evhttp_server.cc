@@ -106,12 +106,12 @@ bool EvHTTPServer::Initialize() {
   }
 
   // By default libevents only allow GET, POST, HEAD, PUT, DELETE request
-  // we have to manually turn OPTIONS flag on
-  // documentation:
+  // we have to manually turn OPTIONS and PATCH flag on documentation:
   // (http://www.wangafu.net/~nickm/libevent-2.0/doxygen/html/http_8h.html)
   evhttp_set_allowed_methods(
       ev_http_, EVHTTP_REQ_GET | EVHTTP_REQ_POST | EVHTTP_REQ_HEAD |
-                    EVHTTP_REQ_PUT | EVHTTP_REQ_DELETE | EVHTTP_REQ_OPTIONS);
+                    EVHTTP_REQ_PUT | EVHTTP_REQ_DELETE | EVHTTP_REQ_OPTIONS |
+                    EVHTTP_REQ_PATCH);
   evhttp_set_gencb(ev_http_, &DispatchEvRequestFn, this);
 
   return true;
