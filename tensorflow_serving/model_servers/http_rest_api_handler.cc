@@ -225,57 +225,7 @@ Status HttpRestApiHandler::ProcessModelMetadataRequest(
       ::google::protobuf::Arena::CreateMessage<GetModelMetadataResponse>(&arena);
   TF_RETURN_IF_ERROR(
       GetModelMetadataImpl::GetModelMetadata(core_, *request, response));
-  JsonPrintOptions opts;
-  opts.add_whitespace = true;
-  opts.always_print_primitive_fields = true;
-  // TODO(b/118381513): preserving proto field names on 'Any' fields has been
-  // fixed in the master branch of OSS protobuf but the TF ecosystem is
-  // currently using v3.6.0 where the fix is not present. To resolve the issue
-  // we invoke MessageToJsonString on invididual fields and concatenate the
-  // resulting strings and make it valid JSON that conforms with the response we
-  // expect.
-  opts.preserve_proto_field_names = true;
-
-  string model_spec_output;
-  const auto& status1 =
-      MessageToJsonString(response->model_spec(), &model_spec_output, opts);
-  if (!status1.ok()) {
-    return errors::Internal(
-        "Failed to convert model spec proto to json. Error: ",
-        status1.ToString());
-  }
-
-  tensorflow::serving::SignatureDefMap signature_def_map;
-  if (response->metadata().end() ==
-      response->metadata().find(GetModelMetadataImpl::kSignatureDef)) {
-    return errors::Internal(
-        "Failed to find 'signature_def' key in the GetModelMetadataResponse "
-        "metadata map.");
-  }
-  bool unpack_status = response->metadata()
-                           .at(GetModelMetadataImpl::kSignatureDef)
-                           .UnpackTo(&signature_def_map);
-  if (!unpack_status) {
-    return errors::Internal(
-        "Failed to unpack 'Any' object to 'SignatureDefMap'.");
-  }
-
-  string signature_def_output;
-  const auto& status2 =
-      MessageToJsonString(signature_def_map, &signature_def_output, opts);
-  if (!status2.ok()) {
-    return errors::Internal(
-        "Failed to convert signature def proto to json. Error: ",
-        status2.ToString());
-  }
-
-  // Concatenate the resulting strings into a valid JSON format.
-  absl::StrAppend(output, "{\n");
-  absl::StrAppend(output, "\"model_spec\":", model_spec_output, ",\n");
-  absl::StrAppend(output, "\"metadata\": {");
-  absl::StrAppend(output, "\"signature_def\": ", signature_def_output, "}\n");
-  absl::StrAppend(output, "}\n");
-  return Status::OK();
+  return ToJsonString(*response, output);
 }
 
 Status HttpRestApiHandler::GetInfoMap(

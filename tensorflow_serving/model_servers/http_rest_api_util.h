@@ -23,6 +23,7 @@ limitations under the License.
 #include "absl/types/optional.h"
 #include "re2/re2.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow_serving/apis/get_model_metadata.pb.h"
 #include "tensorflow_serving/apis/get_model_status.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 
@@ -50,6 +51,8 @@ Status ParseModelInfo(const absl::string_view http_method,
                       bool* parse_successful);
 
 Status ToJsonString(const GetModelStatusResponse& response, string* output);
+
+Status ToJsonString(const GetModelMetadataResponse& response, string* output);
 
 }  // namespace serving
 }  // namespace tensorflow

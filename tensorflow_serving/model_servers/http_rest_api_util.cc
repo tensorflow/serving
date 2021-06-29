@@ -20,6 +20,7 @@ limitations under the License.
 #include <curl/curl.h>
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/errors.h"
+#include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
 
 namespace tensorflow {
 namespace serving {
@@ -135,6 +136,61 @@ Status ToJsonString(const GetModelStatusResponse& response, string* output) {
     return errors::Internal("Failed to convert proto to json. Error: ",
                             status.ToString());
   }
+  return Status::OK();
+}
+
+Status ToJsonString(const GetModelMetadataResponse& response, string* output) {
+  google::protobuf::util::JsonPrintOptions opts;
+  opts.add_whitespace = true;
+  opts.always_print_primitive_fields = true;
+  // TODO(b/118381513): preserving proto field names on 'Any' fields has been
+  // fixed in the master branch of OSS protobuf but the TF ecosystem is
+  // currently using v3.6.0 where the fix is not present. To resolve the issue
+  // we invoke MessageToJsonString on invididual fields and concatenate the
+  // resulting strings and make it valid JSON that conforms with the response we
+  // expect.
+  opts.preserve_proto_field_names = true;
+
+  string model_spec_output;
+  const auto& status1 =
+      MessageToJsonString(response.model_spec(), &model_spec_output, opts);
+  if (!status1.ok()) {
+    return errors::Internal(
+        "Failed to convert model spec proto to json. Error: ",
+        status1.ToString());
+  }
+
+  tensorflow::serving::SignatureDefMap signature_def_map;
+  if (response.metadata().end() ==
+      response.metadata().find(GetModelMetadataImpl::kSignatureDef)) {
+    return errors::Internal(
+        "Failed to find 'signature_def' key in the GetModelMetadataResponse "
+        "metadata map.");
+  }
+  bool unpack_status = response.metadata()
+                           .at(GetModelMetadataImpl::kSignatureDef)
+                           .UnpackTo(&signature_def_map);
+  if (!unpack_status) {
+    return errors::Internal(
+        "Failed to unpack 'Any' object to 'SignatureDefMap'.");
+  }
+
+  string signature_def_output;
+  const auto& status2 =
+      MessageToJsonString(signature_def_map, &signature_def_output, opts);
+  if (!status2.ok()) {
+    return errors::Internal(
+        "Failed to convert signature def proto to json. Error: ",
+        status2.ToString());
+  }
+
+  // Concatenate the resulting strings into a valid JSON format.
+  absl::StrAppend(output, "{\n");
+  absl::StrAppend(output, "\"model_spec\":", model_spec_output, ",\n");
+  absl::StrAppend(output, "\"metadata\": {");
+  absl::StrAppend(output, "\"signature_def\": ", signature_def_output, "}\n");
+  absl::StrAppend(output, "}\n");
+
   return Status::OK();
 }
 

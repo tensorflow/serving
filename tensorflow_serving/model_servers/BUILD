@@ -273,8 +273,10 @@ cc_library(
     hdrs = ["http_rest_api_util.h"],
     visibility = ["//visibility:public"],
     deps = [
+        "//tensorflow_serving/apis:get_model_metadata_cc_proto",
         "//tensorflow_serving/apis:get_model_status_cc_proto",
         "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
         "@com_googlesource_code_re2//:re2",
