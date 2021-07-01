@@ -54,3 +54,15 @@ build --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0
 build --workspace_status_command=/proc/self/cwd/tools/gen_status_stamp.sh
 
 build --experimental_repo_remote_exec
+
+build --cxxopt=-lstdc++fs
+build --host_cxxopt=-lstdc++fs
+
+build --define=tensorflow_with_header_lib=1
+build --define=dynamic_loaded_kernels=true
+build --copt=-DAUTOLOAD_DYNAMIC_KERNELS
+build --nocheck_visibility
+
+build --define=use_tensorflow_io=1
+build --define=stop_training_on_interrupt=1
+build --define=no_absl_statusor=1
