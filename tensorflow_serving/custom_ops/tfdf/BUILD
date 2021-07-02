@@ -3,7 +3,6 @@ load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_gen_op_wrapper_py")
 load("//tensorflow_serving/custom_ops/tfdf:utils.bzl", "rpath_linkopts_to_tensorflow","tf_custom_op_library_external")
 load("//tensorflow_serving/custom_ops/tfdf:utils.bzl", "rpath_linkopts_to_tensorflow")
 
-
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -14,8 +13,6 @@ bzl_library(
     srcs = ["utils.bzl"],
 )
 
-
-
 cc_library(
     name = "canonical_models",
     deps = [
@@ -25,9 +22,6 @@ cc_library(
     ],
     alwayslink = 1,
 )
-
-
-
 
 cc_library(
     name = 'tfdf',
@@ -57,7 +51,6 @@ tf_custom_op_library_external(
     name = "inference.so",
     deps = [":kernel_and_op"],
 )
-
 
 cc_library(
     name = "op",
@@ -93,9 +86,6 @@ tf_gen_op_wrapper_py(
     deps = [":op"],
 )
 
-
-
-
 cc_library(
     name = "kernel_and_op",
     deps = [
@@ -105,12 +95,6 @@ cc_library(
     ],
     alwayslink = 1,
 )
-
-
-
-
-
-
 
 py_library(
     name = "api_py",
@@ -125,10 +109,7 @@ py_library(
         "@ydf//yggdrasil_decision_forests/dataset:data_spec_py_proto",
         "@ydf//yggdrasil_decision_forests/model:abstract_model_py_proto",
     ],
-
 )
-
-
 
 alias(
     name = "op_py",
@@ -145,29 +126,3 @@ py_library(
         "@org_tensorflow//tensorflow/python",
     ],
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
