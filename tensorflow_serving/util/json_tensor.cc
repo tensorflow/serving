@@ -388,10 +388,6 @@ Status AddInstanceItem(const rapidjson::Value& item, const string& name,
                        ::google::protobuf::Map<string, int>* size_map,
                        ::google::protobuf::Map<string, TensorShapeProto>* shape_map,
                        ::google::protobuf::Map<string, TensorProto>* tensor_map) {
-  if (!tensorinfo_map.count(name)) {
-    return errors::InvalidArgument("JSON object: does not have named input: ",
-                                   name);
-  }
   int size = 0;
   const auto dtype = tensorinfo_map.at(name).dtype();
   auto* tensor = &(*tensor_map)[name];
@@ -499,6 +495,9 @@ Status FillTensorMapFromInstancesList(
       std::set<string> object_keys;
       for (const auto& kv : elem.GetObject()) {
         const string& name = kv.name.GetString();
+        if (!tensorinfo_map.count(name)) {
+          continue;
+        }
         object_keys.insert(name);
         const auto status = AddInstanceItem(kv.value, name, tensorinfo_map,
                                             &size_map, &shape_map, tensor_map);
