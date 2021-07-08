@@ -258,14 +258,14 @@ Next, run the TensorFlow Serving container pointing it to this model and opening
 the REST API port (8501):
 
 ```shell
-docker run --runtime=nvidia -p 8501:8501 \
+docker run --gpus all -p 8501:8501 \
 --mount type=bind,\
 source=/tmp/tfserving/serving/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_two_gpu,\
 target=/models/half_plus_two \
   -e MODEL_NAME=half_plus_two -t tensorflow/serving:latest-gpu &
 ```
 
-This will run the docker container with the `nvidia-docker` runtime, launch the
+This will run the docker container, launch the
 TensorFlow Serving Model Server, bind the REST API port 8501, and map our
 desired model from our host to where models are expected in the container. We
 also pass the name of the model as an environment variable, which will be
