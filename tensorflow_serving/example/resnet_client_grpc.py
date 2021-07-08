@@ -18,9 +18,13 @@
 
 from __future__ import print_function
 
+import io
+
 # This is a placeholder for a Google-internal import.
 
 import grpc
+import numpy as np
+from PIL import Image
 import requests
 import tensorflow as tf
 
@@ -36,6 +40,10 @@ tf.compat.v1.app.flags.DEFINE_string('image', '',
                                      'path to image in JPEG format')
 FLAGS = tf.compat.v1.app.flags.FLAGS
 
+# Current Resnet model in TF Model Garden (as of 7/2021) does not accept JPEG
+# as input
+MODEL_ACCEPT_JPG = False
+
 
 def main(_):
   if FLAGS.image:
@@ -47,6 +55,13 @@ def main(_):
     dl_request.raise_for_status()
     data = dl_request.content
 
+  if not MODEL_ACCEPT_JPG:
+    data = Image.open(io.BytesIO(dl_request.content))
+    # Normalize and batchify the image
+    data = np.array(data) / 255.0
+    data = np.expand_dims(data, 0)
+    data = data.astype(np.float32)
+
   channel = grpc.insecure_channel(FLAGS.server)
   stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
   # Send request
@@ -54,10 +69,11 @@ def main(_):
   request = predict_pb2.PredictRequest()
   request.model_spec.name = 'resnet'
   request.model_spec.signature_name = 'serving_default'
-  request.inputs['image_bytes'].CopyFrom(
-      tf.make_tensor_proto(data, shape=[1]))
+  request.inputs['input_1'].CopyFrom(
+      tf.make_tensor_proto(data))
   result = stub.Predict(request, 10.0)  # 10 secs timeout
-  print(result)
+  result = result.outputs['activation_49'].float_val
+  print('Prediction class: {}'.format(np.argmax(result)))
 
 
 if __name__ == '__main__':
