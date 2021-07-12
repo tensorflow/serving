@@ -47,3 +47,27 @@ workspace()
 load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
 rules_pkg_dependencies()
 
+# Third party libraries
+#load("//third_party/absl_py:workspace.bzl", absl_py = "deps")
+load("//third_party/absl:workspace.bzl", absl = "deps")
+#load("//third_party/gtest:workspace.bzl", gtest = "deps")
+load("//third_party/protobuf:workspace.bzl", protobuf = "deps")
+
+absl()
+#absl_py()
+#gtest()
+protobuf()
+
+# Yggdrasil Decision Forests
+load("//third_party/yggdrasil_decision_forests:workspace.bzl", yggdrasil_decision_forests = "deps")
+yggdrasil_decision_forests()
+
+load("@ydf//yggdrasil_decision_forests:library.bzl", ydf_load_deps = "load_dependencies")
+ydf_load_deps(
+    exclude_repo = [
+        "absl",
+        "protobuf",
+        "zlib",
+    ],
+    repo_name = "@ydf",
+)
