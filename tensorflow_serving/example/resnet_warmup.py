@@ -24,8 +24,8 @@
 
    After the script is run, and tensorflow_model_server is restarted, to verify
    it is working look for the output:
-   'Starting to read warmup data for model at' in the tensorflow_model_server
-   startup log
+   'Starting to read warmup data for model at' and 'Finished reading warmup data
+   for model at' in the tensorflow_model_server startup log
 
    Usage example:
      python resnet_warmup.py saved_model_dir
@@ -33,8 +33,12 @@
 
 from __future__ import print_function
 
+import io
 import os
 import sys
+
+import numpy as np
+from PIL import Image
 import requests
 import tensorflow as tf
 from tensorflow_serving.apis import predict_pb2
@@ -48,6 +52,10 @@ IMAGE_URLS = ['https://tensorflow.org/images/blogs/serving/cat.jpg',
               # pylint: enable=g-line-too-long
              ]
 
+# Current Resnet model in TF Model Garden (as of 7/2021) does not accept JPEG
+# as input
+MODEL_ACCEPT_JPG = False
+
 
 def main():
   if len(sys.argv) != 2 or sys.argv[-1].startswith('-'):
@@ -60,7 +68,8 @@ def main():
           'Specify the path of an existing model.' % model_dir)
     sys.exit(-1)
 
-  # Create the assets.extra directory
+  # Create the assets.extra directory, assuming model_dir is the versioned
+  # directory containing the SavedModel
   assets_dir = os.path.join(model_dir, 'assets.extra')
   if not os.path.exists(assets_dir):
     os.mkdir(assets_dir)
@@ -73,12 +82,19 @@ def main():
       dl_request.raise_for_status()
       data = dl_request.content
 
+      if not MODEL_ACCEPT_JPG:
+        data = Image.open(io.BytesIO(dl_request.content))
+        # Normalize and batchify the image
+        data = np.array(data) / 255.0
+        data = np.expand_dims(data, 0)
+        data = data.astype(np.float32)
+
       # Create the inference request
       request = predict_pb2.PredictRequest()
       request.model_spec.name = 'resnet'
       request.model_spec.signature_name = 'serving_default'
-      request.inputs['image_bytes'].CopyFrom(
-          tf.make_tensor_proto(data, shape=[1]))
+      request.inputs['input_1'].CopyFrom(
+          tf.make_tensor_proto(data))
 
       log = prediction_log_pb2.PredictionLog(
           predict_log=prediction_log_pb2.PredictLog(request=request))
