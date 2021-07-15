@@ -1,0 +1,110 @@
+# This file is based on Google TensorFlow Serving Dockerfile.devel file with
+# Modifications needed to build the project for CentOS 7.
+# Original file is licenced under Apache Licence, Version 2.0:
+# https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel
+
+FROM centos:7.7.1908 as base_build
+
+# Set locale
+ENV LANG en_US.UTF-8
+
+ARG TF_SERVING_VERSION_GIT_BRANCH=master
+# Picking latest working revision until official Dockerfile.devel is fixed.
+ARG TF_SERVING_VERSION_GIT_COMMIT=4de4c7b6d2f5932f8f2be939335e38c94f1f2dac
+
+LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
+LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
+
+# Enable SCL CentOS 7 repo and install build packages
+RUN yum install -y centos-release-scl && yum update -y && yum install -y \
+        which \
+        devtoolset-8-gcc \
+        devtoolset-8-gcc-c++ \
+        devtoolset-8-make \
+        patch \
+        automake \
+        ca-certificates \
+        curl \
+        git \
+        libtool \
+        mlocate \
+        java-1.8.0-openjdk-devel \
+        swig \
+        unzip \
+        wget \
+        zip
+
+# Note: This is for python2 which soon to be unsupported
+RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
+    python get-pip.py && \
+    rm -f get-pip.py
+
+RUN pip --no-cache-dir install \
+    future>=0.17.1 \
+    grpcio \
+    h5py \
+    keras_applications>=1.0.8 \
+    keras_preprocessing>=1.1.0 \
+    mock \
+    numpy \
+    requests \
+    --ignore-installed setuptools \
+    --ignore-installed six
+
+# Set up Bazel
+ENV BAZEL_VERSION 0.24.1
+WORKDIR /
+RUN mkdir /bazel && \
+    cd /bazel && \
+    curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
+    curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -o /bazel/LICENSE.txt https://raw.githubusercontent.com/bazelbuild/bazel/master/LICENSE && \
+    chmod +x bazel-*.sh && \
+    ./bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
+    cd / && \
+    rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
+
+# Download TF Serving sources (optionally at specific commit).
+WORKDIR /tensorflow-serving
+RUN git clone --branch=${TF_SERVING_VERSION_GIT_BRANCH} https://github.com/tensorflow/serving . && \
+    git remote add upstream https://github.com/tensorflow/serving.git && \
+    if [ "${TF_SERVING_VERSION_GIT_COMMIT}" != "head" ]; then git checkout ${TF_SERVING_VERSION_GIT_COMMIT} ; fi
+
+
+FROM base_build as binary_build
+# Build, and install TensorFlow Serving
+# Example: '--local_ram_resources=HOST_RAM*.5, --local_cpu_resources=HOST_CPUS-1'
+ARG TF_SERVING_BUILD_OPTIONS="--config=nativeopt --local_ram_resources=HOST_RAM*.5 --discard_analysis_cache --nokeep_state_after_build --notrack_incremental_state"
+RUN echo "Building with build options: ${TF_SERVING_BUILD_OPTIONS}"
+ARG TF_SERVING_BAZEL_OPTIONS=""
+RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
+
+# CentOS 7: Here and in the next RUN added command to enable devtoolset-8 env.
+RUN source /opt/rh/devtoolset-8/enable && \
+    bazel build --color=yes --curses=yes \
+    ${TF_SERVING_BAZEL_OPTIONS} \
+    --verbose_failures \
+    --output_filter=DONT_MATCH_ANYTHING \
+    ${TF_SERVING_BUILD_OPTIONS} \
+    tensorflow_serving/model_servers:tensorflow_model_server && \
+    cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server \
+    /usr/local/bin/
+
+# Build and install TensorFlow Serving API
+RUN source /opt/rh/devtoolset-8/enable && \
+    bazel build --color=yes --curses=yes \
+    ${TF_SERVING_BAZEL_OPTIONS} \
+    --verbose_failures \
+    --output_filter=DONT_MATCH_ANYTHING \
+    ${TF_SERVING_BUILD_OPTIONS} \
+    tensorflow_serving/tools/pip_package:build_pip_package && \
+    bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package \
+    /tmp/pip && \
+    pip --no-cache-dir install --upgrade \
+    /tmp/pip/tensorflow_serving_api-*.whl && \
+    rm -rf /tmp/pip
+
+FROM binary_build as clean_build
+# Clean up Bazel cache when done.
+RUN bazel clean --expunge --color=yes && \
+    rm -rf /root/.cache
+CMD ["/bin/bash"]
