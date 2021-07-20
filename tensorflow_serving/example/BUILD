@@ -29,5 +29,6 @@ cc_binary(
         "@com_google_protobuf//:protobuf_lite",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core/platform:jpeg",
     ],
 )

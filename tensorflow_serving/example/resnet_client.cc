@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <setjmp.h>
+
 #include <fstream>
 #include <iostream>
 
@@ -20,6 +22,7 @@ limitations under the License.
 #include "grpcpp/security/credentials.h"
 #include "google/protobuf/map.h"
 #include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/platform/jpeg.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/util/command_line_flags.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
@@ -34,8 +37,81 @@ using tensorflow::serving::PredictionService;
 
 typedef google::protobuf::Map<tensorflow::string, tensorflow::TensorProto> OutMap;
 
+struct tf_jpeg_error_mgr {
+  struct jpeg_error_mgr pub;
+  jmp_buf setjmp_buffer;
+};
+
+typedef struct tf_jpeg_error_mgr* tf_jpeg_error_ptr;
+
+METHODDEF(void)
+tf_jpeg_error_exit(j_common_ptr cinfo) {
+  tf_jpeg_error_ptr tf_jpeg_err = (tf_jpeg_error_ptr)cinfo->err;
+
+  (*cinfo->err->output_message)(cinfo);
+
+  longjmp(tf_jpeg_err->setjmp_buffer, 1);
+}
+
 class ServingClient {
  public:
+  // JPEG decompression code following libjpeg-turbo documentation:
+  // https://github.com/libjpeg-turbo/libjpeg-turbo/blob/main/example.txt
+  int readJPEG(const char* file_name, tensorflow::TensorProto* proto) {
+    struct tf_jpeg_error_mgr jerr;
+    FILE* infile;
+    JSAMPARRAY buffer;
+    int row_stride;
+    struct jpeg_decompress_struct cinfo;
+
+    if ((infile = fopen(file_name, "rb")) == NULL) {
+      fprintf(stderr, "can't open %s\n", file_name);
+      return -1;
+    }
+
+    cinfo.err = jpeg_std_error(&jerr.pub);
+    jerr.pub.error_exit = tf_jpeg_error_exit;
+    if (setjmp(jerr.setjmp_buffer)) {
+      jpeg_destroy_decompress(&cinfo);
+      fclose(infile);
+      return -1;
+    }
+
+    jpeg_create_decompress(&cinfo);
+    jpeg_stdio_src(&cinfo, infile);
+
+    (void)jpeg_read_header(&cinfo, TRUE);
+
+    (void)jpeg_start_decompress(&cinfo);
+    row_stride = cinfo.output_width * cinfo.output_components;
+    CHECK(cinfo.output_components == 3)
+        << "Only 3-channel (RGB) JPEG files are supported";
+
+    buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo, JPOOL_IMAGE,
+                                        row_stride, 1);
+
+    proto->set_dtype(tensorflow::DataType::DT_FLOAT);
+    while (cinfo.output_scanline < cinfo.output_height) {
+      (void)jpeg_read_scanlines(&cinfo, buffer, 1);
+      for (size_t i = 0; i < cinfo.output_width; i++) {
+        proto->add_float_val(buffer[0][i * 3] / 255.0);
+        proto->add_float_val(buffer[0][i * 3 + 1] / 255.0);
+        proto->add_float_val(buffer[0][i * 3 + 2] / 255.0);
+      }
+    }
+
+    proto->mutable_tensor_shape()->add_dim()->set_size(1);
+    proto->mutable_tensor_shape()->add_dim()->set_size(cinfo.output_height);
+    proto->mutable_tensor_shape()->add_dim()->set_size(cinfo.output_width);
+    proto->mutable_tensor_shape()->add_dim()->set_size(cinfo.output_components);
+
+    (void)jpeg_finish_decompress(&cinfo);
+
+    jpeg_destroy_decompress(&cinfo);
+    fclose(infile);
+    return 0;
+  }
+
   ServingClient(std::shared_ptr<Channel> channel)
       : stub_(PredictionService::NewStub(channel)) {}
 
@@ -55,32 +131,16 @@ class ServingClient {
 
     tensorflow::TensorProto proto;
 
-    std::ifstream imageFile(file_path, std::ios::binary);
+    const char* infile = file_path.c_str();
 
-    if (!imageFile.is_open()) {
-      std::cout << "Failed to open " << file_path << std::endl;
-      return "";
+    if (readJPEG(infile, &proto)) {
+      std::cout << "error constructing the protobuf";
+      return "execution failed";
     }
 
-    std::filebuf* pbuf = imageFile.rdbuf();
-    auto fileSize = pbuf->pubseekoff(0, std::ios::end, std::ios::in);
-
-    char* image = new char[fileSize]();
-
-    pbuf->pubseekpos(0, std::ios::in);
-    pbuf->sgetn(image, fileSize);
-    imageFile.close();
-
-    proto.set_dtype(tensorflow::DataType::DT_STRING);
-    proto.add_string_val(image, fileSize);
-
-    proto.mutable_tensor_shape()->add_dim()->set_size(1);
-
-    inputs["image_bytes"] = proto;
+    inputs["input_1"] = proto;
 
     Status status = stub_->Predict(&context, predictRequest, &response);
-
-    delete[] image;
 
     if (status.ok()) {
       std::cout << "call predict ok" << std::endl;
@@ -96,7 +156,7 @@ class ServingClient {
         if (converted) {
           std::cout << "the result tensor[" << output_index
                     << "] is:" << std::endl
-                    << tensor.SummarizeValue(10) << std::endl;
+                    << tensor.SummarizeValue(1001) << std::endl;
         } else {
           std::cout << "the result tensor[" << output_index
                     << "] convert failed." << std::endl;
