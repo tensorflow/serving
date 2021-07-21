@@ -379,7 +379,7 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
         "@com_google_absl//absl/flags:flag",
-        "@com_google_protobuf//:protobuf",
+        "@com_google_absl//absl/functional:bind_front",
         "@flatbuffers",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:lib",

@@ -177,6 +177,10 @@ class TfLiteSession : public ServingSession {
       const SchedulerCreator& scheduler_creator,
       const BasicBatchScheduler<TfLiteBatchTask>::Options& options);
 
+  BasicBatchScheduler<TfLiteBatchTask>::Options GetSchedulerOptions() {
+    return scheduler_options_;
+  }
+
  private:
   TfLiteSession(
       std::map<string, int>&& input_tensor_to_index,
@@ -196,6 +200,7 @@ class TfLiteSession : public ServingSession {
   const std::unique_ptr<internal::TfLiteInterpreterPool> interpreter_pool_;
   bool use_fixed_batch_size_;
   std::unique_ptr<BasicBatchScheduler<TfLiteBatchTask>> scheduler_;
+  BasicBatchScheduler<TfLiteBatchTask>::Options scheduler_options_;
   void ProcessBatch(std::unique_ptr<Batch<TfLiteBatchTask>> batch);
   TF_DISALLOW_COPY_AND_ASSIGN(TfLiteSession);
 };

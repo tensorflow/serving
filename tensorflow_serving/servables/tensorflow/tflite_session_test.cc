@@ -19,8 +19,6 @@ limitations under the License.
 #include <string>
 #include <utility>
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 #include "absl/flags/flag.h"
 #include "absl/functional/bind_front.h"
 #include "flatbuffers/flexbuffers.h"
@@ -631,20 +629,49 @@ TEST(TfLiteSession, SimpleSignatureDefAndRun) {
       test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({2, 2})));
 }
 
-TEST(TfLiteSession, TestBatchParallelism) {
+using TfLiteSessionBatchSizeTest = ::testing::TestWithParam<bool>;
+TEST_P(TfLiteSessionBatchSizeTest, TestBatchParallelism) {
+  const bool use_model_batch_size = GetParam();
   std::string model_bytes;
   TF_ASSERT_OK(ReadFileToString(Env::Default(),
                                 test_util::TestSrcDirPath(kParseExampleModel),
                                 &model_bytes));
   auto model = tflite::FlatBufferModel::BuildFromModel(
       flatbuffers::GetRoot<tflite::Model>(model_bytes.data()));
+  const int model_batch_size = 5;
+  if (use_model_batch_size) {
+    const tflite::Model* tflite_model = model->GetModel();
+    auto mutable_model = absl::make_unique<tflite::ModelT>();
+    tflite_model->UnPackTo(mutable_model.get(), nullptr);
+    ASSERT_EQ(mutable_model->subgraphs.size(), 1);
+    auto* subgraph = mutable_model->subgraphs[0].get();
+    ASSERT_EQ(subgraph->inputs.size(), 1);
+    auto* tensor = subgraph->tensors[subgraph->inputs[0]].get();
+    ASSERT_EQ(tensor->shape.size(), 1);
+    ASSERT_EQ(tensor->shape[0], 1);
+    tensor->shape[0] = model_batch_size;
+    flatbuffers::FlatBufferBuilder builder;
+    auto packed_model = tflite::Model::Pack(builder, mutable_model.get());
+    FinishModelBuffer(builder, packed_model);
+    model_bytes.assign(
+        reinterpret_cast<const char*>(builder.GetBufferPointer()),
+        builder.GetSize());
+  }
   auto model_signature_def_map = GetTestSignatureDefMap();
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> sess;
   tensorflow::SessionOptions options;
-  TF_ASSERT_OK(TfLiteSession::Create(std::move(model_bytes), options, 1, 4,
-                                     &sess, &signatures));
+  const int num_tflite_interpreters = 4;
+
+  TF_ASSERT_OK(TfLiteSession::Create(std::move(model_bytes), options, 1,
+                                     num_tflite_interpreters, &sess,
+                                     &signatures));
+  auto scheduler_options = sess->GetSchedulerOptions();
   const int batch_size = 500;
+  const int expected_batch_size = use_model_batch_size
+                                      ? model_batch_size
+                                      : batch_size / num_tflite_interpreters;
+  ASSERT_EQ(scheduler_options.max_execution_batch_size, expected_batch_size);
   const float default_value = 0;
   std::vector<tstring> example_list;
   std::vector<float> expected;
@@ -689,6 +716,9 @@ TEST(TfLiteSession, TestBatchParallelism) {
       outputs[1],
       test::AsTensor<tstring>(expected_bytes, TensorShape({batch_size, 1})));
 }
+
+INSTANTIATE_TEST_SUITE_P(TfLiteSessionBatchSizeTests,
+                         TfLiteSessionBatchSizeTest, ::testing::Bool());
 
 TEST(TfLiteSession, TestSetScheduler) {
   std::string model_bytes;

@@ -23,7 +23,6 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/tensor_shape.pb.h"
 #include "tensorflow/core/framework/tensor_util.h"
-#include "tensorflow/core/lib/core/blocking_counter.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
@@ -282,6 +281,19 @@ Status SetMiniBatchOutput(
   return Status::OK();
 }
 
+int GetModelBatchSize(const tflite::Model* model) {
+  const auto* primary_subgraph = model->subgraphs()->Get(0);
+  const auto* inputs = primary_subgraph->inputs();
+  if (inputs->size() == 1) {
+    // Only models with 1 input tensor can be batched, since SplitTFLiteTask
+    // only works on a single input tensor jobs.
+    const int tensor_id = inputs->Get(0);
+    const auto* tensor = primary_subgraph->tensors()->Get(tensor_id);
+    return tensor->shape()->Get(0);
+  }
+  return -1;
+}
+
 }  // namespace
 
 // Split an input task up into multiple tasks.
@@ -388,8 +400,9 @@ Status TfLiteSession::SetScheduler(
     const SchedulerCreator& scheduler_creator,
     const BasicBatchScheduler<TfLiteBatchTask>::Options& options) {
   use_fixed_batch_size_ = true;
+  scheduler_options_ = options;
   auto bound_scheduler_creator = absl::bind_front(
-      &TfLiteSession::CreateDefaultBasicBatchScheduler, options);
+      &TfLiteSession::CreateDefaultBasicBatchScheduler, scheduler_options_);
   return bound_scheduler_creator(
       [this](std::unique_ptr<Batch<TfLiteBatchTask>> batch) {
         this->ProcessBatch(std::move(batch));
@@ -482,7 +495,9 @@ Status TfLiteSession::Create(string&& buffer, const SessionOptions& options,
     sigdef->set_method_name(kPredictMethodName);
   }
 
-  int num_interpreters = std::max(1, num_pools);
+  const int num_interpreters = std::max(1, num_pools);
+  const int model_batch_size = GetModelBatchSize(model->GetModel());
+
   std::unique_ptr<internal::TfLiteInterpreterPool> interpreter_pool;
   TF_RETURN_IF_ERROR(
       internal::TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
@@ -493,10 +508,11 @@ Status TfLiteSession::Create(string&& buffer, const SessionOptions& options,
       std::move(buffer), std::move(model), std::move(interpreter_pool)));
 
   if (num_interpreters_per_pool > 1) {
-    // Consider replacing with parameters loaded from the tflite model.
-    const int min_allowed_batch =
+    const int default_allowed_batch =
         (internal::kInitialBatchSize + num_interpreters_per_pool - 1) /
         num_interpreters_per_pool;
+    const int min_allowed_batch =
+        model_batch_size > 1 ? model_batch_size : default_allowed_batch;
     const int max_enqueued_batches = num_interpreters * 100;
     BasicBatchScheduler<TfLiteBatchTask>::Options scheduler_options;
     scheduler_options.num_batch_threads = num_interpreters;
@@ -505,7 +521,6 @@ Status TfLiteSession::Create(string&& buffer, const SessionOptions& options,
     scheduler_options.max_execution_batch_size = min_allowed_batch;
     scheduler_options.max_enqueued_batches = max_enqueued_batches;
     scheduler_options.split_input_task_func = SplitTfLiteInputTask;
-
     TF_RETURN_IF_ERROR(
         (*tflite_session)
             ->SetScheduler(&TfLiteSession::CreateDefaultBasicBatchScheduler,
