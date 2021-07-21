@@ -23,6 +23,7 @@ models and data.
 This package contains the TensorFlow Serving Python APIs.
 """
 
+import pkg_resources
 import sys
 
 from setuptools import find_packages
@@ -44,7 +45,11 @@ if '--project_name' in sys.argv:
   sys.argv.remove('--project_name')
   sys.argv.pop(project_name_idx)
 
-_TF_REQ = ['tensorflow-cpu'+_TF_VERSION_SANITIZED]
+pkg_released = set(["tensorflow", "tensorflow-cpu"])
+pkg_installed = set(map(lambda pkg: pkg.project_name, pkg_resources.working_set))
+tensorflow_installed = list(pkg_released & pkg_installed) + ["tensorflow"]
+
+_TF_REQ = [tensorflow_installed[0]+_TF_VERSION_SANITIZED]
 
 # GPU build (note: the only difference is we depend on tensorflow-gpu so
 # pip doesn't overwrite it with the CPU build)
