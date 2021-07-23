@@ -17,7 +17,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "tensorflow/core/platform/google/env.h"
+#include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/threadpool.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/test_util/test_util.h"
