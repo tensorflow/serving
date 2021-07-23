@@ -22,6 +22,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
 #include "tensorflow_serving/servables/tensorflow/multi_inference_helper.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
+#include "tensorflow_serving/servables/tensorflow/thread_pool_factory.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
 
 namespace tensorflow {
@@ -35,16 +36,9 @@ int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
                    gpr_now(GPR_CLOCK_MONOTONIC)));
 }
 
-thread::ThreadPoolOptions GetThreadPoolOptions(
-    ThreadPoolFactory *thread_pool_factory) {
-  thread::ThreadPoolOptions thread_pool_options;
-  if (thread_pool_factory != nullptr) {
-    thread_pool_options.inter_op_threadpool =
-        thread_pool_factory->GetInterOpThreadPool();
-    thread_pool_options.intra_op_threadpool =
-        thread_pool_factory->GetIntraOpThreadPool();
-  }
-  return thread_pool_options;
+ScopedThreadPools GetThreadPools(ThreadPoolFactory *thread_pool_factory) {
+  return thread_pool_factory == nullptr ? ScopedThreadPools()
+                                        : thread_pool_factory->GetThreadPools();
 }
 
 }  // namespace
@@ -99,7 +93,7 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
 
   const ::tensorflow::Status tf_status =
       TensorflowClassificationServiceImpl::Classify(
-          run_options, core_, GetThreadPoolOptions(thread_pool_factory_),
+          run_options, core_, GetThreadPools(thread_pool_factory_).get(),
           *request, response);
   const ::grpc::Status status = ToGRPCStatus(tf_status);
 
@@ -128,7 +122,7 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
 
   const ::tensorflow::Status tf_status =
       TensorflowRegressionServiceImpl::Regress(
-          run_options, core_, GetThreadPoolOptions(thread_pool_factory_),
+          run_options, core_, GetThreadPools(thread_pool_factory_).get(),
           *request, response);
   const ::grpc::Status status = ToGRPCStatus(tf_status);
 
@@ -154,7 +148,7 @@ thread::ThreadPoolOptions GetThreadPoolOptions(
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
   const ::grpc::Status status = ToGRPCStatus(RunMultiInferenceWithServerCore(
-      run_options, core_, GetThreadPoolOptions(thread_pool_factory_), *request,
+      run_options, core_, GetThreadPools(thread_pool_factory_).get(), *request,
       response));
   if (!status.ok()) {
     VLOG(1) << "MultiInference request failed: " << status.error_message();

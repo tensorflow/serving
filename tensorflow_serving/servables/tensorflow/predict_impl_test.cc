@@ -442,15 +442,17 @@ TEST_F(PredictImplTest, ThreadPoolFactory) {
   tensor_proto.set_dtype(tensorflow::DT_FLOAT);
   (*request.mutable_inputs())[kInputTensorKey] = tensor_proto;
 
-  test_util::CountingThreadPool inter_op_threadpool(Env::Default(), "InterOp",
-                                                    /*num_threads=*/1);
-  test_util::CountingThreadPool intra_op_threadpool(Env::Default(), "IntraOp",
-                                                    /*num_threads=*/1);
+  auto inter_op_threadpool =
+      std::make_shared<test_util::CountingThreadPool>(Env::Default(), "InterOp",
+                                                      /*num_threads=*/1);
+  auto intra_op_threadpool =
+      std::make_shared<test_util::CountingThreadPool>(Env::Default(), "IntraOp",
+                                                      /*num_threads=*/1);
   test_util::FakeThreadPoolFactoryConfig fake_thread_pool_factory_config;
   test_util::FakeThreadPoolFactory fake_thread_pool_factory(
       fake_thread_pool_factory_config);
-  fake_thread_pool_factory.SetInterOpThreadPool(&inter_op_threadpool);
-  fake_thread_pool_factory.SetIntraOpThreadPool(&intra_op_threadpool);
+  fake_thread_pool_factory.SetInterOpThreadPool(inter_op_threadpool);
+  fake_thread_pool_factory.SetIntraOpThreadPool(intra_op_threadpool);
 
   TensorflowPredictor predictor(&fake_thread_pool_factory);
   TF_EXPECT_OK(
@@ -468,7 +470,7 @@ TEST_F(PredictImplTest, ThreadPoolFactory) {
   EXPECT_THAT(response, test_util::EqualsProto(expected_response));
 
   // The intra_op_threadpool doesn't have anything scheduled.
-  ASSERT_GE(inter_op_threadpool.NumScheduled(), 1);
+  ASSERT_GE(inter_op_threadpool->NumScheduled(), 1);
 }
 
 }  // namespace

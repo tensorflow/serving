@@ -1054,6 +1054,7 @@ serving_proto_library(
 
 cc_library(
     name = "thread_pool_factory",
+    srcs = ["thread_pool_factory.cc"],
     hdrs = ["thread_pool_factory.h"],
     visibility = [
         "//visibility:public",
@@ -1061,5 +1062,18 @@ cc_library(
     deps = [
         "//tensorflow_serving/util:class_registration",
         "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
+cc_test(
+    name = "thread_pool_factory_test",
+    size = "small",
+    srcs = ["thread_pool_factory_test.cc"],
+    deps = [
+        ":thread_pool_factory",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core/platform:threadpool_options",
     ],
 )

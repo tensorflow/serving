@@ -38,23 +38,22 @@ class FakeThreadPoolFactory final : public ThreadPoolFactory {
   explicit FakeThreadPoolFactory(const FakeThreadPoolFactoryConfig& config) {}
   virtual ~FakeThreadPoolFactory() = default;
 
-  virtual thread::ThreadPoolInterface* GetInterOpThreadPool() {
-    return inter_op_thread_pool_;
-  }
-  virtual thread::ThreadPoolInterface* GetIntraOpThreadPool() {
-    return intra_op_thread_pool_;
+  virtual ScopedThreadPools GetThreadPools() {
+    return ScopedThreadPools(inter_op_thread_pool_, intra_op_thread_pool_);
   }
 
-  void SetInterOpThreadPool(thread::ThreadPoolInterface* thread_pool) {
+  void SetInterOpThreadPool(
+      std::shared_ptr<thread::ThreadPoolInterface> thread_pool) {
     inter_op_thread_pool_ = thread_pool;
   }
-  void SetIntraOpThreadPool(thread::ThreadPoolInterface* thread_pool) {
+  void SetIntraOpThreadPool(
+      std::shared_ptr<thread::ThreadPoolInterface> thread_pool) {
     intra_op_thread_pool_ = thread_pool;
   }
 
  private:
-  thread::ThreadPoolInterface* inter_op_thread_pool_ = nullptr;
-  thread::ThreadPoolInterface* intra_op_thread_pool_ = nullptr;
+  std::shared_ptr<thread::ThreadPoolInterface> inter_op_thread_pool_;
+  std::shared_ptr<thread::ThreadPoolInterface> intra_op_thread_pool_;
   TF_DISALLOW_COPY_AND_ASSIGN(FakeThreadPoolFactory);
 };
 
