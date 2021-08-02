@@ -150,7 +150,7 @@ TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithGoodExport) {
 
 void BM_HalfPlusTwo(benchmark::State& state) {
   static Session* session;
-  if (state.thread_index() == 0) {
+  if (state.thread_index == 0) {
     SavedModelBundle bundle;
     TF_ASSERT_OK(LoadSavedModel(SessionOptions(), RunOptions(),
                                 test_util::GetTestSavedModelPath(), {"serve"},
@@ -160,13 +160,12 @@ void BM_HalfPlusTwo(benchmark::State& state) {
   }
   Tensor input = test::AsTensor<float>({1.0, 2.0, 3.0}, TensorShape({3}));
   std::vector<Tensor> outputs;
-  testing::UseRealTime();
   for (auto _ : state) {
     outputs.clear();
     TF_ASSERT_OK(session->Run({{"x:0", input}}, {"y:0"}, {}, &outputs));
   }
 }
-BENCHMARK(BM_HalfPlusTwo)->ThreadRange(1, 64);
+BENCHMARK(BM_HalfPlusTwo)->UseRealTime()->ThreadRange(1, 64);
 
 #endif  // PLATFORM_GOOGLE
 

@@ -182,7 +182,8 @@ void BenchmarkState::RunBenchmarkReadIterations(
       pool.Schedule(run_reads_fn);
     }
     state.ResumeTiming();
-    all_read_threads_scheduled_.Notify();
+    if (!all_read_threads_scheduled_.HasBeenNotified())
+      all_read_threads_scheduled_.Notify();
 
     // Note that destructing the threadpool blocks on completion of all
     // scheduled execution. This is intentional as we want all threads to
@@ -190,7 +191,7 @@ void BenchmarkState::RunBenchmarkReadIterations(
     // done == iters * num_threads) and includes time scheduling work on the
     // threads.
   }
-  testing::ItemsProcessed(num_threads * kSubIters * state.iterations());
+  state.SetItemsProcessed(num_threads * kSubIters * state.iterations());
 }
 
 void BenchmarkReadsAndUpdates(int update_micros, bool do_work,

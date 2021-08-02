@@ -813,7 +813,7 @@ TEST(TfLiteSession, TestSetScheduler) {
 
 static void BM_Reshape(benchmark::State& state, bool use_flex_op) {
   static TfLiteSession* session;
-  if (state.thread_index() == 0) {
+  if (state.thread_index == 0) {
     auto model_signature_def_map = GetTestSignatureDefMap();
     string model_bytes = BuildTestModel(tflite::TensorType_INT32, use_flex_op,
                                         &model_signature_def_map);
@@ -828,7 +828,6 @@ static void BM_Reshape(benchmark::State& state, bool use_flex_op) {
   Tensor input = test::AsTensor<int32>({1, 2, 3, 4, 5, 6}, TensorShape({6}));
   Tensor input_shape = test::AsTensor<int32>({3, 2}, TensorShape({2}));
   std::vector<Tensor> outputs;
-  testing::UseRealTime();
   for (auto _ : state) {
     outputs.clear();
     TF_ASSERT_OK(session->Run(
@@ -840,16 +839,16 @@ static void BM_Reshape(benchmark::State& state, bool use_flex_op) {
 static void BM_Reshape_Builtin(benchmark::State& state) {
   BM_Reshape(state, /*use_flex_op=*/false);
 }
-BENCHMARK(BM_Reshape_Builtin)->ThreadRange(1, 64);
+BENCHMARK(BM_Reshape_Builtin)->UseRealTime()->ThreadRange(1, 64);
 
 static void BM_Reshape_Flex(benchmark::State& state) {
   BM_Reshape(state, /*use_flex_op=*/true);
 }
-BENCHMARK(BM_Reshape_Flex)->ThreadRange(1, 64);
+BENCHMARK(BM_Reshape_Flex)->UseRealTime()->ThreadRange(1, 64);
 
 void BM_HalfPlusTwo(benchmark::State& state) {
   static TfLiteSession* session;
-  if (state.thread_index() == 0) {
+  if (state.thread_index == 0) {
     string model_bytes;
     TF_ASSERT_OK(ReadFileToString(
         Env::Default(), test_util::TestSrcDirPath(kTestModel), &model_bytes));
@@ -863,17 +862,16 @@ void BM_HalfPlusTwo(benchmark::State& state) {
   }
   Tensor input = test::AsTensor<float>({1.0, 2.0, 3.0}, TensorShape({3}));
   std::vector<Tensor> outputs;
-  testing::UseRealTime();
   for (auto _ : state) {
     outputs.clear();
     TF_ASSERT_OK(session->Run({{"x", input}}, {"y"}, {}, &outputs));
   }
 }
-BENCHMARK(BM_HalfPlusTwo)->ThreadRange(1, 64);
+BENCHMARK(BM_HalfPlusTwo)->UseRealTime()->ThreadRange(1, 64);
 
 void BM_MobileNet(benchmark::State& state) {
   static TfLiteSession* session;
-  if (state.thread_index() == 0) {
+  if (state.thread_index == 0) {
     string model_bytes;
     TF_ASSERT_OK(ReadFileToString(Env::Default(),
                                   test_util::TestSrcDirPath(kMobileNetModel),
@@ -889,18 +887,17 @@ void BM_MobileNet(benchmark::State& state) {
   std::vector<uint8> x_data(1 * 224 * 224 * 3, 1);
   Tensor x = test::AsTensor<uint8>(x_data, TensorShape({1, 224, 224, 3}));
   std::vector<Tensor> outputs;
-  testing::UseRealTime();
   for (auto _ : state) {
     outputs.clear();
     TF_ASSERT_OK(session->Run(
         {{"input", x}}, {"MobilenetV1/Predictions/Reshape_1"}, {}, &outputs));
   }
 }
-BENCHMARK(BM_MobileNet)->ThreadRange(1, 64);
+BENCHMARK(BM_MobileNet)->UseRealTime()->ThreadRange(1, 64);
 
 void BM_ParseExample(benchmark::State& state) {
   static TfLiteSession* session;
-  if (state.thread_index() == 0) {
+  if (state.thread_index == 0) {
     string model_bytes;
     TF_ASSERT_OK(ReadFileToString(Env::Default(),
                                   test_util::TestSrcDirPath(kParseExampleModel),
@@ -933,7 +930,6 @@ void BM_ParseExample(benchmark::State& state) {
   Tensor input_batch =
       test::AsTensor<tstring>(example_list, TensorShape({kBatchSize}));
   std::vector<Tensor> outputs;
-  testing::UseRealTime();
   for (auto _ : state) {
     outputs.clear();
     TF_ASSERT_OK(session->Run(
@@ -942,7 +938,7 @@ void BM_ParseExample(benchmark::State& state) {
         &outputs));
   }
 }
-BENCHMARK(BM_ParseExample)->ThreadRange(1, 64);
+BENCHMARK(BM_ParseExample)->UseRealTime()->ThreadRange(1, 64);
 
 #endif  // PLATFORM_GOOGLE
 
