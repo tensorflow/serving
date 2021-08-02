@@ -40,6 +40,22 @@ Status RunPredict(
     const thread::ThreadPoolOptions& thread_pool_options =
         thread::ThreadPoolOptions());
 
+// Validate a SignatureDef to make sure it's compatible with prediction, and
+// if so, populate the input and output tensor names.
+Status PreProcessPrediction(const SignatureDef& signature,
+                            const PredictRequest& request,
+                            std::vector<std::pair<string, Tensor>>* inputs,
+                            std::vector<string>* output_tensor_names,
+                            std::vector<string>* output_tensor_aliases);
+
+// Validate results and populate a PredictResponse.
+// Tensors are serialized as specified.
+Status PostProcessPredictionResult(
+    const std::vector<string>& output_tensor_aliases,
+    const std::vector<Tensor>& output_tensors,
+    const internal::PredictResponseTensorSerializationOption option,
+    PredictResponse* response);
+
 }  // namespace internal
 
 // Implementation of Predict using the SavedModel SignatureDef format.

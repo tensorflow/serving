@@ -68,8 +68,50 @@ Status VerifyRequestInputsSize(const SignatureDef& signature,
   return Status::OK();
 }
 
-// Validate a SignatureDef to make sure it's compatible with prediction, and
-// if so, populate the input and output tensor names.
+}  // namespace
+
+namespace internal {
+Status RunPredict(
+    const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
+    const absl::optional<int64>& servable_version,
+    const internal::PredictResponseTensorSerializationOption option,
+    Session* session, const PredictRequest& request, PredictResponse* response,
+    const thread::ThreadPoolOptions& thread_pool_options) {
+  // Validate signatures.
+  const string signature_name = request.model_spec().signature_name().empty()
+                                    ? kDefaultServingSignatureDefKey
+                                    : request.model_spec().signature_name();
+  auto iter = meta_graph_def.signature_def().find(signature_name);
+  if (iter == meta_graph_def.signature_def().end()) {
+    return errors::FailedPrecondition(strings::StrCat(
+        "Serving signature key \"", signature_name, "\" not found."));
+  }
+  const SignatureDef& signature = iter->second;
+
+  MakeModelSpec(request.model_spec().name(), signature_name, servable_version,
+                response->mutable_model_spec());
+
+  std::vector<std::pair<string, Tensor>> input_tensors;
+  std::vector<string> output_tensor_names;
+  std::vector<string> output_tensor_aliases;
+  TF_RETURN_IF_ERROR(PreProcessPrediction(signature, request, &input_tensors,
+                                          &output_tensor_names,
+                                          &output_tensor_aliases));
+  std::vector<Tensor> outputs;
+  RunMetadata run_metadata;
+  const uint64 start_microseconds = EnvTime::NowMicros();
+  TF_RETURN_IF_ERROR(session->Run(run_options, input_tensors,
+                                  output_tensor_names, {}, &outputs,
+                                  &run_metadata, thread_pool_options));
+  const uint64 end_microseconds = EnvTime::NowMicros();
+  RecordRuntimeLatency(request.model_spec().name(), /*api=*/"Predict",
+                       /*runtime=*/"TF1",
+                       end_microseconds - start_microseconds);
+
+  return PostProcessPredictionResult(output_tensor_aliases, outputs, option,
+                                     response);
+}
+
 Status PreProcessPrediction(const SignatureDef& signature,
                             const PredictRequest& request,
                             std::vector<std::pair<string, Tensor>>* inputs,
@@ -129,8 +171,6 @@ Status PreProcessPrediction(const SignatureDef& signature,
   return Status::OK();
 }
 
-// Validate results and populate a PredictResponse.
-// Tensors are serialized as specified.
 Status PostProcessPredictionResult(
     const std::vector<string>& output_tensor_aliases,
     const std::vector<Tensor>& output_tensors,
@@ -159,49 +199,6 @@ Status PostProcessPredictionResult(
   return Status::OK();
 }
 
-}  // namespace
-
-namespace internal {
-Status RunPredict(
-    const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
-    const absl::optional<int64>& servable_version,
-    const internal::PredictResponseTensorSerializationOption option,
-    Session* session, const PredictRequest& request, PredictResponse* response,
-    const thread::ThreadPoolOptions& thread_pool_options) {
-  // Validate signatures.
-  const string signature_name = request.model_spec().signature_name().empty()
-                                    ? kDefaultServingSignatureDefKey
-                                    : request.model_spec().signature_name();
-  auto iter = meta_graph_def.signature_def().find(signature_name);
-  if (iter == meta_graph_def.signature_def().end()) {
-    return errors::FailedPrecondition(strings::StrCat(
-        "Serving signature key \"", signature_name, "\" not found."));
-  }
-  const SignatureDef& signature = iter->second;
-
-  MakeModelSpec(request.model_spec().name(), signature_name, servable_version,
-                response->mutable_model_spec());
-
-  std::vector<std::pair<string, Tensor>> input_tensors;
-  std::vector<string> output_tensor_names;
-  std::vector<string> output_tensor_aliases;
-  TF_RETURN_IF_ERROR(PreProcessPrediction(signature, request, &input_tensors,
-                                          &output_tensor_names,
-                                          &output_tensor_aliases));
-  std::vector<Tensor> outputs;
-  RunMetadata run_metadata;
-  const uint64 start_microseconds = EnvTime::NowMicros();
-  TF_RETURN_IF_ERROR(session->Run(run_options, input_tensors,
-                                  output_tensor_names, {}, &outputs,
-                                  &run_metadata, thread_pool_options));
-  const uint64 end_microseconds = EnvTime::NowMicros();
-  RecordRuntimeLatency(request.model_spec().name(), /*api=*/"Predict",
-                       /*runtime=*/"TF1",
-                       end_microseconds - start_microseconds);
-
-  return PostProcessPredictionResult(output_tensor_aliases, outputs, option,
-                                     response);
-}
 }  // namespace internal
 
 Status RunPredict(const RunOptions& run_options,
