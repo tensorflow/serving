@@ -218,7 +218,8 @@ void BenchmarkState::RunBenchmark(::testing::benchmark::State& state,
       pool->Schedule(run_reads_fn);
     }
     state.ResumeTiming();
-    all_read_threads_scheduled_.Notify();
+    if (!all_read_threads_scheduled_.HasBeenNotified())
+      all_read_threads_scheduled_.Notify();
 
     // Note that destructing the threadpool blocks on completion of all
     // scheduled execution.  This is intentional as we want all threads to
@@ -356,9 +357,8 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
   // Ratio of requests which are asking for the latest servable as opposed to a
   // specific version.
   constexpr float kLatestRatio = 0.8;
-  static const std::vector<ServableRequest>& requests = []() {
-    std::unique_ptr<std::vector<ServableRequest>> requests(
-        new std::vector<ServableRequest>());
+  static const std::vector<ServableRequest>* requests = []() {
+    std::vector<ServableRequest>* requests(new std::vector<ServableRequest>());
     random::PhiloxRandom philox(testing::RandomSeed());
     random::SimplePhilox random(&philox);
     for (int i = 0; i < kNumRequests; ++i) {
@@ -371,14 +371,14 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
         requests->push_back(ServableRequest::Latest(name));
       }
     }
-    return *requests.release();
+    return requests;
   }();
 
   ServableHandle<int64> handle;
   int i = 0;
   for (auto s : state) {
     const Status status =
-        manager->GetServableHandle(requests[i % kNumRequests], &handle);
+        manager->GetServableHandle(requests->at(i % kNumRequests), &handle);
     TF_CHECK_OK(status) << status;
     ++i;
   }
