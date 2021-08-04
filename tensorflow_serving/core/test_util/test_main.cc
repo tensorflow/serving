@@ -24,21 +24,39 @@ limitations under the License.
 #if defined(PLATFORM_GOOGLE) || defined(__ANDROID__)
 // main() is supplied by gunit_main
 #else
+#include <iostream>
+#include <string>
+
 #include "gtest/gtest.h"
+#include "absl/strings/match.h"
 #include "tensorflow/core/lib/strings/str_util.h"
+#include "tensorflow/core/platform/stacktrace_handler.h"
+#include "tensorflow/core/platform/test.h"
 #include "tensorflow/core/platform/test_benchmark.h"
 
 GTEST_API_ int main(int argc, char** argv) {
   std::cout << "Running main() from test_main.cc\n";
 
-  testing::InitGoogleTest(&argc, argv);
+  tensorflow::testing::InstallStacktraceHandler();
+
   for (int i = 1; i < argc; i++) {
-    if (tensorflow::str_util::StartsWith(argv[i], "--benchmarks=")) {
-      const char* pattern = argv[i] + strlen("--benchmarks=");
-      tensorflow::testing::Benchmark::Run(pattern);
+    if (absl::StartsWith(argv[i], "--benchmark_filter=")) {
+      tensorflow::testing::InitializeBenchmarks(&argc, argv);
+
+      // XXX: Must be called after benchmark's init because
+      // InitGoogleTest eventually calls absl::ParseCommandLine() which would
+      // complain that benchmark_filter flag is not known because that flag is
+      // defined by the benchmark library via its own command-line flag
+      // facility, which is not known to absl flags.
+      // FIXME(b/195442215): Fix this mess once we make benchmark use absl flags
+      testing::InitGoogleTest(&argc, argv);
+      tensorflow::testing::RunBenchmarks();
       return 0;
     }
   }
+
+  testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
+
 #endif
