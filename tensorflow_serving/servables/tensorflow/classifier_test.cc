@@ -757,15 +757,15 @@ TEST_P(ClassifierTest, EmptyInput) {
   request_.mutable_input();
   Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("Invalid argument: Input is empty"));
+  EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
+  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
 
   ClassificationResponse response;
   status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                        fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("Invalid argument: Input is empty"));
+  EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
+  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
 }
 
 TEST_P(ClassifierTest, EmptyExampleList) {
@@ -774,15 +774,15 @@ TEST_P(ClassifierTest, EmptyExampleList) {
   request_.mutable_input()->mutable_example_list();
   Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("Invalid argument: Input is empty"));
+  EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
+  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
 
   ClassificationResponse response;
   status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                        fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("Invalid argument: Input is empty"));
+  EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
+  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
 }
 
 TEST_P(ClassifierTest, EmptyExampleListWithContext) {
@@ -793,15 +793,15 @@ TEST_P(ClassifierTest, EmptyExampleListWithContext) {
        ->mutable_context() = example({{"dos", 2}});
   Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("Invalid argument: Input is empty"));
+  EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
+  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
 
   ClassificationResponse response;
   status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                        fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.ToString(),
-              ::testing::HasSubstr("Invalid argument: Input is empty"));
+  EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
+  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
 }
 
 TEST_P(ClassifierTest, RunsFails) {
