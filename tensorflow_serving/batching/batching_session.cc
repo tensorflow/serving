@@ -820,9 +820,17 @@ Status SplitInputTask(
        outputs = input_task.outputs, status = input_task.status,
        run_metadata = input_task.run_metadata,
        split_run_metadatas = input_task.split_run_metadatas]() {
-        // `cost_dimension_map` aggregates costs from all splits for each
-        // dimension.
-        absl::flat_hash_map<string, float> cost_dimension_map;
+        auto finally = gtl::MakeCleanup([&] {
+          *status = shared_status->status();
+          done_notification->Notify();
+        });
+
+        // Some slices of tasks encounter errors, return early without
+        // processing per-split result.
+        if (!shared_status->status().ok()) {
+          return;
+        }
+
         for (int i = 0; i < num_output; ++i) {
           Tensor output_tensor;
 
@@ -836,11 +844,15 @@ Status SplitInputTask(
               tensor::Concat(to_concatenate, &output_tensor);
           if (!concat_status.ok()) {
             shared_status->Update(concat_status);
+            return;
           }
 
           outputs->push_back(std::move(output_tensor));
         }
 
+        // `cost_dimension_map` aggregates costs from all splits for each
+        // dimension.
+        absl::flat_hash_map<string, float> cost_dimension_map;
         for (const auto& split : *split_run_metadatas) {
           if (split.has_cost_graph()) {
             for (const auto& cost : split.cost_graph().cost()) {
@@ -848,7 +860,6 @@ Status SplitInputTask(
             }
           }
         }
-        *status = shared_status->status();
 
         *run_metadata = (*split_run_metadatas)[0];
         std::vector<string> cost_dimensions;
@@ -865,8 +876,6 @@ Status SplitInputTask(
             graph_cost->set_cost(iter->second);
           }
         }
-
-        done_notification->Notify();
       };
   IncrementalBarrier barrier(split_task_done_callback);
 

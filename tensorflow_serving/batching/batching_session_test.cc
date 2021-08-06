@@ -420,6 +420,48 @@ TEST_P(BatchingSessionTest, BatchingWithLargeBatch) {
   }
 }
 
+TEST_P(BatchingSessionTest, BatchHandlesSplitError) {
+  if (!enable_large_batch_splitting()) {
+    return;
+  }
+
+  BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
+  schedule_options.max_batch_size = 3;
+  schedule_options.batch_timeout_micros = INT_MAX;  // set a large time out
+  schedule_options.num_batch_threads = 1;
+  schedule_options = annotate_options(schedule_options);
+  schedule_options.max_execution_batch_size = 2;
+  std::unique_ptr<Session> batching_session;
+  BatchingSessionOptions batching_session_options;
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, {{"x"}, {"y"}},
+      CreateHalfPlusTwoSession(), &batching_session));
+
+  string expected_error_msg =
+      "Tensors with name 'x' from different tasks"
+      " have different shapes and padding is turned off."
+      "Set pad_variable_length_inputs to true, or ensure that "
+      "all tensors with the same name"
+      "have equal dimensions starting with the first dim.";
+
+  // `max_batch_size` is 3 and `max_execution_batch_size` is 2, so inputs of
+  // first thread will span over two tasks, causing errors in both batch tasks.
+  std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "first_request",
+      [&batching_session, &expected_error_msg] {
+        ExpectError(expected_error_msg,
+                    {{"x", test::AsTensor<float>({1, 2, 3}, {3, 1, 1})}}, {"y"},
+                    batching_session.get());
+      }));
+  std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "second_request",
+      [&batching_session, &expected_error_msg] {
+        ExpectError(expected_error_msg,
+                    {{"x", test::AsTensor<float>({1, 2}, {1, 2})}}, {"y"},
+                    batching_session.get());
+      }));
+}
+
 TEST(BatchingSessionTest, BatchingWithPaddingAndCost) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 2;
@@ -1040,7 +1082,7 @@ TEST_P(BatchingSessionTest, SubsetOutputTensors) {
       }));
 }
 
-INSTANTIATE_TEST_CASE_P(WithOrWithoutThreadPools, BatchingSessionTest,
+INSTANTIATE_TEST_CASE_P(WithOrWithoutInputSplit, BatchingSessionTest,
                         ::testing::Bool());
 
 }  // namespace
