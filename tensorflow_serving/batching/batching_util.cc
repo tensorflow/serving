@@ -214,8 +214,12 @@ int RoundToLowestAllowedBatchSize(absl::Span<const int> allowed_batch_sizes,
       return allowed_size;
     }
   }
-  LOG(WARNING) << "Maximum batch size greater than largest allowed size; "
-                  "ignoring allowed sizes constraint";
+  // `allowed_batch_sizes` is guaranteed to be not empty and sorted in
+  // ascending order.
+  LOG(WARNING) << "Input batch size " << batch_size
+               << " is greater than largest allowed size "
+               << *allowed_batch_sizes.rbegin()
+               << " ignoring allowed sizes constraint.";
   return batch_size;
 }
 
