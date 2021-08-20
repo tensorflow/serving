@@ -152,7 +152,7 @@ function test_docker_image {
 
   echo "Starting TF ModelServer in Docker container from image:${IMAGE} ..."
   if [[ "$IS_DEVEL_IMAGE" = true ]]; then
-    echo "Starting TF ModelServer in Docker container from image:${image} ..."
+    echo "Starting TF ModelServer in Docker container from image:${IMAGE} ..."
     # Devel images do not run ModelServer but rather start interative shell.
     # Hence we need to explicitly set entrypoint to modelserver and pass the
     # required commandline options to serve the model.
