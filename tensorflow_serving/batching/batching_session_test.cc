@@ -136,51 +136,29 @@ std::unique_ptr<Session> CreateMatrixHalfPlusTwoSession() {
   return std::move(bundle.session);
 }
 
-// Similar to the above function, but takes 'run_options', 'inter_op_threadpool'
-// and 'intra_op_threadpool' as addititional parameters.
-void TestSingleRequest(const RunOptions& run_options, float input_0,
-                       float input_1, Session* session,
-                       test_util::CountingThreadPool* inter_op_threadpool,
-                       test_util::CountingThreadPool* intra_op_threadpool) {
-  Tensor input = test::AsTensor<float>({input_0, input_1}, {2});
-  // Half plus two: each output should be input / 2 + 2.
-  Tensor expected_output =
-      test::AsTensor<float>({input_0 / 2 + 2, input_1 / 2 + 2}, {2});
+void TestRequest(const std::vector<float>& x_values, TensorShape x_shape,
+                 const std::vector<float>& y_values, TensorShape y_shape,
+                 Session* session,
+                 test_util::CountingThreadPool* inter_op_threadpool = nullptr,
+                 test_util::CountingThreadPool* intra_op_threadpool = nullptr) {
+  Tensor input = test::AsTensor<float>(x_values, x_shape);
+  Tensor expected_output = test::AsTensor<float>(y_values, y_shape);
 
-  const std::vector<std::pair<string, Tensor>> inputs = {{"x", input}};
-  std::vector<Tensor> outputs;
   RunMetadata run_metadata;
   thread::ThreadPoolOptions thread_pool_options;
   thread_pool_options.inter_op_threadpool = inter_op_threadpool;
   thread_pool_options.intra_op_threadpool = intra_op_threadpool;
-  TF_ASSERT_OK(session->Run(run_options, inputs, {"y"}, {} /* target nodes */,
-                            &outputs, &run_metadata, thread_pool_options));
-  ASSERT_EQ(1, outputs.size());
-  test::ExpectTensorEqual<float>(expected_output, outputs[0]);
+  std::vector<Tensor> output;
+  TF_ASSERT_OK(session->Run(RunOptions(), {{"x", input}}, {"y"},
+                            {} /* target nodes */, &output, &run_metadata,
+                            thread_pool_options));
+  ASSERT_EQ(1, output.size());
+  test::ExpectTensorEqual<float>(expected_output, output[0]);
 
   // The intra_op_threadpool doesn't have anything scheduled.
   if (inter_op_threadpool != nullptr) {
     ASSERT_GE(inter_op_threadpool->NumScheduled(), 1);
   }
-}
-
-// Test that a session handles a single request for the half-plus-two model
-// properly. The request has two input floats (size=2 for batching purposes).
-void TestSingleRequest(float input_0, float input_1, Session* session) {
-  TestSingleRequest(RunOptions(), input_0, input_1, session,
-                    /*inter_op_threadpool=*/nullptr,
-                    /*intra_op_threadpool=*/nullptr);
-}
-
-void TestRequest(const std::vector<float>& x_values, TensorShape x_shape,
-                 const std::vector<float>& y_values, TensorShape y_shape,
-                 Session* session) {
-  Tensor input = test::AsTensor<float>(x_values, x_shape);
-  Tensor expected_output = test::AsTensor<float>(y_values, y_shape);
-  std::vector<Tensor> output;
-  TF_ASSERT_OK(session->Run({{"x", input}}, {"y"}, {}, &output));
-  ASSERT_EQ(1, output.size());
-  test::ExpectTensorEqual<float>(expected_output, output[0]);
 }
 
 // Invoke Run() with the supplied arguments, and expect a particular error.
@@ -327,11 +305,13 @@ TEST_P(BatchingSessionTest, Basic) {
   // conjunction should trigger a batch to be processed.
   std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
       ThreadOptions(), "first_request_thread", [&batching_session] {
-        TestSingleRequest(100.0f, 42.0f, batching_session.get());
+        TestRequest({100.0f, 42.0f}, {2}, {52.0f, 23.0f}, {2},
+                    batching_session.get());
       }));
   std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
       ThreadOptions(), "second_request_thread", [&batching_session] {
-        TestSingleRequest(71.5f, 18.3f, batching_session.get());
+        TestRequest({71.5f, 18.3f}, {2}, {37.75f, 11.15f}, {2},
+                    batching_session.get());
       }));
 }
 
@@ -659,7 +639,8 @@ TEST_P(BatchingSessionTest, SingletonBatch) {
   TF_ASSERT_OK(CreateBasicBatchingSession(
       schedule_options, batching_session_options, {{"x"}, {"y"}},
       CreateHalfPlusTwoSession(), &batching_session));
-  TestSingleRequest(100.0f, 42.0f, batching_session.get());
+  TestRequest({100.0f, 42.0f}, {2}, {52.0f, 23.0f}, {2},
+              batching_session.get());
 }
 
 TEST_P(BatchingSessionTest, RequestThatDoesntMatchSignatureGetsRunAnyway) {
@@ -675,7 +656,8 @@ TEST_P(BatchingSessionTest, RequestThatDoesntMatchSignatureGetsRunAnyway) {
       schedule_options, batching_session_options, {{"x2"}, {"y3"}},
       CreateHalfPlusTwoSession(), &batching_session));
   // Issue a request using x/y, which doesn't match the x2/y3 signature.
-  TestSingleRequest(100.0f, 42.0f, batching_session.get());
+  TestRequest({100.0f, 42.0f}, {2}, {52.0f, 23.0f}, {2},
+              batching_session.get());
 }
 
 TEST_P(BatchingSessionTest, RequestWithIncompatibleInputTensorSizes) {
@@ -735,7 +717,8 @@ TEST_P(BatchingSessionTest, AllowedBatchSizesNoPaddingNeeded) {
   TF_ASSERT_OK(CreateBasicBatchingSession(
       schedule_options, batching_session_options, {{"x"}, {"y"}},
       std::move(batch_size_capturing_session), &batching_session));
-  TestSingleRequest(100.0f, 42.0f, batching_session.get());
+  TestRequest({100.0f, 42.0f}, {2}, {52.0f, 23.0f}, {2},
+              batching_session.get());
 
   // It should not add any padding, i.e. leave the batch size at 2.
   EXPECT_EQ(2, batch_size_capturing_session_raw->latest_batch_size());
@@ -776,7 +759,8 @@ TEST_P(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
   TF_ASSERT_OK(CreateBasicBatchingSession(
       schedule_options, batching_session_options, {{"x"}, {"y"}},
       std::move(batch_size_capturing_session), &batching_session));
-  TestSingleRequest(100.0f, 42.0f, batching_session.get());
+  TestRequest({100.0f, 42.0f}, {2}, {52.0f, 23.0f}, {2},
+              batching_session.get());
 
   // It should pad the batch size from 2 to 3.
   EXPECT_EQ(3, batch_size_capturing_session_raw->latest_batch_size());
@@ -1007,10 +991,11 @@ TEST_P(BatchingSessionTest, EnqueuedLongerThanTimeout) {
 
 TEST_P(BatchingSessionTest, ThreadPoolOptions) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
-  schedule_options.max_batch_size = 4;  // fits two 2-unit tasks
+  schedule_options.max_batch_size = 3;
   schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
   schedule_options.num_batch_threads = 1;
   schedule_options = annotate_options(schedule_options);
+  schedule_options.max_execution_batch_size = 1;
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
   TF_ASSERT_OK(CreateBasicBatchingSession(
@@ -1022,17 +1007,19 @@ TEST_P(BatchingSessionTest, ThreadPoolOptions) {
   test_util::CountingThreadPool intra_op_threadpool(Env::Default(), "IntraOp",
                                                     /*num_threads=*/1);
 
-  // Asynchronously send two requests whose total size is 4. The two requests in
-  // conjunction should trigger a batch to be processed.
+  // Asynchronously send two requests whose total size is 4.
+  // They form two batches in both non-split and input-split mode.
   std::unique_ptr<Thread> first_request_thread(
       Env::Default()->StartThread(ThreadOptions(), "first_request_thread", [&] {
-        TestSingleRequest(RunOptions(), 100.0f, 42.0f, batching_session.get(),
-                          &inter_op_threadpool, &intra_op_threadpool);
+        TestRequest({100.0f, 42.0f}, {2}, {52.0f, 23.0f}, {2},
+                    batching_session.get(), &inter_op_threadpool,
+                    &intra_op_threadpool);
       }));
   std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
       ThreadOptions(), "second_request_thread", [&] {
-        TestSingleRequest(RunOptions(), 71.5f, 18.3f, batching_session.get(),
-                          &inter_op_threadpool, &intra_op_threadpool);
+        TestRequest({71.5f, 18.3f}, {2}, {37.75f, 11.15f}, {2},
+                    batching_session.get(), &inter_op_threadpool,
+                    &intra_op_threadpool);
       }));
 }
 

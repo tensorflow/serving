@@ -918,6 +918,7 @@ Status SplitInputTask(
     task->thread_safe_status = input_task.thread_safe_status;
     task->is_partial = true;
     task->done_callback = barrier.Inc();
+    task->thread_pool_options = input_task.thread_pool_options;
 
     task->split_run_metadatas = input_task.split_run_metadatas;
 
