@@ -246,31 +246,24 @@ TEST(BatchingSessionSignatureTest, TensorSignatureFromSignatureDefs) {
               UnorderedElementsAre("y0", "y1", "y3"));
 }
 
-class BatchingSessionTest : public ::testing::TestWithParam<bool> {
+class BatchingSessionTest
+    : public ::testing::TestWithParam<std::tuple<bool, bool>> {
  public:
   BatchingSessionTest() {}
 
-  bool enable_large_batch_splitting() const { return GetParam(); }
+  bool enable_large_batch_splitting() const { return std::get<0>(GetParam()); }
+
+  bool enable_lazy_split() const { return std::get<1>(GetParam()); }
 
   std::function<
       Status(std::unique_ptr<BatchingSessionTask>* input_task,
              int first_output_task_size, int max_batch_size,
              std::vector<std::unique_ptr<BatchingSessionTask>>* output_tasks)>
   get_split_input_task_func() const {
-    const bool enable_large_batch_splitting =
-        this->enable_large_batch_splitting();
-    return [enable_large_batch_splitting](
-               std::unique_ptr<BatchingSessionTask>* input_task,
-               int open_batch_remaining_slot, int max_batch_size,
-               std::vector<std::unique_ptr<BatchingSessionTask>>* output_tasks)
-               -> Status {
-      if (enable_large_batch_splitting) {
-        return SplitInputTask(input_task, open_batch_remaining_slot,
-                              max_batch_size, output_tasks);
-      } else {
-        return Status::OK();
-      }
-    };
+    if (enable_large_batch_splitting()) {
+      return SplitInputTask;
+    }
+    return nullptr;
   }
 
   // If 'enable_large_batch_splitting' is true, annotate `input_options` with
@@ -279,8 +272,10 @@ class BatchingSessionTest : public ::testing::TestWithParam<bool> {
       const BasicBatchScheduler<BatchingSessionTask>::Options input_options) {
     BasicBatchScheduler<BatchingSessionTask>::Options output_options =
         input_options;
+    output_options.enable_large_batch_splitting =
+        enable_large_batch_splitting();
+    output_options.enable_lazy_split = enable_lazy_split();
     if (enable_large_batch_splitting()) {
-      output_options.enable_large_batch_splitting = true;
       output_options.split_input_task_func = get_split_input_task_func();
       output_options.max_execution_batch_size = input_options.max_batch_size;
     }
@@ -438,6 +433,37 @@ TEST_P(BatchingSessionTest, BatchHandlesSplitError) {
       [&batching_session, &expected_error_msg] {
         ExpectError(expected_error_msg,
                     {{"x", test::AsTensor<float>({1, 2}, {1, 2})}}, {"y"},
+                    batching_session.get());
+      }));
+}
+
+TEST_P(BatchingSessionTest, BatchingLazySplit) {
+  if (!enable_large_batch_splitting()) {
+    return;
+  }
+
+  BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
+  schedule_options.max_batch_size = 2;
+  schedule_options.batch_timeout_micros = INT_MAX;  // set a large time out
+  schedule_options.num_batch_threads = 1;
+  schedule_options = annotate_options(schedule_options);
+  schedule_options.max_execution_batch_size = 1;
+  std::unique_ptr<Session> batching_session;
+  BatchingSessionOptions batching_session_options;
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, {{"x"}, {"y"}},
+      CreateHalfPlusTwoSession(), &batching_session));
+
+  // `max_batch_size` is 2 and `max_execution_batch_size` is 1, so inputs
+  // will be split and process.
+  std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "first_request", [&batching_session] {
+        TestRequest({5, 6, 7, 8}, {1, 2, 2}, {4.5, 5, 5.5, 6}, {1, 2, 2},
+                    batching_session.get());
+      }));
+  std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "second_request", [&batching_session] {
+        TestRequest({1, 2, 3, 4}, {1, 2, 2}, {2.5, 3, 3.5, 4.0}, {1, 2, 2},
                     batching_session.get());
       }));
 }
@@ -1069,8 +1095,14 @@ TEST_P(BatchingSessionTest, SubsetOutputTensors) {
       }));
 }
 
-INSTANTIATE_TEST_CASE_P(WithOrWithoutInputSplit, BatchingSessionTest,
-                        ::testing::Bool());
+INSTANTIATE_TEST_SUITE_P(
+    Parameter, BatchingSessionTest,
+    ::testing::Values(std::make_tuple(/*enable_input_batch_split=*/false,
+                                      /*enable_lazy_split=*/false),
+                      std::make_tuple(/*enable_input_batch_split=*/true,
+                                      /*enable_lazy_split=*/false),
+                      std::make_tuple(/*enable_input_batch_split=*/true,
+                                      /*enable_lazy_split=*/true)));
 
 }  // namespace
 }  // namespace serving

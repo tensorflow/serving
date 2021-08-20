@@ -19,10 +19,12 @@ limitations under the License.
 
 #include <memory>
 
+#include "absl/container/fixed_array.h"
 #include "tensorflow/core/framework/cost_graph.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_util.h"
+#include "tensorflow/core/kernels/batching_util/input_split_metadata.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -809,7 +811,7 @@ Status SplitInputTask(
   BatchingSessionTask& input_task = *(*input_task_ptr);
   const int64 input_task_size = input_task.size();
 
-  DCHECK_GT(input_task_size, open_batch_remaining_slot);
+  DCHECK_GT(input_task_size, 0);
 
   // `split_task_done_callback` runs only after all split tasks are complete.
   std::function<void()> split_task_done_callback =
@@ -879,31 +881,27 @@ Status SplitInputTask(
       };
   IncrementalBarrier barrier(split_task_done_callback);
 
-  std::vector<int64> output_task_sizes;
+  const internal::InputSplitMetadata input_split_metadata(
+      input_task_size, open_batch_remaining_slot, max_batch_size);
 
-  if (open_batch_remaining_slot > 0) {
-    output_task_sizes.push_back(open_batch_remaining_slot);
-  }
+  // Creates an array of int64 from an array of int, since `tensor::Split`
+  // requires an array of int64.
+  const absl::FixedArray<int64> output_task_sizes(
+      input_split_metadata.task_sizes().begin(),
+      input_split_metadata.task_sizes().end());
+  const int num_batches = output_task_sizes.size();
 
-  for (int left_task_size = input_task_size - open_batch_remaining_slot;
-       left_task_size > 0; left_task_size -= max_batch_size) {
-    int next_task_size = std::min(left_task_size, max_batch_size);
-    output_task_sizes.push_back(next_task_size);
-  }
+  input_task.shared_outputs->resize(num_batches);
 
-  const int output_task_num = output_task_sizes.size();
-
-  input_task.shared_outputs->resize(output_task_num);
-
-  for (int i = 0; i < output_task_num; ++i) {
+  for (int i = 0; i < num_batches; ++i) {
     (*input_task.shared_outputs)[i].reserve(
         input_task.output_tensor_names->size());
   }
 
-  input_task.split_run_metadatas->resize(output_task_num);
+  input_task.split_run_metadatas->resize(num_batches);
 
-  output_tasks->reserve(output_task_num);
-  for (int i = 0; i < output_task_num; i++) {
+  output_tasks->reserve(num_batches);
+  for (int i = 0; i < num_batches; i++) {
     auto task = absl::make_unique<BatchingSessionTask>();
     task->enqueue_time_micros = input_task.enqueue_time_micros;
     task->run_options = input_task.run_options;
