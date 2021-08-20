@@ -1,3 +1,28 @@
+# Release 2.6.0
+
+## Major Features and Improvements
+
+* Update TF Text to v2.5.0. (commit: 48e5a9e23a1e0b2951b77c3e8f9832193d9b1851)
+* Add support for Google ALTS. (commit: ceba636bb7c5c98bde35d1818fd033b36300fffe)
+* Enable HTTP PATCH support in HTTP/REST server (commit: 6cbc4a9eb419c8078c3a4e791381cda70dd8fc78)
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* Enable tensor output filters with batching. (commit: 448dbe14624538ab76fd6aeb2a456344e7f41c78)
+* Update tf.io import in warmup example doc. (commit: 6579d2d056530565cd6606a39c82b2f6c1d3799e)
+* Resize tensors if the dimensions of the tflite and tensorflow inputs mismatch, even if the number of elements are the same (commit: 8293f44bd5c5ecc68636cd0d036234f891d29366)
+* Add basic batch scheduler for tflite models to improve batch parallelism. (commit: 0ffd6080437ca8175b067be7cc00f5b3df9ea92a)
+* Reserve Unavailable error to TF communication ops only. (commit: db9aca187affd0453627a1729916acfea98ae800)
+* Add the flag thread_pool_factory_config_file to model server and fix a typo. (commit: efc445f416f8cb20606ca0d2aaf44c13fae7ea4c)
+
+## Thanks to our Contributors
+
+This release contains contributions from many people at Google.
+
 # Release 2.5.2
 
 ## Major Features and Improvements
