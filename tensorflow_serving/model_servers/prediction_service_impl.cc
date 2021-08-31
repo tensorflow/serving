@@ -15,7 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/prediction_service_impl.h"
 
-#include "third_party/grpc/include/grpc/grpc.h"
+#include "grpc/grpc.h"
 #include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 #include "tensorflow_serving/servables/tensorflow/classification_service.h"

@@ -19,7 +19,6 @@ cc_library(
         "//tensorflow_serving/apis:model_cc_proto",
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/apis:prediction_service_cc_proto",
-        "//third_party/grpc:grpc++",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
@@ -87,7 +86,6 @@ tf_kernel_library(
         "//tensorflow_serving/apis:model_cc_proto",
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/apis:prediction_service_cc_proto",
-        "//third_party/grpc:grpc++",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
@@ -162,7 +160,6 @@ cc_library(
     hdrs = ["kernels/prediction_service_grpc.h"],
     deps = [
         "//tensorflow_serving/apis:prediction_service_cc_proto",
-        "//third_party/grpc:grpc++",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
