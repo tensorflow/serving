@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <memory>
 
-#include "grpcpp/server.h"
+#include "third_party/grpc/include/grpcpp/server.h"
 #include "tensorflow/core/kernels/batching_util/periodic_function.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/cpu_info.h"
