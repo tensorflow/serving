@@ -394,8 +394,6 @@ cc_library(
         "@org_tensorflow//tensorflow/compiler/jit:xla_cpu_jit",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
-        "@org_tensorflow//tensorflow/core/platform/hadoop:hadoop_file_system",
-        "@org_tensorflow//tensorflow/core/platform/s3:s3_file_system",
     ] + if_libtpu([
         "@org_tensorflow//tensorflow/core/tpu:tpu_model_server_initializer",
     ]),
