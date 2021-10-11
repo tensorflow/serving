@@ -122,7 +122,7 @@ class BenchmarkState {
 void BenchmarkState::StartServing(const int64_t loader_version) {
   std::unique_ptr<Loader> loader(new SimpleLoader<int64_t>(
       [loader_version](std::unique_ptr<int64_t>* const servable) {
-        servable->reset(new int64);
+        servable->reset(new int64_t);
         **servable = loader_version;
         return Status::OK();
       },
@@ -332,7 +332,7 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
       for (int j = 0; j < kNumServableVersions; ++j) {
         std::unique_ptr<Loader> loader(new SimpleLoader<int64_t>(
             [j](std::unique_ptr<int64_t>* const servable) {
-              servable->reset(new int64);
+              servable->reset(new int64_t);
               **servable = j;
               return Status::OK();
             },
