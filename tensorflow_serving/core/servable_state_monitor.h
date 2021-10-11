@@ -47,14 +47,15 @@ class ServableStateMonitor {
   // START_SKIP_DOXYGEN
   struct ServableStateAndTime {
     ServableStateAndTime() = default;
-    ServableStateAndTime(ServableState servable_state, const uint64 event_time)
+    ServableStateAndTime(ServableState servable_state,
+                         const uint64_t event_time)
         : state(std::move(servable_state)), event_time_micros(event_time) {}
 
     /// State of the servable.
     ServableState state;
 
     /// Time at which servable state event was published.
-    uint64 event_time_micros;
+    uint64_t event_time_micros;
 
     /// Returns a string representation of this struct useful for debugging or
     /// logging.
@@ -73,7 +74,7 @@ class ServableStateMonitor {
 
     /// Upper bound for the number of events captured in the bounded log. If set
     /// to 0, logging is disabled.
-    uint64 max_count_log_events = 0;
+    uint64_t max_count_log_events = 0;
   };
   // END_SKIP_DOXYGEN
 

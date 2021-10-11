@@ -146,7 +146,7 @@ class RestApiRequestDispatcher {
 
  private:
   void ProcessRequest(net_http::ServerRequestInterface* req) {
-    const uint64 start = Env::Default()->NowMicros();
+    const uint64_t start = Env::Default()->NowMicros();
     string body;
     int64_t num_bytes = 0;
     auto request_chunk = req->ReadRequestBytes(&num_bytes);

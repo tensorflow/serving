@@ -141,8 +141,9 @@ TEST_F(GetModelStatusImplTest, AllVersionsSuccess) {
   TF_EXPECT_OK(
       GetModelStatusImpl::GetModelStatus(GetServerCore(), request, &response));
   EXPECT_EQ(2, response.model_version_status_size());
-  std::set<int64> expected_versions = {kTestModelVersion1, kTestModelVersion2};
-  std::set<int64> actual_versions = {
+  std::set<int64_t> expected_versions = {kTestModelVersion1,
+                                         kTestModelVersion2};
+  std::set<int64_t> actual_versions = {
       response.model_version_status(0).version(),
       response.model_version_status(1).version()};
   EXPECT_EQ(expected_versions, actual_versions);

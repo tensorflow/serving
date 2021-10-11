@@ -64,18 +64,18 @@ class Server {
     tensorflow::int32 num_load_threads = 0;
     tensorflow::int32 num_unload_threads = 0;
     tensorflow::int32 max_num_load_retries = 5;
-    tensorflow::int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
+    int64_t load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
     tensorflow::int32 file_system_poll_wait_seconds = 1;
     bool flush_filesystem_caches = true;
     tensorflow::string model_base_path;
     tensorflow::string saved_model_tags;
     // Tensorflow session parallelism of zero means that both inter and intra op
     // thread pools will be auto configured.
-    tensorflow::int64 tensorflow_session_parallelism = 0;
+    int64_t tensorflow_session_parallelism = 0;
 
     // Zero means that the thread pools will be auto configured.
-    tensorflow::int64 tensorflow_intra_op_parallelism = 0;
-    tensorflow::int64 tensorflow_inter_op_parallelism = 0;
+    int64_t tensorflow_intra_op_parallelism = 0;
+    int64_t tensorflow_inter_op_parallelism = 0;
     tensorflow::string platform_config_file;
     // Only one of ALTS or SSl can be specified. I.e. either
     // use_alts_credentials must be false or ssl_config_file must be empty.

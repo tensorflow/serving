@@ -27,7 +27,7 @@ void EraseLiveStatesEntry(
     const ServableStateMonitor::ServableStateAndTime& state_and_time,
     ServableStateMonitor::ServableMap* const live_states) {
   const string& servable_name = state_and_time.state.id.name;
-  const int64 version = state_and_time.state.id.version;
+  const int64_t version = state_and_time.state.id.version;
   auto servable_map_it = live_states->find(servable_name);
   if (servable_map_it == live_states->end()) {
     return;
@@ -48,7 +48,7 @@ void UpdateLiveStates(
     const ServableStateMonitor::ServableStateAndTime& state_and_time,
     ServableStateMonitor::ServableMap* const live_states) {
   const string& servable_name = state_and_time.state.id.name;
-  const int64 version = state_and_time.state.id.version;
+  const int64_t version = state_and_time.state.id.version;
   if (state_and_time.state.manager_state != ServableState::ManagerState::kEnd) {
     (*live_states)[servable_name][version] = state_and_time;
   } else {

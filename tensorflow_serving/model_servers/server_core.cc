@@ -496,18 +496,18 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
 }
 
 Status ServerCore::UpdateModelVersionLabelMap() {
-  std::unique_ptr<std::map<string, std::map<string, int64>>> new_label_map(
-      new std::map<string, std::map<string, int64>>);
+  std::unique_ptr<std::map<string, std::map<string, int64_t>>> new_label_map(
+      new std::map<string, std::map<string, int64_t>>);
   for (const ModelConfig& model_config : config_.model_config_list().config()) {
     ServableStateMonitor::VersionMap serving_states =
         servable_state_monitor_->GetVersionStates(model_config.name());
 
     for (const auto& entry : model_config.version_labels()) {
       const string& label = entry.first;
-      const int64 version = entry.second;
+      const int64_t version = entry.second;
 
       bool contains_existing_label_with_different_version = false;
-      int64 existing_version;
+      int64_t existing_version;
       if (GetModelVersionForLabel(model_config.name(), label, &existing_version)
               .ok() &&
           existing_version != version) {
@@ -795,7 +795,7 @@ Status ServerCore::ServableRequestFromModelSpec(
             "ModelSpec has 'version_label' set, but it is not currently "
             "allowed by the server.");
       }
-      int64 version;
+      int64_t version;
       TF_RETURN_IF_ERROR(GetModelVersionForLabel(
           model_spec.name(), model_spec.version_label(), &version));
       *servable_request = ServableRequest::Specific(model_spec.name(), version);
@@ -811,7 +811,7 @@ Status ServerCore::ServableRequestFromModelSpec(
 
 Status ServerCore::GetModelVersionForLabel(const string& model_name,
                                            const string& label,
-                                           int64* version) const {
+                                           int64_t* version) const {
   mutex_lock l(model_labels_to_versions_mu_);
   if (model_labels_to_versions_ == nullptr) {
     return errors::Unavailable(
@@ -819,7 +819,7 @@ Status ServerCore::GetModelVersionForLabel(const string& model_name,
   }
   auto version_map_it = model_labels_to_versions_->find(model_name);
   if (version_map_it != model_labels_to_versions_->end()) {
-    const std::map<string, int64>& version_map = version_map_it->second;
+    const std::map<string, int64_t>& version_map = version_map_it->second;
     auto version_it = version_map.find(label);
     if (version_it != version_map.end()) {
       *version = version_it->second;

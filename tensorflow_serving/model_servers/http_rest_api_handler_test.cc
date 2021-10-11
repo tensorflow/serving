@@ -222,7 +222,7 @@ TEST_F(HttpRestApiHandlerTest, UnsupportedApiCalls) {
   status = handler_.ProcessRequest(
       "POST",
       absl::StrCat("/v1/models/foo/versions/",
-                   std::numeric_limits<uint64>::max(), ":regress"),
+                   std::numeric_limits<uint64_t>::max(), ":regress"),
       "", &headers, &model_name, &method, &output);
   EXPECT_TRUE(errors::IsInvalidArgument(status));
   EXPECT_THAT(status.error_message(), HasSubstr("Failed to convert version"));

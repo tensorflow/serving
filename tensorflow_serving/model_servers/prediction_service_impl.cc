@@ -46,7 +46,7 @@ ScopedThreadPools GetThreadPools(ThreadPoolFactory *thread_pool_factory) {
 ::grpc::Status PredictionServiceImpl::Predict(::grpc::ServerContext *context,
                                               const PredictRequest *request,
                                               PredictResponse *response) {
-  const uint64 start = Env::Default()->NowMicros();
+  const uint64_t start = Env::Default()->NowMicros();
   tensorflow::RunOptions run_options = tensorflow::RunOptions();
   if (enforce_session_run_timeout_) {
     run_options.set_timeout_in_ms(
@@ -83,7 +83,7 @@ ScopedThreadPools GetThreadPools(ThreadPoolFactory *thread_pool_factory) {
 ::grpc::Status PredictionServiceImpl::Classify(
     ::grpc::ServerContext *context, const ClassificationRequest *request,
     ClassificationResponse *response) {
-  const uint64 start = Env::Default()->NowMicros();
+  const uint64_t start = Env::Default()->NowMicros();
   tensorflow::RunOptions run_options = tensorflow::RunOptions();
   // By default, this is infinite which is the same default as RunOptions.
   if (enforce_session_run_timeout_) {
@@ -112,7 +112,7 @@ ScopedThreadPools GetThreadPools(ThreadPoolFactory *thread_pool_factory) {
 ::grpc::Status PredictionServiceImpl::Regress(::grpc::ServerContext *context,
                                               const RegressionRequest *request,
                                               RegressionResponse *response) {
-  const uint64 start = Env::Default()->NowMicros();
+  const uint64_t start = Env::Default()->NowMicros();
   tensorflow::RunOptions run_options = tensorflow::RunOptions();
   // By default, this is infinite which is the same default as RunOptions.
   if (enforce_session_run_timeout_) {

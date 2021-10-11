@@ -69,7 +69,7 @@ Status CachingManager::GetUntypedServableHandle(
   }
   // Since there is no explicit version in the request, get the latest from the
   // loader-factory.
-  const int64 policy_dictated_version = loader_factory_->GetServableVersion(
+  const int64_t policy_dictated_version = loader_factory_->GetServableVersion(
       request.name, request.auto_version_policy);
   return GetUntypedServableHandleForId({request.name, policy_dictated_version},
                                        handle);
@@ -183,7 +183,7 @@ void CachingManager::MaybeEraseLoadMutexMapEntry(
   }
 }
 
-int64 CachingManager::GetLoadMutexMapSize() const {
+int64_t CachingManager::GetLoadMutexMapSize() const {
   mutex_lock l(load_mutex_map_mu_);
   return load_mutex_map_.size();
 }
@@ -214,7 +214,7 @@ ServableData<std::unique_ptr<Loader>> PathPrefixLoaderFactory::CreateLoader(
   return adapter_->AdaptOneVersion({id, servable_path});
 }
 
-int64 PathPrefixLoaderFactory::GetServableVersion(
+int64_t PathPrefixLoaderFactory::GetServableVersion(
     const string& servable_name,
     ServableRequest::AutoVersionPolicy policy) const {
   return 0;

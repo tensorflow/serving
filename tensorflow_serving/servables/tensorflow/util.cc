@@ -174,7 +174,7 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
     return errors::Internal("Error parsing serialized input.");
   }
 
-  const int64 num_examples = NumInputExamples(serialized_input);
+  const int64_t num_examples = NumInputExamples(serialized_input);
   if (num_examples == 0) {
     return errors::InvalidArgument("Input is empty.");
   }
@@ -228,19 +228,19 @@ Status PerformOneShotTensorComputation(
     const std::vector<string>& output_tensor_names, Session* session,
     std::vector<Tensor>* outputs, int* num_input_examples,
     const thread::ThreadPoolOptions& thread_pool_options,
-    int64* runtime_latency) {
+    int64_t* runtime_latency) {
   // Setup the input Tensor to be a vector of string containing the serialized
   // tensorflow.Example.
   Tensor input_tensor;
   TF_RETURN_IF_ERROR(InputToSerializedExampleTensor(input, &input_tensor));
   *num_input_examples = input_tensor.dim_size(0);
 
-  const uint64 start_microseconds = EnvTime::NowMicros();
+  const uint64_t start_microseconds = EnvTime::NowMicros();
   RunMetadata run_metadata;
   TF_RETURN_IF_ERROR(session->Run(
       run_options, {{input_tensor_name, input_tensor}}, output_tensor_names, {},
       outputs, &run_metadata, thread_pool_options));
-  const uint64 end_microseconds = EnvTime::NowMicros();
+  const uint64_t end_microseconds = EnvTime::NowMicros();
   if (runtime_latency != nullptr) {
     *runtime_latency = end_microseconds - start_microseconds;
   }
@@ -272,7 +272,7 @@ Status PerformOneShotTensorComputation(
 
 void MakeModelSpec(const string& model_name,
                    const absl::optional<string>& signature_name,
-                   const absl::optional<int64>& version,
+                   const absl::optional<int64_t>& version,
                    ModelSpec* model_spec) {
   model_spec->Clear();
   model_spec->set_name(model_name);
@@ -287,7 +287,7 @@ void MakeModelSpec(const string& model_name,
 }
 
 Status GetModelDiskSize(const string& path, FileProbingEnv* env,
-                        uint64* total_file_size) {
+                        uint64_t* total_file_size) {
   if (env == nullptr) {
     return errors::Internal("FileProbingEnv not set");
   }
@@ -297,7 +297,7 @@ Status GetModelDiskSize(const string& path, FileProbingEnv* env,
   *total_file_size = 0;
   for (const string& descendant : descendants) {
     if (!(env->IsDirectory(descendant).ok())) {
-      uint64 file_size;
+      uint64_t file_size;
       TF_RETURN_IF_ERROR(env->GetFileSize(descendant, &file_size));
       *total_file_size += file_size;
     }
@@ -308,10 +308,10 @@ Status GetModelDiskSize(const string& path, FileProbingEnv* env,
 Status EstimateResourceFromPathUsingDiskState(const string& path,
                                               FileProbingEnv* env,
                                               ResourceAllocation* estimate) {
-  uint64 total_file_size = 0;
+  uint64_t total_file_size = 0;
   TF_RETURN_IF_ERROR(GetModelDiskSize(path, env, &total_file_size));
 
-  const uint64 ram_requirement =
+  const uint64_t ram_requirement =
       total_file_size * kResourceEstimateRAMMultiplier +
       kResourceEstimateRAMPadBytes;
 
@@ -325,12 +325,12 @@ Status EstimateResourceFromPathUsingDiskState(const string& path,
 }
 
 void RecordRuntimeLatency(const string& model_name, const string& api,
-                          const string& runtime, int64 latency_usec) {
+                          const string& runtime, int64_t latency_usec) {
   runtime_latency->GetCell(model_name, api, runtime)->Add(latency_usec);
 }
 
 void RecordRequestLatency(const string& model_name, const string& api,
-                          const string& entrypoint, int64 latency_usec) {
+                          const string& entrypoint, int64_t latency_usec) {
   request_latency->GetCell(model_name, api, entrypoint)->Add(latency_usec);
 }
 

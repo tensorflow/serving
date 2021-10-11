@@ -30,7 +30,7 @@ class MockFileProbingEnv : public FileProbingEnv {
   MOCK_METHOD(Status, GetChildren,
               (const string& fname, std::vector<string>* children), (override));
   MOCK_METHOD(Status, IsDirectory, (const string& fname), (override));
-  MOCK_METHOD(Status, GetFileSize, (const string& fname, uint64* file_size),
+  MOCK_METHOD(Status, GetFileSize, (const string& fname, uint64_t* file_size),
               (override));
 };
 

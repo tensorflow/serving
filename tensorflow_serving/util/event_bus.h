@@ -102,7 +102,7 @@ class EventBus : public std::enable_shared_from_this<EventBus<E>> {
   /// Event and the publish time associated with it.
   struct EventAndTime {
     const E& event;
-    uint64 event_time_micros;
+    uint64_t event_time_micros;
   };
 
   /// The function type for EventBus Callbacks to be implemented by clients.
@@ -208,7 +208,7 @@ void EventBus<E>::Unsubscribe(
 template <typename E>
 void EventBus<E>::Publish(const E& event) {
   mutex_lock lock(mutex_);
-  const uint64 event_time = options_.env->NowMicros();
+  const uint64_t event_time = options_.env->NowMicros();
   const EventAndTime event_and_time = {event, event_time};
   for (const SubscriptionTuple& subscription : subscriptions_) {
     subscription.callback(event_and_time);

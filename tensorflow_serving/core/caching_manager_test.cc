@@ -46,7 +46,7 @@ using ::testing::UnorderedElementsAreArray;
 // version.
 class StringLoaderFactory : public CachingManager::LoaderFactory {
  public:
-  explicit StringLoaderFactory(const int64 starting_version)
+  explicit StringLoaderFactory(const int64_t starting_version)
       : latest_version_(starting_version) {}
 
   ~StringLoaderFactory() override = default;
@@ -71,7 +71,7 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
   }
 
   // Returns the earliest/latest version corresponding to the servable name.
-  int64 GetServableVersion(
+  int64_t GetServableVersion(
       const string& request_name,
       ServableRequest::AutoVersionPolicy policy) const override {
     mutex_lock l(mu_);
@@ -84,19 +84,19 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
   }
 
   // Update the earliest available version.
-  void set_earliest_version(int64 version) {
+  void set_earliest_version(int64_t version) {
     mutex_lock l(mu_);
     earliest_version_ = version;
   }
 
   // Update the latest available version.
-  void set_latest_version(int64 version) {
+  void set_latest_version(int64_t version) {
     mutex_lock l(mu_);
     latest_version_ = version;
   }
 
   // Returns the number of loaders created by the loader-factory.
-  int64 num_loaders_dispensed() const {
+  int64_t num_loaders_dispensed() const {
     mutex_lock l(mu_);
     return num_loaders_dispensed_;
   }
@@ -106,13 +106,13 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
   mutable mutex mu_;
 
   // The current earliest version.
-  int64 earliest_version_ TF_GUARDED_BY(mu_) = 0;
+  int64_t earliest_version_ TF_GUARDED_BY(mu_) = 0;
 
   // The current latest version.
-  int64 latest_version_ TF_GUARDED_BY(mu_) = 0;
+  int64_t latest_version_ TF_GUARDED_BY(mu_) = 0;
 
   // Tracks the number of loaders dispensed by the loader-factory.
-  int64 num_loaders_dispensed_ TF_GUARDED_BY(mu_) = 0;
+  int64_t num_loaders_dispensed_ TF_GUARDED_BY(mu_) = 0;
 
   TF_DISALLOW_COPY_AND_ASSIGN(StringLoaderFactory);
 };
@@ -135,7 +135,7 @@ class ErrorLoaderFactory : public CachingManager::LoaderFactory {
     return ServableData<std::unique_ptr<Loader>>(id, std::move(loader));
   }
 
-  int64 GetServableVersion(
+  int64_t GetServableVersion(
       const string& request_name,
       ServableRequest::AutoVersionPolicy policy) const override {
     // A simple policy interpretation that always returns version 42.
@@ -155,8 +155,8 @@ constexpr int kNumThreads = 10;
 // We parameterize this test with the number of load & unload threads. (Zero
 // means use an in-line executor instead of a thread pool.)
 struct ThreadPoolSizes {
-  uint64 num_load_threads;
-  uint64 num_unload_threads;
+  uint64_t num_load_threads;
+  uint64_t num_unload_threads;
 };
 class CachingManagerTest : public ::testing::TestWithParam<ThreadPoolSizes> {
  protected:
@@ -202,7 +202,7 @@ class CachingManagerTest : public ::testing::TestWithParam<ThreadPoolSizes> {
 
   // Helper function to return the size of the load-mutex map from the
   // caching-manager.
-  int64 GetLoadMutexMapSize() {
+  int64_t GetLoadMutexMapSize() {
     return test_util::CachingManagerTestAccess(manager_.get())
         .GetLoadMutexMapSize();
   }

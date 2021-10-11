@@ -112,7 +112,8 @@ class ServerCore : public Manager {
     int32 num_unload_threads = 0;
 
     // Total model size limit, in terms of main memory, in bytes.
-    uint64 total_model_memory_limit_bytes = std::numeric_limits<uint64>::max();
+    uint64_t total_model_memory_limit_bytes =
+        std::numeric_limits<uint64_t>::max();
 
     // Maximum number of times we retry loading a model, after the first
     // failure, before we give up.
@@ -123,7 +124,7 @@ class ServerCore : public Manager {
     // The interval, in microseconds, between each servable load retry. If set
     // negative, we don't wait.
     // Default: 1 minute.
-    int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
+    int64_t load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
 
     // Time interval between file-system polls, in seconds.
     int32 file_system_poll_wait_seconds = 30;
@@ -396,7 +397,7 @@ class ServerCore : public Manager {
 
   // Gets the version associated with 'label', for the given model name.
   Status GetModelVersionForLabel(const string& model_name, const string& label,
-                                 int64* version) const
+                                 int64_t* version) const
       TF_LOCKS_EXCLUDED(model_labels_to_versions_mu_);
 
   Status GetUntypedServableHandle(
@@ -426,7 +427,7 @@ class ServerCore : public Manager {
   ModelServerConfig config_ TF_GUARDED_BY(config_mu_);
 
   // A model_name->label->version# map.
-  std::unique_ptr<std::map<string, std::map<string, int64>>>
+  std::unique_ptr<std::map<string, std::map<string, int64_t>>>
       model_labels_to_versions_ TF_GUARDED_BY(model_labels_to_versions_mu_);
 
   struct StoragePathSourceAndRouter {

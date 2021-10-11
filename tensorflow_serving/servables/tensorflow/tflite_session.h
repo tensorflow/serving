@@ -87,7 +87,7 @@ class TfLiteBatchTask : public BatchTask {
   // Returns the batch size.
   size_t size() const override { return inputs[0].dim_size(0); }
 
-  uint64 start_time_micros() const { return enqueue_time_micros; }
+  uint64_t start_time_micros() const { return enqueue_time_micros; }
 
   Notification* done;
 
@@ -108,7 +108,7 @@ class TfLiteBatchTask : public BatchTask {
 
   RunOptions run_options;
 
-  const uint64 enqueue_time_micros;
+  const uint64_t enqueue_time_micros;
 
   // Required for partial execution using split batches.
   bool is_partial = false;

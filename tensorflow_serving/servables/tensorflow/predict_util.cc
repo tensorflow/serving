@@ -73,7 +73,7 @@ Status VerifyRequestInputsSize(const SignatureDef& signature,
 namespace internal {
 Status RunPredict(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
-    const absl::optional<int64>& servable_version,
+    const absl::optional<int64_t>& servable_version,
     const internal::PredictResponseTensorSerializationOption option,
     Session* session, const PredictRequest& request, PredictResponse* response,
     const thread::ThreadPoolOptions& thread_pool_options) {
@@ -99,11 +99,11 @@ Status RunPredict(
                                           &output_tensor_aliases));
   std::vector<Tensor> outputs;
   RunMetadata run_metadata;
-  const uint64 start_microseconds = EnvTime::NowMicros();
+  const uint64_t start_microseconds = EnvTime::NowMicros();
   TF_RETURN_IF_ERROR(session->Run(run_options, input_tensors,
                                   output_tensor_names, {}, &outputs,
                                   &run_metadata, thread_pool_options));
-  const uint64 end_microseconds = EnvTime::NowMicros();
+  const uint64_t end_microseconds = EnvTime::NowMicros();
   RecordRuntimeLatency(request.model_spec().name(), /*api=*/"Predict",
                        /*runtime=*/"TF1",
                        end_microseconds - start_microseconds);
@@ -203,7 +203,7 @@ Status PostProcessPredictionResult(
 
 Status RunPredict(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
-                  const absl::optional<int64>& servable_version,
+                  const absl::optional<int64_t>& servable_version,
                   Session* session, const PredictRequest& request,
                   PredictResponse* response,
                   const thread::ThreadPoolOptions& thread_pool_options) {

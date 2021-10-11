@@ -198,8 +198,8 @@ Resource ResourceUtil::CreateBoundResource(const string& device,
   return resource;
 }
 
-uint64 ResourceUtil::GetQuantity(const Resource& resource,
-                                 const ResourceAllocation& allocation) const {
+uint64_t ResourceUtil::GetQuantity(const Resource& resource,
+                                   const ResourceAllocation& allocation) const {
   DCHECK(devices_.find(resource.device()) != devices_.end());
   for (const ResourceAllocation::Entry& entry :
        allocation.resource_quantities()) {
@@ -210,7 +210,7 @@ uint64 ResourceUtil::GetQuantity(const Resource& resource,
   return 0;
 }
 
-void ResourceUtil::SetQuantity(const Resource& resource, uint64 quantity,
+void ResourceUtil::SetQuantity(const Resource& resource, uint64_t quantity,
                                ResourceAllocation* allocation) const {
   DCHECK(devices_.find(resource.device()) != devices_.end());
   for (int i = 0; i < allocation->resource_quantities().size(); ++i) {
@@ -238,7 +238,8 @@ bool ResourceUtil::Subtract(const ResourceAllocation& to_subtract,
   return SubtractNormalized(Normalize(to_subtract), base);
 }
 
-void ResourceUtil::Multiply(uint64 multiplier, ResourceAllocation* base) const {
+void ResourceUtil::Multiply(uint64_t multiplier,
+                            ResourceAllocation* base) const {
   *base = Normalize(*base);
   return MultiplyNormalized(multiplier, base);
 }
@@ -340,7 +341,7 @@ bool ResourceUtil::SubtractNormalized(const ResourceAllocation& to_subtract,
   DCHECK(IsNormalized(*base));
   // We buffer the mutations to 'base' so that if we bail out due to a negative
   // quantity we leave it untouched.
-  std::vector<std::pair<ResourceAllocation::Entry*, uint64>> new_quantities;
+  std::vector<std::pair<ResourceAllocation::Entry*, uint64_t>> new_quantities;
   for (const ResourceAllocation::Entry& to_subtract_entry :
        to_subtract.resource_quantities()) {
     ResourceAllocation::Entry* base_entry =
@@ -349,20 +350,20 @@ bool ResourceUtil::SubtractNormalized(const ResourceAllocation& to_subtract,
         base_entry->quantity() < to_subtract_entry.quantity()) {
       return false;
     }
-    const uint64 new_quantity =
+    const uint64_t new_quantity =
         base_entry->quantity() - to_subtract_entry.quantity();
     new_quantities.push_back({base_entry, new_quantity});
   }
   for (const auto& new_quantity : new_quantities) {
     ResourceAllocation::Entry* base_entry = new_quantity.first;
-    const uint64 quantity = new_quantity.second;
+    const uint64_t quantity = new_quantity.second;
     base_entry->set_quantity(quantity);
   }
   *base = Normalize(*base);
   return true;
 }
 
-void ResourceUtil::MultiplyNormalized(uint64 multiplier,
+void ResourceUtil::MultiplyNormalized(uint64_t multiplier,
                                       ResourceAllocation* base) const {
   DCHECK(IsNormalized(*base));
   for (int i = 0; i < base->resource_quantities().size(); ++i) {

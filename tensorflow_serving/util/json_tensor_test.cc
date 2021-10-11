@@ -1491,7 +1491,7 @@ TYPED_TEST(ClassifyRegressRequestTest, JsonErrors) {
     })",
                              &req);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Only int64 is supported"));
+  EXPECT_THAT(status.error_message(), HasSubstr("Only int64_t is supported"));
 }
 
 TEST(ClassifyRegressnResultTest, JsonFromClassificationResult) {

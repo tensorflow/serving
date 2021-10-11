@@ -66,7 +66,7 @@ const char kImproperlySizedScoresSignature[] = "ImproperlySizedScoresSignature";
 // class for that example.
 class FakeSession : public tensorflow::Session {
  public:
-  explicit FakeSession(absl::optional<int64> expected_timeout)
+  explicit FakeSession(absl::optional<int64_t> expected_timeout)
       : expected_timeout_(expected_timeout) {}
   ~FakeSession() override = default;
   Status Create(const GraphDef& graph) override {
@@ -221,7 +221,7 @@ class FakeSession : public tensorflow::Session {
   }
 
  private:
-  const absl::optional<int64> expected_timeout_;
+  const absl::optional<int64_t> expected_timeout_;
 };
 
 class ClassifierTest : public ::testing::TestWithParam<bool> {
@@ -230,7 +230,7 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
     SetSignatureMethodNameCheckFeature(IsMethodNameCheckEnabled());
     saved_model_bundle_.reset(new SavedModelBundle);
     meta_graph_def_ = &saved_model_bundle_->meta_graph_def;
-    absl::optional<int64> expected_timeout = GetRunOptions().timeout_in_ms();
+    absl::optional<int64_t> expected_timeout = GetRunOptions().timeout_in_ms();
     fake_session_ = new FakeSession(expected_timeout);
     saved_model_bundle_->session.reset(fake_session_);
 

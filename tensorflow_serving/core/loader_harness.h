@@ -101,7 +101,7 @@ class LoaderHarness final {
     uint32 max_num_load_retries = 0;
 
     /// The interval, in microseconds, between each servable load retry.
-    uint64 load_retry_interval_micros = 0;
+    uint64_t load_retry_interval_micros = 0;
 
     /// An (optional) function to call upon transitioning to state kError.
     std::function<void(const ServableId& id, const Status& error)>

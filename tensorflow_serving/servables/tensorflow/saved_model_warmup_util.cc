@@ -36,8 +36,8 @@ auto* model_warm_up_latency = monitoring::Sampler<2>::New(
     },  // Scale of 10, power of 1.8 with bucket count 33 (~20 minutes).
     monitoring::Buckets::Exponential(10, 1.8, 33));
 
-uint64 GetLatencyMicroseconds(const uint64 start_microseconds) {
-  const uint64 end_microseconds = EnvTime::NowMicros();
+uint64_t GetLatencyMicroseconds(const uint64_t start_microseconds) {
+  const uint64_t end_microseconds = EnvTime::NowMicros();
   // Avoid clock skew.
   if (end_microseconds < start_microseconds) return 0;
   return end_microseconds - start_microseconds;
@@ -51,7 +51,7 @@ constexpr int WarmupConsts::kMaxNumRecords;
 Status RunSavedModelWarmup(
     const ModelWarmupOptions& model_warmup_options, const string export_dir,
     std::function<Status(PredictionLog)> warmup_request_executor) {
-  const uint64 start_microseconds = EnvTime::NowMicros();
+  const uint64_t start_microseconds = EnvTime::NowMicros();
   const string warmup_path =
       io::JoinPath(export_dir, kSavedModelAssetsExtraDirectory,
                    WarmupConsts::kRequestsFileName);

@@ -651,7 +651,7 @@ TEST_P(ServerCoreTest, ModelSpecMultipleVersionsAvailable) {
                                 std::move(server_core_options), &server_core));
 
   // Wait until both versions of the servable have been loaded.
-  for (const int64 version :
+  for (const int64_t version :
        {test_util::kTestModelVersion, test_util::kTestModelLargerVersion}) {
     const auto servable_id = ServableId{test_util::kTestModelName, version};
     test_util::WaitUntilServableManagerStateIsOneOf(
@@ -744,15 +744,15 @@ TEST_P(ServerCoreTest, AssignLabelToUnavailableVersion) {
   TF_ASSERT_OK(CreateServerCore(two_version_config,
                                 std::move(server_core_options), &server_core));
 
-  const std::set<int64> aspired_versions = {test_util::kTestModelVersion,
-                                            test_util::kTestModelLargerVersion};
-  const int64 bogus_version = 777;
-  for (const int64 aspired_version : aspired_versions) {
+  const std::set<int64_t> aspired_versions = {
+      test_util::kTestModelVersion, test_util::kTestModelLargerVersion};
+  const int64_t bogus_version = 777;
+  for (const int64_t aspired_version : aspired_versions) {
     ASSERT_NE(bogus_version, aspired_version);
   }
 
   // Wait until both aspired versions of the servable have been loaded.
-  for (const int64 aspired_version : aspired_versions) {
+  for (const int64_t aspired_version : aspired_versions) {
     const auto servable_id =
         ServableId{test_util::kTestModelName, aspired_version};
     test_util::WaitUntilServableManagerStateIsOneOf(
@@ -782,15 +782,15 @@ TEST_P(ServerCoreTest, AssignLabelToUnavailableVersionAllowed) {
   TF_ASSERT_OK(CreateServerCore(two_version_config,
                                 std::move(server_core_options), &server_core));
 
-  const std::set<int64> aspired_versions = {test_util::kTestModelVersion,
-                                            test_util::kTestModelLargerVersion};
-  const int64 bogus_version = 777;
-  for (const int64 aspired_version : aspired_versions) {
+  const std::set<int64_t> aspired_versions = {
+      test_util::kTestModelVersion, test_util::kTestModelLargerVersion};
+  const int64_t bogus_version = 777;
+  for (const int64_t aspired_version : aspired_versions) {
     ASSERT_NE(bogus_version, aspired_version);
   }
 
   // Wait until both aspired versions of the servable have been loaded.
-  for (const int64 aspired_version : aspired_versions) {
+  for (const int64_t aspired_version : aspired_versions) {
     const auto servable_id =
         ServableId{test_util::kTestModelName, aspired_version};
     test_util::WaitUntilServableManagerStateIsOneOf(
@@ -818,15 +818,15 @@ TEST_P(ServerCoreTest, AssignExistingLabelToUnavailableVersion) {
   TF_ASSERT_OK(CreateServerCore(two_version_config,
                                 std::move(server_core_options), &server_core));
 
-  const std::set<int64> aspired_versions = {test_util::kTestModelVersion,
-                                            test_util::kTestModelLargerVersion};
-  const int64 bogus_version = 777;
-  for (const int64 aspired_version : aspired_versions) {
+  const std::set<int64_t> aspired_versions = {
+      test_util::kTestModelVersion, test_util::kTestModelLargerVersion};
+  const int64_t bogus_version = 777;
+  for (const int64_t aspired_version : aspired_versions) {
     ASSERT_NE(bogus_version, aspired_version);
   }
 
   // Wait until both aspired versions of the servable have been loaded.
-  for (const int64 aspired_version : aspired_versions) {
+  for (const int64_t aspired_version : aspired_versions) {
     const auto servable_id =
         ServableId{test_util::kTestModelName, aspired_version};
     test_util::WaitUntilServableManagerStateIsOneOf(

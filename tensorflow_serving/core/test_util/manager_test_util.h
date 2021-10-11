@@ -70,7 +70,7 @@ class CachingManagerTestAccess {
 
   // Returns the size of the load-mutex map that stores the mutex reference per
   // servable-id requested for load.
-  int64 GetLoadMutexMapSize() const;
+  int64_t GetLoadMutexMapSize() const;
 
  private:
   CachingManager* const manager_;

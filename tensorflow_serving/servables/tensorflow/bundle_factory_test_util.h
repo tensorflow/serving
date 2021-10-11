@@ -45,7 +45,7 @@ std::vector<string> GetTestSessionBundleExportFiles();
 std::vector<string> GetTestSavedModelBundleExportFiles();
 
 // Returns the total size of the given files. Requires the files to exist.
-uint64 GetTotalFileSize(const std::vector<string>& files);
+uint64_t GetTotalFileSize(const std::vector<string>& files);
 
 // Returns a signature for the half plus two model.
 SignatureDef GetTestSessionSignature();

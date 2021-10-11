@@ -73,7 +73,7 @@ struct BasicManager::ServingMap::EqRequest {
 };
 
 struct BasicManager::ServingMap::HashRequest {
-  uint64 operator()(const ServableRequest& request) const {
+  uint64_t operator()(const ServableRequest& request) const {
     // Hash codes for many common types are remarkably bad, often clustering
     // around the same values of the low and/or high bits for linear
     // sequences of inputs such as 1, 2, 3; or addresses of consecutively
@@ -84,9 +84,9 @@ struct BasicManager::ServingMap::HashRequest {
     // make the high bits contain more entropy from the entire hash code.
     // It's based on Fibonacci hashing from Knuth's Art of Computer
     // Programming volume 3, section 6.4.
-    const uint64 version_hash = [&]() -> uint64 {
+    const uint64_t version_hash = [&]() -> uint64_t {
       if (request.version) {
-        return std::hash<int64>()(request.version.value()) *
+        return std::hash<int64_t>()(request.version.value()) *
                0x9E3779B97F4A7C13;  // (sqrt(5) - 1)/2 as a binary fraction.
       } else {
         switch (request.auto_version_policy) {
@@ -233,7 +233,7 @@ Status BasicManager::Create(Options options,
 BasicManager::BasicManager(Env* const env, const uint32 num_load_threads,
                            const uint32 num_unload_threads,
                            uint32 max_num_load_retries,
-                           int64 load_retry_interval_micros,
+                           int64_t load_retry_interval_micros,
                            bool flush_filesystem_caches,
                            std::unique_ptr<ResourceTracker> resource_tracker,
                            EventBus<ServableState>* servable_event_bus,

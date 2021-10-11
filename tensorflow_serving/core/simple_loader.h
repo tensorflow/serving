@@ -323,12 +323,12 @@ Status SimpleLoader<ServableType>::EstimateResourcesPostLoad() {
     memoized_resource_estimate_ = post_load_resource_estimate;
 
     // Release any transient memory used only during load to the OS.
-    const uint64 during_load_ram_estimate = resource_util_->GetQuantity(
+    const uint64_t during_load_ram_estimate = resource_util_->GetQuantity(
         ram_resource_, during_load_resource_estimate);
-    const uint64 post_load_ram_estimate =
+    const uint64_t post_load_ram_estimate =
         resource_util_->GetQuantity(ram_resource_, post_load_resource_estimate);
     if (post_load_ram_estimate < during_load_ram_estimate) {
-      const uint64 transient_ram_estimate =
+      const uint64_t transient_ram_estimate =
           during_load_ram_estimate - post_load_ram_estimate;
       LOG(INFO) << "Calling MallocExtension_ReleaseToSystem() after servable "
                    "load with "
@@ -358,7 +358,7 @@ void SimpleLoader<ServableType>::Unload() {
 
   // If we have a main-memory footprint estimate, release that amount of memory
   // to the OS.
-  const uint64 memory_estimate =
+  const uint64_t memory_estimate =
       resource_util_->GetQuantity(ram_resource_, resource_estimate);
   if (memory_estimate > 0) {
     LOG(INFO) << "Calling MallocExtension_ReleaseToSystem() after servable "

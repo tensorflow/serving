@@ -103,7 +103,7 @@ class BenchmarkState {
   FastReadIntPtr fast_ptr_;
 
   // The update interval in microseconds.
-  int64 update_micros_;
+  int64_t update_micros_;
 
   // In each iteration, to simulate a more realistic access pattern that does
   // more than content for the mutex.

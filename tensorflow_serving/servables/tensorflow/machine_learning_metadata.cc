@@ -35,7 +35,7 @@ auto* mlmd_map = monitoring::Gauge<string, 2>::New(
 }  // namespace
 
 void MaybePublishMLMDStreamz(const string& export_dir, const string& model_name,
-                             int64 version) {
+                             int64_t version) {
   const string mlmd_path = tensorflow::io::JoinPath(
       export_dir, tensorflow::kSavedModelAssetsExtraDirectory, kMLMDKeyFile);
   if (Env::Default()->FileExists(mlmd_path).ok()) {

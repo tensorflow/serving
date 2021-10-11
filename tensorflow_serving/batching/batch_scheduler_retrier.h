@@ -39,10 +39,10 @@ class BatchSchedulerRetrier : public BatchScheduler<TaskType> {
   struct Options {
     // The maximum amount of time to spend retrying 'wrapped_->Schedule()'
     // calls, in microseconds.
-    int64 max_time_micros = 10 * 1000 /* 10 milliseconds */;
+    int64_t max_time_micros = 10 * 1000 /* 10 milliseconds */;
 
     // The amount of time to pause between retry attempts, in microseconds.
-    int64 retry_delay_micros = 100;
+    int64_t retry_delay_micros = 100;
 
     // The environment to use for time and sleeping.
     Env* env = Env::Default();
@@ -94,7 +94,7 @@ Status BatchSchedulerRetrier<TaskType>::Schedule(
     std::unique_ptr<TaskType>* task) {
   Status status;
 
-  const uint64 start_time_micros = options_.env->NowMicros();
+  const uint64_t start_time_micros = options_.env->NowMicros();
   for (;;) {
     status = wrapped_->Schedule(task);
     if (status.code() != error::UNAVAILABLE) {

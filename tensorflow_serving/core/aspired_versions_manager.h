@@ -97,7 +97,7 @@ class AspiredVersionsManager : public Manager,
     /// The periodicity, in microseconds, of the thread which manages the state
     /// of the servables. Default: 100 milliseconds. If this is set less than or
     /// equal to 0, we don't run this thread at all.
-    int64 manage_state_interval_micros = 100 * 1000;
+    int64_t manage_state_interval_micros = 100 * 1000;
 
     /// EventBus to publish servable state changes. This is optional, if unset,
     /// we don't publish.
@@ -125,7 +125,7 @@ class AspiredVersionsManager : public Manager,
     /// The interval, in microseconds, between each servable load retry. If set
     /// negative, we don't wait.
     /// Default: 1 minute.
-    int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
+    int64_t load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
 
     // If true, and there are not multiple load threads, filesystem caches will
     // be flushed after each servable is loaded. (Cache flush is skipped when
@@ -218,7 +218,7 @@ class AspiredVersionsManager : public Manager,
       AspiredVersionsManager* manager);
 
   AspiredVersionsManager(
-      int64 manage_state_interval_micros, Env* env,
+      int64_t manage_state_interval_micros, Env* env,
       std::unique_ptr<AspiredVersionPolicy> aspired_version_policy,
       std::unique_ptr<BasicManager> basic_manager);
 

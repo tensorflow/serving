@@ -184,9 +184,9 @@ class RemotePredictOp : public AsyncOpKernel {
 
  private:
   string model_name_;
-  int64 model_version_;
+  int64_t model_version_;
   bool fail_op_on_rpc_error_;
-  int64 max_rpc_deadline_millis_;
+  int64_t max_rpc_deadline_millis_;
   string signature_name_;
   std::unique_ptr<PredictionServiceStubType> prediction_service_;
 };

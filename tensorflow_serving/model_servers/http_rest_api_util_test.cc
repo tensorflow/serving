@@ -30,7 +30,7 @@ class HttpRestApiUtilTest : public ::testing::Test {};
 
 TEST_F(HttpRestApiUtilTest, TestParseModelInfoForGet) {
   string model_name;
-  absl::optional<int64> model_version;
+  absl::optional<int64_t> model_version;
   absl::optional<string> model_version_label;
   string method;
   string model_subresource;
@@ -117,7 +117,7 @@ TEST_F(HttpRestApiUtilTest, TestParseModelInfoForGet) {
 
 TEST_F(HttpRestApiUtilTest, TestParseModelInfoForPost) {
   string model_name;
-  absl::optional<int64> model_version;
+  absl::optional<int64_t> model_version;
   absl::optional<string> model_version_label;
   string method;
   string model_subresource;
@@ -203,7 +203,7 @@ TEST_F(HttpRestApiUtilTest, TestParseModelInfoForPost) {
   auto status = ParseModelInfo(
       "POST",
       absl::StrCat("/v1/models/foo/versions/",
-                   std::numeric_limits<uint64>::max(), ":predict"),
+                   std::numeric_limits<uint64_t>::max(), ":predict"),
       &model_name, &model_version, &model_version_label, &method,
       &model_subresource, &parse_successful);
   EXPECT_TRUE(parse_successful);

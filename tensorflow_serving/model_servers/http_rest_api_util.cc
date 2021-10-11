@@ -42,7 +42,7 @@ void AddCORSHeaders(std::vector<std::pair<string, string>>* headers) {
 
 Status FillModelSpecWithNameVersionAndLabel(
     const absl::string_view model_name,
-    const absl::optional<int64>& model_version,
+    const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view> model_version_label,
     ::tensorflow::serving::ModelSpec* model_spec) {
   model_spec->set_name(string(model_name));
@@ -86,7 +86,7 @@ bool DecodeArg(string* arg) {
 
 Status ParseModelInfo(const absl::string_view http_method,
                       const absl::string_view request_path, string* model_name,
-                      absl::optional<int64>* model_version,
+                      absl::optional<int64_t>* model_version,
                       absl::optional<string>* model_version_label,
                       string* method, string* model_subresource,
                       bool* parse_successful) {
@@ -109,7 +109,7 @@ Status ParseModelInfo(const absl::string_view http_method,
     }
   }
   if (!model_version_str.empty()) {
-    int64 version;
+    int64_t version;
     if (!absl::SimpleAtoi(model_version_str, &version)) {
       return errors::InvalidArgument(
           "Failed to convert version: ", model_version_str, " to numeric.");

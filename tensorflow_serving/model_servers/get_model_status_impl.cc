@@ -81,7 +81,7 @@ Status GetModelStatusImpl::GetModelStatusWithModelSpec(
 
   if (model_spec.has_version()) {
     // Only gets status for specified version of specified model.
-    const int64 version = model_spec.version().value();
+    const int64_t version = model_spec.version().value();
     const ServableId id = {model_name, version};
     const absl::optional<ServableState> opt_servable_state =
         monitor.GetState(id);
@@ -100,7 +100,7 @@ Status GetModelStatusImpl::GetModelStatusWithModelSpec(
           "Could not find any versions of model ", model_name);
     }
     for (const auto& version_and_state : versions_and_states) {
-      const int64 version = version_and_state.first;
+      const int64_t version = version_and_state.first;
       const ServableState& servable_state = version_and_state.second.state;
       AddModelVersionStatusToResponse(response, version, servable_state);
     }

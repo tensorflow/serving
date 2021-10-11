@@ -28,7 +28,7 @@ namespace serving {
 // with a loaded model.
 // For more information: https://www.tensorflow.org/tfx/guide/mlmd
 void MaybePublishMLMDStreamz(const string& export_dir, const string& model_name,
-                             int64 version);
+                             int64_t version);
 
 }  // namespace serving
 }  // namespace tensorflow

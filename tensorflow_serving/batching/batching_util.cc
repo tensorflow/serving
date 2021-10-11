@@ -33,8 +33,8 @@ namespace serving {
 // It requires padding to be an array of elements that have fields
 // "first" and "second".
 struct OneDimPadding {
-  int64 first;   // pad before
-  int64 second;  // pad after
+  int64_t first;   // pad before
+  int64_t second;  // pad after
 };
 
 // Constructs array of paddings, where:

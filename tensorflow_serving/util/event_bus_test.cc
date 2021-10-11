@@ -38,7 +38,7 @@ TEST(EventBusTest, FullLifecycleTest) {
   // Set up a bus with a single subscriber.
   std::shared_ptr<IntEventBus> bus = IntEventBus::CreateEventBus(bus_options);
   int value = 1;
-  uint64 value_timestamp = 0;
+  uint64_t value_timestamp = 0;
   IntEventBus::Callback callback =
       [&value, &value_timestamp](IntEventBus::EventAndTime event_and_time) {
         value += event_and_time.event;

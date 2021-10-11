@@ -61,7 +61,7 @@ class InputUtilTest : public ::testing::Test {
     return example;
   }
 
-  Example example_C(const int64 value = 33) {
+  Example example_C(const int64_t value = 33) {
     Feature feature;
     feature.mutable_int64_list()->add_value(value);
     Example example;

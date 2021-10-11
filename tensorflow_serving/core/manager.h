@@ -38,7 +38,7 @@ namespace serving {
 /// latest loaded version.
 struct ServableRequest {
   // Initialization factories, for convenience and readability.
-  static ServableRequest Specific(const string& name, const int64 version);
+  static ServableRequest Specific(const string& name, const int64_t version);
   static ServableRequest Earliest(const string& name);
   static ServableRequest Latest(const string& name);
   static ServableRequest FromId(const ServableId& id);
@@ -47,7 +47,7 @@ struct ServableRequest {
   string name;
 
   // An optional specific version number to use.
-  absl::optional<int64> version;
+  absl::optional<int64_t> version;
 
   // How to choose a version number automatically, if 'version' is left unset.
   enum class AutoVersionPolicy {
@@ -66,7 +66,7 @@ struct ServableRequest {
   // Legacy constructors. Do not use in new code.
   ServableRequest() = default;
   ServableRequest(const string& name_in,
-                  const absl::optional<int64>& version_in)
+                  const absl::optional<int64_t>& version_in)
       : name(name_in),
         version(version_in),
         auto_version_policy(AutoVersionPolicy::kLatest) {}
@@ -121,7 +121,7 @@ class Manager {
 //
 
 inline ServableRequest ServableRequest::Specific(const string& name,
-                                                 const int64 version) {
+                                                 const int64_t version) {
   ServableRequest request;
   request.name = name;
   request.version = version;

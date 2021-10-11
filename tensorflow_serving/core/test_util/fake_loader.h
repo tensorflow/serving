@@ -36,7 +36,8 @@ namespace test_util {
 // This class is thread-safe.
 class FakeLoader : public ResourceUnsafeLoader {
  public:
-  explicit FakeLoader(int64 servable, const Status load_status = Status::OK());
+  explicit FakeLoader(int64_t servable,
+                      const Status load_status = Status::OK());
 
   ~FakeLoader() override;
 
@@ -65,7 +66,7 @@ class FakeLoader : public ResourceUnsafeLoader {
   // The servable returned from this loader.
   //
   // Don't make const or you'll have to change the handle type to 'const int64'.
-  int64 servable_;
+  int64_t servable_;
   // The status returned during load.
   const Status load_status_;
 };

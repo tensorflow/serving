@@ -727,7 +727,7 @@ Status AddValueToFeature(const rapidjson::Value& val,
         if (!val.IsInt64() && val.IsUint64()) {
           return errors::InvalidArgument(
               "Feature: ", feature_name,
-              " has uint64 element. Only int64 is supported.");
+              " has uint64_t element. Only int64_t is supported.");
         }
         feature->mutable_int64_list()->add_value(val.GetInt64());
       }

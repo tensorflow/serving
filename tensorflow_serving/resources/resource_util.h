@@ -77,12 +77,12 @@ class ResourceUtil {
   // Gets the quantity of 'resource' present in 'allocation'. Returns 0 if
   // 'resource' is not mentioned in 'allocation', since unmentioned resources
   // are implicitly zero.
-  uint64 GetQuantity(const Resource& resource,
-                     const ResourceAllocation& allocation) const;
+  uint64_t GetQuantity(const Resource& resource,
+                       const ResourceAllocation& allocation) const;
 
   // Sets the quantity of 'resource' to 'quantity' in 'allocation', overwriting
   // any existing quantity.
-  void SetQuantity(const Resource& resource, uint64 quantity,
+  void SetQuantity(const Resource& resource, uint64_t quantity,
                    ResourceAllocation* allocation) const;
 
   // Adds 'to_add' to 'base'.
@@ -102,7 +102,7 @@ class ResourceUtil {
 
   // Multiplies every resource quantity in 'base' by 'multiplier'. Keeps bound
   // and unbound entries separate.
-  void Multiply(uint64 multiplier, ResourceAllocation* base) const;
+  void Multiply(uint64_t multiplier, ResourceAllocation* base) const;
 
   // Determines whether two ResourceAllocation objects are identical (modulo
   // normalization).
@@ -194,7 +194,7 @@ class ResourceUtil {
 
   // Like Multiply(), but assumes the input is normalized and produces
   // normalized output.
-  void MultiplyNormalized(uint64 multiplier, ResourceAllocation* base) const;
+  void MultiplyNormalized(uint64_t multiplier, ResourceAllocation* base) const;
 
   // Like Equal(), but assumes the input is normalized.
   bool EqualNormalized(const ResourceAllocation& lhs,

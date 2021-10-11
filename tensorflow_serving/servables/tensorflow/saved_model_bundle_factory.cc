@@ -52,7 +52,7 @@ Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
   std::unique_ptr<TfLiteSession> session;
 
   const string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
-  uint64 size;
+  uint64_t size;
   TF_RETURN_IF_ERROR(Env::Default()->GetFileSize(fname, &size));
 
   std::unique_ptr<RandomAccessFile> file;

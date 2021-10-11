@@ -95,9 +95,9 @@ Status ValidateAspiredVersions(
 }
 
 // Returns the set of version numbers in 'versions'.
-std::set<int64> GetVersionNumbers(
+std::set<int64_t> GetVersionNumbers(
     const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) {
-  std::set<int64> version_numbers;
+  std::set<int64_t> version_numbers;
   for (const auto& version : versions) {
     version_numbers.insert(version.id().version);
   }
@@ -176,7 +176,7 @@ Status AspiredVersionsManager::Create(
 }
 
 AspiredVersionsManager::AspiredVersionsManager(
-    int64 manage_state_interval_micros, Env* env,
+    int64_t manage_state_interval_micros, Env* env,
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy,
     std::unique_ptr<BasicManager> basic_manager)
     : aspired_version_policy_(std::move(aspired_version_policy)),
@@ -256,14 +256,14 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
   VLOG(1) << "Processing aspired versions request: " << servable_name << ": "
           << ServableVersionsDebugString(versions);
 
-  const std::set<int64> next_aspired_versions = GetVersionNumbers(versions);
+  const std::set<int64_t> next_aspired_versions = GetVersionNumbers(versions);
 
   // We gather all the servables with the servable_name and
   // 1. Add the current aspired version numbers to a set,
   // 2. Set the aspired bool to false for all current servable harnesses which
   // are not aspired.
-  std::set<int64> current_aspired_versions;
-  std::set<int64> current_aspired_versions_with_error;
+  std::set<int64_t> current_aspired_versions;
+  std::set<int64_t> current_aspired_versions_with_error;
   const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
       basic_manager_->GetManagedServableStateSnapshots<Aspired>(
           string(servable_name));
@@ -287,7 +287,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
   // We do a set_difference (A - B), on the next aspired versions and the
   // current aspired versions to find the version numbers which need to be
   // added the harness map.
-  std::set<int64> additions;
+  std::set<int64_t> additions;
   std::set_difference(
       next_aspired_versions.begin(), next_aspired_versions.end(),
       current_aspired_versions.begin(), current_aspired_versions.end(),
@@ -338,7 +338,7 @@ bool AspiredVersionsManager::ContainsAnyReaspiredVersions(
   const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
       basic_manager_->GetManagedServableStateSnapshots<Aspired>(
           string(servable_name));
-  const std::set<int64> version_numbers = GetVersionNumbers(versions);
+  const std::set<int64_t> version_numbers = GetVersionNumbers(versions);
   for (const ServableStateSnapshot<Aspired>& state_snapshot : state_snapshots) {
     if (!state_snapshot.additional_state->is_aspired &&
         version_numbers.find(state_snapshot.id.version) !=

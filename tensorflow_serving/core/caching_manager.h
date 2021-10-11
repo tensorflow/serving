@@ -72,7 +72,7 @@ class CachingManager : public Manager {
     // The interval, in microseconds, between each servable load retry. If set
     // negative, we don't wait.
     // Default: 1 minute.
-    int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
+    int64_t load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
 
     // The environment to use for starting threads in the thread-pool.
     Env* env = Env::Default();
@@ -92,7 +92,7 @@ class CachingManager : public Manager {
 
     /// Returns a version corresponding to the servable name, for the given
     /// policy.
-    virtual int64 GetServableVersion(
+    virtual int64_t GetServableVersion(
         const string& servable_name,
         ServableRequest::AutoVersionPolicy policy) const = 0;
   };
@@ -138,7 +138,7 @@ class CachingManager : public Manager {
       TF_LOCKS_EXCLUDED(load_mutex_map_mu_);
 
   // Returns the size of the load_mutex_map_.
-  int64 GetLoadMutexMapSize() const TF_LOCKS_EXCLUDED(load_mutex_map_mu_);
+  int64_t GetLoadMutexMapSize() const TF_LOCKS_EXCLUDED(load_mutex_map_mu_);
 
   // Erases the entry from the map corresponding to the servable-id if there is
   // only one remaining reference to the mutex.
@@ -173,7 +173,7 @@ class PathPrefixLoaderFactory : public CachingManager::LoaderFactory {
   ServableData<std::unique_ptr<Loader>> CreateLoader(
       const ServableId& id) override;
 
-  int64 GetServableVersion(
+  int64_t GetServableVersion(
       const string& servable_name,
       ServableRequest::AutoVersionPolicy policy) const override;
 

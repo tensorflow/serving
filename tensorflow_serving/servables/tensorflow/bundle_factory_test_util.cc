@@ -73,12 +73,12 @@ std::vector<string> GetTestSavedModelBundleExportFiles() {
       tensorflow::io::JoinPath(dir, "variables/variables.data-00000-of-00001")};
 }
 
-uint64 GetTotalFileSize(const std::vector<string>& files) {
-  uint64 total_file_size = 0;
+uint64_t GetTotalFileSize(const std::vector<string>& files) {
+  uint64_t total_file_size = 0;
   for (const string& file : files) {
     if (!(Env::Default()->IsDirectory(file).ok()) &&
         Env::Default()->FileExists(file).ok()) {
-      uint64 file_size;
+      uint64_t file_size;
       TF_CHECK_OK(Env::Default()->GetFileSize(file, &file_size));
       total_file_size += file_size;
     }
@@ -134,7 +134,7 @@ ResourceAllocation GetExpectedResourceEstimate(double total_file_size) {
   // match the constants defined in bundle_factory_util.cc.
   const double kResourceEstimateRAMMultiplier = 1.2;
   const int kResourceEstimateRAMPadBytes = 0;
-  const uint64 expected_ram_requirement =
+  const uint64_t expected_ram_requirement =
       total_file_size * kResourceEstimateRAMMultiplier +
       kResourceEstimateRAMPadBytes;
   ResourceAllocation resource_alloc;

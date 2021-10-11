@@ -86,7 +86,7 @@ class MultiInferenceTest : public ::testing::Test {
 
   ServerCore* GetServerCore() { return this->server_core_.get(); }
 
-  const int64 servable_version_ = kTestModelVersion;
+  const int64_t servable_version_ = kTestModelVersion;
 
  private:
   static std::unique_ptr<ServerCore> server_core_;
@@ -111,7 +111,7 @@ void AddInput(const std::vector<std::pair<string, float>>& feature_kv,
 }
 
 void PopulateTask(const string& signature_name, const string& method_name,
-                  int64 version, InferenceTask* task) {
+                  int64_t version, InferenceTask* task) {
   ModelSpec model_spec;
   model_spec.set_name(kTestModelName);
   if (version > 0) {

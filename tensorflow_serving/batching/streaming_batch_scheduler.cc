@@ -27,14 +27,14 @@ namespace internal {
 // SingleTaskScheduler
 
 SingleTaskScheduler::SingleTaskScheduler(Env* env, string thread_name,
-                                         uint64 no_tasks_wait_time_micros)
+                                         uint64_t no_tasks_wait_time_micros)
     : env_(env),
       thread_name_(std::move(thread_name)),
       no_tasks_wait_time_micros_(no_tasks_wait_time_micros) {}
 
 SingleTaskScheduler::~SingleTaskScheduler() { stop_.Notify(); }
 
-void SingleTaskScheduler::Schedule(uint64 time_micros,
+void SingleTaskScheduler::Schedule(uint64_t time_micros,
                                    std::function<void()> closure) {
   DCHECK_GE(time_micros, last_task_time_);
   last_task_time_ = time_micros;
@@ -56,7 +56,7 @@ void SingleTaskScheduler::ThreadLogic() {
   for (;;) {
     // Sleep until the time specified in the current task, if any.
     if (current_task) {
-      const uint64 now = env_->NowMicros();
+      const uint64_t now = env_->NowMicros();
       if (current_task->time_micros > now) {
         env_->SleepForMicroseconds(current_task->time_micros - now);
       }

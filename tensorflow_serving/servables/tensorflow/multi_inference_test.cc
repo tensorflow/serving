@@ -104,7 +104,7 @@ class MultiInferenceTest : public ::testing::Test {
     return GetServerCore()->GetServableHandle(model_spec, bundle);
   }
 
-  const int64 servable_version_ = 1;
+  const int64_t servable_version_ = 1;
 
  private:
   static std::unique_ptr<ServerCore> server_core_;

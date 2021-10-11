@@ -65,8 +65,8 @@ ServableData<std::unique_ptr<Loader>> CreateAspiredVersion(
 // We parameterize this test with the number of load & unload threads. (Zero
 // means use an in-line executor instead of a thread pool.)
 struct ThreadPoolSizes {
-  uint64 num_load_threads;
-  uint64 num_unload_threads;
+  uint64_t num_load_threads;
+  uint64_t num_unload_threads;
 };
 class AspiredVersionsManagerTest
     : public ::testing::TestWithParam<std::tuple<ThreadPoolSizes, bool>> {
@@ -176,7 +176,7 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(ThreadPoolSizes{4, 4}, true)));
 
 TEST_P(AspiredVersionsManagerTest, ServableHandleNotFoundMissingLoaderName) {
-  ServableHandle<int64> handle;
+  ServableHandle<int64_t> handle;
   const Status status = manager_->GetServableHandle(
       ServableRequest::Latest(strings::StrCat(kServableName, "missing")),
       &handle);
@@ -186,8 +186,8 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleNotFoundMissingLoaderName) {
 
 TEST_P(AspiredVersionsManagerTest, ServableHandleNotFoundMissingVersion) {
   // This version is missing.
-  const int64 missing_version = 100;
-  ServableHandle<int64> handle;
+  const int64_t missing_version = 100;
+  ServableHandle<int64_t> handle;
   const Status status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, missing_version), &handle);
   ASSERT_FALSE(status.ok()) << status;
@@ -219,7 +219,7 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleLatest) {
   WaitUntilServableManagerStateIsOneOf(
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
-  ServableHandle<int64> handle;
+  ServableHandle<int64_t> handle;
   const Status status = manager_->GetServableHandle(
       ServableRequest::Latest(kServableName), &handle);
   TF_ASSERT_OK(status);
@@ -241,7 +241,7 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleLatestVersionIsZero) {
   WaitUntilServableManagerStateIsOneOf(
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
-  ServableHandle<int64> handle;
+  ServableHandle<int64_t> handle;
   const Status status = manager_->GetServableHandle(
       ServableRequest::Latest(kServableName3), &handle);
   TF_ASSERT_OK(status);
@@ -262,7 +262,7 @@ TEST_P(AspiredVersionsManagerTest, ReloadAspiredError) {
     InvokePolicyAndExecuteAction();
     WaitUntilServableManagerStateIsOneOf(
         servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
-    ServableHandle<int64> handle;
+    ServableHandle<int64_t> handle;
     const Status status = manager_->GetServableHandle(
         ServableRequest::Latest(kServableName), &handle);
     TF_ASSERT_OK(status);
@@ -279,7 +279,7 @@ TEST_P(AspiredVersionsManagerTest, ReloadAspiredError) {
     InvokePolicyAndExecuteAction();
     WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                          {ServableState::ManagerState::kEnd});
-    ServableHandle<int64> handle;
+    ServableHandle<int64_t> handle;
     Status status = manager_->GetServableHandle(
         ServableRequest::Specific(kServableName, 2), &handle);
     EXPECT_FALSE(status.ok()) << status;
@@ -296,14 +296,14 @@ TEST_P(AspiredVersionsManagerTest, ReloadAspiredError) {
       WaitUntilServableManagerStateIsOneOf(
           servable_state_monitor_, id,
           {ServableState::ManagerState::kAvailable});
-      ServableHandle<int64> handle;
+      ServableHandle<int64_t> handle;
       Status status = manager_->GetServableHandle(
           ServableRequest::Specific(kServableName, 2), &handle);
       TF_ASSERT_OK(status) << status;
     } else {
       // Sleep for 1ms. There's nothing to wait on as the state will not change.
       Env::Default()->SleepForMicroseconds(1000 /* 1 ms */);
-      ServableHandle<int64> handle;
+      ServableHandle<int64_t> handle;
       Status status = manager_->GetServableHandle(
           ServableRequest::Specific(kServableName, 2), &handle);
       EXPECT_FALSE(status.ok()) << status;
@@ -312,7 +312,7 @@ TEST_P(AspiredVersionsManagerTest, ReloadAspiredError) {
 }
 
 TEST_P(AspiredVersionsManagerTest, ServableHandleSpecificVersion) {
-  ServableHandle<int64> handle;
+  ServableHandle<int64_t> handle;
   const ServableId id = {kServableName2, 0};
   const Status status =
       manager_->GetServableHandle(ServableRequest::FromId(id), &handle);
@@ -367,8 +367,8 @@ TEST_P(AspiredVersionsManagerTest, ListAvailableServableIds) {
 TEST_P(AspiredVersionsManagerTest, GetAvailableServableHandles) {
   // Scoped to destruct handles at the end of it.
   {
-    const std::map<ServableId, ServableHandle<int64>> handles_before =
-        manager_->GetAvailableServableHandles<int64>();
+    const std::map<ServableId, ServableHandle<int64_t>> handles_before =
+        manager_->GetAvailableServableHandles<int64_t>();
     ASSERT_EQ(kNumVersionsPerServable * 2, handles_before.size());
 
     const std::vector<ServableId> expected_ids_before = {{kServableName, 0},
@@ -411,8 +411,8 @@ TEST_P(AspiredVersionsManagerTest, GetAvailableServableHandles) {
                                        {kServableName, 1},
                                        {ServableState::ManagerState::kEnd});
   {
-    const std::map<ServableId, ServableHandle<int64>> handles_after =
-        manager_->GetAvailableServableHandles<int64>();
+    const std::map<ServableId, ServableHandle<int64_t>> handles_after =
+        manager_->GetAvailableServableHandles<int64_t>();
     ASSERT_EQ(kNumVersionsPerServable, handles_after.size());
 
     const std::vector<ServableId> expected_ids_after = {{kServableName2, 0},
@@ -435,7 +435,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredRemovedFull) {
   // Scoped so that the handle is destructed at the end, and the harness is
   // destructed when we run the manager looping thread.
   {
-    ServableHandle<int64> handle;
+    ServableHandle<int64_t> handle;
     const Status status = manager_->GetServableHandle(
         ServableRequest::Latest(kServableName), &handle);
     TF_ASSERT_OK(status);
@@ -460,7 +460,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredRemovedFull) {
   EXPECT_EQ(kNumVersionsPerServable,
             num_fake_loaders_before - num_fake_loaders_after);
 
-  ServableHandle<int64> missing_handle;
+  ServableHandle<int64_t> missing_handle;
   const Status missing_status = manager_->GetServableHandle(
       ServableRequest::Latest(kServableName), &missing_handle);
   ASSERT_FALSE(missing_status.ok());
@@ -480,14 +480,14 @@ TEST_P(AspiredVersionsManagerTest, AspiredRemovedPartial) {
                                        {ServableState::ManagerState::kEnd});
 
   // Version 0 should remain available in the manager.
-  ServableHandle<int64> v0_handle;
+  ServableHandle<int64_t> v0_handle;
   const Status v0_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 0), &v0_handle);
   TF_ASSERT_OK(v0_status);
   EXPECT_EQ(0, *v0_handle);
 
   // Version 1 should no longer be available.
-  ServableHandle<int64> v1_handle;
+  ServableHandle<int64_t> v1_handle;
   const Status v1_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 1), &v1_handle);
   ASSERT_FALSE(v1_status.ok());
@@ -496,7 +496,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredRemovedPartial) {
 
 TEST_P(AspiredVersionsManagerTest, RevertToSmallerVersionNumber) {
   // Initially, versions 0 and 1 of kServableName are loaded.
-  std::set<int64> initial_versions;
+  std::set<int64_t> initial_versions;
   for (const ServableId& id : manager_->ListAvailableServableIds()) {
     if (id.name == kServableName) {
       initial_versions.insert(id.version);
@@ -539,14 +539,14 @@ TEST_P(AspiredVersionsManagerTest, RevertToSmallerVersionNumber) {
   done_transitioning.Notify();
 
   // Version 0 should be available.
-  ServableHandle<int64> v0_handle;
+  ServableHandle<int64_t> v0_handle;
   const Status v0_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 0), &v0_handle);
   TF_ASSERT_OK(v0_status);
   EXPECT_EQ(0, *v0_handle);
 
   // Version 1 should not be available.
-  ServableHandle<int64> v1_handle;
+  ServableHandle<int64_t> v1_handle;
   const Status v1_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 1), &v1_handle);
   ASSERT_FALSE(v1_status.ok());
@@ -555,7 +555,7 @@ TEST_P(AspiredVersionsManagerTest, RevertToSmallerVersionNumber) {
 
 TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {
   const ServableId id = {kServableName, 2};
-  ServableHandle<int64> not_found_handle;
+  ServableHandle<int64_t> not_found_handle;
   const Status not_found_status = manager_->GetServableHandle(
       ServableRequest::FromId(id), &not_found_handle);
   ASSERT_FALSE(not_found_status.ok()) << not_found_status;
@@ -567,7 +567,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {
                                          std::move(aspired_versions));
   HandlePendingAspiredVersionsRequests();
 
-  ServableHandle<int64> not_ready_handle;
+  ServableHandle<int64_t> not_ready_handle;
   const Status not_ready_status = manager_->GetServableHandle(
       ServableRequest::FromId(id), &not_ready_handle);
   ASSERT_FALSE(not_ready_status.ok()) << not_ready_status;
@@ -581,7 +581,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {
   WaitUntilServableManagerStateIsOneOf(
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
-  ServableHandle<int64> handle;
+  ServableHandle<int64_t> handle;
   const Status status =
       manager_->GetServableHandle(ServableRequest::FromId(id), &handle);
   TF_ASSERT_OK(status);
@@ -590,7 +590,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {
 
 TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateUnload) {
   {
-    ServableHandle<int64> handle;
+    ServableHandle<int64_t> handle;
     const Status status = manager_->GetServableHandle(
         ServableRequest::Specific(kServableName, 0), &handle);
     TF_ASSERT_OK(status);
@@ -610,7 +610,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateUnload) {
                                        {kServableName, 1},
                                        {ServableState::ManagerState::kEnd});
 
-  ServableHandle<int64> not_found_handle;
+  ServableHandle<int64_t> not_found_handle;
   const Status not_found_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 0), &not_found_handle);
   ASSERT_FALSE(not_found_status.ok()) << not_found_status;
@@ -620,14 +620,14 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateUnload) {
 // The manager prefers unloading over loading when deciding between different
 // servable actions. This behaviour is tested here.
 TEST_P(AspiredVersionsManagerTest, ManagerPrefersUnloadOverLoad) {
-  ServableHandle<int64> not_found_2_handle;
+  ServableHandle<int64_t> not_found_2_handle;
   Status not_found_2_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName2, 2), &not_found_2_handle);
   ASSERT_FALSE(not_found_2_status.ok()) << not_found_2_status;
   EXPECT_EQ(error::NOT_FOUND, not_found_2_status.code());
 
   {
-    ServableHandle<int64> found_0_handle;
+    ServableHandle<int64_t> found_0_handle;
     const Status found_0_status = manager_->GetServableHandle(
         ServableRequest::Specific(kServableName, 0), &found_0_handle);
     TF_ASSERT_OK(found_0_status);
@@ -659,7 +659,7 @@ TEST_P(AspiredVersionsManagerTest, ManagerPrefersUnloadOverLoad) {
                                        {kServableName, 0},
                                        {ServableState::ManagerState::kEnd});
 
-  ServableHandle<int64> not_found_0_handle;
+  ServableHandle<int64_t> not_found_0_handle;
   const Status not_found_0_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 0), &not_found_0_handle);
   ASSERT_FALSE(not_found_0_status.ok()) << not_found_0_status;
@@ -676,7 +676,7 @@ TEST_P(AspiredVersionsManagerTest, ManagerPrefersUnloadOverLoad) {
       servable_state_monitor_, {kServableName2, 2},
       {ServableState::ManagerState::kAvailable});
 
-  ServableHandle<int64> found_2_handle;
+  ServableHandle<int64_t> found_2_handle;
   const Status found_2_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName2, 2), &found_2_handle);
   TF_ASSERT_OK(found_2_status);
@@ -692,7 +692,7 @@ TEST_P(AspiredVersionsManagerTest, ErroneousAspiredVersion) {
                                          std::move(aspired_versions));
   HandlePendingAspiredVersionsRequests();
 
-  ServableHandle<int64> handle;
+  ServableHandle<int64_t> handle;
   Status status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 3), &handle);
   EXPECT_FALSE(status.ok()) << status;
@@ -707,8 +707,8 @@ TEST_P(AspiredVersionsManagerTest, ErroneousAspiredVersion) {
 // Test to ensure that the deletion of a loader/servable occurs in a manager
 // thread, and not a request thread.
 TEST_P(AspiredVersionsManagerTest, DestructOnNonServingThread) {
-  std::unique_ptr<ServableHandle<int64>> latest_handle(
-      new ServableHandle<int64>());
+  std::unique_ptr<ServableHandle<int64_t>> latest_handle(
+      new ServableHandle<int64_t>());
   const Status status = manager_->GetServableHandle(
       ServableRequest::Latest(kServableName), latest_handle.get());
   TF_ASSERT_OK(status);

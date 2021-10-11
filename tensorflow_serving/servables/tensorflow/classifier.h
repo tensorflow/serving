@@ -79,7 +79,7 @@ Status PostProcessClassificationResult(
 // Creates SavedModelTensorflowClassifier and runs Classification on it.
 Status RunClassify(const RunOptions& run_options,
                    const MetaGraphDef& meta_graph_def,
-                   const absl::optional<int64>& servable_version,
+                   const absl::optional<int64_t>& servable_version,
                    Session* session, const ClassificationRequest& request,
                    ClassificationResponse* response,
                    const thread::ThreadPoolOptions& thread_pool_options =

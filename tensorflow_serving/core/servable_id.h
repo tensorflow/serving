@@ -41,7 +41,7 @@ struct ServableId {
   // active servable with the largest version number.
   //
   // Must be non-negative.
-  int64 version;
+  int64_t version;
 
   // Returns a string representation of this object. Useful in logging.
   string DebugString() const {
@@ -50,7 +50,7 @@ struct ServableId {
 };
 
 struct HashServableId {
-  uint64 operator()(const ServableId& id) const {
+  uint64_t operator()(const ServableId& id) const {
     // Hash codes for many common types are remarkably bad, often clustering
     // around the same values of the low and/or high bits for linear
     // sequences of inputs such as 1, 2, 3; or addresses of consecutively
@@ -61,9 +61,9 @@ struct HashServableId {
     // make the high bits contain more entropy from the entire hash code.
     // It's based on Fibonacci hashing from Knuth's Art of Computer
     // Programming volume 3, section 6.4.
-    const uint64 version_hash = [&]() -> uint64 {
+    const uint64_t version_hash = [&]() -> uint64_t {
       if (id.version >= 0) {
-        return std::hash<int64>()(id.version) *
+        return std::hash<int64_t>()(id.version) *
                0x9E3779B97F4A7C13;  // (sqrt(5) - 1)/2 as a binary fraction.
       } else {
         return 0xDECAFCAFFE;

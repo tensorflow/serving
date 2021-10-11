@@ -80,7 +80,7 @@ void SerializeHistogram(const monitoring::MetricDescriptor& metric_descriptor,
                                        SanatizeLabelName(label.name),
                                        SanitizeLabelValue(label.value)));
     }
-    int64 cumulative_count = 0;
+    int64_t cumulative_count = 0;
     string bucket_prefix =
         absl::StrCat(prom_metric_name, "_bucket{", absl::StrJoin(labels, ","));
     if (!labels.empty()) {

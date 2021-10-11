@@ -172,7 +172,7 @@ struct BatchingSessionTask : public BatchTask {
   static std::string Name() { return "batching_session"; }
 
   // Fields populated when a task is received.
-  uint64 enqueue_time_micros;
+  uint64_t enqueue_time_micros;
   RunOptions run_options;
   size_t zeroth_dim_size;
   const std::vector<std::pair<string, Tensor>>* inputs;

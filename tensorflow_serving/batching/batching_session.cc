@@ -64,8 +64,8 @@ string TensorSignatureDebugString(const TensorSignature& signature) {
 }
 
 struct HashTensorSignature {
-  uint64 operator()(const TensorSignature& signature) const {
-    uint64 hash = 0xDECAFCAFFE /* seed */;
+  uint64_t operator()(const TensorSignature& signature) const {
+    uint64_t hash = 0xDECAFCAFFE /* seed */;
     for (const string& input_tensor : signature.input_tensors) {
       hash = HashCombine(hash, std::hash<string>()(input_tensor));
     }
@@ -585,7 +585,7 @@ Status BatchingSession::SplitOutputTensors(
                             batch->num_tasks());
   }
 
-  std::vector<int64> task_sizes_plus_optional_padding;
+  std::vector<int64_t> task_sizes_plus_optional_padding;
   task_sizes_plus_optional_padding.reserve(batch->num_tasks());
   for (int i = 0; i < batch->num_tasks(); ++i) {
     task_sizes_plus_optional_padding.push_back(batch->task(i).zeroth_dim_size);
@@ -709,7 +709,7 @@ void BatchingSession::ProcessBatch(
     return;
   }
 
-  const uint64 dequeue_time_micros = EnvTime::NowMicros();
+  const uint64_t dequeue_time_micros = EnvTime::NowMicros();
 
   // Regardless of the outcome, we need to propagate the status to the
   // individual tasks and signal that they are done. We use MakeCleanup() to
@@ -732,16 +732,16 @@ void BatchingSession::ProcessBatch(
   // queue time alone, and find the latest task deadline which we'll use for the
   // overall batch.
   bool all_tasks_timeout_exceeded = true;
-  uint64 batch_deadline_micros = 0;
+  uint64_t batch_deadline_micros = 0;
   for (int i = 0; i < batch->num_tasks(); ++i) {
     const BatchingSessionTask& task = batch->task(i);
     // If the caller doesn't populate RunOptions, the timeout is 0 by default.
     // Interpret that as "no timeout" i.e. infinity.
-    const int64 task_timeout_micros =
+    const int64_t task_timeout_micros =
         task.run_options.timeout_in_ms() <= 0
             ? INT_MAX
             : task.run_options.timeout_in_ms() * 1000;
-    const uint64 task_deadline_micros =
+    const uint64_t task_deadline_micros =
         task.enqueue_time_micros + task_timeout_micros;
     if (task_deadline_micros > dequeue_time_micros) {
       all_tasks_timeout_exceeded = false;
@@ -809,7 +809,7 @@ Status SplitInputTask(
     int open_batch_remaining_slot, int max_batch_size,
     std::vector<std::unique_ptr<BatchingSessionTask>>* output_tasks) {
   BatchingSessionTask& input_task = *(*input_task_ptr);
-  const int64 input_task_size = input_task.size();
+  const int64_t input_task_size = input_task.size();
 
   DCHECK_GT(input_task_size, 0);
 
@@ -884,9 +884,9 @@ Status SplitInputTask(
   const internal::InputSplitMetadata input_split_metadata(
       input_task_size, open_batch_remaining_slot, max_batch_size);
 
-  // Creates an array of int64 from an array of int, since `tensor::Split`
+  // Creates an array of int64_t from an array of int, since `tensor::Split`
   // requires an array of int64.
-  const absl::FixedArray<int64> output_task_sizes(
+  const absl::FixedArray<int64_t> output_task_sizes(
       input_split_metadata.task_sizes().begin(),
       input_split_metadata.task_sizes().end());
   const int num_batches = output_task_sizes.size();

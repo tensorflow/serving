@@ -82,7 +82,7 @@ Status PerformOneShotTensorComputation(
     std::vector<Tensor>* outputs, int* num_input_examples,
     const thread::ThreadPoolOptions& thread_pool_options =
         thread::ThreadPoolOptions(),
-    int64* runtime_latency = nullptr);
+    int64_t* runtime_latency = nullptr);
 
 // Same as PerformOneShotTensorComputation() above, except allows for multiple
 // input tensor names (each tensor is fed the *same* `input`).
@@ -100,11 +100,12 @@ Status PerformOneShotTensorComputation(
 // set to tensorflow::kDefaultServingSignatureDefKey.
 void MakeModelSpec(const string& model_name,
                    const absl::optional<string>& signature_name,
-                   const absl::optional<int64>& version, ModelSpec* model_spec);
+                   const absl::optional<int64_t>& version,
+                   ModelSpec* model_spec);
 
 // Gets the disk size of the model in the given path.
 Status GetModelDiskSize(const string& path, FileProbingEnv* env,
-                        uint64* total_file_size);
+                        uint64_t* total_file_size);
 
 // Estimates the resources a session bundle or saved model bundle will use once
 // loaded, from its export or saved model path. Directly uses disk state for
@@ -115,11 +116,11 @@ Status EstimateResourceFromPathUsingDiskState(const string& path,
 
 // Update metrics for runtime latency.
 void RecordRuntimeLatency(const string& model_name, const string& api,
-                          const string& runtime, int64 latency_usec);
+                          const string& runtime, int64_t latency_usec);
 
 // Update metrics for request latency.
 void RecordRequestLatency(const string& model_name, const string& api,
-                          const string& entrypoint, int64 latency_usec);
+                          const string& entrypoint, int64_t latency_usec);
 
 // Get string keys of a map.
 template <typename T>

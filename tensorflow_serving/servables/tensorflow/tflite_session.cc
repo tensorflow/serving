@@ -345,7 +345,7 @@ Status TfLiteSession::SplitTfLiteInputTask(
 
   // The Callback will be run only after all partial tasks finished.
   IncrementalBarrier barrier(std::move(split_task_done_callback));
-  std::vector<int64> output_task_sizes;
+  std::vector<int64_t> output_task_sizes;
 
   if (open_batch_remaining_slot > 0) {
     output_task_sizes.push_back(open_batch_remaining_slot);
@@ -670,7 +670,7 @@ Status MergeInputTensors(const Batch<TfLiteBatchTask>& batch,
 
 Status SplitOutputTensors(const std::vector<Tensor>& combined_outputs,
                           Batch<TfLiteBatchTask>* batch, int batch_size) {
-  std::vector<int64> task_sizes(batch->num_tasks());
+  std::vector<int64_t> task_sizes(batch->num_tasks());
   int total_size = 0;
   for (int i = 0; i < batch->num_tasks(); ++i) {
     const int task_size = batch->task(i).size();
@@ -711,7 +711,7 @@ void TfLiteSession::ProcessBatch(
     return;
   }
 
-  const uint64 dequeue_time_micros = EnvTime::NowMicros();
+  const uint64_t dequeue_time_micros = EnvTime::NowMicros();
 
   // Regardless of the outcome, we need to propagate the status to the
   // individual tasks and signal that they are done. We use MakeCleanup() to
@@ -734,7 +734,7 @@ void TfLiteSession::ProcessBatch(
   // queue time alone, and find the latest task deadline which we'll use for the
   // overall batch.
   bool all_tasks_timeout_exceeded = true;
-  uint64 batch_deadline_micros = 0;
+  uint64_t batch_deadline_micros = 0;
   for (int i = 0; i < batch->num_tasks(); ++i) {
     const TfLiteBatchTask& task = batch->task(i);
     // If the caller doesn't populate RunOptions, the timeout is 0 by default.
@@ -743,8 +743,8 @@ void TfLiteSession::ProcessBatch(
       all_tasks_timeout_exceeded = false;
       break;
     }
-    const int64 task_timeout_micros = task.run_options.timeout_in_ms() * 1000;
-    const uint64 task_deadline_micros =
+    const int64_t task_timeout_micros = task.run_options.timeout_in_ms() * 1000;
+    const uint64_t task_deadline_micros =
         task.enqueue_time_micros + task_timeout_micros;
     if (task_deadline_micros > dequeue_time_micros) {
       all_tasks_timeout_exceeded = false;

@@ -79,7 +79,7 @@ Status PostProcessRegressionResult(
 // Creates SavedModelTensorflowRegressor and runs Regression on it.
 Status RunRegress(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
-                  const absl::optional<int64>& servable_version,
+                  const absl::optional<int64_t>& servable_version,
                   Session* session, const RegressionRequest& request,
                   RegressionResponse* response,
                   const thread::ThreadPoolOptions& thread_pool_options =
