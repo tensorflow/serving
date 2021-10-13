@@ -150,7 +150,7 @@ TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithGoodExport) {
 
 void BM_HalfPlusTwo(benchmark::State& state) {
   static Session* session;
-  if (state.thread_index == 0) {
+  if (state.thread_index() == 0) {
     SavedModelBundle bundle;
     TF_ASSERT_OK(LoadSavedModel(SessionOptions(), RunOptions(),
                                 test_util::GetTestSavedModelPath(), {"serve"},

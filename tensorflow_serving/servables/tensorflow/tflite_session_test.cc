@@ -813,7 +813,7 @@ TEST(TfLiteSession, TestSetScheduler) {
 
 static void BM_Reshape(benchmark::State& state, bool use_flex_op) {
   static TfLiteSession* session;
-  if (state.thread_index == 0) {
+  if (state.thread_index() == 0) {
     auto model_signature_def_map = GetTestSignatureDefMap();
     string model_bytes = BuildTestModel(tflite::TensorType_INT32, use_flex_op,
                                         &model_signature_def_map);
@@ -848,7 +848,7 @@ BENCHMARK(BM_Reshape_Flex)->UseRealTime()->ThreadRange(1, 64);
 
 void BM_HalfPlusTwo(benchmark::State& state) {
   static TfLiteSession* session;
-  if (state.thread_index == 0) {
+  if (state.thread_index() == 0) {
     string model_bytes;
     TF_ASSERT_OK(ReadFileToString(
         Env::Default(), test_util::TestSrcDirPath(kTestModel), &model_bytes));
@@ -871,7 +871,7 @@ BENCHMARK(BM_HalfPlusTwo)->UseRealTime()->ThreadRange(1, 64);
 
 void BM_MobileNet(benchmark::State& state) {
   static TfLiteSession* session;
-  if (state.thread_index == 0) {
+  if (state.thread_index() == 0) {
     string model_bytes;
     TF_ASSERT_OK(ReadFileToString(Env::Default(),
                                   test_util::TestSrcDirPath(kMobileNetModel),
@@ -897,7 +897,7 @@ BENCHMARK(BM_MobileNet)->UseRealTime()->ThreadRange(1, 64);
 
 void BM_ParseExample(benchmark::State& state) {
   static TfLiteSession* session;
-  if (state.thread_index == 0) {
+  if (state.thread_index() == 0) {
     string model_bytes;
     TF_ASSERT_OK(ReadFileToString(Env::Default(),
                                   test_util::TestSrcDirPath(kParseExampleModel),
