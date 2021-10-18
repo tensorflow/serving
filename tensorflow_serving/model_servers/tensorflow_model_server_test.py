@@ -751,7 +751,7 @@ class TensorflowModelServerTest(
     logdir = os.path.join(self.temp_dir, 'logs')
     worker_list = ''
     duration_ms = 1000
-    num_tracing_attempts = 3
+    num_tracing_attempts = 10
     os.makedirs(logdir)
 
     # Send a tracing request
