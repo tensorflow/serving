@@ -46,8 +46,6 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-using protobuf::util::JsonPrintOptions;
-using protobuf::util::MessageToJsonString;
 using tensorflow::serving::ServerCore;
 using tensorflow::serving::TensorflowPredictor;
 
