@@ -117,6 +117,7 @@ cc_library(
     deps = [
         "//tensorflow_serving/core:servable_state_monitor",
         "@com_google_absl//absl/types:optional",
+        "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:lib",
     ],

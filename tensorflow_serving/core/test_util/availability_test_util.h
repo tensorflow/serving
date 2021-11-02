@@ -31,6 +31,12 @@ void WaitUntilServableManagerStateIsOneOf(
     const ServableStateMonitor& monitor, const ServableId& servable,
     const std::vector<ServableState::ManagerState>& states);
 
+// Waits until 'monitor' shows that the manager state servable ids is
+// kAvailable.
+void WaitUntilVersionsAvailable(const ServableStateMonitor& monitor,
+                                const string& servable_id_name,
+                                absl::Span<const int64_t> servable_id_versions);
+
 }  // namespace test_util
 }  // namespace serving
 }  // namespace tensorflow

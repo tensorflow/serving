@@ -84,6 +84,7 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
         "//tensorflow_serving/test_util",
         "@com_google_googletest//:gtest",
+        "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )

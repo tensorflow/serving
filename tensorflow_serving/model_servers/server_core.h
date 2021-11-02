@@ -186,6 +186,10 @@ class ServerCore : public Manager {
     // available yet.
     bool allow_version_labels_for_unavailable_models = false;
 
+    // Whether to force-allow assigning any version labels to models that are
+    // not available yet.
+    bool force_allow_any_version_labels_for_unavailable_models = false;
+
     // In a predict handler, this option specifies how to serialize tensors
     // (e.g: as proto fields or as proto content).
     // Serialize as proto fields by default, for backward compatibility.

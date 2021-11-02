@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_TEST_UTIL_SERVER_CORE_TEST_UTIL_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_TEST_UTIL_SERVER_CORE_TEST_UTIL_H_
 
+#include <array>
 #include <utility>
 
 #include <gtest/gtest.h>
@@ -40,6 +41,9 @@ class ServerCoreTestAccess {
 constexpr char kTestModelName[] = "test_model";
 constexpr int kTestModelVersion = 123;
 constexpr int kTestModelLargerVersion = 124;
+constexpr int kTestModelBogusVersion = 777;
+constexpr std::array<int64_t, 2> kAspiredVersions = {kTestModelVersion,
+                                                     kTestModelLargerVersion};
 // The name of the platform associated with FakeLoaderSourceAdapter.
 constexpr char kFakePlatform[] = "fake_servable";
 
@@ -122,6 +126,26 @@ Status CreateServerCore(const ModelServerConfig& config,
 // Creates a ServerCore object with sane defaults.
 Status CreateServerCore(const ModelServerConfig& config,
                         std::unique_ptr<ServerCore>* server_core);
+
+// A helper class to avoid long lines accessing mutable configuration.
+class ModelConfigMutator {
+ public:
+  explicit ModelConfigMutator(ModelConfig* const config) : config_(config) {}
+
+  // Sets or updates label and its version.
+  ModelConfigMutator SetLabelVersion(const string& label, const int& version) {
+    (*config_->mutable_version_labels())[label] = version;
+    return *this;
+  }
+
+ private:
+  ModelConfig* config_;
+};
+
+inline ModelConfigMutator MutateModelConfig(ModelServerConfig* const config) {
+  return ModelConfigMutator(
+      config->mutable_model_config_list()->mutable_config(0));
+}
 
 }  // namespace test_util
 }  // namespace serving

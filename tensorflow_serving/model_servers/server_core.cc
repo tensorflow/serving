@@ -506,20 +506,23 @@ Status ServerCore::UpdateModelVersionLabelMap() {
       const string& label = entry.first;
       const int64_t version = entry.second;
 
-      bool contains_existing_label_with_different_version = false;
-      int64_t existing_version;
-      if (GetModelVersionForLabel(model_config.name(), label, &existing_version)
-              .ok() &&
-          existing_version != version) {
-        contains_existing_label_with_different_version = true;
+      bool allow_any_version_labels_for_unavailable_models = false;
+      if (options_.force_allow_any_version_labels_for_unavailable_models) {
+        allow_any_version_labels_for_unavailable_models = true;
+      } else if (options_.allow_version_labels_for_unavailable_models) {
+        int64_t existing_version;
+        bool contains_existing_label_with_different_version =
+            GetModelVersionForLabel(model_config.name(), label,
+                                    &existing_version)
+                .ok() &&
+            existing_version != version;
+        allow_any_version_labels_for_unavailable_models =
+            !contains_existing_label_with_different_version;
       }
-      bool allow_version_labels_for_unavailable_models =
-          options_.allow_version_labels_for_unavailable_models &&
-          (!contains_existing_label_with_different_version);
 
       // Verify that the label points to a version that is currently available.
       auto serving_states_it = serving_states.find(version);
-      if (!allow_version_labels_for_unavailable_models &&
+      if (!allow_any_version_labels_for_unavailable_models &&
           (serving_states_it == serving_states.end() ||
            serving_states_it->second.state.manager_state !=
                ServableState::ManagerState::kAvailable)) {

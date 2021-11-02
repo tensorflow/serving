@@ -58,6 +58,7 @@ class Server {
     //
     bool enable_batching = false;
     bool allow_version_labels_for_unavailable_models = false;
+    bool force_allow_any_version_labels_for_unavailable_models = false;
     float per_process_gpu_memory_fraction = 0;
     tensorflow::string batching_parameters_file;
     tensorflow::string model_name;
