@@ -29,6 +29,7 @@ limitations under the License.
 #include "tensorflow/core/kernels/ops_util.h"
 #include "tensorflow/core/lib/core/threadpool.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
+#include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
@@ -103,9 +104,17 @@ class RemotePredictOp : public AsyncOpKernel {
 
     PredictResponse* response = new PredictResponse();
 
-    auto rpc = prediction_service_->CreateRpc(
+    auto rpc_or = prediction_service_->CreateRpc(
         absl::Milliseconds(max_rpc_deadline_millis_));
-
+    OP_REQUIRES_ASYNC(context, rpc_or.ok(),
+                      tensorflow::Status(rpc_or.status().code(),
+                                         rpc_or.status().error_message()),
+                      [&]() {
+                        delete request;
+                        delete response;
+                        done();
+                      });
+    auto rpc = rpc_or.ValueOrDie();
     auto callback = [this, context, rpc, request, response,
                      output_tensor_aliases, done](const absl::Status& status) {
       PostProcessResponse(context, response, status, fail_op_on_rpc_error_,

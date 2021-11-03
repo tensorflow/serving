@@ -26,6 +26,7 @@ cc_library(
         "@org_tensorflow//tensorflow/core:framework_headers_lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core/kernels:ops_util_hdrs",
+        "@org_tensorflow//tensorflow/core/platform:statusor",
     ],
     alwayslink = 1,
 )
@@ -96,6 +97,7 @@ tf_kernel_library(
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core/kernels:ops_util",
         "@org_tensorflow//tensorflow/core/kernels:split_lib",
+        "@org_tensorflow//tensorflow/core/platform:statusor",
     ],
 )
 
@@ -163,6 +165,7 @@ cc_library(
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
+        "@org_tensorflow//tensorflow/core/platform:statusor",
     ],
 )
 
