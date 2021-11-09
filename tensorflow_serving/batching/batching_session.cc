@@ -523,11 +523,11 @@ Status BatchingSession::MergeInputTensors(
               tensors_to_merge[tensor_name][0].shape();
           if (!AreShapesEqualExceptZeroDim(tensor.shape(), reference_shape)) {
             return errors::FailedPrecondition(
-                "Tensors with name '" + tensor_name + "' from different tasks" +
-                " have different shapes and padding is turned off." +
-                "Set pad_variable_length_inputs to true, or ensure that " +
-                "all tensors with the same name" +
-                "have equal dimensions starting with the first dim.");
+                "Tensors with name '" + tensor_name +
+                "' from different tasks have different shapes and padding is "
+                "turned off. Set pad_variable_length_inputs to true, or ensure "
+                "that all tensors with the same name have equal dimensions "
+                "starting with the first dim.");
           }
         }
       }

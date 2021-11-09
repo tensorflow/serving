@@ -413,11 +413,10 @@ TEST_P(BatchingSessionTest, BatchHandlesSplitError) {
       CreateHalfPlusTwoSession(), &batching_session));
 
   string expected_error_msg =
-      "Tensors with name 'x' from different tasks"
-      " have different shapes and padding is turned off."
-      "Set pad_variable_length_inputs to true, or ensure that "
-      "all tensors with the same name"
-      "have equal dimensions starting with the first dim.";
+      "Tensors with name 'x' from different tasks have different shapes and "
+      "padding is turned off. Set pad_variable_length_inputs to true, or "
+      "ensure that all tensors with the same name have equal dimensions "
+      "starting with the first dim.";
 
   // `max_batch_size` is 3 and `max_execution_batch_size` is 2, so inputs of
   // first thread will span over two tasks, causing errors in both batch tasks.
@@ -632,11 +631,10 @@ TEST_P(BatchingSessionTest, UnequalTensorShapesWithPaddingTurnedOff) {
       schedule_options, batching_session_options, {{"x"}, {"y"}},
       CreateMatrixHalfPlusTwoSession(), &batching_session));
   string expected_error_msg =
-      "Tensors with name 'x' from different tasks"
-      " have different shapes and padding is turned off."
-      "Set pad_variable_length_inputs to true, or ensure that "
-      "all tensors with the same name"
-      "have equal dimensions starting with the first dim.";
+      "Tensors with name 'x' from different tasks have different shapes and "
+      "padding is turned off. Set pad_variable_length_inputs to true, or "
+      "ensure that all tensors with the same name have equal dimensions "
+      "starting with the first dim.";
   std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
       ThreadOptions(), "first_request",
       [&batching_session, &expected_error_msg] {
