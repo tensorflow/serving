@@ -125,5 +125,11 @@ Status WrapSession(std::unique_ptr<Session>* session) {
   return Status::OK();
 }
 
+Status WrapSessionIgnoreThreadPoolOptions(std::unique_ptr<Session>* session) {
+  session->reset(
+      new SessionWrapperIgnoreThreadPoolOptions(std::move(*session)));
+  return Status::OK();
+}
+
 }  // namespace serving
 }  // namespace tensorflow

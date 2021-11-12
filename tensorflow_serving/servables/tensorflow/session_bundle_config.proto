@@ -94,7 +94,7 @@ message SessionBundleConfig {
   // Tries to use infra validation result to estimate resource usage.
   bool resource_estimation_uses_validation_result = 784;
 
-  int32 num_tflite_interpreters = 785 [deprecated=true];
+  int32 num_tflite_interpreters = 785 [deprecated = true];
   // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
   //
   // Number of TFLite interpreters in an interpreter pool of TfLiteSession.
@@ -104,6 +104,11 @@ message SessionBundleConfig {
   //
   // Number of TFLite interpreter pools in a TfLiteSession.
   int32 num_tflite_pools = 787;
+
+  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
+  //
+  // Use SessionWrapperIgnoreThreadPoolOptions instead.
+  bool wrap_session_with_no_threading_params = 788;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

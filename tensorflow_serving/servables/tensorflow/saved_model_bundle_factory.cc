@@ -156,7 +156,9 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
     (*bundle)->meta_graph_def.mutable_signature_def()->swap(
         *metagraph.mutable_signature_def());
   }
-  if (config_.has_batching_parameters()) {
+  if (config_.wrap_session_with_no_threading_params()) {
+    return WrapSessionIgnoreThreadPoolOptions(&(*bundle)->session);
+  } else if (config_.has_batching_parameters()) {
     LOG(INFO) << "Wrapping session to perform batch processing";
     if (batch_scheduler_ == nullptr) {
       return errors::Internal("batch_scheduler_ not set");

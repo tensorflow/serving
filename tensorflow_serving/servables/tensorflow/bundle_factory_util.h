@@ -98,6 +98,11 @@ Status WrapSessionForBatching(
 // Wraps a session in a new session that only supports Run() without batching.
 Status WrapSession(std::unique_ptr<Session>* session);
 
+// Wraps a session in a new session that only supports Run() without threading
+// parameters.
+// TODO(b/205884936): Add test case.
+Status WrapSessionIgnoreThreadPoolOptions(std::unique_ptr<Session>* session);
+
 // Construct Queue Options from BatchingParameters.
 template <typename TaskType>
 typename SharedBatchScheduler<TaskType>::QueueOptions GetQueueOptions(

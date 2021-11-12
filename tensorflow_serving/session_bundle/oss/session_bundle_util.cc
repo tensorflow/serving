@@ -26,6 +26,11 @@ namespace serving {
 
 namespace session_bundle {
 
+Status SetGraphRewriter(
+    std::function<Status(tensorflow::MetaGraphDef*)>&& rewriter) {
+  return errors::Unimplemented("This functionality is not implemented.");
+}
+
 Status ConvertSignaturesToSignatureDefs(MetaGraphDef* meta_graph_def) {
   return errors::Unimplemented("Session Bundle is deprecated and removed.");
 }
