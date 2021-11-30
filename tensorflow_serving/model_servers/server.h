@@ -83,6 +83,8 @@ class Server {
     bool use_alts_credentials = false;
     tensorflow::string ssl_config_file;
     string model_config_file;
+    // Text proto file for TensorFlow Session ConfigProto.
+    string tensorflow_session_config_file;
     // Zero means server will not poll FS for model config file after start-up.
     tensorflow::int32 fs_model_config_poll_wait_seconds = 0;
     bool enable_model_warmup = true;

@@ -245,6 +245,12 @@ Status Server::BuildAndStart(const Options& server_options) {
           "server_options.enable_batching to true.");
     }
 
+    if (!server_options.tensorflow_session_config_file.empty()) {
+      TF_RETURN_IF_ERROR(
+          ParseProtoTextFile(server_options.tensorflow_session_config_file,
+                             session_bundle_config.mutable_session_config()));
+    }
+
     session_bundle_config.mutable_session_config()
         ->mutable_gpu_options()
         ->set_per_process_gpu_memory_fraction(

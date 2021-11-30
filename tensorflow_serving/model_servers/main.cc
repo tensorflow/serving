@@ -156,6 +156,14 @@ int main(int argc, char** argv) {
                        "Tensorflow session. Auto-configured by default."
                        "Note that this option is ignored if "
                        "--platform_config_file is non-empty."),
+      tensorflow::Flag(
+          "tensorflow_session_config_file",
+          &options.tensorflow_session_config_file,
+          "If non-empty, read an ascii TensorFlow Session "
+          "ConfigProto protobuf from the supplied file name. Note, "
+          "parts of the session config (threads, parallelism etc.) "
+          "can be overridden if needed, via corresponding command "
+          "line flags."),
       tensorflow::Flag("tensorflow_intra_op_parallelism",
                        &options.tensorflow_intra_op_parallelism,
                        "Number of threads to use to parallelize the execution"
