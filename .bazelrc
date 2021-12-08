@@ -54,3 +54,6 @@ build --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0
 build --workspace_status_command=/proc/self/cwd/tools/gen_status_stamp.sh
 
 build --experimental_repo_remote_exec
+
+# TF now has `cc_shared_library` targets, so it needs the experimental flag
+build --experimental_cc_shared_library
