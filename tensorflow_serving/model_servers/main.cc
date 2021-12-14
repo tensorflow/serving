@@ -208,6 +208,10 @@ int main(int argc, char** argv) {
                        "Enables model warmup, which triggers lazy "
                        "initializations (such as TF optimizations) at load "
                        "time, to reduce first request latency."),
+      tensorflow::Flag("num_request_iterations_for_warmup",
+                       &options.num_request_iterations_for_warmup,
+                       "Number of times a request is iterated during warmup "
+                       "replay. This value is used only if > 0."),
       tensorflow::Flag("version", &display_version, "Display version"),
       tensorflow::Flag(
           "monitoring_config_file", &options.monitoring_config_file,
