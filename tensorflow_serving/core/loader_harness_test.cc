@@ -325,6 +325,29 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorCancelledLoad) {
       }));
 }
 
+// Tests unload when ongoing load is cancelled.
+TEST(LoaderHarnessTest, UnloadDueToCancelledLoad) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+
+  const ServableId servable_id = {"test", 0};
+  LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
+
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
+      .WillOnce(InvokeWithoutArgs([]() {
+        Env::Default()->SleepForMicroseconds(1000000);
+        return Status::OK();
+      }));
+
+  std::unique_ptr<Thread> test_thread(
+      Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
+        TF_ASSERT_OK(harness.LoadRequested());
+        TF_ASSERT_OK(harness.LoadApproved());
+        harness.set_cancel_load_retry(true);
+        const Status status = harness.Load();
+        EXPECT_THAT(status.error_message(), HasSubstr("cancelled"));
+      }));
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow

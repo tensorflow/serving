@@ -229,6 +229,9 @@ class LoaderHarness final {
   // same error.
   Status TransitionState(State from, State to) TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
+  Status UnloadInternal(State from_state) TF_LOCKS_EXCLUDED(mu_);
+  Status UnloadDueToCancelledLoad() TF_LOCKS_EXCLUDED(mu_);
+
   const ServableId id_;
   const std::unique_ptr<Loader> loader_;
   // Additional state that the manager uses.

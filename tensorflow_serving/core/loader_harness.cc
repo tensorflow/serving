@@ -80,14 +80,23 @@ Status LoaderHarness::Load() {
       [&]() { return loader_->LoadWithMetadata({id_}); },
       [&]() { return cancel_load_retry(); });
 
-  {
-    mutex_lock l(mu_);
-    if (status.ok()) {
+  if (status.ok()) {
+    if (cancel_load_retry()) {
+      // Servable is going to be unloaded very soon,
+      // we report a failure here so that we do not accidentally
+      // report that the servable is available.
+      TF_RETURN_IF_ERROR(UnloadDueToCancelledLoad());
+      return errors::Cancelled(
+          strings::StrCat("Loading of servable cancelled"));
+    }
+    {
+      mutex_lock l(mu_);
       TF_RETURN_IF_ERROR(TransitionState(State::kLoading, State::kReady));
       LOG(INFO) << "Successfully loaded servable version " << id_;
-    } else {
-      ErrorInternal(status);
     }
+  } else {
+    mutex_lock l(mu_);
+    ErrorInternal(status);
   }
 
   return status;
@@ -103,6 +112,27 @@ Status LoaderHarness::UnloadRequested() {
   return Status::OK();
 }
 
+Status LoaderHarness::UnloadInternal(State from_state) {
+  {
+    mutex_lock l(mu_);
+    TF_RETURN_IF_ERROR(TransitionState(from_state, State::kUnloading));
+    LOG(INFO) << "Unloading just-loaded servable version " << id_;
+  }
+
+  loader_->Unload();
+
+  {
+    mutex_lock l(mu_);
+    TF_RETURN_IF_ERROR(TransitionState(State::kUnloading, State::kDisabled));
+    LOG(INFO) << "Done unloading servable version " << id_;
+  }
+  return Status::OK();
+}
+
+Status LoaderHarness::UnloadDueToCancelledLoad() {
+  return UnloadInternal(State::kLoading);
+}
+
 void LoaderHarness::set_cancel_load_retry(const bool value) {
   mutex_lock l(mu_);
   cancel_load_retry_ = value;
@@ -113,23 +143,7 @@ bool LoaderHarness::cancel_load_retry() {
   return cancel_load_retry_;
 }
 
-Status LoaderHarness::Unload() {
-  {
-    mutex_lock l(mu_);
-    TF_RETURN_IF_ERROR(TransitionState(State::kQuiesced, State::kUnloading));
-    LOG(INFO) << "Unloading servable version " << id_;
-  }
-
-  loader_->Unload();
-
-  {
-    mutex_lock l(mu_);
-    TF_RETURN_IF_ERROR(TransitionState(State::kUnloading, State::kDisabled));
-    LOG(INFO) << "Done unloading servable version " << id_;
-  }
-
-  return Status::OK();
-}
+Status LoaderHarness::Unload() { return UnloadInternal(State::kQuiesced); }
 
 Status LoaderHarness::StartQuiescing() {
   mutex_lock l(mu_);
