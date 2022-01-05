@@ -25,6 +25,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/mem.h"
+#include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/source_adapter.h"
@@ -145,7 +146,9 @@ class SimpleLoader : public Loader {
   absl::optional<ResourceEstimator> post_load_resource_estimator_;
 
   // The memoized estimated resource requirement of the servable.
-  mutable absl::optional<ResourceAllocation> memoized_resource_estimate_;
+  mutable absl::optional<ResourceAllocation> memoized_resource_estimate_
+      TF_GUARDED_BY(memoized_resource_estimate_mu_);
+  mutable mutex memoized_resource_estimate_mu_;
 
   std::unique_ptr<ResourceUtil> resource_util_;
   Resource ram_resource_;
@@ -275,6 +278,7 @@ SimpleLoader<ServableType>::SimpleLoader(
 template <typename ServableType>
 Status SimpleLoader<ServableType>::EstimateResources(
     ResourceAllocation* estimate) const {
+  mutex_lock l(memoized_resource_estimate_mu_);
   if (memoized_resource_estimate_) {
     *estimate = *memoized_resource_estimate_;
     return Status::OK();
@@ -320,7 +324,10 @@ Status SimpleLoader<ServableType>::EstimateResourcesPostLoad() {
     ResourceAllocation post_load_resource_estimate;
     TF_RETURN_IF_ERROR(
         (*post_load_resource_estimator_)(&post_load_resource_estimate));
-    memoized_resource_estimate_ = post_load_resource_estimate;
+    {
+      mutex_lock l(memoized_resource_estimate_mu_);
+      memoized_resource_estimate_ = post_load_resource_estimate;
+    }
 
     // Release any transient memory used only during load to the OS.
     const uint64_t during_load_ram_estimate = resource_util_->GetQuantity(
