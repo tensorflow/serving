@@ -34,9 +34,12 @@ networks. For our example, we will download a TensorFlow SavedModel of ResNet
 for the ImageNet dataset.
 
 ```shell
-mkdir /tmp/resnet
-curl -s http://download.tensorflow.org/models/official/20181001_resnet/savedmodels/resnet_v2_fp32_savedmodel_NHWC_jpg.tar.gz | \
-tar --strip-components=2 -C /tmp/resnet -xvz
+# Download Resnet model from TF Hub
+wget https://tfhub.dev/tensorflow/resnet_50/classification/1?tf-hub-format=compressed -o resnet.tar.gz
+
+# Extract SavedModel into a versioned subfolder ‘123’
+mkdir -p /tmp/resnet/123
+tar xvfz resnet.tar.gz -C /tmp/resnet/123/
 ```
 
 We can verify we have the SavedModel:
@@ -154,7 +157,7 @@ outputs {
 model_spec {
   name: "resnet"
   version {
-    value: 1538687457
+    value: 123
   }
   signature_name: "serving_default"
 }
