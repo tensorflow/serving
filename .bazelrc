@@ -25,6 +25,15 @@ build:mkl_open_source_only --define=build_with_mkl_dnn_only=true
 build:mkl_open_source_only --define=build_with_mkl=true --define=enable_mkl=true
 build:mkl_open_source_only --define=tensorflow_mkldnn_contraction_kernel=0
 
+# Config setting to build oneDNN with Compute Library for the Arm Architecture (ACL).
+# This build is for the inference regime only.
+build:mkl_aarch64 --define=build_with_mkl_aarch64=true --define=enable_mkl=true
+build:mkl_aarch64 --define=tensorflow_mkldnn_contraction_kernel=0
+build:mkl_aarch64 --define=build_with_mkl_opensource=true
+build:mkl_aarch64 --define=build_with_openmp=true
+build:mkl_aarch64 --copt=-march=armv8.2-a
+build:mkl_aarch64 --copt=-O3
+
 # Processor native optimizations (depends on build host capabilities).
 build:nativeopt --copt=-march=native
 build:nativeopt --host_copt=-march=native
