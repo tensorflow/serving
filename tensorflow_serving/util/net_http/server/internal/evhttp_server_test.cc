@@ -20,7 +20,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "absl/memory/memory.h"
 #include "absl/synchronization/notification.h"
-#include "tensorflow_serving/util/net_http/client/internal/evhttp_connection.h"
+#include "tensorflow_serving/util/net_http/client/test_client/internal/evhttp_connection.h"
 #include "tensorflow_serving/util/net_http/internal/fixed_thread_pool.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
@@ -92,11 +92,11 @@ TEST_F(EvHTTPServerTest, ExactPathMatching) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok?a=foo", "GET", {}, ""};
-  ClientResponse response = {};
+  TestClientRequest request = {"/ok?a=foo", "GET", {}, ""};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
@@ -131,11 +131,11 @@ TEST_F(EvHTTPServerTest, RequestHandlerOverwriting) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "GET", {}, ""};
-  ClientResponse response = {};
+  TestClientRequest request = {"/ok", "GET", {}, ""};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
@@ -161,11 +161,11 @@ TEST_F(EvHTTPServerTest, SingleRequestDispather) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "GET", {}, ""};
-  ClientResponse response = {};
+  TestClientRequest request = {"/ok", "GET", {}, ""};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
@@ -199,11 +199,11 @@ TEST_F(EvHTTPServerTest, UriPrecedesOverRequestDispather) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "GET", {}, ""};
-  ClientResponse response = {};
+  TestClientRequest request = {"/ok", "GET", {}, ""};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
@@ -244,11 +244,11 @@ TEST_F(EvHTTPServerTest, InOrderRequestDispather) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "GET", {}, ""};
-  ClientResponse response = {};
+  TestClientRequest request = {"/ok", "GET", {}, ""};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
@@ -273,13 +273,13 @@ TEST_F(EvHTTPServerTest, RequestHandlerInteraction) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
   connection->SetExecutor(absl::make_unique<MyExecutor>(4));
 
   absl::Notification response_done;
-  ClientRequest request = {"/ok", "GET", {}, ""};
-  ClientResponse response = {};
+  TestClientRequest request = {"/ok", "GET", {}, ""};
+  TestClientResponse response = {};
   response.done = [&response_done]() { response_done.Notify(); };
 
   EXPECT_TRUE(connection->SendRequest(request, &response));
@@ -316,12 +316,12 @@ TEST_F(EvHTTPServerTest, ActiveRequestCountInShutdown) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
   connection->SetExecutor(absl::make_unique<MyExecutor>(4));
 
-  ClientRequest request = {"/ok", "GET", {}, ""};
-  ClientResponse response = {};
+  TestClientRequest request = {"/ok", "GET", {}, ""};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->SendRequest(request, &response));
   handler_enter.WaitForNotification();
