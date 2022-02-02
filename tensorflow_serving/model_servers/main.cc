@@ -50,6 +50,9 @@ limitations under the License.
 #include "tensorflow/compiler/jit/flags.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/init_main.h"
+#if defined(LIBTPU_ON_GCE)
+#include "tensorflow/core/tpu/tpu_global_init.h"
+#endif
 #include "tensorflow/core/util/command_line_flags.h"
 #include "tensorflow_serving/model_servers/server.h"
 #include "tensorflow_serving/model_servers/version.h"
@@ -265,6 +268,12 @@ int main(int argc, char** argv) {
     std::cout << usage;
     return -1;
   }
+
+#if defined(LIBTPU_ON_GCE)
+  std::cout << "Initializing TPU system.";
+  TF_QCHECK_OK(tensorflow::InitializeTPUSystemGlobally())
+      << "Failed to intialize the TPU system.";
+#endif
 
   if (display_version) {
     std::cout << "TensorFlow ModelServer: " << TF_Serving_Version() << "\n"

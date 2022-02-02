@@ -395,7 +395,8 @@ cc_library(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
     ] + if_libtpu([
-        "@org_tensorflow//tensorflow/core/tpu:tpu_model_server_initializer",
+        "@org_tensorflow//tensorflow/core/tpu:tpu_global_init",
+        "@org_tensorflow//tensorflow/core/tpu:tpu_api_dlsym_initializer",
     ]),
 )
 
