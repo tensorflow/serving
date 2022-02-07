@@ -1,3 +1,31 @@
+# Release 2.5.4
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.5.3
+
+# Release 2.6.3
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.6.3
+
 # Release 2.6.0
 
 ## Major Features and Improvements
