@@ -1,3 +1,21 @@
+# Release 2.8.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* Force-allow labels for the models which are not yet loaded. The feature is meant to be used for non-prod environments only as it may break the serving until relevant models are not loaded yet. (commit: 988bbce80038ac0b7141dcb4413124ba486344cf)
+* Update CreateRPC API interface. (commit: 2e7ca90c18f310c542ed0dcde92d676db6454285)
+* Add `--tensorflow_session_config_file` flag to tf serving model server to support custom SessionConfig (commit: 342a8088524c33f68e3eb4d66800f01a777ceb38)
+* Add `--experimental_cc_shared_library` by default to all builds. (commit: 49b138fdd4c0fb7170736193063c6f03dfb4dba4)
+* Add --num_request_iterations_for_warmup flag (fixes #1949) (commit: 2a55aec18cc1923ece84c7fcf701185306ef99b1)
+
 # Release 2.5.4
 
 ## Major Features and Improvements
