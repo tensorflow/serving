@@ -261,8 +261,12 @@ int main(int argc, char** argv) {
       tensorflow::Flag("thread_pool_factory_config_file",
                        &options.thread_pool_factory_config_file,
                        "If non-empty, read an ascii ThreadPoolConfig protobuf "
-                       "from the supplied file name.")};
-
+                       "from the supplied file name."),
+      tensorflow::Flag("servable_versions_always_present",
+                       &options.servable_versions_always_present,
+                       "If true, the servable is always expected to exist on "
+                       "the underlying filesystem.")};
+      
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {
     std::cout << usage;
