@@ -165,6 +165,14 @@ class ResourceUtil {
   ResourceAllocation Min(const ResourceAllocation& lhs,
                          const ResourceAllocation& rhs) const;
 
+  // The implementation of ResourceUtil::Normalize().
+  // Converts 'allocation' to normal form, meaning:
+  //  1. It has no entries with quantity 0.
+  //  2. Resources of a device that has exactly one instance are bound to that
+  //     instance.
+  ResourceAllocation NormalizeResourceAllocation(
+      const ResourceAllocation& allocation) const;
+
  private:
   enum class DCHECKFailOption { kDoDCHECKFail, kDoNotDCHECKFail };
 
@@ -221,6 +229,10 @@ class ResourceUtil {
   // result.
   ResourceAllocation MinNormalized(const ResourceAllocation& lhs,
                                    const ResourceAllocation& rhs) const;
+
+  // The implementation of ResourceUtil::IsNormalized().
+  bool IsResourceAllocationNormalized(
+      const ResourceAllocation& allocation) const;
 
   const std::map<string, uint32> devices_;
 

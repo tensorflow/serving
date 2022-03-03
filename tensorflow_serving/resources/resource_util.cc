@@ -144,43 +144,11 @@ Status ResourceUtil::VerifyResourceValidity(const Resource& resource) const {
 
 ResourceAllocation ResourceUtil::Normalize(
     const ResourceAllocation& allocation) const {
-  if (!VerifyFunctionInternal([&]() { return VerifyValidity(allocation); },
-                              DCHECKFailOption::kDoDCHECKFail)
-           .ok()) {
-    return allocation;
-  }
-
-  ResourceAllocation normalized;
-  for (const ResourceAllocation::Entry& entry :
-       allocation.resource_quantities()) {
-    if (entry.quantity() == 0) {
-      continue;
-    }
-
-    ResourceAllocation::Entry* normalized_entry =
-        normalized.add_resource_quantities();
-    *normalized_entry->mutable_resource() = NormalizeResource(entry.resource());
-    normalized_entry->set_quantity(entry.quantity());
-  }
-  return normalized;
+  return NormalizeResourceAllocation(allocation);
 }
 
 bool ResourceUtil::IsNormalized(const ResourceAllocation& allocation) const {
-  if (!VerifyFunctionInternal([&]() { return VerifyValidity(allocation); },
-                              DCHECKFailOption::kDoDCHECKFail)
-           .ok()) {
-    return false;
-  }
-
-  for (const auto& entry : allocation.resource_quantities()) {
-    if (entry.quantity() == 0) {
-      return false;
-    }
-    if (!IsResourceNormalized(entry.resource())) {
-      return false;
-    }
-  }
-  return true;
+  return IsResourceAllocationNormalized(allocation);
 }
 
 bool ResourceUtil::IsBound(const ResourceAllocation& allocation) const {
@@ -273,6 +241,48 @@ ResourceAllocation ResourceUtil::Max(const ResourceAllocation& lhs,
 ResourceAllocation ResourceUtil::Min(const ResourceAllocation& lhs,
                                      const ResourceAllocation& rhs) const {
   return MinNormalized(Normalize(lhs), Normalize(rhs));
+}
+
+ResourceAllocation ResourceUtil::NormalizeResourceAllocation(
+    const ResourceAllocation& allocation) const {
+  if (!VerifyFunctionInternal([&]() { return VerifyValidity(allocation); },
+                              DCHECKFailOption::kDoDCHECKFail)
+           .ok()) {
+    return allocation;
+  }
+
+  ResourceAllocation normalized;
+  for (const ResourceAllocation::Entry& entry :
+       allocation.resource_quantities()) {
+    if (entry.quantity() == 0) {
+      continue;
+    }
+
+    ResourceAllocation::Entry* normalized_entry =
+        normalized.add_resource_quantities();
+    *normalized_entry->mutable_resource() = NormalizeResource(entry.resource());
+    normalized_entry->set_quantity(entry.quantity());
+  }
+  return normalized;
+}
+
+bool ResourceUtil::IsResourceAllocationNormalized(
+    const ResourceAllocation& allocation) const {
+  if (!VerifyFunctionInternal([&]() { return VerifyValidity(allocation); },
+                              DCHECKFailOption::kDoDCHECKFail)
+           .ok()) {
+    return false;
+  }
+
+  for (const auto& entry : allocation.resource_quantities()) {
+    if (entry.quantity() == 0) {
+      return false;
+    }
+    if (!IsResourceNormalized(entry.resource())) {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool ResourceUtil::IsBoundNormalized(
