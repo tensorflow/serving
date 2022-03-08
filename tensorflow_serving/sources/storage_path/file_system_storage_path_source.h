@@ -90,6 +90,9 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
   // such child.
   Status PollFileSystemAndInvokeCallback();
 
+  // Logs servable version information
+  void LogVersions(const std::vector<ServableData<StoragePath>>& versions);
+
   // Sends empty aspired-versions lists for each servable in 'servable_names'.
   Status UnaspireServables(const std::set<string>& servable_names)
       TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);

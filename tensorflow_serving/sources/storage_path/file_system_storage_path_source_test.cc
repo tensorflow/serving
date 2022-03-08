@@ -491,7 +491,7 @@ TEST(FileSystemStoragePathSourceTest, ChangeSetOfServables) {
             Eq(strings::StrCat("servable_", i)),
             ElementsAre(ServableData<StoragePath>(
                 {strings::StrCat("servable_", i), 0},
-                io::JoinPath(strings::StrCat(base_path_prefix, i), "0")))));
+                io::JoinPath(strings::StrCat(base_path_prefix, i), "0"))))).Times(2);;
   }
   TF_ASSERT_OK(source->UpdateConfig(config));
   TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
@@ -566,7 +566,7 @@ TEST(FileSystemStoragePathSourceTest, ChangeVersionPolicy) {
               ServableData<StoragePath>({"test_servable_name", 2},
                                         io::JoinPath(base_path_prefix, "2")),
               ServableData<StoragePath>({"test_servable_name", 5},
-                                        io::JoinPath(base_path_prefix, "5")))));
+                                        io::JoinPath(base_path_prefix, "5"))))).Times(2);
 
   TF_ASSERT_OK(source->UpdateConfig(config));
   TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
@@ -688,7 +688,7 @@ TEST(FileSystemStoragePathSourceTest, ServableVersionDirRenamed) {
               ServableData<StoragePath>({"test_servable_name", 1},
                                         io::JoinPath(base_path_prefix, "1")),
               ServableData<StoragePath>({"test_servable_name", 3},
-                                        io::JoinPath(base_path_prefix, "3")))));
+                                        io::JoinPath(base_path_prefix, "3"))))).Times(2);
 
   TF_ASSERT_OK(source->UpdateConfig(config));
   TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
