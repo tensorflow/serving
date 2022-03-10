@@ -26,6 +26,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
+#include "tensorflow_serving/model_servers/http_rest_api_handler_base.h"
 
 namespace tensorflow {
 
@@ -60,19 +61,19 @@ class ModelSpec;
 // method.
 //
 // This class is thread safe.
-class HttpRestApiHandler {
+class HttpRestApiHandler : public HttpRestApiHandlerBase {
  public:
   // Returns a regex that captures all API paths handled by this handler.
   // Typical use of this method is to register request paths with underlying
   // HTTP server, so incoming requests can be forwarded to this handler.
   static const char* const kPathRegex;
 
-  // API calls are configured to timeout after `run_optons.timeout_in_ms`.
+  // API calls are configured to timeout after `timeout_in_ms`.
   // `core` is not owned and is expected to outlive HttpRestApiHandler
   // instance.
-  HttpRestApiHandler(const RunOptions& run_options, ServerCore* core);
+  HttpRestApiHandler(int timeout_in_ms, ServerCore* core);
 
-  ~HttpRestApiHandler();
+  ~HttpRestApiHandler() override;
 
   // Process a HTTP request.
   //
@@ -82,7 +83,8 @@ class HttpRestApiHandler {
                         const absl::string_view request_path,
                         const absl::string_view request_body,
                         std::vector<std::pair<string, string>>* headers,
-                        string* model_name, string* method, string* output);
+                        string* model_name, string* method,
+                        string* output) override;
 
  private:
   Status ProcessClassifyRequest(
@@ -113,7 +115,7 @@ class HttpRestApiHandler {
   Status GetInfoMap(const ModelSpec& model_spec, const string& signature_name,
                     ::google::protobuf::Map<string, tensorflow::TensorInfo>* infomap);
 
-  const RunOptions run_options_;
+  RunOptions run_options_;
   ServerCore* core_;
   std::unique_ptr<TensorflowPredictor> predictor_;
 };

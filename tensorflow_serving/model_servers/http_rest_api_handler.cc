@@ -51,11 +51,12 @@ using tensorflow::serving::TensorflowPredictor;
 
 const char* const HttpRestApiHandler::kPathRegex = kHTTPRestApiHandlerPathRegex;
 
-HttpRestApiHandler::HttpRestApiHandler(const RunOptions& run_options,
-                                       ServerCore* core)
-    : run_options_(run_options),
-      core_(core),
-      predictor_(new TensorflowPredictor()) {}
+HttpRestApiHandler::HttpRestApiHandler(int timeout_in_ms, ServerCore* core)
+    : run_options_(), core_(core), predictor_(new TensorflowPredictor()) {
+  if (timeout_in_ms > 0) {
+    run_options_.set_timeout_in_ms(timeout_in_ms);
+  }
+}
 
 HttpRestApiHandler::~HttpRestApiHandler() {}
 

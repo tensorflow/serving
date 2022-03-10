@@ -16,25 +16,17 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/prediction_service_impl.h"
 
 #include "grpc/grpc.h"
-#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 #include "tensorflow_serving/servables/tensorflow/classification_service.h"
 #include "tensorflow_serving/servables/tensorflow/get_model_metadata_impl.h"
 #include "tensorflow_serving/servables/tensorflow/multi_inference_helper.h"
 #include "tensorflow_serving/servables/tensorflow/regression_service.h"
-#include "tensorflow_serving/servables/tensorflow/thread_pool_factory.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
 
 namespace tensorflow {
 namespace serving {
 
 namespace {
-
-int DeadlineToTimeoutMillis(const gpr_timespec deadline) {
-  return gpr_time_to_millis(
-      gpr_time_sub(gpr_convert_clock_type(deadline, GPR_CLOCK_MONOTONIC),
-                   gpr_now(GPR_CLOCK_MONOTONIC)));
-}
 
 ScopedThreadPools GetThreadPools(ThreadPoolFactory *thread_pool_factory) {
   return thread_pool_factory == nullptr ? ScopedThreadPools()

@@ -37,6 +37,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/model_servers/server_init.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/test_util/test_util.h"
@@ -75,7 +76,7 @@ class HttpRestApiHandlerTest : public ::testing::Test {
   static void TearDownTestSuite() { server_core_.reset(); }
 
  protected:
-  HttpRestApiHandlerTest() : handler_(RunOptions(), GetServerCore()) {}
+  HttpRestApiHandlerTest() : handler_(/*timeout_in_ms=*/-1, GetServerCore()) {}
 
   static Status CreateServerCore(std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
@@ -94,8 +95,9 @@ class HttpRestApiHandlerTest : public ::testing::Test {
     ServerCore::Options options;
     options.model_server_config = config;
 
-    options.platform_config_map =
-        CreateTensorFlowPlatformConfigMap(SessionBundleConfig());
+    TF_RETURN_IF_ERROR(
+        tensorflow::serving::init::SetupPlatformConfigMapForTensorFlow(
+            SessionBundleConfig(), options.platform_config_map));
     // Reduce the number of initial load threads to be num_load_threads to avoid
     // timing out in tests.
     options.num_initial_load_threads = options.num_load_threads;

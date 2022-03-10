@@ -27,6 +27,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/http_rest_api_handler.h"
 #include "tensorflow_serving/model_servers/http_rest_api_util.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/model_servers/server_init.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
 #include "tensorflow_serving/util/net_http/server/public/response_code_enum.h"
@@ -127,11 +128,10 @@ class RequestExecutor final : public net_http::EventExecutor {
 class RestApiRequestDispatcher {
  public:
   RestApiRequestDispatcher(int timeout_in_ms, ServerCore* core)
-      : regex_(HttpRestApiHandler::kPathRegex), core_(core) {
-    RunOptions run_options = RunOptions();
-    run_options.set_timeout_in_ms(timeout_in_ms);
-    handler_.reset(new HttpRestApiHandler(run_options, core));
-  }
+      : regex_(HttpRestApiHandler::kPathRegex),
+        core_(core),
+        handler_(tensorflow::serving::init::CreateHttpRestApiHandler(
+            timeout_in_ms, core)) {}
 
   net_http::RequestHandler Dispatch(net_http::ServerRequestInterface* req) {
     if (RE2::FullMatch(string(req->uri_path()), regex_)) {
@@ -199,8 +199,8 @@ class RestApiRequestDispatcher {
   }
 
   const RE2 regex_;
-  std::unique_ptr<HttpRestApiHandler> handler_;
   ServerCore* core_;
+  std::unique_ptr<HttpRestApiHandlerBase> handler_;
 };
 
 }  // namespace

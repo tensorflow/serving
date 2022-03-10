@@ -123,7 +123,7 @@ class Server {
 
   std::unique_ptr<ServerCore> server_core_;
   std::unique_ptr<ModelServiceImpl> model_service_;
-  std::unique_ptr<PredictionServiceImpl> prediction_service_;
+  std::unique_ptr<PredictionService::Service> prediction_service_;
   std::unique_ptr<tensorflow::grpc::ProfilerService::Service> profiler_service_;
   std::unique_ptr<::grpc::Server> grpc_server_;
   std::unique_ptr<net_http::HTTPServerInterface> http_server_;
