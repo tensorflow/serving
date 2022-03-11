@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package tensorflow.serving;
 
+option go_package = "github.com/tensorflow/serving/tensorflow_serving/sources/storage_path/static_storage_path_source_go_proto";
+
 // Config proto for StaticStoragePathSource.
 message StaticStoragePathSourceConfig {
   // The single servable name, version number and path to supply statically.

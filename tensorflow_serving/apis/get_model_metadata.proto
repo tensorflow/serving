@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package tensorflow.serving;
 option cc_enable_arenas = true;
+option go_package = "github.com/tensorflow/serving/tensorflow_serving/apis/get_model_metadata_go_proto";
 
 import "google/protobuf/any.proto";
 import "tensorflow/core/protobuf/meta_graph.proto";

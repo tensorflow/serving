@@ -6,6 +6,7 @@ import "tensorflow_serving/apis/model.proto";
 import "tensorflow_serving/apis/status.proto";
 
 option cc_enable_arenas = true;
+option go_package = "github.com/tensorflow/serving/tensorflow_serving/apis/get_model_status_go_proto";
 
 // GetModelStatusRequest contains a ModelSpec indicating the model for which
 // to get status.

@@ -11,6 +11,7 @@
 syntax = "proto3";
 
 option cc_enable_arenas = true;
+option go_package = "github.com/tensorflow/serving/tensorflow_serving/apis/inference_go_proto";
 
 import "tensorflow_serving/apis/classification.proto";
 import "tensorflow_serving/apis/input.proto";
