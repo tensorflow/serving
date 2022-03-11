@@ -38,24 +38,8 @@ FileSystemStoragePathSource::~FileSystemStoragePathSource() {
 
 namespace {
 
-// Converts any deprecated usage in 'config' into equivalent non-deprecated use.
-// TODO(b/30898016): Eliminate this once the deprecated fields are gone.
-FileSystemStoragePathSourceConfig NormalizeConfig(
-    const FileSystemStoragePathSourceConfig& config) {
-  FileSystemStoragePathSourceConfig normalized = config;
-  if (!normalized.servable_name().empty() || !normalized.base_path().empty()) {
-    FileSystemStoragePathSourceConfig::ServableToMonitor* servable =
-        normalized.add_servables();
-    servable->set_servable_name(normalized.servable_name());
-    servable->set_base_path(normalized.base_path());
-    normalized.clear_servable_name();
-    normalized.clear_base_path();
-  }
-  return normalized;
-}
-
 // Returns the names of servables that appear in 'old_config' but not in
-// 'new_config'. Assumes both configs are normalized.
+// 'new_config'.
 std::set<string> GetDeletedServables(
     const FileSystemStoragePathSourceConfig& old_config,
     const FileSystemStoragePathSourceConfig& new_config) {
@@ -298,13 +282,21 @@ Status FailIfZeroVersions(const FileSystemStoragePathSourceConfig& config) {
       versions_by_servable_name;
   TF_RETURN_IF_ERROR(
       PollFileSystemForConfig(config, &versions_by_servable_name));
+
+  std::map<string, string> servable_name_to_base_path_map;
+  for (const FileSystemStoragePathSourceConfig::ServableToMonitor& servable :
+       config.servables()) {
+    servable_name_to_base_path_map.insert(
+        {servable.servable_name(), servable.base_path()});
+  }
+
   for (const auto& entry : versions_by_servable_name) {
     const string& servable = entry.first;
     const std::vector<ServableData<StoragePath>>& versions = entry.second;
     if (versions.empty()) {
       return errors::NotFound(
           "Unable to find a numerical version path for servable ", servable,
-          " at: ", config.base_path());
+          " at: ", servable_name_to_base_path_map[servable]);
     }
   }
   return Status::OK();
@@ -330,19 +322,15 @@ Status FileSystemStoragePathSource::UpdateConfig(
         "Changing file_system_poll_wait_seconds is not supported");
   }
 
-  const FileSystemStoragePathSourceConfig normalized_config =
-      NormalizeConfig(config);
-
-  if (normalized_config.fail_if_zero_versions_at_startup() ||  // NOLINT
-      normalized_config.servable_versions_always_present()) {
-    TF_RETURN_IF_ERROR(FailIfZeroVersions(normalized_config));
+  if (config.fail_if_zero_versions_at_startup() ||  // NOLINT
+      config.servable_versions_always_present()) {
+    TF_RETURN_IF_ERROR(FailIfZeroVersions(config));
   }
 
   if (aspired_versions_callback_) {
-    TF_RETURN_IF_ERROR(
-        UnaspireServables(GetDeletedServables(config_, normalized_config)));
+    TF_RETURN_IF_ERROR(UnaspireServables(GetDeletedServables(config_, config)));
   }
-  config_ = normalized_config;
+  config_ = config;
 
   return Status::OK();
 }

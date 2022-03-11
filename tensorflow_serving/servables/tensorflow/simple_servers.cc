@@ -47,9 +47,10 @@ Status CreateStoragePathSource(
     const string& base_path, const string& servable_name,
     std::unique_ptr<Source<StoragePath>>* path_source) {
   FileSystemStoragePathSourceConfig config;
-  config.set_servable_name(servable_name);
-  config.set_base_path(base_path);
   config.set_file_system_poll_wait_seconds(1);
+  auto* servable = config.add_servables();
+  servable->set_servable_name(servable_name);
+  servable->set_base_path(base_path);
 
   std::unique_ptr<FileSystemStoragePathSource> file_system_source;
   TF_RETURN_IF_ERROR(

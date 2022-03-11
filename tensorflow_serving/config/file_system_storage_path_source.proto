@@ -16,8 +16,7 @@ message FileSystemStoragePathSourceConfig {
     }
 
     // Serve all versions found on disk.
-    message All {
-    }
+    message All {}
 
     // Serve a specific version (or set of versions).
     //
@@ -56,12 +55,6 @@ message FileSystemStoragePathSourceConfig {
   // The servables to monitor for new versions, and aspire.
   repeated ServableToMonitor servables = 5;
 
-  // A single servable name/base_path pair to monitor.
-  // DEPRECATED: Use 'servables' instead.
-  // TODO(b/30898016): Stop using these fields, and ultimately remove them here.
-  string servable_name = 1 [deprecated = true];
-  string base_path = 2 [deprecated = true];
-
   // How long to wait between file-system polling to look for children of
   // 'base_path', in seconds.
   //
@@ -85,4 +78,6 @@ message FileSystemStoragePathSourceConfig {
   // contain at least one version under the base path. In addition, if a polling
   // loop find the base path empty, it will not unload existing servables.
   bool servable_versions_always_present = 6;
+
+  reserved 1, 2;
 }

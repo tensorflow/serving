@@ -83,8 +83,10 @@ TEST(FileSystemStoragePathSourceTest, NoVersionsAtStartup) {
 
     for (bool fail_if_zero_versions_at_startup : {false, true}) {
       auto config = test_util::CreateProto<FileSystemStoragePathSourceConfig>(
-          strings::Printf("servable_name: 'test_servable_name' "
-                          "base_path: '%s' "
+          strings::Printf("servables: {"
+                          "  servable_name: 'test_servable_name' "
+                          "  base_path: '%s' "
+                          "} "
                           "fail_if_zero_versions_at_startup: %s "
                           // Disable the polling thread.
                           "file_system_poll_wait_seconds: -1 ",
@@ -121,8 +123,10 @@ TEST(FileSystemStoragePathSourceTest, FilesAppearAfterStartup) {
       io::JoinPath(testing::TmpDir(), "FilesAppearAfterStartup");
 
   auto config = test_util::CreateProto<FileSystemStoragePathSourceConfig>(
-      strings::Printf("servable_name: 'test_servable_name' "
-                      "base_path: '%s' "
+      strings::Printf("servables: {"
+                      "  servable_name: 'test_servable_name' "
+                      "  base_path: '%s' "
+                      "} "
                       "fail_if_zero_versions_at_startup: false "
                       // Disable the polling thread.
                       "file_system_poll_wait_seconds: -1 ",
@@ -158,8 +162,10 @@ TEST(FileSystemStoragePathSourceTest, MultipleVersions) {
   TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path, "17")));
 
   auto config = test_util::CreateProto<FileSystemStoragePathSourceConfig>(
-      strings::Printf("servable_name: 'test_servable_name' "
-                      "base_path: '%s' "
+      strings::Printf("servables: {"
+                      "  servable_name: 'test_servable_name' "
+                      "  base_path: '%s' "
+                      "} "
                       // Disable the polling thread.
                       "file_system_poll_wait_seconds: -1 ",
                       base_path.c_str()));
@@ -705,8 +711,10 @@ TEST(FileSystemStoragePathSourceTest, DuplicateVersions) {
   }
 
   auto config = test_util::CreateProto<FileSystemStoragePathSourceConfig>(
-      strings::Printf("servable_name: 'test_servable_name' "
-                      "base_path: '%s' "
+      strings::Printf("servables: {"
+                      "  servable_name: 'test_servable_name' "
+                      "  base_path: '%s' "
+                      "} "
                       // Disable the polling thread.
                       "file_system_poll_wait_seconds: -1 ",
                       base_path.c_str()));
@@ -742,8 +750,10 @@ TEST(FileSystemStoragePathSourceTest, LastVersionNotRemoved) {
         Env::Default()->RecursivelyCreateDir(io::JoinPath(base_path, "42")));
 
     auto config = test_util::CreateProto<FileSystemStoragePathSourceConfig>(
-        strings::Printf("servable_name: 'test_servable_name' "
-                        "base_path: '%s' "
+        strings::Printf("servables: {"
+                        "  servable_name: 'test_servable_name' "
+                        "  base_path: '%s' "
+                        "} "
                         "servable_versions_always_present: %s "
                         // Disable the polling thread.
                         "file_system_poll_wait_seconds: -1 ",
@@ -782,8 +792,10 @@ TEST(FileSystemStoragePathSourceTest, LastVersionNotRemoved) {
 TEST(FileSystemStoragePathSourceTest, PollFilesystemOnlyOnce) {
   const string base_path = io::JoinPath(testing::TmpDir(), "OneShot");
   auto config = test_util::CreateProto<FileSystemStoragePathSourceConfig>(
-      strings::Printf("servable_name: 'test_servable_name' "
-                      "base_path: '%s' "
+      strings::Printf("servables: {"
+                      "  servable_name: 'test_servable_name' "
+                      "  base_path: '%s' "
+                      "} "
                       "fail_if_zero_versions_at_startup: false "
                       // Poll only once (One shot mode).
                       "file_system_poll_wait_seconds: 0 ",
