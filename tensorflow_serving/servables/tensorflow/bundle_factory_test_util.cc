@@ -22,6 +22,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
@@ -111,7 +112,10 @@ void TestSingleRequest(Session* session) {
   const std::vector<string> empty_targets;
   std::vector<Tensor> outputs;
 
-  TF_ASSERT_OK(session->Run(inputs, output_names, empty_targets, &outputs));
+  RunMetadata run_metadata;
+  TF_ASSERT_OK(session->Run(RunOptions{}, inputs, output_names, empty_targets,
+                            &outputs, &run_metadata,
+                            thread::ThreadPoolOptions{}));
 
   ASSERT_EQ(1, outputs.size());
   const auto& single_output = outputs.at(0);
