@@ -260,15 +260,15 @@ class BatchingSession : public ServingSession {
                     std::unique_ptr<Batch<BatchingSessionTask>> batch);
 
   const BatchingSessionOptions options_;
+  // The name of the thread pool of the underlying batch scheduler. It is used
+  // for monitoring purpose, and can be empty if not known.
+  const std::string thread_pool_name_;
 
   std::unique_ptr<Session> wrapped_;
   std::unordered_map<TensorSignature,
                      std::unique_ptr<BatchScheduler<BatchingSessionTask>>,
                      HashTensorSignature, EqTensorSignature>
       batch_schedulers_;
-  // The name of the thread pool of the underlying batch scheduler. It is used
-  // for monitoring purpose, and can be empty if not known.
-  const std::string thread_pool_name_;
 
   // If set, default_scheduler_creator_ is used when the input signature does
   // not match any existing signature defined during model load. This helps
