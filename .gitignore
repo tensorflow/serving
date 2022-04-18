@@ -1,3 +1,7 @@
+.DS_Store
+.idea
+.vscode
+__pycache__
 node_modules
 /bazel-bin
 /bazel-ci_build-cache
