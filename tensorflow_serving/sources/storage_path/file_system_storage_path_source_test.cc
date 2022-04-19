@@ -677,7 +677,7 @@ TEST(FileSystemStoragePathSourceTest, ServableVersionDirRenamed) {
                    .PollFileSystemAndInvokeCallback());
 
   // Deny version 2 and 5 by renaming corresponding directories.
-  // Deny version 8 by removing the directory alltogether.
+  // Deny version 8 by removing the directory altogether.
   TF_ASSERT_OK(
       Env::Default()->RenameFile(io::JoinPath(base_path_prefix, "2"),
                                  io::JoinPath(base_path_prefix, "2.denied")));

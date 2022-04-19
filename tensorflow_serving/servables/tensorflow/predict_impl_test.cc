@@ -316,7 +316,7 @@ TEST_F(PredictImplTest, PredictionWithNamedClassificationSignature) {
 // customized signatures. It calls get_counter, incr_counter,
 // reset_counter, incr_counter, and incr_counter_by(3) in order.
 //
-// *Notes*: These signatures are stateful and over-simplied only to demonstrate
+// *Notes*: These signatures are stateful and over-simplified only to demonstrate
 // Predict calls with only inputs or outputs. State is not supported in
 // TensorFlow Serving on most scalable or production hosting environments.
 TEST_F(PredictImplTest, PredictionWithCustomizedSignatures) {

@@ -54,7 +54,7 @@ def export_model(output_dir):
 
   Create three signatures: incr_counter, incr_counter_by, reset_counter.
 
-  *Notes*: These signatures are stateful and over-simplied only to demonstrate
+  *Notes*: These signatures are stateful and over-simplified only to demonstrate
   Predict calls with only inputs or outputs. State is not supported in
   TensorFlow Serving on most scalable or production hosting environments.
 

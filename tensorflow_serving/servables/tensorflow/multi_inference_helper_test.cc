@@ -194,7 +194,7 @@ TYPED_TEST_P(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
                     "Duplicate evaluation of signature: regress_x_to_y");
 }
 
-TYPED_TEST_P(MultiInferenceTest, UsupportedSignatureTypeTest) {
+TYPED_TEST_P(MultiInferenceTest, UnsupportedSignatureTypeTest) {
   MultiInferenceRequest request;
   AddInput({{"x", 2}}, &request);
   PopulateTask("serving_default", kPredictMethodName, -1, request.add_tasks());
@@ -349,7 +349,7 @@ TYPED_TEST_P(MultiInferenceTest, ThreadPoolOptions) {
 REGISTER_TYPED_TEST_SUITE_P(
     MultiInferenceTest, MissingInputTest, UndefinedSignatureTest,
     InconsistentModelSpecsInRequestTest, EvaluateDuplicateSignaturesTest,
-    UsupportedSignatureTypeTest, ValidSingleSignatureTest,
+    UnsupportedSignatureTypeTest, ValidSingleSignatureTest,
     MultipleValidRegressSignaturesTest, RegressAndClassifySignaturesTest,
     ModelSpecOverride, ThreadPoolOptions);
 
