@@ -211,7 +211,6 @@ cc_library(
         "//tensorflow_serving/apis:model_management_cc_proto",
         "//tensorflow_serving/apis:model_service_cc_proto",
         "//tensorflow_serving/util:status_util",
-        "@com_github_grpc_grpc//:grpc++",
     ],
 )
 
@@ -484,6 +483,7 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY2AND3",
     tags = [
+        "manual",  # Missing grpc dependency.
         "noasan",  # b/136281879
         "nomsan",  # b/165917680
     ],
