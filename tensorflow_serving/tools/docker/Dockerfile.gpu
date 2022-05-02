@@ -30,7 +30,8 @@ ENV TF_TENSORRT_VERSION=7.2.2
 ENV CUDA=11.2
 ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub && \
+    apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         cuda-command-line-tools-11-2 \
         libcublas-11-2 \
