@@ -31,7 +31,7 @@ load(
     "@org_tensorflow//tensorflow:version_check.bzl",
     "check_bazel_version_at_least"
 )
-check_bazel_version_at_least("5.0.0")
+check_bazel_version_at_least("5.1.1")
 
 # Initialize TensorFlow's external dependencies.
 load("@org_tensorflow//tensorflow:workspace3.bzl", "workspace")
