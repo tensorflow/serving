@@ -43,9 +43,9 @@ build --apple_platform_type=macos
 
 build -c opt
 
-# LLVM, MLIR and TF require C++14.
-build --cxxopt=-std=c++14
-build --host_cxxopt=-std=c++14
+# LLVM, MLIR and TF requires C++17.
+build --cxxopt=-std=c++17
+build --host_cxxopt=-std=c++17
 
 # Adding "--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0" creates parity with TF
 # compilation options. It also addresses memory use due to
