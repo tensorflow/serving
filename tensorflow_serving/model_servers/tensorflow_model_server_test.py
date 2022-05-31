@@ -22,9 +22,19 @@ from __future__ import print_function
 import json
 import os
 import subprocess
+import sys
 import time
 
-# This is a placeholder for a Google-internal import.
+
+# During the creation of the 'tensorflow_serving' package, bazel emits a python
+# 'tensorflow' module which contains its dependencies (e.g. example.proto).
+# Since bazel python libraries take precedence in sys.path and the created
+# 'tensorflow' module will not be fully constructed, we reorder the bazel-out
+# python libs to take a lower precedence than the pip installed packages.
+sys.path = ([i for i in sys.path if 'bazel-out' not in i] +
+            [i for i in sys.path if 'bazel-out' in i])
+
+# This is a placeholder for a Google-internal import.  # pylint: disable=g-import-not-at-top
 
 import grpc
 from six.moves import range
