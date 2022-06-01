@@ -491,7 +491,6 @@ py_test(
         "//tensorflow_serving/apis:model_service_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
         "//tensorflow_serving/model_servers/test_util:tensorflow_model_server_test_base",
-        "@org_tensorflow//tensorflow:tensorflow_py",
         "@six_archive//:six",
     ],
 )
@@ -501,10 +500,7 @@ py_binary(
     srcs = ["tensorflow_model_server_test_client.py"],
     python_version = "PY3",
     srcs_version = "PY2AND3",
-    deps = [
-        "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
-        "@org_tensorflow//tensorflow:tensorflow_py",
-    ],
+    deps = ["//tensorflow_serving/apis:prediction_service_proto_py_pb2"],
 )
 
 py_binary(
@@ -512,9 +508,6 @@ py_binary(
     srcs = ["profiler_client.py"],
     python_version = "PY3",
     srcs_version = "PY2AND3",
-    deps = [
-        "@org_tensorflow//tensorflow:tensorflow_py",
-    ],
 )
 
 pkg_tar(

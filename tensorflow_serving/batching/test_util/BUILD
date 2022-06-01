@@ -48,5 +48,4 @@ py_binary(
     srcs = ["matrix_half_plus_two_saved_model.py"],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
 )
