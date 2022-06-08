@@ -1,3 +1,19 @@
+# Release 2.8.2
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* Replace int64 with int64_t and uint64 with uint64_t. (commit: 21360c763767823b82768ce42c5c90c0c9012601)
+* update to latest benchmark API changes (commit: 860e1013385289ad3f9eb4d854b55c23e7cb8087)
+* This release is based on TF version 2.8.2
+
 # Release 2.8.0
 
 ## Major Features and Improvements
