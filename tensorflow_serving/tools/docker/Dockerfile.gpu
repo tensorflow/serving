@@ -49,6 +49,7 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
 # We don't install libnvinfer-dev since we don't need to build against TensorRT
 RUN apt-get update && \
         apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/7fa2af80.pub && \
+        echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /"  > /etc/apt/sources.list.d/tensorRT.list && \
         apt-get install -y --no-install-recommends libnvinfer7=${TF_TENSORRT_VERSION}-1+cuda11.1 \
         libnvinfer-plugin7=${TF_TENSORRT_VERSION}-1+cuda11.1 \
         && apt-get clean \
