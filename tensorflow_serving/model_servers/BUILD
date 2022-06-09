@@ -417,6 +417,19 @@ cc_library(
 )
 
 cc_library(
+    name = "flagfile",
+    hdrs = [
+        "flagfile.h",
+    ],
+    srcs = [
+        "flagfile.cc",
+    ],
+    deps = [
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
     name = "tensorflow_model_server_main_lib",
     srcs = [
         "main.cc",
@@ -431,6 +444,7 @@ cc_library(
     ],
     deps = [
         ":server_lib",
+        ":flagfile",
         "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/compiler/jit:xla_cpu_jit",
         "@org_tensorflow//tensorflow/core:lib",

@@ -54,6 +54,7 @@ limitations under the License.
 #include "tensorflow/core/tpu/tpu_global_init.h"
 #endif
 #include "tensorflow/core/util/command_line_flags.h"
+#include "tensorflow_serving/model_servers/flagfile.h"
 #include "tensorflow_serving/model_servers/server.h"
 #include "tensorflow_serving/model_servers/version.h"
 
@@ -61,6 +62,7 @@ int main(int argc, char** argv) {
   tensorflow::serving::main::Server::Options options;
   bool display_version = false;
   bool xla_cpu_compilation_enabled = false;
+  std::string flagfile;
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &options.grpc_port,
                        "TCP port to listen on for gRPC/HTTP API. Disabled if "
@@ -69,6 +71,8 @@ int main(int argc, char** argv) {
                        "If non-empty, listen to a UNIX socket for gRPC API "
                        "on the given path. Can be either relative or absolute "
                        "path."),
+      tensorflow::Flag("flagfile", &flagfile,
+                       "If non-empty, load flags from file"),
       tensorflow::Flag("rest_api_port", &options.http_port,
                        "Port to listen on for HTTP/REST API. If set to zero "
                        "HTTP/REST API will not be exported. This port must be "
@@ -267,6 +271,26 @@ int main(int argc, char** argv) {
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {
     std::cout << usage;
     return -1;
+  }
+
+  if (!flagfile.empty()) {
+    auto flags = tensorflow::serving::main::LoadFlagsFromFile(flagfile);
+    // With one default value to skip argv[0]
+    std::vector<char *> char_flags = {nullptr};
+    for (auto& flag : flags) {
+      if (flag.empty() || flag[0] == '#') {
+        continue;
+      }
+
+      char_flags.push_back(flag.data());
+    }
+
+    int flag_cnt = char_flags.size();
+    if (!char_flags.empty() &&
+        !tensorflow::Flags::Parse(&flag_cnt, char_flags.data(), flag_list)) {
+      std::cout << usage;
+      return -1;
+    }
   }
 
 #if defined(LIBTPU_ON_GCE)
