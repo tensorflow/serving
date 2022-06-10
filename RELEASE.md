@@ -1,3 +1,28 @@
+# Release 2.9.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* Do not report successful loads that are cancelled, unload immediately instead. (commit: 923269955f5582cc26d0454992afa5c888a9377f)
+* Add a lock to avoid race condition on memoized_resource_estimate_. (commit: 83959e364e7ff1234bf47a5d8139677d1bdb18c1)
+* Update Resnet model used in K8S tutorial (commit: 6e76f6a9460bf2d37630f025fcfd3e06c4230fee)
+* Prepare for development of new http client API. (commit: 78e94e99650deae956fe20dffa9932a72ec7d765)
+* Integrate TPU initialization changes into TF Serving. (commit: 6549ef2136940cd98cfbb9ee0e29221d86101d16)
+* Allow max_execution_batch_size to be actually used by allowing (commit: 48a699a2fd32404c4b19f55077a1fb29112a0afe)
+* Delete batch_schedulers_ before thread_pool_name_ (commit: 2837812341e7c98be4717e5901286692a5dcc02a)
+* Add missing NVIDIA repository key. (commit: c0998e13451b9b83c9bdf157dd3648b2272dac59)
+* Bump minimum bazel version 5.1.1, to match with TF and root.workspace (commit: 8a02874cee6957e5817960613627a549bd80a6e9)
+* Update to use C++17 (commit: 7166e2efc6b7e63c908515c6a53d0e4fe8fa0aae)
+* Update tensorflow_model_server_test to depend on the pip installed tensorflow. (commit: 04b8676730a882cab61b7772097f2c23c0447ef9)
+* This release is based on TF version 2.9.0
+
 # Release 2.8.2
 
 ## Major Features and Improvements
