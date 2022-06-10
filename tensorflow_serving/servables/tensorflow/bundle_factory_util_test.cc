@@ -150,15 +150,24 @@ TEST_F(BundleFactoryUtilTest, WrapSessionForBatching) {
   test_util::TestMultipleRequests(10, bundle.session.get());
 }
 
-TEST_F(BundleFactoryUtilTest, BatchingConfigError) {
+TEST_F(BundleFactoryUtilTest, WrapSessionForBatchingConfigError) {
   BatchingParameters batching_params;
   batching_params.mutable_max_batch_size()->set_value(2);
   // The last entry in 'allowed_batch_sizes' is supposed to equal
   // 'max_batch_size'. Let's violate that constraint and ensure we get an error.
   batching_params.add_allowed_batch_sizes(1);
   batching_params.add_allowed_batch_sizes(3);
+
   std::shared_ptr<Batcher> batch_scheduler;
-  EXPECT_FALSE(CreateBatchScheduler(batching_params, &batch_scheduler).ok());
+  TF_ASSERT_OK(CreateBatchScheduler(batching_params, &batch_scheduler));
+
+  SavedModelBundle bundle;
+  TF_ASSERT_OK(LoadSavedModel(SessionOptions(), RunOptions(), export_dir_,
+                              {"serve"}, &bundle));
+  auto status = WrapSessionForBatching(batching_params, batch_scheduler,
+                                       {test_util::GetTestSessionSignature()},
+                                       &bundle.session);
+  ASSERT_TRUE(errors::IsInvalidArgument(status));
 }
 
 TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithBadExport) {

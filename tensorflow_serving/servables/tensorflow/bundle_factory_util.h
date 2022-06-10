@@ -46,23 +46,6 @@ template <typename TaskType>
 Status CreateBatchScheduler(
     const BatchingParameters& batching_config,
     std::shared_ptr<SharedBatchScheduler<TaskType>>* batch_scheduler) {
-  if (!batching_config.allowed_batch_sizes().empty()) {
-    // Verify that the last allowed batch size matches the max batch size.
-    const int last_allowed_size = batching_config.allowed_batch_sizes(
-        batching_config.allowed_batch_sizes().size() - 1);
-    const int max_size =
-        batching_config.has_max_batch_size()
-            ? batching_config.max_batch_size().value()
-            : typename SharedBatchScheduler<TaskType>::QueueOptions()
-                  .input_batch_size_limit;
-    if (last_allowed_size != max_size) {
-      return errors::InvalidArgument(
-          "Last entry in allowed_batch_sizes must match max_batch_size; last "
-          "entry was ",
-          last_allowed_size, "; expected ", max_size);
-    }
-  }
-
   typename SharedBatchScheduler<TaskType>::Options options;
   if (batching_config.has_num_batch_threads()) {
     options.num_batch_threads = batching_config.num_batch_threads().value();
