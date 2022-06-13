@@ -34,6 +34,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/internal/serialized_input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/resources/resource_values.h"
+#include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {
 namespace serving {
@@ -276,16 +277,38 @@ Status GetModelDiskSize(const string& path, FileProbingEnv* env,
     std::vector<string> children;
     // GetChildren might fail if we don't have appropriate permissions.
     TF_RETURN_IF_ERROR(env->GetChildren(dir, &children));
-    for (const string& child : children) {
-      const string child_path = io::JoinPath(dir, child);
-      if (env->IsDirectory(child_path).ok()) {
-        // If the child is a directory add it to the queue.
-        dir_q.push_back(child_path);
+    // Multi-threaded writes are safe for int but not bool, so we use int below.
+    std::vector<int> child_is_dir(children.size());
+    std::vector<StatusOr<uint64_t>> children_sizes(children.size());
+
+    {
+      // Filesystem operations may block for a long time so this process is
+      // vastly accelerated by parallelizing the iteration over children.
+      ThreadPoolExecutor executor(Env::Default(), "ModelDiskSizePool", 256);
+      for (int i = 0; i < children.size(); i++) {
+        const string child_path = io::JoinPath(dir, children[i]);
+        children[i] = child_path;
+        executor.Schedule(
+            [i, child_path, env, &child_is_dir, &children_sizes]() {
+              if (env->IsDirectory(child_path).ok()) {
+                // If the child is a directory add it to the queue.
+                child_is_dir[i] = 1;
+              } else {
+                // Otherwise, add its file size to total_file_size.
+                uint64_t file_size;
+                Status status = env->GetFileSize(child_path, &file_size);
+                children_sizes[i] =
+                    status.ok() ? StatusOr<uint64_t>(file_size) : status;
+              }
+            });
+      }
+    }
+    for (int i = 0; i < children.size(); i++) {
+      if (child_is_dir[i] == 1) {
+        dir_q.push_back(children[i]);
       } else {
-        // Otherwise, add its file size to total_file_size.
-        uint64_t file_size;
-        TF_RETURN_IF_ERROR(env->GetFileSize(child_path, &file_size));
-        *total_file_size += file_size;
+        TF_RETURN_IF_ERROR(children_sizes[i].status());
+        *total_file_size += *children_sizes[i];
       }
     }
   }
