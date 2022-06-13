@@ -95,35 +95,6 @@ int NumInputExamples(const internal::SerializedInput& input) {
 
 std::atomic<bool> signature_method_check{true};
 
-// Returns all the descendants, both directories and files, recursively under
-// 'dirname'. The paths returned are all prefixed with 'dirname'.
-Status GetAllDescendants(const string& dirname, FileProbingEnv* env,
-                         std::vector<string>* const descendants) {
-  descendants->clear();
-  // Make sure that dirname exists;
-  TF_RETURN_IF_ERROR(env->FileExists(dirname));
-  std::deque<string> dir_q;      // Queue for the BFS
-  std::vector<string> dir_list;  // List of all dirs discovered
-  dir_q.push_back(dirname);
-  // Do a BFS on the directory to discover all immediate children.
-  while (!dir_q.empty()) {
-    const string dir = dir_q.front();
-    dir_q.pop_front();
-    std::vector<string> children;
-    // GetChildren might fail if we don't have appropriate permissions.
-    TF_RETURN_IF_ERROR(env->GetChildren(dir, &children));
-    for (const string& child : children) {
-      const string child_path = io::JoinPath(dir, child);
-      descendants->push_back(child_path);
-      // If the child is a directory add it to the queue.
-      if (env->IsDirectory(child_path).ok()) {
-        dir_q.push_back(child_path);
-      }
-    }
-  }
-  return Status::OK();
-}
-
 }  // namespace
 
 namespace internal {
@@ -291,15 +262,31 @@ Status GetModelDiskSize(const string& path, FileProbingEnv* env,
   if (env == nullptr) {
     return errors::Internal("FileProbingEnv not set");
   }
+  // Make sure that path exists.
+  TF_RETURN_IF_ERROR(env->FileExists(path));
 
-  std::vector<string> descendants;
-  TF_RETURN_IF_ERROR(GetAllDescendants(path, env, &descendants));
   *total_file_size = 0;
-  for (const string& descendant : descendants) {
-    if (!(env->IsDirectory(descendant).ok())) {
-      uint64_t file_size;
-      TF_RETURN_IF_ERROR(env->GetFileSize(descendant, &file_size));
-      *total_file_size += file_size;
+  std::deque<string> dir_q;  // Queue for the BFS
+
+  dir_q.push_back(path);
+  // Do a BFS on the directory to discover all immediate children.
+  while (!dir_q.empty()) {
+    const string dir = dir_q.front();
+    dir_q.pop_front();
+    std::vector<string> children;
+    // GetChildren might fail if we don't have appropriate permissions.
+    TF_RETURN_IF_ERROR(env->GetChildren(dir, &children));
+    for (const string& child : children) {
+      const string child_path = io::JoinPath(dir, child);
+      if (env->IsDirectory(child_path).ok()) {
+        // If the child is a directory add it to the queue.
+        dir_q.push_back(child_path);
+      } else {
+        // Otherwise, add its file size to total_file_size.
+        uint64_t file_size;
+        TF_RETURN_IF_ERROR(env->GetFileSize(child_path, &file_size));
+        *total_file_size += file_size;
+      }
     }
   }
   return Status::OK();
