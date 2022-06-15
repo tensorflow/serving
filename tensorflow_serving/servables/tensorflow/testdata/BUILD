@@ -50,7 +50,6 @@ py_binary(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
 )
 
 py_binary(
@@ -60,7 +59,6 @@ py_binary(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
 )
 
 py_binary(
@@ -70,10 +68,7 @@ py_binary(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = [
-        "@org_tensorflow//tensorflow:tensorflow_py",
-        "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils",
-    ],
+    deps = ["@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils"],
 )
 
 py_binary(
@@ -84,10 +79,7 @@ py_binary(
     main = "parse_example_tflite.py",
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = [
-        "@org_tensorflow//tensorflow:tensorflow_py",
-        "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils",
-    ],
+    deps = ["@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils"],
 )
 
 filegroup(

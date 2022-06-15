@@ -71,6 +71,21 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
     return errors::Internal("session not set");
   }
 
+  if (!batching_config.allowed_batch_sizes().empty()) {
+    // Verify that the last allowed batch size matches the max batch size.
+    const int last_allowed_size = batching_config.allowed_batch_sizes(
+        batching_config.allowed_batch_sizes().size() - 1);
+    const int max_size = batching_config.has_max_batch_size()
+                             ? batching_config.max_batch_size().value()
+                             : Batcher::QueueOptions().input_batch_size_limit;
+    if (last_allowed_size != max_size) {
+      return errors::InvalidArgument(
+          "Last entry in allowed_batch_sizes must match max_batch_size; last "
+          "entry was ",
+          last_allowed_size, "; expected ", max_size);
+    }
+  }
+
   auto queue_options = GetQueueOptions<
       tensorflow::serving::BatchingSessionTask>(
       batching_config,
