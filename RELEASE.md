@@ -1,3 +1,27 @@
+# Release 2.6.5
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* Rollback incompatible C++17 changes. (commit: ba0fa72b61bc2c42388b815253ba72e6830f03cf)
+* Roll forward with std::optional -> absl::optional. (commit: 009dac683bf84165b84702d177bb9a021ebef728)
+* Replace STL algorithm call with a container method (performance-inefficient-algorithm). (commit: f5bc09998e0043ce72d34b14104379163048406c)
+* Remove unused "using" decl. (commit: ffcc4a16c76c4fa1189edd9682fc486442a33e52)
+* Move status_proto to public visible apis/ (it being used by public API protos) (commit: 7f894c79fce5e58758f3cb49e858a16e3602ae80)
+* Move core/logging.proto -> apis/logging.proto (commit: 37c64b8820a923aafc1b5c8bf264fd5cce5224f3)
+* Update TF Text to v2.5.0. (commit: 48e5a9e23a1e0b2951b77c3e8f9832193d9b1851)
+* Adding python targets for config protos (commit: 757c3a6b6c8a03731dc73ff758f69a61aeddcf67)
+* Remove experimental tags from uses of gRPC C++ callback API. (commit: b355023b034ca6ef72b507920d9de2a02e0f4a2a)
+* Add new --use_alts_credentials flag, to enable building secure credentials using Google ALTS. (commit: ceba636bb7c5c98bde35d1818fd033b36300fffe)
+* Enable HTTP PATCH support in evhttp_server (commit: 6cbc4a9eb419c8078c3a4e791381cda70dd8fc78)
+
 # Release 2.9.0
 
 ## Major Features and Improvements
