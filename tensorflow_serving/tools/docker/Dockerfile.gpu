@@ -34,7 +34,7 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
     apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         cuda-command-line-tools-11-2 \
-        cuda-nvrtc-${CUDA/./-} \
+        cuda-nvrtc-11-2 \
         libcublas-11-2 \
         libcublas-dev-11-2 \
         libcufft-11-2 \
