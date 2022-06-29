@@ -69,7 +69,7 @@ def _generate_saved_model_for_half_plus_two(export_dir, target_address,
       output_tensor_aliases = tf.constant(["y"])
       output_types = [tf.float32]
 
-      results = remote_predict_ops.run(
+      results = remote_predict_ops.run_returning_status(
           input_tensor_aliases,
           input_tensors,
           output_tensor_aliases,
