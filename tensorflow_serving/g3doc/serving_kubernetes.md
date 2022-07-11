@@ -9,7 +9,7 @@ To learn more about TensorFlow Serving, we recommend
 [TensorFlow Serving advanced tutorial](serving_advanced.md).
 
 To learn more about TensorFlow ResNet model, we recommend reading
-[ResNet in TensorFlow](https://github.com/tensorflow/models/tree/master/official/resnet).
+[ResNet in TensorFlow](https://www.tensorflow.org/api_docs/python/tf/keras/applications/resnet).
 
 -   [Part 1](#part_1_setup) gets your environment setup
 -   [Part 2](#part_2_running_in_docker) shows how to run the local Docker
