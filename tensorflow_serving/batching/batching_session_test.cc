@@ -199,7 +199,7 @@ int GetPercentileTotal(string label) {
   if (point_set_map.find(label) == point_set_map.end()) return 0;
   const monitoring::PointSet& lps = *point_set_map.at(label);
   for (int i = 0; i < lps.points.size(); ++i) {
-    total_samples += lps.points[i]->percentiles_value.accumulator;
+    total_samples += lps.points[i]->histogram_value.sum();
   }
   return static_cast<int>(total_samples);
 }
