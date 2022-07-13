@@ -49,6 +49,7 @@ cc_library(
     srcs = ["cc/ops/remote_predict_op.cc"],
     hdrs = ["cc/ops/remote_predict_op.h"],
     visibility = [
+        "//cloud/ml/tfe/anthelion:__subpackages__",
         "//tensorflow_serving/experimental/example:__subpackages__",
         "//tensorflow_serving/model_servers:__subpackages__",
     ],
@@ -79,6 +80,7 @@ tf_kernel_library(
         "kernels/remote_predict_op_kernel.h",
     ],
     visibility = [
+        "//cloud/ml/tfe/anthelion:__subpackages__",
         "//tensorflow_serving/experimental/example:__subpackages__",
         "//tensorflow_serving/model_servers:__subpackages__",
     ],
