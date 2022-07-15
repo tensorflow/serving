@@ -54,7 +54,7 @@ from tensorflow_serving.model_servers.test_util import tensorflow_model_server_t
 
 FLAGS = flags.FLAGS
 
-RPC_TIMEOUT = 5.0
+RPC_TIMEOUT = 20.0
 GRPC_SOCKET_PATH = '/tmp/tf-serving.sock'
 
 
