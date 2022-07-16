@@ -15,8 +15,8 @@ workspace(name = "tf_serving")
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "c0ffa0acae4f17f29339fc73b32ac10d9725a81f6210c8d61f04fdadc84e541b",
-    git_commit = "aaf0c33eab2e80092b1e7eb0004683f20e9dd4de",
+    sha256 = "9ce0cc3ca7aaf87528078268d6b32504040d8b66057f390f5b953a4b380fddd3",
+    git_commit = "c8ec0e23f1077f385859804f4881b8d2c1213c97",
 )
 
 # Import all of TensorFlow Serving's external dependencies.
