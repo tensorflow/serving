@@ -55,7 +55,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/version.h"
 
 #if defined(LIBTPU_ON_GCE) || defined(PLATFORM_CLOUD_TPU)
-#include "tensorflow/core/protobuf/tpu/topology.proto.h"
+#include "tensorflow/core/protobuf/tpu/topology.pb.h"
 #include "tensorflow/core/tpu/tpu_global_init.h"
 
 void InitializeTPU(tensorflow::serving::main::Server::Options& server_options) {
