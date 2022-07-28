@@ -398,7 +398,7 @@ TEST_P(ClassifierTest, ExampleListWithContext) {
       request_.mutable_input()->mutable_example_list_with_context();
   // Context gets copied to each example.
   *list_and_context->mutable_context() = example({{"dos", 2}, {"uno", 1}});
-  // Add empty examples to recieve the context.
+  // Add empty examples to receive the context.
   list_and_context->add_examples();
   list_and_context->add_examples();
   TF_ASSERT_OK(classifier_->Classify(request_, &result_));

@@ -94,7 +94,7 @@ Status RunSavedModelWarmup(
     ++num_warmup_records;
     if (num_warmup_records > WarmupConsts::kMaxNumRecords) {
       return errors::InvalidArgument(
-          "Number of warmup records exceeeds the maximum (",
+          "Number of warmup records exceeds the maximum (",
           WarmupConsts::kMaxNumRecords, ") at ", warmup_path);
     }
     status = tf_record_file_reader->ReadRecord(&record);
