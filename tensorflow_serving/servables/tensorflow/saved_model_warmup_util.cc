@@ -21,6 +21,9 @@ limitations under the License.
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
+#include "tensorflow/core/platform/mutex.h"
+#include "tensorflow/core/platform/status.h"
+#include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {
 namespace serving {
@@ -60,7 +63,6 @@ Status RunSavedModelWarmup(
     // Having warmup data is optional, return OK
     return Status::OK();
   }
-
   const int num_request_iterations = [&]() {
     if (model_warmup_options.has_num_request_iterations()) {
       return model_warmup_options.num_request_iterations().value();
@@ -75,31 +77,117 @@ Status RunSavedModelWarmup(
   TF_RETURN_IF_ERROR(tensorflow::Env::Default()->NewRandomAccessFile(
       warmup_path, &tf_record_file));
 
+  int num_model_warmup_threads =
+      model_warmup_options.has_num_model_warmup_threads()
+          ? std::max(model_warmup_options.num_model_warmup_threads().value(), 1)
+          : 1;
+
+  struct SharedState {
+    ::tensorflow::mutex mu;
+    int num_thread_task_done ABSL_GUARDED_BY(mu){0};
+    int num_warmup_records ABSL_GUARDED_BY(mu){0};
+    ::tensorflow::Status warm_up_status ABSL_GUARDED_BY(mu);
+    // Condition variable to wait until all scheduled warmup tasks are executed.
+    ::tensorflow::condition_variable done ABSL_GUARDED_BY(mu);
+    std::unique_ptr<tensorflow::io::SequentialRecordReader>
+        tf_record_file_reader ABSL_GUARDED_BY(mu);
+  };
+  const auto state = std::make_shared<SharedState>();
+
+  std::unique_ptr<Executor> executor;
   std::unique_ptr<tensorflow::io::SequentialRecordReader> tf_record_file_reader;
-  tf_record_file_reader.reset(
-      new tensorflow::io::SequentialRecordReader(tf_record_file.get()));
+  Status status;
   int num_warmup_records = 0;
-  tstring record;
-  Status status = tf_record_file_reader->ReadRecord(&record);
-  tensorflow::serving::PredictionLog prediction_log;
-  while (status.ok()) {
-    if (!prediction_log.ParseFromArray(record.data(), record.size())) {
-      return errors::InvalidArgument(strings::StrCat(
-          "Failed to parse warmup record: ", record, " from ", warmup_path));
-    }
-
-    for (int i = 0; i < num_request_iterations; ++i) {
-      TF_RETURN_IF_ERROR(warmup_request_executor(prediction_log));
-    }
-    ++num_warmup_records;
-    if (num_warmup_records > WarmupConsts::kMaxNumRecords) {
-      return errors::InvalidArgument(
-          "Number of warmup records exceeeds the maximum (",
-          WarmupConsts::kMaxNumRecords, ") at ", warmup_path);
-    }
+  if (num_model_warmup_threads <= 1) {
+    tf_record_file_reader.reset(
+        new tensorflow::io::SequentialRecordReader(tf_record_file.get()));
+    tstring record;
     status = tf_record_file_reader->ReadRecord(&record);
-  }
+    tensorflow::serving::PredictionLog prediction_log;
+    while (status.ok()) {
+      if (!prediction_log.ParseFromArray(record.data(), record.size())) {
+        return errors::InvalidArgument(strings::StrCat(
+            "Failed to parse warmup record: ", record, " from ", warmup_path));
+      }
 
+      for (int i = 0; i < num_request_iterations; ++i) {
+        TF_RETURN_IF_ERROR(warmup_request_executor(prediction_log));
+      }
+      ++num_warmup_records;
+      if (num_warmup_records > WarmupConsts::kMaxNumRecords) {
+        return errors::InvalidArgument(
+            "Number of warmup records exceeds the maximum (",
+            WarmupConsts::kMaxNumRecords, ") at ", warmup_path);
+      }
+      status = tf_record_file_reader->ReadRecord(&record);
+    }
+  } else {
+    executor.reset(new ThreadPoolExecutor(Env::Default(), "Warmup_ThreadPool",
+                                          num_model_warmup_threads));
+    {
+      ::tensorflow::mutex_lock lock(state->mu);
+      state->tf_record_file_reader.reset(
+          new tensorflow::io::SequentialRecordReader(tf_record_file.get()));
+    }
+    for (int i = 0; i < num_model_warmup_threads; ++i) {
+      executor->Schedule([state, num_request_iterations,
+                          warmup_request_executor, warmup_path,
+                          num_model_warmup_threads]() {
+        Status status = OkStatus();
+        while (status.ok()) {
+          tstring record;
+          Status execution_status;
+          tensorflow::serving::PredictionLog prediction_log;
+          {
+            ::tensorflow::mutex_lock lock(state->mu);
+            if (state->num_warmup_records > WarmupConsts::kMaxNumRecords) {
+              state->warm_up_status = errors::InvalidArgument(
+                  "Number of warmup records exceeds the maximum (",
+                  WarmupConsts::kMaxNumRecords, ") at ", warmup_path);
+              break;
+            }
+            if (!state->warm_up_status.ok()) {
+              break;
+            }
+            execution_status =
+                state->tf_record_file_reader->ReadRecord(&record);
+            if (!execution_status.ok()) {
+              state->warm_up_status = execution_status;
+              break;
+            }
+            if (!prediction_log.ParseFromArray(record.data(), record.size())) {
+              state->warm_up_status = errors::InvalidArgument(
+                  strings::StrCat("Failed to parse warmup record: ", record,
+                                  " from ", warmup_path));
+              break;
+            }
+          }
+          for (int i = 0; i < num_request_iterations; ++i) {
+            execution_status = warmup_request_executor(prediction_log);
+            if (!execution_status.ok()) {
+              ::tensorflow::mutex_lock lock(state->mu);
+              state->warm_up_status = execution_status;
+              break;
+            }
+          }
+          ::tensorflow::mutex_lock lock(state->mu);
+          ++state->num_warmup_records;
+          status = state->warm_up_status;
+        }
+        ::tensorflow::mutex_lock lock(state->mu);
+        if (++state->num_thread_task_done == num_model_warmup_threads) {
+          state->done.notify_one();
+        }
+      });
+    }
+    // Wait until all scheduled work are done.
+    ::tensorflow::mutex_lock lock(state->mu);
+    while (state->num_thread_task_done < num_model_warmup_threads) {
+      state->done.wait(lock);
+    }
+    status = state->warm_up_status;
+    num_warmup_records = state->num_warmup_records;
+  }
   // OUT_OF_RANGE error means EOF was reached, re-write it to OK; in this way
   // the 'model_warm_up_latency' metric below records OK upon successful
   // warm-up.

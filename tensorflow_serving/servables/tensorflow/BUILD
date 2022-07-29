@@ -912,6 +912,7 @@ cc_library(
         ":session_bundle_config_cc_proto",
         ":util",
         "//tensorflow_serving/apis:prediction_log_cc_proto",
+        "//tensorflow_serving/util:threadpool_executor",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/cc/saved_model:constants",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
