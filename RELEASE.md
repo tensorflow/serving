@@ -1,3 +1,18 @@
+# Release 2.7.3
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* Update TF Text to v2.7.3 (commit: ee7892be7801a0e4ae9a6dd8b5f7bab06ae9c87c)
+* This release is based on TF version 2.7.3
+
 # Release 2.9.1
 
 ## Major Features and Improvements
