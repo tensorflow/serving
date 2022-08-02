@@ -24,7 +24,8 @@ ENV CUDNN_VERSION=8.1.0.77
 ENV TF_TENSORRT_VERSION=7.2.2
 ENV CUDA=11.2
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/7fa2af80.pub && \
+    apt-get update && apt-get install -y --no-install-recommends \
         automake \
         build-essential \
         ca-certificates \
@@ -67,8 +68,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm /usr/lib/x86_64-linux-gnu/libcudnn_static_v8.a
 
 # NOTE: libnvinfer uses cuda11.1 versions
-RUN apt-get update && \
-        apt-get install -y --no-install-recommends libnvinfer7=${TF_TENSORRT_VERSION}-1+cuda11.1 \
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/7fa2af80.pub && \
+    echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /"  > /etc/apt/sources.list.d/tensorRT.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends libnvinfer7=${TF_TENSORRT_VERSION}-1+cuda11.1 \
         libnvinfer-dev=${TF_TENSORRT_VERSION}-1+cuda11.1 \
         libnvinfer-plugin-dev=${TF_TENSORRT_VERSION}-1+cuda11.1 \
         libnvinfer-plugin7=${TF_TENSORRT_VERSION}-1+cuda11.1 \
