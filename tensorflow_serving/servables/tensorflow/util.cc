@@ -134,10 +134,16 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
   // time get the count of num_examples as well.
   bool parse_serialized_input_ok = false;
 #if defined(PLATFORM_GOOGLE)
-  // Benchmark ('BM_InputToSerializedExample') can help measure the effect of
-  // changes in the future.
-  parse_serialized_input_ok =
-      serialized_input.ParseFromCord(input.SerializeAsCord());
+  {
+    // Benchmark ('BM_InputToSerializedExample') can help measure the effect of
+    // changes in the future.
+    absl::Cord tmp;
+    if (!input.SerializeToCord(&tmp)) {
+      return errors::InvalidArgument("Input failed to serialize. Size = ",
+                                     input.ByteSizeLong());
+    }
+    parse_serialized_input_ok = serialized_input.ParseFromCord(tmp);
+  }
 #else
   parse_serialized_input_ok =
       serialized_input.ParseFromString(input.SerializeAsString());
