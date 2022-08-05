@@ -1,3 +1,27 @@
+# Release 2.10.0-rc0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* tfs:aarch64: add aarch64 mkl bazel config to enable onednn+acl backend (commit: 1285e41acc707ba0d18e8eaf8a42c6d5110e8af8)
+* Match packages in devel and non-devel GPU with TF dockerfile. (commit: a8ffec79e0794650a4c0856c4122032e985296cc)
+* Validate batching params when creating the wrapped (batching) session, (commit: 48ff72dcb6582e989452ba870c88a2bb710ea0c4)
+* Merge and clean up implementations of `GetModelDiskSize` and `GetAllDescendants` in util.cc. (commit: 6da9c43c5f71abe361841fb3fd5eaad57fc847b1)
+* Parallelize iteration over child files in `GetModelDiskSize` (commit: d09d2efe6e9b88ef0266e5982a3e732da14dc93b)
+* Fix gpu docker build failure due to bad substitution (commit: 1d7cd5b2ba43c3d98f0c8bef6806c203b2c14592)
+* Call run_returning_status instead of run (commit: 8f9085ac678755afea6bf0067fe40a32e37ce2fa)
+* Fixing broken link for [ResNet in TensorFlow](https://www.tensorflow.org/api_docs/python/tf/keras/applications/resnet). (commit: b15210ca076b11eaa2dfd0ac2fb125be780c5d40)
+* Update the TensorFlow BatchingSession metric monitoring class to be compatible with Google's internal monitoring tools. (commit: 05b944ad9367027a1082756a3069619f44955de1)
+* Increase timeout for model tests. (commit: 677ba5a07813c4fb5a2ffb4567a7ec4a137eebe6)
+* Use pb.h for topology.proto. (commit: 21fda280bc72bdbc4386c7b0d2ad4b97264921ad)
+
 # Release 2.7.3
 
 ## Major Features and Improvements
