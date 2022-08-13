@@ -27,6 +27,7 @@ limitations under the License.
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/config/file_system_storage_path_source.pb.h"
+#include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/storage_path.h"
 
@@ -73,6 +74,8 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
 
   void SetAspiredVersionsCallback(AspiredVersionsCallback callback) override;
 
+  void SetLiveServableQueryFn(std::function<ServableStateMonitor::ServableSet()> fn);
+
   FileSystemStoragePathSourceConfig config() const {
     mutex_lock l(mu_);
     return config_;
@@ -110,6 +113,14 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
     aspired_versions_callback_notifier_ = fn;
   }
 
+  ServableStateMonitor::ServableSet GetLiveServableSet() {
+    if (live_servable_query_fn_) {
+      return live_servable_query_fn_();
+    } else {
+      return ServableStateMonitor::ServableSet();
+    }
+  }
+
   mutable mutex mu_;
 
   FileSystemStoragePathSourceConfig config_ TF_GUARDED_BY(mu_);
@@ -117,6 +128,8 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
   AspiredVersionsCallback aspired_versions_callback_ TF_GUARDED_BY(mu_);
 
   std::function<void()> aspired_versions_callback_notifier_ TF_GUARDED_BY(mu_);
+
+  std::function<ServableStateMonitor::ServableSet()> live_servable_query_fn_ TF_GUARDED_BY(mu_);
 
   // A thread that calls PollFileSystemAndInvokeCallback() once or periodically.
   using ThreadType =

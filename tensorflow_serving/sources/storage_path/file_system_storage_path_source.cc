@@ -231,6 +231,7 @@ Status PollFileSystemForServable(
         POLICY_CHOICE_NOT_SET:
       TF_FALLTHROUGH_INTENDED;  // Default policy is kLatest.
     case FileSystemStoragePathSourceConfig::ServableVersionPolicy::kLatest:
+    case FileSystemStoragePathSourceConfig::ServableVersionPolicy::kLatestOnce:
       at_least_one_version_found =
           AspireLatestVersions(servable, children_by_version, versions);
       break;
@@ -264,9 +265,16 @@ Status PollFileSystemForServable(
 Status PollFileSystemForConfig(
     const FileSystemStoragePathSourceConfig& config,
     std::map<string, std::vector<ServableData<StoragePath>>>*
-        versions_by_servable_name) {
+        versions_by_servable_name,
+    const ServableStateMonitor::ServableSet& live_servables) {
   for (const FileSystemStoragePathSourceConfig::ServableToMonitor& servable :
        config.servables()) {
+    if (servable.servable_version_policy().policy_choice_case() == 
+          FileSystemStoragePathSourceConfig::ServableVersionPolicy::kLatestOnce && 
+        live_servables.find(servable.servable_name()) != live_servables.end()) {
+      VLOG(1) << "Skipping live latest_once model " << servable.servable_name();
+      continue;
+    }
     std::vector<ServableData<StoragePath>> versions;
     TF_RETURN_IF_ERROR(PollFileSystemForServable(servable, &versions));
     versions_by_servable_name->insert(
@@ -277,11 +285,13 @@ Status PollFileSystemForConfig(
 
 // Determines if, for any servables in 'config', the file system doesn't
 // currently contain at least one version under its base path.
-Status FailIfZeroVersions(const FileSystemStoragePathSourceConfig& config) {
+Status FailIfZeroVersions(
+    const FileSystemStoragePathSourceConfig& config,
+    const ServableStateMonitor::ServableSet& live_servables) {
   std::map<string, std::vector<ServableData<StoragePath>>>
       versions_by_servable_name;
   TF_RETURN_IF_ERROR(
-      PollFileSystemForConfig(config, &versions_by_servable_name));
+      PollFileSystemForConfig(config, &versions_by_servable_name, live_servables));
 
   std::map<string, string> servable_name_to_base_path_map;
   for (const FileSystemStoragePathSourceConfig::ServableToMonitor& servable :
@@ -324,7 +334,7 @@ Status FileSystemStoragePathSource::UpdateConfig(
 
   if (config.fail_if_zero_versions_at_startup() ||  // NOLINT
       config.servable_versions_always_present()) {
-    TF_RETURN_IF_ERROR(FailIfZeroVersions(config));
+    TF_RETURN_IF_ERROR(FailIfZeroVersions(config, GetLiveServableSet()));
   }
 
   if (aspired_versions_callback_) {
@@ -375,12 +385,18 @@ void FileSystemStoragePathSource::SetAspiredVersionsCallback(
   }
 }
 
+void FileSystemStoragePathSource::SetLiveServableQueryFn(
+    std::function<ServableStateMonitor::ServableSet()> fn) {
+  mutex_lock l(mu_);
+  live_servable_query_fn_ = fn;
+}
+
 Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
   mutex_lock l(mu_);
   std::map<string, std::vector<ServableData<StoragePath>>>
       versions_by_servable_name;
   TF_RETURN_IF_ERROR(
-      PollFileSystemForConfig(config_, &versions_by_servable_name));
+      PollFileSystemForConfig(config_, &versions_by_servable_name, GetLiveServableSet()));
   for (const auto& entry : versions_by_servable_name) {
     const string& servable = entry.first;
     const std::vector<ServableData<StoragePath>>& versions = entry.second;
