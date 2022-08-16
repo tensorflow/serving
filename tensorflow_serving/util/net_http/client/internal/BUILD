@@ -17,7 +17,7 @@ cc_library(
         "evhttp_connection.h",
     ],
     deps = [
-        "//tensorflow_serving/util/net_http/client/public:http_client_api",
+        "//tensorflow_serving/util/net_http/client/test_client/public:http_client_api",
         "//tensorflow_serving/util/net_http/internal:net_logging",
         "//tensorflow_serving/util/net_http/server/public:http_server_api",
         "@com_github_libevent_libevent//:libevent",

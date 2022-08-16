@@ -33,7 +33,7 @@ limitations under the License.
 #include "libevent/include/event2/util.h"
 
 // TODO(wenboz): move EventExecutor to net_http/common
-#include "tensorflow_serving/util/net_http/client/public/httpclient_interface.h"
+#include "tensorflow_serving/util/net_http/client/test_client/public/httpclient_interface.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
 
 namespace tensorflow {
@@ -42,7 +42,7 @@ namespace net_http {
 
 // The following types may be moved to an API interface in future.
 
-class EvHTTPConnection final : public HTTPClientInterface {
+class EvHTTPConnection final : public TestHTTPClientInterface {
  public:
   EvHTTPConnection() = default;
 
@@ -73,15 +73,15 @@ class EvHTTPConnection final : public HTTPClientInterface {
   // Sends a request and blocks the caller till a response is received
   // or any error has happened.
   // Returns false if any error.
-  bool BlockingSendRequest(const ClientRequest& request,
-                           ClientResponse* response) override;
+  bool BlockingSendRequest(const TestClientRequest& request,
+                           TestClientResponse* response) override;
 
   // Sends a request and returns immediately. The response will be handled
   // asynchronously via the response->done callback.
   // Returns false if any error in sending the request, or if the executor
   // has not been configured.
-  bool SendRequest(const ClientRequest& request,
-                   ClientResponse* response) override;
+  bool SendRequest(const TestClientRequest& request,
+                   TestClientResponse* response) override;
 
   // Sets the executor for processing requests asynchronously.
   void SetExecutor(std::unique_ptr<EventExecutor> executor) override;

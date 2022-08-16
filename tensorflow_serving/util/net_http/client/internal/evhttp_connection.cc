@@ -103,7 +103,7 @@ std::unique_ptr<EvHTTPConnection> EvHTTPConnection::Connect(
 namespace {
 
 // Copy ev response data to ClientResponse.
-void PopulateResponse(evhttp_request* req, ClientResponse* response) {
+void PopulateResponse(evhttp_request* req, TestClientResponse* response) {
   response->status =
       static_cast<HTTPStatusCode>(evhttp_request_get_response_code(req));
 
@@ -152,7 +152,7 @@ evhttp_cmd_type GetMethodEnum(absl::string_view method, bool with_body) {
 }
 
 void ResponseDone(evhttp_request* req, void* ctx) {
-  ClientResponse* response = reinterpret_cast<ClientResponse*>(ctx);
+  TestClientResponse* response = reinterpret_cast<TestClientResponse*>(ctx);
 
   if (req == nullptr) {
     // TODO(wenboz): make this a util and check safety
@@ -170,8 +170,9 @@ void ResponseDone(evhttp_request* req, void* ctx) {
 }
 
 // Returns false if there is any error.
-bool GenerateEvRequest(evhttp_connection* evcon, const ClientRequest& request,
-                       ClientResponse* response) {
+bool GenerateEvRequest(evhttp_connection* evcon,
+                       const TestClientRequest& request,
+                       TestClientResponse* response) {
   evhttp_request* evreq = evhttp_request_new(ResponseDone, response);
   if (evreq == nullptr) {
     NET_LOG(ERROR, "Failed to send request : evhttp_request_new()");
@@ -214,8 +215,8 @@ bool GenerateEvRequest(evhttp_connection* evcon, const ClientRequest& request,
 }  // namespace
 
 // Sends the request and has the connection closed
-bool EvHTTPConnection::BlockingSendRequest(const ClientRequest& request,
-                                           ClientResponse* response) {
+bool EvHTTPConnection::BlockingSendRequest(const TestClientRequest& request,
+                                           TestClientResponse* response) {
   if (!GenerateEvRequest(evcon_, request, response)) {
     NET_LOG(ERROR, "Failed to generate the ev_request");
     return false;
@@ -226,8 +227,8 @@ bool EvHTTPConnection::BlockingSendRequest(const ClientRequest& request,
   return true;
 }
 
-bool EvHTTPConnection::SendRequest(const ClientRequest& request,
-                                   ClientResponse* response) {
+bool EvHTTPConnection::SendRequest(const TestClientRequest& request,
+                                   TestClientResponse* response) {
   if (this->executor_ == nullptr) {
     NET_LOG(ERROR, "EventExecutor is not configured.");
     return false;

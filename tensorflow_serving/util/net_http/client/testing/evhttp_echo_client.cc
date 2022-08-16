@@ -22,9 +22,9 @@ limitations under the License.
 
 namespace {
 
-using tensorflow::serving::net_http::ClientRequest;
-using tensorflow::serving::net_http::ClientResponse;
 using tensorflow::serving::net_http::EvHTTPConnection;
+using tensorflow::serving::net_http::TestClientRequest;
+using tensorflow::serving::net_http::TestClientResponse;
 
 bool SendRequest(const char* url) {
   auto connection = EvHTTPConnection::Connect(url);
@@ -32,8 +32,8 @@ bool SendRequest(const char* url) {
     std::cerr << "Fail to connect to %s" << url;
   }
 
-  ClientRequest request = {url, "GET", {}, ""};
-  ClientResponse response = {};
+  TestClientRequest request = {url, "GET", {}, ""};
+  TestClientResponse response = {};
 
   if (!connection->BlockingSendRequest(request, &response)) {
     std::cerr << "Request failed.";
