@@ -25,7 +25,7 @@ limitations under the License.
 #include "tensorflow_serving/util/net_http/server/internal/evhttp_server.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
-#include "tensorflow_serving/util/net_http/server/public/response_code_enum.h"
+#include "tensorflow_serving/util/net_http/public/response_code_enum.h"
 #include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
 
 namespace tensorflow {
@@ -204,10 +204,10 @@ TEST_F(EvHTTPRequestTest, RequestHeaders) {
   ASSERT_TRUE(connection != nullptr);
 
   TestClientRequest request = {"/ok",
-                               "GET",
-                               {TestClientRequest::HeaderKeyValue("H1", "v1"),
-                                TestClientRequest::HeaderKeyValue("H2", "v2")},
-                               ""};
+                           "GET",
+                           {TestClientRequest::HeaderKeyValue("H1", "v1"),
+                            TestClientRequest::HeaderKeyValue("H2", "v2")},
+                           ""};
   TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));

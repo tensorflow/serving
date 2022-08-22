@@ -4,7 +4,7 @@ package(
     default_visibility = ["//visibility:private"],
 )
 
-licenses(["notice"])
+licenses(["notice"])  # Apache 2.0
 
 cc_binary(
     name = "evhttp_echo_client",
