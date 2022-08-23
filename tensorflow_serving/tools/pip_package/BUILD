@@ -1,6 +1,6 @@
 # Description: Tensorflow Serving pip package.
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 sh_binary(
     name = "build_pip_package",

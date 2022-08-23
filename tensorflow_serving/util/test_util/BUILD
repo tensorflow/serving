@@ -7,7 +7,7 @@ package(
     features = ["-layering_check"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 cc_library(
     name = "mock_file_probing_env",

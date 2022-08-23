@@ -6,7 +6,7 @@ package(
     ],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 cc_library(
     name = "fixed_thread_pool",

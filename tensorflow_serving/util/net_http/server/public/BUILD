@@ -10,7 +10,7 @@ package(
 
 package_group(name = "http_server_clients")
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 cc_library(
     name = "http_server_api",
