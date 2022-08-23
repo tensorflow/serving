@@ -193,8 +193,9 @@ Status SetInputAndInvokeMiniBatch(
     const auto& tf_input_tensors = inputs[i];
     if (tflite_input_tensor->type != kTfLiteString) {
       const Tensor* tf_input_tensor = tf_input_tensors[0];
+      // concated.tensor_data() may be accessed later.
+      Tensor concated;
       if (tf_input_tensors.size() > 1) {
-        Tensor concated;
         std::vector<Tensor> to_concatenate;
         to_concatenate.reserve(tf_input_tensors.size());
         for (const auto* t : tf_input_tensors) {
