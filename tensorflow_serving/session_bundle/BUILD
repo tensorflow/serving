@@ -1,6 +1,6 @@
 load("//tensorflow_serving:oss_or_google.bzl", "if_google", "if_oss")
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 package(
     default_visibility = [
