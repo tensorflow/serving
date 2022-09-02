@@ -28,10 +28,14 @@ message FileSystemStoragePathSourceConfig {
       repeated int64 versions = 1;
     }
 
+    // Load the latest version only once. 
+    message LatestOnce {}
+
     oneof policy_choice {
       Latest latest = 100;
       All all = 101;
       Specific specific = 102;
+      LatestOnce latest_once = 103;
     }
   }
 

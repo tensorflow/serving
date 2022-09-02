@@ -638,6 +638,10 @@ Status ServerCore::CreateStoragePathSource(
     ConnectSourceToTarget(source->get(), prefix_source_adapter->get());
     ConnectSourceToTarget(prefix_source_adapter->get(), target);
   }
+  const auto servable_query_fn = [this](void) {
+    return this->servable_state_monitor_->GetAvailableServableStates();
+  };
+  source->get()->SetLiveServableQueryFn(servable_query_fn);
   return Status::OK();
 }
 
