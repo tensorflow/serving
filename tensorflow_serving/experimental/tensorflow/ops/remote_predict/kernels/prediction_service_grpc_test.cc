@@ -37,7 +37,7 @@ TEST_F(PredictionServiceGrpcTest, TestSetDeadline) {
   const absl::Duration deadline = absl::Milliseconds(30000);
   auto rpc_or = grpc_stub_->CreateRpc(deadline);
   ASSERT_TRUE(rpc_or.ok());
-  rpc_.reset(rpc_or.ValueOrDie());
+  rpc_.reset(rpc_or.value());
 
   EXPECT_NEAR(absl::ToDoubleMilliseconds(deadline),
               absl::ToDoubleMilliseconds(absl::FromChrono(rpc_->deadline()) -

@@ -114,7 +114,7 @@ class RemotePredictOp : public AsyncOpKernel {
                         delete response;
                         done();
                       });
-    auto rpc = rpc_or.ValueOrDie();
+    auto rpc = rpc_or.value();
     auto callback = [this, context, rpc, request, response,
                      output_tensor_aliases, done](const absl::Status& status) {
       PostProcessResponse(context, response, status, fail_op_on_rpc_error_,
