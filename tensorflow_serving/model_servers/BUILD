@@ -433,7 +433,6 @@ cc_library(
         ":server_lib",
         "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/compiler/jit:xla_cpu_jit",
-        "@org_tensorflow//tensorflow/core/tpu:loose_headers",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
     ] + if_libtpu([
