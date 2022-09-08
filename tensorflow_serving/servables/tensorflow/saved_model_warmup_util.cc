@@ -81,20 +81,6 @@ Status RunSavedModelWarmup(
       model_warmup_options.has_num_model_warmup_threads()
           ? std::max(model_warmup_options.num_model_warmup_threads().value(), 1)
           : 1;
-
-  struct SharedState {
-    ::tensorflow::mutex mu;
-    int num_thread_task_done ABSL_GUARDED_BY(mu){0};
-    int num_warmup_records ABSL_GUARDED_BY(mu){0};
-    ::tensorflow::Status warm_up_status ABSL_GUARDED_BY(mu);
-    // Condition variable to wait until all scheduled warmup tasks are executed.
-    ::tensorflow::condition_variable done ABSL_GUARDED_BY(mu);
-    std::unique_ptr<tensorflow::io::SequentialRecordReader>
-        tf_record_file_reader ABSL_GUARDED_BY(mu);
-  };
-  const auto state = std::make_shared<SharedState>();
-
-  std::unique_ptr<Executor> executor;
   std::unique_ptr<tensorflow::io::SequentialRecordReader> tf_record_file_reader;
   Status status;
   int num_warmup_records = 0;
@@ -122,6 +108,20 @@ Status RunSavedModelWarmup(
       status = tf_record_file_reader->ReadRecord(&record);
     }
   } else {
+    struct SharedState {
+      ::tensorflow::mutex mu;
+      int num_thread_task_done ABSL_GUARDED_BY(mu){0};
+      int num_warmup_records ABSL_GUARDED_BY(mu){0};
+      ::tensorflow::Status warm_up_status ABSL_GUARDED_BY(mu);
+      // Condition variable to wait until all scheduled warmup tasks are
+      // executed.
+      ::tensorflow::condition_variable done ABSL_GUARDED_BY(mu);
+      std::unique_ptr<tensorflow::io::SequentialRecordReader>
+          tf_record_file_reader ABSL_GUARDED_BY(mu);
+    };
+    const auto state = std::make_shared<SharedState>();
+
+    std::unique_ptr<Executor> executor;
     executor.reset(new ThreadPoolExecutor(Env::Default(), "Warmup_ThreadPool",
                                           num_model_warmup_threads));
     {
