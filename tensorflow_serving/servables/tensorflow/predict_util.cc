@@ -137,6 +137,13 @@ Status PreProcessPrediction(const SignatureDef& signature,
     }
     inputs->emplace_back(std::make_pair(iter->second.name(), tensor));
   }
+  // Sort inputs to make TF session not insert too many keys to executor
+  std::sort(
+      inputs->begin(), inputs->end(),
+      [](std::pair<string, Tensor> &left, std::pair<string, Tensor> &right) {
+          return left.first < right.first;
+      }
+  );
 
   // Prepare run target.
   std::set<string> seen_outputs;
@@ -160,6 +167,7 @@ Status PreProcessPrediction(const SignatureDef& signature,
     output_tensor_names->emplace_back(iter->second.name());
     output_tensor_aliases->emplace_back(alias);
   }
+
   // When no output is specified, fetch all output tensors specified in
   // the signature.
   if (output_tensor_names->empty()) {
@@ -168,6 +176,7 @@ Status PreProcessPrediction(const SignatureDef& signature,
       output_tensor_aliases->emplace_back(iter.first);
     }
   }
+
   return Status::OK();
 }
 
