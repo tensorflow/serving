@@ -12,7 +12,7 @@ package(
     features = ["-layering_check"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 # Visibility group for clients that link in custom ops, while using the
 # vanilla TensorFlow ModelServer without any other modifications. Exclusively

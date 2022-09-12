@@ -2,7 +2,7 @@
 
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 serving_proto_library(
     name = "fake_thread_pool_factory_proto",
