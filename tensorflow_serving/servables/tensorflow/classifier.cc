@@ -126,7 +126,7 @@ Status CreateClassifierFromSavedModelBundle(
     const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<ClassifierInterface>* service) {
   service->reset(new SavedModelClassifier(run_options, std::move(bundle)));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status CreateFlyweightTensorFlowClassifier(
@@ -144,7 +144,7 @@ Status CreateFlyweightTensorFlowClassifier(
     std::unique_ptr<ClassifierInterface>* service) {
   service->reset(new SavedModelTensorFlowClassifier(
       run_options, session, signature, thread_pool_options));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status GetClassificationSignatureDef(const ModelSpec& model_spec,
@@ -169,7 +169,7 @@ Status GetClassificationSignatureDef(const ModelSpec& model_spec,
         PreProcessClassification(iter->second, nullptr, nullptr));
   }
   *signature = iter->second;
-  return Status::OK();
+  return OkStatus();
 }
 
 Status PreProcessClassification(const SignatureDef& signature,
@@ -218,7 +218,7 @@ Status PreProcessClassification(const SignatureDef& signature,
       output_tensor_names->push_back(scores_iter->second.name());
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status PostProcessClassificationResult(
@@ -319,7 +319,7 @@ Status PostProcessClassificationResult(
       }
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status RunClassify(const RunOptions& run_options,

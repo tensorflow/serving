@@ -69,7 +69,7 @@ Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
       num_interpreters_per_pool, &tflite_session,
       bundle->meta_graph_def.mutable_signature_def()));
   bundle->session = std::move(tflite_session);
-  return Status::OK();
+  return OkStatus();
 }
 
 bool TfLiteModelFound(const string& model_dir) {
@@ -88,7 +88,7 @@ Status SavedModelBundleFactory::Create(
         CreateBatchScheduler(config.batching_parameters(), &batcher));
   }
   factory->reset(new SavedModelBundleFactory(config, batcher));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status SavedModelBundleFactory::EstimateResourceRequirement(

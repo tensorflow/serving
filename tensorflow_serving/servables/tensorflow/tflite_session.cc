@@ -79,7 +79,7 @@ Status TfLiteTypeToTfType(TfLiteType tflite_type, DataType* type) {
     default:
       return errors::Internal("Unknown TfLite type: ", tflite_type);
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 std::string TfToTfLiteLegacyTensorName(const string& tf_name) {
@@ -95,14 +95,14 @@ std::string TfToTfLiteLegacyTensorName(const string& tf_name) {
 Status FixTfLiteTensorName(const std::map<string, int>& tensor_name_map,
                            string& tensor_name) {
   if (tensor_name_map.find(tensor_name) != tensor_name_map.end()) {
-    return Status::OK();
+    return OkStatus();
   }
 
   // Try to update with the legacy tflite tensor name.
   const string& legacy_tflite_name = TfToTfLiteLegacyTensorName(tensor_name);
   if (tensor_name_map.find(legacy_tflite_name) != tensor_name_map.end()) {
     tensor_name = legacy_tflite_name;
-    return Status::OK();
+    return OkStatus();
   }
 
   return errors::Internal("Unknown tensor '", tensor_name, "'.");
@@ -118,7 +118,7 @@ Status TfLiteTensorToTensorInfo(const TfLiteTensor* tflite_tensor,
     info->mutable_tensor_shape()->add_dim()->set_size(
         tflite_tensor->dims->data[i]);
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status GetTensorInfoMap(const tflite::Interpreter* interpreter, bool input,
@@ -140,7 +140,7 @@ Status GetTensorInfoMap(const tflite::Interpreter* interpreter, bool input,
                                    " has multiple indices");
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 std::vector<int> TensorDims(const Tensor& tensor) {
@@ -161,7 +161,7 @@ Status CreateOutputTensors(
   output_tensors->reserve(output_tensor_names.size());
   for (std::string tfname : output_tensor_names) {
     auto fix_status = FixTfLiteTensorName(output_tensor_to_idx, tfname);
-    if (fix_status != Status::OK()) {
+    if (fix_status != OkStatus()) {
       return errors::Internal("Missing output TFLite tensor: ", tfname, ": ",
                               fix_status.error_message());
     }
@@ -177,7 +177,7 @@ Status CreateOutputTensors(
     output_tensors->emplace_back(tf_type, tf_shape);
     tflite_idx_to_output_tensor[tflite_idx] = &output_tensors->back();
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status SetInputAndInvokeMiniBatch(
@@ -247,7 +247,7 @@ Status SetInputAndInvokeMiniBatch(
   if (interpreter_wrapper->Invoke() != kTfLiteOk) {
     return errors::Internal("Failed to invoke TfLite interpreter");
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status SetMiniBatchOutput(
@@ -279,7 +279,7 @@ Status SetMiniBatchOutput(
       }
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 int GetModelBatchSize(const tflite::Model* model) {
@@ -341,7 +341,7 @@ Status TfLiteSession::SplitTfLiteInputTask(
       // add the concatenated tensor to input_tasks output
       input_task->outputs->push_back(output_tensor);
     }
-    *input_task->status = Status::OK();
+    *input_task->status = OkStatus();
   };
 
   // The Callback will be run only after all partial tasks finished.
@@ -374,7 +374,7 @@ Status TfLiteSession::SplitTfLiteInputTask(
     const Tensor& input = input_task->inputs[i];
     std::vector<Tensor> split_tensors;
     auto status = tensor::Split(input, output_task_sizes, &split_tensors);
-    if (status != Status::OK()) {
+    if (status != OkStatus()) {
       return status;
     }
     for (int output_idx = 0; output_idx < output_task_num; ++output_idx) {
@@ -382,7 +382,7 @@ Status TfLiteSession::SplitTfLiteInputTask(
       output_task->inputs.push_back(std::move(split_tensors[output_idx]));
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status TfLiteSession::CreateDefaultBasicBatchScheduler(
@@ -394,7 +394,7 @@ Status TfLiteSession::CreateDefaultBasicBatchScheduler(
   TF_RETURN_IF_ERROR(BasicBatchScheduler<TfLiteBatchTask>::Create(
       options, process_batch_callback, &basic_batch_scheduler));
   *batch_scheduler = std::move(basic_batch_scheduler);
-  return Status::OK();
+  return OkStatus();
 }
 
 Status TfLiteSession::SetScheduler(
@@ -450,7 +450,7 @@ Status TfLiteSession::Create(string&& buffer, const SessionOptions& options,
   std::map<string, SignatureDef> signature_defs;
   const auto status =
       tflite::GetSignatureDefMap(model->GetModel(), &signature_defs);
-  if (status != Status::OK()) {
+  if (status != OkStatus()) {
     return errors::InvalidArgument(
         "Invalid SignatureDefs found in TfLite model: ",
         status.error_message());
@@ -527,7 +527,7 @@ Status TfLiteSession::Create(string&& buffer, const SessionOptions& options,
             ->SetScheduler(&TfLiteSession::CreateDefaultBasicBatchScheduler,
                            scheduler_options));
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 TfLiteSession::TfLiteSession(
@@ -592,7 +592,7 @@ Status TfLiteSession::RunInternal(
 
 #undef RETURN_POOL_IF_ERROR
   interpreter_pool_->ReturnInterpreter(std::move(interpreter));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status TfLiteSession::Run(
@@ -666,7 +666,7 @@ Status MergeInputTensors(const Batch<TfLiteBatchTask>& batch,
       }
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status SplitOutputTensors(const std::vector<Tensor>& combined_outputs,
@@ -698,7 +698,7 @@ Status SplitOutputTensors(const std::vector<Tensor>& combined_outputs,
     }
   }
 
-  return Status::OK();
+  return OkStatus();
 }
 
 void TfLiteSession::ProcessBatch(

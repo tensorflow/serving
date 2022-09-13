@@ -84,7 +84,7 @@ class FakeSession : public tensorflow::Session {
     for (const auto& t : inputs) {
       outputs->push_back(t.second);
     }
-    return Status::OK();
+    return OkStatus();
   }
 };
 

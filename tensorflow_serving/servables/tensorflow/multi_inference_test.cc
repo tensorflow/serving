@@ -95,7 +95,7 @@ class MultiInferenceTest : public ::testing::Test {
     inference_runner->reset(new TensorFlowMultiInferenceRunner(
         bundle->session.get(), &bundle->meta_graph_def,
         {this->servable_version_}));
-    return Status::OK();
+    return OkStatus();
   }
 
   Status GetServableHandle(ServableHandle<SavedModelBundle>* bundle) {

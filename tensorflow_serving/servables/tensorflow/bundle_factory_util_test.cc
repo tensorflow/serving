@@ -64,7 +64,7 @@ class MockSession : public Session {
              std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
     outputs->push_back(
         test::AsTensor<float>({100.0f / 2 + 2, 42.0f / 2 + 2}, {2}));
-    return tensorflow::Status::OK();
+    return tensorflow::OkStatus();
   }
 
   // Unused, but we need to provide a definition (virtual = 0).

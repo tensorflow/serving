@@ -83,7 +83,7 @@ class SavedModelBundleSourceAdapterTest
         EXPECT_EQ(expected_loader_metadata.servable_id.version,
                   actual_session_metadata.version());
       }
-      return Status::OK();
+      return OkStatus();
     });
   }
 

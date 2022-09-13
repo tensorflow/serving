@@ -111,7 +111,7 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
       std::unique_ptr<BatchScheduler<BatchingSessionTask>>* queue) {
     TF_RETURN_IF_ERROR(batch_scheduler->AddQueue(
         queue_options, process_batch_callback, queue));
-    return Status::OK();
+    return OkStatus();
   };
   std::vector<SignatureWithBatchingSessionSchedulerCreator>
       signatures_with_scheduler_creators;
@@ -137,13 +137,13 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
 
 Status WrapSession(std::unique_ptr<Session>* session) {
   session->reset(new ServingSessionWrapper(std::move(*session)));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status WrapSessionIgnoreThreadPoolOptions(std::unique_ptr<Session>* session) {
   session->reset(
       new SessionWrapperIgnoreThreadPoolOptions(std::move(*session)));
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace serving

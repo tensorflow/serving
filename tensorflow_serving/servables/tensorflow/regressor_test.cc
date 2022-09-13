@@ -119,7 +119,7 @@ class FakeSession : public tensorflow::Session {
     Tensor output;
     TF_RETURN_IF_ERROR(GetOutputTensor(examples, output_names[0], &output));
     outputs->push_back(output);
-    return Status::OK();
+    return OkStatus();
   }
 
   // Parses TensorFlow Examples from a string Tensor.
@@ -135,7 +135,7 @@ class FakeSession : public tensorflow::Session {
       }
       examples->push_back(example);
     }
-    return Status::OK();
+    return OkStatus();
   }
 
   // Gets the Feature from an Example with the given name.  Returns empty
@@ -162,7 +162,7 @@ class FakeSession : public tensorflow::Session {
       // Insert a rank 3 tensor which should be an error because outputs are
       // expected to be of shape [batch_size] or [batch_size, 1].
       *tensor = Tensor(DT_FLOAT, TensorShape({batch_size, 1, 10}));
-      return Status::OK();
+      return OkStatus();
     }
     // Both tensor shapes are valid, so make one of shape [batch_size, 1] and
     // the rest of shape [batch_size].
@@ -178,7 +178,7 @@ class FakeSession : public tensorflow::Session {
       }
       tensor->flat<float>()(i) = feature.float_list().value(0) + offset;
     }
-    return Status::OK();
+    return OkStatus();
   }
 
  private:
@@ -479,7 +479,7 @@ TEST_P(RegressorTest, UnexpectedOutputTensorSize) {
   std::vector<Tensor> outputs = {Tensor(DT_FLOAT, TensorShape({2}))};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                 ::testing::Return(Status::OK())));
+                                 ::testing::Return(OkStatus())));
   TF_ASSERT_OK(Create());
   *request_.mutable_input()->mutable_example_list()->mutable_examples()->Add() =
       example_with_output(2.0);
@@ -488,7 +488,7 @@ TEST_P(RegressorTest, UnexpectedOutputTensorSize) {
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("output batch size"));
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                 ::testing::Return(Status::OK())));
+                                 ::testing::Return(OkStatus())));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       mock, request_, &response);
@@ -503,7 +503,7 @@ TEST_P(RegressorTest, UnexpectedOutputTensorType) {
   std::vector<Tensor> outputs = {Tensor(DT_STRING, TensorShape({1}))};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                 ::testing::Return(Status::OK())));
+                                 ::testing::Return(OkStatus())));
   TF_ASSERT_OK(Create());
   *request_.mutable_input()->mutable_example_list()->mutable_examples()->Add() =
       example_with_output(2.0);
@@ -513,7 +513,7 @@ TEST_P(RegressorTest, UnexpectedOutputTensorType) {
               ::testing::HasSubstr("Expected output Tensor of DT_FLOAT"));
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                 ::testing::Return(Status::OK())));
+                                 ::testing::Return(OkStatus())));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       mock, request_, &response);

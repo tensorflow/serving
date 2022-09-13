@@ -95,19 +95,19 @@ TEST_P(SavedModelBundleWarmupOptionsTest, MixedWarmupData) {
   EXPECT_CALL(*mock, Run(_, _, SizeIs(1), _, _, _, _))
       .Times(num_warmup_records * 2 * GetNumRequestIterations())
       .WillRepeatedly(DoAll(SetArgPointee<4>(std::vector<Tensor>({scores})),
-                            Return(Status::OK())));
+                            Return(OkStatus())));
   // Classify case
   EXPECT_CALL(*mock, Run(_, _, SizeIs(2), _, _, _, _))
       .Times(num_warmup_records * GetNumRequestIterations())
       .WillRepeatedly(
           DoAll(SetArgPointee<4>(std::vector<Tensor>({classes, scores})),
-                Return(Status::OK())));
+                Return(OkStatus())));
   // MultiInference case
   EXPECT_CALL(*mock, Run(_, _, SizeIs(3), _, _, _, _))
       .Times(num_warmup_records * GetNumRequestIterations())
       .WillRepeatedly(DoAll(
           SetArgPointee<4>(std::vector<Tensor>({classes, scores, scores})),
-          Return(Status::OK())));
+          Return(OkStatus())));
   TF_EXPECT_OK(RunSavedModelWarmup(GetModelWarmupOptions(), RunOptions(),
                                    base_path, &saved_model_bundle));
 }
@@ -132,7 +132,7 @@ TEST(SavedModelBundleWarmupTest, UnsupportedLogType) {
   MockSession* mock = new MockSession;
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
-      .WillRepeatedly(Return(Status::OK()));
+      .WillRepeatedly(Return(OkStatus()));
   const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
                                             base_path, &saved_model_bundle);
   ASSERT_FALSE(status.ok());

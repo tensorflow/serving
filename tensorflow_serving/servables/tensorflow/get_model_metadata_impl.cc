@@ -42,7 +42,7 @@ Status ValidateGetModelMetadataRequest(const GetModelMetadataRequest& request) {
           "Metadata field ", metadata_field, " is not supported");
     }
   }
-  return tensorflow::Status::OK();
+  return tensorflow::OkStatus();
 }
 
 Status SavedModelGetSignatureDef(ServerCore* core, const ModelSpec& model_spec,
@@ -61,7 +61,7 @@ Status SavedModelGetSignatureDef(ServerCore* core, const ModelSpec& model_spec,
 
   (*response->mutable_metadata())[GetModelMetadataImpl::kSignatureDef].PackFrom(
       signature_def_map);
-  return tensorflow::Status::OK();
+  return tensorflow::OkStatus();
 }
 
 }  // namespace
@@ -93,7 +93,7 @@ Status GetModelMetadataImpl::GetModelMetadataWithModelSpec(
           "MetadataField ", metadata_field, " is not supported");
     }
   }
-  return tensorflow::Status::OK();
+  return tensorflow::OkStatus();
 }
 
 }  // namespace serving

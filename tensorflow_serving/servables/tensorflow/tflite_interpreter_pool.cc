@@ -113,7 +113,7 @@ tensorflow::Status TfLiteInterpreterWrapper::SetStringData(
   tflite_tensor->data.raw = tensor_buffer_[tensor_index].release();
   tflite_tensor->bytes = required_bytes;
   tflite_tensor->allocation_type = kTfLiteDynamic;
-  return Status::OK();
+  return OkStatus();
 }
 
 TfLiteStatus TfLiteInterpreterWrapper::Invoke() {
@@ -179,7 +179,7 @@ tensorflow::Status TfLiteInterpreterWrapper::CreateTfLiteInterpreterWrapper(
   }
   wrapper.reset(new TfLiteInterpreterWrapper(std::move(external_context),
                                              std::move(interpreter)));
-  return tensorflow::Status::OK();
+  return tensorflow::OkStatus();
 }
 
 tensorflow::Status TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
@@ -194,7 +194,7 @@ tensorflow::Status TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
         *model, options, wrapper));
   }
   interpreter_pool.reset(new TfLiteInterpreterPool(std::move(interpreters)));
-  return tensorflow::Status::OK();
+  return tensorflow::OkStatus();
 }
 
 }  // namespace internal

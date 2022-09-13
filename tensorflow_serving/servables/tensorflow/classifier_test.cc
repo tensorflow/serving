@@ -139,7 +139,7 @@ class FakeSession : public tensorflow::Session {
       }
     }
 
-    return Status::OK();
+    return OkStatus();
   }
 
   // Parses TensorFlow Examples from a string Tensor.
@@ -155,7 +155,7 @@ class FakeSession : public tensorflow::Session {
       }
       examples->push_back(example);
     }
-    return Status::OK();
+    return OkStatus();
   }
 
   // Gets the Feature from an Example with the given name.  Returns empty
@@ -217,7 +217,7 @@ class FakeSession : public tensorflow::Session {
         scores_matrix(i, c) = scores_feature.float_list().value(c) + offset;
       }
     }
-    return Status::OK();
+    return OkStatus();
   }
 
  private:
@@ -834,7 +834,7 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorBatchSize) {
   std::vector<Tensor> outputs = {classes, scores};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                       ::testing::Return(Status::OK())));
+                                       ::testing::Return(OkStatus())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -862,7 +862,7 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorType) {
   std::vector<Tensor> outputs = {classes, scores};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                       ::testing::Return(Status::OK())));
+                                       ::testing::Return(OkStatus())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -890,7 +890,7 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorBatchSize) {
   std::vector<Tensor> outputs = {classes, scores};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                       ::testing::Return(Status::OK())));
+                                       ::testing::Return(OkStatus())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -917,7 +917,7 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorType) {
   std::vector<Tensor> outputs = {classes, scores};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                       ::testing::Return(Status::OK())));
+                                       ::testing::Return(OkStatus())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
@@ -946,7 +946,7 @@ TEST_P(ClassifierTest, MismatchedNumberOfTensorClasses) {
   std::vector<Tensor> outputs = {classes, scores};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                       ::testing::Return(Status::OK())));
+                                       ::testing::Return(OkStatus())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
