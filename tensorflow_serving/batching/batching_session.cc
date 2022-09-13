@@ -325,7 +325,7 @@ Status BatchingSession::Create(
   }
 
   *result = std::move(batching_session);
-  return Status::OK();
+  return OkStatus();
 }
 
 Status BatchingSession::Run(
@@ -466,7 +466,7 @@ Status BatchingSession::ComputeInputSize(
     const Tensor& tensor = entry.second;
     RecordInputBatchSize<BatchingSessionTask>(tensor.shape().dim_size(0));
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status BatchingSession::MergeInputTensors(
@@ -572,7 +572,7 @@ Status BatchingSession::MergeInputTensors(
     merged_inputs->push_back({tensor_name, std::move(concated)});
   }
 
-  return Status::OK();
+  return OkStatus();
 }
 
 Status BatchingSession::SplitOutputTensors(
@@ -659,7 +659,7 @@ Status BatchingSession::SplitOutputTensors(
   }
   // (Ignore a possible final split_tensors entry containing the padding.)
 
-  return Status::OK();
+  return OkStatus();
 }
 
 Status BatchingSession::SplitRunMetadata(RunMetadata* batch_metadata,
@@ -694,7 +694,7 @@ Status BatchingSession::SplitRunMetadata(RunMetadata* batch_metadata,
     }
   }
 
-  return Status::OK();
+  return OkStatus();
 }
 
 void BatchingSession::ProcessBatch(
@@ -953,7 +953,7 @@ Status SplitInputTask(
           std::make_pair(tensor_name, split_tensors[j]));
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status CreateBatchingSession(
@@ -968,7 +968,7 @@ Status CreateBatchingSession(
       options, std::move(session), signatures_with_scheduler_creators,
       default_creator, /*thread_pool_name=*/"", &internal_batching_session));
   *batching_session = std::move(internal_batching_session);
-  return Status::OK();
+  return OkStatus();
 }
 
 Status CreateBatchingSession(
@@ -982,7 +982,7 @@ Status CreateBatchingSession(
       options, std::move(session), signatures_with_scheduler_creators,
       /*thread_pool_name=*/"", &internal_batching_session));
   *batching_session = std::move(internal_batching_session);
-  return Status::OK();
+  return OkStatus();
 }
 
 Status CreateBasicBatchingSession(
@@ -1043,7 +1043,7 @@ Status CreateBasicBatchingSession(
         TF_RETURN_IF_ERROR(BasicBatchScheduler<BatchingSessionTask>::Create(
             schedule_options, process_batch_callback, &basic_batch_scheduler));
         *batch_scheduler = std::move(basic_batch_scheduler);
-        return Status::OK();
+        return OkStatus();
       };
 
   std::unique_ptr<BatchingSession> internal_batching_session;
@@ -1052,7 +1052,7 @@ Status CreateBasicBatchingSession(
       {{signature, scheduler_creator}}, schedule_options.thread_pool_name,
       &internal_batching_session));
   *batching_session = std::move(internal_batching_session);
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace serving

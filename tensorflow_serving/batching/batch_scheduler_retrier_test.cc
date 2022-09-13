@@ -78,7 +78,7 @@ class StubbornScheduler : public BatchScheduler<FakeTask> {
     ++num_attempts_;
     if (num_attempts_ >= num_attempts_to_succeed_) {
       std::unique_ptr<FakeTask> consumed_task = std::move(*task);
-      return Status::OK();
+      return OkStatus();
     } else {
       return errors::Unavailable(
           "StubbornScheduler faithfully being stubborn; this is attempt ",

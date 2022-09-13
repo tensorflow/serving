@@ -53,7 +53,7 @@ class SubClass1 : public MyBaseClass {
     auto* raw_result = new SubClass1();
     result->reset(raw_result);
     raw_result->config_ = config;
-    return Status::OK();
+    return OkStatus();
   }
 
   string class_name() const override { return "SubClass1"; }
@@ -77,7 +77,7 @@ class SubClass2 : public MyBaseClass {
     auto* raw_result = new SubClass2();
     result->reset(raw_result);
     raw_result->config_ = config;
-    return Status::OK();
+    return OkStatus();
   }
 
   string class_name() const override { return "SubClass2"; }
@@ -156,7 +156,7 @@ class AlternateSubClass : public MyBaseClass {
     auto* raw_result = new AlternateSubClass();
     result->reset(raw_result);
     raw_result->config_ = config;
-    return Status::OK();
+    return OkStatus();
   }
 
   string class_name() const override { return "AlternateSubClass"; }
@@ -215,7 +215,7 @@ class ParameterizedSubClass1 : public MyParameterizedBaseClass {
     raw_result->param1_ = param1;
     raw_result->param2_ = param2;
     raw_result->param3_ = param3;
-    return Status::OK();
+    return OkStatus();
   }
 
   string class_name() const override { return "ParameterizedSubClass1"; }

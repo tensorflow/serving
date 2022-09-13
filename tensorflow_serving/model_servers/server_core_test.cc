@@ -605,10 +605,10 @@ TEST_P(ServerCoreTest, RequestLoggingOn) {
                                       std::unique_ptr<google::protobuf::Message>* log) {
               *log = std::unique_ptr<google::protobuf::Any>(
                   new google::protobuf::Any());
-              return Status::OK();
+              return OkStatus();
             }));
         *request_logger = std::move(mock_request_logger);
-        return Status::OK();
+        return OkStatus();
       },
       &options.server_request_logger));
 

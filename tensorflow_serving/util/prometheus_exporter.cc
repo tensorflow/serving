@@ -181,7 +181,7 @@ Status PrometheusExporter::GeneratePage(string* http_page) {
   }
   *http_page = absl::StrJoin(lines, "\n");
   absl::StrAppend(http_page, "\n");
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace serving

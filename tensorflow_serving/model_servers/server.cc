@@ -68,7 +68,7 @@ tensorflow::Status ParseProtoTextFile(const string& file, ProtoType* proto) {
   string file_data_str(static_cast<const char*>(file_data->data()),
                        file_data->length());
   if (tensorflow::protobuf::TextFormat::ParseFromString(file_data_str, proto)) {
-    return tensorflow::Status::OK();
+    return tensorflow::OkStatus();
   } else {
     return tensorflow::errors::InvalidArgument("Invalid protobuf file: '", file,
                                                "'");
@@ -449,7 +449,7 @@ Status Server::BuildAndStart(const Options& server_options) {
                  << "Skipped exporting HTTP/REST API.";
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 void Server::WaitForTermination() {
