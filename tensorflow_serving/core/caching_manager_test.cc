@@ -62,7 +62,7 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
     auto servable_creator = [&](std::unique_ptr<string>* servable) {
       servable->reset(new string);
       **servable = strings::StrCat(id.name, "-", id.version);
-      return Status::OK();
+      return OkStatus();
     };
     std::unique_ptr<Loader> loader;
     loader.reset(new SimpleLoader<string>(
@@ -471,7 +471,7 @@ TEST_P(CachingManagerTest, EventBusSingleRequest) {
   // Check that the state published on the event-bus matches produced by the
   // loader-factory for a successful request.
   const ServableState expected_published_state = {
-      id, ServableState::ManagerState::kAvailable, Status::OK()};
+      id, ServableState::ManagerState::kAvailable, OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(expected_published_state));
 }
@@ -516,7 +516,7 @@ TEST_P(CachingManagerTest, ConcurrentDisjointRequests) {
   // Check that all requests returned with an ok status.
   for (int i = 0; i < 4; i++) {
     mutex_lock l(status_mu);
-    EXPECT_EQ(Status::OK(), statuses[i]);
+    EXPECT_EQ(OkStatus(), statuses[i]);
   }
   // Check that the available servable handles now includes all requested
   // servables.
@@ -559,7 +559,7 @@ TEST_P(CachingManagerTest, ConcurrentIntersectingRequests) {
   // Check that all requests returned with an ok status.
   for (int i = 0; i < 8; i++) {
     mutex_lock l(status_mu);
-    EXPECT_EQ(Status::OK(), statuses[i]);
+    EXPECT_EQ(OkStatus(), statuses[i]);
   }
   // Check that the available servable handles now includes all requested
   // servables.

@@ -106,7 +106,7 @@ class ServerRequestLoggerTest : public ::testing::Test {
                 return request_logger_status_cb_();
               }));
           *request_logger = std::move(mock_request_logger);
-          return Status::OK();
+          return OkStatus();
         },
         &server_request_logger_));
   }
@@ -135,7 +135,7 @@ class ServerRequestLoggerTest : public ::testing::Test {
   int created_logger_counter_ = 0;
   int deleted_logger_counter_ = 0;
   std::function<Status()> request_logger_status_cb_ = []() {
-    return Status::OK();
+    return OkStatus();
   };
   std::unordered_map<string, FakeLogCollector*> log_collector_map_;
   std::unique_ptr<ServerRequestLogger> server_request_logger_;

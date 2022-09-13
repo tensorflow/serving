@@ -50,7 +50,7 @@ Status CachingManager::Create(
 
   caching_manager->reset(
       new CachingManager(std::move(loader_factory), std::move(basic_manager)));
-  return Status::OK();
+  return OkStatus();
 }
 
 CachingManager::CachingManager(std::unique_ptr<LoaderFactory> loader_factory,
@@ -169,7 +169,7 @@ Status CachingManager::LoadServable(
   }
   servable_id_mu.reset();
   MaybeEraseLoadMutexMapEntry(servable_id);
-  return Status::OK();
+  return OkStatus();
 }
 
 void CachingManager::MaybeEraseLoadMutexMapEntry(

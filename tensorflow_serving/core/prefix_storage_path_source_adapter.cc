@@ -29,7 +29,7 @@ PrefixStoragePathSourceAdapter::~PrefixStoragePathSourceAdapter() { Detach(); }
 Status PrefixStoragePathSourceAdapter::Convert(const StoragePath& source,
                                                StoragePath* destination) {
   *destination = tensorflow::io::JoinPath(prefix_, source);
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace serving

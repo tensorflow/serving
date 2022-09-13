@@ -31,7 +31,7 @@ Status ServerRequestLogger::Create(
     std::unique_ptr<ServerRequestLogger>* server_request_logger) {
   server_request_logger->reset(
       new ServerRequestLogger(std::move(request_logger_creator)));
-  return Status::OK();
+  return OkStatus();
 }
 
 ServerRequestLogger::ServerRequestLogger(LoggerCreator request_logger_creator)
@@ -50,7 +50,7 @@ Status ServerRequestLogger::FindOrCreateLogger(
   if (find_new_it != new_config_to_logger_map->end()) {
     // The logger is already in new_config_to_logger_map, simply return it.
     *result = find_new_it->second.get();
-    return Status::OK();
+    return OkStatus();
   }
 
   auto find_old_it = config_to_logger_map_.find(serialized_config);
@@ -62,7 +62,7 @@ Status ServerRequestLogger::FindOrCreateLogger(
     new_config_to_logger_map->emplace(
         std::make_pair(serialized_config, std::move(find_old_it->second)));
     config_to_logger_map_.erase(find_old_it);
-    return Status::OK();
+    return OkStatus();
   }
 
   // The logger does not exist. Create a new logger, insert it into
@@ -72,7 +72,7 @@ Status ServerRequestLogger::FindOrCreateLogger(
   *result = logger.get();
   new_config_to_logger_map->emplace(
       std::make_pair(serialized_config, std::move(logger)));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status ServerRequestLogger::Update(
@@ -104,7 +104,7 @@ Status ServerRequestLogger::Update(
   // and destructed at this point.
   config_to_logger_map_ = std::move(new_config_to_logger_map);
 
-  return Status::OK();
+  return OkStatus();
 }
 
 Status ServerRequestLogger::Log(const google::protobuf::Message& request,
@@ -114,12 +114,12 @@ Status ServerRequestLogger::Log(const google::protobuf::Message& request,
   auto model_to_loggers_map = model_to_loggers_map_.get();
   if (!model_to_loggers_map || model_to_loggers_map->empty()) {
     VLOG(2) << "Request loggers map is empty.";
-    return Status::OK();
+    return OkStatus();
   }
   auto found_it = model_to_loggers_map->find(model_name);
   if (found_it == model_to_loggers_map->end()) {
     VLOG(2) << "Cannot find request-loggers for model: " << model_name;
-    return Status::OK();
+    return OkStatus();
   }
 
   Status status;

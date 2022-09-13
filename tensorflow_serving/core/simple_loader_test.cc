@@ -101,7 +101,7 @@ TYPED_TEST(SimpleLoaderTest, VerifyServableStates) {
   auto loader = TypeParam::template CreateSimpleLoader<Caller>(
       [&state](std::unique_ptr<Caller>* caller) {
         caller->reset(new Caller(&state));
-        return Status::OK();
+        return OkStatus();
       },
       SimpleLoader<Caller>::EstimateNoResources());
   EXPECT_EQ(State::kNone, state);
@@ -131,11 +131,11 @@ TYPED_TEST(SimpleLoaderTest, ResourceEstimation) {
   auto loader = TypeParam::template CreateSimpleLoader<int>(
       [](std::unique_ptr<int>* servable) {
         servable->reset(new int);
-        return Status::OK();
+        return OkStatus();
       },
       [&want](ResourceAllocation* estimate) {
         *estimate = want;
-        return Status::OK();
+        return OkStatus();
       });
 
   {
@@ -173,15 +173,15 @@ TYPED_TEST(SimpleLoaderTest, ResourceEstimationWithPostLoadRelease) {
   auto loader = TypeParam::template CreateSimpleLoader<int>(
       [](std::unique_ptr<int>* servable) {
         servable->reset(new int);
-        return Status::OK();
+        return OkStatus();
       },
       [&pre_load_resources](ResourceAllocation* estimate) {
         *estimate = pre_load_resources;
-        return Status::OK();
+        return OkStatus();
       },
       absl::make_optional([&post_load_resources](ResourceAllocation* estimate) {
         *estimate = post_load_resources;
-        return Status::OK();
+        return OkStatus();
       }));
 
   // Run it twice, to exercise memoization.
@@ -217,7 +217,7 @@ TEST(SimpleLoaderCompatibilityTest, WithoutMetadata) {
   auto loader_without_metadata = absl::make_unique<SimpleLoader<int>>(
       [](std::unique_ptr<int>* servable) {
         servable->reset(new int);
-        return Status::OK();
+        return OkStatus();
       },
       SimpleLoader<int>::EstimateNoResources());
   // If the creator without metadata is used, both Load() and LoadWithMetadata()
@@ -232,7 +232,7 @@ TEST(SimpleLoaderCompatibilityTest, WithMetadata) {
         const auto& expected_metadata = CreateMetadata();
         EXPECT_EQ(expected_metadata.servable_id, metadata.servable_id);
         servable->reset(new int);
-        return Status::OK();
+        return OkStatus();
       },
       SimpleLoader<int>::EstimateNoResources());
   // If the creator with metadata is used, we allow only LoadWithMetadata()
@@ -263,13 +263,13 @@ TEST(SimpleLoaderSourceAdapterTest, Basic) {
       [](const string& data, std::unique_ptr<string>* servable) {
         servable->reset(new string);
         **servable = strings::StrCat(data, "_was_here");
-        return Status::OK();
+        return OkStatus();
       },
       [](const string& data, ResourceAllocation* output) {
         ResourceAllocation::Entry* entry = output->add_resource_quantities();
         entry->mutable_resource()->set_device(data);
         entry->set_quantity(42);
-        return Status::OK();
+        return OkStatus();
       });
 
   const string kServableName = "test_servable_name";
@@ -312,7 +312,7 @@ TEST(SimpleLoaderSourceAdapterTest, OkayToDeleteAdapter) {
             [](const string& data, std::unique_ptr<string>* servable) {
               servable->reset(new string);
               **servable = strings::StrCat(data, "_was_here");
-              return Status::OK();
+              return OkStatus();
             },
             SimpleLoaderSourceAdapter<string, string>::EstimateNoResources()));
 

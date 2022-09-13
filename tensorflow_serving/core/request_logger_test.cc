@@ -93,10 +93,9 @@ TEST_F(RequestLoggerTest, Simple) {
                     test_util::EqualsProto(expected_log_metadata));
         *log =
             std::unique_ptr<google::protobuf::Any>(new google::protobuf::Any());
-        return Status::OK();
+        return OkStatus();
       }));
-  EXPECT_CALL(*log_collector_, CollectMessage(_))
-      .WillOnce(Return(Status::OK()));
+  EXPECT_CALL(*log_collector_, CollectMessage(_)).WillOnce(Return(OkStatus()));
   TF_ASSERT_OK(request_logger_->Log(request, PredictResponse(), log_metadata));
 }
 
@@ -118,7 +117,7 @@ TEST_F(RequestLoggerTest, ErroringCollectMessage) {
                                  std::unique_ptr<google::protobuf::Message>* log) {
         *log =
             std::unique_ptr<google::protobuf::Any>(new google::protobuf::Any());
-        return Status::OK();
+        return OkStatus();
       }));
   EXPECT_CALL(*log_collector_, CollectMessage(_))
       .WillRepeatedly(Return(errors::Internal("Error")));

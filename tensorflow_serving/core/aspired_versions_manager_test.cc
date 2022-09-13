@@ -777,7 +777,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusErrorOnLoad) {
   HandlePendingAspiredVersionsRequests();
 
   const ServableState start_state = {id, ServableState::ManagerState::kStart,
-                                     Status::OK()};
+                                     OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(start_state));
 
@@ -805,7 +805,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
   HandlePendingAspiredVersionsRequests();
 
   const ServableState start_state = {id, ServableState::ManagerState::kStart,
-                                     Status::OK()};
+                                     OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(start_state));
 
@@ -815,7 +815,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
       .WillOnce(InvokeWithoutArgs([&]() {
         load_called.Notify();
         load_continue.WaitForNotification();
-        return Status::OK();
+        return OkStatus();
       }));
 
   std::unique_ptr<Thread> load_unload_thread(
@@ -831,7 +831,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
   load_called.WaitForNotification();
 
   const ServableState loading_state = {
-      id, ServableState::ManagerState::kLoading, Status::OK()};
+      id, ServableState::ManagerState::kLoading, OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(loading_state));
 
@@ -840,7 +840,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   const ServableState available_state = {
-      id, ServableState::ManagerState::kAvailable, Status::OK()};
+      id, ServableState::ManagerState::kAvailable, OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(available_state));
 
@@ -865,7 +865,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
   unload_called.WaitForNotification();
 
   const ServableState unloading_state = {
-      id, ServableState::ManagerState::kUnloading, Status::OK()};
+      id, ServableState::ManagerState::kUnloading, OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(unloading_state));
 
@@ -874,7 +874,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
                                        {ServableState::ManagerState::kEnd});
 
   const ServableState end_state = {
-      {kServableName, 7}, ServableState::ManagerState::kEnd, Status::OK()};
+      {kServableName, 7}, ServableState::ManagerState::kEnd, OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(end_state));
 }
@@ -906,7 +906,7 @@ TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallySucceeds) {
   // We succeed on the last load, before the manager gives up.
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(Return(errors::Internal("Error on load.")))
-      .WillOnce(Return(Status::OK()));
+      .WillOnce(Return(OkStatus()));
 
   std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
   aspired_versions.push_back({id, std::unique_ptr<Loader>(loader)});
@@ -923,7 +923,7 @@ TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallySucceeds) {
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   const ServableState available_state = {
-      id, ServableState::ManagerState::kAvailable, Status::OK()};
+      id, ServableState::ManagerState::kAvailable, OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(available_state));
 }
@@ -1037,7 +1037,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   test_util::MockLoader* first_loader = new NiceMock<test_util::MockLoader>();
   first_aspired_versions.push_back({id, std::unique_ptr<Loader>(first_loader)});
   EXPECT_CALL(*first_loader, LoadWithMetadata(Loader::Metadata{id}))
-      .WillOnce(Return(Status::OK()));
+      .WillOnce(Return(OkStatus()));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
   HandlePendingAspiredVersionsRequests();
@@ -1096,7 +1096,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   EXPECT_CALL(*second_loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&]() {
         second_load_called.Notify();
-        return Status::OK();
+        return OkStatus();
       }));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(second_aspired_versions));
@@ -1164,7 +1164,7 @@ TEST_P(AspiredVersionsManagerTest,
   EXPECT_CALL(*second_loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&]() {
         second_load_called.Notify();
-        return Status::OK();
+        return OkStatus();
       }));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(second_aspired_versions));
@@ -1223,7 +1223,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireNewServableThenImmediatelyReaspire) {
   EXPECT_CALL(*second_loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&]() {
         second_load_called.Notify();
-        return Status::OK();
+        return OkStatus();
       }));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(second_aspired_versions));

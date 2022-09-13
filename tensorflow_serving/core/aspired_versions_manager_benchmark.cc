@@ -124,7 +124,7 @@ void BenchmarkState::StartServing(const int64_t loader_version) {
       [loader_version](std::unique_ptr<int64_t>* const servable) {
         servable->reset(new int64_t);
         **servable = loader_version;
-        return Status::OK();
+        return OkStatus();
       },
       SimpleLoader<int64_t>::EstimateNoResources()));
   std::vector<ServableData<std::unique_ptr<Loader>>> versions;
@@ -334,7 +334,7 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
             [j](std::unique_ptr<int64_t>* const servable) {
               servable->reset(new int64_t);
               **servable = j;
-              return Status::OK();
+              return OkStatus();
             },
             SimpleLoader<int64_t>::EstimateNoResources()));
         versions.push_back({{servable_name, j}, std::move(loader)});
