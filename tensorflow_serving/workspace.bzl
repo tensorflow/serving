@@ -5,6 +5,7 @@ the initialization code from TensorFlow Serving's WORKSPACE file.
 """
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 
 def tf_serving_workspace():
     """All TensorFlow Serving external dependencies."""
@@ -94,4 +95,30 @@ def tf_serving_workspace():
             "https://mirror.bazel.build/github.com/google/glog/archive/028d37889a1e80e8a07da1b8945ac706259e5fd8.tar.gz",
             "https://github.com/google/glog/archive/028d37889a1e80e8a07da1b8945ac706259e5fd8.tar.gz",
         ],
+    )
+
+    # ==== TensorFlow Decision Forests ===
+    http_archive(
+        name = "org_tensorflow_decision_forests",
+        sha256 = "7a6b8187341da782ca93ee6e61ded14fba23f4bc0750beac291ae15277b1257e",
+        strip_prefix = "decision-forests-1.0.1",
+        url = "https://github.com/tensorflow/decision-forests/archive/refs/tags/1.0.1.zip",
+    )
+
+    http_archive(
+        name = "ydf",
+        sha256 = "ba8e69ef3889c58cde58ce201ff88ea3acf376bcb9996a55c070959d5fa0a51b",
+        strip_prefix = "yggdrasil-decision-forests-144b139d688381beea31100e75e5d621127f8ee4",
+        urls = ["https://github.com/google/yggdrasil-decision-forests/archive/144b139d688381beea31100e75e5d621127f8ee4.zip"],
+    )
+
+    # The Boost repo is organized into git sub-modules (see the list at
+    # https://github.com/boostorg/boost/tree/master/libs), which requires "new_git_repository".
+    new_git_repository(
+        name = "org_boost",
+        commit = "b7b1371294b4bdfc8d85e49236ebced114bc1d8f",  # boost-1.75.0
+        build_file = "//third_party/boost:BUILD",
+        init_submodules = True,
+        recursive_init_submodules = True,
+        remote = "https://github.com/boostorg/boost",
     )

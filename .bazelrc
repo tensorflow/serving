@@ -67,3 +67,15 @@ build --experimental_repo_remote_exec
 
 # TF now has `cc_shared_library` targets, so it needs the experimental flag
 build --experimental_cc_shared_library
+
+# Yggdrasil Decision Forests (internal library of TensorFlow Decision Forests)
+# uses TensorFlow for all IO operations.
+build --define=use_tensorflow_io=1
+
+# TensorFlow Decision Forests does not use Absl StatusOr.
+# Reason: The version of Absl included by TensorFlow lacks support for StatusOr.
+build --define no_absl_statusor=1
+
+# TensorFlow Decision Forests does not use Absl concurrency primitives on MacOs.
+# Reason: TensorFlow/ABSL ODR violation (b/214189609) # copybara:strip
+build:macos --define std_synchronization_primitives=1
