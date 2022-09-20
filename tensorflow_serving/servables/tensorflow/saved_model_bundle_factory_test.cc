@@ -236,8 +236,18 @@ TEST_P(SavedModelBundleFactoryTest, Batching) {
   // Most test cases don't cover batching session code path so call
   // 'TestBatching' twice with different options for batching test case, as
   // opposed to parameterize test.
-  TestBatching(false /* enable_large_batch_splitting */);
-  TestBatching(true /* enable_large_batch_splitting */);
+  TestBatching(test_util::CreateProto<BatchingParameters>(R"(
+    max_batch_size { value: 4 }
+    enable_large_batch_splitting { value: False })"),
+               /*input_request_batch_size=*/2,
+               /*batch_size=*/4);
+
+  TestBatching(test_util::CreateProto<BatchingParameters>(R"(
+    max_batch_size { value: 4 }
+    enable_large_batch_splitting { value: True }
+    max_execution_batch_size { value: 2 })"),
+               /*input_request_batch_size=*/3,
+               /*batch_size=*/2);
 }
 
 TEST_P(SavedModelBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {

@@ -29,6 +29,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
+#include "tensorflow/core/lib/monitoring/counter.h"
 #include "tensorflow/core/lib/monitoring/percentile_sampler.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/lib/strings/str_util.h"
@@ -55,6 +56,10 @@ auto* queuing_latency = monitoring::Sampler<1>::New(
      "thread_pool_name"},
     // Scale of 100, power of 1.2 with bucket count 52 (~1 second).
     monitoring::Buckets::Exponential(100, 1.2, 52));
+
+auto* wrapped_run_count = monitoring::Counter<0>::New(
+    "/tensorflow/serving/batching_session/wrapped_run_count",
+    "Total count of run calls on the wrapped session");
 
 string TensorSignatureDebugString(const TensorSignature& signature) {
   return strings::StrCat("{input_tensors: <",
@@ -791,6 +796,7 @@ void BatchingSession::ProcessBatch(
                            {} /* target node names */, &combined_outputs,
                            &run_metadata);
   }
+  wrapped_run_count->GetCell()->IncrementBy(1);
   status.Update(SplitRunMetadata(&run_metadata, batch.get()));
 
   if (!status.ok()) {

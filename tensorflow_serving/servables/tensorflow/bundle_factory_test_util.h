@@ -51,12 +51,14 @@ uint64_t GetTotalFileSize(const std::vector<string>& files);
 SignatureDef GetTestSessionSignature();
 
 // Test that a Session handles a single request for the half plus two
-// model properly. The request has size=2, for batching purposes.
-void TestSingleRequest(Session* session);
+// model properly. Each request contains `input_batch_size` sized input.
+void TestSingleRequest(Session* session, int input_batch_size = 2);
 
 // Test that a Session handles multiple concurrent requests for the half plus
-// two model properly. The request has size=2, for batching purposes.
-void TestMultipleRequests(int num_requests, Session* session);
+// two model properly. Send `num_requests` request, with each request containing
+// `input_batch_size` sized input.
+void TestMultipleRequests(Session* session, int num_requests,
+                          int input_batch_size);
 
 // Returns the expected resource estimate for the given total file size.
 ResourceAllocation GetExpectedResourceEstimate(double total_file_size);

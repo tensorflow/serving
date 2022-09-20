@@ -62,8 +62,12 @@ class MockSession : public Session {
              const std::vector<string>& output_tensor_names,
              const std::vector<string>& target_node_names,
              std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
-    outputs->push_back(
-        test::AsTensor<float>({100.0f / 2 + 2, 42.0f / 2 + 2}, {2}));
+    // half plus two: output should be input / 2 + 2.
+    const auto& input = inputs[0].second.flat<float>();
+    Tensor output(DT_FLOAT, inputs[0].second.shape());
+    test::FillFn<float>(&output,
+                        [&](int i) -> float { return input(i) / 2 + 2; });
+    outputs->push_back(output);
     return tensorflow::OkStatus();
   }
 
@@ -147,7 +151,7 @@ TEST_F(BundleFactoryUtilTest, WrapSessionForBatching) {
                                       &bundle.session));
 
   // Run multiple requests concurrently. They should be executed as 5 batches.
-  test_util::TestMultipleRequests(10, bundle.session.get());
+  test_util::TestMultipleRequests(bundle.session.get(), 10, 2);
 }
 
 TEST_F(BundleFactoryUtilTest, WrapSessionForBatchingConfigError) {
