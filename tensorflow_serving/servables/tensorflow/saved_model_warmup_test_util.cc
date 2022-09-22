@@ -105,7 +105,7 @@ Status WriteWarmupData(const string& fname,
     }
   }
   TF_RETURN_IF_ERROR(writer.Flush());
-  return Status::OK();
+  return OkStatus();
 }
 
 Status WriteWarmupDataAsSerializedProtos(
@@ -120,7 +120,7 @@ Status WriteWarmupDataAsSerializedProtos(
     }
   }
   TF_RETURN_IF_ERROR(file->Close());
-  return Status::OK();
+  return OkStatus();
 }
 
 void AddMixedWarmupData(

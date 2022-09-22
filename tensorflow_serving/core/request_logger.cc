@@ -68,7 +68,7 @@ Status RequestLogger::Log(const google::protobuf::Message& request,
         ->IncrementBy(1);
     return status;
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace serving

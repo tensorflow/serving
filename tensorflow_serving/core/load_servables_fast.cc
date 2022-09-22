@@ -112,7 +112,7 @@ Status ConnectSourcesWithFastInitialLoad(
           strings::StrAppend(&message, "}");
           return errors::Unknown(message);
         }
-        return Status::OK();
+        return OkStatus();
       },
       num_threads);
 }

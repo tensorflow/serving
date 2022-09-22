@@ -70,7 +70,7 @@ Status RunWarmupRequest(const PredictionLog& warmup_record,
     default:
       break;
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace

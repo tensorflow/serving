@@ -34,7 +34,7 @@ TEST(RetrierTest, RetryFinallySucceeds) {
     if (count == 1) {
       return errors::Unknown("Error");
     }
-    return Status::OK();
+    return OkStatus();
   };
 
   TF_EXPECT_OK(Retry("RetryFinallySucceeds", 1 /* max_num_retries */,
@@ -47,7 +47,7 @@ TEST(RetrierTest, RetryFinallyFails) {
     if (++count <= 2) {
       return errors::Unknown("Error");
     }
-    return Status::OK();
+    return OkStatus();
   };
 
   const auto status = Retry("RetryFinallyFails", 1 /* max_num_retries */,

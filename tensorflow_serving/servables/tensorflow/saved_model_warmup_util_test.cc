@@ -71,7 +71,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, NoWarmupDataFile) {
   TF_EXPECT_OK(RunSavedModelWarmup(CreateModelWarmupOptions(), base_path,
                                    [this](PredictionLog prediction_log) {
                                      this->FakeRunWarmupRequest();
-                                     return Status::OK();
+                                     return OkStatus();
                                    }));
   EXPECT_EQ(warmup_request_counter_, 0);
 }
@@ -90,7 +90,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, WarmupDataFileEmpty) {
   TF_EXPECT_OK(RunSavedModelWarmup(CreateModelWarmupOptions(), base_path,
                                    [this](PredictionLog prediction_log) {
                                      this->FakeRunWarmupRequest();
-                                     return Status::OK();
+                                     return OkStatus();
                                    }));
   EXPECT_EQ(warmup_request_counter_, 0);
 }
@@ -113,7 +113,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, UnsupportedFileFormat) {
   AddSignatures(&saved_model_bundle.meta_graph_def);
   const Status status = RunSavedModelWarmup(
       CreateModelWarmupOptions(), base_path,
-      [](PredictionLog prediction_log) { return Status::OK(); });
+      [](PredictionLog prediction_log) { return OkStatus(); });
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::DATA_LOSS, status.code()) << status;
   EXPECT_THAT(status.ToString(),
@@ -136,7 +136,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, TooManyWarmupRecords) {
   AddSignatures(&saved_model_bundle.meta_graph_def);
   const Status status = RunSavedModelWarmup(
       CreateModelWarmupOptions(), base_path,
-      [](PredictionLog prediction_log) { return Status::OK(); });
+      [](PredictionLog prediction_log) { return OkStatus(); });
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
   EXPECT_THAT(
@@ -156,7 +156,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, UnparsableRecord) {
   SavedModelBundle saved_model_bundle;
   const Status status = RunSavedModelWarmup(
       CreateModelWarmupOptions(), base_path,
-      [](PredictionLog prediction_log) { return Status::OK(); });
+      [](PredictionLog prediction_log) { return OkStatus(); });
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
   EXPECT_THAT(status.ToString(),

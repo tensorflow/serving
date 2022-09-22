@@ -98,11 +98,13 @@ SignatureDef GetTestSessionSignature() {
   return signature;
 }
 
-void TestSingleRequest(Session* session) {
-  Tensor input = test::AsTensor<float>({100.0f, 42.0f}, {2});
+void TestSingleRequest(Session* session, int input_batch_size) {
+  Tensor input(DT_FLOAT, TensorShape({input_batch_size}));
+  test::FillIota<float>(&input, 100.0f);
   // half plus two: output should be input / 2 + 2.
-  Tensor expected_output =
-      test::AsTensor<float>({100.0f / 2 + 2, 42.0f / 2 + 2}, {2});
+  Tensor expected_output(DT_FLOAT, TensorShape({input_batch_size}));
+  test::FillFn<float>(&expected_output,
+                      [](int i) -> float { return (100.0f + i) / 2 + 2; });
 
   // Note that "x" and "y" are the actual names of the nodes in the graph.
   // The saved manifest binds these to "input" and "output" respectively, but
@@ -122,14 +124,17 @@ void TestSingleRequest(Session* session) {
   test::ExpectTensorEqual<float>(expected_output, single_output);
 }
 
-void TestMultipleRequests(int num_requests, Session* session) {
+void TestMultipleRequests(Session* session, int num_requests,
+                          int input_batch_size) {
   std::vector<std::unique_ptr<Thread>> request_threads;
   request_threads.reserve(num_requests);
   for (int i = 0; i < num_requests; ++i) {
     request_threads.push_back(
         std::unique_ptr<Thread>(Env::Default()->StartThread(
             ThreadOptions(), strings::StrCat("thread_", i),
-            [session] { TestSingleRequest(session); })));
+            [session, input_batch_size] {
+              TestSingleRequest(session, input_batch_size);
+            })));
   }
 }
 

@@ -91,7 +91,7 @@ Status ValidateAspiredVersions(
           " doesn't match name in servable version: ", version.id().name));
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 // Returns the set of version numbers in 'versions'.
@@ -172,7 +172,7 @@ Status AspiredVersionsManager::Create(
       std::move(options.aspired_version_policy), std::move(basic_manager)));
   (manager->get())->enable_reload_servables_with_error_ =
       options.enable_reload_servables_with_error;
-  return Status::OK();
+  return OkStatus();
 }
 
 AspiredVersionsManager::AspiredVersionsManager(

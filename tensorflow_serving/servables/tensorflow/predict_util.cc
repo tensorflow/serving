@@ -43,7 +43,7 @@ Status VerifySignature(const SignatureDef& signature) {
         kPredictMethodName, ", ", kClassifyMethodName, ", ", kRegressMethodName,
         "}. Was: ", signature.method_name()));
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status VerifyRequestInputsSize(const SignatureDef& signature,
@@ -65,7 +65,7 @@ Status VerifyRequestInputsSize(const SignatureDef& signature,
             absl::StrJoin(sent_extra, ","), "}. Missing but required: {",
             absl::StrJoin(missing, ","), "}."));
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace
@@ -168,7 +168,7 @@ Status PreProcessPrediction(const SignatureDef& signature,
       output_tensor_aliases->emplace_back(iter.first);
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status PostProcessPredictionResult(
@@ -196,7 +196,7 @@ Status PostProcessPredictionResult(
     } break;
   }
 
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace internal

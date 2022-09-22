@@ -26,7 +26,7 @@ Status ParseUrlForAnyType(const string& type_url,
         "Supplied config's type_url could not be parsed: ", type_url);
   }
   *full_type_name = splits[splits.size() - 1];
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace serving

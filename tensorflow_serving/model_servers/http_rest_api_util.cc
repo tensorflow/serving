@@ -60,7 +60,7 @@ Status FillModelSpecWithNameVersionAndLabel(
   if (model_version_label.has_value()) {
     model_spec->set_version_label(string(model_version_label.value()));
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 bool DecodeArg(string* arg) {
@@ -123,7 +123,7 @@ Status ParseModelInfo(const absl::string_view http_method,
     }
     *model_version_label = model_version_label_str;
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status ToJsonString(const GetModelStatusResponse& response, string* output) {
@@ -136,7 +136,7 @@ Status ToJsonString(const GetModelStatusResponse& response, string* output) {
     return errors::Internal("Failed to convert proto to json. Error: ",
                             status.ToString());
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status ToJsonString(const GetModelMetadataResponse& response, string* output) {
@@ -191,7 +191,7 @@ Status ToJsonString(const GetModelMetadataResponse& response, string* output) {
   absl::StrAppend(output, "\"signature_def\": ", signature_def_output, "}\n");
   absl::StrAppend(output, "}\n");
 
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace serving

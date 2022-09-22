@@ -76,7 +76,7 @@ TEST(LoaderHarnessTest, Quiesce) {
   const ServableId servable_id = {"test", 0};
   LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(Return(Status::OK()));
+      .WillOnce(Return(OkStatus()));
   EXPECT_CALL(*loader, Unload()).WillOnce(Return());
 
   TF_ASSERT_OK(harness.LoadRequested());
@@ -101,7 +101,7 @@ TEST(LoaderHarnessTest, Load) {
   LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
 
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(Return(Status::OK()));
+      .WillOnce(Return(OkStatus()));
   {
     std::unique_ptr<Thread> test_thread(
         Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
@@ -123,7 +123,7 @@ TEST(LoaderHarnessTest, Unload) {
 
   LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(Return(Status::OK()));
+      .WillOnce(Return(OkStatus()));
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load());
@@ -143,7 +143,7 @@ TEST(LoaderHarnessTest, UnloadRequested) {
   const ServableId servable_id = {"test", 0};
   LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(Return(Status::OK()));
+      .WillOnce(Return(OkStatus()));
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load());
@@ -249,7 +249,7 @@ TEST(LoaderHarnessTest, MultipleUnloadRequestsOnlyFirstOneSucceeds) {
 
   TF_ASSERT_OK(harness.LoadRequested());
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(Return(Status::OK()));
+      .WillOnce(Return(OkStatus()));
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load());
 
@@ -275,7 +275,7 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorFinallySucceeds) {
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
       .WillOnce(InvokeWithoutArgs(
           []() { return errors::Unknown("test load error"); }))
-      .WillOnce(InvokeWithoutArgs([]() { return Status::OK(); }));
+      .WillOnce(InvokeWithoutArgs([]() { return OkStatus(); }));
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load());
@@ -313,8 +313,8 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorCancelledLoad) {
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
       .WillOnce(InvokeWithoutArgs(
           []() { return errors::Unknown("test load error"); }))
-      // If the load is called again, we return Status::OK() to fail the test.
-      .WillRepeatedly(InvokeWithoutArgs([]() { return Status::OK(); }));
+      // If the load is called again, we return OkStatus() to fail the test.
+      .WillRepeatedly(InvokeWithoutArgs([]() { return OkStatus(); }));
   std::unique_ptr<Thread> test_thread(
       Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
         TF_ASSERT_OK(harness.LoadRequested());
@@ -335,7 +335,7 @@ TEST(LoaderHarnessTest, UnloadDueToCancelledLoad) {
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
       .WillOnce(InvokeWithoutArgs([]() {
         Env::Default()->SleepForMicroseconds(1000000);
-        return Status::OK();
+        return OkStatus();
       }));
 
   std::unique_ptr<Thread> test_thread(

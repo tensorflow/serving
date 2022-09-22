@@ -47,7 +47,7 @@ std::function<tensorflow::Status(const string&, TensorInfoMap*)> getmap(
     const TensorInfoMap& map) {
   return [&map](const string&, TensorInfoMap* m) {
     *m = map;
-    return Status::OK();
+    return OkStatus();
   };
 }
 
@@ -777,7 +777,7 @@ Status CompareJson(const string& json1, const string& json2) {
     return errors::InvalidArgument("JSON Different. JSON1: ", json1,
                                    "JSON2: ", json2);
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 // Compare two JSON documents treating values (including numbers) as strings.
@@ -1563,7 +1563,7 @@ TEST(ClassifyRegressnResultTest, JsonFromResultErrors) {
 
 TEST(MakeJsonFromTensors, StatusOK) {
   string json;
-  MakeJsonFromStatus(Status::OK(), &json);
+  MakeJsonFromStatus(OkStatus(), &json);
   EXPECT_EQ(json, "");
 }
 

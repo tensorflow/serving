@@ -61,7 +61,7 @@ Status RunSavedModelWarmup(
   if (!tensorflow::Env::Default()->FilesExist({warmup_path}, nullptr)) {
     LOG(INFO) << "No warmup data file found at " << warmup_path;
     // Having warmup data is optional, return OK
-    return Status::OK();
+    return OkStatus();
   }
   const int num_request_iterations = [&]() {
     if (model_warmup_options.has_num_request_iterations()) {
@@ -192,7 +192,7 @@ Status RunSavedModelWarmup(
   // the 'model_warm_up_latency' metric below records OK upon successful
   // warm-up.
   if (errors::IsOutOfRange(status)) {
-    status = Status::OK();
+    status = OkStatus();
   }
 
   const auto warmup_latency = GetLatencyMicroseconds(start_microseconds);
@@ -210,7 +210,7 @@ Status RunSavedModelWarmup(
   LOG(INFO) << "Finished reading warmup data for model at " << warmup_path
             << ". Number of warmup records read: " << num_warmup_records
             << ". Elapsed time (microseconds): " << warmup_latency << ".";
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace internal

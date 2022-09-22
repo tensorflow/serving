@@ -281,7 +281,7 @@ Status AddValueToTensor(const rapidjson::Value& val, DataType dtype,
           "Conversion of JSON Value: ", JsonValueToString(val),
           " to type: ", DataTypeString(dtype));
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 // Computes and fills TensorShape corresponding to a JSON value.
@@ -328,7 +328,7 @@ Status JsonDecodeBase64Object(const rapidjson::Value& val,
                             decoded_val)) {
     return errors::InvalidArgument("Unable to base64 decode");
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 // Fills tensor values.
@@ -375,7 +375,7 @@ Status FillTensorProto(const rapidjson::Value& val, int level, DataType dtype,
     TF_RETURN_IF_ERROR(FillTensorProto(v, level + 1, dtype, val_count, tensor));
   }
 
-  return Status::OK();
+  return OkStatus();
 }
 
 // Converts a JSON value to tensor and add it to tensor_map.
@@ -410,7 +410,7 @@ Status AddInstanceItem(const rapidjson::Value& item, const string& name,
         "Expecting shape ", ShapeToString((*shape_map)[name]),
         " but got: ", ShapeToString(tensor->tensor_shape()));
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status ParseJson(const absl::string_view json, rapidjson::Document* doc) {
@@ -441,7 +441,7 @@ Status ParseJson(const absl::string_view json, rapidjson::Document* doc) {
   if (!doc->IsObject()) {
     return FormatError(*doc, "Is not object");
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 template <typename RequestTypeProto>
@@ -456,7 +456,7 @@ Status FillSignature(const rapidjson::Document& doc,
     request->mutable_model_spec()->set_signature_name(
         itr->value.GetString(), itr->value.GetStringLength());
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status FillTensorMapFromInstancesList(
@@ -546,7 +546,7 @@ Status FillTensorMapFromInstancesList(
       output_shape->add_dim()->set_size(d.size());
   }
 
-  return Status::OK();
+  return OkStatus();
 }
 
 Status FillTensorMapFromInputsMap(
@@ -588,7 +588,7 @@ Status FillTensorMapFromInputsMap(
                                          &unused_size, tensor));
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace
@@ -733,7 +733,7 @@ Status AddValueToFeature(const rapidjson::Value& val,
       }
       break;
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status MakeExampleFromJsonObject(const rapidjson::Value& val,
@@ -755,7 +755,7 @@ Status MakeExampleFromJsonObject(const rapidjson::Value& val,
     }
     (*example->mutable_features()->mutable_feature())[name] = feature;
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 template <typename RequestProto>
@@ -799,7 +799,7 @@ Status FillClassifyRegressRequestFromJson(const absl::string_view json,
                  : input->mutable_example_list()->add_examples()));
   }
 
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace
@@ -889,7 +889,7 @@ Status AddSingleValueAndAdvance(const TensorProto& tensor, bool string_as_bytes,
         DataTypeString(tensor.dtype()));
   }
   (*offset)++;
-  return Status::OK();
+  return OkStatus();
 }
 
 Status AddTensorValues(const TensorProto& tensor, bool string_as_bytes, int dim,
@@ -912,7 +912,7 @@ Status AddTensorValues(const TensorProto& tensor, bool string_as_bytes, int dim,
     }
   }
   writer->EndArray();
-  return Status::OK();
+  return OkStatus();
 }
 
 Status MakeRowFormatJsonFromTensors(
@@ -965,7 +965,7 @@ Status MakeRowFormatJsonFromTensors(
   writer.EndArray();
   writer.EndObject();
   json->assign(buffer.GetString());
-  return Status::OK();
+  return OkStatus();
 }
 
 Status MakeColumnarFormatJsonFromTensors(
@@ -987,7 +987,7 @@ Status MakeColumnarFormatJsonFromTensors(
   if (elements_are_objects) writer.EndObject();
   writer.EndObject();
   json->assign(buffer.GetString());
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace
@@ -1041,7 +1041,7 @@ Status MakeJsonFromClassificationResult(const ClassificationResult& result,
   writer.EndArray();
   writer.EndObject();
   json->assign(buffer.GetString());
-  return Status::OK();
+  return OkStatus();
 }
 
 Status MakeJsonFromRegressionResult(const RegressionResult& result,
@@ -1066,7 +1066,7 @@ Status MakeJsonFromRegressionResult(const RegressionResult& result,
   writer.EndArray();
   writer.EndObject();
   json->assign(buffer.GetString());
-  return Status::OK();
+  return OkStatus();
 }
 
 void MakeJsonFromStatus(const tensorflow::Status& status, string* json) {

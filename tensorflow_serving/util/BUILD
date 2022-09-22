@@ -345,6 +345,24 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "proto_util",
+    srcs = ["proto_util.h"],
+    hdrs = ["proto_util.h"],
+    deps = ["@org_tensorflow//tensorflow/core:lib"],
+)
+
+cc_test(
+    name = "proto_util_test",
+    srcs = ["proto_util_test.cc"],
+    deps = [
+        ":proto_util",
+        "//tensorflow_serving/apis:status_cc_proto",
+        "//tensorflow_serving/core/test_util:test_main",
+        "@org_tensorflow//tensorflow/core:lib",
+    ],
+)
+
 serving_proto_library(
     name = "class_registration_test_proto",
     testonly = 1,

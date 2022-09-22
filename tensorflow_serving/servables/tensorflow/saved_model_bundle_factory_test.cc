@@ -72,7 +72,7 @@ Status CreateBundleFromPath(const CreationType creation_type,
       EXPECT_EQ(expected_loader_metadata.servable_id.version,
                 actual_session_metadata.version());
     }
-    return Status::OK();
+    return OkStatus();
   });
 
   switch (creation_type) {
@@ -84,7 +84,7 @@ Status CreateBundleFromPath(const CreationType creation_type,
           CreateMetadata(), path, bundle));
       break;
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 struct SavedModelBundleFactoryTestParam {
@@ -113,7 +113,7 @@ class SavedModelBundleFactoryTest
     TF_RETURN_IF_ERROR(CreateBundleFromPath(GetParam().creation_type, config,
                                             export_dir_, &bundle));
     *session = std::move(bundle->session);
-    return Status::OK();
+    return OkStatus();
   }
 
   SessionBundleConfig GetSessionBundleConfig() const override {
@@ -236,8 +236,18 @@ TEST_P(SavedModelBundleFactoryTest, Batching) {
   // Most test cases don't cover batching session code path so call
   // 'TestBatching' twice with different options for batching test case, as
   // opposed to parameterize test.
-  TestBatching(false /* enable_large_batch_splitting */);
-  TestBatching(true /* enable_large_batch_splitting */);
+  TestBatching(test_util::CreateProto<BatchingParameters>(R"(
+    max_batch_size { value: 4 }
+    enable_large_batch_splitting { value: False })"),
+               /*input_request_batch_size=*/2,
+               /*batch_size=*/4);
+
+  TestBatching(test_util::CreateProto<BatchingParameters>(R"(
+    max_batch_size { value: 4 }
+    enable_large_batch_splitting { value: True }
+    max_execution_batch_size { value: 2 })"),
+               /*input_request_batch_size=*/3,
+               /*batch_size=*/2);
 }
 
 TEST_P(SavedModelBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {

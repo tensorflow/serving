@@ -37,7 +37,7 @@ class Registry {
       return errors::AlreadyExists("Type ", type, " already registered.");
     }
     factory_map_.insert({type, factory});
-    return Status::OK();
+    return OkStatus();
   }
 
   const LogCollector::Factory* Lookup(const string& type) const

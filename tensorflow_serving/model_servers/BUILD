@@ -351,6 +351,9 @@ SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
 ]) + [
     "@org_tensorflow_text//tensorflow_text:ops_lib",
+    # Support for TensorFlow Decision Forests inference ops.
+    # [September 2022] This dependency adds 3 MB to the model server (352 MB -> 355 MB i.e. +0.8%).
+    "@org_tensorflow_decision_forests//tensorflow_decision_forests/tensorflow/ops/inference:kernel_and_op",
 ]
 
 cc_library(
@@ -403,6 +406,7 @@ cc_library(
         "//tensorflow_serving/config:platform_config_cc_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
+        "//tensorflow_serving/util:proto_util",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "//tensorflow_serving/servables/tensorflow:classification_service",
         "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",

@@ -120,7 +120,7 @@ Status TensorFlowMultiInferenceRunner::Infer(
                   response->mutable_results(response->results_size() - 1)
                       ->mutable_model_spec());
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status RunMultiInference(

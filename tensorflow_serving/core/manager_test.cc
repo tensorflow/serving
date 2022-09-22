@@ -51,7 +51,7 @@ class TestManager : public Manager {
       const ServableRequest& request,
       std::unique_ptr<UntypedServableHandle>* result) override {
     result->reset(new TestHandle);
-    return Status::OK();
+    return OkStatus();
   }
 
   std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
@@ -104,7 +104,7 @@ class ReturnNullManager : public TestManager {
       const ServableRequest& request,
       std::unique_ptr<UntypedServableHandle>* result) override {
     *result = nullptr;
-    return Status::OK();
+    return OkStatus();
   }
 };
 

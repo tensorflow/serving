@@ -56,7 +56,7 @@ Status LoaderHarness::LoadRequested() {
   state_ = State::kLoadRequested;
   VLOG(1) << "Load requested for servable version " << id_;
 
-  return Status::OK();
+  return OkStatus();
 }
 
 Status LoaderHarness::LoadApproved() {
@@ -64,7 +64,7 @@ Status LoaderHarness::LoadApproved() {
   TF_RETURN_IF_ERROR(
       TransitionState(State::kLoadRequested, State::kLoadApproved));
   LOG(INFO) << "Approving load for servable version " << id_;
-  return Status::OK();
+  return OkStatus();
 }
 
 Status LoaderHarness::Load() {
@@ -109,7 +109,7 @@ Status LoaderHarness::UnloadRequested() {
         "Servable not loaded, or unload already requested/ongoing");
   }
   state_ = State::kUnloadRequested;
-  return Status::OK();
+  return OkStatus();
 }
 
 Status LoaderHarness::UnloadInternal(State from_state) {
@@ -126,7 +126,7 @@ Status LoaderHarness::UnloadInternal(State from_state) {
     TF_RETURN_IF_ERROR(TransitionState(State::kUnloading, State::kDisabled));
     LOG(INFO) << "Done unloading servable version " << id_;
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status LoaderHarness::UnloadDueToCancelledLoad() {
@@ -150,14 +150,14 @@ Status LoaderHarness::StartQuiescing() {
   TF_RETURN_IF_ERROR(
       TransitionState(State::kUnloadRequested, State::kQuiescing));
   LOG(INFO) << "Quiescing servable version " << id_;
-  return Status::OK();
+  return OkStatus();
 }
 
 Status LoaderHarness::DoneQuiescing() {
   mutex_lock l(mu_);
   TF_RETURN_IF_ERROR(TransitionState(State::kQuiescing, State::kQuiesced));
   LOG(INFO) << "Done quiescing servable version " << id_;
-  return Status::OK();
+  return OkStatus();
 }
 
 void LoaderHarness::ErrorInternal(const Status& status) {
@@ -188,7 +188,7 @@ Status LoaderHarness::TransitionState(const State from, const State to) {
     return error;
   }
   state_ = to;
-  return Status::OK();
+  return OkStatus();
 }
 
 Status LoaderHarness::status() const {

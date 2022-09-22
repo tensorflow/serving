@@ -125,7 +125,7 @@ Status HttpRestApiHandler::ProcessClassifyRequest(
       run_options_, core_, thread::ThreadPoolOptions(), *request, response));
   TF_RETURN_IF_ERROR(
       MakeJsonFromClassificationResult(response->result(), output));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status HttpRestApiHandler::ProcessRegressRequest(
@@ -145,7 +145,7 @@ Status HttpRestApiHandler::ProcessRegressRequest(
   TF_RETURN_IF_ERROR(TensorflowRegressionServiceImpl::Regress(
       run_options_, core_, thread::ThreadPoolOptions(), *request, response));
   TF_RETURN_IF_ERROR(MakeJsonFromRegressionResult(response->result(), output));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status HttpRestApiHandler::ProcessPredictRequest(
@@ -173,7 +173,7 @@ Status HttpRestApiHandler::ProcessPredictRequest(
   TF_RETURN_IF_ERROR(
       predictor_->Predict(run_options_, core_, *request, response));
   TF_RETURN_IF_ERROR(MakeJsonFromTensors(response->outputs(), format, output));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status HttpRestApiHandler::ProcessModelStatusRequest(
@@ -240,7 +240,7 @@ Status HttpRestApiHandler::GetInfoMap(
                                    "\" not found in signature def");
   }
   *infomap = iter->second.inputs();
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace serving

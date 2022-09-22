@@ -121,7 +121,7 @@ Status CreateRegressorFromSavedModelBundle(
     const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<RegressorInterface>* service) {
   service->reset(new SavedModelRegressor(run_options, std::move(bundle)));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status CreateFlyweightTensorFlowRegressor(
@@ -139,7 +139,7 @@ Status CreateFlyweightTensorFlowRegressor(
     std::unique_ptr<RegressorInterface>* service) {
   service->reset(new SavedModelTensorFlowRegressor(
       run_options, session, signature, thread_pool_options));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status GetRegressionSignatureDef(const ModelSpec& model_spec,
@@ -163,7 +163,7 @@ Status GetRegressionSignatureDef(const ModelSpec& model_spec,
     TF_RETURN_IF_ERROR(PreProcessRegression(iter->second, nullptr, nullptr));
   }
   *signature = iter->second;
-  return Status::OK();
+  return OkStatus();
 }
 
 Status PreProcessRegression(const SignatureDef& signature,
@@ -203,7 +203,7 @@ Status PreProcessRegression(const SignatureDef& signature,
   if (output_tensor_names != nullptr) {
     output_tensor_names->push_back(output_iter->second.name());
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status PostProcessRegressionResult(
@@ -262,7 +262,7 @@ Status PostProcessRegressionResult(
   for (int i = 0; i < num_examples; ++i) {
     result->add_regressions()->set_value(output_tensor_flat(i));
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status RunRegress(const RunOptions& run_options,

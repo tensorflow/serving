@@ -69,7 +69,7 @@ Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
       num_interpreters_per_pool, &tflite_session,
       bundle->meta_graph_def.mutable_signature_def()));
   bundle->session = std::move(tflite_session);
-  return Status::OK();
+  return OkStatus();
 }
 
 bool TfLiteModelFound(const string& model_dir) {
@@ -88,7 +88,7 @@ Status SavedModelBundleFactory::Create(
         CreateBatchScheduler(config.batching_parameters(), &batcher));
   }
   factory->reset(new SavedModelBundleFactory(config, batcher));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status SavedModelBundleFactory::EstimateResourceRequirement(
@@ -166,13 +166,10 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
     // Enable batching of requests to any one signature_def in the SavedModel.
     // Note that in the future, the plan is to enable explicit configuration
     // of the one or many SignatureDefs to enable.
-    // TODO(b/184973097): Remove enable_default_schedule_creator once TFLite is
-    // fixed.
     const std::vector<SignatureDef> signatures = GetSignatureDefs(**bundle);
-    return WrapSessionForBatching(
-        config_.batching_parameters(), batch_scheduler_, signatures,
-        &(*bundle)->session,
-        /*enable_default_schedule_creator=*/!is_tflite);
+    return WrapSessionForBatching(config_.batching_parameters(),
+                                  batch_scheduler_, signatures,
+                                  &(*bundle)->session);
   }
   return WrapSession(&(*bundle)->session);
 }

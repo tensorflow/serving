@@ -197,7 +197,7 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
       return errors::Unimplemented(
           "Input with kind ", serialized_input.kind_case(), " not supported.");
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status PerformOneShotTensorComputation(
@@ -222,7 +222,7 @@ Status PerformOneShotTensorComputation(
   if (runtime_latency != nullptr) {
     *runtime_latency = end_microseconds - start_microseconds;
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status PerformOneShotTensorComputation(
@@ -318,7 +318,7 @@ Status GetModelDiskSize(const string& path, FileProbingEnv* env,
       }
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status EstimateResourceFromPathUsingDiskState(const string& path,
@@ -337,7 +337,7 @@ Status EstimateResourceFromPathUsingDiskState(const string& path,
   ram_resource->set_kind(resource_kinds::kRamBytes);
   ram_entry->set_quantity(ram_requirement);
 
-  return Status::OK();
+  return OkStatus();
 }
 
 void RecordRuntimeLatency(const string& model_name, const string& api,
