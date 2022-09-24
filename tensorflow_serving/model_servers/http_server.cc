@@ -30,7 +30,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/server_init.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
-#include "tensorflow_serving/util/net_http/server/public/response_code_enum.h"
+#include "tensorflow_serving/util/net_http/public/response_code_enum.h"
 #include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
 #include "tensorflow_serving/util/prometheus_exporter.h"
 #include "tensorflow_serving/util/threadpool_executor.h"

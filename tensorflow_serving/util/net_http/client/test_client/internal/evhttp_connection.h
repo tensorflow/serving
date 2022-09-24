@@ -24,6 +24,7 @@ limitations under the License.
 
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
+
 #include "libevent/include/event2/buffer.h"
 #include "libevent/include/event2/bufferevent.h"
 #include "libevent/include/event2/event.h"
@@ -61,7 +62,7 @@ class TestEvHTTPConnection final : public TestHTTPClientInterface {
   // Returns a new connection to the specified host:port.
   // Returns nullptr if any error
   static std::unique_ptr<TestEvHTTPConnection> Connect(absl::string_view host,
-                                                       int port);
+                                                   int port);
 
   // Returns a new connection to the specified port of localhost.
   // Returns nullptr if any error
