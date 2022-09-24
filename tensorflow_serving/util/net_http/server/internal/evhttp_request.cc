@@ -35,7 +35,7 @@ limitations under the License.
 #include "libevent/include/event2/keyvalq_struct.h"
 #include "tensorflow_serving/util/net_http/compression/gzip_zlib.h"
 #include "tensorflow_serving/util/net_http/internal/net_logging.h"
-#include "tensorflow_serving/util/net_http/server/public/header_names.h"
+#include "tensorflow_serving/util/net_http/public/header_names.h"
 
 namespace tensorflow {
 namespace serving {
@@ -161,7 +161,7 @@ void EvHTTPRequest::WriteResponseString(absl::string_view data) {
   WriteResponseBytes(data.data(), static_cast<int64_t>(data.size()));
 }
 
-std::unique_ptr<char[], BlockDeleter> EvHTTPRequest::ReadRequestBytes(
+std::unique_ptr<char[], ServerRequestInterface::BlockDeleter> EvHTTPRequest::ReadRequestBytes(
     int64_t* size) {
   evbuffer* input_buf =
       evhttp_request_get_input_buffer(parsed_request_->request);
@@ -197,10 +197,10 @@ std::unique_ptr<char[], BlockDeleter> EvHTTPRequest::ReadRequestBytes(
     return nullptr;  // don't return corrupted buffer
   }
 
-  return std::unique_ptr<char[], BlockDeleter>(block, BlockDeleter(*buf_size));
+  return std::unique_ptr<char[], ServerRequestInterface::BlockDeleter>(block, ServerRequestInterface::BlockDeleter(*buf_size));
 }
 
-std::unique_ptr<char[], BlockDeleter> EvHTTPRequest::ReadRequestGzipBytes(
+std::unique_ptr<char[], ServerRequestInterface::BlockDeleter> EvHTTPRequest::ReadRequestGzipBytes(
     evbuffer* input_buf, int64_t* size) {
   std::vector<absl::Span<char>> buf_list;
 
@@ -246,8 +246,8 @@ std::unique_ptr<char[], BlockDeleter> EvHTTPRequest::ReadRequestGzipBytes(
   std::allocator<char>().deallocate(comp_body, body_length);
 
   if (uncomp_body != nullptr) {
-    return std::unique_ptr<char[], BlockDeleter>(uncomp_body,
-                                                 BlockDeleter(*uncomp_size));
+    return std::unique_ptr<char[], ServerRequestInterface::BlockDeleter>(uncomp_body,
+                                                 ServerRequestInterface::BlockDeleter(*uncomp_size));
   } else {
     NET_LOG(ERROR, "Failed to uncompress the gzipped body");
     *uncomp_size = 0;

@@ -19,7 +19,7 @@ limitations under the License.
 
 #include "absl/strings/str_cat.h"
 #include "tensorflow_serving/util/net_http/internal/net_logging.h"
-#include "tensorflow_serving/util/net_http/server/public/response_code_enum.h"
+#include "tensorflow_serving/util/net_http/public/response_code_enum.h"
 
 namespace tensorflow {
 namespace serving {
@@ -170,8 +170,7 @@ void ResponseDone(evhttp_request* req, void* ctx) {
 }
 
 // Returns false if there is any error.
-bool GenerateEvRequest(evhttp_connection* evcon,
-                       const TestClientRequest& request,
+bool GenerateEvRequest(evhttp_connection* evcon, const TestClientRequest& request,
                        TestClientResponse* response) {
   evhttp_request* evreq = evhttp_request_new(ResponseDone, response);
   if (evreq == nullptr) {
@@ -216,7 +215,7 @@ bool GenerateEvRequest(evhttp_connection* evcon,
 
 // Sends the request and has the connection closed
 bool TestEvHTTPConnection::BlockingSendRequest(const TestClientRequest& request,
-                                               TestClientResponse* response) {
+                                           TestClientResponse* response) {
   if (!GenerateEvRequest(evcon_, request, response)) {
     NET_LOG(ERROR, "Failed to generate the ev_request");
     return false;
@@ -228,7 +227,7 @@ bool TestEvHTTPConnection::BlockingSendRequest(const TestClientRequest& request,
 }
 
 bool TestEvHTTPConnection::SendRequest(const TestClientRequest& request,
-                                       TestClientResponse* response) {
+                                   TestClientResponse* response) {
   if (this->executor_ == nullptr) {
     NET_LOG(ERROR, "EventExecutor is not configured.");
     return false;
@@ -248,8 +247,7 @@ bool TestEvHTTPConnection::SendRequest(const TestClientRequest& request,
   return true;
 }
 
-void TestEvHTTPConnection::SetExecutor(
-    std::unique_ptr<EventExecutor> executor) {
+void TestEvHTTPConnection::SetExecutor(std::unique_ptr<EventExecutor> executor) {
   this->executor_ = std::move(executor);
 }
 

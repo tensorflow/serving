@@ -17,7 +17,7 @@ limitations under the License.
 #define THIRD_PARTY_TENSORFLOW_SERVING_UTIL_NET_HTTP_CLIENT_TEST_CLIENT_PUBLIC_HTTPCLIENT_INTERFACE_H_
 
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
-#include "tensorflow_serving/util/net_http/server/public/response_code_enum.h"
+#include "tensorflow_serving/util/net_http/public/response_code_enum.h"
 
 // API for the HTTP Client
 // NOTE: This API is not yet finalized, and should be considered experimental.
@@ -51,8 +51,7 @@ struct TestClientResponse {
 class TestHTTPClientInterface {
  public:
   TestHTTPClientInterface(const TestHTTPClientInterface& other) = delete;
-  TestHTTPClientInterface& operator=(const TestHTTPClientInterface& other) =
-      delete;
+  TestHTTPClientInterface& operator=(const TestHTTPClientInterface& other) = delete;
 
   virtual ~TestHTTPClientInterface() = default;
 
