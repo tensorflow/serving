@@ -30,7 +30,7 @@ Status StaticStoragePathSource::Create(
   auto raw_result = new StaticStoragePathSource;
   raw_result->config_ = config;
   result->reset(raw_result);
-  return Status::OK();
+  return Status();
 }
 
 void StaticStoragePathSource::SetAspiredVersionsCallback(

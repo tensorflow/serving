@@ -31,7 +31,7 @@ class StoragePathErrorInjectingSourceAdapterCreator {
     adapter->reset(
         new ErrorInjectingSourceAdapter<StoragePath, std::unique_ptr<Loader>>(
             Status(error::CANCELLED, config.error_message())));
-    return Status::OK();
+    return Status();
   }
 };
 REGISTER_STORAGE_PATH_SOURCE_ADAPTER(

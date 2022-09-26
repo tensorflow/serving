@@ -110,7 +110,7 @@ Status ResourceUtil::VerifyValidity(
 
       *validated_entries.add_resource_quantities() = entry;
     }
-    return Status::OK();
+    return Status();
   }();
   if (!result.ok()) {
     LOG(ERROR) << result;
@@ -133,7 +133,7 @@ Status ResourceUtil::VerifyResourceValidity(const Resource& resource) const {
           "Invalid resource allocation: Invalid device instance ",
           resource.device(), ":", resource.device_instance().value());
     }
-    return Status::OK();
+    return Status();
   }();
   if (!result.ok()) {
     LOG(ERROR) << result;

@@ -37,7 +37,7 @@ Status ResourceTracker::Create(const ResourceAllocation& total_resources,
   }
   tracker->reset(
       new ResourceTracker(normalized_total_resources, std::move(util)));
-  return Status::OK();
+  return Status();
 }
 
 Status ResourceTracker::ReserveResources(const Loader& servable,
@@ -65,7 +65,7 @@ Status ResourceTracker::ReserveResources(const Loader& servable,
     *success = false;
   }
 
-  return Status::OK();
+  return Status();
 }
 
 Status ResourceTracker::RecomputeUsedResources(
@@ -77,7 +77,7 @@ Status ResourceTracker::RecomputeUsedResources(
     TF_RETURN_IF_ERROR(util_->VerifyValidity(servable_resources));
     util_->Add(servable_resources, &used_resources_);
   }
-  return Status::OK();
+  return Status();
 }
 
 ResourceTracker::ResourceTracker(const ResourceAllocation& total_resources,

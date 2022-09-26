@@ -73,7 +73,7 @@ REGISTER_OP("TfServingRemotePredict")
         c->set_output(i, c->UnknownShape());
       }
 
-      return Status::OK();
+      return Status();
     })
     .SetIsStateful()
     .SetIsDistributedCommunication()

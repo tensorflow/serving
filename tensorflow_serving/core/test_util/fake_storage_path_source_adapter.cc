@@ -42,7 +42,7 @@ Status FakeStoragePathSourceAdapter::Convert(
   }
   *converted_data =
       suffix_.empty() ? data : strings::StrCat(data, "/", suffix_);
-  return Status::OK();
+  return Status();
 }
 
 }  // namespace test_util

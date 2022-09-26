@@ -65,7 +65,7 @@ ServerCore::Options ServerCoreTest::GetDefaultOptions() {
   options.custom_model_config_loader =
       [](const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
          UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
-    return Status::OK();
+    return Status();
   };
 
   SessionBundleConfig bundle_config;

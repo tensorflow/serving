@@ -57,7 +57,7 @@ class DelegatingSessionFactory : public SessionFactory {
     TF_RETURN_IF_ERROR(
         tensorflow::NewSession(actual_session_options, &actual_session));
     *out_session = actual_session;
-    return Status::OK();
+    return Status();
   }
 };
 

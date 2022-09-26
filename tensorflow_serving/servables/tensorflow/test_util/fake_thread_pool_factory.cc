@@ -23,7 +23,7 @@ Status FakeThreadPoolFactory::Create(
     const FakeThreadPoolFactoryConfig& config,
     std::unique_ptr<ThreadPoolFactory>* result) {
   *result = std::make_unique<FakeThreadPoolFactory>(config);
-  return Status::OK();
+  return Status();
 }
 
 REGISTER_THREAD_POOL_FACTORY(FakeThreadPoolFactory,

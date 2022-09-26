@@ -255,7 +255,7 @@ Status PollFileSystemForServable(
                     "(eg. '/1/')?";
   }
 
-  return Status::OK();
+  return Status();
 }
 
 // Polls the file system, and populates 'versions_by_servable_name' with the
@@ -272,7 +272,7 @@ Status PollFileSystemForConfig(
     versions_by_servable_name->insert(
         {servable.servable_name(), std::move(versions)});
   }
-  return Status::OK();
+  return Status();
 }
 
 // Determines if, for any servables in 'config', the file system doesn't
@@ -299,7 +299,7 @@ Status FailIfZeroVersions(const FileSystemStoragePathSourceConfig& config) {
           " at: ", servable_name_to_base_path_map[servable]);
     }
   }
-  return Status::OK();
+  return Status();
 }
 
 }  // namespace
@@ -332,7 +332,7 @@ Status FileSystemStoragePathSource::UpdateConfig(
   }
   config_ = config;
 
-  return Status::OK();
+  return Status();
 }
 
 void FileSystemStoragePathSource::SetAspiredVersionsCallback(
@@ -399,7 +399,7 @@ Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
     }
     CallAspiredVersionsCallback(servable, versions);
   }
-  return Status::OK();
+  return Status();
 }
 
 Status FileSystemStoragePathSource::UnaspireServables(
@@ -408,7 +408,7 @@ Status FileSystemStoragePathSource::UnaspireServables(
     CallAspiredVersionsCallback(servable_name,
                                 std::vector<ServableData<StoragePath>>{});
   }
-  return Status::OK();
+  return Status();
 }
 
 }  // namespace serving

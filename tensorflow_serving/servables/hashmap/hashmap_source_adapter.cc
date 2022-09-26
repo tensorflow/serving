@@ -59,7 +59,7 @@ Status LoadHashmapFromFile(const string& path,
       return errors::InvalidArgument("Unrecognized format enum value: ",
                                      format);
   }
-  return Status::OK();
+  return Status();
 }
 
 }  // namespace
