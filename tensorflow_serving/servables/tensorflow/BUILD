@@ -1019,7 +1019,6 @@ cc_library(
     hdrs = ["machine_learning_metadata.h"],
     deps = [
         "@org_tensorflow//tensorflow/cc/saved_model:constants",
-        "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
