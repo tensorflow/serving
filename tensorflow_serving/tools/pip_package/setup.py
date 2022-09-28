@@ -53,8 +53,10 @@ if 'tensorflow-serving-api-gpu' in project_name:
 
 
 REQUIRED_PACKAGES = [
-    'grpcio>=1.0,<2',
-    'protobuf>=3.6.0',
+    # Match versions to what TF needs here:
+    #   https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/pip_package/setup.py
+    'grpcio >= 1.24.3, < 2.0',
+    'protobuf >= 3.9.2, < 3.20',
 ] + _TF_REQ
 
 setup(
@@ -69,19 +71,21 @@ setup(
     url='http://tensorflow.org/serving',
     keywords='tensorflow serving machine learning api libraries',
     install_requires=REQUIRED_PACKAGES,
+    # Supported Python versions. Match to what TF needs here:
+    #   https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/pip_package/setup.py
+    python_requires='>=3.7',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Intended Audience :: Education',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3 :: Only',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
