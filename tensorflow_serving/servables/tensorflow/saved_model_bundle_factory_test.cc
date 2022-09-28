@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
 
+#include <fstream>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -239,6 +241,7 @@ TEST_P(SavedModelBundleFactoryTest, Batching) {
   TestBatching(test_util::CreateProto<BatchingParameters>(R"(
     max_batch_size { value: 4 }
     enable_large_batch_splitting { value: False })"),
+               /*enable_per_model_batching_params=*/false,
                /*input_request_batch_size=*/2,
                /*batch_size=*/4);
 
@@ -246,8 +249,33 @@ TEST_P(SavedModelBundleFactoryTest, Batching) {
     max_batch_size { value: 4 }
     enable_large_batch_splitting { value: True }
     max_execution_batch_size { value: 2 })"),
+               /*enable_per_model_batching_params=*/false,
                /*input_request_batch_size=*/3,
                /*batch_size=*/2);
+}
+
+TEST_P(SavedModelBundleFactoryTest, PerModelBatchingParams) {
+  //
+  // Copy SavedModel to temp (writable) location, and add batching params.
+  //
+  const string dst_dir = io::JoinPath(testing::TmpDir(), "model");
+  test_util::CopyDirOrDie(export_dir_, dst_dir);
+  // Note, timeout is set to high value to force batch formation.
+  const string& per_model_params_pbtxt(R"(
+    max_batch_size { value: 10 }
+    batch_timeout_micros { value: 100000000 })");
+  std::ofstream ofs(io::JoinPath(dst_dir, "batching_params.pbtxt"));
+  ofs << per_model_params_pbtxt;
+  ofs.close();
+  export_dir_ = dst_dir;
+
+  const BatchingParameters& common_params =
+      test_util::CreateProto<BatchingParameters>(
+          R"(max_batch_size { value: 4 })");
+  TestBatching(common_params, /*enable_per_model_batching_params=*/false,
+               /*input_request_batch_size=*/2, /*batch_size=*/4);
+  TestBatching(common_params, /*enable_per_model_batching_params=*/true,
+               /*input_request_batch_size=*/2, /*batch_size=*/10);
 }
 
 TEST_P(SavedModelBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {

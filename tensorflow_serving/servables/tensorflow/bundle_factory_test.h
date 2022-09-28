@@ -78,8 +78,11 @@ class BundleFactoryTest : public ::testing::Test {
   }
 
   void TestBatching(const BatchingParameters& params,
+                    bool enable_per_model_batching_params,
                     int input_request_batch_size, int batch_size) const {
     SessionBundleConfig config = GetSessionBundleConfig();
+    config.set_enable_per_model_batching_params(
+        enable_per_model_batching_params);
     BatchingParameters* batching_params = config.mutable_batching_parameters();
     *batching_params = params;
 

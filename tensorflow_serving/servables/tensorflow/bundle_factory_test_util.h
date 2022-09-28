@@ -63,6 +63,10 @@ void TestMultipleRequests(Session* session, int num_requests,
 // Returns the expected resource estimate for the given total file size.
 ResourceAllocation GetExpectedResourceEstimate(double total_file_size);
 
+// Copy (recursively) directory from `src` to `dst`. If `dst` directory exists
+// it will be removed before copying. CHECK-fail on errors.
+void CopyDirOrDie(const string& src_dir, const string& dst_dir);
+
 }  // namespace test_util
 }  // namespace serving
 }  // namespace tensorflow

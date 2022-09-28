@@ -159,17 +159,18 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
   if (config_.wrap_session_with_no_threading_params()) {
     return WrapSessionIgnoreThreadPoolOptions(&(*bundle)->session);
   } else if (config_.has_batching_parameters()) {
-    LOG(INFO) << "Wrapping session to perform batch processing";
-    if (batch_scheduler_ == nullptr) {
-      return errors::Internal("batch_scheduler_ not set");
+    absl::optional<BatchingParameters> batching_params;
+    TF_RETURN_IF_ERROR(GetPerModelBatchingParams(
+        path, config_.batching_parameters(),
+        config_.enable_per_model_batching_params(), &batching_params));
+    if (batching_params.has_value()) {
+      // Enable batching of requests to any one signature_def in the SavedModel.
+      // Note that in the future, the plan is to enable explicit configuration
+      // of the one or many SignatureDefs to enable.
+      const std::vector<SignatureDef> signatures = GetSignatureDefs(**bundle);
+      return WrapSessionForBatching(batching_params.value(), batch_scheduler_,
+                                    signatures, &(*bundle)->session);
     }
-    // Enable batching of requests to any one signature_def in the SavedModel.
-    // Note that in the future, the plan is to enable explicit configuration
-    // of the one or many SignatureDefs to enable.
-    const std::vector<SignatureDef> signatures = GetSignatureDefs(**bundle);
-    return WrapSessionForBatching(config_.batching_parameters(),
-                                  batch_scheduler_, signatures,
-                                  &(*bundle)->session);
   }
   return WrapSession(&(*bundle)->session);
 }

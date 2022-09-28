@@ -24,6 +24,7 @@ limitations under the License.
 #include "tensorflow_serving/batching/batching_session.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
+#include "tensorflow_serving/util/proto_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -31,6 +32,13 @@ namespace serving {
 namespace {
 
 using Batcher = SharedBatchScheduler<BatchingSessionTask>;
+
+const char kBatchingParamsFilename[] = "batching_params.pbtxt";
+
+bool BatchingParamsFound(const string& model_dir) {
+  const string& fname = io::JoinPath(model_dir, kBatchingParamsFilename);
+  return Env::Default()->FilesExist({fname}, nullptr);
+}
 
 }  // namespace
 
@@ -48,6 +56,28 @@ RunOptions GetRunOptions(const SessionBundleConfig& config) {
         config.session_run_load_threadpool_index().value());
   }
   return run_options;
+}
+
+Status GetPerModelBatchingParams(const string& path,
+                                 const BatchingParameters& common_params,
+                                 bool per_model_configured,
+                                 absl::optional<BatchingParameters>* params) {
+  if (per_model_configured) {
+    if (BatchingParamsFound(path)) {
+      *params = absl::make_optional(BatchingParameters());
+      TF_RETURN_IF_ERROR(ParseProtoTextFile(
+          io::JoinPath(path, kBatchingParamsFilename), &params->value()));
+      VLOG(1) << "Wrapping session to perform batch processing "
+              << "using SavedModel batching params: "
+              << params->value().DebugString();
+    }
+  } else {
+    *params = absl::make_optional(common_params);
+    VLOG(1) << "Wrapping session to perform batch processing "
+            << "using session config batching params: "
+            << params->value().DebugString();
+  }
+  return Status::OK();
 }
 
 Status EstimateResourceFromPath(const string& path, bool use_validation_result,

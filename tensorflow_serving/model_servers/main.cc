@@ -110,6 +110,18 @@ int main(int argc, char** argv) {
                        "If non-empty, read an ascii BatchingParameters "
                        "protobuf from the supplied file name and use the "
                        "contained values instead of the defaults."),
+      tensorflow::Flag(
+          "enable_per_model_batching_parameters",
+          &options.enable_per_model_batching_params,
+          "Enables model specific batching params like batch "
+          "sizes, timeouts, batching feature flags to be read from "
+          "`batching_params.pbtxt` file present in SavedModel dir "
+          "of the model. Associated params in the global config "
+          "from --batching_parameters_file are *ignored*. Only "
+          "threadpool (name and size) related params are used from "
+          "the global config, as this threadpool is shared across "
+          "all the models that want to batch requests. This option "
+          "is only applicable when --enable_batching flag is set."),
       tensorflow::Flag("model_config_file", &options.model_config_file,
                        "If non-empty, read an ascii ModelServerConfig "
                        "protobuf from the supplied file name, and serve the "

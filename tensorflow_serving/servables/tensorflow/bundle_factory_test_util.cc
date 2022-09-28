@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
 
+#include <queue>
+
 #include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
@@ -154,6 +156,36 @@ ResourceAllocation GetExpectedResourceEstimate(double total_file_size) {
   ram_resource->set_kind(resource_kinds::kRamBytes);
   ram_entry->set_quantity(expected_ram_requirement);
   return resource_alloc;
+}
+
+void CopyDirOrDie(const string& src_dir, const string& dst_dir) {
+  int64_t u_files = 0;
+  int64_t u_dirs = 0;
+  if (Env::Default()->IsDirectory(dst_dir).ok()) {
+    TF_ASSERT_OK(Env::Default()->DeleteRecursively(dst_dir, &u_files, &u_dirs));
+  }
+  TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(dst_dir));
+  std::queue<std::string> dirs_to_copy;
+  dirs_to_copy.push(src_dir);
+  while (!dirs_to_copy.empty()) {
+    const string dir = dirs_to_copy.front();
+    dirs_to_copy.pop();
+    std::vector<std::string> children;
+    TF_ASSERT_OK(Env::Default()->GetChildren(dir, &children));
+    for (const string& child : children) {
+      const string child_path = io::JoinPath(dir, child);
+      StringPiece remainder = child_path;
+      CHECK(str_util::ConsumePrefix(&remainder, src_dir));
+      if (Env::Default()->IsDirectory(child_path).ok()) {
+        TF_ASSERT_OK(
+            Env::Default()->CreateDir(io::JoinPath(dst_dir, remainder)));
+        dirs_to_copy.push(child_path);
+      } else {
+        TF_ASSERT_OK(Env::Default()->CopyFile(
+            child_path, io::JoinPath(dst_dir, remainder)));
+      }
+    }
+  }
 }
 
 }  // namespace test_util

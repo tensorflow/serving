@@ -111,6 +111,16 @@ message SessionBundleConfig {
   //
   // Use SessionWrapperIgnoreThreadPoolOptions instead.
   bool wrap_session_with_no_threading_params = 788;
+
+  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
+  //
+  // Enable per-model batching parameters (present in SavedModel). If this
+  // option is enabled, model specific batching params (e.g. timeout, batch
+  // sizes etc.) from `batching_parameters` field above are *ignored* and
+  // instead the one in SavedModel directory are used. This field is only
+  // used if batching is enabled (i.e. `batching_parameters` message above
+  // is set).
+  bool enable_per_model_batching_params = 789;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

@@ -67,6 +67,8 @@ cc_library(
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/resources:resources_cc_proto",
         "//tensorflow_serving/util:file_probing_env",
+        "//tensorflow_serving/util:proto_util",
+        "@com_google_absl//absl/types:optional",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",

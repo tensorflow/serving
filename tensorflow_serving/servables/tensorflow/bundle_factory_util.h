@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_BUNDLE_FACTORY_UTIL_H_
 
 #include "google/protobuf/wrappers.pb.h"
+#include "absl/types/optional.h"
 #include "tensorflow/core/kernels/batching_util/shared_batch_scheduler.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/protobuf/config.pb.h"
@@ -40,6 +41,17 @@ SessionOptions GetSessionOptions(const SessionBundleConfig& config);
 // TODO(b/32248363): add SavedModelBundleConfig after we switch Model Server to
 // Saved Model.
 RunOptions GetRunOptions(const SessionBundleConfig& config);
+
+// Get per-model batching parameters if they are present.
+//
+// When `per_model_configured` is true we return model specific batching
+// parameters from `batching_params.pbtxt` file in SavedModel dir under `path`
+// if one exists.  If `per_model_configured` is false we return `common_params`.
+// Failure to parse model specific params will return error.
+Status GetPerModelBatchingParams(const string& path,
+                                 const BatchingParameters& common_params,
+                                 bool per_model_configured,
+                                 absl::optional<BatchingParameters>* params);
 
 // Creates a BatchScheduler based on the batching configuration.
 template <typename TaskType>

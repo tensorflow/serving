@@ -174,6 +174,49 @@ TEST_F(BundleFactoryUtilTest, WrapSessionForBatchingConfigError) {
   ASSERT_TRUE(errors::IsInvalidArgument(status));
 }
 
+TEST_F(BundleFactoryUtilTest, GetPerModelBatchingParams) {
+  const BatchingParameters common_params =
+      test_util::CreateProto<BatchingParameters>(R"(
+    allowed_batch_sizes: 8
+    allowed_batch_sizes: 16
+    max_batch_size { value: 16 })");
+
+  const string per_model_params_pbtxt(R"(
+    allowed_batch_sizes: 8
+    allowed_batch_sizes: 16
+    allowed_batch_sizes: 128
+    max_batch_size { value: 128 })");
+
+  std::unique_ptr<WritableFile> file;
+  TF_ASSERT_OK(Env::Default()->NewWritableFile(
+      io::JoinPath(testing::TmpDir(), "/batching_params.pbtxt"), &file));
+  TF_ASSERT_OK(file->Append(per_model_params_pbtxt));
+  TF_ASSERT_OK(file->Close());
+
+  absl::optional<BatchingParameters> params;
+  TF_ASSERT_OK(GetPerModelBatchingParams("does/not/exists", common_params,
+                                         /*per_model_configured=*/false,
+                                         &params));
+  EXPECT_THAT(params.value(), test_util::EqualsProto(common_params));
+
+  params.reset();
+  ASSERT_TRUE(GetPerModelBatchingParams("does/not/exists", common_params,
+                                        /*per_model_configured=*/true, &params)
+                  .ok());
+
+  params.reset();
+  TF_ASSERT_OK(GetPerModelBatchingParams(testing::TmpDir(), common_params,
+                                         /*per_model_configured=*/false,
+                                         &params));
+  EXPECT_THAT(params.value(), test_util::EqualsProto(common_params));
+
+  params.reset();
+  TF_ASSERT_OK(GetPerModelBatchingParams(testing::TmpDir(), common_params,
+                                         /*per_model_configured=*/true,
+                                         &params));
+  EXPECT_THAT(params.value(), test_util::EqualsProto(per_model_params_pbtxt));
+}
+
 TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithBadExport) {
   ResourceAllocation resource_requirement;
   const Status status = EstimateResourceFromPath(

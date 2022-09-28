@@ -224,6 +224,9 @@ Status Server::BuildAndStart(const Options& server_options) {
         TF_RETURN_IF_ERROR(ParseProtoTextFile<BatchingParameters>(
             server_options.batching_parameters_file, batching_parameters));
       }
+      if (server_options.enable_per_model_batching_params) {
+        session_bundle_config.set_enable_per_model_batching_params(true);
+      }
     } else if (!server_options.batching_parameters_file.empty()) {
       return errors::InvalidArgument(
           "server_options.batching_parameters_file is set without setting "

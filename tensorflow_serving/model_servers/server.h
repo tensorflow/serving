@@ -57,6 +57,7 @@ class Server {
     // Model Server options.
     //
     bool enable_batching = false;
+    bool enable_per_model_batching_params = false;
     bool allow_version_labels_for_unavailable_models = false;
     bool force_allow_any_version_labels_for_unavailable_models = false;
     float per_process_gpu_memory_fraction = 0;
