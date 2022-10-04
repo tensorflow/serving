@@ -86,7 +86,7 @@ Status BatchSchedulerRetrier<TaskType>::Create(
         options.retry_delay_micros);
   }
   result->reset(new BatchSchedulerRetrier(options, std::move(wrapped)));
-  return Status::OK();
+  return Status();
 }
 
 template <typename TaskType>

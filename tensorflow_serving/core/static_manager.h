@@ -70,7 +70,7 @@ Status StaticManagerBuilder::AddServable(const ServableId& id,
       id, std::unique_ptr<Loader>(new SimpleLoader<T>(
               [&servable](std::unique_ptr<T>* const returned_servable) {
                 *returned_servable = std::move(servable);
-                return Status::OK();
+                return Status();
               },
               SimpleLoader<T>::EstimateNoResources())))));
   Status load_status;

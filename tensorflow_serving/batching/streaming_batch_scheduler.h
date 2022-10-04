@@ -315,7 +315,7 @@ Status StreamingBatchScheduler<TaskType>::Create(
   }
   scheduler->reset(
       new StreamingBatchScheduler<TaskType>(options, process_batch_callback));
-  return Status::OK();
+  return Status();
 }
 
 template <typename TaskType>
@@ -376,7 +376,7 @@ Status StreamingBatchScheduler<TaskType>::Schedule(
     }
   }
 
-  return Status::OK();
+  return Status();
 }
 
 template <typename TaskType>
@@ -464,7 +464,7 @@ Status CreateRetryingStreamingBatchScheduler(
   TF_RETURN_IF_ERROR(BatchSchedulerRetrier<TaskType>::Create(
       retry_options, std::move(streaming_scheduler), &retrier));
   *scheduler = std::move(retrier);
-  return Status::OK();
+  return Status();
 }
 
 }  // namespace serving

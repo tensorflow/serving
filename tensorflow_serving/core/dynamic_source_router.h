@@ -77,7 +77,7 @@ Status DynamicSourceRouter<T>::Create(
     std::unique_ptr<DynamicSourceRouter<T>>* result) {
   TF_RETURN_IF_ERROR(ValidateRoutes(num_output_ports, routes));
   result->reset(new DynamicSourceRouter<T>(num_output_ports, routes));
-  return Status::OK();
+  return Status();
 }
 
 template <typename T>
@@ -99,7 +99,7 @@ Status DynamicSourceRouter<T>::UpdateRoutes(const Routes& routes) {
     mutex_lock l(routes_mu_);
     routes_ = routes;
   }
-  return Status::OK();
+  return Status();
 }
 
 template <typename T>
@@ -137,7 +137,7 @@ Status DynamicSourceRouter<T>::ValidateRoutes(int num_output_ports,
           "default route");
     }
   }
-  return Status::OK();
+  return Status();
 }
 
 }  // namespace serving

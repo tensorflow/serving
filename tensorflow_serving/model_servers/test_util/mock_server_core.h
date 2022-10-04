@@ -63,13 +63,13 @@ class MockServerCore : public ServerCore {
         [](EventBus<ServableState>* event_bus,
            std::unique_ptr<ServableStateMonitor>* monitor) -> Status {
       monitor->reset(new ServableStateMonitor(event_bus));
-      return Status::OK();
+      return Status();
     };
     options.custom_model_config_loader =
         [](const ::google::protobuf::Any& any,
            EventBus<ServableState>* event_bus,
            UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
-      return Status::OK();
+      return Status();
     };
     TF_CHECK_OK(
         ServerRequestLogger::Create(nullptr, &options.server_request_logger));

@@ -260,7 +260,7 @@ class ServerCore : public Manager {
       VLOG(1) << "Unable to get servable handle due to: " << status;
       return status;
     }
-    return Status::OK();
+    return Status();
   }
 
   /// Writes the log for the particular request, response and metadata, if we

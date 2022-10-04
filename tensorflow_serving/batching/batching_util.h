@@ -106,7 +106,7 @@ Status ComputeTensorBatchSize(TensorList inputs, size_t* size, DimFunc dim_func,
       }
     }
   }
-  return Status::OK();
+  return Status();
 }
 
 /***************** Below utilities are for monitoring purpose *****************/

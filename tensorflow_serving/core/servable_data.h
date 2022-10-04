@@ -84,7 +84,7 @@ ServableData<T> CreateServableData(const ServableId& id, T data);
 
 template <typename T>
 ServableData<T>::ServableData(const ServableId& id, T data)
-    : id_(id), status_(Status::OK()), data_(std::move(data)) {}
+    : id_(id), status_(Status()), data_(std::move(data)) {}
 
 template <typename T>
 ServableData<T>::ServableData(const ServableId& id, const Status& error)

@@ -173,7 +173,7 @@ Status Manager::GetServableHandle(const ServableRequest& request,
     return errors::InvalidArgument(
         "Servable type doesn't match the asked for type.");
   }
-  return Status::OK();
+  return Status();
 }
 
 template <typename T>

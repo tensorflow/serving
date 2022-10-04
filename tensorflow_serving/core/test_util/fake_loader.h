@@ -36,8 +36,7 @@ namespace test_util {
 // This class is thread-safe.
 class FakeLoader : public ResourceUnsafeLoader {
  public:
-  explicit FakeLoader(int64_t servable,
-                      const Status load_status = Status::OK());
+  explicit FakeLoader(int64_t servable, const Status load_status = Status());
 
   ~FakeLoader() override;
 

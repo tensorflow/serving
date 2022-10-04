@@ -156,7 +156,7 @@ class ResourceUnsafeLoader : public Loader {
  public:
   Status EstimateResources(ResourceAllocation* estimate) const final {
     estimate->Clear();
-    return Status::OK();
+    return Status();
   }
 };
 

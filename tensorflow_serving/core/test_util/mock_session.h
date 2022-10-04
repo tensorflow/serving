@@ -28,7 +28,7 @@ namespace test_util {
 class MockSession : public tensorflow::Session {
  public:
   MockSession() : Session() {
-    ON_CALL(*this, Close()).WillByDefault(::testing::Return(Status::OK()));
+    ON_CALL(*this, Close()).WillByDefault(::testing::Return(Status()));
   }
   MOCK_METHOD(::tensorflow::Status, Create, (const GraphDef& graph),
               (override));

@@ -57,11 +57,11 @@ namespace serving {
 //   auto servable_creator = [](std::unique_ptr<time_t>* servable) {
 //       servable->reset(new time_t);
 //       *servable = time(nullptr);
-//       return Status::OK();
+//       return Status();
 //   };
 //   auto resource_estimator = [](ResourceAllocation* estimate) {
 //       estimate->mutable_...(...)->set_...(...);
-//       return Status::OK();
+//       return Status();
 //   };
 //   std::unique_ptr<Loader> loader(new SimpleLoader<time_t>(
 //       servable_creator, resource_estimator));
@@ -227,7 +227,7 @@ typename SimpleLoader<ServableType>::ResourceEstimator
 SimpleLoader<ServableType>::EstimateNoResources() {
   return [](ResourceAllocation* estimate) {
     estimate->Clear();
-    return Status::OK();
+    return Status();
   };
 }
 
@@ -281,13 +281,13 @@ Status SimpleLoader<ServableType>::EstimateResources(
   mutex_lock l(memoized_resource_estimate_mu_);
   if (memoized_resource_estimate_) {
     *estimate = *memoized_resource_estimate_;
-    return Status::OK();
+    return Status();
   }
 
   // Compute and memoize the resource estimate.
   TF_RETURN_IF_ERROR(resource_estimator_(estimate));
   memoized_resource_estimate_ = *estimate;
-  return Status::OK();
+  return Status();
 }
 
 template <typename ServableType>
@@ -345,7 +345,7 @@ Status SimpleLoader<ServableType>::EstimateResourcesPostLoad() {
     }
   }
 
-  return Status::OK();
+  return Status();
 }
 
 template <typename ServableType>
@@ -384,7 +384,7 @@ typename SimpleLoaderSourceAdapter<DataType, ServableType>::ResourceEstimator
 SimpleLoaderSourceAdapter<DataType, ServableType>::EstimateNoResources() {
   return [](const DataType& data, ResourceAllocation* estimate) {
     estimate->Clear();
-    return Status::OK();
+    return Status();
   };
 }
 
@@ -408,7 +408,7 @@ Status SimpleLoaderSourceAdapter<DataType, ServableType>::Convert(
       [resource_estimator, data](ResourceAllocation* estimate) {
         return resource_estimator(data, estimate);
       }));
-  return Status::OK();
+  return Status();
 }
 
 }  // namespace serving
