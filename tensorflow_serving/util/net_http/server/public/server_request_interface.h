@@ -33,28 +33,28 @@ limitations under the License.
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "tensorflow_serving/util/net_http/server/public/response_code_enum.h"
+#include "tensorflow_serving/util/net_http/public/response_code_enum.h"
 
 namespace tensorflow {
 namespace serving {
 namespace net_http {
 
-// To be used with memory blocks returned via std::unique_ptr<char[]>
-struct BlockDeleter {
- public:
-  BlockDeleter() : size_(0) {}  // nullptr
-  explicit BlockDeleter(int64_t size) : size_(size) {}
-  inline void operator()(char* ptr) const {
-    // TODO: c++14 ::operator delete[](ptr, size_t)
-    std::allocator<char>().deallocate(ptr, static_cast<std::size_t>(size_));
-  }
-
- private:
-  int64_t size_;
-};
-
 class ServerRequestInterface {
  public:
+  // To be used with memory blocks returned via std::unique_ptr<char[]>
+  struct BlockDeleter {
+   public:
+    BlockDeleter() : size_(0) {}  // nullptr
+    explicit BlockDeleter(int64_t size) : size_(size) {}
+    inline void operator()(char* ptr) const {
+      // TODO: c++14 ::operator delete[](ptr, size_t)
+      std::allocator<char>().deallocate(ptr, static_cast<std::size_t>(size_));
+    }
+
+   private:
+    int64_t size_;
+  };
+
   virtual ~ServerRequestInterface() = default;
 
   ServerRequestInterface(const ServerRequestInterface& other) = delete;
@@ -98,8 +98,8 @@ class ServerRequestInterface {
   //
   // Note this is not a streaming read API in that the complete request body
   // should have already been received.
-  virtual std::unique_ptr<char[], BlockDeleter> ReadRequestBytes(
-      int64_t* size) = 0;
+  virtual std::unique_ptr<char[], ServerRequestInterface::BlockDeleter>
+  ReadRequestBytes(int64_t* size) = 0;
 
   // Returns the first value, including "", associated with a request
   // header name. The header name argument is case-insensitive.

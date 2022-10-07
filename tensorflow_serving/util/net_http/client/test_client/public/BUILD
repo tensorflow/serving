@@ -22,7 +22,10 @@ cc_library(
     hdrs = [
         "httpclient_interface.h",
     ],
-    deps = ["//tensorflow_serving/util/net_http/server/public:http_server_api"],
+    deps = [
+        "//tensorflow_serving/util/net_http/public:shared_files",
+        "//tensorflow_serving/util/net_http/server/public:http_server_api",
+    ],
 )
 
 cc_library(

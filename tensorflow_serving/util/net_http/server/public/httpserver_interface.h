@@ -34,6 +34,7 @@ namespace serving {
 namespace net_http {
 
 // A non-blocking executor for processing I/O polling or callback events.
+// TODO: move EventExecutor into ServerOptions
 class EventExecutor {
  public:
   virtual ~EventExecutor() = default;
