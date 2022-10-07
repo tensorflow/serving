@@ -77,7 +77,7 @@ Status GetPerModelBatchingParams(const string& path,
             << "using session config batching params: "
             << params->value().DebugString();
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status EstimateResourceFromPath(const string& path, bool use_validation_result,
