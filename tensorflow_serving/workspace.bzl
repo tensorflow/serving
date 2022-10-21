@@ -10,6 +10,13 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 def tf_serving_workspace():
     """All TensorFlow Serving external dependencies."""
 
+    # ===== Bazel skylib dependency =====
+    http_archive(
+        name = "bazel_skylib",
+        sha256 = "74d544d96f4a5bb630d465ca8bbcfe231e3594e5aae57e1edbf17a6eb3ca2506",
+        url = "https://github.com/bazelbuild/bazel-skylib/releases/download/1.3.0/bazel-skylib-1.3.0.tar.gz",
+    )
+
     # ===== Bazel package rules dependency =====
     http_archive(
         name = "rules_pkg",
