@@ -1,3 +1,42 @@
+# Release 2.11.0-rc0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* No-op for public code. (commit: 20655b5904fdb4a810bfd8aef22db8becd4e80f3)
+* Removed net_http/client/public/* now that all the users have been migrated to test_client/ (commit: e64a73afc23ea8f9538660cb8bc20f48d5682848)
+* Fix the bug when accessing concat.tensor_data() outside its lifecycle (commit: cc3720091867c06615b8b3f50c1c2468a90e6b1c)
+* BUILD cleanup (commit: 9e81e7b1bc8e1bd28c3324cf8feee717420f96f4)
+* BUILD cleanup (commit: 8235ed86f9f07123e30ea8830a1454334bc86a2c)
+* Update TF Text to v2.8.2. (commit: 31204d664d4ff985a526dccfe1f13ffde113deb6)
+* Replace tensorflow/core/lib/core/blocking_counter in favor of the one from tensorflow/platform. (commit: 4ed7c5c30d0be43254a1177e8488675dc60d0384)
+* Update TF Text to v2.9.0. (commit: e88506ab6709f2dc3a3bb1601ac4b84c23025611)
+* Cleaning up BUILD files to remove "loose" headers. (commit: c2cd4c9629fbc868bd5e2cb186c7b081f22d709b)
+* Remove the unnecessary dependency (commit: d976a37b4e9481de5ca371ae734645d925143088)
+* Use `value` instead of `ValueOrDie`. (commit: b48e6e7cc02d8060cc3da5d363a90baf9324a2a0)
+* Update TF Text to v2.9.0. (commit: a73f2925e367106bab0bfeca187fbaa1b3f36676)
+* Replace `tensorflow::Status::OK()` with` tensorflow::OkStatus()`. (commit: 49ac8acb50291c21a0a72cfd9135aa2030e3ae88)
+* Replace `tensorflow::Status::OK()` with` tensorflow::OkStatus()`. (commit: e8be1a742c3913cbbb6158dc1202c17130583219)
+* Replace `tensorflow::Status::OK()` with` tensorflow::OkStatus()`. (commit: 88bd9d1638f6017b4af526a9b468641966d8972d)
+* Add support for TensorFlow Decision Forests models. (commit: 4592081169068a0f059be71ac1b484d568f6e5d2)
+* Remove special handling of tflite model when creating batching (commit: 2d39f8c8aa90ccfdc78faa51e4c8295832796a68)
+* Improve batching test in following ways: (commit: 68d4d3962dc40fa6c1980df6d8df51338e44301e)
+* Split proto helper function to its own util library. (commit: 01386268be6948429ea796fcd348beea4c7174d6)
+* Created net_http/public folder for shared files and updated files in net_http and model_servers/http_server.cc to match. Also removed old directories from net_http/client to make way for new client API and implementation. (commit: 8086d33b6b74899dc8062ddbdba3fcc95e9af7e5)
+* Updating a reference to Env post-refactor. (commit: 728474f92533be737958edc095abc0648a494452)
+* Replace `tensorflow::Status::OK()` with` tensorflow::OkStatus()`. (commit: 9861f7fd742dc3ec0a5e2cf0314d68b799a11e73)
+* Experimental support for per-model batching params. (commit: 94f2d6944f310069ebd527a52649fe3c001c38e3)
+* tensorflow-serving-api python package requires Python >= 3.7 (support for prior versions has been dropped). (commit: 30ea18d66416e8cfd3873fba3c2482ec68184ec6)
+* Replace `tensorflow::Status::OK()` with `tensorflow::{Status, OkStatus}()`. (commit: 6393b29242ab6648c723a51f64eb2e67ebf497db)
+* Open up http_server_clients package group for easier 3P (commit: 66b199ba6e8fc81cb278988aa541e03987a1d27d)
+
 # Release 2.10.0
 
 ## Major Features and Improvements
