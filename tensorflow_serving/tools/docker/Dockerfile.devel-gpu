@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM nvidia/cuda:11.2.1-base-ubuntu18.04 as base_build
+FROM nvidia/cuda:11.8.0-base-ubuntu18.04 as base_build
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=HEAD
@@ -20,26 +20,28 @@ LABEL maintainer=gvasudevan@google.com
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
-ENV CUDNN_VERSION=8.1.0.77
-ENV TF_TENSORRT_VERSION=7.2.2
-ENV CUDA=11.2
+ENV CUDA=11.8
+# CUDA_FOR_PKGNAME is expected to be same as CUDA with hypens instead of dots.
+ENV CUDA_FOR_PKGNAME=11-8
+ENV CUDNN_VERSION=8.6.0.163
+ENV TF_TENSORRT_VERSION=7.2.3
 
 RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub && \
     apt-get update && apt-get install -y --no-install-recommends \
         automake \
         build-essential \
         ca-certificates \
-        cuda-command-line-tools-11-2 \
-        libcublas-11-2 \
-        libcublas-dev-11-2 \
-        cuda-nvrtc-11-2 \
-        cuda-nvrtc-dev-11-2 \
-        cuda-nvprune-11-2 \
-        cuda-cudart-dev-11-2 \
-        libcufft-dev-11-2 \
-        libcurand-dev-11-2 \
-        libcusolver-dev-11-2 \
-        libcusparse-dev-11-2 \
+        cuda-command-line-tools-${CUDA_FOR_PKGNAME} \
+        libcublas-${CUDA_FOR_PKGNAME} \
+        libcublas-dev-${CUDA_FOR_PKGNAME} \
+        cuda-nvrtc-${CUDA_FOR_PKGNAME} \
+        cuda-nvrtc-dev-${CUDA_FOR_PKGNAME} \
+        cuda-nvprune-${CUDA_FOR_PKGNAME} \
+        cuda-cudart-dev-${CUDA_FOR_PKGNAME} \
+        libcufft-dev-${CUDA_FOR_PKGNAME} \
+        libcurand-dev-${CUDA_FOR_PKGNAME} \
+        libcusolver-dev-${CUDA_FOR_PKGNAME} \
+        libcusparse-dev-${CUDA_FOR_PKGNAME} \
         curl \
         git \
         libfreetype6-dev \
@@ -68,15 +70,15 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
 RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/7fa2af80.pub && \
     echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /"  > /etc/apt/sources.list.d/tensorRT.list && \
     apt-get update && \
-    apt-get install -y --no-install-recommends libnvinfer7=${TF_TENSORRT_VERSION}-1+cuda11.0 \
-      libnvinfer-dev=${TF_TENSORRT_VERSION}-1+cuda11.0 \
-      libnvinfer-plugin-dev=${TF_TENSORRT_VERSION}-1+cuda11.0 \
-      libnvinfer-plugin7=${TF_TENSORRT_VERSION}-1+cuda11.0 \
+    apt-get install -y --no-install-recommends libnvinfer7=${TF_TENSORRT_VERSION}-1+cuda11.1 \
+      libnvinfer-dev=${TF_TENSORRT_VERSION}-1+cuda11.1 \
+      libnvinfer-plugin-dev=${TF_TENSORRT_VERSION}-1+cuda11.1 \
+      libnvinfer-plugin7=${TF_TENSORRT_VERSION}-1+cuda11.1 \
       # TODO: need to verify
-      libnvonnxparsers7=${TF_TENSORRT_VERSION}-1+cuda11.0 \
-      libnvparsers7=${TF_TENSORRT_VERSION}-1+cuda11.0\
-      libnvonnxparsers-dev=${TF_TENSORRT_VERSION}-1+cuda11.0 \
-      libnvparsers-dev=${TF_TENSORRT_VERSION}-1+cuda11.0 && \
+      libnvonnxparsers7=${TF_TENSORRT_VERSION}-1+cuda11.1 \
+      libnvparsers7=${TF_TENSORRT_VERSION}-1+cuda11.1\
+      libnvonnxparsers-dev=${TF_TENSORRT_VERSION}-1+cuda11.1 \
+      libnvparsers-dev=${TF_TENSORRT_VERSION}-1+cuda11.1 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*;
 
@@ -126,8 +128,8 @@ ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/lib64:/us
 ENV TF_NEED_CUDA 1
 ENV TF_NEED_TENSORRT 1
 ENV TENSORRT_INSTALL_PATH=/usr/lib/x86_64-linux-gnu
-ENV TF_CUDA_VERSION=11.2
-ENV TF_CUDNN_VERSION=8
+ENV TF_CUDA_VERSION=11.8
+ENV TF_CUDNN_VERSION=8.6
 
 # Fix paths so that CUDNN can be found: https://github.com/tensorflow/tensorflow/issues/8264
 WORKDIR /
