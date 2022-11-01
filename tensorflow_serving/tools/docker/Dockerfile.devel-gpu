@@ -63,7 +63,7 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
         zlib1g-dev \
         python3-distutils \
         python-distutils-extra && \
-    find /usr/local/cuda-11.2/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete && \
+    find /usr/local/cuda-${CUDA}/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete && \
     rm /usr/lib/x86_64-linux-gnu/libcudnn_static_v8.a
 
 # NOTE: libnvinfer uses cuda11.1 versions
