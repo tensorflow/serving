@@ -13,17 +13,10 @@ workspace(name = "tf_serving")
 # 3. Request the new archive to be mirrored on mirror.bazel.build for more
 #    reliable downloads.
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
     sha256 = "f89eca7e8844abace8eeb16c3e90007a2d7c48a7ad582543742c54e3db42305b",
     git_commit = "cdd390ed92149df94f5a058f740e34ce4b8fd684",
-)
-
-http_archive(
-    name = "bazel_skylib",
-        sha256 = "74d544d96f4a5bb630d465ca8bbcfe231e3594e5aae57e1edbf17a6eb3ca2506",
-        url = "https://github.com/bazelbuild/bazel-skylib/releases/download/1.3.0/bazel-skylib-1.3.0.tar.gz",
 )
 
 # Import all of TensorFlow Serving's external dependencies.
@@ -35,7 +28,7 @@ tf_serving_workspace()
 
 # Check bazel version requirement, which is stricter than TensorFlow's.
 load("@bazel_skylib//lib:versions.bzl", "versions")
-versions.check(minimum_bazel_version = "5.1.1")
+versions.check("5.1.1")
 
 # Initialize TensorFlow's external dependencies.
 load("@org_tensorflow//tensorflow:workspace3.bzl", "workspace")
