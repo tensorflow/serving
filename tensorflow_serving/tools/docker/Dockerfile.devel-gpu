@@ -120,7 +120,7 @@ RUN mkdir /bazel && \
     ./bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
     cd / && \
     rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
-
+.
 # Build TensorFlow with the CUDA configuration
 ENV CI_BUILD_PYTHON python
 ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:/usr/include/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
@@ -128,15 +128,15 @@ ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/lib64:/us
 ENV TF_NEED_CUDA 1
 ENV TF_NEED_TENSORRT 1
 ENV TENSORRT_INSTALL_PATH=/usr/lib/x86_64-linux-gnu
-ENV TF_CUDA_VERSION=11.8
-ENV TF_CUDNN_VERSION=8.6
+ENV TF_CUDA_VERSION=11
+ENV TF_CUDNN_VERSION=8
 
 # Fix paths so that CUDNN can be found: https://github.com/tensorflow/tensorflow/issues/8264
 WORKDIR /
-RUN mkdir /usr/lib/x86_64-linux-gnu/include/ && \
-  ln -s /usr/include/cudnn.h /usr/local/cuda/include/cudnn.h && \
-  ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so /usr/local/cuda/lib64/libcudnn.so && \
-  ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so.${TF_CUDNN_VERSION} /usr/local/cuda/lib64/libcudnn.so.${TF_CUDNN_VERSION}
+#RUN mkdir /usr/lib/x86_64-linux-gnu/include/ && \
+#  ln -s /usr/include/cudnn.h /usr/local/cuda/include/cudnn.h && \
+#  ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so /usr/local/cuda/lib64/libcudnn.so && \
+#  ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so.${TF_CUDNN_VERSION} /usr/local/cuda/lib64/libcudnn.so.${TF_CUDNN_VERSION}
 
 # For backward compatibility we need this line. After 1.13 we can safely remove
 # it.
