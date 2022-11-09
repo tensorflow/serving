@@ -16,7 +16,7 @@ ARG TF_SERVING_VERSION=latest
 ARG TF_SERVING_BUILD_IMAGE=tensorflow/serving:${TF_SERVING_VERSION}-devel-gpu
 
 FROM ${TF_SERVING_BUILD_IMAGE} as build_image
-FROM nvidia/cuda:11.2.1-base-ubuntu18.04
+FROM nvidia/cuda:11.2.2-base-ubuntu18.04
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=head
@@ -25,7 +25,7 @@ LABEL maintainer="gvasudevan@google.com"
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
-ENV CUDNN_VERSION=8.1.0.77
+ENV CUDNN_VERSION=8.1.1.33
 ENV TF_TENSORRT_VERSION=7.2.2
 ENV CUDA=11.2
 ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
