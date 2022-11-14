@@ -16,10 +16,11 @@ ARG TF_SERVING_VERSION=latest
 ARG TF_SERVING_BUILD_IMAGE=tensorflow/serving:${TF_SERVING_VERSION}-devel-gpu
 
 FROM ${TF_SERVING_BUILD_IMAGE} as build_image
-FROM nvidia/cuda:11.2.1-base-ubuntu18.04
+FROM nvidia/cuda:11.2.1-base-ubuntu20.04
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=head
+ARG DEBIAN_FRONTEND=noninteractive
 
 LABEL maintainer="gvasudevan@google.com"
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}

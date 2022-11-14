@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM ubuntu:18.04 as base_build
+FROM ubuntu:20.04 as base_build
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=HEAD
+ARG DEBIAN_FRONTEND=noninteractive
 
 LABEL maintainer="Abolfazl Shahbazi <abolfazl.shahbazi@intel.com>"
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}

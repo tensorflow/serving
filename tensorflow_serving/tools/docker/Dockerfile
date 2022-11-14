@@ -16,10 +16,11 @@ ARG TF_SERVING_VERSION=latest
 ARG TF_SERVING_BUILD_IMAGE=tensorflow/serving:${TF_SERVING_VERSION}-devel
 
 FROM ${TF_SERVING_BUILD_IMAGE} as build_image
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=head
+ARG DEBIAN_FRONTEND=noninteractive
 
 LABEL maintainer="gvasudevan@google.com"
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
