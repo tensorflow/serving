@@ -62,7 +62,7 @@ index bd42a24..7fef400 100644
      output_start_offsets->back() = input_word_offset_in_text;
  
 diff --git a/tensorflow_text/tftext.bzl b/tensorflow_text/tftext.bzl
-index 9db7049..8f5ed14 100644
+index fb87905..ad72a05 100644
 --- a/tensorflow_text/tftext.bzl
 +++ b/tensorflow_text/tftext.bzl
 @@ -134,8 +134,8 @@ def tf_cc_library(
@@ -76,7 +76,7 @@ index 9db7049..8f5ed14 100644
          ] + tf_deps + oss_deps,
      })
      native.cc_library(
-@@ -191,8 +191,8 @@ def tflite_cc_library(
+@@ -192,8 +192,8 @@ def tflite_cc_library(
              "@org_tensorflow//tensorflow/core:portable_tensorflow_lib_lite",
          ],
          "//conditions:default": [
