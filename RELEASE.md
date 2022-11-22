@@ -65,6 +65,20 @@
 * Replace `tensorflow::Status::OK()` with `tensorflow::{Status, OkStatus}()`. (commit: 6393b29242ab6648c723a51f64eb2e67ebf497db)
 * Open up http_server_clients package group for easier 3P (commit: 66b199ba6e8fc81cb278988aa541e03987a1d27d)
 
+# Release 2.10.1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.10.1.
+
 # Release 2.10.0
 
 ## Major Features and Improvements
@@ -78,6 +92,20 @@
 ## Bug Fixes and Other Changes
 
 * This release is based on TF version 2.10.0.
+
+# Release 2.9.3
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.9.3
 
 # Release 2.9.2
 
