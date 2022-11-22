@@ -62,10 +62,10 @@ index c1f0e4e..a92ecd8 100644
      output_start_offsets->back() = input_word_offset_in_text;
  
 diff --git a/tensorflow_text/tftext.bzl b/tensorflow_text/tftext.bzl
-index ff40480..b649cfc 100644
+index 969d9e9..e861aa1 100644
 --- a/tensorflow_text/tftext.bzl
 +++ b/tensorflow_text/tftext.bzl
-@@ -123,8 +123,8 @@ def tf_cc_library(
+@@ -141,8 +141,8 @@ def tf_cc_library(
              "@org_tensorflow//tensorflow/core:portable_tensorflow_lib_lite",
          ],
          "//conditions:default": [
@@ -74,5 +74,16 @@ index ff40480..b649cfc 100644
 +            "@org_tensorflow//tensorflow/core:tensorflow_opensource",
 +            "@org_tensorflow//tensorflow/lite/kernels/shim:status_macros", "@org_tensorflow//tensorflow/lite/kernels/shim:tf_op_shim", "@org_tensorflow//tensorflow/lite/kernels/shim:op_kernel", "@org_tensorflow//tensorflow/lite/kernels/shim:tensor_view", "@org_tensorflow//tensorflow/lite/kernels/shim:shape",
          ] + tf_deps + oss_deps,
+     })
+     native.cc_library(
+@@ -199,8 +199,8 @@ def tflite_cc_library(
+             "@org_tensorflow//tensorflow/core:portable_tensorflow_lib_lite",
+         ],
+         "//conditions:default": [
+-            "@local_config_tf//:libtensorflow_framework",
+-            "@local_config_tf//:tf_header_lib",
++            "@org_tensorflow//tensorflow/core:tensorflow_opensource",
++            "@org_tensorflow//tensorflow/lite/kernels/shim:status_macros", "@org_tensorflow//tensorflow/lite/kernels/shim:tf_op_shim", "@org_tensorflow//tensorflow/lite/kernels/shim:op_kernel", "@org_tensorflow//tensorflow/lite/kernels/shim:tensor_view", "@org_tensorflow//tensorflow/lite/kernels/shim:shape",
+         ] + oss_deps,
      })
      native.cc_library(
