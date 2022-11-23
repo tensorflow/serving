@@ -1,3 +1,17 @@
+# Release 2.11.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.11.0
+
 # Release 2.11.0-rc2
 
 ## Major Features and Improvements
@@ -134,6 +148,20 @@
 ## Bug Fixes and Other Changes
 
 * This release is based on TF version 2.7.4
+
+# Release 2.8.4
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.8.4.
 
 # Release 2.8.3
 
