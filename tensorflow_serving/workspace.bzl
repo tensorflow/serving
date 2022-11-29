@@ -114,9 +114,9 @@ def tf_serving_workspace():
 
     http_archive(
         name = "ydf",
-        sha256 = "ba8e69ef3889c58cde58ce201ff88ea3acf376bcb9996a55c070959d5fa0a51b",
-        strip_prefix = "yggdrasil-decision-forests-144b139d688381beea31100e75e5d621127f8ee4",
-        urls = ["https://github.com/google/yggdrasil-decision-forests/archive/144b139d688381beea31100e75e5d621127f8ee4.zip"],
+        sha256 = "8d577e2628201ec2a2c1708192a23e5b34a2fcc126b6e043fef613886857c9a6",
+        strip_prefix = "yggdrasil-decision-forests-1.2.0",
+        urls = ["https://github.com/google/yggdrasil-decision-forests/archive/refs/tags/1.2.0.zip"],
     )
 
     # The Boost repo is organized into git sub-modules (see the list at
