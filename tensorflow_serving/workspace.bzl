@@ -107,9 +107,9 @@ def tf_serving_workspace():
     # ==== TensorFlow Decision Forests ===
     http_archive(
         name = "org_tensorflow_decision_forests",
-        sha256 = "7a6b8187341da782ca93ee6e61ded14fba23f4bc0750beac291ae15277b1257e",
-        strip_prefix = "decision-forests-1.0.1",
-        url = "https://github.com/tensorflow/decision-forests/archive/refs/tags/1.0.1.zip",
+        sha256 = "00c73fbb1ddde7f11fbb5277e9cc9a0922b5f1213c6bd1038769ee451be4ba87",
+        strip_prefix = "decision-forests-1.1.0",
+        url = "https://github.com/tensorflow/decision-forests/archive/refs/tags/1.1.0.zip",
     )
 
     http_archive(
