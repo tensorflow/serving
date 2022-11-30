@@ -17,7 +17,7 @@ build:tpu --copt=-DLIBTPU_ON_GCE
 # Please note that MKL on MacOS or windows is still not supported.
 # If you would like to use a local MKL instead of downloading, please set the
 # environment variable "TF_MKL_ROOT" every time before build.
-build:mkl --define=build_with_mkl=true --define=enable_mkl=true --define=build_with_openmp=true
+build:mkl --define=build_with_mkl=true --define=enable_mkl=true --define=build_with_openmp=false
 build:mkl --define=tensorflow_mkldnn_contraction_kernel=0
 
 # This config option is used to enable MKL-DNN open source library only,

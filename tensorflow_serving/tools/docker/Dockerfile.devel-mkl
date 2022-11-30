@@ -21,59 +21,58 @@ LABEL maintainer="Abolfazl Shahbazi <abolfazl.shahbazi@intel.com>"
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
+ARG DEBIAN_FRONTEND=noninteractive
+
+# See http://bugs.python.org/issue19846
+ENV LANG C.UTF-8
+ARG PYTHON=python3
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        automake \
-        build-essential \
-        ca-certificates \
-        curl \
-        git \
-        libcurl3-dev \
-        libfreetype6-dev \
-        libpng-dev \
-        libtool \
-        libzmq3-dev \
-        mlocate \
-        openjdk-8-jdk\
-        openjdk-8-jre-headless \
-        pkg-config \
-        python-dev \
-        software-properties-common \
-        swig \
-        unzip \
-        wget \
-        zip \
-        zlib1g-dev \
-        python3-distutils \
-        && \
+    ${PYTHON} \
+    ${PYTHON}-dev \
+    ${PYTHON}-distutils \
+    automake \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    libcurl3-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libtool \
+    libzmq3-dev \
+    mlocate \
+    openjdk-8-jdk\
+    openjdk-8-jre-headless \
+    pkg-config \
+    software-properties-common \
+    swig \
+    unzip \
+    wget \
+    zip \
+    zlib1g-dev \
+    && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install python 3.7.
-RUN add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && apt-get install -y \
-    python3.7 python3.7-dev python3-pip python3.7-venv && \
-    rm -rf /var/lib/apt/lists/* && \
-    python3.7 -m pip install pip --upgrade && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 0
+RUN curl -fSsL https://bootstrap.pypa.io/get-pip.py | ${PYTHON}
 
-# Make python3.7 the default python version
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.7 0
+# Some TF tools expect a "python" binary
+RUN ln -sf $(which ${PYTHON}) /usr/local/bin/python && \
+    ln -sf $(which ${PYTHON}) /usr/local/bin/python3 && \
+    ln -sf $(which ${PYTHON}) /usr/bin/python
 
-RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
-    python3 get-pip.py && \
-    rm get-pip.py
-
-RUN pip3 --no-cache-dir install \
-    future>=0.17.1 \
+RUN python -m pip --no-cache-dir install \
+    'future>=0.17.1' \
     grpcio \
     h5py \
-    keras_applications>=1.0.8 \
-    keras_preprocessing>=1.1.0 \
+    'keras_applications>=1.0.8' \
+    'keras_preprocessing>=1.1.0' \
     mock \
     numpy \
     portpicker \
     requests \
-    --ignore-installed six>=1.12.0
+    --ignore-installed 'six>=1.12.0'
 
 # Set up Bazel
 ENV BAZEL_VERSION 5.3.0
@@ -89,7 +88,9 @@ RUN mkdir /bazel && \
 
 # Download TF Serving sources (optionally at specific commit).
 WORKDIR /tensorflow-serving
-RUN curl -sSL --retry 5 https://github.com/tensorflow/serving/tarball/${TF_SERVING_VERSION_GIT_COMMIT} | tar --strip-components=1 -xzf -
+RUN git clone --single-branch --branch=${TF_SERVING_VERSION_GIT_BRANCH} https://github.com/tensorflow/serving /tensorflow-serving && \
+    cd /tensorflow-serving && \
+    git reset --hard ${TF_SERVING_VERSION_GIT_COMMIT}
 
 FROM base_build as binary_build
 # Build, and install TensorFlow Serving
@@ -122,7 +123,7 @@ RUN bazel build --color=yes --curses=yes \
     rm -rf /tmp/pip
 
 # Copy openmp libraries
-RUN cp /root/.cache/bazel/_bazel_root/*/execroot/tf_serving/bazel-out/k8-opt/bin/external/llvm_openmp/libiomp5.so /usr/local/lib/
+RUN cp -rp /root/.cache/bazel/_bazel_root/*/execroot/tf_serving/bazel-out/host/bin/external/llvm_openmp/libiomp5.so /usr/local/lib/
 
 ENV LIBRARY_PATH '/usr/local/lib:$LIBRARY_PATH'
 ENV LD_LIBRARY_PATH '/usr/local/lib:$LD_LIBRARY_PATH'
