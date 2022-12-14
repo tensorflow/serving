@@ -1,5 +1,7 @@
 # Description: Tensorflow Serving pip package.
 
+package(default_applicable_licenses = ["//tensorflow_serving:license"])
+
 licenses(["notice"])
 
 sh_binary(

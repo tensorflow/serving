@@ -1,6 +1,7 @@
 # Description: Tensorflow Serving examples.
 
 package(
+    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = ["//tensorflow_serving:internal"],
     features = ["no_layering_check"],
 )

@@ -3,6 +3,7 @@ load("//tensorflow_serving:oss_or_google.bzl", "if_google", "if_oss")
 licenses(["notice"])
 
 package(
+    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = [
         "//tensorflow_serving:internal",
     ],

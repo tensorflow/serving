@@ -6,6 +6,7 @@ load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_libtpu")
 
 package(
+    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = [
         "//tensorflow_serving:internal",
     ],

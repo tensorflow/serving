@@ -1,6 +1,7 @@
 # Description: compression support libraries
 
 package(
+    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = [
         "//tensorflow_serving:internal",
         "//tensorflow_serving/util/net_http:__subpackages__",

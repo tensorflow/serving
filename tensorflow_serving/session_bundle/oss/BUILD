@@ -4,6 +4,7 @@ load("//tensorflow_serving:oss_or_google.bzl", "oss_only_cc_test")
 licenses(["notice"])
 
 package(
+    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = [
         "//tensorflow_serving:internal",
     ],

@@ -1,6 +1,7 @@
 # Description: shared files
 
 package(
+    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = [
         ":http_server_clients",
         "//tensorflow_serving:internal",

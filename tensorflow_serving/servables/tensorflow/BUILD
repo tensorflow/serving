@@ -4,6 +4,7 @@ load("//tensorflow_serving:oss_or_google.bzl", "if_google", "if_oss")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
 
 package(
+    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = [
         "//tensorflow_serving:internal",
     ],

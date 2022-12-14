@@ -4,6 +4,7 @@ load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library", "serving_pro
 load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
 
 package(
+    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = ["//visibility:public"],
     features = ["-layering_check"],
 )

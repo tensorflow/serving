@@ -1,6 +1,7 @@
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 package(
+    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = [
         "//tensorflow_serving:internal",
     ],

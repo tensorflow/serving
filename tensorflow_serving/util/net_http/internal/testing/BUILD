@@ -1,6 +1,7 @@
 # Description: net_http/internal/testing
 
 package(
+    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = ["//visibility:private"],
 )
 

@@ -7,6 +7,8 @@
 # Tests are local and manual as they require docker and the image to be
 # installed.
 
+package(default_applicable_licenses = ["//tensorflow_serving:license"])
+
 licenses(["notice"])
 
 sh_library(

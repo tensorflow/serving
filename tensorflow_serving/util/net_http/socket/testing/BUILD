@@ -1,6 +1,7 @@
 # Description: net_http/socket testing utils
 
 package(
+    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = ["//visibility:private"],
 )
 
