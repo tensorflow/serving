@@ -1,16 +1,6 @@
 # Description: Tensorflow Serving.
 
-load("//tools/build_defs/license:license.bzl", "license")
-
-package(
-    default_applicable_licenses = ["//tensorflow_serving:license"],
-    default_visibility = ["//tensorflow_serving:internal"],
-)
-
-license(
-    name = "license",
-    package_name = "tensorflow_serving",
-)
+package(default_visibility = ["//tensorflow_serving:internal"])
 
 licenses(["notice"])
 

@@ -1,11 +1,8 @@
 # Description: Tensorflow Serving test utils.
 
-package(
-    default_applicable_licenses = ["//tensorflow_serving:license"],
-    default_visibility = [
-        "//tensorflow_serving:internal",
-    ],
-)
+package(default_visibility = [
+    "//tensorflow_serving:internal",
+])
 
 licenses(["notice"])
 

@@ -2,12 +2,9 @@ load("//tensorflow_serving:oss_or_google.bzl", "if_google", "if_oss")
 
 licenses(["notice"])
 
-package(
-    default_applicable_licenses = ["//tensorflow_serving:license"],
-    default_visibility = [
-        "//tensorflow_serving:internal",
-    ],
-)
+package(default_visibility = [
+    "//tensorflow_serving:internal",
+])
 
 filegroup(
     name = "session_bundle_half_plus_two",

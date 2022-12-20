@@ -1,12 +1,9 @@
 # Description: APIs for experimental testing of net_http server instances
 
-package(
-    default_applicable_licenses = ["//tensorflow_serving:license"],
-    default_visibility = [
-        ":http_client_users",
-        "//tensorflow_serving/util/net_http:__subpackages__",
-    ],
-)
+package(default_visibility = [
+    ":http_client_users",
+    "//tensorflow_serving/util/net_http:__subpackages__",
+])
 
 package_group(
     name = "http_client_users",

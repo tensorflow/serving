@@ -1,7 +1,6 @@
 # Description: Tensorflow Serving configs.
 
 package(
-    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = ["//visibility:public"],
     features = ["-layering_check"],
 )

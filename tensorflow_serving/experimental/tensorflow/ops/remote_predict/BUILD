@@ -3,8 +3,6 @@
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_custom_op_library", "tf_gen_op_libs", "tf_gen_op_wrapper_cc", "tf_gen_op_wrapper_py", "tf_kernel_library")
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_custom_op_py_library")
 
-package(default_applicable_licenses = ["//tensorflow_serving:license"])
-
 licenses(["notice"])
 
 cc_library(

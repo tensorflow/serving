@@ -1,7 +1,6 @@
 # Internal implementation details of serving APIs.
 
 package(
-    default_applicable_licenses = ["//tensorflow_serving:license"],
     default_visibility = [
         "//tensorflow_serving:internal",
     ],
