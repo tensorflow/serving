@@ -1027,7 +1027,7 @@ Status CreateBasicBatchingSession(
             schedule_options.max_execution_batch_size);
       }
     } else if (allowed_batch_sizes.back() != schedule_options.max_batch_size) {
-      // TODO(b/b/161641195):
+      // TODO(b/161641195):
       // Validate `allowed_batch_sizes` increase monotonically for non
       // large_batch_splitting case.
       return errors::InvalidArgument(
