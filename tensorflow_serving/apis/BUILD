@@ -44,6 +44,12 @@ serving_proto_library_py(
     ],
 )
 
+tf_pyclif_proto_library(
+    name = "get_model_metadata_pyclif",
+    proto_lib = ":get_model_metadata_proto",
+    proto_srcfile = "get_model_metadata.proto",
+)
+
 serving_proto_library(
     name = "input_proto",
     srcs = ["input.proto"],
@@ -425,6 +431,12 @@ serving_proto_library_py(
         ":model_proto_py_pb2",
         "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
+)
+
+tf_pyclif_proto_library(
+    name = "session_service_pyclif",
+    proto_lib = ":session_service_proto",
+    proto_srcfile = "session_service.proto",
 )
 
 tf_pyclif_proto_library(
