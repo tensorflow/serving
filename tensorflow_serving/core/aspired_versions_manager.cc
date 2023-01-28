@@ -243,7 +243,7 @@ void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
 
   {
     mutex_lock l(pending_aspired_versions_requests_mu_);
-    VLOG(1) << "Enqueueing aspired versions request: " << servable_name << ": "
+    VLOG(2) << "Enqueueing aspired versions request: " << servable_name << ": "
             << ServableVersionsDebugString(versions);
     pending_aspired_versions_requests_[string(servable_name)] =
         std::move(versions);
@@ -253,7 +253,7 @@ void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
 void AspiredVersionsManager::ProcessAspiredVersionsRequest(
     const StringPiece servable_name,
     std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
-  VLOG(1) << "Processing aspired versions request: " << servable_name << ": "
+  VLOG(2) << "Processing aspired versions request: " << servable_name << ": "
           << ServableVersionsDebugString(versions);
 
   const std::set<int64_t> next_aspired_versions = GetVersionNumbers(versions);
