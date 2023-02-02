@@ -7,9 +7,7 @@ package(default_visibility = [
 
 package_group(
     name = "http_client_users",
-    packages = [
-        "//third_party/ecclesia/...",
-    ],
+    packages = ["//..."],
 )
 
 licenses(["notice"])
