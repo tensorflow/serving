@@ -36,6 +36,9 @@ jobs:
          
           # Number of days of inactivity before a stale Issue is closed
           days-before-issue-close: 14
+          
+          # reason for closed the issue default value is not_planned 
+          close-issue-reason: completed
        
           # Number of days of inactivity before a stale PR is closed
           days-before-pr-close: -1
