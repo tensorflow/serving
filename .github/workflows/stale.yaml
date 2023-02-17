@@ -20,16 +20,16 @@ jobs:
       - uses: actions/stale@v7
         with:
           # comment on issue if not active for more then 14 days.
-          stale-issue-message: 'This issue has been automatically marked as stale because it has no recent activity. It will be closed if no further activity occurs. Thank you.'
+          stale-issue-message: 'This issue has been marked stale because it has no recent activity since 14 days. It will be closed if no further activity occurs. Thank you.'
         
           # comment on PR if not active for more then 14 days.
-          stale-pr-message: 'This PR has been automatically marked as stale because it has no recent activity. It will be closed if no further activity occurs. Thank you.'
+          stale-pr-message: 'This PR has been marked stale because it has no recent activity since 14 days. It will be closed if no further activity occurs. Thank you.'
         
           #comment on issue if stale for more then 14 days. 
-          close-issue-message: "Closing as stale. Please reopen if you'd like to work on this further"
+          close-issue-message: This issue was closed due to lack of activity after being marked stale for past 14 days.
         
           #comment on PR if stale for more then 14 days. 
-          close-pr-message: "Closing as stale. Please reopen if you'd like to work on this further"
+          close-pr-message: This PR was closed due to lack of activity after being marked stale for past 14 days.
         
           # Number of days of inactivity before an Issue Request becomes stale
           days-before-issue-stale: 14
@@ -43,14 +43,14 @@ jobs:
           # Number of days of inactivity before a stale PR is closed
           days-before-pr-close: -1
        
-          # Number of days of inactivity before an PR Request becomes stale
+          # Number of days of inactivity before an PR Request becomes stale 
           days-before-pr-stale: -1
          
           #Check for label to stale or close the issue/PR
           any-of-labels: 'stat:awaiting response'
          
           #override stale to stalled for PR
-          stale-pr-label: 'Stalled'
+          stale-pr-label: 'stale'
           
           #override stale to stalled for Issue
-          stale-issue-label: "Stalled"
+          stale-issue-label: "stale"
