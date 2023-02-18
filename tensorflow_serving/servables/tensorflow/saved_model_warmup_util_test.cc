@@ -105,7 +105,8 @@ TEST_P(SavedModelBundleWarmupUtilTest, UnsupportedFileFormat) {
   std::vector<string> warmup_records;
   // Add unsupported log type
   PredictionLog prediction_log;
-  PopulatePredictionLog(&prediction_log, PredictionLog::kSessionRunLog);
+  TF_ASSERT_OK(
+      PopulatePredictionLog(&prediction_log, PredictionLog::kSessionRunLog));
   warmup_records.push_back(prediction_log.SerializeAsString());
 
   TF_ASSERT_OK(WriteWarmupDataAsSerializedProtos(fname, warmup_records, 10));
@@ -129,7 +130,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, TooManyWarmupRecords) {
                               internal::WarmupConsts::kRequestsFileName);
 
   std::vector<string> warmup_records;
-  AddMixedWarmupData(&warmup_records);
+  TF_ASSERT_OK(AddMixedWarmupData(&warmup_records));
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records,
                                internal::WarmupConsts::kMaxNumRecords + 1));
   SavedModelBundle saved_model_bundle;
@@ -172,7 +173,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, RunFailure) {
 
   int num_warmup_records = 10;
   std::vector<string> warmup_records;
-  AddMixedWarmupData(&warmup_records);
+  TF_ASSERT_OK(AddMixedWarmupData(&warmup_records));
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, num_warmup_records));
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);
