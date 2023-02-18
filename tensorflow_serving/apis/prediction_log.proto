@@ -10,6 +10,7 @@ import "tensorflow_serving/apis/regression.proto";
 import "tensorflow_serving/apis/session_service.proto";
 
 option cc_enable_arenas = true;
+option go_package = "github.com/tensorflow/serving/tensorflow_serving/apis/prediction_log_go_proto";
 
 message ClassifyLog {
   ClassificationRequest request = 1;

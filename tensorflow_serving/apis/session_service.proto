@@ -7,6 +7,7 @@ import "tensorflow/core/protobuf/named_tensor.proto";
 import "tensorflow_serving/apis/model.proto";
 
 option cc_enable_arenas = true;
+option go_package = "github.com/tensorflow/serving/tensorflow_serving/apis/session_service_go_proto";
 
 message SessionRunRequest {
   // Model Specification. If version is not specified, will use the latest

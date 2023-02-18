@@ -10,6 +10,8 @@ import "google/protobuf/wrappers.proto";
 
 package tensorflow.serving;
 
+option go_package = "github.com/tensorflow/serving/tensorflow_serving/resources/resources_go_proto";
+
 // One kind of resource on one device (or type of device).
 message Resource {
   // The type of device on which the resource resides, e.g. CPU or GPU.
