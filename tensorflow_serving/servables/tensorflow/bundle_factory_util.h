@@ -69,6 +69,11 @@ Status CreateBatchScheduler(
 }
 
 // Estimates the resources a session bundle or saved model bundle will use once
+// loaded, from infra validation.
+Status EstimateResourceFromValidationResult(const string& path,
+                                            ResourceAllocation* estimate);
+
+// Estimates the resources a session bundle or saved model bundle will use once
 // loaded, from its export or saved model path. tensorflow::Env::Default() will
 // be used to access the file system.
 //
