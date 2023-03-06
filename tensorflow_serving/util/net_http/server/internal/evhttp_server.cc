@@ -222,7 +222,7 @@ bool EvHTTPServer::StartAcceptingRequests() {
 
   // "::"  =>  in6addr_any
   ev_uint16_t ev_port = static_cast<ev_uint16_t>(port);
-  ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, "::", ev_port);
+  ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, "127.0.0.1", ev_port);
   if (ev_listener_ == nullptr) {
     // in case ipv6 is not supported, fallback to inaddr_any
     ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, nullptr, ev_port);

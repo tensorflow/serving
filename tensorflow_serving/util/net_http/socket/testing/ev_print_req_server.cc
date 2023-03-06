@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
 
   // nullptr will bind to ipv4, which will fail to accept
   // requests from clients where getaddressinfo() defaults to AF_INET6
-  handle = evhttp_bind_socket_with_handle(http, "::0", (ev_uint16_t)port);
+  handle = evhttp_bind_socket_with_handle(http, "127.0.0.1", (ev_uint16_t)port);
   if (!handle) {
     fprintf(stderr, "couldn't bind to port %d. Exiting.\n", (int)port);
     return 1;
