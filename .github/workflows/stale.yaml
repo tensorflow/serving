@@ -33,18 +33,18 @@ jobs:
     steps:
     - uses: 'actions/stale@v7'
       with:
-        # comment on issue if not active for more then 14 days.
-        stale-issue-message: 'This issue has been marked stale because it has no recent activity since 14 days. It will be closed if no further activity occurs. Thank you.'
+        # comment on issue if not active for more then 7 days.
+        stale-issue-message: 'This issue has been marked stale because it has no recent activity since 7 days. It will be closed if no further activity occurs. Thank you.'
         # comment on PR if not active for more then 14 days.
         stale-pr-message: 'This PR has been marked stale because it has no recent activity since 14 days. It will be closed if no further activity occurs. Thank you.'
-        # comment on issue if stale for more then 14 days.
-        close-issue-message: This issue was closed due to lack of activity after being marked stale for past 14 days.
+        # comment on issue if stale for more then 7 days.
+        close-issue-message: This issue was closed due to lack of activity after being marked stale for past 7 days.
         # comment on PR if stale for more then 14 days.
         close-pr-message: This PR was closed due to lack of activity after being marked stale for past 14 days.
         # Number of days of inactivity before an Issue Request becomes stale
-        days-before-issue-stale: 14
+        days-before-issue-stale: 7
         # Number of days of inactivity before a stale Issue is closed
-        days-before-issue-close: 14
+        days-before-issue-close: 7
         # reason for closed the issue default value is not_planned
         close-issue-reason: completed
         # Comma separated list of labels that can be assigned to issues to exclude them from being marked as stale
