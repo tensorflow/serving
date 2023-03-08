@@ -89,6 +89,9 @@ ModelServerConfig BuildSingleModelConfig(const string& model_name,
   LOG(INFO) << "Building single TensorFlow model file config: "
             << " model_name: " << model_name
             << " model_base_path: " << model_base_path;
+  LOG(INFO) << "Building single TensorFlow model file config: "
+            << " model_name: " << model_name
+            << " model_base_path: " << model_base_path;
   tensorflow::serving::ModelConfig* single_model =
       config.mutable_model_config_list()->add_config();
   single_model->set_name(model_name);
