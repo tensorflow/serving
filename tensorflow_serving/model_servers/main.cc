@@ -61,6 +61,7 @@ limitations under the License.
 void InitializeTPU(tensorflow::serving::main::Server::Options& server_options) {
   std::cout << "Initializing TPU system.";
   std::cout << "Initializing TPU system.";
+  std::cout << "Initializing TPU system.";
   tensorflow::tpu::TopologyProto tpu_topology;
   TF_QCHECK_OK(tensorflow::InitializeTPUSystemGlobally(
       tensorflow::Env::Default(), &tpu_topology))
