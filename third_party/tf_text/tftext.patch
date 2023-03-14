@@ -1,8 +1,8 @@
 diff --git a/tensorflow_text/core/kernels/fast_wordpiece_tokenizer.cc b/tensorflow_text/core/kernels/fast_wordpiece_tokenizer.cc
-index c1f0e4e..a92ecd8 100644
+index 7f2c7c3..a9a6e06 100644
 --- a/tensorflow_text/core/kernels/fast_wordpiece_tokenizer.cc
 +++ b/tensorflow_text/core/kernels/fast_wordpiece_tokenizer.cc
-@@ -32,7 +32,7 @@ namespace {
+@@ -34,7 +34,7 @@ namespace {
  template <bool kGetPieces>
  int GetCurrentOutputSize(std::vector<std::string>* output_pieces,
                           std::vector<int>* output_ids) {
@@ -11,7 +11,7 @@ index c1f0e4e..a92ecd8 100644
      return output_pieces->size();
    } else {
      return output_ids->size();
-@@ -538,10 +538,10 @@ void FastWordpieceTokenizer::AppendTokenToOutput(
+@@ -540,10 +540,10 @@ void FastWordpieceTokenizer::AppendTokenToOutput(
      std::vector<int>* output_end_offsets) const {
    auto token_id =
        fast_wordpiece_tokenizer_utils::GetTokenId(encoded_token_value);
@@ -24,7 +24,7 @@ index c1f0e4e..a92ecd8 100644
      // For suffix tokens, the length below is without the suffix indicator.
      int token_substr_length =
          fast_wordpiece_tokenizer_utils::GetTokenLength(encoded_token_value);
-@@ -553,7 +553,7 @@ void FastWordpieceTokenizer::AppendTokenToOutput(
+@@ -555,7 +555,7 @@ void FastWordpieceTokenizer::AppendTokenToOutput(
        // to adjust and add the length of the suffix indicator string.
        token_substr_length += config_->suffix_indicator()->size();
      }
@@ -33,7 +33,7 @@ index c1f0e4e..a92ecd8 100644
        // If token id is unk_token_id, it means that it is a dummy node for
        // punctuations that are not contained in the vocabulary, we append
        // the unk_token in this case. Otherwise, we
-@@ -569,7 +569,7 @@ void FastWordpieceTokenizer::AppendTokenToOutput(
+@@ -571,7 +571,7 @@ void FastWordpieceTokenizer::AppendTokenToOutput(
                ? absl::StrCat(config_->suffix_indicator()->str(), subword_str)
                : subword_str);
      }
@@ -42,7 +42,7 @@ index c1f0e4e..a92ecd8 100644
        // Record the offsets relative to the start of the whole text.
        output_start_offsets->push_back(input_word_offset_in_text +
                                        cur_offset_in_input_word);
-@@ -646,15 +646,15 @@ void FastWordpieceTokenizer::ResetOutputAppendUnknownToken(
+@@ -648,15 +648,15 @@ void FastWordpieceTokenizer::ResetOutputAppendUnknownToken(
      std::vector<std::string>* output_pieces, std::vector<int>* output_ids,
      std::vector<int>* output_start_offsets,
      std::vector<int>* output_end_offsets) const {
@@ -62,10 +62,10 @@ index c1f0e4e..a92ecd8 100644
      output_start_offsets->back() = input_word_offset_in_text;
  
 diff --git a/tensorflow_text/tftext.bzl b/tensorflow_text/tftext.bzl
-index ff40480..b649cfc 100644
+index 65430ca..e8584fb 100644
 --- a/tensorflow_text/tftext.bzl
 +++ b/tensorflow_text/tftext.bzl
-@@ -123,8 +123,8 @@ def tf_cc_library(
+@@ -142,8 +142,8 @@ def tf_cc_library(
              "@org_tensorflow//tensorflow/core:portable_tensorflow_lib_lite",
          ],
          "//conditions:default": [
@@ -74,5 +74,16 @@ index ff40480..b649cfc 100644
 +            "@org_tensorflow//tensorflow/core:tensorflow_opensource",
 +            "@org_tensorflow//tensorflow/lite/kernels/shim:status_macros", "@org_tensorflow//tensorflow/lite/kernels/shim:tf_op_shim", "@org_tensorflow//tensorflow/lite/kernels/shim:op_kernel", "@org_tensorflow//tensorflow/lite/kernels/shim:tensor_view", "@org_tensorflow//tensorflow/lite/kernels/shim:shape",
          ] + tf_deps + oss_deps,
+     })
+     native.cc_library(
+@@ -200,8 +200,8 @@ def tflite_cc_library(
+             "@org_tensorflow//tensorflow/core:portable_tensorflow_lib_lite",
+         ],
+         "//conditions:default": [
+-            "@local_config_tf//:libtensorflow_framework",
+-            "@local_config_tf//:tf_header_lib",
++            "@org_tensorflow//tensorflow/core:tensorflow_opensource",
++            "@org_tensorflow//tensorflow/lite/kernels/shim:status_macros", "@org_tensorflow//tensorflow/lite/kernels/shim:tf_op_shim", "@org_tensorflow//tensorflow/lite/kernels/shim:op_kernel", "@org_tensorflow//tensorflow/lite/kernels/shim:tensor_view", "@org_tensorflow//tensorflow/lite/kernels/shim:shape",
+         ] + oss_deps,
      })
      native.cc_library(
