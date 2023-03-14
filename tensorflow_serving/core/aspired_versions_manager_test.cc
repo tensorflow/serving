@@ -1134,7 +1134,9 @@ TEST_P(AspiredVersionsManagerTest,
   test_util::MockLoader* first_loader = new NiceMock<test_util::MockLoader>();
   first_aspired_versions.push_back({id, std::unique_ptr<Loader>(first_loader)});
   EXPECT_CALL(*first_loader, LoadWithMetadata(Loader::Metadata{id}))
-      .WillRepeatedly(Return(Status(error::UNKNOWN, "first load failing")));
+      .WillRepeatedly(Return(
+          Status(static_cast<tsl::errors::Code>(absl::StatusCode::kUnknown),
+                 "first load failing")));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
   HandlePendingAspiredVersionsRequests();
