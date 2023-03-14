@@ -109,7 +109,8 @@ monitoring::Counter<1>* GetExampleCountTotal() { return example_count_total; }
 // Metrics by model
 void RecordModelRequestCount(const string& model_name, const Status& status) {
   model_request_status_count_total
-      ->GetCell(model_name, error::Code_Name(status.code()))
+      ->GetCell(model_name,
+                error::Code_Name(static_cast<error::Code>(status.code())))
       ->IncrementBy(1);
 }
 
