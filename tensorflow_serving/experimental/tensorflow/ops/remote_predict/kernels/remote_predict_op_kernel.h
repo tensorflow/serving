@@ -60,7 +60,7 @@ class RemotePredictOp : public AsyncOpKernel {
     absl::Status prediction_service_status =
         PredictionServiceStubType::Create(target_address, &prediction_service_);
     OP_REQUIRES(context, prediction_service_status.ok(),
-                tensorflow::Status(static_cast<tensorflow::error::Code>(
+                tensorflow::Status(static_cast<tensorflow::errors::Code>(
                                        prediction_service_status.code()),
                                    prediction_service_status.message()));
   }
@@ -107,7 +107,8 @@ class RemotePredictOp : public AsyncOpKernel {
     auto rpc_or = prediction_service_->CreateRpc(
         absl::Milliseconds(max_rpc_deadline_millis_));
     OP_REQUIRES_ASYNC(context, rpc_or.ok(),
-                      tensorflow::Status(rpc_or.status().code(),
+                      tensorflow::Status(static_cast<tensorflow::errors::Code>(
+                                             rpc_or.status().code()),
                                          rpc_or.status().error_message()),
                       [&]() {
                         delete request;
@@ -156,7 +157,7 @@ class RemotePredictOp : public AsyncOpKernel {
         OP_REQUIRES_OK_ASYNC(
             context,
             tensorflow::Status(
-                static_cast<tensorflow::error::Code>(rpc_status.code()),
+                static_cast<tensorflow::errors::Code>(rpc_status.code()),
                 rpc_status.message()),
             rpc_cleaner.release());
       } else {

@@ -61,7 +61,7 @@ Status LoadSessionBundleOrSavedModelBundle(
                           bundle);
   }
   return Status(
-      error::Code::NOT_FOUND,
+      static_cast<tsl::errors::Code>(absl::StatusCode::kNotFound),
       strings::StrCat("Specified file path does not appear to contain a "
                       "SavedModel bundle (should have a file called "
                       "`saved_model.pb`)\n"

@@ -92,7 +92,7 @@ TEST_F(GetModelStatusImplTest, MissingOrEmptyModelSpecFailure) {
 
   // Empty request is invalid.
   EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
       GetModelStatusImpl::GetModelStatus(GetServerCore(), request, &response)
           .code());
 }

@@ -93,7 +93,9 @@ void ProcessPrometheusRequest(PrometheusExporter* exporter, const string& path,
   if (req->uri_path() != path) {
     output = absl::StrFormat("Unexpected path: %s. Should be %s",
                              req->uri_path(), path);
-    status = Status(error::Code::INVALID_ARGUMENT, output);
+    status = Status(static_cast<tensorflow::errors::Code>(
+                        absl::StatusCode::kInvalidArgument),
+                    output);
   } else {
     status = exporter->GeneratePage(&output);
   }

@@ -139,7 +139,9 @@ TEST_P(SavedModelBundleWarmupUtilTest, TooManyWarmupRecords) {
       CreateModelWarmupOptions(), base_path,
       [](PredictionLog prediction_log) { return OkStatus(); });
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
   EXPECT_THAT(
       status.ToString(),
       ::testing::HasSubstr("Number of warmup records exceeds the maximum"));
@@ -159,7 +161,9 @@ TEST_P(SavedModelBundleWarmupUtilTest, UnparsableRecord) {
       CreateModelWarmupOptions(), base_path,
       [](PredictionLog prediction_log) { return OkStatus(); });
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Failed to parse warmup record"));
 }
@@ -182,7 +186,9 @@ TEST_P(SavedModelBundleWarmupUtilTest, RunFailure) {
         return errors::InvalidArgument("Run failed");
       });
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run failed"));
 }
 INSTANTIATE_TEST_SUITE_P(ParallelWarmUp, SavedModelBundleWarmupUtilTest,

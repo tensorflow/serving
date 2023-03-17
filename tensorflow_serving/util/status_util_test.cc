@@ -22,7 +22,9 @@ namespace serving {
 namespace {
 
 TEST(StatusUtilTest, ConvertsErrorStatusToStatusProto) {
-  Status status = Status(tensorflow::error::ABORTED, "aborted error message");
+  Status status =
+      Status(static_cast<tsl::errors::Code>(absl::StatusCode::kAborted),
+             "aborted error message");
   StatusProto status_proto = ToStatusProto(status);
   EXPECT_EQ(tensorflow::error::ABORTED, status_proto.error_code());
   EXPECT_EQ("aborted error message", status_proto.error_message());

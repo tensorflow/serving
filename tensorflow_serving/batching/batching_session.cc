@@ -758,7 +758,8 @@ void BatchingSession::ProcessBatch(
         ->Add(dequeue_time_micros - task.enqueue_time_micros);
   }
   if (all_tasks_timeout_exceeded) {
-    status = Status(error::RESOURCE_EXHAUSTED,
+    status = Status(static_cast<tensorflow::errors::Code>(
+                        absl::StatusCode::kResourceExhausted),
                     "Run() timeout exceeded while waiting in batching queue");
     return;
   }
