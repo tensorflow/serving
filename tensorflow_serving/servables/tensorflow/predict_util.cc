@@ -48,7 +48,25 @@ Status VerifySignature(const SignatureDef& signature) {
 
 Status VerifyRequestInputsSize(const SignatureDef& signature,
                                const PredictRequest& request) {
-  if (request.inputs().size() != signature.inputs().size()) {
+  if (request.inputs().size() >= signature.inputs().size()) {
+    const std::set<string> request_inputs = GetMapKeys(request.inputs());
+    const std::set<string> signature_inputs = GetMapKeys(signature.inputs());
+    const std::set<string> missing =
+      SetDifference(signature_inputs, request_inputs);
+    if (!missing.empty()) {
+      const std::set<string> sent_extra =
+        SetDifference(request_inputs, signature_inputs);
+      return tensorflow::Status(
+        tensorflow::error::INVALID_ARGUMENT,
+	absl::StrCat(
+	  "input size does not match signature: ", request.inputs().size(),
+	  "!=", signature.inputs().size(), " len({",
+	  absl::StrJoin(request_inputs, ","), "}) != len({",
+	  absl::StrJoin(signature_inputs, ","), "}). Sent extra: {",
+	  absl::StrJoin(sent_extra, ","), "}. Missing but required: {",
+	  absl::StrJoin(missing, ","), "}."));
+    }
+  } else {
     const std::set<string> request_inputs = GetMapKeys(request.inputs());
     const std::set<string> signature_inputs = GetMapKeys(signature.inputs());
     const std::set<string> sent_extra =
@@ -119,10 +137,10 @@ Status PreProcessPrediction(const SignatureDef& signature,
                             std::vector<string>* output_tensor_aliases) {
   TF_RETURN_IF_ERROR(VerifySignature(signature));
   TF_RETURN_IF_ERROR(VerifyRequestInputsSize(signature, request));
-  for (auto& input : request.inputs()) {
+  for (auto& input : signature.inputs()) {
     const string& alias = input.first;
-    auto iter = signature.inputs().find(alias);
-    if (iter == signature.inputs().end()) {
+    auto iter = request.inputs().find(alias);
+    if (iter == request.inputs().end()) {
       return tensorflow::Status(
           tensorflow::error::INVALID_ARGUMENT,
           strings::StrCat("input tensor alias not found in signature: ", alias,
@@ -131,11 +149,11 @@ Status PreProcessPrediction(const SignatureDef& signature,
                           "}."));
     }
     Tensor tensor;
-    if (!tensor.FromProto(input.second)) {
+    if (!tensor.FromProto(iter->second)) {
       return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
                                 "tensor parsing error: " + alias);
     }
-    inputs->emplace_back(std::make_pair(iter->second.name(), tensor));
+    inputs->emplace_back(std::make_pair(input.second.name(), tensor));
   }
 
   // Prepare run target.
