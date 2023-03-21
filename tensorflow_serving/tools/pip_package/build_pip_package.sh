@@ -63,12 +63,8 @@ function main() {
   cp ${PIP_SRC_DIR}/setup.py "${TMPDIR}"
 
   pushd "${TMPDIR}"
-  echo $(date) : "=== Building wheel (CPU)"
-  python3 setup.py bdist_wheel --universal \
-    --project_name tensorflow-serving-api # >/dev/null
-  echo $(date) : "=== Building wheel (GPU)"
-  python3 setup.py bdist_wheel --universal \
-    --project_name tensorflow-serving-api-gpu # >/dev/null
+  echo $(date) : "=== Building wheel"
+  python3 setup.py bdist_wheel --universal
   mkdir -p "${DEST}"
   cp dist/* "${DEST}"
   popd
