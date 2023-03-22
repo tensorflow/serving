@@ -1,5 +1,5 @@
 load("@com_google_protobuf//:protobuf.bzl", "cc_proto_library")
-load("@com_google_protobuf//:protobuf.bzl", "py_proto_library")
+load("@org_tensorflow//tensorflow/tsl/platform/default:build_config.bzl", "py_proto_library")
 
 def serving_proto_library(
         name,
