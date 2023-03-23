@@ -47,8 +47,11 @@ if '--project_name' in sys.argv:
 _TF_REQ = ['tensorflow'+_TF_VERSION_SANITIZED]
 
 # GPU build (note: the only difference is we depend on tensorflow-gpu so
-# pip doesn't overwrite it with the CPU build)
-if 'tensorflow-serving-api-gpu' in project_name:
+# pip doesn't overwrite it with the CPU build. And tensorflow-gpu has been the
+# same package starting v2.1 according to
+# https://pypi.org/project/tensorflow-gpu/2.12.0/, so only check against TF
+# versions prior to v2.1.)
+if 'tensorflow-serving-api-gpu' in project_name and _VERSION < '2.1.0':
   _TF_REQ = ['tensorflow-gpu'+_TF_VERSION_SANITIZED]
 
 
