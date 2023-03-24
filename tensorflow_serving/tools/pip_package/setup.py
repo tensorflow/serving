@@ -51,7 +51,10 @@ _TF_REQ = ['tensorflow'+_TF_VERSION_SANITIZED]
 # same package starting v2.1 according to
 # https://pypi.org/project/tensorflow-gpu/2.12.0/, so only check against TF
 # versions prior to v2.1.)
-if 'tensorflow-serving-api-gpu' in project_name and _VERSION < '2.1.0':
+if (
+    'tensorflow-serving-api-gpu' in project_name
+    and _TF_VERSION_SANITIZED < '2.1'
+):
   _TF_REQ = ['tensorflow-gpu'+_TF_VERSION_SANITIZED]
 
 
