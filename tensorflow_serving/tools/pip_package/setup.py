@@ -53,7 +53,7 @@ _TF_REQ = ['tensorflow'+_TF_VERSION_SANITIZED]
 # versions prior to v2.1.)
 if (
     'tensorflow-serving-api-gpu' in project_name
-    and _TF_VERSION_SANITIZED < '2.1'
+    and _VERSION < '2.1'
 ):
   _TF_REQ = ['tensorflow-gpu'+_TF_VERSION_SANITIZED]
 
@@ -79,7 +79,7 @@ setup(
     install_requires=REQUIRED_PACKAGES,
     # Supported Python versions. Match to what TF needs here:
     #   https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/pip_package/setup.py
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
@@ -87,7 +87,6 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
