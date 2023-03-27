@@ -43,45 +43,42 @@ namespace {
 net_http::HTTPStatusCode ToHTTPStatusCode(const Status& status) {
   using error::Code;
   using net_http::HTTPStatusCode;
-  switch (status.code()) {
-    case Code::OK:
+  switch (static_cast<absl::StatusCode>(status.code())) {
+    case absl::StatusCode::kOk:
       return HTTPStatusCode::OK;
-    case Code::CANCELLED:
+    case absl::StatusCode::kCancelled:
       return HTTPStatusCode::CLIENT_CLOSED_REQUEST;
-    case Code::UNKNOWN:
+    case absl::StatusCode::kUnknown:
       return HTTPStatusCode::ERROR;
-    case Code::INVALID_ARGUMENT:
+    case absl::StatusCode::kInvalidArgument:
       return HTTPStatusCode::BAD_REQUEST;
-    case Code::DEADLINE_EXCEEDED:
+    case absl::StatusCode::kDeadlineExceeded:
       return HTTPStatusCode::GATEWAY_TO;
-    case Code::NOT_FOUND:
+    case absl::StatusCode::kNotFound:
       return HTTPStatusCode::NOT_FOUND;
-    case Code::ALREADY_EXISTS:
+    case absl::StatusCode::kAlreadyExists:
       return HTTPStatusCode::CONFLICT;
-    case Code::PERMISSION_DENIED:
+    case absl::StatusCode::kPermissionDenied:
       return HTTPStatusCode::FORBIDDEN;
-    case Code::RESOURCE_EXHAUSTED:
+    case absl::StatusCode::kResourceExhausted:
       return HTTPStatusCode::TOO_MANY_REQUESTS;
-    case Code::FAILED_PRECONDITION:
+    case absl::StatusCode::kFailedPrecondition:
       return HTTPStatusCode::BAD_REQUEST;
-    case Code::ABORTED:
+    case absl::StatusCode::kAborted:
       return HTTPStatusCode::CONFLICT;
-    case Code::OUT_OF_RANGE:
+    case absl::StatusCode::kOutOfRange:
       return HTTPStatusCode::BAD_REQUEST;
-    case Code::UNIMPLEMENTED:
+    case absl::StatusCode::kUnimplemented:
       return HTTPStatusCode::NOT_IMP;
-    case Code::INTERNAL:
+    case absl::StatusCode::kInternal:
       return HTTPStatusCode::ERROR;
-    case Code::UNAVAILABLE:
+    case absl::StatusCode::kUnavailable:
       return HTTPStatusCode::SERVICE_UNAV;
-    case Code::DATA_LOSS:
+    case absl::StatusCode::kDataLoss:
       return HTTPStatusCode::ERROR;
-    case Code::UNAUTHENTICATED:
+    case absl::StatusCode::kUnauthenticated:
       return HTTPStatusCode::UNAUTHORIZED;
-    case Code::
-        DO_NOT_USE_RESERVED_FOR_FUTURE_EXPANSION_USE_DEFAULT_IN_SWITCH_INSTEAD_:
-    case error::Code_INT_MIN_SENTINEL_DO_NOT_USE_:
-    case error::Code_INT_MAX_SENTINEL_DO_NOT_USE_:
+    default:
       return HTTPStatusCode::ERROR;
   }
 }
@@ -96,7 +93,9 @@ void ProcessPrometheusRequest(PrometheusExporter* exporter, const string& path,
   if (req->uri_path() != path) {
     output = absl::StrFormat("Unexpected path: %s. Should be %s",
                              req->uri_path(), path);
-    status = Status(error::Code::INVALID_ARGUMENT, output);
+    status = Status(static_cast<tensorflow::errors::Code>(
+                        absl::StatusCode::kInvalidArgument),
+                    output);
   } else {
     status = exporter->GeneratePage(&output);
   }

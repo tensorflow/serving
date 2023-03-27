@@ -56,7 +56,7 @@ Status VerifyRequestInputsSize(const SignatureDef& signature,
     const std::set<string> missing =
         SetDifference(signature_inputs, request_inputs);
     return tensorflow::Status(
-        tensorflow::error::INVALID_ARGUMENT,
+        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
         absl::StrCat(
             "input size does not match signature: ", request.inputs().size(),
             "!=", signature.inputs().size(), " len({",
@@ -124,7 +124,7 @@ Status PreProcessPrediction(const SignatureDef& signature,
     auto iter = signature.inputs().find(alias);
     if (iter == signature.inputs().end()) {
       return tensorflow::Status(
-          tensorflow::error::INVALID_ARGUMENT,
+          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
           strings::StrCat("input tensor alias not found in signature: ", alias,
                           ". Inputs expected to be in the set {",
                           absl::StrJoin(GetMapKeys(signature.inputs()), ","),
@@ -132,8 +132,9 @@ Status PreProcessPrediction(const SignatureDef& signature,
     }
     Tensor tensor;
     if (!tensor.FromProto(input.second)) {
-      return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
-                                "tensor parsing error: " + alias);
+      return tensorflow::Status(
+          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+          "tensor parsing error: " + alias);
     }
     inputs->emplace_back(std::make_pair(iter->second.name(), tensor));
   }
@@ -146,15 +147,16 @@ Status PreProcessPrediction(const SignatureDef& signature,
     auto iter = signature.outputs().find(alias);
     if (iter == signature.outputs().end()) {
       return tensorflow::Status(
-          tensorflow::error::INVALID_ARGUMENT,
+          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
           strings::StrCat("output tensor alias not found in signature: ", alias,
                           " Outputs expected to be in the set {",
                           absl::StrJoin(GetMapKeys(signature.outputs()), ","),
                           "}."));
     }
     if (seen_outputs.find(alias) != seen_outputs.end()) {
-      return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
-                                "duplicate output tensor alias: " + alias);
+      return tensorflow::Status(
+          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+          "duplicate output tensor alias: " + alias);
     }
     seen_outputs.insert(alias);
     output_tensor_names->emplace_back(iter->second.name());
@@ -178,8 +180,9 @@ Status PostProcessPredictionResult(
     PredictResponse* response) {
   // Validate and return output.
   if (output_tensors.size() != output_tensor_aliases.size()) {
-    return tensorflow::Status(tensorflow::error::UNKNOWN,
-                              "Predict internal error");
+    return tensorflow::Status(
+        static_cast<tensorflow::errors::Code>(absl::StatusCode::kUnknown),
+        "Predict internal error");
   }
   switch (option) {
     case internal::PredictResponseTensorSerializationOption::kAsProtoField: {

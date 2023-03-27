@@ -31,6 +31,10 @@ Status SetGraphRewriter(
   return errors::Unimplemented("This functionality is not implemented.");
 }
 
+Status ResetGraphRewriterForTesting() {
+  return errors::Unimplemented("This functionality is not implemented.");
+}
+
 Status ConvertSignaturesToSignatureDefs(MetaGraphDef* meta_graph_def) {
   return errors::Unimplemented("Session Bundle is deprecated and removed.");
 }
@@ -57,7 +61,7 @@ Status LoadSessionBundleOrSavedModelBundle(
                           bundle);
   }
   return Status(
-      error::Code::NOT_FOUND,
+      static_cast<tsl::errors::Code>(absl::StatusCode::kNotFound),
       strings::StrCat("Specified file path does not appear to contain a "
                       "SavedModel bundle (should have a file called "
                       "`saved_model.pb`)\n"

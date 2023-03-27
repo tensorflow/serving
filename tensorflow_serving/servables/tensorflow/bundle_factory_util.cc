@@ -80,6 +80,11 @@ Status GetPerModelBatchingParams(const string& path,
   return OkStatus();
 }
 
+Status EstimateResourceFromValidationResult(const string& path,
+                                            ResourceAllocation* estimate) {
+  return EstimateMainRamBytesFromValidationResult(path, estimate);
+}
+
 Status EstimateResourceFromPath(const string& path, bool use_validation_result,
                                 ResourceAllocation* estimate) {
   TensorflowFileProbingEnv env(Env::Default());

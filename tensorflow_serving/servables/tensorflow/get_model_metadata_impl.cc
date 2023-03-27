@@ -33,7 +33,7 @@ namespace {
 Status ValidateGetModelMetadataRequest(const GetModelMetadataRequest& request) {
   if (request.metadata_field_size() == 0) {
     return tensorflow::Status(
-        tensorflow::error::INVALID_ARGUMENT,
+        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
         "GetModelMetadataRequest must specify at least one metadata_field");
   }
   for (const auto& metadata_field : request.metadata_field()) {
@@ -72,8 +72,9 @@ Status GetModelMetadataImpl::GetModelMetadata(
     ServerCore* core, const GetModelMetadataRequest& request,
     GetModelMetadataResponse* response) {
   if (!request.has_model_spec()) {
-    return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
-                              "Missing ModelSpec");
+    return tensorflow::Status(
+        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+        "Missing ModelSpec");
   }
   return GetModelMetadataWithModelSpec(core, request.model_spec(), request,
                                        response);

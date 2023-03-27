@@ -20,7 +20,8 @@ namespace serving {
 
 StatusProto ToStatusProto(const Status& status) {
   StatusProto status_proto;
-  status_proto.set_error_code(status.code());
+  status_proto.set_error_code(
+      static_cast<tensorflow::error::Code>(status.code()));
   if (!status.ok()) {
     status_proto.set_error_message(status.error_message());
   }
@@ -30,7 +31,8 @@ StatusProto ToStatusProto(const Status& status) {
 Status FromStatusProto(const StatusProto& status_proto) {
   return status_proto.error_code() == tensorflow::error::OK
              ? Status()
-             : Status(status_proto.error_code(), status_proto.error_message());
+             : Status(static_cast<tsl::errors::Code>(status_proto.error_code()),
+                      status_proto.error_message());
 }
 
 }  // namespace serving

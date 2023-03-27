@@ -46,8 +46,9 @@ void PopulateClassificationRequest(ClassificationRequest* request);
 
 void PopulateRegressionRequest(RegressionRequest* request);
 
-void PopulatePredictionLog(PredictionLog* prediction_log,
-                           PredictionLog::LogTypeCase log_type);
+Status PopulatePredictionLog(PredictionLog* prediction_log,
+                             PredictionLog::LogTypeCase log_type,
+                             int num_repeated_values = 1);
 
 Status WriteWarmupData(const string& fname,
                        const std::vector<string>& warmup_records,
@@ -57,11 +58,15 @@ Status WriteWarmupDataAsSerializedProtos(
     const string& fname, const std::vector<string>& warmup_records,
     int num_warmup_records);
 
-void AddMixedWarmupData(
+Status AddMixedWarmupData(
     std::vector<string>* warmup_records,
     const std::vector<PredictionLog::LogTypeCase>& log_types = {
         PredictionLog::kRegressLog, PredictionLog::kClassifyLog,
         PredictionLog::kPredictLog, PredictionLog::kMultiInferenceLog});
+
+Status AddToWarmupData(std::vector<string>* warmup_records,
+                       PredictionLog::LogTypeCase log_type,
+                       int num_repeated_values = 1);
 
 // Creates a test SignatureDef with the given parameters
 SignatureDef CreateSignatureDef(const string& method_name,

@@ -15,8 +15,8 @@ workspace(name = "tf_serving")
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "9568da04825d949ce51a67d80cc90e239717b39e8de8c14ee9df0af90b04faa0",
-    git_commit = "a3e2c692c18649329c4210cf8df2487d2028e267",
+    sha256 = "47edef97c9b23661fd63621d522454f30772ac70a1fb5ff82864e566ef86be78",
+    git_commit = "f3cc513887e06150b6f870c522220dabedc58920",
 )
 
 # Import all of TensorFlow Serving's external dependencies.
@@ -28,7 +28,7 @@ tf_serving_workspace()
 
 # Check bazel version requirement, which is stricter than TensorFlow's.
 load("@bazel_skylib//lib:versions.bzl", "versions")
-versions.check("5.1.1")
+versions.check("5.3.0")
 
 # Initialize TensorFlow's external dependencies.
 load("@org_tensorflow//tensorflow:workspace3.bzl", "workspace")

@@ -188,7 +188,9 @@ TEST(LoaderHarnessTest, LoadError) {
 TEST(LoaderHarnessTest, ExternallySignalledError) {
   LoaderHarness harness(ServableId{"test", 0}, nullptr /* no loader */);
   EXPECT_EQ(LoaderHarness::State::kNew, harness.state());
-  const Status status = Status(error::UNKNOWN, "Some unknown error");
+  const Status status =
+      Status(static_cast<tensorflow::errors::Code>(absl::StatusCode::kUnknown),
+             "Some unknown error");
   harness.Error(status);
   EXPECT_EQ(LoaderHarness::State::kError, harness.state());
   EXPECT_EQ(status, harness.status());
@@ -196,7 +198,9 @@ TEST(LoaderHarnessTest, ExternallySignalledError) {
 
 TEST(LoaderHarnessTest, ExternallySignalledErrorWithCallback) {
   const ServableId id = {"test_servable", 42};
-  const Status error = Status(error::UNKNOWN, "Some unknown error");
+  const Status error =
+      Status(static_cast<tensorflow::errors::Code>(absl::StatusCode::kUnknown),
+             "Some unknown error");
   Notification callback_called;
   LoaderHarness::Options options;
   options.error_callback = [&](const ServableId& callback_id,

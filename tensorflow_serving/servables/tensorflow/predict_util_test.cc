@@ -184,19 +184,19 @@ TEST_F(PredictImplTest, MissingOrEmptyModelSpec) {
   PredictResponse response;
 
   // Empty request is invalid.
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
             CallPredict(GetServerCore(), request, &response).code());
 
   ModelSpec* model_spec = request.mutable_model_spec();
   model_spec->clear_name();
 
   // Model name is not specified.
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
             CallPredict(GetServerCore(), request, &response).code());
 
   // Model name is wrong.
   model_spec->set_name("test");
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
             CallPredict(GetServerCore(), request, &response).code());
 }
 
@@ -209,9 +209,8 @@ TEST_F(PredictImplTest, EmptyInputList) {
   model_spec->mutable_version()->set_value(kTestModelVersion);
 
   // The input is empty.
-  EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
-      CallPredict(GetServerCore(), request, &response).code());
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            CallPredict(GetServerCore(), request, &response).code());
 }
 
 TEST_F(PredictImplTest, InputTensorsDontMatchModelSpecInputs) {
@@ -236,7 +235,8 @@ TEST_F(PredictImplTest, InputTensorsDontMatchModelSpecInputs) {
   (*inputs)["unknown_key2"] = tensor_proto2;
 
   Status status = CallPredict(GetServerCore(), request, &response);
-  EXPECT_EQ(status.code(), tensorflow::error::INVALID_ARGUMENT);
+  EXPECT_EQ(status.code(),
+            static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
   EXPECT_THAT(status.error_message(),
               ::testing::HasSubstr("Sent extra: {unknown_key1,unknown_key2}"));
   EXPECT_THAT(status.error_message(),
@@ -280,7 +280,8 @@ TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
 
   // Output filter like this doesn't exist.
   Status status1 = CallPredict(GetServerCore(), request, &response);
-  EXPECT_EQ(status1.code(), tensorflow::error::INVALID_ARGUMENT);
+  EXPECT_EQ(status1.code(),
+            static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
   EXPECT_THAT(status1.error_message(),
               ::testing::HasSubstr(
                   "output tensor alias not found in signature: output_filter"));
@@ -292,7 +293,8 @@ TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
 
   // Duplicate output filter specified.
   Status status2 = CallPredict(GetServerCore(), request, &response);
-  EXPECT_EQ(status2.code(), tensorflow::error::INVALID_ARGUMENT);
+  EXPECT_EQ(status2.code(),
+            static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
   EXPECT_THAT(status2.error_message(),
               ::testing::HasSubstr("duplicate output tensor alias: y"));
 }
@@ -314,7 +316,8 @@ TEST_F(PredictImplTest, InputTensorsHaveWrongType) {
 
   // Input tensors are all wrong.
   Status status = CallPredict(GetServerCore(), request, &response);
-  EXPECT_EQ(status.code(), tensorflow::error::INVALID_ARGUMENT);
+  EXPECT_EQ(status.code(),
+            static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
   EXPECT_THAT(status.error_message(),
               ::testing::HasSubstr("to be float but string is provided"));
 }
