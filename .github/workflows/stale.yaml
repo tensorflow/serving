@@ -26,7 +26,6 @@ permissions:
   contents: read
   issues: write
   pull-requests: write
-
 jobs:
   stale:
     runs-on: ubuntu-latest
