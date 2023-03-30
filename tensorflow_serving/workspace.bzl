@@ -64,9 +64,9 @@ def tf_serving_workspace():
     # https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/save_models.py
     http_archive(
         name = "org_tensorflow_text",
-        sha256 = "8c8e1db352273bb872c01225cd8b2771153771cad20f725748e38d524f4f706f",
-        strip_prefix = "text-2.12.0-rc0",
-        url = "https://github.com/tensorflow/text/archive/v2.12.0-rc0.zip",
+        sha256 = "78e2289ae780424aee8590367e2bd1e4ed1da181869331e90664e0dc6021db4c",
+        strip_prefix = "text-2.12.0",
+        url = "https://github.com/tensorflow/text/archive/v2.12.0.zip",
         patches = ["@//third_party/tf_text:tftext.patch"],
         patch_args = ["-p1"],
         repo_mapping = {"@com_google_re2": "@com_googlesource_code_re2"},
