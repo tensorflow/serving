@@ -903,7 +903,7 @@ INSTANTIATE_TEST_CASE_P(
         IsTensorflowServingOSS()
             ? ::testing::Range(
                   static_cast<int>(test_util::ServerCoreTest::SAVED_MODEL),
-                  static_cast<int>(test_util::ServerCoreTest::SAVED_MODEL))
+                  static_cast<int>(test_util::ServerCoreTest::NUM_TEST_TYPES))
             : ::testing::Range(
                   0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)),
         ::testing::Bool()));
@@ -914,7 +914,7 @@ INSTANTIATE_TEST_CASE_P(
         IsTensorflowServingOSS()
             ? ::testing::Range(
                   static_cast<int>(test_util::ServerCoreTest::SAVED_MODEL),
-                  static_cast<int>(test_util::ServerCoreTest::SAVED_MODEL))
+                  static_cast<int>(test_util::ServerCoreTest::NUM_TEST_TYPES))
             : ::testing::Range(
                   0, static_cast<int>(ServerCoreTest::NUM_TEST_TYPES)),
         ::testing::Bool()));
