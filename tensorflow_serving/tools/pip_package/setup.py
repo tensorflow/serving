@@ -54,6 +54,7 @@ _TF_REQ = ['tensorflow'+_TF_VERSION_SANITIZED]
 if (
     'tensorflow-serving-api-gpu' in project_name
     and _VERSION < '2.1'
+    and _VERSION != '0.0.0'
 ):
   _TF_REQ = ['tensorflow-gpu'+_TF_VERSION_SANITIZED]
 
