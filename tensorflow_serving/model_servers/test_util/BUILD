@@ -57,8 +57,8 @@ cc_library(
     srcs = ["server_core_test_util.cc"],
     hdrs = ["server_core_test_util.h"],
     data = [
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ] + if_google([
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",

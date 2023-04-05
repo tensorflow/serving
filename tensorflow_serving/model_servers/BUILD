@@ -1,9 +1,8 @@
 # Description: Model Server
 
-load("//tensorflow_serving:oss_or_google.bzl", "if_google")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
-load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_libtpu")
+load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_google", "if_libtpu", "if_with_tpu_support")
 
 package(
     default_visibility = [
@@ -392,15 +391,6 @@ cc_library(
         ":prediction_service_impl",
         ":server_core",
         ":server_init",
-        "@com_google_protobuf//:cc_wkt_protos",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_google_absl//absl/memory",
-        "@org_tensorflow//tensorflow/c:c_api",
-        "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
-        "@org_tensorflow//tensorflow/core/profiler/rpc:profiler_service_impl",
         "//tensorflow_serving/config:model_server_config_cc_proto",
         "//tensorflow_serving/config:monitoring_config_cc_proto",
         "//tensorflow_serving/config:platform_config_cc_proto",
@@ -417,6 +407,15 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:thread_pool_factory_config_cc_proto",
         "//tensorflow_serving/servables/tensorflow:util",
         "//tensorflow_serving/util:proto_util",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/memory",
+        "@com_google_protobuf//:cc_wkt_protos",
+        "@org_tensorflow//tensorflow/c:c_api",
+        "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core/profiler/rpc:profiler_service_impl",
     ] + SUPPORTED_TENSORFLOW_OPS,
 )
 
@@ -439,10 +438,15 @@ cc_library(
         "@org_tensorflow//tensorflow/compiler/jit:xla_cpu_jit",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
-    ] + if_libtpu([
-        "@org_tensorflow//tensorflow/core/tpu:tpu_global_init",
-        "@org_tensorflow//tensorflow/core/tpu:tpu_api_dlsym_initializer",
-    ]),
+    ] + if_google(
+        google_value = if_with_tpu_support([
+            "@org_tensorflow//tensorflow/core/tpu:tpu_global_init",
+        ]),
+        oss_value = if_libtpu([
+            "@org_tensorflow//tensorflow/core/tpu:tpu_global_init",
+            "@org_tensorflow//tensorflow/core/tpu:tpu_api_dlsym_initializer",
+        ]),
+    ),
 )
 
 cc_binary(
