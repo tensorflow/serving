@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-option cc_enable_arenas = true;
+package tensorflow.serving;
 
 import "tensorflow_serving/apis/input.proto";
 import "tensorflow_serving/apis/model.proto";
 
-package tensorflow.serving;
+option cc_enable_arenas = true;
 
 // A single class.
 message Class {
