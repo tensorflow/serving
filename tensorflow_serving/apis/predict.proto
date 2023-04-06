@@ -29,6 +29,9 @@ message PredictRequest {
   // exception that when none is specified, all tensors specified in the
   // named signature will be run/fetched and returned.
   repeated string output_filter = 3;
+
+  // Reserved field 4.
+  reserved 4;
 }
 
 // Response for PredictRequest on successful run.
