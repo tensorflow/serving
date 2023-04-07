@@ -33,3 +33,17 @@ cc_library(
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
+
+cc_binary(
+    name = "grpc_client",
+    srcs = ["grpc_client.cc"],
+    deps = [
+        "//tensorflow_serving/apis:prediction_service_cc_proto",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/strings",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core/platform:env",
+    ],
+)
