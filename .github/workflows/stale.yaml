@@ -70,3 +70,4 @@ jobs:
         script: |
           const script = require('./\.github/workflows/scripts/staleCSAT.js')
           script({github, context})
+          
