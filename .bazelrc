@@ -34,6 +34,8 @@ build:mkl_aarch64 --define=build_with_openmp=true
 build:mkl_aarch64 --copt=-march=armv8.2-a
 build:mkl_aarch64 --copt=-O3
 
+build --define=build_with_onednn_v2=true
+
 # Processor native optimizations (depends on build host capabilities).
 build:nativeopt --copt=-march=native
 build:nativeopt --host_copt=-march=native
