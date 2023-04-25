@@ -22,6 +22,9 @@ py_binary(
     name = "remote_predict_client",
     srcs = ["remote_predict_client.py"],
     python_version = "PY3",
+    tags = [
+        "manual",
+    ],
     deps = ["//tensorflow_serving/experimental/tensorflow/ops/remote_predict:remote_predict_py"],
 )
 
@@ -32,6 +35,9 @@ py_binary(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = [
+        "manual",
+    ],
     deps = ["//tensorflow_serving/experimental/tensorflow/ops/remote_predict:remote_predict_py"],
 )
 
@@ -39,6 +45,9 @@ py_binary(
     name = "half_plus_two_with_rpop_client",
     srcs = ["half_plus_two_with_rpop_client.py"],
     python_version = "PY3",
+    tags = [
+        "manual",
+    ],
     deps = [
         "//tensorflow_serving/apis:predict_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
