@@ -21,11 +21,10 @@ local_repository(
 #    and update the 'sha256' arg with the result.
 # 3. Request the new archive to be mirrored on mirror.bazel.build for more
 #    reliable downloads.
-load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
-tensorflow_http_archive(
+#load("//tensorflow_serving:repo.bzl")
+local_repository(
     name = "org_tensorflow",
-    sha256 = "4d4f15fa4e52f7c77a1793656f85d260225e2638aee34a9c7625583e0608265c",
-    git_commit = "332077006a5ed7004ee19fbae306768f8f500ca8",
+    path = "/home/gta/jianyi/tensorflow",
 )
 
 # Import all of TensorFlow Serving's external dependencies.

@@ -45,7 +45,9 @@ limitations under the License.
 
 #include <iostream>
 #include <vector>
+#include <filesystem>
 
+#include "tensorflow/c/c_api_experimental.h"
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/compiler/jit/flags.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -290,15 +292,38 @@ int main(int argc, char** argv) {
       tensorflow::Flag("thread_pool_factory_config_file",
                        &options.thread_pool_factory_config_file,
                        "If non-empty, read an ascii ThreadPoolConfig protobuf "
-                       "from the supplied file name.")};
+                       "from the supplied file name."),
+      tensorflow::Flag("tensorflow_plugins",
+                       &options.tensorflow_plugins,
+                       "Enable tensorflow plugins by giving a path to folder. "
+                       "If non-empty, load all .so files under this folder "
+                       "as tensorflow plugins.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {
     std::cout << usage;
     return -1;
   }
-
+  
   tensorflow::port::InitMain(argv[0], &argc, &argv);
+
+  if (std::filesystem::exists(options.tensorflow_plugins)){
+    for (const auto & entry : std::filesystem::directory_iterator(options.tensorflow_plugins)){
+      std::string plugin_file = entry.path().string();
+      if (plugin_file.size() > 3 && plugin_file.compare(plugin_file.size() - 3, 3, ".so") == 0) {
+        TF_Status* plugin_status = TF_NewStatus();
+        TF_LoadPluggableDeviceLibrary(entry.path().c_str(), plugin_status);
+        TF_Code code = TF_GetCode(plugin_status);
+        if ( code == TF_OK ) {
+          VLOG(0) << "plugin library "<< entry.path() << " load successfully!";
+        } else {
+          std::string status_msg(TF_Message(plugin_status));
+          VLOG(0) << "Could not load " << entry.path() << ": "<< status_msg;
+        }
+      }
+    }
+  }
+
 #if defined(LIBTPU_ON_GCE) || defined(PLATFORM_CLOUD_TPU)
   InitializeTPU(options);
 #endif

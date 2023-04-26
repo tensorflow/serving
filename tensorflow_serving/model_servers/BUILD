@@ -382,8 +382,11 @@ cc_library(
     srcs = [
         "server.cc",
     ],
-    hdrs = ["server.h"],
+    hdrs = ["server.h",
+            "version.h",
+    ],
     visibility = ["//visibility:public"],
+    linkstamp = "version.cc",
     deps = [
         ":grpc_status_util",
         ":http_server",
@@ -412,30 +415,28 @@ cc_library(
         "@com_google_absl//absl/memory",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/c:c_api",
+        "@org_tensorflow//tensorflow/c:c_api_experimental",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core/profiler/rpc:profiler_service_impl",
     ] + SUPPORTED_TENSORFLOW_OPS,
+    alwayslink = 1,
 )
 
-cc_library(
+cc_binary(
     name = "tensorflow_model_server_main_lib",
     srcs = [
-        "main.cc",
     ],
-    hdrs = [
-        "version.h",
-    ],
-    linkstamp = "version.cc",
     visibility = [
-        ":tensorflow_model_server_custom_op_clients",
-        "//tensorflow_serving:internal",
+        "//visibility:public",
     ],
     deps = [
         ":server_lib",
         "@org_tensorflow//tensorflow/c:c_api",
+        "@org_tensorflow//tensorflow/c:c_api_experimental",
+        "@org_tensorflow//tensorflow/c:kernels_experimental",
         "@org_tensorflow//tensorflow/compiler/jit:xla_cpu_jit",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
@@ -448,10 +449,12 @@ cc_library(
             "@org_tensorflow//tensorflow/core/tpu:tpu_api_dlsym_initializer",
         ]),
     ),
+    linkshared = True,
 )
 
 cc_binary(
     name = "tensorflow_model_server",
+    srcs = ["main.cc"],
     stamp = 1,
     visibility = [
         ":testing",
@@ -460,6 +463,7 @@ cc_binary(
     deps = [
         ":tensorflow_model_server_main_lib",
     ],
+    linkopts = ["-L/home/gta/jianyi/serving/bazel-bin/tensorflow_serving/model_servers/", "-l:libtensorflow_model_server_main_lib.so"],
 )
 
 py_test(
