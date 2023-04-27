@@ -463,7 +463,7 @@ cc_binary(
     deps = [
         ":tensorflow_model_server_main_lib",
     ],
-    linkopts = ["-L/home/gta/jianyi/serving/bazel-bin/tensorflow_serving/model_servers/", "-l:libtensorflow_model_server_main_lib.so"],
+    linkopts = ["-Lbazel-out/k8-opt/bin/tensorflow_serving/model_servers/", "-l:libtensorflow_model_server_main_lib.so"],
 )
 
 py_test(
