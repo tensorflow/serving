@@ -210,7 +210,7 @@ TYPED_TEST(SimpleLoaderTest, LoadError) {
       SimpleLoader<Caller>::EstimateNoResources());
   const Status status = TypeParam::Load(loader.get());
   EXPECT_EQ(error::INVALID_ARGUMENT, status.code());
-  EXPECT_EQ("No way!", status.error_message());
+  EXPECT_EQ("No way!", status.message());
 }
 
 TEST(SimpleLoaderCompatibilityTest, WithoutMetadata) {

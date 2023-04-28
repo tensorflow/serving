@@ -126,7 +126,7 @@ void ExpectStatusError(const Status& status,
                        const tensorflow::errors::Code expected_code,
                        const string& message_substring) {
   ASSERT_EQ(expected_code, status.code());
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr(message_substring));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr(message_substring));
 }
 
 ////////////////////////////////////////////////////////////////////////////////

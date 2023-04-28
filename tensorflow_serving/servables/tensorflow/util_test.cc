@@ -76,7 +76,7 @@ class InputUtilTest : public ::testing::Test {
 TEST_F(InputUtilTest, Empty_KindNotSet) {
   const Status status = InputToSerializedExampleTensor(input_, &tensor_);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.error_message(), HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), HasSubstr("Input is empty"));
 }
 
 TEST_F(InputUtilTest, Empty_ExampleList) {
@@ -84,7 +84,7 @@ TEST_F(InputUtilTest, Empty_ExampleList) {
 
   const Status status = InputToSerializedExampleTensor(input_, &tensor_);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.error_message(), HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), HasSubstr("Input is empty"));
 }
 
 TEST_F(InputUtilTest, Empty_ExampleListWithContext) {
@@ -92,7 +92,7 @@ TEST_F(InputUtilTest, Empty_ExampleListWithContext) {
 
   const Status status = InputToSerializedExampleTensor(input_, &tensor_);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.error_message(), HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), HasSubstr("Input is empty"));
 }
 
 TEST_F(InputUtilTest, ExampleList) {
@@ -196,7 +196,7 @@ TEST_F(InputUtilTest, ExampleListWithContext_OnlyContext) {
 
   const Status status = InputToSerializedExampleTensor(input_, &tensor_);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.error_message(), HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), HasSubstr("Input is empty"));
 }
 
 TEST_F(InputUtilTest, RequestNumExamplesStreamz) {

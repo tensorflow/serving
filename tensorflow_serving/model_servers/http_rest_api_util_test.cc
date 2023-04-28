@@ -208,7 +208,7 @@ TEST_F(HttpRestApiUtilTest, TestParseModelInfoForPost) {
       &model_subresource, &parse_successful);
   EXPECT_TRUE(parse_successful);
   EXPECT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Failed to convert version"));
+  EXPECT_THAT(status.message(), HasSubstr("Failed to convert version"));
   TF_EXPECT_OK(ParseModelInfo("POST", "/v1/models/foo/metadata", &model_name,
                               &model_version, &model_version_label, &method,
                               &model_subresource, &parse_successful));

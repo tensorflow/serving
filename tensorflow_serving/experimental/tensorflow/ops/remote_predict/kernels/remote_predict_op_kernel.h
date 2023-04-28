@@ -109,7 +109,7 @@ class RemotePredictOp : public AsyncOpKernel {
     OP_REQUIRES_ASYNC(context, rpc_or.ok(),
                       tensorflow::Status(static_cast<tensorflow::errors::Code>(
                                              rpc_or.status().code()),
-                                         rpc_or.status().error_message()),
+                                         rpc_or.status().message()),
                       [&]() {
                         delete request;
                         delete response;

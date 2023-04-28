@@ -150,7 +150,7 @@ TEST(RemotePredictTest, TestRpcError) {
       /*model_name=*/MockPredictionService::kBadModel, &outputs);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(error::Code::ABORTED, status.code());
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Aborted"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Aborted"));
 }
 
 TEST(RemotePredictTest, TestRpcErrorReturnStatus) {

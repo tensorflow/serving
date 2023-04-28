@@ -420,13 +420,13 @@ TEST_P(RegressorTest, EmptyInput) {
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
 
 TEST_P(RegressorTest, EmptyExampleList) {
@@ -435,13 +435,13 @@ TEST_P(RegressorTest, EmptyExampleList) {
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
 
 TEST_P(RegressorTest, EmptyExampleListWithContext) {
@@ -453,13 +453,13 @@ TEST_P(RegressorTest, EmptyExampleListWithContext) {
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
 
 TEST_P(RegressorTest, RunsFails) {

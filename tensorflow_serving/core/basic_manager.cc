@@ -732,7 +732,7 @@ Status BasicManager::ReserveResources(LoaderHarness* harness,
           strings::StrCat(
               "Error while attempting to reserve resources to load servable ",
               harness->id().DebugString(), ": ",
-              reserve_resources_status.error_message()));
+              reserve_resources_status.message()));
     }
     if (resources_reserved) {
       // Woohoo! We got our resources.

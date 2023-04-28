@@ -60,7 +60,7 @@ namespace serving {
   }
 
   if (!status.ok()) {
-    LOG(ERROR) << "ReloadConfig failed: " << status.error_message();
+    LOG(ERROR) << "ReloadConfig failed: " << status.message();
   }
 
   const StatusProto status_proto = ToStatusProto(status);

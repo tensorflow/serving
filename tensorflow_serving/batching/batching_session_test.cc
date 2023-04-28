@@ -170,7 +170,7 @@ void ExpectError(const string& error_message,
   Status status = session->Run(inputs, output_tensor_names,
                                {} /* target nodes */, &outputs);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(error_message, status.error_message());
+  EXPECT_EQ(error_message, status.message());
 }
 
 // Creates a SignatureDef from a TensorSignature.
@@ -392,7 +392,7 @@ TEST_P(BatchingSessionTest, BatchingWithLargeBatch) {
           auto status =
               batching_session->Run({{"x", input2}}, {"y"}, {}, &output2);
           EXPECT_FALSE(status.ok());
-          EXPECT_THAT(status.error_message(),
+          EXPECT_THAT(status.message(),
                       HasSubstr("Task size 4 is larger than "
                                 "maximum input batch size 3"));
         }));
@@ -840,9 +840,9 @@ TEST_P(BatchingSessionTest,
       schedule_options, batching_session_options, {{"x"}, {"y"}},
       CreateHalfPlusTwoSession(), &batching_session);
   EXPECT_EQ(status.code(), error::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), HasSubstr(enable_large_batch_splitting()
-                                                    ? "max_execution_batch_size"
-                                                    : "max_batch_size"));
+  EXPECT_THAT(status.message(), HasSubstr(enable_large_batch_splitting()
+                                              ? "max_execution_batch_size"
+                                              : "max_batch_size"));
 }
 
 TEST_P(BatchingSessionTest, DifferentOrderForInputAndOutputTensors) {
@@ -1003,7 +1003,7 @@ TEST_P(BatchingSessionTest, EnqueuedLongerThanTimeout) {
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(error::RESOURCE_EXHAUSTED, status.code());
     EXPECT_THAT(
-        status.error_message(),
+        status.message(),
         HasSubstr("Run() timeout exceeded while waiting in batching queue"));
     request_returned.Notify();
   };

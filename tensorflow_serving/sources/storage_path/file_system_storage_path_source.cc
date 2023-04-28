@@ -352,7 +352,7 @@ void FileSystemStoragePathSource::SetAspiredVersionsCallback(
     if (!status.ok()) {
       LOG(ERROR) << "FileSystemStoragePathSource encountered a "
                     "filesystem access error: "
-                 << status.error_message();
+                 << status.message();
     }
   };
 

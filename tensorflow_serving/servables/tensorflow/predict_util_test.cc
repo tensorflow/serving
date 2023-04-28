@@ -237,9 +237,9 @@ TEST_F(PredictImplTest, InputTensorsDontMatchModelSpecInputs) {
   Status status = CallPredict(GetServerCore(), request, &response);
   EXPECT_EQ(status.code(),
             static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
-  EXPECT_THAT(status.error_message(),
+  EXPECT_THAT(status.message(),
               ::testing::HasSubstr("Sent extra: {unknown_key1,unknown_key2}"));
-  EXPECT_THAT(status.error_message(),
+  EXPECT_THAT(status.message(),
               ::testing::HasSubstr(absl::StrCat("Missing but required: {",
                                                 kInputTensorKey, "}")));
 }
@@ -260,7 +260,7 @@ TEST_F(PredictImplTest, PredictionInvalidTensor) {
   auto status = CallPredict(GetServerCore(), request, &response);
   EXPECT_EQ(status.code(), tensorflow::error::Code::INVALID_ARGUMENT);
   EXPECT_THAT(
-      status.error_message(),
+      status.message(),
       ::testing::HasSubstr("Expects arg[0] to be float but bool is provided"));
 }
 
@@ -282,7 +282,7 @@ TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
   Status status1 = CallPredict(GetServerCore(), request, &response);
   EXPECT_EQ(status1.code(),
             static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
-  EXPECT_THAT(status1.error_message(),
+  EXPECT_THAT(status1.message(),
               ::testing::HasSubstr(
                   "output tensor alias not found in signature: output_filter"));
 
@@ -295,7 +295,7 @@ TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
   Status status2 = CallPredict(GetServerCore(), request, &response);
   EXPECT_EQ(status2.code(),
             static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
-  EXPECT_THAT(status2.error_message(),
+  EXPECT_THAT(status2.message(),
               ::testing::HasSubstr("duplicate output tensor alias: y"));
 }
 
@@ -318,7 +318,7 @@ TEST_F(PredictImplTest, InputTensorsHaveWrongType) {
   Status status = CallPredict(GetServerCore(), request, &response);
   EXPECT_EQ(status.code(),
             static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
-  EXPECT_THAT(status.error_message(),
+  EXPECT_THAT(status.message(),
               ::testing::HasSubstr("to be float but string is provided"));
 }
 

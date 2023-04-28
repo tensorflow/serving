@@ -179,7 +179,7 @@ TEST(LoaderHarnessTest, LoadError) {
           TF_ASSERT_OK(harness.LoadRequested());
           TF_ASSERT_OK(harness.LoadApproved());
           Status status = harness.Load();
-          EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
+          EXPECT_THAT(status.message(), HasSubstr("test load error"));
         }));
   }
   EXPECT_EQ(LoaderHarness::State::kError, harness.state());
@@ -240,7 +240,7 @@ TEST(LoaderHarnessTest, MultipleLoadRequestsOnlyFirstOneSucceeds) {
   const Status second_request_status = harness.LoadRequested();
   EXPECT_FALSE(second_request_status.ok());
   EXPECT_EQ(error::FAILED_PRECONDITION, second_request_status.code());
-  EXPECT_THAT(second_request_status.error_message(),
+  EXPECT_THAT(second_request_status.message(),
               HasSubstr("Duplicate load request"));
 
   EnableDestruction(&harness);
@@ -262,7 +262,7 @@ TEST(LoaderHarnessTest, MultipleUnloadRequestsOnlyFirstOneSucceeds) {
   EXPECT_FALSE(second_status.ok());
   EXPECT_EQ(error::FAILED_PRECONDITION, second_status.code());
   EXPECT_THAT(
-      second_status.error_message(),
+      second_status.message(),
       HasSubstr("Servable not loaded, or unload already requested/ongoing"));
 
   EnableDestruction(&harness);
@@ -302,7 +302,7 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorFinallyFails) {
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   const Status status = harness.Load();
-  EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
+  EXPECT_THAT(status.message(), HasSubstr("test load error"));
 }
 
 // Tests cancelling load retries.
@@ -325,7 +325,7 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorCancelledLoad) {
         TF_ASSERT_OK(harness.LoadApproved());
         harness.set_cancel_load_retry(true);
         const Status status = harness.Load();
-        EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
+        EXPECT_THAT(status.message(), HasSubstr("test load error"));
       }));
 }
 
@@ -348,7 +348,7 @@ TEST(LoaderHarnessTest, UnloadDueToCancelledLoad) {
         TF_ASSERT_OK(harness.LoadApproved());
         harness.set_cancel_load_retry(true);
         const Status status = harness.Load();
-        EXPECT_THAT(status.error_message(), HasSubstr("cancelled"));
+        EXPECT_THAT(status.message(), HasSubstr("cancelled"));
       }));
 }
 

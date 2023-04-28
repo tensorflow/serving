@@ -43,7 +43,7 @@ TEST(StatusUtilTest, ConvertsErrorStatusProtoToStatus) {
   status_proto.set_error_message("already exists error message");
   Status status = FromStatusProto(status_proto);
   EXPECT_EQ(tensorflow::error::ALREADY_EXISTS, status.code());
-  EXPECT_EQ("already exists error message", status.error_message());
+  EXPECT_EQ("already exists error message", status.message());
 }
 
 TEST(StatusUtilTest, ConvertsOkStatusProtoToStatus) {
@@ -51,7 +51,7 @@ TEST(StatusUtilTest, ConvertsOkStatusProtoToStatus) {
   status_proto.set_error_code(tensorflow::error::OK);
   Status status = FromStatusProto(status_proto);
   EXPECT_EQ(tensorflow::error::OK, status.code());
-  EXPECT_EQ("", status.error_message());
+  EXPECT_EQ("", status.message());
 }
 
 }  // namespace

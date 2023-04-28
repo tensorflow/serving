@@ -250,6 +250,7 @@ cc_library(
     hdrs = ["grpc_status_util.h"],
     deps = [
         "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/strings",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

@@ -162,14 +162,14 @@ void Server::PollFilesystemAndReloadConfig(const string& config_file_path) {
       ParseProtoTextFile<ModelServerConfig>(config_file_path, &config);
   if (!read_status.ok()) {
     LOG(ERROR) << "Failed to read ModelServerConfig file: "
-               << read_status.error_message();
+               << read_status.message();
     return;
   }
 
   const Status reload_status = server_core_->ReloadConfig(config);
   if (!reload_status.ok()) {
     LOG(ERROR) << "PollFilesystemAndReloadConfig failed to ReloadConfig: "
-               << reload_status.error_message();
+               << reload_status.message();
   }
 }
 
