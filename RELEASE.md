@@ -1,4 +1,23 @@
+# Release 2.12.1
+
+* This is a re-release of 2.12.0 (that was marked as bad). Please use this instead.
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* Users of remote_predict_py should stay on v2.11 and avoid v2.12.
+
+## Bug Fixes and Other Changes
+
+* Update TF Serving pip package protobuf requirements to match [TF's](https://github.com/tensorflow/tensorflow/blob/0db597d0d758aba578783b5bf46c889700a45085/tensorflow/tools/pip_package/setup.py#L107). (commit: 24028778d11bf67992d481ff573de171c396119b)
+* Update version for 2.12.1 release. (#2139) (commit: bd203faa888dd5ce90f21e3ee9af92dbc90b8a25)
+
 # Release 2.12.0
+
+* **NOTE:** 2.12.0 has been identified as bad release. Please use 2.12.1 or later instead.
 
 ## Major Features and Improvements
 
