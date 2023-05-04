@@ -39,6 +39,21 @@ filegroup(
     ),
 )
 
+cc_binary(
+    name = "test",
+    deps = [
+        "@org_tensorflow//tensorflow/c:c_api",
+        "@org_tensorflow//tensorflow/c:c_api_experimental",
+        "@org_tensorflow//tensorflow/c:kernels_experimental",
+    ],
+    linkshared = 1,
+)
+
+cc_import(
+    name = "test_lib",
+    shared_library = ":test",
+)
+
 cc_library(
     name = "model_platform_types",
     hdrs = ["model_platform_types.h"],
@@ -382,12 +397,10 @@ cc_library(
     srcs = [
         "server.cc",
     ],
-    hdrs = ["server.h",
-            "version.h",
-    ],
+    hdrs = ["server.h"],
     visibility = ["//visibility:public"],
-    linkstamp = "version.cc",
     deps = [
+        ":test_lib",
         ":grpc_status_util",
         ":http_server",
         ":model_platform_types",
@@ -414,29 +427,34 @@ cc_library(
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/memory",
         "@com_google_protobuf//:cc_wkt_protos",
-        "@org_tensorflow//tensorflow/c:c_api",
-        "@org_tensorflow//tensorflow/c:c_api_experimental",
+        #"@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core/profiler/rpc:profiler_service_impl",
     ] + SUPPORTED_TENSORFLOW_OPS,
-    alwayslink = 1,
 )
 
-cc_binary(
+cc_library(
     name = "tensorflow_model_server_main_lib",
     srcs = [
+        "main.cc",
     ],
+    hdrs = [
+        "version.h",
+        "@org_tensorflow//tensorflow/c:headers",
+        "@org_tensorflow//tensorflow/c/eager:headers_2",
+    ],
+    linkstamp = "version.cc",
     visibility = [
-        "//visibility:public",
+        ":tensorflow_model_server_custom_op_clients",
+        "//tensorflow_serving:internal",
     ],
     deps = [
         ":server_lib",
-        "@org_tensorflow//tensorflow/c:c_api",
-        "@org_tensorflow//tensorflow/c:c_api_experimental",
-        "@org_tensorflow//tensorflow/c:kernels_experimental",
+        ":test_lib",
+        #"@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/compiler/jit:xla_cpu_jit",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
@@ -449,12 +467,10 @@ cc_binary(
             "@org_tensorflow//tensorflow/core/tpu:tpu_api_dlsym_initializer",
         ]),
     ),
-    linkshared = True,
-)
+)   
 
 cc_binary(
     name = "tensorflow_model_server",
-    srcs = ["main.cc"],
     stamp = 1,
     visibility = [
         ":testing",
@@ -463,7 +479,6 @@ cc_binary(
     deps = [
         ":tensorflow_model_server_main_lib",
     ],
-    linkopts = ["-Lbazel-out/k8-opt/bin/tensorflow_serving/model_servers/", "-l:libtensorflow_model_server_main_lib.so"],
 )
 
 py_test(
