@@ -1,5 +1,6 @@
 # Description: Model Server
 
+load("//tensorflow_serving:serving.bzl", "export_tf_symbol")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_google", "if_libtpu", "if_with_tpu_support")
@@ -383,9 +384,7 @@ cc_library(
         "server.cc",
     ],
     hdrs = ["server.h"],
-    linkopts = [
-        "-Wl,--dynamic-list,$(location //tensorflow_serving/model_servers:tf_exported_symbols.lds)",
-    ],
+    textual_hdrs = [":tf_exported_symbols"],
     visibility = ["//visibility:public"],
     deps = [
         ":grpc_status_util",
@@ -400,7 +399,6 @@ cc_library(
         "//tensorflow_serving/config:platform_config_cc_proto",
         "//tensorflow_serving/config:ssl_config_cc_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
-        "//tensorflow_serving/model_servers:tf_exported_symbols.lds",
         "//tensorflow_serving/servables/tensorflow:classification_service",
         "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
         "//tensorflow_serving/servables/tensorflow:multi_inference",
@@ -457,6 +455,12 @@ cc_library(
 
 cc_binary(
     name = "tensorflow_model_server",
+    additional_linker_inputs = [
+        ":tf_exported_symbols.lds",
+    ],
+    linkopts = [
+        "-Wl,-dynamic-list,$(location :tf_exported_symbols.lds)"
+    ],
     stamp = 1,
     visibility = [
         ":testing",
@@ -522,6 +526,19 @@ py_binary(
     srcs = ["profiler_client.py"],
     python_version = "PY3",
     srcs_version = "PY2AND3",
+)
+
+py_binary(
+    name = "gen_tf_symbols",
+    srcs = ["gen_tf_symbols.py"],
+    visibility = ["//visibility:public"],
+)
+
+# Create symbol file based on TensorFlow.
+export_tf_symbol(
+    name = "tf_exported_symbols",
+    header_in = "@org_tensorflow//tensorflow:tf_exported_symbols.lds",
+    header_out = ":tf_exported_symbols.lds",
 )
 
 pkg_tar(

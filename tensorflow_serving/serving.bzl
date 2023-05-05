@@ -60,3 +60,16 @@ def serving_tensorflow_proto_dep(dep):
     """Rename for deps onto tensorflow protos in serving_proto_library targets.
     """
     return "{}_cc".format(dep)
+
+def export_tf_symbol(name, header_in, header_out, **kwargs):
+    tool = "//tensorflow_serving/model_servers:gen_tf_symbols"
+
+    native.genrule(
+        name = name,
+        srcs = [header_in],
+        outs = [header_out],
+        tools = [tool],
+        cmd = "$(location {}) ".format(tool) + "--in=$< " + "--out=$@",
+        stamp = True,
+        **kwargs
+    )
