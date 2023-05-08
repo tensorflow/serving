@@ -1,6 +1,6 @@
 # Description: Model Server
 
-load("//tensorflow_serving:serving.bzl", "export_tf_symbol")
+load("//tensorflow_serving:serving.bzl", "export_tf_symbol", "if_with_plugins_support")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_google", "if_libtpu", "if_with_tpu_support")
@@ -414,14 +414,17 @@ cc_library(
         "@com_google_absl//absl/memory",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/c:c_api",
-        "@org_tensorflow//tensorflow/c:c_api_experimental",
-        "@org_tensorflow//tensorflow/c:kernels_experimental",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core/profiler/rpc:profiler_service_impl",
-    ] + SUPPORTED_TENSORFLOW_OPS,
+    ] + SUPPORTED_TENSORFLOW_OPS + if_with_plugins_support([
+        "@org_tensorflow//tensorflow/c:c_api_experimental",
+        "@org_tensorflow//tensorflow/c:kernels_experimental",
+        "@org_tensorflow//tensorflow/c:ops",
+        "@org_tensorflow//tensorflow/c/experimental/next_pluggable_device:c_api",
+    ]),
 )
 
 cc_library(
@@ -455,12 +458,14 @@ cc_library(
 
 cc_binary(
     name = "tensorflow_model_server",
-    additional_linker_inputs = [
-        ":tf_exported_symbols.lds",
-    ],
-    linkopts = [
-        "-Wl,-dynamic-list,$(location :tf_exported_symbols.lds)",
-    ],
+    additional_linker_inputs =
+        if_with_plugins_support([
+            ":tf_exported_symbols.lds",
+        ]),
+    linkopts =
+        if_with_plugins_support([
+            "-Wl,-dynamic-list,$(location :tf_exported_symbols.lds)",
+        ]),
     stamp = 1,
     visibility = [
         ":testing",

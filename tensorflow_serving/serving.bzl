@@ -73,3 +73,10 @@ def export_tf_symbol(name, header_in, header_out, **kwargs):
         stamp = True,
         **kwargs
     )
+
+def if_with_plugins_support(if_true, if_false = []):
+    """Shorthand for select()ing whether to build API support for TensorFlow Plugins"""
+    return select({
+        "//tensorflow_serving:with_plugins_support": if_true,
+        "//conditions:default": if_false,
+    })

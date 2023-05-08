@@ -43,12 +43,10 @@ limitations under the License.
 // To enable batching (default disabled): --enable_batching
 // To override the default batching parameters: --batching_parameters_file
 
-#include <filesystem>
 #include <iostream>
 #include <vector>
 
 #include "tensorflow/c/c_api.h"
-#include "tensorflow/c/c_api_experimental.h"
 #include "tensorflow/compiler/jit/flags.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/init_main.h"
@@ -74,6 +72,11 @@ void InitializeTPU(tensorflow::serving::main::Server::Options& server_options) {
     server_options.saved_model_tags = "tpu,serve";
   }
 }
+#endif
+
+#ifdef SUPPORT_TF_PLUGINS
+#include <filesystem>
+#include "tensorflow/c/c_api_experimental.h"
 #endif
 
 int main(int argc, char **argv) {
@@ -293,12 +296,15 @@ int main(int argc, char **argv) {
                        &options.thread_pool_factory_config_file,
                        "If non-empty, read an ascii ThreadPoolConfig protobuf "
                        "from the supplied file name."),
+#ifdef SUPPORT_TF_PLUGINS
       tensorflow::Flag("tensorflow_plugins", &options.tensorflow_plugins,
                        "Enable tensorflow plugins by giving a path to folder. "
                        "If non-empty, load all .so files under this folder "
-                       "as tensorflow plugins.")};
+                       "as tensorflow plugins.")
+#endif
+  };
 
-  const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
+  const auto &usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {
     std::cout << usage;
     return -1;
@@ -306,6 +312,7 @@ int main(int argc, char **argv) {
 
   tensorflow::port::InitMain(argv[0], &argc, &argv);
 
+#ifdef SUPPORT_TF_PLUGINS
   if (std::filesystem::exists(options.tensorflow_plugins)) {
     for (const auto &entry :
          std::filesystem::directory_iterator(options.tensorflow_plugins)) {
@@ -324,6 +331,7 @@ int main(int argc, char **argv) {
       }
     }
   }
+#endif
 
 #if defined(LIBTPU_ON_GCE) || defined(PLATFORM_CLOUD_TPU)
   InitializeTPU(options);
