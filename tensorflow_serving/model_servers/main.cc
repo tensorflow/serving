@@ -304,7 +304,7 @@ int main(int argc, char **argv) {
 #endif
   };
 
-  const auto &usage = tensorflow::Flags::Usage(argv[0], flag_list);
+  const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {
     std::cout << usage;
     return -1;

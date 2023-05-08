@@ -61,19 +61,6 @@ def serving_tensorflow_proto_dep(dep):
     """
     return "{}_cc".format(dep)
 
-def export_tf_symbol(name, header_in, header_out, **kwargs):
-    tool = "//tensorflow_serving/model_servers:gen_tf_symbols"
-
-    native.genrule(
-        name = name,
-        srcs = [header_in],
-        outs = [header_out],
-        tools = [tool],
-        cmd = "$(location {}) ".format(tool) + "--in=$< " + "--out=$@",
-        stamp = True,
-        **kwargs
-    )
-
 def if_with_plugins_support(if_true, if_false = []):
     """Shorthand for select()ing whether to build API support for TensorFlow Plugins"""
     return select({
