@@ -422,7 +422,6 @@ cc_library(
     ] + SUPPORTED_TENSORFLOW_OPS + if_with_plugins_support([
         "@org_tensorflow//tensorflow/c:c_api_experimental",
         "@org_tensorflow//tensorflow/c:kernels_experimental",
-        "@org_tensorflow//tensorflow/c:ops",
         "@org_tensorflow//tensorflow/c/experimental/next_pluggable_device:c_api",
     ]),
 )
