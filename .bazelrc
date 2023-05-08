@@ -41,6 +41,8 @@ build:nativeopt --copt=-march=native
 build:nativeopt --host_copt=-march=native
 build:nativeopt --copt=-O3
 
+build:plugins --copt=-DSUPPORT_TF_PLUGINS --define=with_plugins_support=true
+
 build --keep_going
 build --verbose_failures=true
 build --spawn_strategy=standalone
