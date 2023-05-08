@@ -459,7 +459,7 @@ cc_binary(
         ":tf_exported_symbols.lds",
     ],
     linkopts = [
-        "-Wl,-dynamic-list,$(location :tf_exported_symbols.lds)"
+        "-Wl,-dynamic-list,$(location :tf_exported_symbols.lds)",
     ],
     stamp = 1,
     visibility = [
