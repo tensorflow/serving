@@ -384,7 +384,6 @@ cc_library(
         "server.cc",
     ],
     hdrs = ["server.h"],
-    textual_hdrs = ["tf_c_api_exported_symbols.lds"],
     visibility = ["//visibility:public"],
     deps = [
         ":grpc_status_util",
