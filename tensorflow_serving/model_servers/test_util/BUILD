@@ -1,7 +1,6 @@
 # Description: Model Server test utility
 
-load("//tensorflow_serving:oss_or_google.bzl", "if_google")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+load("//tensorflow_serving:serving.bzl", "if_google", "serving_proto_library")
 
 package(
     default_visibility = [

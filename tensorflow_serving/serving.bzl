@@ -1,6 +1,23 @@
 load("@com_google_protobuf//:protobuf.bzl", "cc_proto_library")
 load("@org_tensorflow//tensorflow/tsl/platform/default:build_config.bzl", "py_proto_library")
 
+def if_oss(oss_value):
+    """Returns oss_value if in OSS build env.
+
+    Specifically, it does not return a `select`, and can be used to e.g.
+    compute elements of list attributes.
+    """
+    return oss_value
+
+def if_google(
+        google_value):  # @unused
+    """Returns google_value if in Google build env.
+
+    Specifically, it does not return a `select`, and can be used to e.g.
+    compute elements of list attributes.
+    """
+    return []
+
 def serving_proto_library(
         name,
         srcs = [],
@@ -67,3 +84,14 @@ def if_with_plugins_support(if_true, if_false = []):
         "//tensorflow_serving:with_plugins_support": if_true,
         "//conditions:default": if_false,
     })
+
+def oss_only_cc_test(name, srcs = [], deps = [], data = [], size = "medium", linkstatic = 0):
+    """cc_test that is only run in open source environment."""
+    return native.cc_test(
+        name = name,
+        deps = deps,
+        srcs = srcs,
+        data = data,
+        size = size,
+        linkstatic = linkstatic,
+    )

@@ -1,4 +1,4 @@
-load("//tensorflow_serving:oss_or_google.bzl", "if_google", "if_oss")
+load("//tensorflow_serving:serving.bzl", "if_google", "if_oss")
 
 licenses(["notice"])
 

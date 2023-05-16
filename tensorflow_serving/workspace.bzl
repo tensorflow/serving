@@ -110,6 +110,8 @@ def tf_serving_workspace():
         sha256 = "86686bcb03bcf280cf739159fe4c285c667500a332292701259e636f5e1ec110",
         strip_prefix = "decision-forests-1.3.0",
         url = "https://github.com/tensorflow/decision-forests/archive/refs/tags/1.3.0.zip",
+        patches = ["@//third_party/tf_decision_forests:tf_decision_forests.patch"],
+        patch_args = ["-p1"],
     )
 
     http_archive(
