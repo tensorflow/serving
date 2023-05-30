@@ -46,8 +46,7 @@
        "name": "y3:0"
       }
      },
-     "method_name": "tensorflow/serving/regress",
-     "defaults": {}
+     "method_name": "tensorflow/serving/regress"
     },
     "serving_default": {
      "inputs": {
@@ -88,8 +87,7 @@
        "name": "y:0"
       }
      },
-     "method_name": "tensorflow/serving/predict",
-     "defaults": {}
+     "method_name": "tensorflow/serving/predict"
     },
     "classify_x_to_y": {
      "inputs": {
@@ -121,8 +119,7 @@
        "name": "y:0"
       }
      },
-     "method_name": "tensorflow/serving/classify",
-     "defaults": {}
+     "method_name": "tensorflow/serving/classify"
     },
     "classify_x2_to_y3": {
      "inputs": {
@@ -163,8 +160,7 @@
        "name": "y3:0"
       }
      },
-     "method_name": "tensorflow/serving/classify",
-     "defaults": {}
+     "method_name": "tensorflow/serving/classify"
     },
     "regress_x_to_y2": {
      "inputs": {
@@ -196,8 +192,7 @@
        "name": "y2:0"
       }
      },
-     "method_name": "tensorflow/serving/regress",
-     "defaults": {}
+     "method_name": "tensorflow/serving/regress"
     },
     "regress_x_to_y": {
      "inputs": {
@@ -229,8 +224,7 @@
        "name": "y:0"
       }
      },
-     "method_name": "tensorflow/serving/regress",
-     "defaults": {}
+     "method_name": "tensorflow/serving/regress"
     }
    }
   }
