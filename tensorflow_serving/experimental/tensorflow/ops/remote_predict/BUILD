@@ -124,7 +124,7 @@ tf_custom_op_py_library(
     visibility = ["//tensorflow_serving/experimental/example:__subpackages__"],
     deps = [
         ":gen_remote_predict_op",
-        "@org_tensorflow//tensorflow/python:framework_for_generated_wrappers",
+        "@org_tensorflow//tensorflow/python/framework:for_generated_wrappers",
     ],
 )
 
