@@ -10,7 +10,6 @@ build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true
 build:cuda --action_env=TF_CUDA_COMPUTE_CAPABILITIES="sm_35,sm_50,sm_60,sm_70,sm_75,compute_80"
 
 # Options used to build with TPU support.
-build:tpu --distinct_host_configuration=false
 build:tpu --define=with_tpu_support=true --define=framework_shared_object=false
 build:tpu --copt=-DLIBTPU_ON_GCE
 
@@ -34,6 +33,8 @@ build:mkl_aarch64 --define=build_with_mkl_opensource=true
 build:mkl_aarch64 --define=build_with_openmp=true
 build:mkl_aarch64 --copt=-march=armv8.2-a
 build:mkl_aarch64 --copt=-O3
+
+build --define=build_with_onednn_v2=true
 
 # Processor native optimizations (depends on build host capabilities).
 build:nativeopt --copt=-march=native
@@ -72,9 +73,9 @@ build --experimental_cc_shared_library
 # uses TensorFlow for all IO operations.
 build --define=use_tensorflow_io=1
 
-# TensorFlow Decision Forests does not use Absl StatusOr.
-# Reason: The version of Absl included by TensorFlow lacks support for StatusOr.
-build --define no_absl_statusor=1
+# TensorFlow Decision Forests need absl::anyInvocable support for new versions 
+# of Tensorflow.
+build --define use_absl_anyinvocable=1
 
 # TensorFlow Decision Forests does not use Absl concurrency primitives on MacOs.
 # Reason: TensorFlow/ABSL ODR violation (b/214189609) # copybara:strip

@@ -83,7 +83,7 @@ TEST_P(SavedModelBundleWarmupOptionsTest, MixedWarmupData) {
 
   int num_warmup_records = 10;
   std::vector<string> warmup_records;
-  AddMixedWarmupData(&warmup_records);
+  TF_ASSERT_OK(AddMixedWarmupData(&warmup_records));
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, num_warmup_records));
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);
@@ -114,8 +114,8 @@ TEST_P(SavedModelBundleWarmupOptionsTest, MixedWarmupData) {
 INSTANTIATE_TEST_SUITE_P(WarmupOptions, SavedModelBundleWarmupOptionsTest,
                          ::testing::Bool());
 
-TEST(SavedModelBundleWarmupTest, UnsupportedLogType) {
-  string base_path = io::JoinPath(testing::TmpDir(), "UnsupportedLogType");
+TEST(SavedModelBundleWarmupTest, UnsupportedLogType_SessionRun) {
+  string base_path = io::JoinPath(testing::TmpDir(), "SessionRun");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
   string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
@@ -123,9 +123,33 @@ TEST(SavedModelBundleWarmupTest, UnsupportedLogType) {
 
   std::vector<string> warmup_records;
   // Add unsupported log type
-  PredictionLog prediction_log;
-  PopulatePredictionLog(&prediction_log, PredictionLog::kSessionRunLog);
-  warmup_records.push_back(prediction_log.SerializeAsString());
+  TF_ASSERT_OK(AddToWarmupData(&warmup_records, PredictionLog::kSessionRunLog));
+  TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, 10));
+  SavedModelBundle saved_model_bundle;
+  AddSignatures(&saved_model_bundle.meta_graph_def);
+  MockSession* mock = new MockSession;
+  saved_model_bundle.session.reset(mock);
+  EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
+      .WillRepeatedly(Return(OkStatus()));
+  const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
+                                            base_path, &saved_model_bundle);
+  ASSERT_FALSE(status.ok());
+  EXPECT_EQ(::tensorflow::error::UNIMPLEMENTED, status.code()) << status;
+  EXPECT_THAT(status.ToString(),
+              ::testing::HasSubstr("Unsupported log_type for warmup"));
+}
+
+TEST(SavedModelBundleWarmupTest, UnsupportedLogType_PredictStreamed) {
+  string base_path = io::JoinPath(testing::TmpDir(), "PredictStreamed");
+  TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
+      io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
+  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                              internal::WarmupConsts::kRequestsFileName);
+
+  std::vector<string> warmup_records;
+  // Add unsupported log type
+  TF_ASSERT_OK(
+      AddToWarmupData(&warmup_records, PredictionLog::kPredictStreamedLog));
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, 10));
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);

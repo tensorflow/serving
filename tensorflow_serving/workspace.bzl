@@ -20,8 +20,8 @@ def tf_serving_workspace():
     # ===== Bazel package rules dependency =====
     http_archive(
         name = "rules_pkg",
-        sha256 = "352c090cc3d3f9a6b4e676cf42a6047c16824959b438895a76c2989c6d7c246a",
-        url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.2.5/rules_pkg-0.2.5.tar.gz",
+        sha256 = "451e08a4d78988c06fa3f9306ec813b836b1d076d0f055595444ba4ff22b867f",
+        url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.7.1/rules_pkg-0.7.1.tar.gz",
     )
 
     # ===== RapidJSON (rapidjson.org) dependency =====
@@ -64,9 +64,9 @@ def tf_serving_workspace():
     # https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/save_models.py
     http_archive(
         name = "org_tensorflow_text",
-        sha256 = "556b516d917265a03e2712389e39e14f6d0faed6421215bd8c1e83d98fd270fb",
-        strip_prefix = "text-2.11.0",
-        url = "https://github.com/tensorflow/text/archive/v2.11.0.zip",
+        sha256 = "4e6ec543a1d70a50f0105e0ea69ea8a1edd0b17a38d0244aa3b14f889b2cf74d",
+        strip_prefix = "text-2.12.1",
+        url = "https://github.com/tensorflow/text/archive/v2.12.1.zip",
         patches = ["@//third_party/tf_text:tftext.patch"],
         patch_args = ["-p1"],
         repo_mapping = {"@com_google_re2": "@com_googlesource_code_re2"},
@@ -107,16 +107,18 @@ def tf_serving_workspace():
     # ==== TensorFlow Decision Forests ===
     http_archive(
         name = "org_tensorflow_decision_forests",
-        sha256 = "00c73fbb1ddde7f11fbb5277e9cc9a0922b5f1213c6bd1038769ee451be4ba87",
-        strip_prefix = "decision-forests-1.1.0",
-        url = "https://github.com/tensorflow/decision-forests/archive/refs/tags/1.1.0.zip",
+        sha256 = "86686bcb03bcf280cf739159fe4c285c667500a332292701259e636f5e1ec110",
+        strip_prefix = "decision-forests-1.3.0",
+        url = "https://github.com/tensorflow/decision-forests/archive/refs/tags/1.3.0.zip",
+        patches = ["@//third_party/tf_decision_forests:tf_decision_forests.patch"],
+        patch_args = ["-p1"],
     )
 
     http_archive(
         name = "ydf",
-        sha256 = "8d577e2628201ec2a2c1708192a23e5b34a2fcc126b6e043fef613886857c9a6",
-        strip_prefix = "yggdrasil-decision-forests-1.2.0",
-        urls = ["https://github.com/google/yggdrasil-decision-forests/archive/refs/tags/1.2.0.zip"],
+        sha256 = "5abb2e440c0b8b13095bd208cfab3a5e569706af9a52b6a702d86ec0e25a7991",
+        strip_prefix = "yggdrasil-decision-forests-1.4.0",
+        urls = ["https://github.com/google/yggdrasil-decision-forests/archive/refs/tags/1.4.0.zip"],
     )
 
     # The Boost repo is organized into git sub-modules (see the list at

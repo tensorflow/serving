@@ -22,6 +22,11 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+Status EstimateMainRamBytesFromValidationResult(const string& path,
+                                                ResourceAllocation* estimate) {
+  return errors::Unimplemented("Reading validation results is not supported");
+}
+
 Status EstimateMainRamBytesFromPath(const string& path,
                                     bool use_validation_result,
                                     FileProbingEnv* env,

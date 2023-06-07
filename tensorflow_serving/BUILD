@@ -1,8 +1,6 @@
 # Description: Tensorflow Serving.
 
-package(
-    default_visibility = ["//tensorflow_serving:internal"],
-)
+package(default_visibility = ["//tensorflow_serving:internal"])
 
 licenses(["notice"])
 

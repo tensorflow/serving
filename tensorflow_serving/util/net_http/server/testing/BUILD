@@ -1,8 +1,6 @@
 # Description: net_http/server/testing
 
-package(
-    default_visibility = ["//visibility:private"],
-)
+package(default_visibility = ["//visibility:private"])
 
 licenses(["notice"])
 

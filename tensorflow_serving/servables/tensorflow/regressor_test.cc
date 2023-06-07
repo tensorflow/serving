@@ -376,13 +376,17 @@ TEST_P(RegressorTest, InvalidNamedSignature) {
   *examples->Add() = example_with_output(3.0);
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
 
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
 }
 
 TEST_P(RegressorTest, MalformedOutputs) {
@@ -396,13 +400,17 @@ TEST_P(RegressorTest, MalformedOutputs) {
   Status status = regressor_->Regress(request_, &result_);
 
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
   // Test RunRegress
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
 }
 
 TEST_P(RegressorTest, EmptyInput) {
@@ -412,13 +420,13 @@ TEST_P(RegressorTest, EmptyInput) {
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
 
 TEST_P(RegressorTest, EmptyExampleList) {
@@ -427,13 +435,13 @@ TEST_P(RegressorTest, EmptyExampleList) {
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
 
 TEST_P(RegressorTest, EmptyExampleListWithContext) {
@@ -445,13 +453,13 @@ TEST_P(RegressorTest, EmptyExampleListWithContext) {
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
 
 TEST_P(RegressorTest, RunsFails) {
@@ -536,12 +544,16 @@ TEST_P(RegressorTest, MissingRegressionSignature) {
   // TODO(b/26220896): This error should move to construction time.
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
 }
 
 TEST_P(RegressorTest, MethodNameCheck) {

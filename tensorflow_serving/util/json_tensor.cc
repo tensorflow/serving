@@ -1071,12 +1071,12 @@ Status MakeJsonFromRegressionResult(const RegressionResult& result,
 
 void MakeJsonFromStatus(const tensorflow::Status& status, string* json) {
   if (status.ok()) return;
-  const string& error_message = status.error_message();
+  absl::string_view error_message = status.message();
   rapidjson::StringBuffer buffer;
   rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
   writer.StartObject();
   writer.Key(kErrorResponseKey);
-  writer.String(error_message.c_str(), error_message.size());
+  writer.String(error_message.data(), error_message.size());
   writer.EndObject();
   json->append(buffer.GetString());
 }

@@ -1,5 +1,14 @@
 workspace(name = "tf_serving")
 
+# TODO(b/269515133): We temporarily remove remote_predict from our builds for
+# 2.12 due to a breakage caused by
+# github.com/tensorflow/tensorflow/commit/6147c03eb9af1e5d2ae155045b33e909ef96944e
+# This will be removed in a subsequent release.
+local_repository(
+    name = "ignore_remote_predict",
+    path = "tensorflow_serving/experimental/tensorflow/ops/remote_predict/",
+)
+
 # ===== TensorFlow dependency =====
 #
 # TensorFlow is imported here instead of in tf_serving_workspace() because
@@ -15,8 +24,8 @@ workspace(name = "tf_serving")
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "47edef97c9b23661fd63621d522454f30772ac70a1fb5ff82864e566ef86be78",
-    git_commit = "f3cc513887e06150b6f870c522220dabedc58920",
+    sha256 = "658779873ef1a483d007cad0f7c9abdf7e8aec769ae9b3f87bfe2300357f77da",
+    git_commit = "79ba16eff7b016e30711b02f31e8ecaa0f489b7a",
 )
 
 # Import all of TensorFlow Serving's external dependencies.

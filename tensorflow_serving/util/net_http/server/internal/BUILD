@@ -1,10 +1,8 @@
 # Description: implementations of HTTP Server
 
-package(
-    default_visibility = [
-        "//tensorflow_serving/util/net_http:__subpackages__",
-    ],
-)
+package(default_visibility = [
+    "//tensorflow_serving/util/net_http:__subpackages__",
+])
 
 licenses(["notice"])
 

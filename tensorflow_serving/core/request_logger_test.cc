@@ -106,7 +106,7 @@ TEST_F(RequestLoggerTest, ErroringCreateLogMessage) {
   const auto error_status =
       request_logger_->Log(PredictRequest(), PredictResponse(), LogMetadata());
   ASSERT_FALSE(error_status.ok());
-  EXPECT_THAT(error_status.error_message(), HasSubstr("Error"));
+  EXPECT_THAT(error_status.message(), HasSubstr("Error"));
 }
 
 TEST_F(RequestLoggerTest, ErroringCollectMessage) {
@@ -124,7 +124,7 @@ TEST_F(RequestLoggerTest, ErroringCollectMessage) {
   const auto error_status =
       request_logger_->Log(PredictRequest(), PredictResponse(), LogMetadata());
   ASSERT_FALSE(error_status.ok());
-  EXPECT_THAT(error_status.error_message(), HasSubstr("Error"));
+  EXPECT_THAT(error_status.message(), HasSubstr("Error"));
 }
 
 }  // namespace

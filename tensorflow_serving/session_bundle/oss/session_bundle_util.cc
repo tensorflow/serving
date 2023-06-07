@@ -47,6 +47,20 @@ Status ConvertSessionBundleToSavedModelBundle(
 Status LoadSessionBundleOrSavedModelBundle(
     const SessionOptions& session_options, const RunOptions& run_options,
     const string& export_dir, const std::unordered_set<string>& tags,
+    bool maybe_load_saved_model_config, SavedModelBundle* bundle,
+    bool* is_session_bundle) {
+  if (maybe_load_saved_model_config) {
+    return errors::Unimplemented(
+        "Saved model config functionality is not implemented.");
+  }
+  return LoadSessionBundleOrSavedModelBundle(session_options, run_options,
+                                             export_dir, tags, bundle,
+                                             is_session_bundle);
+}
+
+Status LoadSessionBundleOrSavedModelBundle(
+    const SessionOptions& session_options, const RunOptions& run_options,
+    const string& export_dir, const std::unordered_set<string>& tags,
     SavedModelBundle* bundle, bool* is_session_bundle) {
   if (is_session_bundle != nullptr) {
     *is_session_bundle = false;
@@ -61,7 +75,7 @@ Status LoadSessionBundleOrSavedModelBundle(
                           bundle);
   }
   return Status(
-      error::Code::NOT_FOUND,
+      static_cast<tsl::errors::Code>(absl::StatusCode::kNotFound),
       strings::StrCat("Specified file path does not appear to contain a "
                       "SavedModel bundle (should have a file called "
                       "`saved_model.pb`)\n"

@@ -1,3 +1,65 @@
+# Release 2.12.1
+
+* This is a re-release of 2.12.0 (that was marked as bad). Please use this instead.
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* Users of remote_predict_py should stay on v2.11 and avoid v2.12.
+
+## Bug Fixes and Other Changes
+
+* Update TF Serving pip package protobuf requirements to match [TF's](https://github.com/tensorflow/tensorflow/blob/0db597d0d758aba578783b5bf46c889700a45085/tensorflow/tools/pip_package/setup.py#L107). (commit: 24028778d11bf67992d481ff573de171c396119b)
+* Update version for 2.12.1 release. (#2139) (commit: bd203faa888dd5ce90f21e3ee9af92dbc90b8a25)
+
+# Release 2.12.0
+
+* **NOTE:** 2.12.0 has been identified as bad release. Please use 2.12.1 or later instead.
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* Users of remote_predict_py should stay on v2.11 and avoid v2.12.
+
+## Bug Fixes and Other Changes
+
+* Update TF Serving to Bazel 5.3.0, to match with TF. (commit: cda26f6065753167ac83e3b1aad7485d3d1d6db0)
+* Update TF Text to v2.11.0. (commit: 1624fb20014921eac178318294e3b0c40d583d4e)
+* Add pyclif_proto_library for get_model_metadata and session_service (commit: bedf391e8617cd3b1cf01ac5efd9e2fe8543a6ca)
+* Raise the vlog level about aspired versions (commit: 73746fb3adeb29f8a1f20e154e8480397afd593d)
+* Add PredictStreamed to PredictionLog. It represents a logged stream of PredictRequests and PredictResponses. (commit: 557f68a88d6be9a0f53beeca02a366359d787d4d)
+* Update rules_pkg to 0.7.1. (commit: 2b5ad9a0d0424f285cc5e1a11eaeb5a8a0c89ad2)
+* Track additional metadata for request logs. (commit: e0a3b5f990b9801d21c739dd27b8430c49353d8b)
+* Replace usage of the tsl::Status constructor with a tsl::{error, errors}::Code. (commit: cfb9fb221e3375fe1dee144a70a9a2f4e28b01da)
+* Replace usage of the tsl::Status constructor with a tsl::{error, errors}::Code. (commit: 19345a666becbe2df1d2d6096cae88b9013848ad)
+* Update Dockerfile.devel* with py3.8 installed. (commit: 68d92ff3fdca0641f465cc3ba3858a619c8b82a6)
+* Update TF Text to v2.12.0. (commit: dbe9339b436b2fa20705c8a444230848e771d65b)
+* Stop depend on 'tensorflow-gpu' for tensorflow-serving GPU build on master branch. (commit: 85ff9c06021b47d487807a48a645d1c6ee9f654b)
+* Upgrade cuda from 11.2 to 11.8. (commit: 20f51c91c0c19f1836508bec8ab7764d208f8f7f)
+* Upgrade to decision-forests-1.3.0 and yggdrasil-decision-forests-1.4.0 (commit: 45d157458cbff136666700b6dee5fc7ccfe0dc70)
+* Add tool to send predict (grpc) requests to ModelServer. (commit: 25c51251ed09ec80bf1d8380296649f9e1770e7b)
+* Ignore remote_predict from :all for 2.12 release due to upstream TF breakage. (commit: 5830714e4f831e90b54f40e3f0467cac74caa009)
+
+# Release 2.11.1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.11.1
+
 # Release 2.11.0
 
 ## Major Features and Improvements

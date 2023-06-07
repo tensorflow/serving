@@ -201,7 +201,7 @@ Status RunSavedModelWarmup(
 
   if (errors::IsDataLoss(status)) {
     return errors::DataLoss(
-        status.error_message(),
+        status.message(),
         ". Please verify your warmup data is in TFRecord format.");
   }
 

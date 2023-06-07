@@ -612,7 +612,7 @@ TEST(JsontensorTest, SingleUnnamedTensorErrors) {
   Status status;
   status = FillPredictRequestFromJson("", getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("document is empty"));
+  EXPECT_THAT(status.message(), HasSubstr("document is empty"));
 
   status = FillPredictRequestFromJson(R"(
     {
@@ -621,7 +621,7 @@ TEST(JsontensorTest, SingleUnnamedTensorErrors) {
     })",
                                       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("must be a string value"));
+  EXPECT_THAT(status.message(), HasSubstr("must be a string value"));
 
   status = FillPredictRequestFromJson(R"(
     {
@@ -630,7 +630,7 @@ TEST(JsontensorTest, SingleUnnamedTensorErrors) {
     })",
                                       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Not formatted correctly"));
+  EXPECT_THAT(status.message(), HasSubstr("Not formatted correctly"));
 
   status = FillPredictRequestFromJson(R"(
     {
@@ -638,7 +638,7 @@ TEST(JsontensorTest, SingleUnnamedTensorErrors) {
     })",
                                       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Expecting tensor size"));
+  EXPECT_THAT(status.message(), HasSubstr("Expecting tensor size"));
 
   status = FillPredictRequestFromJson(R"(
     {
@@ -646,7 +646,7 @@ TEST(JsontensorTest, SingleUnnamedTensorErrors) {
     })",
                                       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Expecting shape"));
+  EXPECT_THAT(status.message(), HasSubstr("Expecting shape"));
 
   status = FillPredictRequestFromJson(R"(
     {
@@ -654,7 +654,7 @@ TEST(JsontensorTest, SingleUnnamedTensorErrors) {
     })",
                                       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Expecting shape"));
+  EXPECT_THAT(status.message(), HasSubstr("Expecting shape"));
 
   status = FillPredictRequestFromJson(R"(
     {
@@ -662,7 +662,7 @@ TEST(JsontensorTest, SingleUnnamedTensorErrors) {
     })",
                                       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("not of expected type"));
+  EXPECT_THAT(status.message(), HasSubstr("not of expected type"));
 }
 
 TEST(JsontensorTest, MultipleNamedTensorErrors) {
@@ -693,7 +693,7 @@ TEST(JsontensorTest, MultipleNamedTensorErrors) {
     })",
                                       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Expecting shape"));
+  EXPECT_THAT(status.message(), HasSubstr("Expecting shape"));
 
   // Different size/length across int_tensor instances.
   req.Clear();
@@ -712,7 +712,7 @@ TEST(JsontensorTest, MultipleNamedTensorErrors) {
     })",
                                       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Expecting tensor size"));
+  EXPECT_THAT(status.message(), HasSubstr("Expecting tensor size"));
 
   // Mix of object and value/list in "instances" list.
   // First element is an object. Rest are expected to be objects too.
@@ -733,8 +733,7 @@ TEST(JsontensorTest, MultipleNamedTensorErrors) {
     })",
                                       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(),
-              HasSubstr("Expecting object but got list"));
+  EXPECT_THAT(status.message(), HasSubstr("Expecting object but got list"));
 
   // Mix of object and value/list in "instances" list.
   // First element is a list. Rest are expected to be list too.
@@ -753,7 +752,7 @@ TEST(JsontensorTest, MultipleNamedTensorErrors) {
     })",
                                       getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(),
+  EXPECT_THAT(status.message(),
               HasSubstr("Expecting value/list but got object"));
 }
 
@@ -944,7 +943,7 @@ TEST(JsontensorTest, FromJsonSingleTensorErrors) {
   status =
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("empty tensor map"));
+  EXPECT_THAT(status.message(), HasSubstr("empty tensor map"));
 
   ASSERT_TRUE(TextFormat::ParseFromString(R"(
     dtype: DT_COMPLEX64
@@ -958,7 +957,7 @@ TEST(JsontensorTest, FromJsonSingleTensorErrors) {
   status =
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("tensor type: complex64"));
+  EXPECT_THAT(status.message(), HasSubstr("tensor type: complex64"));
 
   ASSERT_TRUE(TextFormat::ParseFromString(R"(
     dtype: DT_INT32
@@ -968,7 +967,7 @@ TEST(JsontensorTest, FromJsonSingleTensorErrors) {
   status =
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("no shape information"));
+  EXPECT_THAT(status.message(), HasSubstr("no shape information"));
 }
 
 TEST(JsontensorTest, FromJsonMultipleNamedTensors) {
@@ -1110,7 +1109,7 @@ TEST(JsontensorTest, FromJsonMultipleNamedTensorsErrors) {
   const auto& status =
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("inconsistent batch size"));
+  EXPECT_THAT(status.message(), HasSubstr("inconsistent batch size"));
 }
 
 TEST(JsontensorTest, FromJsonSingleZeroBatchTensor) {
@@ -1184,7 +1183,7 @@ TEST(JsontensorTest, FromJsonMultipleZeroBatchTensorsErrors) {
   const auto& status =
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("inconsistent batch size"));
+  EXPECT_THAT(status.message(), HasSubstr("inconsistent batch size"));
 }
 
 template <typename RequestType>
@@ -1414,7 +1413,7 @@ TYPED_TEST(ClassifyRegressRequestTest, JsonErrors) {
     })",
                                   &req);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(),
+  EXPECT_THAT(status.message(),
               HasSubstr("'signature_name' key must be a string"));
 
   req.Clear();
@@ -1424,7 +1423,7 @@ TYPED_TEST(ClassifyRegressRequestTest, JsonErrors) {
     })",
                              &req);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Example must be JSON object"));
+  EXPECT_THAT(status.message(), HasSubstr("Example must be JSON object"));
 
   req.Clear();
   status = this->FillRequest(R"(
@@ -1433,7 +1432,7 @@ TYPED_TEST(ClassifyRegressRequestTest, JsonErrors) {
     })",
                              &req);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("list/array"));
+  EXPECT_THAT(status.message(), HasSubstr("list/array"));
 
   req.Clear();
   status = this->FillRequest(R"(
@@ -1442,7 +1441,7 @@ TYPED_TEST(ClassifyRegressRequestTest, JsonErrors) {
     })",
                              &req);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Example must be JSON object"));
+  EXPECT_THAT(status.message(), HasSubstr("Example must be JSON object"));
 
   req.Clear();
   status = this->FillRequest(R"(
@@ -1451,7 +1450,7 @@ TYPED_TEST(ClassifyRegressRequestTest, JsonErrors) {
     })",
                              &req);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(),
+  EXPECT_THAT(status.message(),
               HasSubstr("names has element with unexpected JSON type: Null"));
 
   req.Clear();
@@ -1461,7 +1460,7 @@ TYPED_TEST(ClassifyRegressRequestTest, JsonErrors) {
     })",
                              &req);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(),
+  EXPECT_THAT(status.message(),
               HasSubstr("feature: names expecting type: int64"));
 
   req.Clear();
@@ -1471,7 +1470,7 @@ TYPED_TEST(ClassifyRegressRequestTest, JsonErrors) {
     })",
                              &req);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(),
+  EXPECT_THAT(status.message(),
               HasSubstr("names has element with unexpected JSON type: Object"));
 
   req.Clear();
@@ -1481,7 +1480,7 @@ TYPED_TEST(ClassifyRegressRequestTest, JsonErrors) {
     })",
                              &req);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(),
+  EXPECT_THAT(status.message(),
               HasSubstr("names has element with unexpected JSON type: Array"));
 
   req.Clear();
@@ -1491,7 +1490,7 @@ TYPED_TEST(ClassifyRegressRequestTest, JsonErrors) {
     })",
                              &req);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("Only int64_t is supported"));
+  EXPECT_THAT(status.message(), HasSubstr("Only int64_t is supported"));
 }
 
 TEST(ClassifyRegressnResultTest, JsonFromClassificationResult) {
@@ -1554,11 +1553,11 @@ TEST(ClassifyRegressnResultTest, JsonFromResultErrors) {
   string json;
   auto status = MakeJsonFromClassificationResult(ClassificationResult(), &json);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("empty ClassificationResults"));
+  EXPECT_THAT(status.message(), HasSubstr("empty ClassificationResults"));
 
   status = MakeJsonFromRegressionResult(RegressionResult(), &json);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
-  EXPECT_THAT(status.error_message(), HasSubstr("empty RegressionResults"));
+  EXPECT_THAT(status.message(), HasSubstr("empty RegressionResults"));
 }
 
 TEST(MakeJsonFromTensors, StatusOK) {

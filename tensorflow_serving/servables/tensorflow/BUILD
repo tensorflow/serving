@@ -1,7 +1,6 @@
 # Description: TensorFlow servables.
 
-load("//tensorflow_serving:oss_or_google.bzl", "if_google", "if_oss")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
+load("//tensorflow_serving:serving.bzl", "if_google", "if_oss", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
 
 package(
     default_visibility = [
@@ -511,12 +510,12 @@ cc_test(
     size = "medium",
     srcs = ["predict_util_test.cc"],
     data = [
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export",
         "//tensorflow_serving/servables/tensorflow/testdata:bad_half_plus_two/00000123/export.meta",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/saved_model.pb",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/variables/variables.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_counter/00000123/variables/variables.index",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ] + if_google([
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
@@ -982,6 +981,7 @@ cc_library(
         ":session_bundle_config_cc_proto",
         ":util",
         "//tensorflow_serving/apis:prediction_log_cc_proto",
+        "@com_google_absl//absl/strings",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/cc/saved_model:constants",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
@@ -999,19 +999,21 @@ cc_test(
         ":saved_model_warmup",
         ":saved_model_warmup_test_util",
         ":session_bundle_config_cc_proto",
+        "//tensorflow_serving/apis:classification_cc_proto",
+        "//tensorflow_serving/apis:inference_cc_proto",
         "//tensorflow_serving/apis:input_cc_proto",
         "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/apis:prediction_log_cc_proto",
+        "//tensorflow_serving/apis:regression_cc_proto",
         "//tensorflow_serving/core/test_util:mock_session",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/test_util",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/cc/saved_model:constants",
-        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
-        "@org_tensorflow//tensorflow/core:testlib",
     ],
 )
 

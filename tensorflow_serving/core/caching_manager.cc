@@ -152,7 +152,7 @@ Status CachingManager::LoadServable(
       if (!manage_status.ok()) {
         const string error_msg = strings::StrCat(
             "Internal error: unable to transfer servable to 'basic_manager_': ",
-            manage_status.error_message());
+            manage_status.message());
         DCHECK(false) << error_msg;
         return errors::Internal(error_msg);
       }

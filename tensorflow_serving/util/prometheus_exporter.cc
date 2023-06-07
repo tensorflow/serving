@@ -158,7 +158,9 @@ PrometheusExporter::PrometheusExporter()
 
 Status PrometheusExporter::GeneratePage(string* http_page) {
   if (http_page == nullptr) {
-    return Status(error::Code::INVALID_ARGUMENT, "Http page pointer is null");
+    return Status(
+        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+        "Http page pointer is null");
   }
   monitoring::CollectionRegistry::CollectMetricsOptions collect_options;
   collect_options.collect_metric_descriptors = true;

@@ -118,6 +118,9 @@ tf_custom_op_py_library(
         ":remote_predict_op_op_lib",
     ],
     srcs_version = "PY2AND3",
+    tags = [
+        "manual",
+    ],
     visibility = ["//tensorflow_serving/experimental/example:__subpackages__"],
     deps = [
         ":gen_remote_predict_op",

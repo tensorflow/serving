@@ -121,6 +121,11 @@ message SessionBundleConfig {
   // used if batching is enabled (i.e. `batching_parameters` message above
   // is set).
   bool enable_per_model_batching_params = 789;
+
+  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION
+  //
+  // Enable overriding model configs via assets.extra/saved_model_config.pb.
+  bool enable_saved_model_config = 790;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

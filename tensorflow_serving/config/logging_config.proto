@@ -1,14 +1,25 @@
 syntax = "proto3";
 
 package tensorflow.serving;
-option cc_enable_arenas = true;
 
 import "tensorflow_serving/config/log_collector_config.proto";
 
+option cc_enable_arenas = true;
+
 message SamplingConfig {
-  // Requests will be logged uniformly at random with this probability. Valid
-  // range: [0, 1.0].
+  // Requests will be logged uniformly at random with this probability.
+  // Valid range: [0, 1.0].
   double sampling_rate = 1;
+
+  // Attributes of requests that can be optionally sampled.
+  // Note: Enabling more attributes will increase logging storage requirements.
+  enum Attributes {
+    ATTR_DEFAULT = 0x0;
+    ATTR_REQUEST_ORIGIN = 0x1;
+    ATTR_REQUEST_CRITICALITY = 0x2;
+  }
+  // Bitwise OR of above attributes
+  int32 attributes = 2;
 }
 
 // Configuration for logging query/responses.

@@ -1,12 +1,10 @@
 # Description: a lightweight http server and related utils to support Web clients
 
-package(
-    default_visibility = [
-        "//tensorflow_serving:internal",
-        "//tensorflow_serving/util/net_http:__subpackages__",
-        "//tensorflow_serving/util/net_http/public:http_server_clients",
-    ],
-)
+package(default_visibility = [
+    "//tensorflow_serving:internal",
+    "//tensorflow_serving/util/net_http:__subpackages__",
+    "//tensorflow_serving/util/net_http/public:http_server_clients",
+])
 
 licenses(["notice"])
 

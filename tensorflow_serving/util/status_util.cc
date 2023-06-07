@@ -15,14 +15,17 @@ limitations under the License.
 
 #include "tensorflow_serving/util/status_util.h"
 
+#include <string>
+
 namespace tensorflow {
 namespace serving {
 
 StatusProto ToStatusProto(const Status& status) {
   StatusProto status_proto;
-  status_proto.set_error_code(status.code());
+  status_proto.set_error_code(
+      static_cast<tensorflow::error::Code>(status.code()));
   if (!status.ok()) {
-    status_proto.set_error_message(status.error_message());
+    status_proto.set_error_message(std::string(status.message()));
   }
   return status_proto;
 }
@@ -30,7 +33,8 @@ StatusProto ToStatusProto(const Status& status) {
 Status FromStatusProto(const StatusProto& status_proto) {
   return status_proto.error_code() == tensorflow::error::OK
              ? Status()
-             : Status(status_proto.error_code(), status_proto.error_message());
+             : Status(static_cast<tsl::errors::Code>(status_proto.error_code()),
+                      status_proto.error_message());
 }
 
 }  // namespace serving

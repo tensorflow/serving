@@ -64,7 +64,7 @@ Status RequestLogger::Log(const google::protobuf::Message& request,
     }();
     request_log_count
         ->GetCell(log_metadata.model_spec().name(),
-                  error::Code_Name(status.code()))
+                  error::Code_Name(static_cast<error::Code>(status.code())))
         ->IncrementBy(1);
     return status;
   }

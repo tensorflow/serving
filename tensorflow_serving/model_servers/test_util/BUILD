@@ -1,7 +1,6 @@
 # Description: Model Server test utility
 
-load("//tensorflow_serving:oss_or_google.bzl", "if_google")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+load("//tensorflow_serving:serving.bzl", "if_google", "serving_proto_library")
 
 package(
     default_visibility = [
@@ -57,8 +56,8 @@ cc_library(
     srcs = ["server_core_test_util.cc"],
     hdrs = ["server_core_test_util.h"],
     data = [
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ] + if_google([
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
@@ -125,7 +124,6 @@ py_library(
         "//tensorflow_serving/apis:predict_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
         "@org_tensorflow//tensorflow/core:protos_all_py",
-        "@org_tensorflow//tensorflow/python:platform",
         "@org_tensorflow//tensorflow/python/saved_model:signature_constants",
         "@six_archive//:six",
     ],

@@ -1,8 +1,6 @@
 # Description: net_http/socket testing utils
 
-package(
-    default_visibility = ["//visibility:private"],
-)
+package(default_visibility = ["//visibility:private"])
 
 licenses(["notice"])
 

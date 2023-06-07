@@ -163,7 +163,7 @@ Status CreateOutputTensors(
     auto fix_status = FixTfLiteTensorName(output_tensor_to_idx, tfname);
     if (fix_status != OkStatus()) {
       return errors::Internal("Missing output TFLite tensor: ", tfname, ": ",
-                              fix_status.error_message());
+                              fix_status.message());
     }
     const int tflite_idx = output_tensor_to_idx.at(tfname);
     TensorShape tf_shape;
@@ -452,8 +452,7 @@ Status TfLiteSession::Create(string&& buffer, const SessionOptions& options,
       tflite::GetSignatureDefMap(model->GetModel(), &signature_defs);
   if (status != OkStatus()) {
     return errors::InvalidArgument(
-        "Invalid SignatureDefs found in TfLite model: ",
-        status.error_message());
+        "Invalid SignatureDefs found in TfLite model: ", status.message());
   }
   const bool has_lite_signature_def = !signature_defs.empty();
 
@@ -755,7 +754,8 @@ void TfLiteSession::ProcessBatch(
     }
   }
   if (all_tasks_timeout_exceeded) {
-    status = Status(error::RESOURCE_EXHAUSTED,
+    status = Status(static_cast<tensorflow::errors::Code>(
+                        absl::StatusCode::kResourceExhausted),
                     "Run() timeout exceeded while waiting in batching queue");
     return;
   }

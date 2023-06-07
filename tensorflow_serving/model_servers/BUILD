@@ -1,9 +1,8 @@
 # Description: Model Server
 
-load("//tensorflow_serving:oss_or_google.bzl", "if_google")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
-load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_libtpu")
+load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_google", "if_libtpu", "if_with_tpu_support")
 
 package(
     default_visibility = [
@@ -251,6 +250,7 @@ cc_library(
     hdrs = ["grpc_status_util.h"],
     deps = [
         "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/strings",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -385,38 +385,38 @@ cc_library(
     hdrs = ["server.h"],
     visibility = ["//visibility:public"],
     deps = [
+        ":grpc_status_util",
         ":http_server",
-        ":server_init",
         ":model_platform_types",
+        ":model_service_impl",
         ":prediction_service_impl",
         ":server_core",
-        ":grpc_status_util",
-        ":model_service_impl",
-        "@com_google_protobuf//:cc_wkt_protos",
-        "@com_github_grpc_grpc//:grpc++",
-        "@org_tensorflow//tensorflow/c:c_api",
-        "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@com_google_absl//absl/memory",
-        "@org_tensorflow//tensorflow/core/profiler/rpc:profiler_service_impl",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        ":server_init",
         "//tensorflow_serving/config:model_server_config_cc_proto",
         "//tensorflow_serving/config:monitoring_config_cc_proto",
-        "//tensorflow_serving/config:ssl_config_cc_proto",
         "//tensorflow_serving/config:platform_config_cc_proto",
+        "//tensorflow_serving/config:ssl_config_cc_proto",
         "//tensorflow_serving/core:availability_preserving_policy",
-        "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
-        "//tensorflow_serving/util:proto_util",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "//tensorflow_serving/servables/tensorflow:classification_service",
         "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
         "//tensorflow_serving/servables/tensorflow:multi_inference",
+        "//tensorflow_serving/servables/tensorflow:predict_impl",
         "//tensorflow_serving/servables/tensorflow:regression_service",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
-        "//tensorflow_serving/servables/tensorflow:predict_impl",
-        "//tensorflow_serving/servables/tensorflow:util",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
         "//tensorflow_serving/servables/tensorflow:thread_pool_factory",
         "//tensorflow_serving/servables/tensorflow:thread_pool_factory_config_cc_proto",
+        "//tensorflow_serving/servables/tensorflow:util",
+        "//tensorflow_serving/util:proto_util",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/memory",
+        "@com_google_protobuf//:cc_wkt_protos",
+        "@org_tensorflow//tensorflow/c:c_api",
+        "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "@org_tensorflow//tensorflow/core/profiler/rpc:profiler_service_impl",
     ] + SUPPORTED_TENSORFLOW_OPS,
 )
 
@@ -439,10 +439,15 @@ cc_library(
         "@org_tensorflow//tensorflow/compiler/jit:xla_cpu_jit",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
-    ] + if_libtpu([
-        "@org_tensorflow//tensorflow/core/tpu:tpu_global_init",
-        "@org_tensorflow//tensorflow/core/tpu:tpu_api_dlsym_initializer",
-    ]),
+    ] + if_google(
+        google_value = if_with_tpu_support([
+            "@org_tensorflow//tensorflow/core/tpu:tpu_global_init",
+        ]),
+        oss_value = if_libtpu([
+            "@org_tensorflow//tensorflow/core/tpu:tpu_global_init",
+            "@org_tensorflow//tensorflow/core/tpu:tpu_api_dlsym_initializer",
+        ]),
+    ),
 )
 
 cc_binary(

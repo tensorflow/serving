@@ -235,15 +235,15 @@ void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
     std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
   const Status validation_status =
       ValidateAspiredVersions(servable_name, versions);
-  DCHECK(validation_status.ok()) << validation_status.error_message();
+  DCHECK(validation_status.ok()) << validation_status.message();
   if (!validation_status.ok()) {
-    LOG(ERROR) << validation_status.error_message();
+    LOG(ERROR) << validation_status.message();
     return;
   }
 
   {
     mutex_lock l(pending_aspired_versions_requests_mu_);
-    VLOG(1) << "Enqueueing aspired versions request: " << servable_name << ": "
+    VLOG(2) << "Enqueueing aspired versions request: " << servable_name << ": "
             << ServableVersionsDebugString(versions);
     pending_aspired_versions_requests_[string(servable_name)] =
         std::move(versions);
@@ -253,7 +253,7 @@ void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
 void AspiredVersionsManager::ProcessAspiredVersionsRequest(
     const StringPiece servable_name,
     std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
-  VLOG(1) << "Processing aspired versions request: " << servable_name << ": "
+  VLOG(2) << "Processing aspired versions request: " << servable_name << ": "
           << ServableVersionsDebugString(versions);
 
   const std::set<int64_t> next_aspired_versions = GetVersionNumbers(versions);
@@ -308,11 +308,11 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
       id.name = std::string(servable_name);
       id.version = version_id.version;
       const Status manage_status = basic_manager_->StopManagingServable(id);
-      DCHECK(manage_status.ok()) << manage_status.error_message();
+      DCHECK(manage_status.ok()) << manage_status.message();
       if (!manage_status.ok()) {
         LOG(ERROR) << "Internal error: Unable to clear errored servable "
-                   << version_id.DebugString() << " from 'basic_manager_': "
-                   << manage_status.error_message();
+                   << version_id.DebugString()
+                   << " from 'basic_manager_': " << manage_status.message();
       }
       should_add = true;
     }
@@ -322,11 +322,11 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
       const Status manage_status =
           basic_manager_->ManageServableWithAdditionalState(
               std::move(version), std::unique_ptr<Aspired>(new Aspired{true}));
-      DCHECK(manage_status.ok()) << manage_status.error_message();
+      DCHECK(manage_status.ok()) << manage_status.message();
       if (!manage_status.ok()) {
         LOG(ERROR) << "Internal error: Unable to transfer servable "
                    << version_id.DebugString()
-                   << " to 'basic_manager_': " << manage_status.error_message();
+                   << " to 'basic_manager_': " << manage_status.message();
       }
     }
   }
