@@ -104,7 +104,8 @@ Status RunPredict(
                                   output_tensor_names, {}, &outputs,
                                   &run_metadata, thread_pool_options));
   const uint64_t end_microseconds = EnvTime::NowMicros();
-  RecordRuntimeLatency(request.model_spec().name(), /*api=*/"Predict",
+  RecordRuntimeLatency(request.model_spec().name(),
+                       /*signature_name=*/signature_name, /*api=*/"Predict",
                        /*runtime=*/"TF1",
                        end_microseconds - start_microseconds);
 
