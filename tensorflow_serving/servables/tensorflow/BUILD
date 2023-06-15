@@ -911,7 +911,6 @@ cc_library(
     hdrs = ["saved_model_warmup_util.h"],
     deps = [
         ":session_bundle_config_cc_proto",
-        ":util",
         "//tensorflow_serving/apis:prediction_log_cc_proto",
         "//tensorflow_serving/util:threadpool_executor",
         "@com_google_protobuf//:cc_wkt_protos",

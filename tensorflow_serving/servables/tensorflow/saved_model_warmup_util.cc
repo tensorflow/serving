@@ -140,13 +140,13 @@ Status RunSavedModelWarmup(
           tensorflow::serving::PredictionLog prediction_log;
           {
             ::tensorflow::mutex_lock lock(state->mu);
+            if (!state->warm_up_status.ok()) {
+              break;
+            }
             if (state->num_warmup_records > WarmupConsts::kMaxNumRecords) {
               state->warm_up_status = errors::InvalidArgument(
                   "Number of warmup records exceeds the maximum (",
                   WarmupConsts::kMaxNumRecords, ") at ", warmup_path);
-              break;
-            }
-            if (!state->warm_up_status.ok()) {
               break;
             }
             execution_status =
@@ -165,11 +165,15 @@ Status RunSavedModelWarmup(
           for (int i = 0; i < num_request_iterations; ++i) {
             execution_status = warmup_request_executor(prediction_log);
             if (!execution_status.ok()) {
-              ::tensorflow::mutex_lock lock(state->mu);
-              state->warm_up_status = execution_status;
               break;
             }
           }
+          if (!execution_status.ok()) {
+            ::tensorflow::mutex_lock lock(state->mu);
+            state->warm_up_status = execution_status;
+            break;
+          }
+
           ::tensorflow::mutex_lock lock(state->mu);
           ++state->num_warmup_records;
           status = state->warm_up_status;
