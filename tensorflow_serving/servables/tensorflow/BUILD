@@ -200,7 +200,6 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        ":bundle_factory_util",
         ":machine_learning_metadata",
         ":saved_model_bundle_factory",
         ":saved_model_bundle_source_adapter_cc_proto",
@@ -919,7 +918,6 @@ cc_library(
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core/kernels/batching_util:warmup",
     ],
 )
 
@@ -966,7 +964,6 @@ cc_test(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
-        "@org_tensorflow//tensorflow/core/kernels/batching_util:warmup",
     ],
 )
 

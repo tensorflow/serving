@@ -87,7 +87,6 @@ class SavedModelBundleFactory {
                                      ResourceAllocation* estimate) const;
 
   const SessionBundleConfig& config() const { return config_; }
-  SessionBundleConfig& mutable_config() { return config_; }
 
  private:
   using Batcher = SharedBatchScheduler<BatchingSessionTask>;
@@ -99,7 +98,7 @@ class SavedModelBundleFactory {
       const absl::optional<Loader::Metadata>& metadata, const string& path,
       std::unique_ptr<SavedModelBundle>* bundle);
 
-  SessionBundleConfig config_;
+  const SessionBundleConfig config_;
 
   // A shared batch scheduler. One queue is used for each session this factory
   // emits. If batching is not configured, this remains null.

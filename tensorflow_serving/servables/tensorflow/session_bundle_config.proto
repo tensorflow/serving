@@ -12,10 +12,6 @@ message ModelWarmupOptions {
   google.protobuf.Int32Value num_request_iterations = 1;
   // The number of threads to parallel execute warm up queries. By default 1.
   google.protobuf.Int32Value num_model_warmup_threads = 2;
-  // Model name.
-  string model_name = 3;
-  // Model version.
-  int64 model_version = 4;
 }
 
 // Configuration parameters for a SessionBundle, with optional batching.

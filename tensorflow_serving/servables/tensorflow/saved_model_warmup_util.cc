@@ -17,14 +17,12 @@ limitations under the License.
 
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/cc/saved_model/constants.h"
-#include "tensorflow/core/kernels/batching_util/warmup.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/status.h"
-#include "tensorflow/tsl/platform/errors.h"
 #include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {
@@ -56,11 +54,6 @@ constexpr int WarmupConsts::kMaxNumRecords;
 Status RunSavedModelWarmup(
     const ModelWarmupOptions& model_warmup_options, const string export_dir,
     std::function<Status(PredictionLog)> warmup_request_executor) {
-  auto warmup = GetGlobalWarmupStateRegistry().Register(
-      {model_warmup_options.model_name(),
-       model_warmup_options.model_version()});
-  TF_RETURN_IF_ERROR(warmup.status());
-
   const uint64_t start_microseconds = EnvTime::NowMicros();
   const string warmup_path =
       io::JoinPath(export_dir, kSavedModelAssetsExtraDirectory,
