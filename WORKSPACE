@@ -37,7 +37,7 @@ tf_serving_workspace()
 
 # Check bazel version requirement, which is stricter than TensorFlow's.
 load("@bazel_skylib//lib:versions.bzl", "versions")
-versions.check("5.3.0")
+versions.check("6.1.0")
 
 # Initialize TensorFlow's external dependencies.
 load("@org_tensorflow//tensorflow:workspace3.bzl", "workspace")
