@@ -56,10 +56,14 @@ constexpr int WarmupConsts::kMaxNumRecords;
 Status RunSavedModelWarmup(
     const ModelWarmupOptions& model_warmup_options, const string export_dir,
     std::function<Status(PredictionLog)> warmup_request_executor) {
-  auto warmup = GetGlobalWarmupStateRegistry().Register(
-      {model_warmup_options.model_name(),
-       model_warmup_options.model_version()});
-  TF_RETURN_IF_ERROR(warmup.status());
+  WarmupStateRegistry::Handle warmup_handle;
+  if (!model_warmup_options.model_name().empty()) {
+    auto h = GetGlobalWarmupStateRegistry().Register(
+        {model_warmup_options.model_name(),
+         model_warmup_options.model_version()});
+    TF_RETURN_IF_ERROR(h.status());
+    warmup_handle = std::move(h.value());
+  }
 
   const uint64_t start_microseconds = EnvTime::NowMicros();
   const string warmup_path =
