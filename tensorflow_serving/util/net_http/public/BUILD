@@ -8,7 +8,10 @@ package(default_visibility = [
 
 package_group(
     name = "http_server_clients",
-    packages = ["//..."],
+    packages = [
+        "//...",
+        "//platforms/redfish/...",
+    ],
 )
 
 licenses(["notice"])
