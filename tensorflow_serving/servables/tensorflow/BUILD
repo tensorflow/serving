@@ -1072,6 +1072,38 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "servable",
+    srcs = ["servable.cc"],
+    hdrs = ["servable.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "//tensorflow_serving/apis:classification_cc_proto",
+        "//tensorflow_serving/apis:get_model_metadata_cc_proto",
+        "//tensorflow_serving/apis:inference_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/apis:regression_cc_proto",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "mock_servable",
+    testonly = True,
+    hdrs = ["mock_servable.h"],
+    deps = [
+        ":servable",
+        "//tensorflow_serving/test_util",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
+    ],
+)
+
 cc_test(
     name = "thread_pool_factory_test",
     size = "small",
@@ -1082,5 +1114,17 @@ cc_test(
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform:threadpool_options",
+    ],
+)
+
+cc_test(
+    name = "servable_test",
+    srcs = ["servable_test.cc"],
+    deps = [
+        ":servable",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@com_google_absl//absl/status",
     ],
 )
