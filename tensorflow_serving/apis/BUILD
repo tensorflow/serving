@@ -423,6 +423,12 @@ serving_proto_library(
     ],
 )
 
+tf_jspb_proto_library(
+    name = "session_service_jspb_proto",
+    visibility = ["//research/vision/loco/visualization/interactive_computation:__pkg__"],
+    deps = [":session_service_proto"],
+)
+
 serving_proto_library_py(
     name = "session_service_proto_py_pb2",
     srcs = ["session_service.proto"],
