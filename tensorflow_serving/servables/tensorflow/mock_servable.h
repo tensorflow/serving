@@ -16,10 +16,10 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_MOCK_SERVABLE_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_MOCK_SERVABLE_H_
 
-#include <gmock/gmock.h>
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
+#include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -31,20 +31,25 @@ class MockServable : public Servable {
   ~MockServable() override = default;
 
   MOCK_METHOD(absl::Status, Classify,
-              (const tensorflow::serving::ClassificationRequest& request,
+              (const tensorflow::serving::Servable::RunOptions& run_options,
+               const tensorflow::serving::ClassificationRequest& request,
                tensorflow::serving::ClassificationResponse* response));
   MOCK_METHOD(absl::Status, Regress,
-              (const tensorflow::serving::RegressionRequest& request,
+              (const tensorflow::serving::Servable::RunOptions& run_options,
+               const tensorflow::serving::RegressionRequest& request,
                tensorflow::serving::RegressionResponse* response));
   MOCK_METHOD(absl::Status, Predict,
-              (const tensorflow::serving::PredictRequest& request,
+              (const tensorflow::serving::Servable::RunOptions& run_options,
+               const tensorflow::serving::PredictRequest& request,
                tensorflow::serving::PredictResponse* response));
   MOCK_METHOD(absl::Status, PredictStreamed,
-              (const tensorflow::serving::PredictRequest& request,
+              (const tensorflow::serving::Servable::RunOptions& run_options,
+               const tensorflow::serving::PredictRequest& request,
                absl::AnyInvocable<void(tensorflow::serving::PredictResponse)>
                    response_callback));
   MOCK_METHOD(absl::Status, MultiInference,
-              (const tensorflow::serving::MultiInferenceRequest& request,
+              (const tensorflow::serving::Servable::RunOptions& run_options,
+               const tensorflow::serving::MultiInferenceRequest& request,
                tensorflow::serving::MultiInferenceResponse* response));
   MOCK_METHOD(absl::Status, GetModelMetadata,
               (const tensorflow::serving::GetModelMetadataRequest& request,

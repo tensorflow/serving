@@ -15,10 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/servable.h"
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 #include "absl/status/status.h"
 #include "tensorflow_serving/apis/predict.pb.h"
+#include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -26,7 +25,9 @@ namespace {
 
 TEST(EmptyServableTest, Predict) {
   PredictResponse response;
-  EXPECT_EQ(EmptyServable().Predict(PredictRequest(), &response).code(),
+  EXPECT_EQ(EmptyServable()
+                .Predict(Servable::RunOptions(), PredictRequest(), &response)
+                .code(),
             absl::StatusCode::kFailedPrecondition);
 }
 

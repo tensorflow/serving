@@ -29,6 +29,8 @@ limitations under the License.
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
+#include "tensorflow_serving/servables/tensorflow/predict_response_tensor_serialization_option.h"
+#include "tensorflow_serving/servables/tensorflow/thread_pool_factory.h"
 
 namespace tensorflow {
 namespace serving {
@@ -48,13 +50,27 @@ class Servable {
   // Returns the version associated with this servable.
   int64_t version() const { return version_; }
 
-  virtual absl::Status Classify(const ClassificationRequest& request,
+  // RunOptions group the configuration for individual inference executions.
+  // The per-request configuration (e.g. deadline) can be passed here.
+  struct RunOptions {
+    // Priority of the request. Some thread pool implementation will schedule
+    // ops based on the priority number. Larger number means higher
+    // priority.
+    int64_t priority = 1;
+    // The deadline for this request.
+    absl::Time deadline = absl::InfiniteFuture();
+  };
+
+  virtual absl::Status Classify(const RunOptions& run_options,
+                                const ClassificationRequest& request,
                                 ClassificationResponse* response) = 0;
 
-  virtual absl::Status Regress(const RegressionRequest& request,
+  virtual absl::Status Regress(const RunOptions& run_options,
+                               const RegressionRequest& request,
                                RegressionResponse* response) = 0;
 
-  virtual absl::Status Predict(const PredictRequest& request,
+  virtual absl::Status Predict(const RunOptions& run_options,
+                               const PredictRequest& request,
                                PredictResponse* response) = 0;
 
   // Streamed version of `Predict`. Experimental API that is not yet part of the
@@ -67,10 +83,11 @@ class Servable {
   // callback invocation to be delayed. The implementation guarantees that the
   // callback is never called after the `PredictStreamed` method returns.
   virtual absl::Status PredictStreamed(
-      const PredictRequest& request,
+      const RunOptions& run_options, const PredictRequest& request,
       absl::AnyInvocable<void(PredictResponse)> response_callback) = 0;
 
-  virtual absl::Status MultiInference(const MultiInferenceRequest& request,
+  virtual absl::Status MultiInference(const RunOptions& run_options,
+                                      const MultiInferenceRequest& request,
                                       MultiInferenceResponse* response) = 0;
 
   virtual absl::Status GetModelMetadata(const GetModelMetadataRequest& request,
@@ -95,28 +112,32 @@ class EmptyServable : public Servable {
  public:
   EmptyServable();
 
-  absl::Status Classify(const ClassificationRequest& request,
+  absl::Status Classify(const RunOptions& run_options,
+                        const ClassificationRequest& request,
                         ClassificationResponse* response) override {
     return error_;
   }
 
-  absl::Status Regress(const RegressionRequest& request,
+  absl::Status Regress(const RunOptions& run_options,
+                       const RegressionRequest& request,
                        RegressionResponse* response) override {
     return error_;
   }
 
-  absl::Status Predict(const PredictRequest& request,
+  absl::Status Predict(const RunOptions& run_options,
+                       const PredictRequest& request,
                        PredictResponse* response) override {
     return error_;
   }
 
   absl::Status PredictStreamed(
-      const PredictRequest& request,
+      const RunOptions& run_options, const PredictRequest& request,
       absl::AnyInvocable<void(PredictResponse)> response_callback) override {
     return error_;
   }
 
-  absl::Status MultiInference(const MultiInferenceRequest& request,
+  absl::Status MultiInference(const RunOptions& run_options,
+                              const MultiInferenceRequest& request,
                               MultiInferenceResponse* response) override {
     return error_;
   }

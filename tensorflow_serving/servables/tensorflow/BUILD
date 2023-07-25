@@ -1080,6 +1080,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":predict_response_tensor_serialization_option",
+        ":thread_pool_factory",
         "//tensorflow_serving/apis:classification_cc_proto",
         "//tensorflow_serving/apis:get_model_metadata_cc_proto",
         "//tensorflow_serving/apis:inference_cc_proto",
