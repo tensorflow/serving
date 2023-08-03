@@ -16,6 +16,10 @@ message ModelWarmupOptions {
   string model_name = 3;
   // Model version.
   int64 model_version = 4;
+  // If true, warmup queries initiate parallel (dummy) warmup queries for each
+  // `allowed_batch_sizes` of supported batch ops.
+  // The extra queries' outputs are not returned.
+  bool enable_all_batch_sizes_warmup = 5;
 }
 
 // Configuration parameters for a SessionBundle, with optional batching.

@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup_util.h"
 
+#include <memory>
+#include <utility>
+
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/core/kernels/batching_util/warmup.h"
@@ -57,10 +60,14 @@ Status RunSavedModelWarmup(
     const ModelWarmupOptions& model_warmup_options, const string export_dir,
     std::function<Status(PredictionLog)> warmup_request_executor) {
   WarmupStateRegistry::Handle warmup_handle;
+  auto per_model_data = std::make_unique<WarmupStateRegistry::PerModelData>();
+  per_model_data->warmup_all_batch_sizes =
+      model_warmup_options.enable_all_batch_sizes_warmup();
   if (!model_warmup_options.model_name().empty()) {
     auto h = GetGlobalWarmupStateRegistry().Register(
         {model_warmup_options.model_name(),
-         model_warmup_options.model_version()});
+         model_warmup_options.model_version()},
+        std::move(per_model_data));
     TF_RETURN_IF_ERROR(h.status());
     warmup_handle = std::move(h.value());
   }
