@@ -1,5 +1,6 @@
 # Description: Model Server test utility
 
+# Placeholder: load py_library
 load("//tensorflow_serving:serving.bzl", "if_google", "serving_proto_library")
 
 package(

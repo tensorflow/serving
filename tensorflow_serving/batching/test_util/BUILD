@@ -1,5 +1,7 @@
 # Description: Tensorflow Serving batching test utilities.
 
+# Placeholder: load py_binary
+
 package(
     default_visibility = ["//tensorflow_serving:internal"],
     features = ["-layering_check"],
