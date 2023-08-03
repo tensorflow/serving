@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/util.h"
 
 #include <atomic>
+#include <cstdlib>
 
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
@@ -356,6 +357,11 @@ std::set<string> SetDifference(std::set<string> set_a, std::set<string> set_b) {
   std::set_difference(set_a.begin(), set_a.end(), set_b.begin(), set_b.end(),
                       std::inserter(result, result.end()));
   return result;
+}
+
+bool IsTfrtErrorLoggingEnabled() {
+  const char* env = getenv("ENABLE_TFRT_SERVING_ERROR_LOGGING");
+  return env != nullptr && env[0] == '1' && env[1] == '\0';
 }
 
 }  // namespace serving
