@@ -500,6 +500,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/cc/saved_model:util",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
