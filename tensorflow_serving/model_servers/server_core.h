@@ -42,6 +42,7 @@ limitations under the License.
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/core/storage_path.h"
+#include "tensorflow_serving/core/stream_logger.h"
 #include "tensorflow_serving/servables/tensorflow/predict_util.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/util/event_bus.h"
@@ -270,6 +271,17 @@ class ServerCore : public Manager {
                      const google::protobuf::Message& response,
                      const LogMetadata& log_metadata) {
     return options_.server_request_logger->Log(request, response, log_metadata);
+  }
+
+  // Starts logging a stream through returning a StreamLogger created through
+  // `create_stream_logger_fn`. Returns NULL if the stream should not be logged.
+  template <typename Request, typename Response>
+  std::unique_ptr<StreamLogger<Request, Response>> StartLoggingStream(
+      const LogMetadata& log_metadata,
+      ServerRequestLogger::CreateStreamLoggerFn<Request, Response>
+          create_stream_logger_fn) {
+    return options_.server_request_logger->StartLoggingStream(
+        log_metadata, std::move(create_stream_logger_fn));
   }
 
   internal::PredictResponseTensorSerializationOption

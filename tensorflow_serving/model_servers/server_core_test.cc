@@ -15,7 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/server_core.h"
 
+#include <memory>
+
 #include "google/protobuf/any.pb.h"
+#include "absl/status/status.h"
 #include "absl/strings/strip.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -27,11 +30,13 @@ limitations under the License.
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
+#include "tensorflow_serving/core/request_logger.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.pb.h"
 #include "tensorflow_serving/core/test_util/fake_log_collector.h"
+#include "tensorflow_serving/core/test_util/mock_prediction_stream_logger.h"
 #include "tensorflow_serving/core/test_util/mock_request_logger.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/test_util/server_core_test_util.h"
@@ -44,6 +49,7 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
+using test_util::MockPredictionStreamLogger;
 using test_util::ServerCoreTest;
 using ::testing::_;
 using ::testing::Invoke;
@@ -583,6 +589,11 @@ TEST_P(ServerCoreTest, RequestLoggingOff) {
 
   TF_ASSERT_OK(
       server_core->Log(PredictRequest(), PredictResponse(), LogMetadata()));
+  auto logger =
+      server_core->StartLoggingStream<PredictRequest, PredictResponse>(
+          LogMetadata(),
+          []() { return std::make_unique<MockPredictionStreamLogger>(); });
+  EXPECT_EQ(logger, nullptr);
 }
 
 TEST_P(ServerCoreTest, RequestLoggingOn) {
@@ -590,12 +601,12 @@ TEST_P(ServerCoreTest, RequestLoggingOn) {
   ServerCore::Options options = GetDefaultOptions();
   TF_CHECK_OK(ServerRequestLogger::Create(
       [&](const LoggingConfig& logging_config,
-          std::unique_ptr<RequestLogger>* const request_logger) {
+          std::shared_ptr<RequestLogger>* const request_logger) {
         const string& filename_prefix =
             logging_config.log_collector_config().filename_prefix();
         log_collector_map[filename_prefix] = new FakeLogCollector();
         const std::vector<string>& tags = {kSavedModelTagServe};
-        auto mock_request_logger = std::unique_ptr<NiceMock<MockRequestLogger>>(
+        auto mock_request_logger = std::shared_ptr<NiceMock<MockRequestLogger>>(
             new NiceMock<MockRequestLogger>(
                 logging_config, tags, log_collector_map[filename_prefix]));
         ON_CALL(*mock_request_logger, CreateLogMessage(_, _, _, _))
@@ -631,6 +642,7 @@ TEST_P(ServerCoreTest, RequestLoggingOn) {
   std::unique_ptr<ServerCore> server_core;
   TF_ASSERT_OK(ServerCore::Create(std::move(options), &server_core));
 
+  // Logging for unary requests.
   LogMetadata log_metadata0;
   auto* const model_spec0 = log_metadata0.mutable_model_spec();
   model_spec0->set_name(test_util::kTestModelName);
@@ -638,6 +650,22 @@ TEST_P(ServerCoreTest, RequestLoggingOn) {
       server_core->Log(PredictRequest(), PredictResponse(), log_metadata0));
   ASSERT_EQ(1, log_collector_map.size());
   EXPECT_EQ(1, log_collector_map[test_util::kTestModelName]->collect_count());
+
+  // Logging for streaming requests.
+  auto* logger_ptr = new MockPredictionStreamLogger();
+  auto logger =
+      server_core->StartLoggingStream<PredictRequest, PredictResponse>(
+          log_metadata0,
+          [logger_ptr]() { return absl::WrapUnique(logger_ptr); });
+  EXPECT_CALL(*logger_ptr, CreateLogMessage(_, _))
+      .WillOnce(Invoke([](const LogMetadata& log_metadata,
+                          std::unique_ptr<google::protobuf::Message>* log) {
+        *log = std::make_unique<google::protobuf::Any>();
+        return absl::OkStatus();
+      }));
+  TF_ASSERT_OK(logger->LogMessage());
+  ASSERT_EQ(1, log_collector_map.size());
+  EXPECT_EQ(2, log_collector_map[test_util::kTestModelName]->collect_count());
 }
 
 TEST_P(ServerCoreTest, ModelSpecMultipleVersionsAvailable) {
