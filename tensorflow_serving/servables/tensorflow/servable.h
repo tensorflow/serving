@@ -30,10 +30,11 @@ limitations under the License.
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
 #include "tensorflow_serving/servables/tensorflow/predict_response_tensor_serialization_option.h"
-#include "tensorflow_serving/servables/tensorflow/thread_pool_factory.h"
 
 namespace tensorflow {
 namespace serving {
+
+inline constexpr absl::string_view kSignatureDef = "signature_def";
 
 // Provides a `PredictionService`-like interface. All concrete implementations
 // are expected to be thread-safe.
