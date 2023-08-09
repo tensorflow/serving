@@ -10,6 +10,7 @@ package_group(
     name = "http_server_clients",
     packages = [
         "//...",
+        "//net/floo/flooefi/...",
         "//platforms/redfish/...",
     ],
 )
