@@ -31,6 +31,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "//tensorflow_serving/apis:logging_cc_proto",
         "//tensorflow_serving/apis:model_cc_proto",
         "//tensorflow_serving/config:model_server_config_cc_proto",
         "//tensorflow_serving/config:platform_config_cc_proto",
