@@ -1,7 +1,7 @@
 # Description: Model Server test utility
 
 # Placeholder: load py_library
-load("//tensorflow_serving:serving.bzl", "if_google", "serving_proto_library")
+load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 package(
     default_visibility = [
@@ -58,9 +58,6 @@ cc_library(
     srcs = ["server_core_test_util.cc"],
     hdrs = ["server_core_test_util.h"],
     data = [
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions",
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
-    ] + if_google([
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.meta",
@@ -70,7 +67,9 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two_2_versions/00000124/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two_2_versions/00000124/export.index",
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two_2_versions/00000124/export.meta",
-    ]),
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
     visibility = [
         "//visibility:public",
     ],

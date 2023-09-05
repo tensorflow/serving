@@ -30,8 +30,14 @@ cc_library(
     linkopts = ["-lm"],
     tags = ["keep_dep"],  # Tell build_cleaner to keep dependencies on this.
     deps = [
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
+        "@org_tensorflow//tensorflow/core/platform",
+        "@org_tensorflow//tensorflow/core/platform:test_benchmark",
+        "@org_tensorflow//tensorflow/core/platform:types",
     ],
 )
 
@@ -118,7 +124,6 @@ cc_library(
         "//tensorflow_serving/core:servable_state_monitor",
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
-        "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -166,7 +171,6 @@ cc_library(
     hdrs = ["fake_log_collector.h"],
     deps = [
         "//tensorflow_serving/core:log_collector",
-        "@com_google_googletest//:gtest",
         "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/core:lib",
     ],
@@ -178,6 +182,8 @@ cc_library(
     hdrs = ["mock_request_logger.h"],
     deps = [
         "//tensorflow_serving/apis:logging_cc_proto",
+        "//tensorflow_serving/config:logging_config_cc_proto",
+        "//tensorflow_serving/core:log_collector",
         "//tensorflow_serving/core:request_logger",
         "@com_google_googletest//:gtest",
         "@com_google_protobuf//:protobuf",
@@ -225,6 +231,7 @@ cc_library(
     testonly = 1,
     hdrs = ["mock_prediction_stream_logger.h"],
     deps = [
+        "//tensorflow_serving/apis:logging_cc_proto",
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/core:stream_logger",
         "@com_google_googletest//:gtest",
