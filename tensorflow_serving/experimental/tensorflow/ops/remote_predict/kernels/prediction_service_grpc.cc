@@ -44,7 +44,7 @@ PredictionServiceGrpc::PredictionServiceGrpc(
 StatusOr<::grpc::ClientContext*> PredictionServiceGrpc::CreateRpc(
     absl::Duration max_rpc_deadline) {
   ::grpc::ClientContext* rpc = new ::grpc::ClientContext();
-  // TODO(b/159739577): Set deadline as the min value between
+  // TODO(b/300069508): Set deadline as the min value between
   // the incoming rpc deadline and max_rpc_deadline_millis.
   rpc->set_deadline(std::chrono::system_clock::now() +
                     absl::ToChronoSeconds(max_rpc_deadline));
