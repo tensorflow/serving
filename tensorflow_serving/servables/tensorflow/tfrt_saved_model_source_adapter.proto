@@ -186,6 +186,8 @@ message TfrtSavedModelConfig {
   }
   PredictResponseTensorSerializationOption
       predict_response_tensor_serialization_option = 2014;
+  // The size of reserved memory space for GPU system.
+  int32 gpu_system_memory_size_in_mb = 2015;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.

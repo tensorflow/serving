@@ -228,6 +228,8 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
   options.graph_execution_options.run_placer_grappler_on_functions =
       config_.run_placer_grappler_on_functions();
   options.graph_execution_options.enable_tfrt_gpu = config_.enable_tfrt_gpu();
+  options.graph_execution_options.gpu_system_memory_size_in_mb =
+      config_.gpu_system_memory_size_in_mb();
   options.graph_execution_options.enable_grappler_function_optimizer =
       config_.enable_grappler_function_optimizer();
   options.graph_execution_options.enable_online_cost_analysis =
