@@ -219,3 +219,14 @@ cc_library(
     ],
     alwayslink = 1,
 )
+
+cc_library(
+    name = "mock_prediction_stream_logger",
+    testonly = 1,
+    hdrs = ["mock_prediction_stream_logger.h"],
+    deps = [
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/core:stream_logger",
+        "@com_google_googletest//:gtest",
+    ],
+)

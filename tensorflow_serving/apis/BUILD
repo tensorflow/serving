@@ -1,5 +1,6 @@
 # Description: Tensorflow Serving APIs.
 
+# Placeholder: load py_library
 load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
 load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
 
@@ -421,6 +422,12 @@ serving_proto_library(
             "@org_tensorflow//tensorflow/core:protos_all",
         ),
     ],
+)
+
+tf_jspb_proto_library(
+    name = "session_service_jspb_proto",
+    visibility = ["//research/vision/loco/visualization/interactive_computation:__pkg__"],
+    deps = [":session_service_proto"],
 )
 
 serving_proto_library_py(

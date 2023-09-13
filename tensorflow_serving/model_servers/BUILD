@@ -1,5 +1,8 @@
 # Description: Model Server
 
+# Placeholder: load py_test
+# Placeholder: load py_binary
+
 load("//tensorflow_serving:serving.bzl", "if_with_plugins_support")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
@@ -108,11 +111,13 @@ cc_test(
         ":server_core",
         "//tensorflow_serving/apis:model_cc_proto",
         "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/core:request_logger",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/core:servable_state",
         "//tensorflow_serving/core/test_util:availability_test_util",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter_cc_proto",
         "//tensorflow_serving/core/test_util:fake_log_collector",
+        "//tensorflow_serving/core/test_util:mock_prediction_stream_logger",
         "//tensorflow_serving/core/test_util:mock_request_logger",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/model_servers/test_util:server_core_test_util",

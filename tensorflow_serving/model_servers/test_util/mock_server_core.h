@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "base/logging.h"
 #include "google/protobuf/any.pb.h"
@@ -56,7 +57,9 @@ class MockServerCore : public ServerCore {
     return platform_config_map;
   }
 
-  static Options GetOptions(const PlatformConfigMap& platform_config_map) {
+  static Options GetOptions(
+      const PlatformConfigMap& platform_config_map,
+      std::unique_ptr<ServerRequestLogger> server_request_logger) {
     Options options;
     options.platform_config_map = platform_config_map;
     options.servable_state_monitor_creator =
@@ -71,13 +74,21 @@ class MockServerCore : public ServerCore {
            UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
       return Status();
     };
-    TF_CHECK_OK(
-        ServerRequestLogger::Create(nullptr, &options.server_request_logger));
+    if (server_request_logger != nullptr) {
+      options.server_request_logger = std::move(server_request_logger);
+    } else {
+      TF_CHECK_OK(
+          ServerRequestLogger::Create(nullptr, &options.server_request_logger));
+    }
     return options;
   }
 
   explicit MockServerCore(const PlatformConfigMap& platform_config_map)
-      : ServerCore(GetOptions(platform_config_map)) {}
+      : MockServerCore(platform_config_map, nullptr) {}
+  MockServerCore(const PlatformConfigMap& platform_config_map,
+                 std::unique_ptr<ServerRequestLogger> server_request_logger)
+      : ServerCore(GetOptions(platform_config_map,
+                              std::move(server_request_logger))) {}
 
   MOCK_METHOD(ServableStateMonitor*, servable_state_monitor, (),
               (const, override));

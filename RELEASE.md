@@ -1,3 +1,80 @@
+# Release 2.13.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.13.0
+
+# Release 2.13.0-rc2
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.13.0-rc2
+
+# Release 2.13.0-rc1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.13.0-rc1
+
+# Release 2.13.0-rc0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Remove unused TF-DF define from bazelrc. (commit: dc0766022a49e8eca1ad9d7c7ce212a8ee3ea6d7)
+* Remove usages of `tsl::Status::error_message`. (commit: 2b4ef1ae5ef3d24bdfa994dc08e840d635c66125)
+* Add release notes for tf-serving 2.12.1 (commit: 19c3e66306722c44ddc7fc6dd2b4c59373640c95)
+* Fix tests broken by the new defaults info in SignatureDef. (commit: 07b0882570a040aeb4a74a01ec5c81ecd6383afc)
+* Fix remaining tests broken by the new defaults info in SignatureDef. (commit: 65b13b76083adfa7b694b5378e3f91a5088e62b8)
+* Deprecate oss_or_google.bzl, move macros to serving.bzl (commit: a85461300e0e6a4b589e809bb7390ea4f17796bd)
+* Revert "Fix tests broken by the new defaults info in SignatureDef." (commit: 663b375d8899e5937e67655f56ee6c888f4a084a)
+* Update version for 2.13.0-rc0 release. (#2151) (commit: f449ae3dc99bfd19a3e9dbfa213c8553222382e2)
+
+# Release 2.12.2
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.12.1
+
 # Release 2.12.1
 
 * This is a re-release of 2.12.0 (that was marked as bad). Please use this instead.

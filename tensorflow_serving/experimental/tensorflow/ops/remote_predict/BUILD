@@ -1,5 +1,7 @@
 # Description:
 # Remote Predict Op Prototype
+
+# Placeholder: load py_test
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_custom_op_library", "tf_gen_op_libs", "tf_gen_op_wrapper_cc", "tf_gen_op_wrapper_py", "tf_kernel_library")
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_custom_op_py_library")
 
@@ -124,7 +126,7 @@ tf_custom_op_py_library(
     visibility = ["//tensorflow_serving/experimental/example:__subpackages__"],
     deps = [
         ":gen_remote_predict_op",
-        "@org_tensorflow//tensorflow/python:framework_for_generated_wrappers",
+        "@org_tensorflow//tensorflow/python/framework:for_generated_wrappers",
     ],
 )
 

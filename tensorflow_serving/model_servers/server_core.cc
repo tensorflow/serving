@@ -46,9 +46,10 @@ Status GetPlatform(const ModelConfig& model_config, string* platform) {
     LOG(WARNING) << "Deprecated ModelServerConfig::model_type field used. "
                     "Prefer ModelServerConfig::model_platform.";
     if (!model_config.model_platform().empty()) {
-      return errors::InvalidArgument(
+      return errors::InvalidArgument(strings::StrCat(
           "Illegal setting both ModelServerConfig::model_type (deprecated) "
-          "and ModelServerConfig::model_platform.");
+          "and ModelServerConfig::model_platform, model name is ",
+          model_config.name()));
     }
     if (model_config.model_type() == ModelType::TENSORFLOW) {
       *platform = kTensorFlowModelPlatform;
@@ -62,9 +63,10 @@ Status GetPlatform(const ModelConfig& model_config, string* platform) {
   }
 
   if (platform->empty()) {
-    return errors::InvalidArgument(
+    return errors::InvalidArgument(strings::StrCat(
         "Illegal setting neither ModelServerConfig::model_type (deprecated) "
-        "nor ModelServerConfig::model_platform.");
+        "nor ModelServerConfig::model_platform, model name is ",
+        model_config.name()));
   }
   return OkStatus();
 }

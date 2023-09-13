@@ -33,6 +33,7 @@ limitations under the License.
 #include "tensorflow_serving/config/logging_config.pb.h"
 #include "tensorflow_serving/core/log_collector.h"
 #include "tensorflow_serving/core/test_util/mock_log_collector.h"
+#include "tensorflow_serving/core/test_util/mock_prediction_stream_logger.h"
 #include "tensorflow_serving/core/test_util/mock_request_logger.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
@@ -40,11 +41,14 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
+using test_util::MockPredictionStreamLogger;
 using ::testing::_;
+using ::testing::DoAll;
 using ::testing::HasSubstr;
 using ::testing::Invoke;
 using ::testing::NiceMock;
 using ::testing::Return;
+using ::testing::WithArg;
 
 class RequestLoggerTest : public ::testing::Test {
  protected:
@@ -52,7 +56,7 @@ class RequestLoggerTest : public ::testing::Test {
     LoggingConfig logging_config;
     logging_config.mutable_sampling_config()->set_sampling_rate(1.0);
     log_collector_ = new NiceMock<MockLogCollector>();
-    request_logger_ = std::unique_ptr<NiceMock<MockRequestLogger>>(
+    request_logger_ = std::shared_ptr<NiceMock<MockRequestLogger>>(
         new NiceMock<MockRequestLogger>(logging_config, model_tags_,
                                         log_collector_));
   }
@@ -60,7 +64,7 @@ class RequestLoggerTest : public ::testing::Test {
   const std::vector<string> model_tags_ = {kSavedModelTagServe,
                                            kSavedModelTagTpu};
   NiceMock<MockLogCollector>* log_collector_;
-  std::unique_ptr<NiceMock<MockRequestLogger>> request_logger_;
+  std::shared_ptr<NiceMock<MockRequestLogger>> request_logger_;
 };
 
 TEST_F(RequestLoggerTest, Simple) {
@@ -125,6 +129,54 @@ TEST_F(RequestLoggerTest, ErroringCollectMessage) {
       request_logger_->Log(PredictRequest(), PredictResponse(), LogMetadata());
   ASSERT_FALSE(error_status.ok());
   EXPECT_THAT(error_status.message(), HasSubstr("Error"));
+}
+
+TEST_F(RequestLoggerTest, LoggingStreamSucceeds) {
+  auto logger = std::make_unique<MockPredictionStreamLogger>();
+
+  LogMetadata expected_log_metadata;
+  expected_log_metadata.mutable_model_spec()->set_name("model");
+  EXPECT_CALL(*request_logger_,
+              FillLogMetadata(test_util::EqualsProto(expected_log_metadata)))
+      .WillOnce(Return(expected_log_metadata));
+
+  request_logger_->MaybeStartLoggingStream<PredictRequest, PredictResponse>(
+      expected_log_metadata,
+      [logger_ptr = logger.get()]() { return logger_ptr; });
+
+  EXPECT_CALL(*logger, CreateLogMessage(
+                           test_util::EqualsProto(expected_log_metadata), _))
+      .WillOnce(DoAll(WithArg<1>([](std::unique_ptr<google::protobuf::Message>* log) {
+                        *log = std::make_unique<google::protobuf::Any>();
+                      }),
+                      Return(OkStatus())));
+  EXPECT_CALL(*log_collector_, CollectMessage(_)).WillOnce(Return(OkStatus()));
+  TF_ASSERT_OK(logger->LogMessage());
+}
+
+TEST_F(RequestLoggerTest, LoggingStreamRequestLoggerDiesBeforeStreamCloses) {
+  auto logger = std::make_unique<MockPredictionStreamLogger>();
+
+  LogMetadata expected_log_metadata;
+  expected_log_metadata.mutable_model_spec()->set_name("model");
+
+  EXPECT_CALL(*request_logger_,
+              FillLogMetadata(test_util::EqualsProto(expected_log_metadata)))
+      .WillOnce(Return(expected_log_metadata));
+  request_logger_->MaybeStartLoggingStream<PredictRequest, PredictResponse>(
+      expected_log_metadata,
+      [logger_ptr = logger.get()]() { return logger_ptr; });
+
+  EXPECT_CALL(*logger, CreateLogMessage(
+                           test_util::EqualsProto(expected_log_metadata), _))
+      .WillOnce(DoAll(WithArg<1>([](std::unique_ptr<google::protobuf::Message>* log) {
+                        *log = std::make_unique<google::protobuf::Any>();
+                      }),
+                      Return(OkStatus())));
+  EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(0);
+
+  request_logger_.reset();
+  TF_ASSERT_OK(logger->LogMessage());
 }
 
 }  // namespace

@@ -1,5 +1,7 @@
 # Description: Example TensorFlow model export.
 
+# Placeholder: load py_binary
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",

@@ -21,6 +21,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/monitoring/counter.h"
 #include "tensorflow/core/lib/random/random.h"
+#include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 
@@ -60,7 +61,7 @@ Status RequestLogger::Log(const google::protobuf::Message& request,
       std::unique_ptr<google::protobuf::Message> log;
       TF_RETURN_IF_ERROR(
           CreateLogMessage(request, response, log_metadata_with_config, &log));
-      return log_collector_->CollectMessage(*log);
+      return Log(*log);
     }();
     request_log_count
         ->GetCell(log_metadata.model_spec().name(),
@@ -69,6 +70,10 @@ Status RequestLogger::Log(const google::protobuf::Message& request,
     return status;
   }
   return OkStatus();
+}
+
+Status RequestLogger::Log(const google::protobuf::Message& log) {
+  return log_collector_->CollectMessage(log);
 }
 
 }  // namespace serving

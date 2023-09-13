@@ -200,6 +200,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":bundle_factory_util",
         ":machine_learning_metadata",
         ":saved_model_bundle_factory",
         ":saved_model_bundle_source_adapter_cc_proto",
@@ -499,6 +500,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/cc/saved_model:util",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -911,7 +913,6 @@ cc_library(
     hdrs = ["saved_model_warmup_util.h"],
     deps = [
         ":session_bundle_config_cc_proto",
-        ":util",
         "//tensorflow_serving/apis:prediction_log_cc_proto",
         "//tensorflow_serving/util:threadpool_executor",
         "@com_google_protobuf//:cc_wkt_protos",
@@ -919,6 +920,7 @@ cc_library(
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core/kernels/batching_util:warmup",
     ],
 )
 
@@ -965,6 +967,7 @@ cc_test(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core/kernels/batching_util:warmup",
     ],
 )
 
@@ -1070,6 +1073,39 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "servable",
+    srcs = ["servable.cc"],
+    hdrs = ["servable.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":predict_response_tensor_serialization_option",
+        "//tensorflow_serving/apis:classification_cc_proto",
+        "//tensorflow_serving/apis:get_model_metadata_cc_proto",
+        "//tensorflow_serving/apis:inference_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/apis:regression_cc_proto",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "mock_servable",
+    testonly = True,
+    hdrs = ["mock_servable.h"],
+    deps = [
+        ":servable",
+        "//tensorflow_serving/test_util",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
+    ],
+)
+
 cc_test(
     name = "thread_pool_factory_test",
     size = "small",
@@ -1080,5 +1116,17 @@ cc_test(
         "//tensorflow_serving/test_util",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform:threadpool_options",
+    ],
+)
+
+cc_test(
+    name = "servable_test",
+    srcs = ["servable_test.cc"],
+    deps = [
+        ":servable",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/test_util",
+        "@com_google_absl//absl/status",
     ],
 )

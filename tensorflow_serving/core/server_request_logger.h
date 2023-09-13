@@ -40,7 +40,7 @@ namespace serving {
 class ServerRequestLogger {
  public:
   using LoggerCreator = std::function<Status(
-      const LoggingConfig& logging_config, std::unique_ptr<RequestLogger>*)>;
+      const LoggingConfig& logging_config, std::shared_ptr<RequestLogger>*)>;
   // Creates the ServerRequestLogger based on a custom request_logger_creator
   // method.
   //
@@ -68,14 +68,27 @@ class ServerRequestLogger {
                      const google::protobuf::Message& response,
                      const LogMetadata& log_metadata);
 
+  // Starts logging a stream. Returns a StreamLogger created through
+  // `create_stream_logger_fn`. Returns NULL if the stream should not be logged.
+  //
+  // Even if the stream is logged/written to multiple sinks, we return a single
+  // stream logger but register multiple callbacks, one for each sink.
+  template <typename Request, typename Response>
+  using CreateStreamLoggerFn =
+      std::function<std::unique_ptr<StreamLogger<Request, Response>>()>;
+  template <typename Request, typename Response>
+  std::unique_ptr<StreamLogger<Request, Response>> StartLoggingStream(
+      const LogMetadata& log_metadata,
+      CreateStreamLoggerFn<Request, Response> create_stream_logger_fn);
+
  protected:
   explicit ServerRequestLogger(LoggerCreator request_logger_creator);
 
  private:
   using StringToRequestLoggersMap =
-      std::unordered_map<string, std::vector<RequestLogger*>>;
+      std::unordered_map<string, std::vector<std::shared_ptr<RequestLogger>>>;
   using StringToUniqueRequestLoggerMap =
-      std::unordered_map<string, std::unique_ptr<RequestLogger>>;
+      std::unordered_map<string, std::shared_ptr<RequestLogger>>;
 
   // Find a logger for config in either config_to_logger_map_ or
   // new_config_to_logger_map. If the logger was found in
@@ -86,7 +99,12 @@ class ServerRequestLogger {
   Status FindOrCreateLogger(
       const LoggingConfig& config,
       StringToUniqueRequestLoggerMap* new_config_to_logger_map,
-      RequestLogger** result);
+      std::shared_ptr<RequestLogger>* result);
+
+  // Invokes `fn` with all loggers for the corresponding model.
+  void InvokeLoggerForModel(
+      const LogMetadata& log_metadata,
+      std::function<void(const std::shared_ptr<RequestLogger>&)> fn);
 
   // Mutex to ensure concurrent calls to Update() are serialized.
   mutable mutex update_mu_;
@@ -102,6 +120,31 @@ class ServerRequestLogger {
 
   LoggerCreator request_logger_creator_;
 };
+
+/***************************Implementation Details***************************/
+template <typename Request, typename Response>
+std::unique_ptr<StreamLogger<Request, Response>>
+ServerRequestLogger::StartLoggingStream(
+    const LogMetadata& log_metadata,
+    CreateStreamLoggerFn<Request, Response> create_stream_logger_fn) {
+  StreamLogger<Request, Response>* stream_logger = nullptr;
+  InvokeLoggerForModel(
+      log_metadata, [create_stream_logger_fn, &stream_logger, &log_metadata](
+                        const std::shared_ptr<RequestLogger>& request_logger) {
+        RequestLogger::GetStreamLoggerFn<Request, Response> create_logger =
+            [&create_stream_logger_fn, &stream_logger]() {
+              stream_logger = create_stream_logger_fn().release();
+              return stream_logger;
+            };
+        RequestLogger::GetStreamLoggerFn<Request, Response> get_logger =
+            [stream_logger]() { return stream_logger; };
+        request_logger->MaybeStartLoggingStream(
+            log_metadata, stream_logger == nullptr ? std::move(create_logger)
+                                                   : std::move(get_logger));
+        // If the stream logger has been created, reuse it.
+      });
+  return absl::WrapUnique(stream_logger);
+}
 
 }  // namespace serving
 }  // namespace tensorflow

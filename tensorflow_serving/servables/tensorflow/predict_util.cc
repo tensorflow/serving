@@ -24,6 +24,7 @@ limitations under the License.
 #include "absl/strings/str_join.h"
 #include "absl/strings/substitute.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
+#include "tensorflow/cc/saved_model/util.h"
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
@@ -48,7 +49,9 @@ Status VerifySignature(const SignatureDef& signature) {
 
 Status VerifyRequestInputsSize(const SignatureDef& signature,
                                const PredictRequest& request) {
-  if (request.inputs().size() != signature.inputs().size()) {
+  if (request.inputs().size() > signature.inputs().size() ||
+      (request.inputs().size() < signature.inputs().size() &&
+       signature.defaults().empty())) {
     const std::set<string> request_inputs = GetMapKeys(request.inputs());
     const std::set<string> signature_inputs = GetMapKeys(signature.inputs());
     const std::set<string> sent_extra =
@@ -119,25 +122,8 @@ Status PreProcessPrediction(const SignatureDef& signature,
                             std::vector<string>* output_tensor_aliases) {
   TF_RETURN_IF_ERROR(VerifySignature(signature));
   TF_RETURN_IF_ERROR(VerifyRequestInputsSize(signature, request));
-  for (auto& input : request.inputs()) {
-    const string& alias = input.first;
-    auto iter = signature.inputs().find(alias);
-    if (iter == signature.inputs().end()) {
-      return tensorflow::Status(
-          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
-          strings::StrCat("input tensor alias not found in signature: ", alias,
-                          ". Inputs expected to be in the set {",
-                          absl::StrJoin(GetMapKeys(signature.inputs()), ","),
-                          "}."));
-    }
-    Tensor tensor;
-    if (!tensor.FromProto(input.second)) {
-      return tensorflow::Status(
-          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
-          "tensor parsing error: " + alias);
-    }
-    inputs->emplace_back(std::make_pair(iter->second.name(), tensor));
-  }
+  TF_RETURN_IF_ERROR(
+      saved_model::GetInputValues(signature, request.inputs(), *inputs));
 
   // Prepare run target.
   std::set<string> seen_outputs;

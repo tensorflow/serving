@@ -1,3 +1,4 @@
+# Placeholder: load py_proto_library
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 package(

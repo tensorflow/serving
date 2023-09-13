@@ -773,10 +773,13 @@ cc_library(
     ],
     deps = [
         ":log_collector",
+        ":stream_logger",
         "//tensorflow_serving/apis:logging_cc_proto",
+        "//tensorflow_serving/apis:model_cc_proto",
         "//tensorflow_serving/config:logging_config_cc_proto",
         "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
 )
 
@@ -792,12 +795,14 @@ cc_test(
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/config:logging_config_cc_proto",
         "//tensorflow_serving/core/test_util:mock_log_collector",
+        "//tensorflow_serving/core/test_util:mock_prediction_stream_logger",
         "//tensorflow_serving/core/test_util:mock_request_logger",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
         "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
     ],
 )
 
@@ -832,6 +837,7 @@ cc_test(
         "//tensorflow_serving/config:log_collector_config_cc_proto",
         "//tensorflow_serving/config:logging_config_cc_proto",
         "//tensorflow_serving/core/test_util:fake_log_collector",
+        "//tensorflow_serving/core/test_util:mock_prediction_stream_logger",
         "//tensorflow_serving/core/test_util:mock_request_logger",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
@@ -841,5 +847,16 @@ cc_test(
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
+    name = "stream_logger",
+    hdrs = ["stream_logger.h"],
+    deps = [
+        "//tensorflow_serving/apis:logging_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_protobuf//:protobuf",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )

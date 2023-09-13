@@ -33,6 +33,7 @@ limitations under the License.
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
+#include "tensorflow/tsl/platform/criticality.h"
 #include "tensorflow_serving/batching/batching_options.h"
 #include "tensorflow_serving/batching/threadsafe_status.h"
 
@@ -210,6 +211,8 @@ struct BatchingSessionTask : public BatchTask {
   std::shared_ptr<ThreadSafeStatus> thread_safe_status;
   // 'split_run_metadatas' records `run_metadata` of each split.
   std::shared_ptr<std::vector<RunMetadata>> split_run_metadatas;
+
+  tsl::criticality::Criticality criticality;
 };
 
 }  // namespace serving

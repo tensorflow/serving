@@ -24,18 +24,23 @@ limitations under the License.
 #include "google/protobuf/message.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/memory/memory.h"
+#include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/tsl/lib/core/status_test_util.h"
 #include "tensorflow_serving/apis/logging.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/config/log_collector_config.pb.h"
 #include "tensorflow_serving/config/logging_config.pb.h"
 #include "tensorflow_serving/core/log_collector.h"
+#include "tensorflow_serving/core/request_logger.h"
 #include "tensorflow_serving/core/test_util/fake_log_collector.h"
+#include "tensorflow_serving/core/test_util/mock_prediction_stream_logger.h"
 #include "tensorflow_serving/core/test_util/mock_request_logger.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
@@ -43,6 +48,7 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
+using test_util::MockPredictionStreamLogger;
 using ::testing::_;
 using ::testing::Invoke;
 using ::testing::NiceMock;
@@ -82,7 +88,7 @@ class ServerRequestLoggerTest : public ::testing::Test {
   ServerRequestLoggerTest() {
     TF_CHECK_OK(ServerRequestLogger::Create(
         [&](const LoggingConfig& logging_config,
-            std::unique_ptr<RequestLogger>* const request_logger) {
+            std::shared_ptr<RequestLogger>* const request_logger) {
           const string& filename_prefix =
               logging_config.log_collector_config().filename_prefix();
           log_collector_map_[filename_prefix] = new FakeLogCollector();
@@ -92,7 +98,7 @@ class ServerRequestLoggerTest : public ::testing::Test {
           };
           const std::vector<string>& tags = {kSavedModelTagServe};
           auto mock_request_logger =
-              std::unique_ptr<NiceMock<MockRequestLogger>>(
+              std::shared_ptr<NiceMock<MockRequestLogger>>(
                   new NiceMock<MockRequestLogger>(
                       logging_config, tags, log_collector_map_[filename_prefix],
                       logger_destruction_notifier));
@@ -104,6 +110,10 @@ class ServerRequestLoggerTest : public ::testing::Test {
                 *log = std::unique_ptr<google::protobuf::Any>(
                     new google::protobuf::Any());
                 return request_logger_status_cb_();
+              }));
+          ON_CALL(*mock_request_logger, FillLogMetadata(_))
+              .WillByDefault(Invoke([&](const LogMetadata& log_metadata) {
+                return log_metadata;
               }));
           *request_logger = std::move(mock_request_logger);
           return OkStatus();
@@ -292,6 +302,70 @@ TEST_F(ServerRequestLoggerTest, MultipleUpdatesSingleCreation) {
 
   EXPECT_EQ(2, created_logger_counter());
   EXPECT_EQ(0, deleted_logger_counter());
+}
+
+TEST_F(ServerRequestLoggerTest, StreamLoggingBasic) {
+  auto model_logging_configs =
+      CreateLoggingConfigMap({CreateLoggingConfigForModel("model0", "file1"),
+                              CreateLoggingConfigForModel("model0", "file2")});
+
+  TF_ASSERT_OK(server_request_logger_->Update(model_logging_configs));
+  LogMetadata log_metadata;
+  log_metadata.mutable_model_spec()->set_name("model0");
+  auto* logger_ptr = new MockPredictionStreamLogger();
+  auto logger = server_request_logger_
+                    ->StartLoggingStream<PredictRequest, PredictResponse>(
+                        log_metadata, [logger_ptr]() {
+                          return absl::WrapUnique(logger_ptr);
+                        });
+  EXPECT_CALL(*logger_ptr, CreateLogMessage(_, _))
+      .Times(2)
+      .WillRepeatedly(Invoke([](const LogMetadata& log_metadata,
+                                std::unique_ptr<google::protobuf::Message>* log) {
+        *log = std::make_unique<google::protobuf::Any>();
+        return absl::OkStatus();
+      }));
+  TF_ASSERT_OK(logger->LogMessage());
+  ASSERT_EQ(2, log_collector_map_.size());
+  EXPECT_EQ(1, log_collector_map_["/file/model0-file1"]->collect_count());
+  EXPECT_EQ(1, log_collector_map_["/file/model0-file2"]->collect_count());
+}
+
+TEST_F(ServerRequestLoggerTest, StreamLoggingUpdateLoggingConfig) {
+  auto model_logging_configs =
+      CreateLoggingConfigMap({CreateLoggingConfigForModel("model0", "file1"),
+                              CreateLoggingConfigForModel("model0", "file2")});
+
+  TF_ASSERT_OK(server_request_logger_->Update(model_logging_configs));
+  LogMetadata log_metadata;
+  log_metadata.mutable_model_spec()->set_name("model0");
+  auto* logger_ptr = new MockPredictionStreamLogger();
+  auto logger = server_request_logger_->StartLoggingStream<PredictRequest,
+                                                           PredictResponse>(
+      log_metadata, [logger_ptr]() {
+        return std::unique_ptr<StreamLogger<PredictRequest, PredictResponse>>(
+            logger_ptr);
+      });
+
+  model_logging_configs =
+      CreateLoggingConfigMap({CreateLoggingConfigForModel("model0", "file2"),
+                              CreateLoggingConfigForModel("model0", "file3")});
+
+  // Updates to a new logging config. Since the stream hasn't finished, the
+  // stream logger will not use the new config.
+  TF_ASSERT_OK(server_request_logger_->Update(model_logging_configs));
+  EXPECT_CALL(*logger_ptr, CreateLogMessage(_, _))
+      .Times(2)
+      .WillRepeatedly(Invoke([](const LogMetadata& log_metadata,
+                                std::unique_ptr<google::protobuf::Message>* log) {
+        *log =
+            std::unique_ptr<google::protobuf::Any>(new google::protobuf::Any());
+        return absl::OkStatus();
+      }));
+  TF_ASSERT_OK(logger->LogMessage());
+  ASSERT_EQ(3, log_collector_map_.size());
+  EXPECT_EQ(1, log_collector_map_["/file/model0-file2"]->collect_count());
+  EXPECT_EQ(0, log_collector_map_["/file/model0-file3"]->collect_count());
 }
 
 }  // namespace
