@@ -21,6 +21,7 @@ limitations under the License.
 #include <string>
 #include <utility>
 
+#include "base/logging.h"
 #include "google/protobuf/any.pb.h"
 #include "google/protobuf/map.h"
 #include <gmock/gmock.h>

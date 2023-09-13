@@ -523,29 +523,6 @@ py_binary(
     srcs_version = "PY2AND3",
 )
 
-cc_library(
-    name = "tfrt_prediction_service_impl",
-    srcs = ["tfrt_prediction_service_impl.cc"],
-    hdrs = ["tfrt_prediction_service_impl.h"],
-    deps = [
-        ":grpc_status_util",
-        ":prediction_service_util",
-        "//tensorflow_serving/apis:inference_cc_proto",
-        "//tensorflow_serving/apis:model_cc_proto",
-        "//tensorflow_serving/apis:prediction_service_cc_proto",
-        "//tensorflow_serving/core:servable_handle",
-        "//tensorflow_serving/servables/tensorflow:servable",
-        "//tensorflow_serving/servables/tensorflow:tfrt_classification_service",
-        "//tensorflow_serving/servables/tensorflow:tfrt_get_model_metadata_impl",
-        "//tensorflow_serving/servables/tensorflow:tfrt_regression_service",
-        "//tensorflow_serving/servables/tensorflow:util",
-        "@com_github_grpc_grpc//:grpc",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_google_absl//absl/time",
-        "@org_tensorflow//tensorflow/tsl/platform:errors",
-    ] + if_google(["//third_party/grpc:grpc++"]),
-)
-
 pkg_tar(
     name = "tensorflow_model_server_tar",
     srcs = [

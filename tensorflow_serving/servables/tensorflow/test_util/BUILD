@@ -28,18 +28,3 @@ cc_library(
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
-
-cc_library(
-    name = "mock_tfrt_saved_model",
-    testonly = 1,
-    hdrs = ["mock_tfrt_saved_model.h"],
-    visibility = [
-        "//tensorflow_serving/batching:__subpackages__",
-        "//tensorflow_serving/servables/tensorflow:__subpackages__",
-    ],
-    deps = [
-        "@com_google_googletest//:gtest",
-        "@org_tensorflow//tensorflow/core/tfrt/runtime",
-        "@org_tensorflow//tensorflow/core/tfrt/saved_model",
-    ],
-)
