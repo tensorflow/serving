@@ -95,7 +95,7 @@ int NumInputExamples(const internal::SerializedInput& input) {
   return 0;
 }
 
-std::atomic<bool> signature_method_check{true};
+std::atomic<bool> signature_method_check{false};
 
 }  // namespace
 
