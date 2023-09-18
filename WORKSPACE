@@ -62,7 +62,7 @@ load("@rules_python//python:repositories.bzl", "python_register_toolchains")
 python_register_toolchains(
     name = "python",
     ignore_root_user_error = True,
-    python_version = "3.8",
+    python_version = "3.9",
 )
 
 # Initialize TensorFlow's external dependencies.
