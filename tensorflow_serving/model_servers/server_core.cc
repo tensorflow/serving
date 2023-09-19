@@ -751,6 +751,7 @@ Status ServerCore::CreateAspiredVersionsManager(
   manager_options.flush_filesystem_caches = options_.flush_filesystem_caches;
   manager_options.enable_reload_servables_with_error =
       options_.enable_reload_servables_with_error;
+  manager_options.with_current_context = options_.with_current_context;
   const tensorflow::Status status =
       AspiredVersionsManager::Create(std::move(manager_options), manager);
   if (!status.ok()) {
