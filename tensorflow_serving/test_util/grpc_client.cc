@@ -27,7 +27,7 @@ limitations under the License.
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/env_time.h"
 #include "tensorflow/core/platform/protobuf.h"
-#include "tensorflow/tsl/lib/histogram/histogram.h"
+#include "tsl/lib/histogram/histogram.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 
 using grpc::ClientAsyncResponseReader;

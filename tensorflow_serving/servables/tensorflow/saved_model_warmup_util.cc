@@ -27,7 +27,7 @@ limitations under the License.
 #include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/status.h"
-#include "tensorflow/tsl/platform/errors.h"
+#include "tsl/platform/errors.h"
 #include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {
