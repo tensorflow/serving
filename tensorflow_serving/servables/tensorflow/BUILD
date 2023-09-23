@@ -1081,7 +1081,6 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        ":predict_response_tensor_serialization_option",
         "//tensorflow_serving/apis:classification_cc_proto",
         "//tensorflow_serving/apis:get_model_metadata_cc_proto",
         "//tensorflow_serving/apis:inference_cc_proto",
@@ -1091,6 +1090,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
     ],
 )
 
@@ -1100,9 +1100,15 @@ cc_library(
     hdrs = ["mock_servable.h"],
     deps = [
         ":servable",
+        "//tensorflow_serving/apis:classification_cc_proto",
+        "//tensorflow_serving/apis:get_model_metadata_cc_proto",
+        "//tensorflow_serving/apis:inference_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/apis:regression_cc_proto",
         "//tensorflow_serving/test_util",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
     ],
 )
 

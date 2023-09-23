@@ -15,12 +15,41 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/servable.h"
 
+#include <utility>
+
+#include "absl/functional/any_invocable.h"
+#include "absl/status/status.h"
+#include "tensorflow_serving/apis/predict.pb.h"
+
 namespace tensorflow {
 namespace serving {
 
 EmptyServable::EmptyServable()
     : Servable(/*name=*/"", /*version=*/0),
       error_(absl::FailedPreconditionError("No models loaded")) {}
+
+SingleRequestPredictStreamedContext::SingleRequestPredictStreamedContext(
+    absl::AnyInvocable<absl::Status(const PredictRequest&)> f)
+    : f_(std::move(f)) {}
+
+absl::Status SingleRequestPredictStreamedContext::ProcessRequest(
+    const PredictRequest& request) {
+  if (one_request_received_) {
+    return absl::UnimplementedError(
+        "PredictStreamed already received one request. Accepting more than "
+        "one request in a stream is not supported yet");
+  }
+  one_request_received_ = true;
+  return f_(request);
+}
+
+absl::Status SingleRequestPredictStreamedContext::Close() {
+  if (!one_request_received_) {
+    return absl::FailedPreconditionError(
+        "PredictStreamed requires at least one request");
+  }
+  return absl::OkStatus();
+}
 
 }  // namespace serving
 }  // namespace tensorflow
