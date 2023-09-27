@@ -7,7 +7,7 @@ load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library", "serving_pro
 
 package(
     default_visibility = ["//visibility:public"],
-    features = ["-layering_check"],
+    features = ["layering_check"],
 )
 
 licenses(["notice"])
