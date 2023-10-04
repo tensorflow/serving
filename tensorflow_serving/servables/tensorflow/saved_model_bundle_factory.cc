@@ -130,7 +130,9 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
         RewriterConfig* rwcfg = gopt->mutable_rewrite_options();
         rwcfg->set_auto_mixed_precision_onednn_bfloat16(RewriterConfig::ON);
       } else {
-        LOG(WARNING) << config_.mixed_precision() << " auto mixed precision is not supported. Valid option: bfloat16";
+        LOG(WARNING) 
+            << config_.mixed_precision() 
+            << " auto mixed precision is not supported. Valid option: bfloat16";
       }
     }
     if (metadata.has_value()) {
