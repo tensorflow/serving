@@ -290,7 +290,9 @@ int main(int argc, char** argv) {
       tensorflow::Flag("thread_pool_factory_config_file",
                        &options.thread_pool_factory_config_file,
                        "If non-empty, read an ascii ThreadPoolConfig protobuf "
-                       "from the supplied file name.")};
+                       "from the supplied file name."),
+      tensorflow::Flag("mixed_precision", &options.mixed_precision,
+                      "specify mixed_precision mode")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {

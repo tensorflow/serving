@@ -134,6 +134,9 @@ message SessionBundleConfig {
   //
   // Enable overriding model configs via assets.extra/saved_model_config.pb.
   bool enable_saved_model_config = 790;
+
+  //Add bf16 mixed_precision option
+  string mixed_precision = 791;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

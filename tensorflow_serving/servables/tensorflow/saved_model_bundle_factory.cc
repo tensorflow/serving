@@ -121,6 +121,18 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
   }
   const auto& session_options = [&]() {
     auto result = GetSessionOptions(config_);
+    string mixed_precision_value = config_.mixed_precision();
+    if (!mixed_precision_value.empty()) {
+      if (mixed_precision_value == "bfloat16") {
+        LOG(INFO) << "Running inference with bfloat16 auto mixed precision";
+        tensorflow::ConfigProto& config = result.config;
+        GraphOptions* gopt = config.mutable_graph_options();
+        RewriterConfig* rwcfg = gopt->mutable_rewrite_options();
+        rwcfg->set_auto_mixed_precision_onednn_bfloat16(RewriterConfig::ON);
+      } else {
+        LOG(WARNING) << config_.mixed_precision() << " auto mixed precision is not supported. Valid option: bfloat16";
+      }
+    }
     if (metadata.has_value()) {
       auto* session_metadata =
           result.config.mutable_experimental()->mutable_session_metadata();

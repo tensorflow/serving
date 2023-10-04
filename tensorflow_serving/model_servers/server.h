@@ -101,6 +101,7 @@ class Server {
     tensorflow::string thread_pool_factory_config_file;
     bool enable_signature_method_name_check = false;
     bool enable_profiler = true;
+    tensorflow::string mixed_precision;
 
     Options();
   };
