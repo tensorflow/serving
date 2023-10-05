@@ -458,6 +458,10 @@ cc_library(
 
 cc_binary(
     name = "tensorflow_model_server",
+    linkopts = [
+        # Exports Tensorflow APIs
+        "-rdynamic",
+    ],
     stamp = 1,
     visibility = [
         ":testing",
