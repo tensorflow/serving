@@ -15,7 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/batching_session.h"
 
+#include <functional>
 #include <memory>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include "absl/synchronization/notification.h"

@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/core/static_manager.h"
 
+#include <memory>
+#include <utility>
+
 namespace tensorflow {
 namespace serving {
 

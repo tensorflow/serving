@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/core/request_logger.h"
 
 #include <memory>
+#include <vector>
 
 #include "google/protobuf/any.pb.h"
 #include "google/protobuf/wrappers.pb.h"

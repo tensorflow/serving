@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/core/manager.h"
 
+#include <map>
+#include <memory>
+#include <vector>
+
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow_serving/core/test_util/servable_handle_test_util.h"

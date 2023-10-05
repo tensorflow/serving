@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/core/servable_state_monitor.h"
 
+#include <map>
+#include <utility>
+#include <vector>
+
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
 #include "tensorflow_serving/core/servable_state.h"

@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 
+#include <algorithm>
+#include <vector>
+
 #include "absl/types/optional.h"
 #include "tensorflow_serving/core/loader_harness.h"
 

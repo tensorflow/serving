@@ -24,6 +24,7 @@ limitations under the License.
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "tensorflow/core/kernels/batching_util/periodic_function.h"

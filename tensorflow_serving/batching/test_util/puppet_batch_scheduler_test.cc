@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/test_util/puppet_batch_scheduler.h"
 
+#include <memory>
+
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"

@@ -15,7 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/core/request_logger.h"
 
+#include <memory>
 #include <random>
+#include <utility>
 #include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"

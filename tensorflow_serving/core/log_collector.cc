@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/core/log_collector.h"
 
+#include <memory>
 #include <unordered_map>
 
 #include "tensorflow/core/lib/core/errors.h"

@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/core/aspired_versions_manager_builder.h"
 
+#include <memory>
+#include <utility>
+
 #include "tensorflow_serving/core/manager_wrapper.h"
 
 namespace tensorflow {

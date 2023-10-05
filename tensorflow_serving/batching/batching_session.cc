@@ -17,7 +17,13 @@ limitations under the License.
 
 #include <stddef.h>
 
+#include <functional>
+#include <map>
 #include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "absl/container/fixed_array.h"
 #include "tensorflow/core/framework/cost_graph.pb.h"
