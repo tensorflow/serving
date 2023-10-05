@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/server_core.h"
 
+#include <algorithm>
+#include <map>
+#include <memory>
+#include <set>
 #include <utility>
 #include <vector>
 

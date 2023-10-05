@@ -16,7 +16,10 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/http_server.h"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"

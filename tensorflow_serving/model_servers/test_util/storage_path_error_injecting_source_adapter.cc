@@ -14,6 +14,9 @@ limitations under the License.
 ==============================================================================*/
 
 #include "tensorflow_serving/model_servers/test_util/storage_path_error_injecting_source_adapter.h"
+
+#include <memory>
+
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/model_servers/test_util/storage_path_error_injecting_source_adapter.pb.h"
 

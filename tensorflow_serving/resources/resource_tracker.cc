@@ -16,7 +16,10 @@ limitations under the License.
 #include "tensorflow_serving/resources/resource_tracker.h"
 
 #include <algorithm>
+#include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"

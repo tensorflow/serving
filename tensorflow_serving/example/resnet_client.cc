@@ -17,6 +17,8 @@ limitations under the License.
 
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <vector>
 
 #include "grpcpp/create_channel.h"
 #include "grpcpp/security/credentials.h"

@@ -16,6 +16,8 @@ limitations under the License.
 #include "tensorflow_serving/resources/resource_util.h"
 
 #include <algorithm>
+#include <functional>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>

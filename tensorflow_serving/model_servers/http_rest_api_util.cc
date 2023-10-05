@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/http_rest_api_util.h"
 
+#include <utility>
+#include <vector>
+
 #include "google/protobuf/util/json_util.h"
 #include "absl/strings/numbers.h"
 #include <curl/curl.h>
