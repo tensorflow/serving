@@ -214,8 +214,6 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
   compile_options.hoist_invariant_ops = config_.hoist_invariant_ops();
   compile_options.sink_in_invariant_ops = config_.sink_in_invariant_ops();
   compile_options.cost_threshold = config_.stream_merge_threshold();
-  compile_options.upper_cost_threshold =
-      config_.stream_merge_upper_cost_threshold();
   compile_options.merge_inter_dependent_streams =
       config_.merge_inter_dependent_streams();
   compile_options.tpu_move_resource_gather_to_host =
