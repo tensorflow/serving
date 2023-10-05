@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/sources/storage_path/static_storage_path_source.h"
 
 #include <functional>
+#include <memory>
 #include <string>
 
 #include "tensorflow_serving/core/servable_data.h"

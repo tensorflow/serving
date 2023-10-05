@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/util/retrier.h"
 
+#include <functional>
+
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/logging.h"
 

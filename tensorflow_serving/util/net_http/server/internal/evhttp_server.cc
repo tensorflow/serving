@@ -22,7 +22,10 @@ limitations under the License.
 #include <sys/socket.h>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
+#include <tuple>
 #include <utility>
 
 #include "absl/base/call_once.h"

@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/predict_util.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "absl/strings/str_cat.h"

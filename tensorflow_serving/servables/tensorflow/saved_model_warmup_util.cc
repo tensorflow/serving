@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup_util.h"
 
+#include <algorithm>
+#include <functional>
 #include <memory>
 #include <utility>
 

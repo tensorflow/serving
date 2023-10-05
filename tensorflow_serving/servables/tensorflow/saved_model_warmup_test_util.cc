@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup_test_util.h"
 
+#include <memory>
+#include <vector>
+
 #include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/tensor.pb.h"

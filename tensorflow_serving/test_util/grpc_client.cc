@@ -17,6 +17,8 @@ limitations under the License.
 #include <chrono>  // NOLINT(build/c++11)
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <sstream>
 #include <string>
 
 #include "grpcpp/create_channel.h"

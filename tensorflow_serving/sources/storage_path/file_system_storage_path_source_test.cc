@@ -16,6 +16,8 @@ limitations under the License.
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 
 #include <atomic>
+#include <functional>
+#include <memory>
 #include <string>
 
 #include <gmock/gmock.h>
