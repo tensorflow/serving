@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/tflite_session.h"
 
 #include <algorithm>
+#include <cstring>
 #include <functional>
 #include <map>
 #include <memory>
