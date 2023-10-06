@@ -48,6 +48,9 @@ extern const char* const kNumModelSlots;
 // RAM in bytes.
 extern const char* const kRamBytes;
 
+// Peak RAM in bytes, collected from Tcmalloc peak metric.
+extern const char* const kPeakRamBytes;
+
 // RAM allocated on the heap.
 extern const char* const kHeapRamBytes;
 
