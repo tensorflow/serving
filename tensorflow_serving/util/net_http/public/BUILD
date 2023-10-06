@@ -11,6 +11,7 @@ package_group(
     packages = [
         "//...",
         "//net/floo/flooefi/...",
+        "//platforms/gsys/...",
         "//platforms/redfish/...",
     ],
 )
