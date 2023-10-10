@@ -63,7 +63,7 @@ absl::Status WrapSavedModelForBatching(
     const BatchingParameters& batching_config,
     std::shared_ptr<Batcher> batch_scheduler,
     const std::vector<std::string>& function_names,
-    std::unique_ptr<tfrt::SavedModel>* saved_model) {
+    std::unique_ptr<tfrt_stub::SavedModel>* saved_model) {
   LOG(INFO) << "Wrapping saved model to perform batch processing";
 
   if (batch_scheduler == nullptr) {
@@ -285,6 +285,9 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
     TF_RETURN_IF_ERROR(RunSavedModelWarmup(
         *warmup_options, path, config().lazy_init_threshold(),
         config().skip_warmup_requests_if_initialized(), saved_model.get()));
+    if (config().freeze_after_init()) {
+      TF_RETURN_IF_ERROR(Freeze(*saved_model));
+    }
   }
 
   *servable = std::make_unique<TfrtSavedModelServable>(

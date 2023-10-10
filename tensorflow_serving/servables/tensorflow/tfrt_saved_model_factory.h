@@ -38,10 +38,10 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-/// A factory that creates tfrt::SavedModel from SavedModel export paths.
+/// A factory that creates tfrt_stub::SavedModel from SavedModel export paths.
 ///
 /// The factory can also estimate the resource (e.g. RAM) requirements of a
-/// tfrt::SavedModel based on the SavedModel (i.e. prior to loading the
+/// tfrt_stub::SavedModel based on the SavedModel (i.e. prior to loading the
 /// session).
 ///
 /// This class is thread-safe.
@@ -62,8 +62,8 @@ class TfrtSavedModelFactory {
   static absl::Status Create(const TfrtSavedModelConfig& config,
                              std::unique_ptr<TfrtSavedModelFactory>* factory);
 
-  /// Instantiates a tfrt::SavedModel from a given export or SavedModel path and
-  /// the given metadata.
+  /// Instantiates a tfrt_stub::SavedModel from a given export or SavedModel
+  /// path and the given metadata.
   ///
   /// @param metadata       Metadata to be associated with the saved_model.
   /// @param path           Path to the model.
@@ -76,7 +76,7 @@ class TfrtSavedModelFactory {
   ABSL_DEPRECATED("Use the overload that creates Servable instead")
   absl::Status CreateTfrtSavedModelWithMetadata(
       const Loader::Metadata& metadata, const string& path,
-      std::unique_ptr<tfrt::SavedModel>* saved_model);
+      std::unique_ptr<tfrt_stub::SavedModel>* saved_model);
 
   /// Estimates the resources a SavedModel will use once loaded, from its
   /// export path.
@@ -103,6 +103,10 @@ class TfrtSavedModelFactory {
   // TFRT savedmodel.
   virtual absl::Status RegisterCustomBackend(
       tfrt_stub::GraphExecutionOptions& options) {
+    return absl::OkStatus();
+  }
+
+  virtual absl::Status Freeze(tfrt_stub::SavedModel& saved_model) {
     return absl::OkStatus();
   }
 
