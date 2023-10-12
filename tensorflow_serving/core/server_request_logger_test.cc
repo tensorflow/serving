@@ -16,8 +16,10 @@ limitations under the License.
 #include "tensorflow_serving/core/server_request_logger.h"
 
 #include <functional>
+#include <map>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "google/protobuf/any.pb.h"
@@ -31,7 +33,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
-#include "tensorflow/tsl/lib/core/status_test_util.h"
+#include "tsl/lib/core/status_test_util.h"
 #include "tensorflow_serving/apis/logging.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"

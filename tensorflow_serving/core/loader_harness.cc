@@ -16,6 +16,8 @@ limitations under the License.
 #include "tensorflow_serving/core/loader_harness.h"
 
 #include <algorithm>
+#include <memory>
+#include <utility>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/strings/strcat.h"

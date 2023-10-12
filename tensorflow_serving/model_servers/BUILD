@@ -1,12 +1,12 @@
 # Description: Model Server
 
-# Placeholder: load py_test
-# Placeholder: load py_binary
-
-load("//tensorflow_serving:serving.bzl", "if_with_plugins_support")
-load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
+
+# Placeholder: load py_binary
+# Placeholder: load py_test
+load("//tensorflow_serving:serving.bzl", "if_with_plugins_support")
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_google", "if_libtpu", "if_with_tpu_support")
+load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 
 package(
     default_visibility = [
@@ -89,6 +89,7 @@ cc_library(
         "//tensorflow_serving/core:source",
         "//tensorflow_serving/core:source_adapter",
         "//tensorflow_serving/core:storage_path",
+        "//tensorflow_serving/core:stream_logger",
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/servables/tensorflow:predict_util",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
@@ -465,8 +466,10 @@ cc_binary(
         if_with_plugins_support([
             "tf_c_api_exported_symbols.lds",
         ]),
-    linkopts =
-        if_with_plugins_support([
+    linkopts = [
+        # Exports Tensorflow APIs
+        "-rdynamic",
+    ] + if_with_plugins_support([
             "-Wl,-dynamic-list,$(location :tf_c_api_exported_symbols.lds)",
         ]),
     stamp = 1,
@@ -534,6 +537,27 @@ py_binary(
     srcs = ["profiler_client.py"],
     python_version = "PY3",
     srcs_version = "PY2AND3",
+)
+
+cc_library(
+    name = "tfrt_prediction_service_impl",
+    srcs = ["tfrt_prediction_service_impl.cc"],
+    hdrs = ["tfrt_prediction_service_impl.h"],
+    deps = [
+        ":grpc_status_util",
+        ":prediction_service_util",
+        "//tensorflow_serving/apis:inference_cc_proto",
+        "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/apis:prediction_service_cc_proto",
+        "//tensorflow_serving/core:servable_handle",
+        "//tensorflow_serving/servables/tensorflow:servable",
+        "//tensorflow_serving/servables/tensorflow:tfrt_get_model_metadata_impl",
+        "//tensorflow_serving/servables/tensorflow:util",
+        "@com_github_grpc_grpc//:grpc",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/time",
+        "@local_tsl//tsl/platform:errors",
+    ] + if_google(["//third_party/grpc:grpc++"]),
 )
 
 pkg_tar(

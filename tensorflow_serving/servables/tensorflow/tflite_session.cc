@@ -15,9 +15,13 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/tflite_session.h"
 
+#include <algorithm>
+#include <functional>
+#include <map>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/functional/bind_front.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"

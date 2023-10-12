@@ -16,7 +16,13 @@ limitations under the License.
 #include "tensorflow_serving/core/basic_manager.h"
 
 #include <algorithm>
+#include <atomic>
 #include <functional>
+#include <map>
+#include <memory>
+#include <set>
+#include <utility>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

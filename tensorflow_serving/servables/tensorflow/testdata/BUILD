@@ -161,6 +161,26 @@ filegroup(
     ),
 )
 
+filegroup(
+    name = "saved_model_half_plus_two_cpu_with_saved_model_config",
+    srcs = glob(
+        ["saved_model_half_plus_two_cpu_with_saved_model_config/**"],
+    ),
+    visibility = [
+        "//visibility:public",
+    ],
+)
+
+filegroup(
+    name = "saved_model_half_plus_two_cpu_with_empty_saved_model_config",
+    srcs = glob(
+        ["saved_model_half_plus_two_cpu_with_empty_saved_model_config/**"],
+    ),
+    visibility = [
+        "//visibility:public",
+    ],
+)
+
 exports_files([
     "saved_model_half_plus_three/00000123/saved_model.pb",
     "saved_model_half_plus_three/00000123/assets/foo.txt",

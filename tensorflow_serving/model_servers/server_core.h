@@ -202,6 +202,10 @@ class ServerCore : public Manager {
     std::string storage_path_prefix;
 
     bool enable_cors_support = false;
+
+    // If true, propagate current context to children threads (periodic
+    // functions) in AspiredVersionsManager.
+    bool with_current_context = false;
   };
 
   virtual ~ServerCore() = default;

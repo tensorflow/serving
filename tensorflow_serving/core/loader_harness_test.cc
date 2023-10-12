@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/core/loader_harness.h"
 
 #include <memory>
+#include <utility>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

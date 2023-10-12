@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/threadsafe_status.h"
 
+#include <utility>
+
 #include "absl/base/thread_annotations.h"
 #include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"

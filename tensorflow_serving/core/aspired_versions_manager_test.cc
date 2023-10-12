@@ -17,6 +17,12 @@ limitations under the License.
 
 #include <algorithm>
 #include <functional>
+#include <map>
+#include <memory>
+#include <set>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

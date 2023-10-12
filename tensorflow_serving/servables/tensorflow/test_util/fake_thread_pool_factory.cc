@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/test_util/fake_thread_pool_factory.h"
 
+#include <memory>
+
 namespace tensorflow {
 namespace serving {
 namespace test_util {

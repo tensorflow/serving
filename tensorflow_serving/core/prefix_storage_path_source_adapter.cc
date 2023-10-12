@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/core/prefix_storage_path_source_adapter.h"
 
+#include <string>
+
 #include "tensorflow/core/platform/path.h"
 
 namespace tensorflow {

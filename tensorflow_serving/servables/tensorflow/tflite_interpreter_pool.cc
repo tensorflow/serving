@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <limits>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "tensorflow/core/framework/tensor.h"

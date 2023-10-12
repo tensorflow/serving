@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/multi_inference.h"
 
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/loader.h"

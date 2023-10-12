@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/util/class_registration_util.h"
 
+#include <vector>
+
 namespace tensorflow {
 namespace serving {
 

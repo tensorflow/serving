@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/core/simple_loader.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 

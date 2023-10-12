@@ -16,6 +16,8 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/http_rest_api_handler.h"
 
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "google/protobuf/any.pb.h"
 #include "google/protobuf/arena.h"

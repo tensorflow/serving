@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/core/aspired_version_policy.h"
 
+#include <vector>
+
 namespace tensorflow {
 namespace serving {
 

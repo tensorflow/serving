@@ -21,6 +21,7 @@ limitations under the License.
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "tensorflow/cc/saved_model/signature_constants.h"

@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/resources/resource_tracker.h"
 
 #include <algorithm>
+#include <memory>
 #include <string>
 
 #include <gmock/gmock.h>

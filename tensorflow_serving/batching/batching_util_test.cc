@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/batching_util.h"
 
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/framework/register_types.h"

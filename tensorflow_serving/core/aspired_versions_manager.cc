@@ -19,12 +19,15 @@ limitations under the License.
 #include <iterator>
 #include <map>
 #include <memory>
+#include <set>
+#include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/strings/strcat.h"
+#include "tensorflow/core/platform/context.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/core/loader_harness.h"
@@ -169,7 +172,8 @@ Status AspiredVersionsManager::Create(
 
   manager->reset(new AspiredVersionsManager(
       options.manage_state_interval_micros, options.env,
-      std::move(options.aspired_version_policy), std::move(basic_manager)));
+      std::move(options.aspired_version_policy), std::move(basic_manager),
+      options.with_current_context));
   (manager->get())->enable_reload_servables_with_error_ =
       options.enable_reload_servables_with_error;
   return OkStatus();
@@ -178,7 +182,7 @@ Status AspiredVersionsManager::Create(
 AspiredVersionsManager::AspiredVersionsManager(
     int64_t manage_state_interval_micros, Env* env,
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy,
-    std::unique_ptr<BasicManager> basic_manager)
+    std::unique_ptr<BasicManager> basic_manager, bool with_current_context)
     : aspired_version_policy_(std::move(aspired_version_policy)),
       target_impl_(new internal::AspiredVersionsManagerTargetImpl(this)),
       basic_manager_(std::move(basic_manager)) {
@@ -190,13 +194,25 @@ AspiredVersionsManager::AspiredVersionsManager(
     PeriodicFunction::Options pf_options;
     pf_options.env = env;
     pf_options.thread_name_prefix = "AspiredVersionsManager_ManageState_Thread";
-    manage_state_thread_.reset(new PeriodicFunction(
-        [this]() {
-          this->FlushServables();
-          this->HandlePendingAspiredVersionsRequests();
-          this->InvokePolicyAndExecuteAction();
-        },
-        manage_state_interval_micros));
+    if (with_current_context) {
+      tensorflow::Context context(tensorflow::ContextKind::kThread);
+      manage_state_thread_.reset(new PeriodicFunction(
+          [this, context = std::move(context)]() {
+            tensorflow::WithContext wc(context);
+            this->FlushServables();
+            this->HandlePendingAspiredVersionsRequests();
+            this->InvokePolicyAndExecuteAction();
+          },
+          manage_state_interval_micros));
+    } else {
+      manage_state_thread_.reset(new PeriodicFunction(
+          [this]() {
+            this->FlushServables();
+            this->HandlePendingAspiredVersionsRequests();
+            this->InvokePolicyAndExecuteAction();
+          },
+          manage_state_interval_micros));
+    }
   }
 }
 

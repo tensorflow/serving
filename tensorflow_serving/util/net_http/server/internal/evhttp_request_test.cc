@@ -14,8 +14,11 @@ limitations under the License.
 ==============================================================================*/
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <random>
+#include <string>
+#include <utility>
 
 #include <gtest/gtest.h>
 #include "absl/memory/memory.h"

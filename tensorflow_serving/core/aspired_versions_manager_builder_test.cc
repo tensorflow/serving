@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/core/aspired_versions_manager_builder.h"
 
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/strings/strcat.h"

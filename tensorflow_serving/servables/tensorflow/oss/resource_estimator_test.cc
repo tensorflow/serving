@@ -15,6 +15,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/oss/resource_estimator.h"
 
 #include <cstddef>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

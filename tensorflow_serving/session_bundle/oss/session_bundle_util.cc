@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/session_bundle/session_bundle_util.h"
 
+#include <functional>
+#include <unordered_set>
+
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/env.h"

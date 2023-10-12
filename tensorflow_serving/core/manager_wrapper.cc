@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/core/manager_wrapper.h"
 
+#include <map>
+#include <memory>
+#include <utility>
+#include <vector>
+
 namespace tensorflow {
 namespace serving {
 

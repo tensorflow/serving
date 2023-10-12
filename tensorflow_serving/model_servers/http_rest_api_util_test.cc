@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/http_rest_api_util.h"
 
+#include <limits>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status_test_util.h"

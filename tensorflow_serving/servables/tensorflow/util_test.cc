@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/util.h"
 
+#include <map>
+#include <set>
+#include <vector>
+
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/example/example.pb.h"

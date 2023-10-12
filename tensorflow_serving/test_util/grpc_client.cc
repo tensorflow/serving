@@ -17,6 +17,8 @@ limitations under the License.
 #include <chrono>  // NOLINT(build/c++11)
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <sstream>
 #include <string>
 
 #include "grpcpp/create_channel.h"
@@ -27,7 +29,7 @@ limitations under the License.
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/env_time.h"
 #include "tensorflow/core/platform/protobuf.h"
-#include "tensorflow/tsl/lib/histogram/histogram.h"
+#include "tsl/lib/histogram/histogram.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 
 using grpc::ClientAsyncResponseReader;

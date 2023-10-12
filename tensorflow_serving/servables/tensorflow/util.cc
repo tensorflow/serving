@@ -15,8 +15,14 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/util.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstdlib>
+#include <deque>
+#include <iterator>
+#include <set>
+#include <utility>
+#include <vector>
 
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
@@ -95,7 +101,7 @@ int NumInputExamples(const internal::SerializedInput& input) {
   return 0;
 }
 
-std::atomic<bool> signature_method_check{true};
+std::atomic<bool> signature_method_check{false};
 
 }  // namespace
 
