@@ -466,10 +466,7 @@ cc_binary(
         if_with_plugins_support([
             "tf_c_api_exported_symbols.lds",
         ]),
-    linkopts = [
-        # Exports Tensorflow APIs
-        "-rdynamic",
-    ] + if_with_plugins_support([
+    linkopts = if_with_plugins_support([
             "-Wl,-dynamic-list,$(location :tf_c_api_exported_symbols.lds)",
         ]),
     stamp = 1,
