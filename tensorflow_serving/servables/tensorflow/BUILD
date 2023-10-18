@@ -1734,3 +1734,10 @@ cc_library(
         "@org_tensorflow//tensorflow/core/tfrt/graph_executor:config",
     ],
 )
+
+serving_proto_library(
+    name = "remote_op_config_rewriter_proto",
+    srcs = ["remote_op_config_rewriter.proto"],
+    cc_api_version = 2,
+    visibility = ["//visibility:public"],
+)
