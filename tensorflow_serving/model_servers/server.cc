@@ -317,6 +317,8 @@ Status Server::BuildAndStart(const Options& server_options) {
   options.force_allow_any_version_labels_for_unavailable_models =
       server_options.force_allow_any_version_labels_for_unavailable_models;
   options.enable_cors_support = server_options.enable_cors_support;
+  options.servable_versions_always_present =
+      server_options.servable_versions_always_present;
 
   TF_RETURN_IF_ERROR(ServerCore::Create(std::move(options), &server_core_));
 
