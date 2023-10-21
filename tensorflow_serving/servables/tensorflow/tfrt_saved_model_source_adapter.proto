@@ -192,6 +192,12 @@ message TfrtSavedModelConfig {
   // Disables compilations after model initialization is complete
   // (ignored if enable_model_warmup is false)
   bool freeze_after_init = 2016;
+
+  // The number of virtual GPUs to create on a physical GPU.
+  int32 tfrt_gpu_parallelism = 2017;
+
+  // Whether to use fused op for GPU compile, execute and data transfer.
+  bool tfrt_use_fused_gpu_op = 2018;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.

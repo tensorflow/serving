@@ -227,10 +227,14 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
       config_.use_tpu_host_allocator_for_inputs();
   compile_options.tpu_allow_unpadded_batch =
       ToTpuAllowUnpaddedBatch(config_.tpu_unpadded_batch_mode());
+  compile_options.use_gpu_compile_and_execute_op =
+      config_.tfrt_use_fused_gpu_op();
 
   options.graph_execution_options.run_placer_grappler_on_functions =
       config_.run_placer_grappler_on_functions();
   options.graph_execution_options.enable_tfrt_gpu = config_.enable_tfrt_gpu();
+  options.graph_execution_options.tfrt_gpu_parallelism =
+      config_.tfrt_gpu_parallelism();
   options.graph_execution_options.gpu_system_memory_size_in_mb =
       config_.gpu_system_memory_size_in_mb();
   options.graph_execution_options.enable_grappler_function_optimizer =
