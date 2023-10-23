@@ -1,3 +1,17 @@
+# Release 2.14.0-rc1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.14.0-rc1
+
 # Release 2.14.0-rc0
 
 ## Major Features and Improvements
