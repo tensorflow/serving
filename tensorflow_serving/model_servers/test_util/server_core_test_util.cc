@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/test_util/server_core_test_util.h"
 
+#include <memory>
+#include <utility>
+
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"

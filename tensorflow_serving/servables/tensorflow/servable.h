@@ -18,23 +18,61 @@ limitations under the License.
 
 #include <stdint.h>
 
+#include <memory>
 #include <string>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "tensorflow_serving/apis/classification.pb.h"
 #include "tensorflow_serving/apis/get_model_metadata.pb.h"
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
-#include "tensorflow_serving/servables/tensorflow/predict_response_tensor_serialization_option.h"
 
 namespace tensorflow {
 namespace serving {
 
 inline constexpr absl::string_view kSignatureDef = "signature_def";
+
+// Context of a `PredictStreamed` session. The caller of `PredictStreamed` calls
+// `ProcessRequest` every time a request becomes available. The caller must call
+// `Close()` at the end of the session before deleting the context object.
+//
+// The implementation can be thread-compatible. The caller is responsible for
+// synchronizing all method invocations.
+class PredictStreamedContext {
+ public:
+  virtual ~PredictStreamedContext() = default;
+
+  // Consumes one incoming request. Blocking here may delay the consumption of
+  // subsequent requests.
+  virtual absl::Status ProcessRequest(const PredictRequest& request) = 0;
+
+  // Closes the `PredictStreamed` session.
+  virtual absl::Status Close() = 0;
+};
+
+// A convenience wrapper for cases where the implementation allows exactly one
+// request. `f` takes this single request and produces responses by calling the
+// `response_callback` passed to `Servable::PredictStreamed`.
+//
+// This implementation is thread compatible but not thread safe.
+class SingleRequestPredictStreamedContext final
+    : public PredictStreamedContext {
+ public:
+  explicit SingleRequestPredictStreamedContext(
+      absl::AnyInvocable<absl::Status(const PredictRequest&)> f);
+
+  absl::Status ProcessRequest(const PredictRequest& request) final;
+  absl::Status Close() final;
+
+ private:
+  absl::AnyInvocable<absl::Status(const PredictRequest&)> f_;
+  bool one_request_received_ = false;
+};
 
 // Provides a `PredictionService`-like interface. All concrete implementations
 // are expected to be thread-safe.
@@ -74,17 +112,19 @@ class Servable {
                                const PredictRequest& request,
                                PredictResponse* response) = 0;
 
-  // Streamed version of `Predict`. Experimental API that is not yet part of the
-  // PredictionService API.
+  // Bidirectional streamed version of `Predict`. Returns a "context" object
+  // that allows the caller to pass requests incrementally. The servable is kept
+  // alive until the context object is deleted.
   //
   // `response_callback` is called for each streamed output, zero or more times,
-  // when the streamed output becomes available. The callback invocation is
-  // serialized by the runtime, which means that `response_callback` does not
-  // have to be thread-safe, but blocking inside the callback causes the next
-  // callback invocation to be delayed. The implementation guarantees that the
-  // callback is never called after the `PredictStreamed` method returns.
-  virtual absl::Status PredictStreamed(
-      const RunOptions& run_options, const PredictRequest& request,
+  // when the streamed output becomes available. The callback invocation must be
+  // serialized by the implementation, so that `response_callback` does not have
+  // to be thread-safe, but blocking inside the callback may cause the next
+  // callback invocation to be delayed. The implementation must guarantee that
+  // the callback is never called after the `PredictStreamed` method returns.
+  virtual absl::StatusOr<std::unique_ptr<PredictStreamedContext>>
+  PredictStreamed(
+      const RunOptions& run_options,
       absl::AnyInvocable<void(PredictResponse)> response_callback) = 0;
 
   virtual absl::Status MultiInference(const RunOptions& run_options,
@@ -131,9 +171,9 @@ class EmptyServable : public Servable {
     return error_;
   }
 
-  absl::Status PredictStreamed(
-      const RunOptions& run_options, const PredictRequest& request,
-      absl::AnyInvocable<void(PredictResponse)> response_callback) override {
+  absl::StatusOr<std::unique_ptr<PredictStreamedContext>> PredictStreamed(
+      const RunOptions& run_options,
+      absl::AnyInvocable<void(PredictResponse)> response_callback) {
     return error_;
   }
 

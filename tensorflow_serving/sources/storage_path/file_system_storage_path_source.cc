@@ -15,9 +15,14 @@ limitations under the License.
 
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 
+#include <algorithm>
 #include <functional>
+#include <map>
+#include <memory>
+#include <set>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"

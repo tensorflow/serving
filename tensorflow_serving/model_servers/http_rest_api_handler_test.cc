@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/http_rest_api_handler.h"
 
 #include <limits>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>

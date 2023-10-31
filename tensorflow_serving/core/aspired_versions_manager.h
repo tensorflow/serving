@@ -144,6 +144,10 @@ class AspiredVersionsManager : public Manager,
     // For servables which end with LoaderHarness::State::kError, enable
     // future attempts at reload to progress.
     bool enable_reload_servables_with_error = false;
+
+    // If true, the AspiredVersionsManager will propagate its current context to
+    // the newly created periodic functions.
+    bool with_current_context = false;
   };
   static Status Create(Options options,
                        std::unique_ptr<AspiredVersionsManager>* manager);
@@ -220,7 +224,7 @@ class AspiredVersionsManager : public Manager,
   AspiredVersionsManager(
       int64_t manage_state_interval_micros, Env* env,
       std::unique_ptr<AspiredVersionPolicy> aspired_version_policy,
-      std::unique_ptr<BasicManager> basic_manager);
+      std::unique_ptr<BasicManager> basic_manager, bool with_current_context);
 
   Status GetUntypedServableHandle(
       const ServableRequest& request,

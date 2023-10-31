@@ -34,6 +34,5 @@ cc_test(
         ":gzip_zlib",
         "//tensorflow_serving/core/test_util:test_main",
         "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest",
     ],
 )

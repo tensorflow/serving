@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.h"
 
+#include <functional>
 #include <memory>
 
 #include "tensorflow/core/lib/strings/strcat.h"

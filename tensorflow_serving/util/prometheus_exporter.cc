@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/util/prometheus_exporter.h"
 
+#include <memory>
+#include <vector>
+
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"

@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/server_init.h"
 
+#include <memory>
+
 #include "tensorflow_serving/model_servers/http_rest_api_handler.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
 #include "tensorflow_serving/model_servers/prediction_service_impl.h"

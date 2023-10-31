@@ -16,6 +16,8 @@ limitations under the License.
 #include "tensorflow_serving/batching/batch_scheduler_retrier.h"
 
 #include <limits>
+#include <memory>
+#include <utility>
 
 #include <gtest/gtest.h>
 #include "tensorflow/core/kernels/batching_util/fake_clock_env.h"

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package tensorflow.serving.tools;
+
+// Config for the remote op rewriter. This should be serialized/encoded
+// and set a param in RewriterConfig with key kRemoteOpRewriteConfigParamKey.
+message RemoteOpRemapConfig {
+  // Map for placeholder target model_names to actual target model_name.
+  map<string, string> model_name_remap = 1;
+
+  // Map for placeholder target_address to actual target_address.
+  map<string, string> target_address_remap = 2;
+
+  // Map for model name to actual target_address. This will only be used when
+  // target_address_remap is not set. Also, when the model_name_remap is set,
+  // the model name here is the name BEFORE the rewrite. The model name here is
+  // backend model name.
+  map<string, string> backend_model_name_to_target_address_remap = 6;
+
+  // If true, version will be propagated from SessionMetadata.version.
+  // See: http://shortn/_XDBisC2j9k
+  // Requires enable_tf_session_metadata = true.
+  bool propagate_version = 4;
+
+  // If true, model name will be propagated from SessionMetadata.name.
+  // See: http://shortn/_XDBisC2j9k
+  // Requires enable_tf_session_metadata = true. This takes precedence
+  // over remapping from model_name_remap.
+  bool propagate_model_name = 5;
+
+  reserved 3;
+}

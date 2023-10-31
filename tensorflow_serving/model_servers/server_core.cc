@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/server_core.h"
 
+#include <algorithm>
+#include <map>
+#include <memory>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -751,6 +755,7 @@ Status ServerCore::CreateAspiredVersionsManager(
   manager_options.flush_filesystem_caches = options_.flush_filesystem_caches;
   manager_options.enable_reload_servables_with_error =
       options_.enable_reload_servables_with_error;
+  manager_options.with_current_context = options_.with_current_context;
   const tensorflow::Status status =
       AspiredVersionsManager::Create(std::move(manager_options), manager);
   if (!status.ok()) {

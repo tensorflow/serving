@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup_util.h"
 
+#include <algorithm>
+#include <functional>
 #include <memory>
 #include <utility>
 
@@ -27,7 +29,7 @@ limitations under the License.
 #include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/status.h"
-#include "tensorflow/tsl/platform/errors.h"
+#include "tsl/platform/errors.h"
 #include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {

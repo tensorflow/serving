@@ -15,7 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/util/net_http/server/internal/evhttp_server.h"
 
+#include <functional>
 #include <memory>
+#include <utility>
 
 #include <gtest/gtest.h>
 #include "absl/memory/memory.h"

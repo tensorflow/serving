@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/core/resource_preserving_policy.h"
 
+#include <algorithm>
+#include <vector>
+
 namespace tensorflow {
 namespace serving {
 

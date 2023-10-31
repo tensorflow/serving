@@ -15,7 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/core/caching_manager.h"
 
+#include <map>
+#include <memory>
 #include <utility>
+#include <vector>
 
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"

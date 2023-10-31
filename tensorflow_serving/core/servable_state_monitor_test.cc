@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/core/servable_state_monitor.h"
 
+#include <map>
+#include <memory>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/kernels/batching_util/fake_clock_env.h"

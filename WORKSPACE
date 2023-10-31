@@ -24,8 +24,8 @@ local_repository(
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "a8c44e11bd54e6949497bf25db9520e046d1d19b98d096b2482c4b15e3246f8f",
-    git_commit = "40b1af6bfe83041d62eb866fb80d5e397917b958",
+    sha256 = "376f43ae403eab0f2e508090a45914f9f963b680b5232b50c4f55ed8a69c0018",
+    git_commit = "92f3f122a09e7cb3b9a05a9e384a62e0b652550f",
 )
 
 # Import all of TensorFlow Serving's external dependencies.
@@ -62,7 +62,7 @@ load("@rules_python//python:repositories.bzl", "python_register_toolchains")
 python_register_toolchains(
     name = "python",
     ignore_root_user_error = True,
-    python_version = "3.8",
+    python_version = "3.9",
 )
 
 # Initialize TensorFlow's external dependencies.

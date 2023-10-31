@@ -15,7 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/server_core.h"
 
+#include <map>
 #include <memory>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "google/protobuf/any.pb.h"
 #include "absl/status/status.h"

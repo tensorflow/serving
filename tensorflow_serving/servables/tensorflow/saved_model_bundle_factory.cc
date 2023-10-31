@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
 
+#include <memory>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
 #include "absl/strings/string_view.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/framework/tensor.pb.h"

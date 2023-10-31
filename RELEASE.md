@@ -1,3 +1,92 @@
+# Release 2.14.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.14.0
+
+# Release 2.14.0-rc1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.14.0-rc1
+
+# Release 2.14.0-rc0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Add Intel OpenMP for MKL build since it's required now (commit: 926b08d928d78cda9f371a5d14b2d551e8534631)
+* Fixed the broken link in api_rest.md (commit: 146cda04e31ae38e2ae9b9563e639b8c29dd7dd4)
+* Add a conditional any_invocable dependency to YDF to allow building with latest Tensorflow (commit: cb3698ef5c81db12cd67088c09eaa4a2dc027db3)
+* Internal change. (commit: 62badd2558c792639778d2c517593efbbf26d172)
+* Internal Code Change (commit: a1ae333bc7f0436ed0225d3aa1865512a945560f)
+* Upgrading Bazel version from 5.3.0 to 6.1.0 (commit: 89a4bda0b9eff7eef1aeca853fdfd1bec5a3fda9)
+* Reorder some status checks to break out of while loop immediately on error (commit: a87da7bc53b213ee1c4e14131682a0c31d73b456)
+* Enable parallel model warm-up (commit: ba1246d95b9f7fe795bb5ffe449f3cd013552e9d)
+* Enable parallel model warm-up (commit: 259f89b5664f4cec2965b819874c24262e3b8678)
+* Updates Bazel version from 5.3.0 to 6.1.0 (commit: 9b986296238d1948c47ddfba6d1593dd925f85a6)
+* Enable parallel model warm-up (commit: 79f9d2842223faf43db840b5def8e27274a38027)
+* Do not register empty model name to warmup registry (commit: 1598cfeda97333b1711f434f016410109ad2dd8a)
+* Print out model name for ModelConfig errors, which will make it easy to debug. (commit: 6420cc3381c5c1750635e539f81dde4a6d82a6cf)
+* Internal change (commit: 291650abc818f7274c9b72cd410f9aa5fa5c3024)
+* Pass criticality and queue option for low priority to support priority queue in shared hatch scheduler (commit: bf4aaf04feb563629cb514497f35e1f84609bb02)
+* Add release notes for tf-serving 2.13.0-rc0 (commit: 6a56bd1eefdd46fbfdbd7c906b3fe22929aab3cb)
+* Add release notes for tf-serving 2.12.2 (commit: 638fd783f387cc395f5771ec9e05b39b3814145c)
+* Add release notes for tf-serving 2.13.0-rc1 (commit: d04bbfeed83801242c2f16c8673592c3ab895aec)
+* Internal Code Change (commit: 72b83ed2237cea14bab34d551e01d9dd8fc5edc9)
+* Move Servable interface to tensorflow serving. (commit: f196fa8a3c29a309899a8df2058a5692ce999253)
+* Add release notes for tf-serving 2.13.0-rc2 (commit: 1ad5e7c89bc32c2fdb8b455d73b361b9accf0e49)
+* Add release notes for tf-serving 2.13.0 (commit: 3d8e8c39be54ae88959cb5b9e3b06dc30aadd99d)
+* Add RunOptions to Servable interface. (commit: 6a9d0fdafe326605cad1cae60dea0dd165bd2bb4)
+* use hermetic python instead of system python for building and testing. (commit: ea05b0f1c274124704dfd3c0a440e9b273e5542a)
+* Use OSS-compatible logging lib directly (commit: 3e8dd821e0c469f383e220da137d398168610255)
+* Enable the saved model default input value feature for TFRT Predict API. (commit: 45bc2916a5bc5e71f7c46db16567479447f63d7e)
+* Adding flag for automatic batch warmup. (commit: 736e1298a66b0976bf3a554492c74cb23db8904d)
+* Internal Code Change (commit: 008c02c45e8a09b9a82d80b0962b5918e759f10e)
+* Support streaming in request logger. (commit: 2cdb6b940378676e031d7b0c18f32a1a063c0f77)
+* Use Servable for TFRT serving (commit: 3863ae35a69a1da616d94edcdc4f736cd046fddd)
+* This is a noop (commit: 444257dc8cf3a9c69b3c8036821c2c9c1d73a670)
+* Update version for 2.14.0-rc0 release. (commit: d07fc99ef40ebc044c27a04a20ff976ff9e2847c)
+* Update Dockerfile.devel* with py3.9 installed. (#2178) (commit: 89e76e785ebe458264e6a40b76b8258e32377103)
+* Update WORKSPACE to use python 3.9 (commit: 24b94ecab15e70afe2b546f5f7a093da6200569f)
+
+# Release 2.13.1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.13.1
+
 # Release 2.13.0
 
 ## Major Features and Improvements

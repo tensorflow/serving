@@ -1,0 +1,206 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+
+import "tensorflow/core/protobuf/config.proto";
+import "tensorflow_serving/servables/tensorflow/session_bundle_config.proto";
+
+message TfrtSavedModelConfig {
+  reserved 1031;
+  reserved "online_cost_analysis_normalize_ratio";
+
+  // A SessionBundleConfig.
+  // Deprecated.
+  SessionBundleConfig legacy_config = 1000;
+
+  // If true, native ops will be used if they are implemented in TFRT. If
+  // false, all ops are using fallback.
+  bool enable_native_ops = 1001 [deprecated = true];
+
+  // If true, the lite version of MLIR importer would be used.
+  bool use_lite_mlir_importer = 1002;
+
+  // If true, enable grappler for TFRT.
+  bool enable_grappler = 1003;
+
+  // If true, when creating an optimized subgraph, Placer and Grappler will
+  // also run on the functions.
+  bool run_placer_grappler_on_functions = 1020;
+
+  // If true, the function optimizer in the grappler will be enabled, and
+  // optimizations like function inlining will be applied.
+  bool enable_grappler_function_optimizer = 1022;
+
+  // If true, for each client graph, the op costs of the first request will be
+  // recorded and used to re-compile the client graph.
+  bool enable_online_cost_analysis = 1029;
+
+  // If true, the TFRT runtime will use the new interpreter for host execution.
+  bool enable_mlrt = 1030;
+
+  // If true, TFRT will perform GPU related compiler passes.
+  bool enable_tfrt_gpu = 1024;
+
+  // If true, TFRT will use TPU specific compiler passes and perform TPU
+  // specific initialization.
+  bool target_tpu = 1004;
+
+  // If true, resource loading will happen during model loading instead of
+  // inference time.
+  bool hoist_invariant_ops = 1005;
+
+  // If true, sink the resource handle into the nested function to facilitate
+  // invariant ops hoisting.
+  bool sink_in_invariant_ops = 1028;
+
+  // The threshold to merge small streams in TFRT. The stream with cost
+  // smaller than the threshold will be merged.
+  int64 stream_merge_threshold = 1011;
+
+  // The upper bond to merge dependent streams.
+  int64 stream_merge_upper_cost_threshold = 1015;
+
+  // If true, streams with inter data depenedencies will be merged.
+  bool merge_inter_dependent_streams = 1016;
+
+  // Options that apply to all graphs.
+  GraphOptions graph_options = 1006;
+
+  // If set, each emitted saved model is wrapped with a layer that schedules
+  // Run() calls in batches. The batching layer is transparent to the client
+  // (implements the tfrt::SavedModel API).
+  //
+  // IMPORTANT: With batching enabled, client threads will spend most of their
+  // time blocked on SavedModel::Run() calls, waiting for enough peer threads to
+  // also call SavedModel::Run() such that a large batch can be formed. For good
+  // throughput, we recommend setting the number of client threads equal to
+  // roughly twice the maximum batch size ('max_batch_size' below).
+  //
+  // The batching layer uses a SharedBatchScheduler to coordinate batching
+  // across multiple saved model servables emitted by this source adapter. A
+  // BatchSchedulerRetrier is added on top of each batching saved model.
+  BatchingParameters batching_parameters = 1007;
+
+  // Set of SavedModel tags identifying the specific meta graph def to be
+  // loaded.
+  repeated string saved_model_tags = 1008;
+
+  // Enables model warmup.
+  bool enable_model_warmup = 1009;
+  ModelWarmupOptions model_warmup_options = 1010;
+
+  // Tries to use infra validation result to estimate resource usage.
+  bool resource_estimation_uses_validation_result = 1012;
+
+  // If the model contains more than lazy_init_threshold signature defs, use
+  // lazy initilizaion as it is likely not all sigantures are used for serving.
+  int32 lazy_init_threshold = 1013;
+
+  // If true, we'll attempt to find MLArchive within the model source path. If
+  // no MLArchive is found, will use the path as a normal SavedModel directory.
+  bool maybe_load_from_mla = 1025;
+
+  // If true, MIRA implementation of SavedModel API is used, so MIRA API is used
+  // for loading and running the model.
+  bool use_mira = 1027;
+
+  // If true, skip the warmup requests if the signature def is initialized.
+  bool skip_warmup_requests_if_initialized = 1014;
+
+  // If true, move resource gather op to host side.
+  bool tpu_move_resource_gather_to_host = 1017;
+
+  // If tpu_move_resource_gather_to_host is true and the width of the gather
+  // table is less than the threshold, it will be placed on the host.
+  int32 tpu_gather_table_width_threshold_bytes = 1021;
+
+  // If true, use fuesd op for tpu compile, execute and data transfer.
+  bool use_fused_tpu_op = 1018;
+
+  // If true, TFRT will use fallback to handle unsupported features in MLIR
+  // Bridge.
+  bool enable_mlir_bridge_fallback = 1019;
+
+  // If true, tf.While's iterations will be parallelized.
+  bool enable_while_parallel_iterations = 1023;
+
+  // If true, fallback executeops that produce inputs to tpu program will use
+  // tpu host allocator.
+  bool use_tpu_host_allocator_for_inputs = 1026;
+
+  // Enables model specific runtime params described in saved model's
+  // assets.extra/saved_model_config.pb file.
+  bool enable_saved_model_config = 1032;
+
+  // These are no longer used.
+  repeated string auto_fusion_op = 2006 [deprecated = true];
+  int32 auto_fusion_min_cluster_size = 2007 [deprecated = true];
+
+  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
+  //
+  // Enable per-model batching parameters (present in SavedModel). If this
+  // option is enabled, model specific batching params (e.g. timeout, batch
+  // sizes etc.) from `batching_parameters` field above are *ignored* and
+  // instead the one in SavedModel directory are used. This field is only
+  // used if batching is enabled (i.e. `batching_parameters` message above
+  // is set).
+  bool enable_per_model_batching_params = 2008;
+
+  // If true, the lazy loading path will use tfrt_stub::GraphExecutor.
+  bool lazy_loading_use_graph_executor = 2009;
+
+  enum TpuUnpaddedBatchMode {
+    // Disable this feature.
+    UNPADDED_BATCH_DISABLED = 0;
+    // Enable this feature when in-graph batching is detected.
+    UNPADDED_BATCH_AUTO = 1;
+    // Always enable this feature.
+    UNPADDED_BATCH_ENFORCED = 2;
+  }
+
+  // Mode for TPU Unpadded batch.
+  TpuUnpaddedBatchMode tpu_unpadded_batch_mode = 2010;
+
+  // The config file path of the ThreadPoolFactory used to create inter-op
+  // ThreadPools. If unspecified, the default Tensorflow threadpools will be
+  // used.
+  string thread_pool_factory_config_filepath = 2011;
+
+  // If true, validate input tensor specs before executing the request.
+  bool validate_input_specs = 2012;
+
+  // TODO(b/279197040) Remove after b/279197040 is fixed.
+  // If true, validate (by logging mismatches) input tensor specs before
+  // executing the request.
+  bool validate_input_specs_dry_run = 2013;
+
+  // In a predict handler, this option specifies how to serialize tensors
+  // (e.g: as proto fields or as proto content). Serialize as proto fields by
+  // default, for backward compatibility.
+  enum PredictResponseTensorSerializationOption {
+    option allow_alias = true;
+
+    AS_PROTO_DEFAULT = 0;
+    AS_PROTO_FIELD = 0;
+    AS_PROTO_CONTENT = 1;
+  }
+  PredictResponseTensorSerializationOption
+      predict_response_tensor_serialization_option = 2014;
+  // The size of reserved memory space for GPU system.
+  int32 gpu_system_memory_size_in_mb = 2015;
+
+  // Disables compilations after model initialization is complete
+  // (ignored if enable_model_warmup is false)
+  bool freeze_after_init = 2016;
+
+  // The number of virtual GPUs to create on a physical GPU.
+  int32 tfrt_gpu_parallelism = 2017;
+
+  // Whether to use fused op for GPU compile, execute and data transfer.
+  bool tfrt_use_fused_gpu_op = 2018;
+}
+
+// Config proto for TfrtSavedModelSourceAdapter.
+message TfrtSavedModelSourceAdapterConfig {
+  TfrtSavedModelConfig saved_model_config = 1;
+}

@@ -16,15 +16,17 @@ limitations under the License.
 #include "tensorflow_serving/core/server_request_logger.h"
 
 #include <functional>
+#include <map>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/gtl/map_util.h"
 #include "tensorflow/core/lib/strings/proto_serialization.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/status.h"
-#include "tensorflow/tsl/platform/errors.h"
+#include "tsl/platform/errors.h"
 #include "tensorflow_serving/apis/logging.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/core/request_logger.h"

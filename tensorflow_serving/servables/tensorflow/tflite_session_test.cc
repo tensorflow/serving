@@ -15,9 +15,13 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/tflite_session.h"
 
+#include <map>
 #include <memory>
+#include <random>
+#include <set>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include "absl/flags/flag.h"

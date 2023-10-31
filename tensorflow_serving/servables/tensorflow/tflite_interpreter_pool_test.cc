@@ -15,6 +15,9 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/tflite_interpreter_pool.h"
 
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

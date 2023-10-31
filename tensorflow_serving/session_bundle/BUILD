@@ -43,3 +43,16 @@ cc_library(
     name = "session_bundle_util",
     deps = if_oss(["//tensorflow_serving/session_bundle/oss:session_bundle_util"]) + if_google(["//tensorflow_serving/session_bundle/google:session_bundle_util"]),
 )
+
+cc_library(
+    name = "graph_rewriter",
+    hdrs = ["graph_rewriter.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/synchronization",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core/platform:errors",
+        "@org_tensorflow//tensorflow/core/platform:status",
+    ],
+)

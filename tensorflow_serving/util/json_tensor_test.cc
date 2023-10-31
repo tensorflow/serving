@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/util/json_tensor.h"
 
+#include <functional>
+
 #include "google/protobuf/message.h"
 #include "google/protobuf/text_format.h"
 #include "google/protobuf/util/message_differencer.h"

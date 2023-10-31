@@ -15,8 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/util/json_tensor.h"
 
+#include <algorithm>
 #include <cstdlib>
+#include <functional>
 #include <limits>
+#include <set>
 #include <string>
 #include <type_traits>
 #include <unordered_map>

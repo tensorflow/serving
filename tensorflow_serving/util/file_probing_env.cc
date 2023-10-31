@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/util/file_probing_env.h"
 
+#include <vector>
+
 namespace tensorflow {
 namespace serving {
 
