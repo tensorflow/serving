@@ -30,6 +30,9 @@ const char* const kRamBytes = "ram_in_bytes";
 const char* const kPeakRamBytes = "peak_ram_in_bytes";
 const char* const kHeapRamBytes = "heap_ram_in_bytes";
 const char* const kStackRamBytes = "stack_ram_in_bytes";
+const char* const kReservedRamBytes = "reserved_ram_in_bytes";
+const char* const kSystemRamBytes = "system_ram_in_bytes";
+const char* const kModelBinaryRamBytes = "model_binary_ram_in_bytes";
 const char* const kProcessingMillis = "processing_in_millicores";
 }  // namespace resource_kinds
 

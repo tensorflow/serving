@@ -104,7 +104,7 @@ class Server {
 #ifdef SUPPORT_TF_PLUGINS
     string tensorflow_plugins = "";
 #endif
-
+    bool skip_initialize_tpu = false;
     Options();
   };
 

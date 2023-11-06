@@ -59,6 +59,15 @@ limitations under the License.
 #include "tensorflow/core/tpu/tpu_global_init.h"
 
 void InitializeTPU(tensorflow::serving::main::Server::Options& server_options) {
+  server_options.enforce_session_run_timeout = false;
+  if (server_options.saved_model_tags.empty()) {
+    server_options.saved_model_tags = "tpu,serve";
+  }
+
+  if (server_options.skip_initialize_tpu) {
+    std::cout << "Skipping model server level Initializing TPU system.";
+    return;
+  }
   std::cout << "Initializing TPU system.";
   tensorflow::tpu::TopologyProto tpu_topology;
   TF_QCHECK_OK(tensorflow::InitializeTPUSystemGlobally(
@@ -67,10 +76,6 @@ void InitializeTPU(tensorflow::serving::main::Server::Options& server_options) {
   std::cout << "Initialized TPU topology: " << tpu_topology.DebugString();
   server_options.num_request_iterations_for_warmup =
       tpu_topology.num_tpu_devices_per_task();
-  server_options.enforce_session_run_timeout = false;
-  if (server_options.saved_model_tags.empty()) {
-    server_options.saved_model_tags = "tpu,serve";
-  }
 }
 #endif
 
@@ -300,9 +305,10 @@ int main(int argc, char **argv) {
       tensorflow::Flag("tensorflow_plugins", &options.tensorflow_plugins,
                        "Enable tensorflow plugins by giving a path to folder. "
                        "If non-empty, load all .so files under this folder "
-                       "as tensorflow plugins.")
+                       "as tensorflow plugins."),
 #endif
-  };
+      tensorflow::Flag("skip_initialize_tpu", &options.skip_initialize_tpu,
+                       "Whether to skip auto initializing TPU.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {
