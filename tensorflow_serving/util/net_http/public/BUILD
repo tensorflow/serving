@@ -14,6 +14,7 @@ package_group(
         "//platforms/gsys/...",
         "//platforms/redfish/...",
         "//platforms/syshealth/shdc/...",
+        "//third_party/ebpf_transport_monitoring/...",
     ],
 )
 
