@@ -44,7 +44,7 @@ limitations under the License.
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
 #include "tensorflow_serving/servables/tensorflow/machine_learning_metadata.h"
-#include "tensorflow_serving/servables/tensorflow/saved_model_config_stub.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_config.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_source_adapter.pb.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_warmup.h"
@@ -198,7 +198,7 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
   compile_options.enable_grappler = config_.enable_grappler();
   compile_options.graph_options = config_.graph_options();
   if (config_.enable_saved_model_config()) {
-    TF_RETURN_IF_ERROR(ImportAndLoadSavedModelConfig(
+    TF_RETURN_IF_ERROR(LoadSavedModelConfig(
         path, options.graph_execution_options.compile_options.graph_options,
         options.graph_execution_options.runtime_config));
   }

@@ -114,16 +114,6 @@ Status GetNamedSignature(const string& name,
                          const tensorflow::MetaGraphDef& meta_graph_def,
                          Signature* default_signature);
 
-// EXPERIMENTAL. THE 2 METHODS BELOW MAY CHANGE OR GO AWAY. USE WITH CAUTION.
-// Sets a global graph rewrite function that is called on all saved models
-// immediately after metagraph load, but before session creation.  This function
-// can only be called once.
-Status SetGraphRewriter(
-    std::function<Status(tensorflow::MetaGraphDef*)>&& rewriter);
-
-// For testing only. Resets the experimental graph rewriter above.
-Status ResetGraphRewriterForTesting();
-
 }  // namespace session_bundle
 }  // namespace serving
 }  // namespace tensorflow

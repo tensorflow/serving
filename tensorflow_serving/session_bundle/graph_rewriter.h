@@ -71,6 +71,20 @@ class GraphRewriter {
       ABSL_GUARDED_BY(m_);
 };
 
+// EXPERIMENTAL. THE 2 METHODS BELOW MAY CHANGE OR GO AWAY. USE WITH CAUTION.
+// Sets a global graph rewrite function that is called on all saved models
+// immediately after metagraph load, but before session creation.  This function
+// can only be called once.
+inline Status SetGraphRewriter(
+    std::function<Status(tensorflow::MetaGraphDef*)>&& rewriter) {
+  return GraphRewriter::GetGlobal().Set(std::move(rewriter));
+}
+
+// For testing only. Resets the experimental graph rewriter above.
+inline Status ResetGraphRewriterForTesting() {
+  return GraphRewriter::GetGlobal().ResetForTesting();
+}
+
 }  // namespace serving
 }  // namespace tensorflow
 

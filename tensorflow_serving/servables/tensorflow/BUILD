@@ -1,5 +1,6 @@
 # Description: TensorFlow servables.
 
+load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_proto_library")
 load("//tensorflow_serving:serving.bzl", "if_google", "if_oss", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
 
 package(
@@ -34,6 +35,16 @@ serving_proto_library(
         serving_tensorflow_proto_dep(
             "@org_tensorflow//tensorflow/core:protos_all",
         ),
+    ],
+)
+
+serving_proto_library_py(
+    name = "session_bundle_config_proto_py_pb2",
+    srcs = ["session_bundle_config.proto"],
+    proto_library = "session_bundle_config_proto",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
 )
 
@@ -1204,7 +1215,7 @@ cc_library(
     deps = [
         ":bundle_factory_util",
         ":machine_learning_metadata",
-        ":saved_model_config_stub",
+        ":saved_model_config",
         ":servable",
         ":session_bundle_config_cc_proto",
         ":tfrt_saved_model_source_adapter_cc_proto",
@@ -1231,9 +1242,32 @@ cc_library(
         "@org_tensorflow//tensorflow/core/kernels/batching_util:shared_batch_scheduler_hdrs",
         "@org_tensorflow//tensorflow/core/tfrt/runtime",
         "@org_tensorflow//tensorflow/core/tfrt/saved_model:saved_model_cpu",
-    ] + if_google(
-        ["//tensorflow_serving/servables/tensorflow/google:saved_model_config_impl"],
-    ),
+    ],
+)
+
+cc_test(
+    name = "tfrt_saved_model_factory_test",
+    size = "medium",
+    srcs = ["tfrt_saved_model_factory_test.cc"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu_with_saved_model_config",
+    ],
+    deps = [
+        "//tensorflow_serving/core/test_util:session_test_util",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/servables/tensorflow:bundle_factory_test_util",
+        "//tensorflow_serving/servables/tensorflow:tfrt_saved_model_factory",
+        "//tensorflow_serving/session_bundle:graph_rewriter",
+        "//tensorflow_serving/test_util",
+        "@com_google_protobuf//:cc_wkt_protos",
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
+        "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
+        "@org_tensorflow//tensorflow/core/tfrt/utils:tensor_util",
+    ],
 )
 
 serving_proto_library(
@@ -1723,21 +1757,150 @@ cc_test(
     ] + if_google(["@com_google_absl//absl/strings:string_view"]),
 )
 
-cc_library(
-    name = "saved_model_config_stub",
-    srcs = ["saved_model_config_stub.cc"],
-    hdrs = ["saved_model_config_stub.h"],
-    deps = [
-        "@com_google_absl//absl/status",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core/platform:status",
-        "@org_tensorflow//tensorflow/core/tfrt/graph_executor:config",
-    ],
-)
-
 serving_proto_library(
     name = "remote_op_config_rewriter_proto",
     srcs = ["remote_op_config_rewriter.proto"],
     cc_api_version = 2,
     visibility = ["//visibility:public"],
+)
+
+serving_proto_library_py(
+    name = "remote_op_config_rewriter_proto_py_pb2",
+    srcs = ["remote_op_config_rewriter.proto"],
+    proto_library = "remote_op_config_rewriter_proto",
+    visibility = ["//visibility:public"],
+    deps = [],
+)
+
+# To generate *_genproto and *_cc_genproto of TF protos for Tensorflow serving target to use.
+tf_proto_library(
+    name = "tf_protos_deps",
+    srcs = [],
+    cc_api_version = 2,
+    create_go_proto = False,
+    create_java_proto = False,
+    create_kotlin_proto = False,
+    make_default_target_header_only = True,
+    protodeps = [
+        "@org_tensorflow//tensorflow/core/grappler/optimizers/inference:batch_op_rewriter_proto",
+        "@org_tensorflow//tensorflow/core/tfrt/graph_executor:config_proto",
+    ],
+)
+
+serving_proto_library(
+    name = "saved_model_config_proto",
+    srcs = ["saved_model_config.proto"],
+    cc_api_version = 2,
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "//tensorflow_serving/servables/tensorflow:remote_op_config_rewriter_proto",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
+        serving_tensorflow_proto_dep(":tf_protos_deps"),
+        serving_tensorflow_proto_dep("@org_tensorflow//tensorflow/core:protos_all"),
+    ],
+)
+
+serving_proto_library_py(
+    name = "saved_model_config_proto_py_pb2",
+    srcs = ["saved_model_config.proto"],
+    proto_library = "saved_model_config_proto",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":tf_protos_deps_py",
+        "//tensorflow_serving/servables/tensorflow:remote_op_config_rewriter_proto_py_pb2",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto_py_pb2",
+        "@org_tensorflow//tensorflow/core:protos_all_py",
+    ],
+)
+
+cc_library(
+    name = "saved_model_config_util",
+    srcs = ["saved_model_config_util.cc"],
+    hdrs = ["saved_model_config_util.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":saved_model_config_cc_proto",
+        "//tensorflow_serving/servables/tensorflow:remote_op_config_rewriter_cc_proto",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@local_tsl//tsl/platform:types",
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core/grappler/optimizers/inference:batch_op_rewriter_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "saved_model_config_util_test",
+    srcs = ["saved_model_config_util_test.cc"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu_with_empty_saved_model_config",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu_with_saved_model_config",
+    ],
+    deps = [
+        ":saved_model_config_cc_proto",
+        ":saved_model_config_util",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/servables/tensorflow:remote_op_config_rewriter_cc_proto",
+        "//tensorflow_serving/test_util",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest",
+        "@com_google_protobuf//:protobuf",
+        "@local_tsl//tsl/lib/core:status_test_util",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core/grappler/optimizers/inference:batch_op_rewriter_proto_cc",
+    ],
+)
+
+cc_library(
+    name = "saved_model_config",
+    srcs = ["saved_model_config.cc"],
+    hdrs = ["saved_model_config.h"],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":saved_model_config_cc_proto",
+        ":saved_model_config_util",
+        "@com_google_absl//absl/status:statusor",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core/tfrt/graph_executor:config",
+    ],
+)
+
+cc_test(
+    name = "saved_model_config_test",
+    srcs = ["saved_model_config_test.cc"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu_with_empty_saved_model_config",
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_cpu_with_saved_model_config",
+    ],
+    deps = [
+        ":saved_model_config",
+        ":saved_model_config_cc_proto",
+        ":saved_model_config_util",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/servables/tensorflow:remote_op_config_rewriter_cc_proto",
+        "//tensorflow_serving/test_util",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest",
+        "@local_tsl//tsl/lib/core:status_test_util",
+        "@local_tsl//tsl/platform:status",
+        "@org_tensorflow//tensorflow/cc/saved_model:constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core/grappler/optimizers/inference:batch_op_rewriter_proto_cc",
+        "@org_tensorflow//tensorflow/core/tfrt/graph_executor:config",
+        "@org_tensorflow//tensorflow/core/tfrt/graph_executor:test_config_proto_cc",
+    ],
 )

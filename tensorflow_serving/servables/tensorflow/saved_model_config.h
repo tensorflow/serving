@@ -12,13 +12,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SAVED_MODEL_CONFIG_STUB_H_
-#define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SAVED_MODEL_CONFIG_STUB_H_
 
-#include <memory>
+#ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SAVED_MODEL_CONFIG_H_
+#define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SAVED_MODEL_CONFIG_H_
+
 #include <string>
 
-#include "absl/status/status.h"
 #include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/tfrt/graph_executor/config.h"
@@ -26,25 +25,17 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// The tfrt native lowering stub that provides interface for internal and OSS
-// with different impls.
-class SavedModelConfigStub {
- public:
-  virtual ~SavedModelConfigStub() = default;
-  virtual Status ImportAndLoadSavedModelConfig(
-      const std::string& export_dir, tensorflow::GraphOptions& graph_options,
-      tensorflow::tfrt_stub::RuntimeConfig& runtime_config) {
-    return absl::UnimplementedError("");
-  }
-};
-
-void RegisterSavedModelConfigStub(std::unique_ptr<SavedModelConfigStub> stub);
-
-Status ImportAndLoadSavedModelConfig(
+// Returns error if the `assets.extra/saved_model_config.pb` cannot be parsed.
+// Returns success otherwise (including empty or no `saved_model_config.pb`).
+// On success, reads SavedModelConfig proto from the specified model directory,
+// adds or replaces some optimization options in
+// `tensorflow::serving::RewriterConfig` of `tensorflow::GraphOptions` and
+// replaces the `runtime_config`.
+Status LoadSavedModelConfig(
     const std::string& export_dir, tensorflow::GraphOptions& graph_options,
     tensorflow::tfrt_stub::RuntimeConfig& runtime_config);
 
 }  // namespace serving
 }  // namespace tensorflow
 
-#endif  // THIRD_PARTY_TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SAVED_MODEL_CONFIG_STUB_H_
+#endif  // TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SAVED_MODEL_CONFIG_H_
