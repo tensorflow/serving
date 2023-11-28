@@ -1,5 +1,7 @@
 # Description: Tensorflow Serving APIs.
 
+load("//dart:build_defs.bzl", "dart_proto_library")
+
 # Placeholder: load py_library
 # Placeholder: load kt_jvm_proto_library
 load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
@@ -469,4 +471,14 @@ cc_library(
         ":regression_cc_proto",
         "@org_tensorflow//tensorflow/core:lib",
     ],
+)
+
+dart_proto_library(
+    name = "model_dart_proto",
+    deps = [":model_proto"],
+)
+
+dart_proto_library(
+    name = "predict_dart_proto",
+    deps = [":predict_proto"],
 )
