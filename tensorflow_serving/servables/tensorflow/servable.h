@@ -25,12 +25,13 @@ limitations under the License.
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "absl/time/time.h"
+#include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow_serving/apis/classification.pb.h"
 #include "tensorflow_serving/apis/get_model_metadata.pb.h"
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
+#include "tensorflow_serving/servables/tensorflow/run_options.h"
 
 namespace tensorflow {
 namespace serving {
@@ -89,16 +90,7 @@ class Servable {
   // Returns the version associated with this servable.
   int64_t version() const { return version_; }
 
-  // RunOptions group the configuration for individual inference executions.
-  // The per-request configuration (e.g. deadline) can be passed here.
-  struct RunOptions {
-    // Priority of the request. Some thread pool implementation will schedule
-    // ops based on the priority number. Larger number means higher
-    // priority.
-    int64_t priority = 1;
-    // The deadline for this request.
-    absl::Time deadline = absl::InfiniteFuture();
-  };
+  using RunOptions = tensorflow::serving::servables::RunOptions;
 
   virtual absl::Status Classify(const RunOptions& run_options,
                                 const ClassificationRequest& request,

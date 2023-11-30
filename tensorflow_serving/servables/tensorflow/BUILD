@@ -1091,6 +1091,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":run_options",
         "//tensorflow_serving/apis:classification_cc_proto",
         "//tensorflow_serving/apis:get_model_metadata_cc_proto",
         "//tensorflow_serving/apis:inference_cc_proto",
@@ -1100,7 +1101,6 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/time",
     ],
 )
 
@@ -1903,4 +1903,22 @@ cc_test(
         "@org_tensorflow//tensorflow/core/tfrt/graph_executor:config",
         "@org_tensorflow//tensorflow/core/tfrt/graph_executor:test_config_proto_cc",
     ],
+)
+
+cc_library(
+    name = "run_options_base",
+    hdrs = ["run_options_base.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    deps = [
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "run_options",
+    hdrs = ["run_options.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    deps = ["//tensorflow_serving/util:oss_or_google"] + if_oss([
+        "//tensorflow_serving/servables/tensorflow/oss:run_options",
+    ]) + if_google(["//tensorflow_serving/servables/tensorflow/google:run_options"]),
 )

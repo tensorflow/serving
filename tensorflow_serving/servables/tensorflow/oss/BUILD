@@ -33,3 +33,12 @@ cc_test(
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
+
+cc_library(
+    name = "run_options",
+    hdrs = ["run_options.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    deps = [
+        "//tensorflow_serving/servables/tensorflow:run_options_base",
+    ],
+)
