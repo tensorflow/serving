@@ -1908,7 +1908,6 @@ cc_test(
 cc_library(
     name = "run_options_base",
     hdrs = ["run_options_base.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         "@com_google_absl//absl/time",
     ],
@@ -1917,7 +1916,6 @@ cc_library(
 cc_library(
     name = "run_options",
     hdrs = ["run_options.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = ["//tensorflow_serving/util:oss_or_google"] + if_oss([
         "//tensorflow_serving/servables/tensorflow/oss:run_options",
     ]) + if_google(["//tensorflow_serving/servables/tensorflow/google:run_options"]),
