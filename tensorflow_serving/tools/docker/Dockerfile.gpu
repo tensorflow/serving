@@ -36,6 +36,7 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
         ca-certificates \
         cuda-command-line-tools-11-8 \
         cuda-nvrtc-11-8 \
+        cuda-nvml-dev-11-8 \
         libcublas-11-8 \
         libcublas-dev-11-8 \
         libcufft-11-8 \
