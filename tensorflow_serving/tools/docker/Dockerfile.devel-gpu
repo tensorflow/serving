@@ -37,6 +37,7 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
         cuda-nvrtc-dev-11-8 \
         cuda-nvprune-11-8 \
         cuda-nvcc-11-8 \
+        cuda-nvml-dev-11-8 \
         cuda-cudart-dev-11-8 \
         libcufft-dev-11-8 \
         libcurand-dev-11-8 \
