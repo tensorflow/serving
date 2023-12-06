@@ -350,6 +350,68 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "tfrt_http_rest_api_handler",
+    srcs = ["tfrt_http_rest_api_handler.cc"],
+    hdrs = ["tfrt_http_rest_api_handler.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tensorflow_serving/apis:model_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/core:servable_handle",
+        "//tensorflow_serving/model_servers:get_model_status_impl",
+        "//tensorflow_serving/model_servers:http_rest_api_handler_base",
+        "//tensorflow_serving/model_servers:http_rest_api_util",
+        "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/servables/tensorflow:servable",
+        "//tensorflow_serving/servables/tensorflow:tfrt_get_model_metadata_impl",
+        "//tensorflow_serving/servables/tensorflow:tfrt_servable",
+        "//tensorflow_serving/util:json_tensor",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:optional",
+        "@com_googlesource_code_re2//:re2",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core/tfrt/saved_model",
+    ],
+)
+
+cc_test(
+    name = "tfrt_http_rest_api_handler_test",
+    size = "medium",
+    srcs = ["tfrt_http_rest_api_handler_test.cc"],
+    data = [
+        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions_metadata.json",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
+    ],
+    deps = [
+        ":tfrt_http_rest_api_handler",
+        "//tensorflow_serving/core:availability_preserving_policy",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/model_servers:model_platform_types",
+        "//tensorflow_serving/model_servers:platform_config_util",
+        "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
+        "//tensorflow_serving/servables/tensorflow:tfrt_saved_model_source_adapter",
+        "//tensorflow_serving/servables/tensorflow:tfrt_saved_model_source_adapter_cc_proto",
+        "//tensorflow_serving/test_util",
+        "@com_github_tencent_rapidjson//:rapidjson",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest",
+        "@com_googlesource_code_re2//:re2",
+        "@org_tensorflow//tensorflow/cc/saved_model:loader",
+        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core/tfrt/saved_model:saved_model_cpu",
+    ],
+)
+
 # This is not inlined by tools bcos inlining non-constant values
 # is not provably safe.
 SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
