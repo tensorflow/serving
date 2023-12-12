@@ -223,6 +223,7 @@ cc_library(
         "//tensorflow_serving/resources:resource_util",
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/resources:resources_cc_proto",
+        "//tensorflow_serving/servables/tensorflow:file_acl",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
     ],
@@ -1305,6 +1306,7 @@ cc_library(
         "//tensorflow_serving/resources:resource_util",
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/resources:resources_cc_proto",
+        "//tensorflow_serving/servables/tensorflow:file_acl",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/core:lib",
     ],
@@ -1919,4 +1921,12 @@ cc_library(
     deps = ["//tensorflow_serving/util:oss_or_google"] + if_oss([
         "//tensorflow_serving/servables/tensorflow/oss:run_options",
     ]) + if_google(["//tensorflow_serving/servables/tensorflow/google:run_options"]),
+)
+
+cc_library(
+    name = "file_acl",
+    hdrs = ["file_acl.h"],
+    deps = ["//tensorflow_serving/util:oss_or_google"] + if_oss([
+        "//tensorflow_serving/servables/tensorflow/oss:file_acl",
+    ]) + if_google(["//tensorflow_serving/servables/tensorflow/google:file_acl"]),
 )

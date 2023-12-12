@@ -25,6 +25,7 @@ limitations under the License.
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
+#include "tensorflow_serving/servables/tensorflow/file_acl.h"
 #include "tensorflow_serving/servables/tensorflow/machine_learning_metadata.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_factory.h"
@@ -55,6 +56,7 @@ TfrtSavedModelSourceAdapter::GetServableCreator(
     const StoragePath& path) const {
   return [factory, path](const Loader::Metadata& metadata,
                          std::unique_ptr<Servable>* servable) {
+    TF_RETURN_IF_ERROR(RegisterModelRoot(metadata.servable_id, path));
     TF_RETURN_IF_ERROR(
         factory->CreateTfrtSavedModelWithMetadata(metadata, path, servable));
     return OkStatus();

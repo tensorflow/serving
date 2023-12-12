@@ -41,3 +41,14 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:run_options_base",
     ],
 )
+
+cc_library(
+    name = "file_acl",
+    srcs = ["file_acl.cc"],
+    hdrs = ["file_acl.h"],
+    compatible_with = [],
+    deps = [
+        "//tensorflow_serving/core:servable_id",
+        "@com_google_absl//absl/status",
+    ],
+)

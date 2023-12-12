@@ -25,6 +25,7 @@ limitations under the License.
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
+#include "tensorflow_serving/servables/tensorflow/file_acl.h"
 #include "tensorflow_serving/servables/tensorflow/machine_learning_metadata.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup.h"
@@ -55,6 +56,7 @@ SavedModelBundleSourceAdapter::GetServableCreator(
   if (bundle_factory->config().enable_session_metadata()) {
     return [bundle_factory, path](const Loader::Metadata& metadata,
                                   std::unique_ptr<SavedModelBundle>* bundle) {
+      TF_RETURN_IF_ERROR(RegisterModelRoot(metadata.servable_id, path));
       TF_RETURN_IF_ERROR(bundle_factory->CreateSavedModelBundleWithMetadata(
           metadata, path, bundle));
       MaybePublishMLMDStreamz(path, metadata.servable_id.name,
