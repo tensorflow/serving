@@ -189,10 +189,6 @@ namespace {
 
 absl::Status ValidateGetModelMetadataRequest(
     const GetModelMetadataRequest& request) {
-  if (request.metadata_field_size() == 0) {
-    return absl::InvalidArgumentError(
-        "GetModelMetadataRequest must specify at least one metadata_field");
-  }
   for (const auto& metadata_field : request.metadata_field()) {
     if (metadata_field != kSignatureDef) {
       return absl::InvalidArgumentError(
