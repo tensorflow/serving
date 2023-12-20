@@ -131,3 +131,11 @@ def tf_serving_workspace():
         recursive_init_submodules = True,
         remote = "https://github.com/boostorg/boost",
     )
+
+    http_archive(
+        name = "com_google_protobuf",
+        sha256 = "f66073dee0bc159157b0bd7f502d7d1ee0bc76b3c1eac9836927511bdc4b3fc1",
+        strip_prefix = "protobuf-3.21.9",
+        urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.21.9.zip"],
+    )
+
