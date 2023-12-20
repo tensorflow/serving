@@ -130,10 +130,12 @@ class RequestExecutor final : public net_http::EventExecutor {
 class RestApiRequestDispatcher {
  public:
   RestApiRequestDispatcher(int timeout_in_ms, ServerCore* core)
-      : regex_(HttpRestApiHandler::kPathRegex),
-        core_(core),
-        handler_(tensorflow::serving::init::CreateHttpRestApiHandler(
-            timeout_in_ms, core)) {}
+      : regex_(HttpRestApiHandler::kPathRegex), core_(core) {
+    auto* tf_serving_registry = tensorflow::serving::init::
+        TensorflowServingFunctionRegistration::GetRegistry();
+    handler_ =
+        tf_serving_registry->GetCreateHttpRestApiHandler()(timeout_in_ms, core);
+  }
 
   net_http::RequestHandler Dispatch(net_http::ServerRequestInterface* req) {
     if (RE2::FullMatch(string(req->uri_path()), regex_)) {

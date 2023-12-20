@@ -34,6 +34,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/env.h"
+#include "tsl/platform/errors.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
@@ -96,9 +97,10 @@ class HttpRestApiHandlerTest : public ::testing::Test {
     ServerCore::Options options;
     options.model_server_config = config;
 
-    TF_RETURN_IF_ERROR(
-        tensorflow::serving::init::SetupPlatformConfigMapForTensorFlow(
-            SessionBundleConfig(), options.platform_config_map));
+    auto* tf_serving_registry =
+        init::TensorflowServingFunctionRegistration::GetRegistry();
+    TF_RETURN_IF_ERROR(tf_serving_registry->GetSetupPlatformConfigMap()(
+        SessionBundleConfig(), options.platform_config_map));
     // Reduce the number of initial load threads to be num_load_threads to avoid
     // timing out in tests.
     options.num_initial_load_threads = options.num_load_threads;

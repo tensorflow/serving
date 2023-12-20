@@ -41,6 +41,7 @@ limitations under the License.
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/profiler/rpc/profiler_service_impl.h"
 #include "tensorflow/core/protobuf/config.pb.h"
+#include "tsl/platform/errors.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/config/monitoring_config.pb.h"
 #include "tensorflow_serving/config/platform_config.pb.h"
@@ -212,6 +213,9 @@ Status Server::BuildAndStart(const Options& server_options) {
         server_options.model_config_file, &options.model_server_config));
   }
 
+  auto* tf_serving_registry =
+      init::TensorflowServingFunctionRegistration::GetRegistry();
+
   if (server_options.platform_config_file.empty()) {
     SessionBundleConfig session_bundle_config;
     // Batching config
@@ -290,15 +294,13 @@ Status Server::BuildAndStart(const Options& server_options) {
         server_options.num_tflite_interpreters_per_pool);
     session_bundle_config.set_num_tflite_pools(server_options.num_tflite_pools);
 
-    TF_RETURN_IF_ERROR(
-        tensorflow::serving::init::SetupPlatformConfigMapForTensorFlow(
-            session_bundle_config, options.platform_config_map));
+    TF_RETURN_IF_ERROR(tf_serving_registry->GetSetupPlatformConfigMap()(
+        session_bundle_config, options.platform_config_map));
   } else {
     TF_RETURN_IF_ERROR(ParseProtoTextFile<PlatformConfigMap>(
         server_options.platform_config_file, &options.platform_config_map));
-    TF_RETURN_IF_ERROR(
-        tensorflow::serving::init::UpdatePlatformConfigMapForTensorFlow(
-            options.platform_config_map));
+    TF_RETURN_IF_ERROR(tf_serving_registry->GetUpdatePlatformConfigMap()(
+        options.platform_config_map));
   }
 
   options.custom_model_config_loader = &LoadCustomModelConfig;
@@ -357,8 +359,8 @@ Status Server::BuildAndStart(const Options& server_options) {
         &thread_pool_factory_));
   }
   predict_server_options.thread_pool_factory = thread_pool_factory_.get();
-  prediction_service_ = tensorflow::serving::init::CreatePredictionService(
-      predict_server_options);
+  prediction_service_ =
+      tf_serving_registry->GetCreatePredictionService()(predict_server_options);
 
   ::grpc::ServerBuilder builder;
   // If defined, listen to a tcp port for gRPC/HTTP.

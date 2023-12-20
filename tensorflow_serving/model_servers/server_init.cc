@@ -17,6 +17,8 @@ limitations under the License.
 
 #include <memory>
 
+#include "absl/log/log.h"
+#include "absl/strings/string_view.h"
 #include "tensorflow_serving/model_servers/http_rest_api_handler.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
 #include "tensorflow_serving/model_servers/prediction_service_impl.h"
@@ -49,16 +51,19 @@ std::unique_ptr<PredictionService::Service> CreatePredictionServiceImpl(
   return absl::make_unique<PredictionServiceImpl>(options);
 }
 
-ABSL_CONST_INIT SetupPlatformConfigMapForTensorFlowFnType
-    SetupPlatformConfigMapForTensorFlow =
-        SetupPlatformConfigMapForTensorFlowImpl;
-ABSL_CONST_INIT UpdatePlatformConfigMapForTensorFlowFnType
-    UpdatePlatformConfigMapForTensorFlow =
-        UpdatePlatformConfigMapForTensorFlowImpl;
-ABSL_CONST_INIT CreateHttpRestApiHandlerFnType CreateHttpRestApiHandler =
-    CreateHttpRestApiHandlerImpl;
-ABSL_CONST_INIT CreatePredictionServiceFnType CreatePredictionService =
-    CreatePredictionServiceImpl;
+void TensorflowServingFunctionRegistration::Register(
+    absl::string_view type,
+    SetupPlatformConfigMapForTensorFlowFnType setup_platform_config_map_func,
+    UpdatePlatformConfigMapForTensorFlowFnType update_platform_config_map_func,
+    CreateHttpRestApiHandlerFnType create_http_rest_api_handler_func,
+    CreatePredictionServiceFnType create_prediction_service_func) {
+  VLOG(1) << "Registering serving functions for " << type;
+  registration_type_ = type;
+  setup_platform_config_map_ = setup_platform_config_map_func;
+  update_platform_config_map_ = update_platform_config_map_func;
+  create_http_rest_api_handler_ = create_http_rest_api_handler_func;
+  create_prediction_service_ = create_prediction_service_func;
+}
 
 }  // namespace init
 }  // namespace serving
