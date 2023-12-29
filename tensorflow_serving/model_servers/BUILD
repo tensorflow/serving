@@ -414,6 +414,23 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "device_runner_init_stub",
+    srcs = [
+        "device_runner_init_stub.cc",
+    ],
+    hdrs = [
+        "device_runner_init_stub.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core/platform:errors",
+        "@org_tensorflow//tensorflow/core/platform:status",
+        "@org_tensorflow//tensorflow/core/tfrt/runtime",
+    ],
+)
+
 # This is not inlined by tools bcos inlining non-constant values
 # is not provably safe.
 SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
