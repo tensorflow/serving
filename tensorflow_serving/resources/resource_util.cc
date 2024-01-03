@@ -23,9 +23,12 @@ limitations under the License.
 #include <vector>
 
 #include "google/protobuf/wrappers.pb.h"
+#include "absl/container/flat_hash_set.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/logging.h"
+#include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/platform/types.h"
+#include "tsl/platform/errors.h"
 
 namespace tensorflow {
 namespace serving {
@@ -142,6 +145,28 @@ Status ResourceUtil::VerifyResourceValidity(const Resource& resource) const {
   }
 
   return result;
+}
+
+Status ResourceUtil::VerifyOverrideDeviceValidity(
+    const ResourceAllocation& base_allocation,
+    const ResourceAllocation& override_allocation) const {
+  absl::flat_hash_set<std::pair<std::string, std::string>>
+      base_device_kind_pairs;
+  for (const auto& entry : base_allocation.resource_quantities()) {
+    base_device_kind_pairs.insert(
+        {entry.resource().device(), entry.resource().kind()});
+  }
+  for (const auto& entry : override_allocation.resource_quantities()) {
+    if (base_device_kind_pairs.find(
+            {entry.resource().device(), entry.resource().kind()}) ==
+        base_device_kind_pairs.end()) {
+      return errors::InvalidArgument(
+          "Invalid resource allocation: device-kind from override "
+          "resource was not found in base resource: ",
+          entry.resource().DebugString());
+    }
+  }
+  return Status();
 }
 
 ResourceAllocation ResourceUtil::Normalize(

@@ -1818,6 +1818,60 @@ TEST_F(ResourceUtilTest, MinUnbound) {
                           "} "));
 }
 
+TEST_F(ResourceUtilTest, OverrideDeviceValidity) {
+  const auto base_resource = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 100 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'tpu' "
+      "    kind: 'hbm' "
+      "  } "
+      "  quantity: 8 "
+      "} ");
+  const auto valid_override_resource = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 300 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'tpu' "
+      "    kind: 'hbm' "
+      "  } "
+      "  quantity: 4 "
+      "} ");
+  const auto invalid_override_resource = CreateProto<ResourceAllocation>(
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'main' "
+      "    kind: 'processing' "
+      "  } "
+      "  quantity: 300 "
+      "} "
+      "resource_quantities { "
+      "  resource { "
+      "    device: 'gpu' "
+      "    kind: 'ram' "
+      "  } "
+      "  quantity: 4 "
+      "} ");
+  TF_EXPECT_OK(util_.VerifyOverrideDeviceValidity(base_resource,
+                                                  valid_override_resource));
+  EXPECT_FALSE(util_
+                   .VerifyOverrideDeviceValidity(base_resource,
+                                                 invalid_override_resource)
+                   .ok());
+}
+
 }  // namespace
 }  // namespace serving
 }  // namespace tensorflow
