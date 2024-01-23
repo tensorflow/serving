@@ -32,6 +32,74 @@ message PredictRequest {
 
   // Reserved field 4.
   reserved 4;
+
+  // Options for streaming requests to control how multiple requests/responses
+  // are handled within a single stream.
+  PredictStreamedOptions predict_streamed_options = 5;
+}
+
+// Options only used for streaming requests that control how inputs/ouputs are
+// handled in the stream.
+message PredictStreamedOptions {
+  // Request state used to handle splitting of requests.  NONE is the
+  // default when the stream request is not split.
+  //
+  // SPLIT is used when multiple streamed requests are used to generate a
+  // logical request. END_SPLIT should be called for the last split of the
+  // logical request. NONE can not be interspersed with SPLIT before END_SPLIT
+  // is called. If another request is sent on the same
+  // stream after END_SPLIT, it can be any of the RequestState since a new
+  // logical request has started.  If END_SPLIT is called on its own the
+  // behavior is the same as NONE.
+  //
+  // Some examples with a mix of request states and the logical request.
+  //
+  // Example 1 :
+  //   SPLIT
+  //   SPLIT
+  //   END_SPLIT
+  //
+  // Will be treated as a single logical request.
+  //
+  // Example 2:
+  //   NONE
+  //   END_SPLIT
+  //   NONE
+  //
+  // Will be treated as three logical requests (1. NONE 2. END_SPLIT, 3. NONE)
+  //
+  // Example 3:
+  //   SPLIT
+  //   SPLIT
+  //
+  // Invalid because END_SPLIT is never call.
+  //
+  // Example 4:
+  //   SPLIT
+  //   NONE
+  //   SPLIT
+  //   END_SPLIT
+  //
+  // Invalid because is interspersed with SPLIT.
+  //
+  // Example 5:
+  //   SPLIT
+  //   END_SPLIT
+  //   SPLIT
+  //   SPLIT
+  //   END_SPLIT
+  //
+  // Will be treated as two logical requests (1. SPLIT, END_SPLIT 2. SPLIT,
+  // SPLIT, END_SPLIT)
+
+  enum RequestState {
+    NONE = 0;
+    SPLIT = 1;
+    END_SPLIT = 2;
+  }
+
+  // Request state used to handle segmentation of requests.
+  RequestState request_state = 1;
 }
 
 // Response for PredictRequest on successful run.
