@@ -100,6 +100,25 @@ message PredictStreamedOptions {
 
   // Request state used to handle segmentation of requests.
   RequestState request_state = 1;
+
+  // Input tensors split dimensions.
+  // Defines the dimension used to split input tensors specified
+  // in PredictRequest.inputs. The dimension will be used
+  // for concatenation of multiple SPLIT requests.
+  //
+  // For input tensor in PredictRequest.inputs that are not contained in this
+  // map, the tensors from the first SPLIT request will be used.
+  //
+  // For example, with an original input tensor of [[1, 2, 3, 4], [5, 6, 7, 8]].
+  //
+  // For a split dimension of 0 and two requests (SPLIT and END_SPLIT), the
+  // input tensors for request 1 should be [1, 2, 3, 4] and request 2 should be
+  // be [5, 6, 7, 8].
+  //
+  // For a split dimension of 1 and two requests (SPLIT and END_SPLIT), the
+  // input tensors for request 1 should be [[1, 2], [5, 6]] and request 2 should
+  // be [[3, 4], [7, 8]].
+  map<string, int32> split_dimensions = 2;
 }
 
 // Response for PredictRequest on successful run.
