@@ -293,6 +293,7 @@ Status Server::BuildAndStart(const Options& server_options) {
     session_bundle_config.set_num_tflite_interpreters_per_pool(
         server_options.num_tflite_interpreters_per_pool);
     session_bundle_config.set_num_tflite_pools(server_options.num_tflite_pools);
+    session_bundle_config.set_mixed_precision(server_options.mixed_precision);
 
     TF_RETURN_IF_ERROR(tf_serving_registry->GetSetupPlatformConfigMap()(
         session_bundle_config, options.platform_config_map));
