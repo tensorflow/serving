@@ -101,6 +101,9 @@ class Server {
     tensorflow::string thread_pool_factory_config_file;
     bool enable_signature_method_name_check = false;
     bool enable_profiler = true;
+#ifdef SUPPORT_TF_PLUGINS
+    string tensorflow_plugins = "";
+#endif
     bool skip_initialize_tpu = false;
     Options();
   };

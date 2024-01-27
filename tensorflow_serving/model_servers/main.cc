@@ -79,7 +79,12 @@ void InitializeTPU(tensorflow::serving::main::Server::Options& server_options) {
 }
 #endif
 
-int main(int argc, char** argv) {
+#ifdef SUPPORT_TF_PLUGINS
+#include <filesystem>
+#include "tensorflow/c/c_api_experimental.h"
+#endif
+
+int main(int argc, char **argv) {
   tensorflow::serving::main::Server::Options options;
   bool display_version = false;
   bool xla_cpu_compilation_enabled = false;
@@ -296,6 +301,12 @@ int main(int argc, char** argv) {
                        &options.thread_pool_factory_config_file,
                        "If non-empty, read an ascii ThreadPoolConfig protobuf "
                        "from the supplied file name."),
+#ifdef SUPPORT_TF_PLUGINS
+      tensorflow::Flag("tensorflow_plugins", &options.tensorflow_plugins,
+                       "Enable tensorflow plugins by giving a path to folder. "
+                       "If non-empty, load all .so files under this folder "
+                       "as tensorflow plugins."),
+#endif
       tensorflow::Flag("skip_initialize_tpu", &options.skip_initialize_tpu,
                        "Whether to skip auto initializing TPU.")};
 
@@ -306,6 +317,28 @@ int main(int argc, char** argv) {
   }
 
   tensorflow::port::InitMain(argv[0], &argc, &argv);
+
+#ifdef SUPPORT_TF_PLUGINS
+  if (std::filesystem::exists(options.tensorflow_plugins)) {
+    for (const auto &entry :
+         std::filesystem::directory_iterator(options.tensorflow_plugins)) {
+      std::string plugin_file = entry.path().string();
+      if (plugin_file.size() > 3 &&
+          plugin_file.compare(plugin_file.size() - 3, 3, ".so") == 0) {
+        TF_Status *plugin_status = TF_NewStatus();
+        TF_LoadPluggableDeviceLibrary(entry.path().c_str(), plugin_status);
+        TF_Code code = TF_GetCode(plugin_status);
+        if (code == TF_OK) {
+          VLOG(0) << "plugin library " << entry.path() << " load successfully!";
+        } else {
+          std::string status_msg(TF_Message(plugin_status));
+          VLOG(0) << "Could not load " << entry.path() << ": " << status_msg;
+        }
+      }
+    }
+  }
+#endif
+
 #if defined(LIBTPU_ON_GCE) || defined(PLATFORM_CLOUD_TPU)
   InitializeTPU(options);
 #endif

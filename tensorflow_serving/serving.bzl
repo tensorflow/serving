@@ -78,6 +78,13 @@ def serving_tensorflow_proto_dep(dep):
     """
     return "{}_cc".format(dep)
 
+def if_with_plugins_support(if_true, if_false = []):
+    """Shorthand for select()ing whether to build API support for TensorFlow Plugins"""
+    return select({
+        "//tensorflow_serving:with_plugins_support": if_true,
+        "//conditions:default": if_false,
+    })
+
 def oss_only_cc_test(name, srcs = [], deps = [], data = [], size = "medium", linkstatic = 0):
     """cc_test that is only run in open source environment."""
     return native.cc_test(

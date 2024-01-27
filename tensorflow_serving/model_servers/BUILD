@@ -4,6 +4,7 @@ load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
 
 # Placeholder: load py_binary
 # Placeholder: load py_test
+load("//tensorflow_serving:serving.bzl", "if_with_plugins_support")
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_google", "if_libtpu", "if_with_tpu_support")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 
@@ -509,7 +510,11 @@ cc_library(
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:periodic_function_dynamic",
         "@org_tensorflow//tensorflow/core/profiler/rpc:profiler_service_impl",
-    ] + SUPPORTED_TENSORFLOW_OPS,
+    ] + SUPPORTED_TENSORFLOW_OPS + if_with_plugins_support([
+        "@org_tensorflow//tensorflow/c:c_api_experimental",
+        "@org_tensorflow//tensorflow/c:kernels_experimental",
+        "@org_tensorflow//tensorflow/c/experimental/next_pluggable_device:c_api",
+    ]),
 )
 
 cc_library(
@@ -527,7 +532,6 @@ cc_library(
     ],
     deps = [
         ":server_lib",
-        "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/compiler/jit:xla_cpu_jit",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
@@ -544,10 +548,13 @@ cc_library(
 
 cc_binary(
     name = "tensorflow_model_server",
-    linkopts = [
-        # Exports Tensorflow APIs
-        "-rdynamic",
-    ],
+    additional_linker_inputs =
+        if_with_plugins_support([
+            "tf_c_api_exported_symbols.lds",
+        ]),
+    linkopts = if_with_plugins_support([
+            "-Wl,-dynamic-list,$(location :tf_c_api_exported_symbols.lds)",
+        ]),
     stamp = 1,
     visibility = [
         ":testing",

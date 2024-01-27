@@ -24,3 +24,10 @@ filegroup(
         ],
     ),
 )
+
+
+config_setting(
+    name = "with_plugins_support",
+    define_values = {"with_plugins_support": "true"},
+    visibility = ["//visibility:public"],
+)
