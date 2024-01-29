@@ -36,6 +36,11 @@ message PredictRequest {
   // Options for streaming requests to control how multiple requests/responses
   // are handled within a single stream.
   PredictStreamedOptions predict_streamed_options = 5;
+
+  // Client identifier to group requests belonging to a specific entity.
+  // Example entities can be product ids, service names, user ids etc.
+  // Servers can use this to optimize placement, caching and colocation.
+  optional bytes client_id = 6;
 }
 
 // Options only used for streaming requests that control how inputs/ouputs are
