@@ -527,6 +527,7 @@ cc_library(
     ],
     deps = [
         ":server_lib",
+        "@com_github_grpc_grpc//:grpc++_reflection",
         "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/compiler/jit:xla_cpu_jit",
         "@org_tensorflow//tensorflow/core:lib",
