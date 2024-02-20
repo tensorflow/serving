@@ -498,6 +498,7 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:thread_pool_factory_config_cc_proto",
         "//tensorflow_serving/servables/tensorflow:util",
         "//tensorflow_serving/util:proto_util",
+        "@com_github_grpc_grpc//:grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/memory",
         "@com_google_protobuf//:cc_wkt_protos",

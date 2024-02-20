@@ -103,7 +103,8 @@ class Server {
     bool enable_profiler = true;
     tensorflow::string mixed_precision;
     bool skip_initialize_tpu = false;
-
+    // Misc GRPC features
+    bool enable_grpc_healthcheck_service = false;
     Options();
   };
 

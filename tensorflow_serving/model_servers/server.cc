@@ -25,6 +25,7 @@ limitations under the License.
 
 #include "google/protobuf/wrappers.pb.h"
 #include "grpc/grpc.h"
+#include "grpcpp/health_check_service_interface.h"
 #include "grpcpp/resource_quota.h"
 #include "grpcpp/security/server_credentials.h"
 #include "grpcpp/server_builder.h"
@@ -404,8 +405,17 @@ Status Server::BuildAndStart(const Options& server_options) {
   ::grpc::ResourceQuota res_quota;
   res_quota.SetMaxThreads(server_options.grpc_max_threads);
   builder.SetResourceQuota(res_quota);
-
+  ::grpc::EnableDefaultHealthCheckService(
+      server_options.enable_grpc_healthcheck_service);
   grpc_server_ = builder.BuildAndStart();
+
+  if (server_options.enable_grpc_healthcheck_service) {
+    grpc_server_->GetHealthCheckService()->SetServingStatus("ModelService",
+                                                            true);
+    grpc_server_->GetHealthCheckService()->SetServingStatus("PredictionService",
+                                                            true);
+  }
+
   if (grpc_server_ == nullptr) {
     return errors::InvalidArgument("Failed to BuildAndStart gRPC server");
   }

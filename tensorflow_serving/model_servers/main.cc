@@ -297,10 +297,12 @@ int main(int argc, char** argv) {
                        "If non-empty, read an ascii ThreadPoolConfig protobuf "
                        "from the supplied file name."),
       tensorflow::Flag("mixed_precision", &options.mixed_precision,
-                      "specify mixed_precision mode"),
+                       "specify mixed_precision mode"),
       tensorflow::Flag("skip_initialize_tpu", &options.skip_initialize_tpu,
-                       "Whether to skip auto initializing TPU.")};
-
+                       "Whether to skip auto initializing TPU."),
+      tensorflow::Flag("enable_grpc_healthcheck_service",
+                       &options.enable_grpc_healthcheck_service,
+                       "Enable the standard gRPC healthcheck service.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {
