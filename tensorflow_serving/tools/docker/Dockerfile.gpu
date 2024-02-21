@@ -60,6 +60,8 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machi
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*;
 
+RUN apt-get update && apt-get install -y cuda-toolkit-11-8
+
 # Install TF Serving GPU pkg
 COPY --from=build_image /usr/local/bin/tensorflow_model_server /usr/bin/tensorflow_model_server
 
