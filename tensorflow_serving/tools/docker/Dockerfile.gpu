@@ -49,7 +49,8 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
         libfreetype6-dev \
         pkg-config \
         software-properties-common \
-        unzip
+        unzip \
+        cuda-toolkit-11-8
 
 # We don't install libnvinfer-dev since we don't need to build against TensorRT
 RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64/7fa2af80.pub && \
@@ -59,8 +60,6 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machi
       libnvinfer-plugin8=${TF_TENSORRT_VERSION}-1+cuda11.6 \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*;
-
-RUN apt-get update && apt-get install -y cuda-toolkit-11-8
 
 # Install TF Serving GPU pkg
 COPY --from=build_image /usr/local/bin/tensorflow_model_server /usr/bin/tensorflow_model_server
