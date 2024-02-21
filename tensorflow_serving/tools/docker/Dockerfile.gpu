@@ -50,7 +50,7 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
         pkg-config \
         software-properties-common \
         unzip \
-        cuda-toolkit-11-8
+        cuda-compiler-11-8
 
 # We don't install libnvinfer-dev since we don't need to build against TensorRT
 RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64/7fa2af80.pub && \
