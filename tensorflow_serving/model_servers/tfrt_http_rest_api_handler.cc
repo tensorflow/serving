@@ -122,14 +122,13 @@ Status TFRTHttpRestApiHandler::ProcessClassifyRequest(
     const Servable::RunOptions& run_options, std::string* output) {
   ::google::protobuf::Arena arena;
 
-  auto* request = ::google::protobuf::Arena::CreateMessage<ClassificationRequest>(&arena);
+  auto* request = ::google::protobuf::Arena::Create<ClassificationRequest>(&arena);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
       request->mutable_model_spec()));
   TF_RETURN_IF_ERROR(FillClassificationRequestFromJson(request_body, request));
 
-  auto* response =
-      ::google::protobuf::Arena::CreateMessage<ClassificationResponse>(&arena);
+  auto* response = ::google::protobuf::Arena::Create<ClassificationResponse>(&arena);
   ServableHandle<Servable> servable;
   TF_RETURN_IF_ERROR(
       core_->GetServableHandle(request->model_spec(), &servable));
@@ -147,13 +146,13 @@ Status TFRTHttpRestApiHandler::ProcessRegressRequest(
     const Servable::RunOptions& run_options, std::string* output) {
   ::google::protobuf::Arena arena;
 
-  auto* request = ::google::protobuf::Arena::CreateMessage<RegressionRequest>(&arena);
+  auto* request = ::google::protobuf::Arena::Create<RegressionRequest>(&arena);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
       request->mutable_model_spec()));
   TF_RETURN_IF_ERROR(FillRegressionRequestFromJson(request_body, request));
 
-  auto* response = ::google::protobuf::Arena::CreateMessage<RegressionResponse>(&arena);
+  auto* response = ::google::protobuf::Arena::Create<RegressionResponse>(&arena);
   ServableHandle<Servable> servable;
   TF_RETURN_IF_ERROR(
       core_->GetServableHandle(request->model_spec(), &servable));
@@ -169,7 +168,7 @@ Status TFRTHttpRestApiHandler::ProcessPredictRequest(
     const Servable::RunOptions& run_options, std::string* output) {
   ::google::protobuf::Arena arena;
 
-  auto* request = ::google::protobuf::Arena::CreateMessage<PredictRequest>(&arena);
+  auto* request = ::google::protobuf::Arena::Create<PredictRequest>(&arena);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
       request->mutable_model_spec()));
@@ -183,7 +182,7 @@ Status TFRTHttpRestApiHandler::ProcessPredictRequest(
       },
       request, &format));
 
-  auto* response = ::google::protobuf::Arena::CreateMessage<PredictResponse>(&arena);
+  auto* response = ::google::protobuf::Arena::Create<PredictResponse>(&arena);
 
   ServableHandle<Servable> servable;
   TF_RETURN_IF_ERROR(
@@ -207,13 +206,12 @@ Status TFRTHttpRestApiHandler::ProcessModelStatusRequest(
 
   ::google::protobuf::Arena arena;
 
-  auto* request = ::google::protobuf::Arena::CreateMessage<GetModelStatusRequest>(&arena);
+  auto* request = ::google::protobuf::Arena::Create<GetModelStatusRequest>(&arena);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
       request->mutable_model_spec()));
 
-  auto* response =
-      ::google::protobuf::Arena::CreateMessage<GetModelStatusResponse>(&arena);
+  auto* response = ::google::protobuf::Arena::Create<GetModelStatusResponse>(&arena);
   TF_RETURN_IF_ERROR(
       GetModelStatusImpl::GetModelStatus(core_, *request, response));
   return ToJsonString(*response, output);
@@ -230,16 +228,14 @@ Status TFRTHttpRestApiHandler::ProcessModelMetadataRequest(
 
   ::google::protobuf::Arena arena;
 
-  auto* request =
-      ::google::protobuf::Arena::CreateMessage<GetModelMetadataRequest>(&arena);
+  auto* request = ::google::protobuf::Arena::Create<GetModelMetadataRequest>(&arena);
   // We currently only support the kSignatureDef metadata field
   request->add_metadata_field(std::string(kSignatureDef));
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
       request->mutable_model_spec()));
 
-  auto* response =
-      ::google::protobuf::Arena::CreateMessage<GetModelMetadataResponse>(&arena);
+  auto* response = ::google::protobuf::Arena::Create<GetModelMetadataResponse>(&arena);
   TF_RETURN_IF_ERROR(
       TFRTGetModelMetadataImpl::GetModelMetadata(core_, *request, response));
 
