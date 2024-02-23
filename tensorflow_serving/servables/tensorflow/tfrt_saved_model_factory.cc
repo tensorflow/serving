@@ -182,6 +182,8 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
 
   TF_RETURN_IF_ERROR(RegisterCustomBackend(options.graph_execution_options));
 
+  // TODO(b/326069213): Consider using arena allocation when loading a
+  // MetaGraphDef.
   tensorflow::MetaGraphDef meta_graph_def;
   TF_RETURN_IF_ERROR(tensorflow::ReadMetaGraphDefFromSavedModel(
       std::string(path), saved_model_tags, &meta_graph_def));
