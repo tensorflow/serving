@@ -170,7 +170,7 @@ class RestApiRequestDispatcher {
     if (req->http_method() == "OPTIONS") {
       absl::string_view origin_header = req->GetRequestHeader("Origin");
       if (RE2::PartialMatch(origin_header, "https?://")) {
-        status = OkStatus();
+        status = absl::OkStatus();
       } else {
         status = errors::FailedPrecondition(
             "Origin header is missing in CORS preflight");

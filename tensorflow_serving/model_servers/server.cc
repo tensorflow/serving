@@ -451,7 +451,7 @@ Status Server::BuildAndStart(const Options& server_options) {
                  << "Skipped exporting HTTP/REST API.";
     }
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 void Server::WaitForTermination() {

@@ -105,7 +105,7 @@ Status GetModelStatusImpl::GetModelStatusWithModelSpec(
       AddModelVersionStatusToResponse(response, version, servable_state);
     }
   }
-  return tensorflow::OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace serving

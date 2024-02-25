@@ -72,7 +72,7 @@ Status GetPlatform(const ModelConfig& model_config, string* platform) {
         "nor ModelServerConfig::model_platform, model name is ",
         model_config.name()));
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Determines whether a URI is just a relative path.
@@ -119,7 +119,7 @@ Status ValidateModelConfigList(const ModelConfigList& config_list,
     }
   }
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Returns an error if a model exists in both configs, but with different
@@ -147,7 +147,7 @@ Status ValidateNoModelsChangePlatforms(const ModelConfigList& old_config_list,
                           " and new platform requested is ", new_platform));
     }
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Unions two route maps. Gives an error if there is a key that is present in
@@ -167,7 +167,7 @@ Status UnionRoutes(const DynamicSourceRouter<StoragePath>::Routes& a,
       }
     }
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Finds all models that occur in 'new_config' but not in 'old_config'.
@@ -217,7 +217,7 @@ Status UpdateModelConfigListRelativePaths(
   for (int ii = 0; ii < updated_paths.size(); ++ii) {
     config_list->mutable_config(ii)->set_base_path(updated_paths[ii]);
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace
@@ -233,7 +233,7 @@ Status ServerCore::Create(Options options,
         [](EventBus<ServableState>* event_bus,
            std::unique_ptr<ServableStateMonitor>* monitor) {
           monitor->reset(new ServableStateMonitor(event_bus));
-          return OkStatus();
+          return absl::OkStatus();
         };
   }
 
@@ -285,7 +285,7 @@ Status ServerCore::Initialize(std::unique_ptr<AspiredVersionPolicy> policy) {
                                                   &aspired_versions_manager));
   manager_.SetOwned(std::move(aspired_versions_manager));
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
@@ -323,7 +323,7 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
     strings::StrAppend(&message, "}");
     return errors::Unknown(message);
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status ServerCore::AddModelsViaModelConfigList() {
@@ -400,7 +400,7 @@ Status ServerCore::AddModelsViaModelConfigList() {
     TF_RETURN_IF_ERROR(
         WaitUntilModelsAvailable(new_models, &fresh_servable_state_monitor));
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status ServerCore::AddModelsViaCustomModelConfig() {
@@ -431,7 +431,7 @@ Status ServerCore::MaybeUpdateServerRequestLogger(
     return options_.server_request_logger->Update(logging_config_map);
   }
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
@@ -453,7 +453,7 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
     // Nothing to load. In this case we allow a future call with a non-empty
     // config.
     LOG(INFO) << "Taking no action for empty config.";
-    return OkStatus();
+    return absl::OkStatus();
   }
   if (new_config.config_case() == ModelServerConfig::kModelConfigList) {
     TF_RETURN_IF_ERROR(
@@ -498,7 +498,7 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   }
 
   LOG(INFO) << "Finished reloading config";
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status ServerCore::UpdateModelVersionLabelMap() {
@@ -547,7 +547,7 @@ Status ServerCore::UpdateModelVersionLabelMap() {
       return errors::FailedPrecondition(
           "Model version labels are not currently allowed by the server.");
     }
-    return OkStatus();
+    return absl::OkStatus();
   }
 
   if (VLOG_IS_ON(4)) {
@@ -565,7 +565,7 @@ Status ServerCore::UpdateModelVersionLabelMap() {
   mutex_lock l(model_labels_to_versions_mu_);
   model_labels_to_versions_.swap(new_label_map);
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status ServerCore::CreateAdapter(
@@ -622,7 +622,7 @@ Status ServerCore::CreateStoragePathRoutes(
     const int port = it->second;
     (*routes)[model_name] = port;
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status ServerCore::CreateStoragePathSource(
@@ -644,7 +644,7 @@ Status ServerCore::CreateStoragePathSource(
     ConnectSourceToTarget(source->get(), prefix_source_adapter->get());
     ConnectSourceToTarget(prefix_source_adapter->get(), target);
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status ServerCore::CreateRouter(
@@ -676,7 +676,7 @@ Status ServerCore::CreateRouter(
   ConnectSourceToTarget(output_ports[output_ports.size() - 1],
                         targets->error_adapter.get());
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status ServerCore::CreateAdapters(SourceAdapters* adapters) const {
@@ -689,7 +689,7 @@ Status ServerCore::CreateAdapters(SourceAdapters* adapters) const {
   adapters->error_adapter.reset(
       new ErrorInjectingSourceAdapter<StoragePath, std::unique_ptr<Loader>>(
           errors::Internal("No platform found for model")));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status ServerCore::ConnectAdaptersToManagerAndAwaitModelLoads(
@@ -713,7 +713,7 @@ Status ServerCore::ConnectAdaptersToManagerAndAwaitModelLoads(
     return status;
   }
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status ServerCore::ReloadStoragePathSourceConfig(
@@ -816,7 +816,7 @@ Status ServerCore::ServableRequestFromModelSpec(
       break;
     }
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status ServerCore::GetModelVersionForLabel(const string& model_name,
@@ -833,7 +833,7 @@ Status ServerCore::GetModelVersionForLabel(const string& model_name,
     auto version_it = version_map.find(label);
     if (version_it != version_map.end()) {
       *version = version_it->second;
-      return OkStatus();
+      return absl::OkStatus();
     }
   }
   return errors::InvalidArgument(

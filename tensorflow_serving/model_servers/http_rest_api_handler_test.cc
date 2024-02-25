@@ -166,7 +166,7 @@ Status CompareJson(const string& json1, const string& json2) {
     return errors::InvalidArgument("JSON Different. JSON1: ", json1,
                                    "JSON2: ", json2);
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 TEST_F(HttpRestApiHandlerTest, kPathRegex) {

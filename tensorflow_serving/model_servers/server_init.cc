@@ -33,12 +33,12 @@ Status SetupPlatformConfigMapForTensorFlowImpl(
     PlatformConfigMap& platform_config_map) {
   platform_config_map =
       CreateTensorFlowPlatformConfigMap(session_bundle_config);
-  return tensorflow::OkStatus();
+  return absl::OkStatus();
 }
 
 Status UpdatePlatformConfigMapForTensorFlowImpl(
     PlatformConfigMap& platform_config_map) {
-  return tensorflow::OkStatus();
+  return absl::OkStatus();
 }
 
 std::unique_ptr<HttpRestApiHandlerBase> CreateHttpRestApiHandlerImpl(
