@@ -33,7 +33,7 @@ StatusProto ToStatusProto(const Status& status) {
 Status FromStatusProto(const StatusProto& status_proto) {
   return status_proto.error_code() == tensorflow::error::OK
              ? Status()
-             : Status(static_cast<tsl::errors::Code>(status_proto.error_code()),
+             : Status(static_cast<absl::StatusCode>(status_proto.error_code()),
                       status_proto.error_message());
 }
 

@@ -23,7 +23,7 @@ namespace {
 
 TEST(StatusUtilTest, ConvertsErrorStatusToStatusProto) {
   Status status =
-      Status(static_cast<tsl::errors::Code>(absl::StatusCode::kAborted),
+      Status(static_cast<absl::StatusCode>(absl::StatusCode::kAborted),
              "aborted error message");
   StatusProto status_proto = ToStatusProto(status);
   EXPECT_EQ(tensorflow::error::ABORTED, status_proto.error_code());
