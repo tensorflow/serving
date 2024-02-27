@@ -24,8 +24,8 @@ local_repository(
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "ce80f41def59c8985d057e132344203999e7e3960682bd66e361f5ceb77331f8",
-    git_commit = "1fa5470e4565977646a2b80719049a6b204df052",
+    sha256 = "db7c32767356df7e298d83b51325647d6d2acd77c5d8e45715f9db8676d20f3f",
+    git_commit = "d7220b0ed7120ab4de7089986ef0b317807c340d",
 )
 
 # Import all of TensorFlow Serving's external dependencies.
