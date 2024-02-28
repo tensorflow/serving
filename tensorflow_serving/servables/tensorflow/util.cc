@@ -312,7 +312,7 @@ Status GetModelDiskSize(const string& path, FileProbingEnv* env,
                 uint64_t file_size;
                 Status status = env->GetFileSize(child_path, &file_size);
                 children_sizes[i] =
-                    status.ok() ? StatusOr<uint64_t>(file_size) : status;
+                    status.ok() ? absl::StatusOr<uint64_t>(file_size) : status;
               }
             });
       }
