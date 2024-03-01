@@ -31,7 +31,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
-#include "tensorflow_serving/servables/tensorflow/run_options.h"
+#include "tensorflow_serving/servables/tensorflow/google/run_options.h"
 
 namespace tensorflow {
 namespace serving {
@@ -109,15 +109,17 @@ class Servable {
   // alive until the context object is deleted.
   //
   // `response_callback` is called for each streamed output, zero or more times,
-  // when the streamed output becomes available. The callback invocation must be
-  // serialized by the implementation, so that `response_callback` does not have
-  // to be thread-safe, but blocking inside the callback may cause the next
-  // callback invocation to be delayed. The implementation must guarantee that
-  // the callback is never called after the `PredictStreamed` method returns.
+  // when the streamed output becomes available. If an error is returned for any
+  // response, subsequent responses and requests will be ignored and the error
+  // will be returned. The callback invocation must be serialized by the
+  // implementation, so that `response_callback` does not have to be
+  // thread-safe, but blocking inside the callback may cause the next callback
+  // invocation to be delayed. The implementation must guarantee that the
+  // callback is never called after the `PredictStreamed` method returns.
   virtual absl::StatusOr<std::unique_ptr<PredictStreamedContext>>
-  PredictStreamed(
-      const RunOptions& run_options,
-      absl::AnyInvocable<void(PredictResponse)> response_callback) = 0;
+  PredictStreamed(const RunOptions& run_options,
+                  absl::AnyInvocable<void(absl::StatusOr<PredictResponse>)>
+                      response_callback) = 0;
 
   virtual absl::Status MultiInference(const RunOptions& run_options,
                                       const MultiInferenceRequest& request,
@@ -165,7 +167,8 @@ class EmptyServable : public Servable {
 
   absl::StatusOr<std::unique_ptr<PredictStreamedContext>> PredictStreamed(
       const RunOptions& run_options,
-      absl::AnyInvocable<void(PredictResponse)> response_callback) {
+      absl::AnyInvocable<void(absl::StatusOr<PredictResponse>)>
+          response_callback) {
     return error_;
   }
 

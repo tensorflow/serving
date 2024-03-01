@@ -23,6 +23,7 @@ limitations under the License.
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "tensorflow/core/tfrt/saved_model/saved_model.h"
 #include "tensorflow_serving/apis/classification.pb.h"
 #include "tensorflow_serving/apis/get_model_metadata.pb.h"
@@ -61,7 +62,8 @@ class TfrtSavedModelServable : public Servable {
 
   absl::StatusOr<std::unique_ptr<PredictStreamedContext>> PredictStreamed(
       const RunOptions& run_options,
-      absl::AnyInvocable<void(PredictResponse)> response_callback) override;
+      absl::AnyInvocable<void(absl::StatusOr<PredictResponse>)>
+          response_callback) override;
 
   absl::Status MultiInference(const RunOptions& run_options,
                               const MultiInferenceRequest& request,

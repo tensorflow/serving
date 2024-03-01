@@ -33,9 +33,11 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor.pb.h"
+#include "tensorflow/core/platform/statusor.h"
 #include "tensorflow/core/platform/tracing.h"  // NOLINT
 #include "tensorflow/core/tfrt/saved_model/saved_model.h"
 #include "tsl/platform/errors.h"
+#include "tsl/platform/statusor.h"
 #include "tsl/platform/threadpool_options.h"
 #include "tensorflow_serving/apis/classification.pb.h"
 #include "tensorflow_serving/apis/get_model_metadata.pb.h"
@@ -126,7 +128,8 @@ absl::Status TfrtSavedModelServable::Predict(const RunOptions& run_options,
 absl::StatusOr<std::unique_ptr<PredictStreamedContext>>
 TfrtSavedModelServable::PredictStreamed(
     const RunOptions& run_options,
-    absl::AnyInvocable<void(PredictResponse)> response_callback) {
+    absl::AnyInvocable<void(absl::StatusOr<PredictResponse>)>
+        response_callback) {
   return std::make_unique<SingleRequestPredictStreamedContext>(
       [this, run_options, response_callback = std::move(response_callback)](
           const PredictRequest& request) mutable -> absl::Status {
