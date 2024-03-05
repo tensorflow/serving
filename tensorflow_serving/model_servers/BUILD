@@ -92,6 +92,7 @@ cc_library(
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/servables/tensorflow:predict_util",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
+        "//tensorflow_serving/servables/tensorflow:servable",
         "//tensorflow_serving/sources/storage_path:file_system_storage_path_source",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:unique_ptr_with_deps",

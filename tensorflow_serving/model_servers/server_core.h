@@ -44,6 +44,7 @@ limitations under the License.
 #include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/core/stream_logger.h"
 #include "tensorflow_serving/servables/tensorflow/predict_util.h"
+#include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/util/event_bus.h"
 #include "tensorflow_serving/util/unique_ptr_with_deps.h"
@@ -266,6 +267,13 @@ class ServerCore : public Manager {
       return status;
     }
     return Status();
+  }
+
+  // This specialized version allows us to override GetServableHandle for
+  // Servables in sub-classes. Useful for testing.
+  virtual Status GetServableHandle(const ModelSpec& model_spec,
+                                   ServableHandle<Servable>* const handle) {
+    return GetServableHandle<Servable>(model_spec, handle);
   }
 
   /// Writes the log for the particular request, response and metadata, if we
