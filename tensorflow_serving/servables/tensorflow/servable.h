@@ -31,7 +31,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
-#include "tensorflow_serving/servables/tensorflow/google/run_options.h"
+#include "tensorflow_serving/servables/tensorflow/run_options.h"
 
 namespace tensorflow {
 namespace serving {
