@@ -15,6 +15,14 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/model_service_impl.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "absl/container/flat_hash_map.h"
+#include "tsl/lib/monitoring/collected_metrics.h"
+#include "tsl/lib/monitoring/collection_registry.h"
 #include "tensorflow_serving/model_servers/get_model_status_impl.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 #include "tensorflow_serving/util/status_util.h"
@@ -38,6 +46,8 @@ namespace serving {
     ReloadConfigResponse *response) {
   ModelServerConfig server_config = request->config();
   Status status;
+  const absl::flat_hash_map<std::string, int64_t> old_metric_values =
+      GetMetrics(request);
   switch (server_config.config_case()) {
     case ModelServerConfig::kModelConfigList: {
       const ModelConfigList list = server_config.model_config_list();
@@ -62,11 +72,51 @@ namespace serving {
   if (!status.ok()) {
     LOG(ERROR) << "ReloadConfig failed: " << status.message();
   }
+  const absl::flat_hash_map<std::string, int64_t> new_metric_values =
+      GetMetrics(request);
+  RecordMetricsIncrease(old_metric_values, new_metric_values, response);
 
   const StatusProto status_proto = ToStatusProto(status);
   *response->mutable_status() = status_proto;
   return ToGRPCStatus(status);
 }
 
+absl::flat_hash_map<std::string, int64_t> ModelServiceImpl::GetMetrics(
+    const ReloadConfigRequest *request) {
+  absl::flat_hash_map<std::string, int64_t> metric_values = {};
+  const tsl::monitoring::CollectionRegistry::CollectMetricsOptions options;
+  tsl::monitoring::CollectionRegistry *collection_registry =
+      tsl::monitoring::CollectionRegistry::Default();
+  std::unique_ptr<tsl::monitoring::CollectedMetrics> collected_metrics =
+      collection_registry->CollectMetrics(options);
+
+  for (const std::string &metric_name : request->metric_names()) {
+    int64_t metric_value = 0;
+    if (collected_metrics->point_set_map.contains(metric_name)) {
+      std::vector<std::unique_ptr<tsl::monitoring::Point>> *points =
+          &collected_metrics->point_set_map[metric_name]->points;
+      if (!points->empty()) {
+        metric_value = (*points)[0]->int64_value;
+      }
+    }
+    metric_values.insert({metric_name, metric_value});
+  }
+  return metric_values;
+}
+
+void ModelServiceImpl::RecordMetricsIncrease(
+    const absl::flat_hash_map<std::string, int64_t> &old_metric_values,
+    const absl::flat_hash_map<std::string, int64_t> &new_metric_values,
+    ReloadConfigResponse *response) {
+  for (const auto &[metric_name, metric_value] : new_metric_values) {
+    Metric metric;
+    metric.set_name(metric_name);
+    int64_t old_metric_value = old_metric_values.contains(metric_name)
+                                   ? old_metric_values.at(metric_name)
+                                   : 0;
+    metric.set_int64_value_increase(metric_value - old_metric_value);
+    *response->add_metric() = metric;
+  }
+}
 }  // namespace serving
 }  // namespace tensorflow

@@ -40,6 +40,17 @@ class ModelServiceImpl final : public ModelService::Service {
 
  private:
   ServerCore *core_;
+
+  // Obtains values for metrics provided in request.
+  absl::flat_hash_map<std::string, int64_t> GetMetrics(
+      const ReloadConfigRequest *request);
+
+  // Compares old_metric_values and new_metric_values, storing the increases in
+  // response
+  void RecordMetricsIncrease(
+      const absl::flat_hash_map<std::string, int64_t> &old_metric_values,
+      const absl::flat_hash_map<std::string, int64_t> &new_metric_values,
+      ReloadConfigResponse *response);
 };
 
 }  // namespace serving
