@@ -8,4 +8,4 @@ model_name(
 placeholder_model_named"I
 G
 4type.googleapis.com/tensorflow.tfrt_stub.TestConfig1
-test config 1
+test config 1

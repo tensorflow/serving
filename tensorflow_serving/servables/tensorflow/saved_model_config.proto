@@ -21,4 +21,8 @@ message SavedModelConfig {
   // Runtime specific configuration proto. They can be used to specify
   // environments for runtime.
   optional tensorflow.tfrt_stub.RuntimeConfigProto tfrt_runtime_config = 2;
+
+  // A boolean field that indicates whether the model is critical, i.e., whether
+  // the entire server cannot serve requests before this model has been loaded.
+  bool critical = 3;
 }

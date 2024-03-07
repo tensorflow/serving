@@ -1102,6 +1102,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
 )
 
@@ -1217,6 +1218,7 @@ cc_library(
         ":bundle_factory_util",
         ":machine_learning_metadata",
         ":saved_model_config",
+        ":saved_model_config_util",
         ":servable",
         ":session_bundle_config_cc_proto",
         ":tfrt_saved_model_source_adapter_cc_proto",
@@ -1696,6 +1698,8 @@ cc_library(
     ],
     deps = [
         ":predict_response_tensor_serialization_option",
+        ":saved_model_config_cc_proto",
+        ":saved_model_config_util",
         ":servable",
         ":tfrt_classifier",
         ":tfrt_multi_inference",
@@ -1797,8 +1801,8 @@ serving_proto_library(
         "//visibility:public",
     ],
     deps = [
-        "//tensorflow_serving/servables/tensorflow:remote_op_config_rewriter_proto",
-        "//tensorflow_serving/servables/tensorflow:session_bundle_config_proto",
+        ":remote_op_config_rewriter_proto",
+        ":session_bundle_config_proto",
         serving_tensorflow_proto_dep(":tf_protos_deps"),
         serving_tensorflow_proto_dep("@org_tensorflow//tensorflow/core:protos_all"),
     ],

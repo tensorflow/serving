@@ -79,8 +79,10 @@ class SingleRequestPredictStreamedContext final
 // are expected to be thread-safe.
 class Servable {
  public:
-  Servable(absl::string_view name, int64_t version)
-      : name_(std::string(name)), version_(version) {}
+  Servable(absl::string_view name, int64_t version, bool is_critical = false)
+      : name_(std::string(name)),
+        version_(version),
+        is_critical_(is_critical) {}
 
   virtual ~Servable() = default;
 
@@ -89,6 +91,8 @@ class Servable {
 
   // Returns the version associated with this servable.
   int64_t version() const { return version_; }
+
+  bool IsCritical() const { return is_critical_; }
 
   using RunOptions = tensorflow::serving::servables::RunOptions;
 
@@ -133,6 +137,7 @@ class Servable {
   // `ServableId`.
   const std::string name_;
   const int64_t version_;
+  const bool is_critical_;
 };
 
 // An "empty" servable where there's no model associated with the servable. All

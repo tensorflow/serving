@@ -107,6 +107,7 @@ TEST(LoadSavedModelConfigTest, SavedModelConfig) {
             value: "\n\rtest config 1"
           }
         }
+        critical: true
       )pb",
       &expected_config);
 

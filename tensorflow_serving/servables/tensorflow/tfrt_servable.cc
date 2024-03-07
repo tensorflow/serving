@@ -45,6 +45,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
 #include "tensorflow_serving/servables/tensorflow/predict_response_tensor_serialization_option.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_config_util.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_classifier.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_multi_inference.h"
@@ -58,9 +59,10 @@ namespace serving {
 
 TfrtSavedModelServable::TfrtSavedModelServable(
     absl::string_view name, int64_t version, const TfrtSavedModelConfig& config,
+    const SavedModelConfig& model_config,
     std::unique_ptr<tfrt_stub::SavedModel> saved_model,
     ThreadPoolFactory* thread_pool_factory)
-    : Servable(name, version),
+    : Servable(name, version, model_config.critical()),
       saved_model_(std::move(saved_model)),
       config_(config),
       thread_pool_factory_(thread_pool_factory) {
@@ -244,9 +246,13 @@ CreateTfrtSavedModelServable(
           options, saved_model_dir,
           std::unordered_set<std::string>(tags.begin(), tags.end())));
 
+  TF_ASSIGN_OR_RETURN(
+      auto saved_model_config,
+      LoadSavedModelConfigOrDefault(std::string(saved_model_dir)));
+
   TfrtSavedModelConfig config;
   return std::make_unique<TfrtSavedModelServable>(
-      name, version, config, std::move(saved_model),
+      name, version, config, saved_model_config, std::move(saved_model),
       /*thread_pool_factory=*/nullptr);
 }
 

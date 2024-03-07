@@ -31,6 +31,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
 #include "tensorflow_serving/servables/tensorflow/predict_response_tensor_serialization_option.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_source_adapter.pb.h"
 #include "tensorflow_serving/servables/tensorflow/thread_pool_factory.h"
@@ -45,6 +46,7 @@ class TfrtSavedModelServable : public Servable {
  public:
   TfrtSavedModelServable(absl::string_view name, int64_t version,
                          const TfrtSavedModelConfig& config,
+                         const SavedModelConfig& model_config,
                          std::unique_ptr<tfrt_stub::SavedModel> saved_model,
                          ThreadPoolFactory* thread_pool_factory);
 
@@ -80,6 +82,8 @@ class TfrtSavedModelServable : public Servable {
 
   std::unique_ptr<tfrt_stub::SavedModel> saved_model_;
 
+  // `config_` is the adapter config, and it is the same for all
+  // TfrtSavedModelServables within a model server.
   TfrtSavedModelConfig config_;
 
   internal::PredictResponseTensorSerializationOption

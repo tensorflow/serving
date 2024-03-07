@@ -45,6 +45,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
 #include "tensorflow_serving/servables/tensorflow/machine_learning_metadata.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_config.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_config_util.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_source_adapter.pb.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_warmup.h"
@@ -296,9 +297,12 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
     }
   }
 
+  TF_ASSIGN_OR_RETURN(auto saved_model_config,
+                      LoadSavedModelConfigOrDefault(path));
+
   *servable = std::make_unique<TfrtSavedModelServable>(
       metadata.servable_id.name, metadata.servable_id.version, config_,
-      std::move(saved_model), thread_pool_factory_.get());
+      saved_model_config, std::move(saved_model), thread_pool_factory_.get());
 
   return absl::OkStatus();
 }

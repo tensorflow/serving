@@ -276,6 +276,11 @@ class ServerCore : public Manager {
     return GetServableHandle<Servable>(model_spec, handle);
   }
 
+  template <typename T>
+  std::map<ServableId, ServableHandle<T>> GetAvailableServableHandles() const {
+    return manager_->GetAvailableServableHandles<T>();
+  }
+
   /// Writes the log for the particular request, response and metadata, if we
   /// decide to sample it and if request-logging was configured for the
   /// particular model.
