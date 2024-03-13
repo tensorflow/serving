@@ -92,9 +92,10 @@ absl::flat_hash_map<std::string, int64_t> ModelServiceImpl::GetMetrics(
 
   for (const std::string &metric_name : request->metric_names()) {
     int64_t metric_value = 0;
-    if (collected_metrics->point_set_map.contains(metric_name)) {
+    auto it = collected_metrics->point_set_map.find(metric_name);
+    if (it != collected_metrics->point_set_map.end()) {
       std::vector<std::unique_ptr<tsl::monitoring::Point>> *points =
-          &collected_metrics->point_set_map[metric_name]->points;
+          &it->second->points;
       if (!points->empty()) {
         metric_value = (*points)[0]->int64_value;
       }

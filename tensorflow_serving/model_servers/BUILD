@@ -219,7 +219,8 @@ cc_library(
         "//tensorflow_serving/apis:model_service_cc_proto",
         "//tensorflow_serving/util:status_util",
         "@com_google_absl//absl/container:flat_hash_map",
-        "@org_tensorflow//tensorflow/core:lib",
+        "@local_tsl//tsl/lib/monitoring:collected_metrics",
+        "@local_tsl//tsl/lib/monitoring:collection_registry",
     ],
 )
 

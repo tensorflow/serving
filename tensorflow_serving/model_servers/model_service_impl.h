@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "grpcpp/server_context.h"
 #include "grpcpp/support/status.h"
+#include "absl/container/flat_hash_map.h"
 #include "tensorflow_serving/apis/model_management.pb.h"
 #include "tensorflow_serving/apis/model_service.grpc.pb.h"
 #include "tensorflow_serving/apis/model_service.pb.h"
