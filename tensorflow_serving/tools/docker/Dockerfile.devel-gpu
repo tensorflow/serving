@@ -25,10 +25,16 @@ ENV CUDNN_VERSION=8.9.4.25
 ENV TF_TENSORRT_VERSION=8.6.1
 ENV CUDA=12.2
 
-COPY setup.sources.sh /setup.sources.sh
-RUN /setup.sources.sh
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl
+
+# Download TF Serving sources (optionally at specific commit).
+WORKDIR /tensorflow-serving
+RUN curl -sSL --retry 5 https://github.com/tensorflow/serving/tarball/${TF_SERVING_VERSION_GIT_COMMIT} | tar --strip-components=1 -xzf -
+
+RUN /tensorflow-serving/tensorflow_serving/tools/docker/setup.sources.sh
+
+RUN apt-get install -y --no-install-recommends \
         automake \
         build-essential \
         ca-certificates \
@@ -48,7 +54,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         clang-17 \
         llvm-17 \
         lld-17 \
-        curl \
         git \
         libfreetype6-dev \
         libtool \
@@ -135,9 +140,7 @@ ENV TF_NCCL_VERSION=
 # Set TMP for nvidia build environment
 ENV TMP="/tmp"
 
-# Download TF Serving sources (optionally at specific commit).
 WORKDIR /tensorflow-serving
-RUN curl -sSL --retry 5 https://github.com/tensorflow/serving/tarball/${TF_SERVING_VERSION_GIT_COMMIT} | tar --strip-components=1 -xzf -
 
 FROM base_build as binary_build
 # Build, and install TensorFlow Serving
