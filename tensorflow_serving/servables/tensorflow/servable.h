@@ -132,6 +132,39 @@ class Servable {
   virtual absl::Status GetModelMetadata(const GetModelMetadataRequest& request,
                                         GetModelMetadataResponse* response) = 0;
 
+  // Returns true iff this servable supports paging.
+  //
+  // Paging is a process of moving model data (i.e., variables and executables)
+  // between devices' HBM and host RAM. Servables that support paging can
+  // time-share the available HBM and be paged in and out of the HBM according
+  // to a paging policy.
+  //
+  // Note that even if a Servable supports paging, it is up to a Server
+  // implementation to make active (or any!) use of the paging functionality.
+  virtual bool SupportsPaging() const;
+
+  // Pages out all variables and executables owned by this servable from
+  // devices' HBM to host RAM.
+  //
+  // After this method returns, all requests return an error until `Resume()` is
+  // called to bring the states back to device memory.
+  //
+  // If the suspension fails, the model is in an unspecified state and must be
+  // unloaded and loaded again for it to be useful.
+  //
+  // This method may only be invoked if SupportsPaging() returns true.
+  virtual absl::Status Suspend();
+
+  // Inverse of `Suspend()`. Synchronously pages in all variables and
+  // executables owned by this servable back to devices' HBM.
+  //
+  // Returns an error if the servable is not in a suspended state or resumption
+  // failed. If the resumption fails, the model is in an unspecified state and
+  // must be unloaded and loaded again for it to be useful.
+  //
+  // This method may only be invoked if SupportsPaging() returns true.
+  virtual absl::Status Resume();
+
  private:
   // Metadata of this servable. Currently matches the fields in
   // `ServableId`.

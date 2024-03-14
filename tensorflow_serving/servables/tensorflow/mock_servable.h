@@ -76,6 +76,9 @@ class MockServable : public Servable {
               (const tensorflow::serving::GetModelMetadataRequest& request,
                tensorflow::serving::GetModelMetadataResponse* response),
               (final));
+  MOCK_METHOD(bool, SupportsPaging, (), (const, final));
+  MOCK_METHOD(absl::Status, Suspend, (), (final));
+  MOCK_METHOD(absl::Status, Resume, (), (final));
 };
 
 }  // namespace serving

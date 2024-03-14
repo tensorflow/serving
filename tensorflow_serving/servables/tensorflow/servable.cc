@@ -24,6 +24,16 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+bool Servable::SupportsPaging() const { return false; }
+
+absl::Status Servable::Suspend() {
+  return absl::UnimplementedError("paging not supported");
+}
+
+absl::Status Servable::Resume() {
+  return absl::UnimplementedError("paging not supported");
+}
+
 EmptyServable::EmptyServable()
     : Servable(/*name=*/"", /*version=*/0),
       error_(absl::FailedPreconditionError("No models loaded")) {}
