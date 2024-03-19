@@ -40,7 +40,31 @@ message PredictRequest {
   // Client identifier to group requests belonging to a specific entity.
   // Example entities can be product ids, service names, user ids etc.
   // Servers can use this to optimize placement, caching and colocation.
+  // TODO(b/329897437): Migrate to client_id in RequestOptions.
   optional bytes client_id = 6;
+
+  // Options for PredictRequest.
+  message RequestOptions {
+    // Client identifier to group requests belonging to a specific entity.
+    // Example entities can be product ids, service names, user ids etc.
+    // Servers can use this to optimize placement, caching and colocation.
+    optional bytes client_id = 1;
+
+    // Deterministic mode for the request. When specified, model servers will
+    // reduce numeric instability based on different mode selections.
+    enum DeterministicMode {
+      DETERMINISTIC_MODE_UNSPECIFIED = 0;
+
+      // Only supported in disaggregated serving. When set, the request will be
+      // pinned to a fixed decoder slot index that's deterministic across
+      // processes.
+      FIXED_DECODER_SLOT = 1;
+    }
+
+    optional DeterministicMode deterministic_mode = 2;
+  }
+
+  optional RequestOptions request_options = 7;
 }
 
 // Options only used for streaming requests that control how inputs/ouputs are
