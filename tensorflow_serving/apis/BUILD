@@ -1,9 +1,13 @@
 # Description: Tensorflow Serving APIs.
 
+# buildifier: disable=out-of-order-load
+
 # Placeholder: load py_library
 # Placeholder: load kt_jvm_proto_library
 load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
 load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
+
+# buildifier: enable=out-of-order-load
 
 package(
     default_visibility = ["//visibility:public"],

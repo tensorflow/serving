@@ -1,5 +1,7 @@
 # Description: Tensorflow Serving configs.
 
+load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_proto_library_py")
+
 package(
     default_visibility = ["//visibility:public"],
     features = ["-layering_check"],
@@ -17,9 +19,6 @@ filegroup(
         ],
     ),
 )
-
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
 
 serving_proto_library(
     name = "file_system_storage_path_source_proto",

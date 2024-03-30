@@ -1,9 +1,11 @@
 # Description:
 # Remote Predict Op Prototype
 
+# buildifier: disable=same-origin-load
 # Placeholder: load py_test
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_custom_op_library", "tf_gen_op_libs", "tf_gen_op_wrapper_cc", "tf_gen_op_wrapper_py", "tf_kernel_library")
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_custom_op_py_library")
+# buildifier: enable=same-origin-load
 
 licenses(["notice"])
 
