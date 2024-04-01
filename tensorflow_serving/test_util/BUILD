@@ -28,6 +28,7 @@ cc_library(
     deps = [
         "@com_google_googletest//:gtest",
         "@com_google_protobuf//:protobuf",
+        "@local_tsl//tsl/platform:protobuf",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:session_options",
         "@org_tensorflow//tensorflow/core:test",
