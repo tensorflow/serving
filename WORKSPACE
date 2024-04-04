@@ -26,6 +26,7 @@ tensorflow_http_archive(
     name = "org_tensorflow",
     sha256 = "e7b21fb5b68dc01cd82eadb8484ddfb54a0a291bdcd5fa153c58f01eca52baa7",
     git_commit = "5b2454e3de818c7ac24cf7fbb8d82aed83a577ca",
+    patch = "//third_party/tensorflow:tensorflow.patch",
 )
 
 # Import all of TensorFlow Serving's external dependencies.

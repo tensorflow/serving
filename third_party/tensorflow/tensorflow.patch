@@ -1,0 +1,26 @@
+diff --git a/tensorflow/core/grappler/optimizers/inference/BUILD b/tensorflow/core/grappler/optimizers/inference/BUILD
+index e96fd3bbc8e..89bc50f4936 100644
+--- a/tensorflow/core/grappler/optimizers/inference/BUILD
++++ b/tensorflow/core/grappler/optimizers/inference/BUILD
+@@ -19,7 +19,7 @@ tf_proto_library(
+     name = "batch_op_rewriter_proto",
+     srcs = ["batch_op_rewriter.proto"],
+     cc_api_version = 2,
+-    visibility = DEFAULT_VISIBILITY,
++    visibility = ["//visibility:public"],
+ )
+ 
+ # copybara:uncomment_begin(google-only)
+diff --git a/tensorflow/core/tfrt/graph_executor/BUILD b/tensorflow/core/tfrt/graph_executor/BUILD
+index 7cc355fa1b2..e31a61a3b52 100644
+--- a/tensorflow/core/tfrt/graph_executor/BUILD
++++ b/tensorflow/core/tfrt/graph_executor/BUILD
+@@ -204,6 +204,7 @@ tf_proto_library(
+     name = "test_config_proto",
+     testonly = True,
+     srcs = ["test_config.proto"],
++    visibility = ["//visibility:public"],
+ )
+ 
+ tf_cc_test(
+

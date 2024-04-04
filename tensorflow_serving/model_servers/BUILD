@@ -466,7 +466,6 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/log",
-        "@com_google_absl//absl/strings:string_view",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
     ],
