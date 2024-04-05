@@ -1,3 +1,87 @@
+# Release 2.15.0-rc0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Moves model server TFRT integration code oss (commit: 50ebab4ca601b5243b7aac674628954bef2d734b)
+* Add an option to override to the size of GPU system (commit: 445a87ba217a9884bb567d9f9dc33511e08fd519)
+* This cl is causing test failures and we are rolling it back. (commit: a39289b422714be4cf8a723d6f7d409f12c0f24c)
+* Default signature_method_check to false (commit: 4711a8d4c9dd9d29aa404435e2297aa205914a81)
+* Add an option to propagate current Context in periodic functions from AspiredVersionsManager. (commit: e4a8a87cd61bf0a65db948d615e69160e3070201)
+* Refactor `Servable::PredictStreamed` so that implementations can support bidirectional streaming if needed (commit: a8c3ea682c57d031f74aae5cb6280e23b3c97b09)
+* Create koltin proto library for the tensor flow protos. (commit: cae316414e198b47d86d7d30bc54f3dfd8a05a49)
+* Create and use Kotlin proto targets for model.proto and predict.proto (commit: ea9529ea324d6bd76b15152eae7e06cda0b12c49)
+* Add release notes for tf-serving 2.13.1 (commit: 45fae91c64f4fefc7e8d3077b2402a964244f0b6)
+* Resubmit to move model server TFRT integration code oss (commit: eb5b3a5635e6af87013da86a6ec8c62f1097ec8f)
+* Enable BF16 Automatic Mixed Precision (commit: 970c630723061e89e6eb45493c0883b0b97bd7eb)
+* Follow expected format (commit: 60a3d7338f714f598071952ecf7e691ba70e3138)
+* Remove upper_cost_threshold in TFRT serving (commit: 7f8d9d74bd3e336931526d3fd093aec2a2c66cc2)
+* Build tensorflow_model_server with -rdynamic (commit: fc892403efd3d6329a80b11c6a585caec0d72b71)
+* Add peak memory resource kind. (commit: 96e0661c2eead9d08e23a3b05c002d05b8cc3c68)
+* Fix typo (commit: c0b35c742e51a60c83aee6e073f9488eec1b2326)
+* Update warmup documentation (commit: 90148d72e5bfcf6a6977bb578988596c7a98a293)
+* Implement Freeze() in pathways/tfrt serving. (commit: 0117fd401cf4063cbc06dc4e34a6a1ce7e3f04ba)
+* This CL is a no-op (commit: b75349db95a18c8b906a8502d47a00f296f36c74)
+* OSS remote_op_config_rewriter.proto (commit: ba473777a24142d34539505dd7eb85910156cdf0)
+* Add release notes for tf-serving 2.14.0-rc0 (commit: 4d5ecfda28cdcb12f4f43a3d73e9386330c26a6f)
+* Add flags for gpu multi-streaming support. (commit: 77cabded04612e0415181a790aa005ff0b3c232f)
+* Add release notes for tf-serving 2.14.0-rc1 (commit: a3023de03f3064347ee7d14d297efc6fb724f3fa)
+* Add 3 new resource kinds constants for GPU. (commit: 6b6dea341396cc2eb88d5a6c9ceac9c788486042)
+* Adding flag allowing to turn off automatic TPU system initialization on startup. (commit: f83bc0c6de2b69965dcc0cc4723f21cf68d2a8a4)
+* Add release notes for tf-serving 2.14.0 (commit: 60976ef6905e469de56473dd1925db58cdf1c5f9)
+* Annotate which model is missing inputs. (commit: c99b18b98827400feb40daec1ce24e33473b7420)
+* ebpf-transport-monitoring adding dependency on net_http. (commit: 152ef4ef087533e8608957cd1febff47c2058016)
+* Add release notes for tf-serving 2.14.1 (commit: 83d970946861063977e70a0ac110be2651a84caa)
+* OSS saved_model_config library, removes saved_model_config_stub/impl, moves GraphRewriter related API from session_bundle_util to graph_rewriter.h. (commit: 7356bbd6e4645b54b70013d9a81a583bdb3fc6d5)
+* No-op. (commit: 9d02d895d8562a88974debb25821686218c293a7)
+* Upgrading Bazel version from 6.1.0 to 6.4.0 (commit: 34521dc1d8ebce8c18a9acdbab49f0638ecb3398)
+* Set xnn_enable_avxvnni=false in .bazelrc (commit: 4aed74931657cce1d12a9217e4ca928482843b4b)
+* Add cuda-nvml-dev-11-8 to Dockerfile.gpu (commit: b2def7125180127e4a25212bc8fd7301633104eb)
+* Revert problem with incorrect Dart build rules and targets. (commit: b6bccceabd24d449f4c77eb77d34c49b8132459a)
+* Add cuda-nvml-dev-11-8 to Dockerfile.devel-gpu (and remove from Dockerfile.gpu) (commit: 028aac5bf94f21c60a74338cddc26a421b556141)
+* OSS tfrt_http_api_handler*. (commit: 8ded4cead4fdc0ae6aee0c93991c02c713f1b0eb)
+* Added FileAcl to tsl::FileSystem. (commit: d6c0917e5e7fcb76732c7eb172a69075ca2d1b08)
+* Remove metadata size check in GetModelMetadata method in order to be consistent with other servable impl. (commit: a6355522da7f539483dc75ab6d995a18e10e9150)
+* Replace the global registration with a registration class so that when we move server_init_internal to OSS we won't run into undetermined global registration sequence issue. (commit: 21d8f8816b5871a6bacf4f5ff7da0949d593bf88)
+* Move TPU runner init stub to tensorflow serving OSS directory. (commit: 2b9e58cf4ad222adaa741d0cdac3b5a0d220b8fa)
+* Add util function to verify if override resource have a subset of device kind of base resource. This is not used by OSS. (commit: 06ff18d38f8fdb955c880ed5200f81189504ae12)
+* Add streaming options for predict request. (commit: 8ccd8a5219158294b8183c307809ab76ad6c0f0f)
+* Define how tensors will be split for SPLIT streamed requests. (commit: b581572e3d9c1bb708ffa1314c2fd1eb1a143f8b)
+* Add a client_id field for custom servables. (commit: eb578521a2a8c349a6602bbe98eb399bdcf20c30)
+* Add option to configure the name of the input layer of remote model. (commit: f1e13413e2ad0f0aa8d25fbccaf3cd2abc8dfe0e)
+* Added grpc reflection service to the serving binary. (commit: c140e0115a9c6d9cb28279acee0c80d56ed2982b)
+* Add the option to enable GRPC health checking to model_server. This is useful for clients that want to use health checking with load balancing channels (if not we get errors on the client side). The current implementation is trivial, once we open our serving port we assume we we always be healthy but users may want to tweak this, specially if they need a mandated version, etc. (commit: a9a8e7bfe982f48a9156dedd48f61f537dea84a0)
+* Automated Code Change (commit: f761fc7742d66129e7f8b26bba749d44d4d4b678)
+* Update description of model versioning. (commit: d820234866ebb4f8f011f33339b3b9eb7f7333c3)
+* Exported `FindMetaGraphDef` function. (commit: 0df0975055046ffc793557b48c68d9e2f16fe406)
+* Automated Code Change (commit: 27923d3530cb963eee17d7f3670c9b27499827a0)
+* Automated Code Change (commit: 704e2507aa7002d1008ea68f29296c91a6f10267)
+* If accepting_requests_ is not set Terminate() returns without doing anything. (commit: c45fe1443b401f58d9440ca5d40c4e407137d042)
+* Automated Code Change (commit: fce1804e06a784f9586f7114726c5dc66af1b135)
+* Modify PredictStreamed to return a response or an error. (commit: 5b5d30fb9e4d57d3a6f03fc21fcd8e60750de5f9)
+* Add support to use a MockServable in MockServerCore. (commit: 5b6e0b6b0806c9175274fb61c3c82a134de036f2)
+* Fix OSS cpu build. (commit: 72acbaf554b3ce1c1e91dc86d9dcb859f95e9eda)
+* Adds functionality to send TSL metrics over model_service RPC. (commit: 9564ef667dba57887954885328bed627e4c8ea4f)
+* Add a method in tensorflow::serving::Servable to indicate whether a servable is critical. (commit: 5c0299e4b7934e5b84c534ed7f3d311fceec38b5)
+* Upgrade to CUDA 12.2 and CuDNN 8.9.4 (commit: f82600afc9f22fac59ae10596c21887cbbf4594c)
+* Fixes tensorflow_serving continuous build. (commit: a99fb9cbfe527d22f98eedd470a9a00ee0e35920)
+* Add headers. (commit: fab72719273e8a6bd4cb1c9f22008269b1d98e83)
+* Remove the criticality field in the BatchingSessionTask. (commit: b8663d08b38ad70397f1feb973d98a30c764ba4d)
+* Move gpu docker build clang. (commit: 611c5a975681d4fe915274772482450ac6178506)
+* Updated Dockerfile.devel-gpu to run setup.sources.sh from repo. (commit: d3102f00871e496a6276beeb546a6b9c46dc27e6)
+* Add an interface for all Servables that support paging. (commit: e4716e5aa1b2dfd0b62fdf767de9dffd5d7b3304)
+* Update cuda libraries to match TF (commit: 45446cf0f8b82f1bce51627f4005de16f1d597d0)
+* Match libraries with Dockerfile.devel-gpu (commit: f6ef270ddf3e1f40064847e2dcf089806874e069)
+* Update version for 2.15.0-rc0 release. (#2209) (commit: 73ba2b978678e3768c66d7fa90752da3978fd27b)
+* Resolve breakages for 2.15 release. (commit: 318129247a068edbf59dd75e10dbfa2d1eb996dc)
+
 # Release 2.14.1
 
 ## Major Features and Improvements
