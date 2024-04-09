@@ -206,9 +206,7 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
         options.graph_execution_options.runtime_config));
   }
   if (config_.target_tpu()) {
-    compile_options.device_target = config_.enable_mlir_bridge_fallback()
-                                        ? TfrtDeviceInfraTarget::kBridgeFallback
-                                        : TfrtDeviceInfraTarget::kTpurt;
+    compile_options.device_target = TfrtDeviceInfraTarget::kTpurt;
   } else if (config_.enable_tfrt_gpu()) {
     compile_options.device_target = TfrtDeviceInfraTarget::kGpu;
   } else {

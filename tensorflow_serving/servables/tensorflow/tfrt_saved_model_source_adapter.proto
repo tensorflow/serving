@@ -6,7 +6,7 @@ import "tensorflow/core/protobuf/config.proto";
 import "tensorflow_serving/servables/tensorflow/session_bundle_config.proto";
 
 message TfrtSavedModelConfig {
-  reserved 1031;
+  reserved 1019, 1031;
   reserved "online_cost_analysis_normalize_ratio";
 
   // A SessionBundleConfig.
@@ -116,10 +116,6 @@ message TfrtSavedModelConfig {
 
   // If true, use fuesd op for tpu compile, execute and data transfer.
   bool use_fused_tpu_op = 1018;
-
-  // If true, TFRT will use fallback to handle unsupported features in MLIR
-  // Bridge.
-  bool enable_mlir_bridge_fallback = 1019;
 
   // If true, tf.While's iterations will be parallelized.
   bool enable_while_parallel_iterations = 1023;
