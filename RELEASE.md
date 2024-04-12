@@ -1,3 +1,18 @@
+# Release 2.16.1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Update version for 2.16.1 release. (#2210) (commit: 0e6261315e2a8c529842929f5ceeb66b63264e7b)
+* This release is based on TF version 2.16.1
+
 # Release 2.15.1
 
 ## Major Features and Improvements
