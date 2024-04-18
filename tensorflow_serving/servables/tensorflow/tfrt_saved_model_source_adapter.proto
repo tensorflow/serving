@@ -194,6 +194,9 @@ message TfrtSavedModelConfig {
 
   // Whether to use fused op for GPU compile, execute and data transfer.
   bool tfrt_use_fused_gpu_op = 2018;
+
+  // The minimum number of batch threads.
+  int64 tfrt_min_num_batch_threads = 2019;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.

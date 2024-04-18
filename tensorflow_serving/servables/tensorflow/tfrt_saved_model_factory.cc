@@ -230,6 +230,7 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
       ToTpuAllowUnpaddedBatch(config_.tpu_unpadded_batch_mode());
   compile_options.use_gpu_compile_and_execute_op =
       config_.tfrt_use_fused_gpu_op();
+  compile_options.min_num_batch_threads = config_.tfrt_min_num_batch_threads();
 
   options.graph_execution_options.run_placer_grappler_on_functions =
       config_.run_placer_grappler_on_functions();
