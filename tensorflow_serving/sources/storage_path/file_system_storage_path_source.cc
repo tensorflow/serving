@@ -25,9 +25,14 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/strings/numbers.h"
+#include "tensorflow/core/platform/env.h"
+#include "tsl/platform/errors.h"
+#include "tsl/platform/macros.h"
 #include "tensorflow_serving/core/servable_data.h"
 #include "tensorflow_serving/core/servable_id.h"
 
@@ -159,6 +164,49 @@ bool AspireLatestVersions(
   return !children_by_version.empty();
 }
 
+// Like `AspireSpecificVersions` but use `FileExists` instead of GetChildren to
+// remove unnecessary directory listings. Note that this function has to
+// fallback to the general case when there are directories that *parse as* the
+// version number via `strtod` but aren't equivalent (e.g., "base_dir/00001"
+// rather than "base_dir/1").
+//
+// Returns true if all the models are loaded.
+bool AspireSpecificVersionsFastPath(
+    const FileSystemStoragePathSourceConfig::ServableToMonitor& servable,
+    std::vector<ServableData<StoragePath>>* versions) {
+  if (servable.servable_version_policy().specific().versions().empty()) {
+    // There aren't any requested versions, WARN loudly and explicitly, since
+    // this is a likely configuration error. Return *true*, since we are done
+    // with processing this servable.
+    LOG(WARNING) << "No specific versions requested for servable "
+                 << servable.servable_name() << ".";
+    return true;
+  }
+
+  // First ensure that we find *all* the requested versions, so that we can use
+  // this fast path. If not, we'll call the general AspireSpecificVersions after
+  // a GetChildren call.
+  for (const int64_t version :
+       servable.servable_version_policy().specific().versions()) {
+    const string version_dir = absl::StrCat(version);
+    const string child_dir = io::JoinPath(servable.base_path(), version_dir);
+
+    const absl::Status status = Env::Default()->FileExists(child_dir);
+    if (!status.ok()) {
+      return false;
+    }
+  }
+
+  // We've found them all. Aspire them one by one.
+  for (const int64_t version :
+       servable.servable_version_policy().specific().versions()) {
+    const string version_dir = absl::StrCat(version);
+    AspireVersion(servable, version_dir, version, versions);
+  }
+
+  return true;
+}
+
 // Aspire versions for a servable configured with the "specific" version policy.
 //
 // 'children' represents a list of base-path children from the file system.
@@ -213,6 +261,16 @@ Status PollFileSystemForServable(
         servable.servable_name(), " with error ", status.ToString());
   }
 
+  if (servable.servable_version_policy().policy_choice_case() ==
+      FileSystemStoragePathSourceConfig::ServableVersionPolicy::kSpecific) {
+    // Special case the specific handler, to avoid GetChildren in the case where
+    // all of the directories match their version number.
+    if (AspireSpecificVersionsFastPath(servable, versions)) {
+      // We found them all, exit early.
+      return absl::OkStatus();
+    }
+  }
+
   // Retrieve a list of base-path children from the file system.
   std::vector<string> children;
   TF_RETURN_IF_ERROR(
@@ -243,11 +301,10 @@ Status PollFileSystemForServable(
       at_least_one_version_found =
           AspireAllVersions(servable, children, versions);
       break;
-    case FileSystemStoragePathSourceConfig::ServableVersionPolicy::kSpecific: {
+    case FileSystemStoragePathSourceConfig::ServableVersionPolicy::kSpecific:
       at_least_one_version_found =
           AspireSpecificVersions(servable, children_by_version, versions);
       break;
-    }
     default:
       return errors::Internal("Unhandled servable version_policy: ",
                               servable.servable_version_policy().DebugString());

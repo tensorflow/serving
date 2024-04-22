@@ -314,6 +314,89 @@ TEST(FileSystemStoragePathSourceTest, SpecificVersions) {
                    .PollFileSystemAndInvokeCallback());
 }
 
+// This is the same as the `SpecificVersions` test above, but with leading zeros
+// on one of the directories to ensure we maintain the `strtod` property of
+// directory name => version number.
+TEST(FileSystemStoragePathSourceTest, SpecificVersionsLeadingZeros) {
+  const string base_path =
+      io::JoinPath(testing::TmpDir(), "SpecificVersionsLeadingZeros");
+  TF_ASSERT_OK(Env::Default()->CreateDir(base_path));
+  for (const string& version :
+       {"non_numerical_child", "42", "33", "30", "21", "00017"}) {
+    TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path, version)));
+  }
+
+  const FileSystemStoragePathSourceConfig config =
+      test_util::CreateProto<FileSystemStoragePathSourceConfig>(
+          strings::Printf("servables: { "
+                          "  servable_version_policy { "
+                          "    specific { "
+                          "      versions: 17"
+                          "      versions: 30"
+                          "    } "
+                          "  } "
+                          "  servable_name: 'test_servable_name' "
+                          "  base_path: '%s' "
+                          "} "
+                          // Disable the polling thread.
+                          "file_system_poll_wait_seconds: -1 ",
+                          base_path.c_str()));
+  std::unique_ptr<FileSystemStoragePathSource> source;
+  TF_ASSERT_OK(FileSystemStoragePathSource::Create(config, &source));
+  std::unique_ptr<test_util::MockStoragePathTarget> target(
+      new StrictMock<test_util::MockStoragePathTarget>);
+  ConnectSourceToTarget(source.get(), target.get());
+
+  EXPECT_CALL(
+      *target,
+      SetAspiredVersions(
+          Eq("test_servable_name"),
+          ElementsAre(
+              ServableData<StoragePath>({"test_servable_name", 17},
+                                        io::JoinPath(base_path, "00017")),
+              ServableData<StoragePath>({"test_servable_name", 30},
+                                        io::JoinPath(base_path, "30")))));
+
+  TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
+                   .PollFileSystemAndInvokeCallback());
+}
+
+TEST(FileSystemStoragePathSourceTest, SpecificVersionsEmpty) {
+  const string base_path =
+      io::JoinPath(testing::TmpDir(), "SpecificVersionsEmpty");
+  TF_ASSERT_OK(Env::Default()->CreateDir(base_path));
+  for (const string& version :
+       {"non_numerical_child", "42", "33", "30", "21", "17"}) {
+    TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path, version)));
+  }
+
+  const FileSystemStoragePathSourceConfig config =
+      test_util::CreateProto<FileSystemStoragePathSourceConfig>(
+          strings::Printf("servables: { "
+                          "  servable_version_policy { "
+                          "    specific { "
+                          "    } "
+                          "  } "
+                          "  servable_name: 'test_servable_name' "
+                          "  base_path: '%s' "
+                          "} "
+                          // Disable the polling thread.
+                          "file_system_poll_wait_seconds: -1 ",
+                          base_path.c_str()));
+  std::unique_ptr<FileSystemStoragePathSource> source;
+  TF_ASSERT_OK(FileSystemStoragePathSource::Create(config, &source));
+  std::unique_ptr<test_util::MockStoragePathTarget> target(
+      new StrictMock<test_util::MockStoragePathTarget>);
+  ConnectSourceToTarget(source.get(), target.get());
+
+  // The servable has no requested versions, but we still want to call
+  // SetAspiredVersions with an empty list for consistency.
+  EXPECT_CALL(*target, SetAspiredVersions(Eq("test_servable_name"), IsEmpty()));
+
+  TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
+                   .PollFileSystemAndInvokeCallback());
+}
+
 TEST(FileSystemStoragePathSourceTest, DefaultVersionPolicy) {
   // Validate that default version policy is to serve the latest servable
   // version.
@@ -512,7 +595,7 @@ TEST(FileSystemStoragePathSourceTest, ChangeVersionPolicy) {
   const string base_path_prefix =
       io::JoinPath(testing::TmpDir(), "ChangeVersionPolicy_");
   TF_ASSERT_OK(Env::Default()->CreateDir(base_path_prefix));
-  for (const string& version : {"1", "2", "3", "5", "8", "13"}) {
+  for (const string& version : {"1", "02", "3", "5", "8", "13"}) {
     TF_ASSERT_OK(
         Env::Default()->CreateDir(io::JoinPath(base_path_prefix, version)));
   }
@@ -572,7 +655,7 @@ TEST(FileSystemStoragePathSourceTest, ChangeVersionPolicy) {
           Eq("test_servable_name"),
           ElementsAre(
               ServableData<StoragePath>({"test_servable_name", 2},
-                                        io::JoinPath(base_path_prefix, "2")),
+                                        io::JoinPath(base_path_prefix, "02")),
               ServableData<StoragePath>({"test_servable_name", 5},
                                         io::JoinPath(base_path_prefix, "5")))));
 

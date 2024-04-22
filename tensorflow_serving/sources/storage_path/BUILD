@@ -74,6 +74,8 @@ cc_library(
             "//tensorflow_serving/core:servable_id",
             "//tensorflow_serving/core:source",
             "//tensorflow_serving/core:storage_path",
+            "@com_google_absl//absl/status",
+            "@com_google_absl//absl/strings",
             "@com_google_absl//absl/types:variant",
             "@org_tensorflow//tensorflow/core:lib",
             "@org_tensorflow//tensorflow/core:tensorflow",
