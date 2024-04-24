@@ -189,6 +189,12 @@ serving_proto_library_py(
     ],
 )
 
+tf_pyclif_proto_library(
+    name = "prediction_log_pyclif",
+    proto_lib = ":prediction_log_proto",
+    proto_srcfile = "prediction_log.proto",
+)
+
 serving_proto_library(
     name = "prediction_service_proto",
     srcs = ["prediction_service.proto"],
