@@ -67,8 +67,7 @@ class TfrtSavedModelFactory {
   ///
   /// @param metadata       Metadata to be associated with the saved_model.
   /// @param path           Path to the model.
-  /// @param saved_model    Newly created SavedModel if the returned
-  /// Status is OK.
+  /// @param servable       Newly created Servable if the returned Status is OK.
   absl::Status CreateTfrtSavedModelWithMetadata(
       const Loader::Metadata& metadata, const string& path,
       std::unique_ptr<Servable>* servable);
