@@ -26,9 +26,7 @@ cc_library(
     name = "static_storage_path_source",
     srcs = ["static_storage_path_source.cc"],
     hdrs = ["static_storage_path_source.h"],
-    visibility = [
-        "//visibility:public",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":static_storage_path_source_cc_proto",
         "//tensorflow_serving/core:servable_data",
@@ -43,7 +41,7 @@ serving_proto_library(
     name = "static_storage_path_source_proto",
     srcs = ["static_storage_path_source.proto"],
     cc_api_version = 2,
-    visibility = ["//visibility:public"],
+    visibility = ["//visibility:private"],
 )
 
 cc_test(
