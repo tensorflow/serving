@@ -14,6 +14,7 @@ package_group(
         "//platforms/gsys/...",
         "//platforms/redfish/...",
         "//platforms/syshealth/shdc/...",
+        "//security/loas/l2/internal/service/notar/...",
         "//third_party/ebpf_transport_monitoring/...",
     ],
 )
