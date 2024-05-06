@@ -164,15 +164,16 @@ TEST(TfLiteInterpreterWrapper, TfLiteInterpreterWrapperTest) {
   auto* tflite_tensor = wrapped->tensor(indices[0]);
   ASSERT_EQ(tflite_tensor->type, kTfLiteFloat32);
   ASSERT_EQ(GetTensorSize(tflite_tensor), fixed_batch_size);
-  EXPECT_THAT(ArraySlice<float>(ExtractVector<float>(tflite_tensor).data(),
-                                actual_batch_size),
-              ::testing::ElementsAreArray(expected_floats));
+  EXPECT_THAT(
+      absl::Span<const float>(ExtractVector<float>(tflite_tensor).data(),
+                              actual_batch_size),
+      ::testing::ElementsAreArray(expected_floats));
   tflite_tensor = wrapped->tensor(indices[1]);
   ASSERT_EQ(tflite_tensor->type, kTfLiteString);
   ASSERT_EQ(GetTensorSize(tflite_tensor), fixed_batch_size);
   EXPECT_THAT(
-      ArraySlice<std::string>(ExtractVector<std::string>(tflite_tensor).data(),
-                              actual_batch_size),
+      absl::Span<const std::string>(
+          ExtractVector<std::string>(tflite_tensor).data(), actual_batch_size),
       ::testing::ElementsAreArray(expected_strs));
 }
 
