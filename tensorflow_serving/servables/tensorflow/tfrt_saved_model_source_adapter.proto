@@ -197,6 +197,9 @@ message TfrtSavedModelConfig {
 
   // The minimum number of batch threads.
   int64 tfrt_min_num_batch_threads = 2019;
+
+  // Whether to use IFRT as device driver for device execution.
+  bool tfrt_use_ifrt = 2020;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.

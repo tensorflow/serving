@@ -181,6 +181,9 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
   auto* runtime = tensorflow::tfrt_stub::GetGlobalRuntime();
   tfrt::SavedModel::Options options(runtime);
 
+  // Register the right type of custom backend currently only requires setting
+  // `use_ifrt`.
+  options.graph_execution_options.use_ifrt = config_.tfrt_use_ifrt();
   TF_RETURN_IF_ERROR(RegisterCustomBackend(options.graph_execution_options));
 
   // TODO(b/326069213): Consider using arena allocation when loading a
