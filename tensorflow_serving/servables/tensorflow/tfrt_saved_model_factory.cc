@@ -301,7 +301,8 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
 
   *servable = std::make_unique<TfrtSavedModelServable>(
       metadata.servable_id.name, metadata.servable_id.version, config_,
-      saved_model_config, std::move(saved_model), thread_pool_factory_.get());
+      saved_model_config, std::move(saved_model), thread_pool_factory_.get(),
+      recorder_creator_);
 
   return absl::OkStatus();
 }
@@ -309,10 +310,13 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
 TfrtSavedModelFactory::TfrtSavedModelFactory(
     const TfrtSavedModelConfig& config,
     std::shared_ptr<Batcher> batch_scheduler,
-    std::unique_ptr<ThreadPoolFactory> thread_pool_factory)
+    std::unique_ptr<ThreadPoolFactory> thread_pool_factory,
+    std::function<std::unique_ptr<RequestRecorder>(TfrtSavedModelServable&)>
+        recorder_creator)
     : config_(config),
       batch_scheduler_(batch_scheduler),
-      thread_pool_factory_(std::move(thread_pool_factory)) {}
+      thread_pool_factory_(std::move(thread_pool_factory)),
+      recorder_creator_(std::move(recorder_creator)) {}
 
 TfrtSavedModelFactoryRegistry::TfrtSavedModelFactoryRegistry() {
   factory_create_fn_ = [](const TfrtSavedModelConfig& config) {

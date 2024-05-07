@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_TFRT_SAVED_MODEL_FACTORY_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_TFRT_SAVED_MODEL_FACTORY_H_
 
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -51,7 +52,18 @@ class TfrtSavedModelFactory {
 
   TfrtSavedModelFactory(const TfrtSavedModelConfig& config,
                         std::shared_ptr<Batcher> batch_scheduler,
-                        std::unique_ptr<ThreadPoolFactory> thread_pool_factory);
+                        std::unique_ptr<ThreadPoolFactory> thread_pool_factory)
+      : TfrtSavedModelFactory(config, std::move(batch_scheduler),
+                              std::move(thread_pool_factory),
+                              [](TfrtSavedModelServable&) { return nullptr; }) {
+  }
+
+  TfrtSavedModelFactory(
+      const TfrtSavedModelConfig& config,
+      std::shared_ptr<Batcher> batch_scheduler,
+      std::unique_ptr<ThreadPoolFactory> thread_pool_factory,
+      std::function<std::unique_ptr<RequestRecorder>(TfrtSavedModelServable&)>
+          recorder_creator);
 
   virtual ~TfrtSavedModelFactory();
 
@@ -118,6 +130,9 @@ class TfrtSavedModelFactory {
   // `thread_pool_factory_` is used to create inter-op ThreadPools. It can be a
   // nullptr and then the default Tensorflow threadpools should be used.
   std::unique_ptr<ThreadPoolFactory> thread_pool_factory_;
+
+  std::function<std::unique_ptr<RequestRecorder>(TfrtSavedModelServable&)>
+      recorder_creator_ = [](TfrtSavedModelServable&) { return nullptr; };
 
   TF_DISALLOW_COPY_AND_ASSIGN(TfrtSavedModelFactory);
 };

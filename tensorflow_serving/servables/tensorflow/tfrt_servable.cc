@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <stdint.h>
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -61,11 +62,14 @@ TfrtSavedModelServable::TfrtSavedModelServable(
     absl::string_view name, int64_t version, const TfrtSavedModelConfig& config,
     const SavedModelConfig& model_config,
     std::unique_ptr<tfrt_stub::SavedModel> saved_model,
-    ThreadPoolFactory* thread_pool_factory)
+    ThreadPoolFactory* thread_pool_factory,
+    std::function<std::unique_ptr<RequestRecorder>(TfrtSavedModelServable&)>
+        recorder_creator)
     : Servable(name, version, model_config.critical()),
       saved_model_(std::move(saved_model)),
       config_(config),
-      thread_pool_factory_(thread_pool_factory) {
+      thread_pool_factory_(thread_pool_factory),
+      recorder_creator_(std::move(recorder_creator)) {
   switch (config_.predict_response_tensor_serialization_option()) {
     case TfrtSavedModelConfig::AS_PROTO_FIELD: {
       predict_response_tensor_serialization_option_ =
@@ -101,6 +105,7 @@ absl::Status TfrtSavedModelServable::Classify(
     const RunOptions& run_options, const ClassificationRequest& request,
     ClassificationResponse* response) {
   TRACELITERAL("TfrtSavedModelServable::Classify");
+  auto recorder = CreateRecorder();
   return RunClassify(GetTFRTSavedModelRunOptions(run_options), version(),
                      saved_model_.get(), request, response);
 }
@@ -109,6 +114,7 @@ absl::Status TfrtSavedModelServable::Regress(const RunOptions& run_options,
                                              const RegressionRequest& request,
                                              RegressionResponse* response) {
   TRACELITERAL("TfrtSavedModelServable::Regress");
+  auto recorder = CreateRecorder();
   return RunRegress(GetTFRTSavedModelRunOptions(run_options), version(),
                     saved_model_.get(), request, response);
 }
@@ -117,6 +123,7 @@ absl::Status TfrtSavedModelServable::Predict(const RunOptions& run_options,
                                              const PredictRequest& request,
                                              PredictResponse* response) {
   TRACELITERAL("TfrtSavedModelServable::Predict");
+  auto recorder = CreateRecorder();
   return internal::RunPredict(
       GetTFRTSavedModelRunOptions(run_options), version(),
       predict_response_tensor_serialization_option_, saved_model_.get(),
@@ -132,6 +139,7 @@ TfrtSavedModelServable::PredictStreamed(
     const RunOptions& run_options,
     absl::AnyInvocable<void(absl::StatusOr<PredictResponse>)>
         response_callback) {
+  auto recorder = CreateRecorder();
   return std::make_unique<SingleRequestPredictStreamedContext>(
       [this, run_options, response_callback = std::move(response_callback)](
           const PredictRequest& request) mutable -> absl::Status {
@@ -186,6 +194,7 @@ absl::Status TfrtSavedModelServable::MultiInference(
     const RunOptions& run_options, const MultiInferenceRequest& request,
     MultiInferenceResponse* response) {
   TRACELITERAL("TfrtSavedModelServable::MultiInference");
+  auto recorder = CreateRecorder();
   return RunMultiInference(GetTFRTSavedModelRunOptions(run_options), version(),
                            saved_model_.get(), request, response);
 }
@@ -204,6 +213,8 @@ absl::Status ValidateGetModelMetadataRequest(
 }
 
 }  // namespace
+
+RequestRecorder::~RequestRecorder() = default;
 
 absl::Status TfrtSavedModelServable::GetModelMetadata(
     const GetModelMetadataRequest& request,

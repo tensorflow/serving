@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_TFRT_SERVABLE_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_TFRT_SERVABLE_H_
 
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -39,6 +40,13 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+// The RequestRecorder interface for implementations to inject custom metric and
+// cost reporting.
+class RequestRecorder {
+ public:
+  virtual ~RequestRecorder();
+};
+
 // Implements PredictionService`-like interface for a single SavedModel based on
 // `tensorflow::tfrt_stub::SavedModel`. Executables are lazily compiled on its
 // first use and cached. This class is thread-safe.
@@ -48,7 +56,19 @@ class TfrtSavedModelServable : public Servable {
                          const TfrtSavedModelConfig& config,
                          const SavedModelConfig& model_config,
                          std::unique_ptr<tfrt_stub::SavedModel> saved_model,
-                         ThreadPoolFactory* thread_pool_factory);
+                         ThreadPoolFactory* thread_pool_factory)
+      : TfrtSavedModelServable(
+            name, version, config, model_config, std::move(saved_model),
+            thread_pool_factory,
+            [](TfrtSavedModelServable&) { return nullptr; }) {}
+
+  TfrtSavedModelServable(
+      absl::string_view name, int64_t version,
+      const TfrtSavedModelConfig& config, const SavedModelConfig& model_config,
+      std::unique_ptr<tfrt_stub::SavedModel> saved_model,
+      ThreadPoolFactory* thread_pool_factory,
+      std::function<std::unique_ptr<RequestRecorder>(TfrtSavedModelServable&)>
+          recorder_creator);
 
   absl::Status Classify(const RunOptions& run_options,
                         const ClassificationRequest& request,
@@ -80,6 +100,10 @@ class TfrtSavedModelServable : public Servable {
   tfrt_stub::SavedModel::RunOptions GetTFRTSavedModelRunOptions(
       const Servable::RunOptions& run_options) const;
 
+  std::unique_ptr<RequestRecorder> CreateRecorder() {
+    return recorder_creator_(*this);
+  }
+
   std::unique_ptr<tfrt_stub::SavedModel> saved_model_;
 
   // `config_` is the adapter config, and it is the same for all
@@ -94,6 +118,9 @@ class TfrtSavedModelServable : public Servable {
   // implementation, the factory will own the `thread_pool_factory_` and it will
   // be shared across different Servables.
   ThreadPoolFactory* thread_pool_factory_ = nullptr;
+
+  std::function<std::unique_ptr<RequestRecorder>(TfrtSavedModelServable&)>
+      recorder_creator_ = [](TfrtSavedModelServable&) { return nullptr; };
 };
 
 // Creates a TfrtSavedModelServable from `saved_model_dir`.
