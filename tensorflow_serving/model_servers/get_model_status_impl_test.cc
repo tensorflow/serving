@@ -96,7 +96,7 @@ TEST_F(GetModelStatusImplTest, MissingOrEmptyModelSpecFailure) {
 
   // Empty request is invalid.
   EXPECT_EQ(
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       GetModelStatusImpl::GetModelStatus(GetServerCore(), request, &response)
           .code());
 }
