@@ -45,7 +45,7 @@ class MockPredictionService {
     return ::absl::OkStatus();
   }
 
-  StatusOr<MockRpc*> CreateRpc(absl::Duration max_rpc_deadline) {
+  absl::StatusOr<MockRpc*> CreateRpc(absl::Duration max_rpc_deadline) {
     return new MockRpc;
   }
 

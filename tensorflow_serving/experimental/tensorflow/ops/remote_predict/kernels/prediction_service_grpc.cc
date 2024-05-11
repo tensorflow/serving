@@ -44,7 +44,7 @@ PredictionServiceGrpc::PredictionServiceGrpc(
   stub_ = tensorflow::serving::PredictionService::NewStub(channel);
 }
 
-StatusOr<::grpc::ClientContext*> PredictionServiceGrpc::CreateRpc(
+absl::StatusOr< ::grpc::ClientContext*> PredictionServiceGrpc::CreateRpc(
     absl::Duration max_rpc_deadline) {
   ::grpc::ClientContext* rpc = new ::grpc::ClientContext();
   // TODO(b/300069508): Set deadline as the min value between
