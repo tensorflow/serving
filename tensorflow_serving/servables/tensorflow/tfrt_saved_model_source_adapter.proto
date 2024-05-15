@@ -200,6 +200,10 @@ message TfrtSavedModelConfig {
 
   // Whether to use IFRT as device driver for device execution.
   bool tfrt_use_ifrt = 2020;
+
+  // Whether to enable core selector for TFRT+IFRT. It is only effective when
+  // tfrt_use_ifrt is true.
+  bool enable_tfrt_use_ifrt_core_selector = 2021;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.
