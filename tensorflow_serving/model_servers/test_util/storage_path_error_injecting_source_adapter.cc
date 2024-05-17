@@ -33,7 +33,7 @@ class StoragePathErrorInjectingSourceAdapterCreator {
           adapter) {
     adapter->reset(
         new ErrorInjectingSourceAdapter<StoragePath, std::unique_ptr<Loader>>(
-            Status(static_cast<tsl::errors::Code>(absl::StatusCode::kCancelled),
+            Status(static_cast<absl::StatusCode>(absl::StatusCode::kCancelled),
                    config.error_message())));
     return Status();
   }
