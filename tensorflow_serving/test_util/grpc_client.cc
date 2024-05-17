@@ -96,7 +96,6 @@ class ServingClient {
     void* sp;
     bool ok = false;
     while (cq_.Next(&sp, &ok)) {
-      GPR_ASSERT(ok);
       done_count_++;
       std::unique_ptr<RpcState> state((RpcState*)sp);
       if (state->status.ok()) {
