@@ -384,7 +384,7 @@ Status BatchingSession::InternalRun(
   }
 
   profiler::TraceMe trace_me([this] {
-    return profiler::TraceMeEncode(
+    return tsl::profiler::TraceMeEncode(
         "BatchingSessionRun",
         {{"thread_pool_name", thread_pool_name_}, {"_r", 1} /*root_event*/});
   });
@@ -493,7 +493,7 @@ Status BatchingSession::MergeInputTensors(
       RoundToLowestAllowedBatchSize(options_.allowed_batch_sizes, batch.size());
   const int padding_size = lowest_allowed_batch_size - batch.size();
   profiler::TraceMe trace_me([lowest_allowed_batch_size, padding_size]() {
-    return profiler::TraceMeEncode(
+    return tsl::profiler::TraceMeEncode(
         "MergeInputTensors",
         {{"batch_size_after_padding", lowest_allowed_batch_size},
          {"padding_amount", padding_size}});
