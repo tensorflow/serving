@@ -24,6 +24,7 @@ limitations under the License.
 
 #include "google/protobuf/any.pb.h"
 #include "absl/base/macros.h"
+#include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/cpu_info.h"
@@ -207,6 +208,8 @@ class ServerCore : public Manager {
     // If true, propagate current context to children threads (periodic
     // functions) in AspiredVersionsManager.
     bool with_current_context = false;
+
+    absl::Duration servable_state_waiter_timeout = absl::InfiniteDuration();
   };
 
   virtual ~ServerCore() = default;

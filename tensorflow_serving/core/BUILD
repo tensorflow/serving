@@ -417,6 +417,7 @@ cc_library(
         ":servable_id",
         ":servable_state",
         "//tensorflow_serving/util:event_bus",
+        "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],

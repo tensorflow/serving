@@ -30,6 +30,7 @@ limitations under the License.
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow_serving/config/file_system_storage_path_source.pb.h"
 #include "tensorflow_serving/core/load_servables_fast.h"
+#include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.h"
@@ -296,9 +297,10 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
     awaited_servables.push_back(ServableRequest::Latest(model));
   }
   std::map<ServableId, ServableState::ManagerState> states_reached;
-  const bool all_models_available = monitor->WaitUntilServablesReachState(
-      awaited_servables, ServableState::ManagerState::kAvailable,
-      &states_reached);
+  const bool all_models_available =
+      monitor->WaitUntilServablesReachStateWithTimeout(
+          awaited_servables, ServableState::ManagerState::kAvailable,
+          options_.servable_state_waiter_timeout, &states_reached);
   if (!all_models_available) {
     const int num_unavailable_models = std::count_if(
         states_reached.begin(), states_reached.end(),
@@ -367,6 +369,7 @@ Status ServerCore::AddModelsViaModelConfigList() {
   } else {
     // Create a fresh servable state monitor, to avoid getting confused if we're
     // re-loading a model-version that has previously been unloaded.
+
     ServableStateMonitor fresh_servable_state_monitor(
         servable_event_bus_.get());
 
