@@ -84,7 +84,7 @@ TEST(BatchingUtilTest, AddPadding) {
 #undef INIT_TYPE
     Tensor padded_tensor;
     padding_status = AddPadding(tensor, max_dim_sizes, &padded_tensor);
-    ASSERT_EQ(OkStatus(), padding_status);
+    ASSERT_EQ(absl::OkStatus(), padding_status);
     EXPECT_EQ(TensorShape({10, 100, 200}), padded_tensor.shape());
   }
 }

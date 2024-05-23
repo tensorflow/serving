@@ -916,7 +916,7 @@ TEST_P(BatchingSessionTest, MultipleSignatures) {
             options, process_batch_callback, &basic_scheduler));
         schedulers.push_back(basic_scheduler.get());
         *scheduler = std::move(basic_scheduler);
-        return OkStatus();
+        return absl::OkStatus();
       };
   BatchingSessionOptions batching_session_options;
   std::unique_ptr<Session> batching_session;
@@ -984,7 +984,7 @@ TEST_P(BatchingSessionTest, EnqueuedLongerThanTimeout) {
             options, process_batch_callback, &basic_scheduler));
         scheduler = basic_scheduler.get();
         *new_scheduler = std::move(basic_scheduler);
-        return OkStatus();
+        return absl::OkStatus();
       };
   BatchingSessionOptions batching_session_options;
   std::unique_ptr<Session> batching_session;

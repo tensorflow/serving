@@ -363,7 +363,7 @@ void SavedModelWithBatching::ProcessBatch(
 
   if (all_tasks_timeout_exceeded) {
     status = Status(
-        static_cast<tsl::errors::Code>(absl::StatusCode::kResourceExhausted),
+        static_cast<absl::StatusCode>(absl::StatusCode::kResourceExhausted),
         "Run() timeout exceeded while waiting in batching queue");
     return;
   }

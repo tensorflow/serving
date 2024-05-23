@@ -87,7 +87,7 @@ struct PadTensor {
       if (!result) {
         return errors::Internal("Couldn't create output.");
       }
-      return OkStatus();
+      return absl::OkStatus();
     }
     if (input.NumElements() < 1) {
       return errors::InvalidArgument(
@@ -97,7 +97,7 @@ struct PadTensor {
     typename TTypes<T, num_dims>::Tensor inputs = input.tensor<T, num_dims>();
     T pad_value(input.flat<T>()(0));  // using existing values in padding
     output->tensor<T, num_dims>() = inputs.pad(padding, pad_value);
-    return OkStatus();
+    return absl::OkStatus();
   }
 };
 
