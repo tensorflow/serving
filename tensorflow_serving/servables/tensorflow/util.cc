@@ -293,7 +293,7 @@ Status GetModelDiskSize(const string& path, FileProbingEnv* env,
     TF_RETURN_IF_ERROR(env->GetChildren(dir, &children));
     // Multi-threaded writes are safe for int but not bool, so we use int below.
     std::vector<int> child_is_dir(children.size());
-    std::vector<StatusOr<uint64_t>> children_sizes(children.size());
+    std::vector<absl::StatusOr<uint64_t>> children_sizes(children.size());
 
     {
       // Filesystem operations may block for a long time so this process is
