@@ -336,7 +336,7 @@ Status BatchingSession::Create(
   }
 
   *result = std::move(batching_session);
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status BatchingSession::Run(
@@ -383,7 +383,7 @@ Status BatchingSession::InternalRun(
         "BatchingSession does not support target nodes");
   }
 
-  profiler::TraceMe trace_me([this] {
+  tsl::profiler::TraceMe trace_me([this] {
     return tsl::profiler::TraceMeEncode(
         "BatchingSessionRun",
         {{"thread_pool_name", thread_pool_name_}, {"_r", 1} /*root_event*/});
@@ -477,7 +477,7 @@ Status BatchingSession::ComputeInputSize(
     const Tensor& tensor = entry.second;
     RecordInputBatchSize<BatchingSessionTask>(tensor.shape().dim_size(0));
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status BatchingSession::MergeInputTensors(
@@ -492,7 +492,7 @@ Status BatchingSession::MergeInputTensors(
   const int lowest_allowed_batch_size =
       RoundToLowestAllowedBatchSize(options_.allowed_batch_sizes, batch.size());
   const int padding_size = lowest_allowed_batch_size - batch.size();
-  profiler::TraceMe trace_me([lowest_allowed_batch_size, padding_size]() {
+  tsl::profiler::TraceMe trace_me([lowest_allowed_batch_size, padding_size]() {
     return tsl::profiler::TraceMeEncode(
         "MergeInputTensors",
         {{"batch_size_after_padding", lowest_allowed_batch_size},
@@ -583,7 +583,7 @@ Status BatchingSession::MergeInputTensors(
     merged_inputs->push_back({tensor_name, std::move(concated)});
   }
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status BatchingSession::SplitOutputTensors(
@@ -670,7 +670,7 @@ Status BatchingSession::SplitOutputTensors(
   }
   // (Ignore a possible final split_tensors entry containing the padding.)
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status BatchingSession::SplitRunMetadata(RunMetadata* batch_metadata,
@@ -705,7 +705,7 @@ Status BatchingSession::SplitRunMetadata(RunMetadata* batch_metadata,
     }
   }
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 void BatchingSession::ProcessBatch(
@@ -966,7 +966,7 @@ Status SplitInputTask(
           std::make_pair(tensor_name, split_tensors[j]));
     }
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status CreateBatchingSession(
@@ -981,7 +981,7 @@ Status CreateBatchingSession(
       options, std::move(session), signatures_with_scheduler_creators,
       default_creator, /*thread_pool_name=*/"", &internal_batching_session));
   *batching_session = std::move(internal_batching_session);
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status CreateBatchingSession(
@@ -995,7 +995,7 @@ Status CreateBatchingSession(
       options, std::move(session), signatures_with_scheduler_creators,
       /*thread_pool_name=*/"", &internal_batching_session));
   *batching_session = std::move(internal_batching_session);
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status CreateBasicBatchingSession(
@@ -1056,7 +1056,7 @@ Status CreateBasicBatchingSession(
         TF_RETURN_IF_ERROR(BasicBatchScheduler<BatchingSessionTask>::Create(
             schedule_options, process_batch_callback, &basic_batch_scheduler));
         *batch_scheduler = std::move(basic_batch_scheduler);
-        return OkStatus();
+        return absl::OkStatus();
       };
 
   std::unique_ptr<BatchingSession> internal_batching_session;
@@ -1065,7 +1065,7 @@ Status CreateBasicBatchingSession(
       {{signature, scheduler_creator}}, schedule_options.thread_pool_name,
       &internal_batching_session));
   *batching_session = std::move(internal_batching_session);
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace serving
