@@ -204,6 +204,10 @@ message TfrtSavedModelConfig {
   // Whether to enable core selector for TFRT+IFRT. It is only effective when
   // tfrt_use_ifrt is true.
   bool enable_tfrt_use_ifrt_core_selector = 2021;
+
+  // Whether to enable paging. This should only be true when using Pathways
+  // backend.
+  bool enable_paging = 2022;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.

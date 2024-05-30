@@ -19,12 +19,15 @@ limitations under the License.
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "tensorflow/core/tfrt/saved_model/saved_model.h"
 #include "tensorflow_serving/apis/classification.pb.h"
 #include "tensorflow_serving/apis/get_model_metadata.pb.h"
@@ -94,7 +97,25 @@ class TfrtSavedModelServable : public Servable {
   absl::Status GetModelMetadata(const GetModelMetadataRequest& request,
                                 GetModelMetadataResponse* response) override;
 
+  bool SupportsPaging() const override { return true; }
+
+  absl::Status Suspend() override;
+
+  absl::Status Resume() override;
+
   tfrt_stub::SavedModel& saved_model() const { return *saved_model_; }
+
+  void set_resume_fn(
+      absl::AnyInvocable<absl::Status(TfrtSavedModelServable*)> resume_fn) {
+    absl::MutexLock lock(&paging_mu_);
+    resume_fn_ = std::move(resume_fn);
+  }
+
+  void set_suspend_fn(
+      absl::AnyInvocable<absl::Status(TfrtSavedModelServable*)> suspend_fn) {
+    absl::MutexLock lock(&paging_mu_);
+    suspend_fn_ = std::move(suspend_fn);
+  }
 
  private:
   tfrt_stub::SavedModel::RunOptions GetTFRTSavedModelRunOptions(
@@ -121,6 +142,16 @@ class TfrtSavedModelServable : public Servable {
 
   std::function<std::unique_ptr<RequestRecorder>(TfrtSavedModelServable&)>
       recorder_creator_ = [](TfrtSavedModelServable&) { return nullptr; };
+
+  absl::AnyInvocable<absl::Status(TfrtSavedModelServable*)> suspend_fn_
+      ABSL_GUARDED_BY(paging_mu_);
+
+  absl::AnyInvocable<absl::Status(TfrtSavedModelServable*)> resume_fn_
+      ABSL_GUARDED_BY(paging_mu_);
+
+  bool suspended_ ABSL_GUARDED_BY(paging_mu_) = false;
+
+  absl::Mutex paging_mu_;
 };
 
 // Creates a TfrtSavedModelServable from `saved_model_dir`.

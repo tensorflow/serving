@@ -30,11 +30,11 @@ limitations under the License.
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor.pb.h"
-#include "tensorflow/core/platform/statusor.h"
 #include "tensorflow/core/platform/tracing.h"  // NOLINT
 #include "tensorflow/core/tfrt/saved_model/saved_model.h"
 #include "tsl/platform/errors.h"
@@ -197,6 +197,38 @@ absl::Status TfrtSavedModelServable::MultiInference(
   auto recorder = CreateRecorder();
   return RunMultiInference(GetTFRTSavedModelRunOptions(run_options), version(),
                            saved_model_.get(), request, response);
+}
+
+absl::Status TfrtSavedModelServable::Suspend() {
+  TRACELITERAL("TfrtSavedModelServable::Suspend");
+  absl::MutexLock lock(&paging_mu_);
+  if (!suspend_fn_) {
+    return absl::UnimplementedError("Suspend is not implemented");
+  }
+  if (suspended_) {
+    return absl::OkStatus();
+  }
+  absl::Status status = suspend_fn_(this);
+  if (status.ok()) {
+    suspended_ = true;
+  }
+  return status;
+}
+
+absl::Status TfrtSavedModelServable::Resume() {
+  TRACELITERAL("TfrtSavedModelServable::Resume");
+  absl::MutexLock lock(&paging_mu_);
+  if (!resume_fn_) {
+    return absl::UnimplementedError("Resume is not implemented");
+  }
+  if (!suspended_) {
+    return absl::OkStatus();
+  }
+  absl::Status status = resume_fn_(this);
+  if (!status.ok()) {
+    suspended_ = false;
+  }
+  return status;
 }
 
 namespace {

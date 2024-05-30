@@ -31,12 +31,12 @@ limitations under the License.
 #include "tensorflow/compiler/mlir/tfrt/translate/tfrt_compile_options.h"
 #include "tensorflow/core/kernels/batching_util/shared_batch_scheduler.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow/core/tfrt/runtime/runtime.h"
 #include "tensorflow/core/tfrt/saved_model/saved_model.h"
+#include "tsl/platform/casts.h"
 #include "tsl/platform/env.h"
 #include "tsl/platform/errors.h"
 #include "tensorflow_serving/batching/tfrt_saved_model_with_batching.h"
@@ -104,7 +104,7 @@ absl::Status WrapSavedModelForBatching(
           std::unique_ptr<BatchScheduler<SavedModelBatchingTask>>* queue) {
         TF_RETURN_IF_ERROR(batch_scheduler->AddQueue(
             queue_options, process_batch_callback, queue));
-        return OkStatus();
+        return absl::OkStatus();
       };
   std::vector<FuncNameWithBatchingSchedulerCreator>
       func_name_with_batching_scheduler_creator;
@@ -287,18 +287,6 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
 
   MaybePublishMLMDStreamz(path, metadata.servable_id.name,
                           metadata.servable_id.version);
-  if (config().enable_model_warmup()) {
-    auto* warmup_options = mutable_config().mutable_model_warmup_options();
-    warmup_options->set_model_name(metadata.servable_id.name);
-    warmup_options->set_model_version(metadata.servable_id.version);
-    TF_RETURN_IF_ERROR(RunSavedModelWarmup(
-        *warmup_options, path, config().lazy_init_threshold(),
-        config().skip_warmup_requests_if_initialized(), saved_model.get()));
-    if (config().freeze_after_init()) {
-      TF_RETURN_IF_ERROR(Freeze(*saved_model));
-    }
-  }
-
   TF_ASSIGN_OR_RETURN(auto saved_model_config,
                       LoadSavedModelConfigOrDefault(path));
 
@@ -306,6 +294,21 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
       metadata.servable_id.name, metadata.servable_id.version, config_,
       saved_model_config, std::move(saved_model), thread_pool_factory_.get(),
       recorder_creator_);
+  TfrtSavedModelServable* tfrt_servable =
+      down_cast<TfrtSavedModelServable*>(servable->get());
+
+  if (config().enable_model_warmup()) {
+    auto* warmup_options = mutable_config().mutable_model_warmup_options();
+    warmup_options->set_model_name(metadata.servable_id.name);
+    warmup_options->set_model_version(metadata.servable_id.version);
+    TF_RETURN_IF_ERROR(RunSavedModelWarmup(
+        *warmup_options, path, config().lazy_init_threshold(),
+        config().skip_warmup_requests_if_initialized(),
+        &tfrt_servable->saved_model()));
+    if (config().freeze_after_init()) {
+      TF_RETURN_IF_ERROR(Freeze(tfrt_servable->saved_model()));
+    }
+  }
 
   return absl::OkStatus();
 }
