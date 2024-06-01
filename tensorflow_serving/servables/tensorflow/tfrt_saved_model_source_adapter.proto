@@ -208,9 +208,6 @@ message TfrtSavedModelConfig {
   // Whether to enable paging. This should only be true when using Pathways
   // backend.
   bool enable_paging = 2022;
-
-  // The minimum of the maximum number of outstanding enqueue batches
-  int64 tfrt_min_max_enqueued_batches = 2023;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.

@@ -234,8 +234,6 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
   compile_options.use_gpu_compile_and_execute_op =
       config_.tfrt_use_fused_gpu_op();
   compile_options.min_num_batch_threads = config_.tfrt_min_num_batch_threads();
-  compile_options.min_max_enqueued_batches =
-      config_.tfrt_min_max_enqueued_batches();
 
   options.graph_execution_options.run_placer_grappler_on_functions =
       config_.run_placer_grappler_on_functions();
