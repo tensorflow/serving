@@ -1,13 +1,11 @@
 # Description: compression support libraries
 
-package(
-    default_visibility = [
-        "//tensorflow_serving:internal",
-        "//tensorflow_serving/util/net_http:__subpackages__",
-    ],
-)
+package(default_visibility = [
+    "//tensorflow_serving:internal",
+    "//tensorflow_serving/util/net_http:__subpackages__",
+])
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 # C++ lib based on zlib for gzip support
 cc_library(
@@ -36,6 +34,5 @@ cc_test(
         ":gzip_zlib",
         "//tensorflow_serving/core/test_util:test_main",
         "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest",
     ],
 )

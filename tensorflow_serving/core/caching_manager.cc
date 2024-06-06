@@ -15,7 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/core/caching_manager.h"
 
+#include <map>
+#include <memory>
 #include <utility>
+#include <vector>
 
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -50,7 +53,7 @@ Status CachingManager::Create(
 
   caching_manager->reset(
       new CachingManager(std::move(loader_factory), std::move(basic_manager)));
-  return Status::OK();
+  return OkStatus();
 }
 
 CachingManager::CachingManager(std::unique_ptr<LoaderFactory> loader_factory,
@@ -69,7 +72,7 @@ Status CachingManager::GetUntypedServableHandle(
   }
   // Since there is no explicit version in the request, get the latest from the
   // loader-factory.
-  const int64 policy_dictated_version = loader_factory_->GetServableVersion(
+  const int64_t policy_dictated_version = loader_factory_->GetServableVersion(
       request.name, request.auto_version_policy);
   return GetUntypedServableHandleForId({request.name, policy_dictated_version},
                                        handle);
@@ -152,7 +155,7 @@ Status CachingManager::LoadServable(
       if (!manage_status.ok()) {
         const string error_msg = strings::StrCat(
             "Internal error: unable to transfer servable to 'basic_manager_': ",
-            manage_status.error_message());
+            manage_status.message());
         DCHECK(false) << error_msg;
         return errors::Internal(error_msg);
       }
@@ -169,7 +172,7 @@ Status CachingManager::LoadServable(
   }
   servable_id_mu.reset();
   MaybeEraseLoadMutexMapEntry(servable_id);
-  return Status::OK();
+  return OkStatus();
 }
 
 void CachingManager::MaybeEraseLoadMutexMapEntry(
@@ -183,7 +186,7 @@ void CachingManager::MaybeEraseLoadMutexMapEntry(
   }
 }
 
-int64 CachingManager::GetLoadMutexMapSize() const {
+int64_t CachingManager::GetLoadMutexMapSize() const {
   mutex_lock l(load_mutex_map_mu_);
   return load_mutex_map_.size();
 }
@@ -214,7 +217,7 @@ ServableData<std::unique_ptr<Loader>> PathPrefixLoaderFactory::CreateLoader(
   return adapter_->AdaptOneVersion({id, servable_path});
 }
 
-int64 PathPrefixLoaderFactory::GetServableVersion(
+int64_t PathPrefixLoaderFactory::GetServableVersion(
     const string& servable_name,
     ServableRequest::AutoVersionPolicy policy) const {
   return 0;

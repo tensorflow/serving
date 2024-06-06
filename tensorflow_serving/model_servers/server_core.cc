@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/server_core.h"
 
+#include <algorithm>
+#include <map>
+#include <memory>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -26,6 +30,7 @@ limitations under the License.
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow_serving/config/file_system_storage_path_source.pb.h"
 #include "tensorflow_serving/core/load_servables_fast.h"
+#include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.h"
@@ -46,9 +51,10 @@ Status GetPlatform(const ModelConfig& model_config, string* platform) {
     LOG(WARNING) << "Deprecated ModelServerConfig::model_type field used. "
                     "Prefer ModelServerConfig::model_platform.";
     if (!model_config.model_platform().empty()) {
-      return errors::InvalidArgument(
+      return errors::InvalidArgument(strings::StrCat(
           "Illegal setting both ModelServerConfig::model_type (deprecated) "
-          "and ModelServerConfig::model_platform.");
+          "and ModelServerConfig::model_platform, model name is ",
+          model_config.name()));
     }
     if (model_config.model_type() == ModelType::TENSORFLOW) {
       *platform = kTensorFlowModelPlatform;
@@ -62,11 +68,12 @@ Status GetPlatform(const ModelConfig& model_config, string* platform) {
   }
 
   if (platform->empty()) {
-    return errors::InvalidArgument(
+    return errors::InvalidArgument(strings::StrCat(
         "Illegal setting neither ModelServerConfig::model_type (deprecated) "
-        "nor ModelServerConfig::model_platform.");
+        "nor ModelServerConfig::model_platform, model name is ",
+        model_config.name()));
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 // Determines whether a URI is just a relative path.
@@ -113,7 +120,7 @@ Status ValidateModelConfigList(const ModelConfigList& config_list,
     }
   }
 
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 // Returns an error if a model exists in both configs, but with different
@@ -141,7 +148,7 @@ Status ValidateNoModelsChangePlatforms(const ModelConfigList& old_config_list,
                           " and new platform requested is ", new_platform));
     }
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 // Unions two route maps. Gives an error if there is a key that is present in
@@ -161,7 +168,7 @@ Status UnionRoutes(const DynamicSourceRouter<StoragePath>::Routes& a,
       }
     }
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 // Finds all models that occur in 'new_config' but not in 'old_config'.
@@ -211,7 +218,7 @@ Status UpdateModelConfigListRelativePaths(
   for (int ii = 0; ii < updated_paths.size(); ++ii) {
     config_list->mutable_config(ii)->set_base_path(updated_paths[ii]);
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 }  // namespace
@@ -227,7 +234,7 @@ Status ServerCore::Create(Options options,
         [](EventBus<ServableState>* event_bus,
            std::unique_ptr<ServableStateMonitor>* monitor) {
           monitor->reset(new ServableStateMonitor(event_bus));
-          return Status::OK();
+          return absl::OkStatus();
         };
   }
 
@@ -279,7 +286,7 @@ Status ServerCore::Initialize(std::unique_ptr<AspiredVersionPolicy> policy) {
                                                   &aspired_versions_manager));
   manager_.SetOwned(std::move(aspired_versions_manager));
 
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
@@ -290,9 +297,10 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
     awaited_servables.push_back(ServableRequest::Latest(model));
   }
   std::map<ServableId, ServableState::ManagerState> states_reached;
-  const bool all_models_available = monitor->WaitUntilServablesReachState(
-      awaited_servables, ServableState::ManagerState::kAvailable,
-      &states_reached);
+  const bool all_models_available =
+      monitor->WaitUntilServablesReachStateWithTimeout(
+          awaited_servables, ServableState::ManagerState::kAvailable,
+          options_.servable_state_waiter_timeout, &states_reached);
   if (!all_models_available) {
     const int num_unavailable_models = std::count_if(
         states_reached.begin(), states_reached.end(),
@@ -317,7 +325,7 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
     strings::StrAppend(&message, "}");
     return errors::Unknown(message);
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ServerCore::AddModelsViaModelConfigList() {
@@ -361,6 +369,7 @@ Status ServerCore::AddModelsViaModelConfigList() {
   } else {
     // Create a fresh servable state monitor, to avoid getting confused if we're
     // re-loading a model-version that has previously been unloaded.
+
     ServableStateMonitor fresh_servable_state_monitor(
         servable_event_bus_.get());
 
@@ -394,7 +403,7 @@ Status ServerCore::AddModelsViaModelConfigList() {
     TF_RETURN_IF_ERROR(
         WaitUntilModelsAvailable(new_models, &fresh_servable_state_monitor));
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ServerCore::AddModelsViaCustomModelConfig() {
@@ -425,7 +434,7 @@ Status ServerCore::MaybeUpdateServerRequestLogger(
     return options_.server_request_logger->Update(logging_config_map);
   }
 
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
@@ -447,7 +456,7 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
     // Nothing to load. In this case we allow a future call with a non-empty
     // config.
     LOG(INFO) << "Taking no action for empty config.";
-    return Status::OK();
+    return absl::OkStatus();
   }
   if (new_config.config_case() == ModelServerConfig::kModelConfigList) {
     TF_RETURN_IF_ERROR(
@@ -492,34 +501,37 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   }
 
   LOG(INFO) << "Finished reloading config";
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ServerCore::UpdateModelVersionLabelMap() {
-  std::unique_ptr<std::map<string, std::map<string, int64>>> new_label_map(
-      new std::map<string, std::map<string, int64>>);
+  std::unique_ptr<std::map<string, std::map<string, int64_t>>> new_label_map(
+      new std::map<string, std::map<string, int64_t>>);
   for (const ModelConfig& model_config : config_.model_config_list().config()) {
     ServableStateMonitor::VersionMap serving_states =
         servable_state_monitor_->GetVersionStates(model_config.name());
 
     for (const auto& entry : model_config.version_labels()) {
       const string& label = entry.first;
-      const int64 version = entry.second;
+      const int64_t version = entry.second;
 
-      bool contains_existing_label_with_different_version = false;
-      int64 existing_version;
-      if (GetModelVersionForLabel(model_config.name(), label, &existing_version)
-              .ok() &&
-          existing_version != version) {
-        contains_existing_label_with_different_version = true;
+      bool allow_any_version_labels_for_unavailable_models = false;
+      if (options_.force_allow_any_version_labels_for_unavailable_models) {
+        allow_any_version_labels_for_unavailable_models = true;
+      } else if (options_.allow_version_labels_for_unavailable_models) {
+        int64_t existing_version;
+        bool contains_existing_label_with_different_version =
+            GetModelVersionForLabel(model_config.name(), label,
+                                    &existing_version)
+                .ok() &&
+            existing_version != version;
+        allow_any_version_labels_for_unavailable_models =
+            !contains_existing_label_with_different_version;
       }
-      bool allow_version_labels_for_unavailable_models =
-          options_.allow_version_labels_for_unavailable_models &&
-          (!contains_existing_label_with_different_version);
 
       // Verify that the label points to a version that is currently available.
       auto serving_states_it = serving_states.find(version);
-      if (!allow_version_labels_for_unavailable_models &&
+      if (!allow_any_version_labels_for_unavailable_models &&
           (serving_states_it == serving_states.end() ||
            serving_states_it->second.state.manager_state !=
                ServableState::ManagerState::kAvailable)) {
@@ -538,7 +550,7 @@ Status ServerCore::UpdateModelVersionLabelMap() {
       return errors::FailedPrecondition(
           "Model version labels are not currently allowed by the server.");
     }
-    return Status::OK();
+    return absl::OkStatus();
   }
 
   if (VLOG_IS_ON(4)) {
@@ -556,7 +568,7 @@ Status ServerCore::UpdateModelVersionLabelMap() {
   mutex_lock l(model_labels_to_versions_mu_);
   model_labels_to_versions_.swap(new_label_map);
 
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ServerCore::CreateAdapter(
@@ -613,7 +625,7 @@ Status ServerCore::CreateStoragePathRoutes(
     const int port = it->second;
     (*routes)[model_name] = port;
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ServerCore::CreateStoragePathSource(
@@ -635,7 +647,7 @@ Status ServerCore::CreateStoragePathSource(
     ConnectSourceToTarget(source->get(), prefix_source_adapter->get());
     ConnectSourceToTarget(prefix_source_adapter->get(), target);
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ServerCore::CreateRouter(
@@ -667,7 +679,7 @@ Status ServerCore::CreateRouter(
   ConnectSourceToTarget(output_ports[output_ports.size() - 1],
                         targets->error_adapter.get());
 
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ServerCore::CreateAdapters(SourceAdapters* adapters) const {
@@ -680,7 +692,7 @@ Status ServerCore::CreateAdapters(SourceAdapters* adapters) const {
   adapters->error_adapter.reset(
       new ErrorInjectingSourceAdapter<StoragePath, std::unique_ptr<Loader>>(
           errors::Internal("No platform found for model")));
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ServerCore::ConnectAdaptersToManagerAndAwaitModelLoads(
@@ -704,7 +716,7 @@ Status ServerCore::ConnectAdaptersToManagerAndAwaitModelLoads(
     return status;
   }
 
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ServerCore::ReloadStoragePathSourceConfig(
@@ -746,6 +758,7 @@ Status ServerCore::CreateAspiredVersionsManager(
   manager_options.flush_filesystem_caches = options_.flush_filesystem_caches;
   manager_options.enable_reload_servables_with_error =
       options_.enable_reload_servables_with_error;
+  manager_options.with_current_context = options_.with_current_context;
   const tensorflow::Status status =
       AspiredVersionsManager::Create(std::move(manager_options), manager);
   if (!status.ok()) {
@@ -795,7 +808,7 @@ Status ServerCore::ServableRequestFromModelSpec(
             "ModelSpec has 'version_label' set, but it is not currently "
             "allowed by the server.");
       }
-      int64 version;
+      int64_t version;
       TF_RETURN_IF_ERROR(GetModelVersionForLabel(
           model_spec.name(), model_spec.version_label(), &version));
       *servable_request = ServableRequest::Specific(model_spec.name(), version);
@@ -806,12 +819,12 @@ Status ServerCore::ServableRequestFromModelSpec(
       break;
     }
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ServerCore::GetModelVersionForLabel(const string& model_name,
                                            const string& label,
-                                           int64* version) const {
+                                           int64_t* version) const {
   mutex_lock l(model_labels_to_versions_mu_);
   if (model_labels_to_versions_ == nullptr) {
     return errors::Unavailable(
@@ -819,11 +832,11 @@ Status ServerCore::GetModelVersionForLabel(const string& model_name,
   }
   auto version_map_it = model_labels_to_versions_->find(model_name);
   if (version_map_it != model_labels_to_versions_->end()) {
-    const std::map<string, int64>& version_map = version_map_it->second;
+    const std::map<string, int64_t>& version_map = version_map_it->second;
     auto version_it = version_map.find(label);
     if (version_it != version_map.end()) {
       *version = version_it->second;
-      return Status::OK();
+      return absl::OkStatus();
     }
   }
   return errors::InvalidArgument(

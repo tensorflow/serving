@@ -26,6 +26,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
@@ -59,17 +60,45 @@ class BundleFactoryTest : public ::testing::Test {
     TestSingleRequest(session.get());
   }
 
-  void TestBatching(bool enable_large_batch_splitting) const {
-    SessionBundleConfig config = GetSessionBundleConfig();
-
-    BatchingParameters *batching_params = config.mutable_batching_parameters();
-    batching_params->mutable_max_batch_size()->set_value(2);
-    batching_params->mutable_max_enqueued_batches()->set_value(INT_MAX);
-
-    if (enable_large_batch_splitting) {
-      batching_params->mutable_enable_large_batch_splitting()->set_value(true);
-      batching_params->mutable_max_execution_batch_size()->set_value(1);
+  int GetTotalBatchesProcessed() const {
+    const string label(
+        "/tensorflow/serving/batching_session/wrapped_run_count");
+    auto* collection_registry = monitoring::CollectionRegistry::Default();
+    monitoring::CollectionRegistry::CollectMetricsOptions options;
+    const std::unique_ptr<monitoring::CollectedMetrics> collected_metrics =
+        collection_registry->CollectMetrics(options);
+    int total_count = 0;
+    const auto& point_set_map = collected_metrics->point_set_map;
+    if (point_set_map.find(label) == point_set_map.end()) return 0;
+    const monitoring::PointSet& lps = *point_set_map.at(label);
+    for (int i = 0; i < lps.points.size(); ++i) {
+      total_count += lps.points[i]->int64_value;
     }
+    return static_cast<int>(total_count);
+  }
+
+  void TestBatching(const BatchingParameters& params,
+                    bool enable_per_model_batching_params,
+                    int input_request_batch_size, int batch_size) const {
+    SessionBundleConfig config = GetSessionBundleConfig();
+    config.set_enable_per_model_batching_params(
+        enable_per_model_batching_params);
+    BatchingParameters* batching_params = config.mutable_batching_parameters();
+    *batching_params = params;
+
+    //
+    // Tweak batching params further for testing.
+    //
+    // Set high value of max enqueued batches to prevent queue limits to be hit
+    // during testing that involves lot of requests.
+    batching_params->mutable_max_enqueued_batches()->set_value(INT_MAX);
+    // Set very high value of timeout to force full batches to be formed.
+    //
+    // The default (zero) value of the timeout causes batches to formed with
+    // [1..max_batch_size] size based on relative ordering of Run() calls. A
+    // large value causes deterministic fix batch size to be formed.
+    batching_params->mutable_batch_timeout_micros()->set_value(INT_MAX);
+
     std::unique_ptr<Session> session;
     if (ExpectCreateBundleFailure()) {
       EXPECT_FALSE(CreateSession(config, &session).ok());
@@ -77,9 +106,13 @@ class BundleFactoryTest : public ::testing::Test {
     }
     TF_ASSERT_OK(CreateSession(config, &session));
 
-    // Run multiple requests concurrently. They should be executed as 5 batches,
-    // as request size is set to 2 in TestMultipleRequests().
-    TestMultipleRequests(10, session.get());
+    const int num_requests = 10;
+    const int expected_batches =
+        (input_request_batch_size * num_requests) / batch_size;
+    const int orig_batches_processed = GetTotalBatchesProcessed();
+    TestMultipleRequests(session.get(), num_requests, input_request_batch_size);
+    EXPECT_EQ(orig_batches_processed + expected_batches,
+              GetTotalBatchesProcessed());
   }
 
   template <class FactoryType>

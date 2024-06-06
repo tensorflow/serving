@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/util/file_probing_env.h"
 
+#include <vector>
+
 namespace tensorflow {
 namespace serving {
 
@@ -32,7 +34,7 @@ Status TensorflowFileProbingEnv::IsDirectory(const string& fname) {
 }
 
 Status TensorflowFileProbingEnv::GetFileSize(const string& fname,
-                                             uint64* file_size) {
+                                             uint64_t* file_size) {
   return env_->GetFileSize(fname, file_size);
 }
 

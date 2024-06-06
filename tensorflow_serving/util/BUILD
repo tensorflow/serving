@@ -9,7 +9,7 @@ package(
     features = ["-layering_check"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 filegroup(
     name = "all_files",
@@ -342,6 +342,24 @@ cc_test(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
+    name = "proto_util",
+    srcs = ["proto_util.h"],
+    hdrs = ["proto_util.h"],
+    deps = ["@org_tensorflow//tensorflow/core:lib"],
+)
+
+cc_test(
+    name = "proto_util_test",
+    srcs = ["proto_util_test.cc"],
+    deps = [
+        ":proto_util",
+        "//tensorflow_serving/apis:status_cc_proto",
+        "//tensorflow_serving/core/test_util:test_main",
+        "@org_tensorflow//tensorflow/core:lib",
     ],
 )
 

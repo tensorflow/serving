@@ -10,6 +10,16 @@ import "tensorflow/core/protobuf/named_tensor.proto";
 message ModelWarmupOptions {
   // Number of times a request is iterated during warmup replay. By default 1.
   google.protobuf.Int32Value num_request_iterations = 1;
+  // The number of threads to parallel execute warm up queries. By default 1.
+  google.protobuf.Int32Value num_model_warmup_threads = 2;
+  // Model name.
+  string model_name = 3;
+  // Model version.
+  int64 model_version = 4;
+  // If true, warmup queries initiate parallel (dummy) warmup queries for each
+  // `allowed_batch_sizes` of supported batch ops.
+  // The extra queries' outputs are not returned.
+  bool enable_all_batch_sizes_warmup = 5;
 }
 
 // Configuration parameters for a SessionBundle, with optional batching.
@@ -94,7 +104,7 @@ message SessionBundleConfig {
   // Tries to use infra validation result to estimate resource usage.
   bool resource_estimation_uses_validation_result = 784;
 
-  int32 num_tflite_interpreters = 785 [deprecated=true];
+  int32 num_tflite_interpreters = 785 [deprecated = true];
   // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
   //
   // Number of TFLite interpreters in an interpreter pool of TfLiteSession.
@@ -104,6 +114,29 @@ message SessionBundleConfig {
   //
   // Number of TFLite interpreter pools in a TfLiteSession.
   int32 num_tflite_pools = 787;
+
+  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
+  //
+  // Use SessionWrapperIgnoreThreadPoolOptions instead.
+  bool wrap_session_with_no_threading_params = 788;
+
+  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION.
+  //
+  // Enable per-model batching parameters (present in SavedModel). If this
+  // option is enabled, model specific batching params (e.g. timeout, batch
+  // sizes etc.) from `batching_parameters` field above are *ignored* and
+  // instead the one in SavedModel directory are used. This field is only
+  // used if batching is enabled (i.e. `batching_parameters` message above
+  // is set).
+  bool enable_per_model_batching_params = 789;
+
+  // EXPERIMENTAL. THIS FIELD MAY CHANGE OR GO AWAY. USE WITH CAUTION
+  //
+  // Enable overriding model configs via assets.extra/saved_model_config.pb.
+  bool enable_saved_model_config = 790;
+
+  //Add bf16 mixed_precision option
+  string mixed_precision = 791;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

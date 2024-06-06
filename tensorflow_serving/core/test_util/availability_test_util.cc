@@ -15,7 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 
+#include <string>
+#include <vector>
+
 #include "absl/types/optional.h"
+#include "absl/types/span.h"
 #include "tensorflow/core/platform/env.h"
 
 namespace tensorflow {
@@ -50,6 +54,16 @@ void WaitUntilServableManagerStateIsOneOf(
     const std::vector<ServableState::ManagerState>& states) {
   while (!ServableManagerStateIsOneOf(monitor, servable, states)) {
     Env::Default()->SleepForMicroseconds(50 * 1000 /* 50 ms */);
+  }
+}
+
+void WaitUntilVersionsAvailable(
+    const ServableStateMonitor& monitor, const string& servable_id_name,
+    absl::Span<const int64_t> servable_id_versions) {
+  for (int64_t version : servable_id_versions) {
+    const ServableId servable_id = {servable_id_name, version};
+    WaitUntilServableManagerStateIsOneOf(
+        monitor, servable_id, {ServableState::ManagerState::kAvailable});
   }
 }
 

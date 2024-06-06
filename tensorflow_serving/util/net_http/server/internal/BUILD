@@ -1,12 +1,10 @@
 # Description: implementations of HTTP Server
 
-package(
-    default_visibility = [
-        "//tensorflow_serving/util/net_http:__subpackages__",
-    ],
-)
+package(default_visibility = [
+    "//tensorflow_serving/util/net_http:__subpackages__",
+])
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 cc_library(
     name = "evhttp_server",
@@ -22,6 +20,7 @@ cc_library(
     deps = [
         "//tensorflow_serving/util/net_http/compression:gzip_zlib",
         "//tensorflow_serving/util/net_http/internal:net_logging",
+        "//tensorflow_serving/util/net_http/public:shared_files",
         "//tensorflow_serving/util/net_http/server/public:http_server_api",
         "@com_github_libevent_libevent//:libevent",
         "@com_google_absl//absl/base",
@@ -42,7 +41,7 @@ cc_test(
     deps = [
         ":evhttp_server",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/util/net_http/client/internal:evhttp_client",
+        "//tensorflow_serving/util/net_http/client/test_client/internal:evhttp_client",
         "//tensorflow_serving/util/net_http/internal:fixed_thread_pool",
         "//tensorflow_serving/util/net_http/server/public:http_server",
         "//tensorflow_serving/util/net_http/server/public:http_server_api",
@@ -59,7 +58,7 @@ cc_test(
     deps = [
         ":evhttp_server",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/util/net_http/client/internal:evhttp_client",
+        "//tensorflow_serving/util/net_http/client/test_client/internal:evhttp_client",
         "//tensorflow_serving/util/net_http/compression:gzip_zlib",
         "//tensorflow_serving/util/net_http/internal:fixed_thread_pool",
         "//tensorflow_serving/util/net_http/server/public:http_server",

@@ -29,10 +29,10 @@ class FakeLogCollector : public LogCollector {
  public:
   Status CollectMessage(const google::protobuf::Message& message) override {
     ++collect_count_;
-    return Status::OK();
+    return Status();
   }
 
-  Status Flush() override { return Status::OK(); }
+  Status Flush() override { return Status(); }
 
   int collect_count() const { return collect_count_; }
 

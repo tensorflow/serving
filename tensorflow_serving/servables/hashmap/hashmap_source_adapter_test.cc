@@ -63,7 +63,7 @@ Status WriteHashmapToFile(const HashmapSourceAdapterConfig::Format format,
                                      format);
   }
   TF_RETURN_IF_ERROR(file->Close());
-  return Status::OK();
+  return Status();
 }
 
 TEST(HashmapSourceAdapter, Basic) {

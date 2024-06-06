@@ -125,14 +125,14 @@ TEST_P(GetModelMetadataImplTest, EmptyOrInvalidMetadataFieldList) {
   GetModelMetadataResponse response;
 
   // Empty metadata field list is invalid.
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
             GetModelMetadataImpl::GetModelMetadata(GetServerCore(), request,
                                                    &response)
                 .code());
   request.add_metadata_field("some_stuff");
 
   // Field enum is outside of valid range.
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
             GetModelMetadataImpl::GetModelMetadata(GetServerCore(), request,
                                                    &response)
                 .code());
@@ -143,7 +143,7 @@ TEST_P(GetModelMetadataImplTest, MissingOrEmptyModelSpec) {
   GetModelMetadataResponse response;
 
   request.add_metadata_field(GetModelMetadataImpl::kSignatureDef);
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
             GetModelMetadataImpl::GetModelMetadata(GetServerCore(), request,
                                                    &response)
                 .code());
@@ -152,7 +152,7 @@ TEST_P(GetModelMetadataImplTest, MissingOrEmptyModelSpec) {
   model_spec->clear_name();
 
   // Model name is not specified.
-  EXPECT_EQ(tensorflow::error::INVALID_ARGUMENT,
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
             GetModelMetadataImpl::GetModelMetadata(GetServerCore(), request,
                                                    &response)
                 .code());

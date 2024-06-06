@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/core/servable_state_monitor.h"
 
+#include <map>
+#include <utility>
+#include <vector>
+
+#include "absl/time/time.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
 #include "tensorflow_serving/core/servable_state.h"
@@ -27,7 +32,7 @@ void EraseLiveStatesEntry(
     const ServableStateMonitor::ServableStateAndTime& state_and_time,
     ServableStateMonitor::ServableMap* const live_states) {
   const string& servable_name = state_and_time.state.id.name;
-  const int64 version = state_and_time.state.id.version;
+  const int64_t version = state_and_time.state.id.version;
   auto servable_map_it = live_states->find(servable_name);
   if (servable_map_it == live_states->end()) {
     return;
@@ -48,7 +53,7 @@ void UpdateLiveStates(
     const ServableStateMonitor::ServableStateAndTime& state_and_time,
     ServableStateMonitor::ServableMap* const live_states) {
   const string& servable_name = state_and_time.state.id.name;
-  const int64 version = state_and_time.state.id.version;
+  const int64_t version = state_and_time.state.id.version;
   if (state_and_time.state.manager_state != ServableState::ManagerState::kEnd) {
     (*live_states)[servable_name][version] = state_and_time;
   } else {
@@ -230,11 +235,11 @@ void ServableStateMonitor::Notify(const NotifyFn& notify_fn) {
   notify_fns_.push_back(notify_fn);
 }
 
-bool ServableStateMonitor::WaitUntilServablesReachState(
+bool ServableStateMonitor::WaitUntilServablesReachStateWithTimeout(
     const std::vector<ServableRequest>& servables,
-    const ServableState::ManagerState goal_state,
+    const ServableState::ManagerState goal_state, absl::Duration timeout,
     std::map<ServableId, ServableState::ManagerState>* const states_reached) {
-  bool reached_goal_state;
+  bool reached_goal_state = false;
   Notification notified;
   NotifyWhenServablesReachState(
       servables, goal_state,
@@ -247,8 +252,17 @@ bool ServableStateMonitor::WaitUntilServablesReachState(
         reached_goal_state = incoming_reached_goal_state;
         notified.Notify();
       });
-  notified.WaitForNotification();
+  notified.WaitForNotificationWithTimeout(timeout);
   return reached_goal_state;
+}
+
+bool ServableStateMonitor::WaitUntilServablesReachState(
+    const std::vector<ServableRequest>& servables,
+    const ServableState::ManagerState goal_state,
+    std::map<ServableId, ServableState::ManagerState>* const states_reached) {
+  return WaitUntilServablesReachStateWithTimeout(
+      servables, goal_state,
+      /*timeout=*/absl::InfiniteDuration(), states_reached);
 }
 
 void ServableStateMonitor::PreHandleEvent(

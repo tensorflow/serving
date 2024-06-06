@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "absl/status/status.h"
 #include "absl/time/time.h"
+#include "tensorflow/core/platform/statusor.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 
 namespace tensorflow {
@@ -33,7 +34,7 @@ class PredictionServiceGrpc {
     return ::absl::OkStatus();
   }
 
-  ::grpc::ClientContext* CreateRpc(absl::Duration max_rpc_deadline);
+  StatusOr<::grpc::ClientContext*> CreateRpc(absl::Duration max_rpc_deadline);
 
   void Predict(::grpc::ClientContext* rpc, PredictRequest* request,
                PredictResponse* response,

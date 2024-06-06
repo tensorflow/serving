@@ -24,6 +24,7 @@ limitations under the License.
 
 #include "google/protobuf/any.pb.h"
 #include "absl/base/macros.h"
+#include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/cpu_info.h"
@@ -42,7 +43,9 @@ limitations under the License.
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/core/storage_path.h"
+#include "tensorflow_serving/core/stream_logger.h"
 #include "tensorflow_serving/servables/tensorflow/predict_util.h"
+#include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/util/event_bus.h"
 #include "tensorflow_serving/util/unique_ptr_with_deps.h"
@@ -112,7 +115,8 @@ class ServerCore : public Manager {
     int32 num_unload_threads = 0;
 
     // Total model size limit, in terms of main memory, in bytes.
-    uint64 total_model_memory_limit_bytes = std::numeric_limits<uint64>::max();
+    uint64_t total_model_memory_limit_bytes =
+        std::numeric_limits<uint64_t>::max();
 
     // Maximum number of times we retry loading a model, after the first
     // failure, before we give up.
@@ -123,7 +127,7 @@ class ServerCore : public Manager {
     // The interval, in microseconds, between each servable load retry. If set
     // negative, we don't wait.
     // Default: 1 minute.
-    int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
+    int64_t load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
 
     // Time interval between file-system polls, in seconds.
     int32 file_system_poll_wait_seconds = 30;
@@ -185,6 +189,10 @@ class ServerCore : public Manager {
     // available yet.
     bool allow_version_labels_for_unavailable_models = false;
 
+    // Whether to force-allow assigning any version labels to models that are
+    // not available yet.
+    bool force_allow_any_version_labels_for_unavailable_models = false;
+
     // In a predict handler, this option specifies how to serialize tensors
     // (e.g: as proto fields or as proto content).
     // Serialize as proto fields by default, for backward compatibility.
@@ -196,6 +204,12 @@ class ServerCore : public Manager {
     std::string storage_path_prefix;
 
     bool enable_cors_support = false;
+
+    // If true, propagate current context to children threads (periodic
+    // functions) in AspiredVersionsManager.
+    bool with_current_context = false;
+
+    absl::Duration servable_state_waiter_timeout = absl::InfiniteDuration();
   };
 
   virtual ~ServerCore() = default;
@@ -255,7 +269,19 @@ class ServerCore : public Manager {
       VLOG(1) << "Unable to get servable handle due to: " << status;
       return status;
     }
-    return Status::OK();
+    return Status();
+  }
+
+  // This specialized version allows us to override GetServableHandle for
+  // Servables in sub-classes. Useful for testing.
+  virtual Status GetServableHandle(const ModelSpec& model_spec,
+                                   ServableHandle<Servable>* const handle) {
+    return GetServableHandle<Servable>(model_spec, handle);
+  }
+
+  template <typename T>
+  std::map<ServableId, ServableHandle<T>> GetAvailableServableHandles() const {
+    return manager_->GetAvailableServableHandles<T>();
   }
 
   /// Writes the log for the particular request, response and metadata, if we
@@ -265,6 +291,17 @@ class ServerCore : public Manager {
                      const google::protobuf::Message& response,
                      const LogMetadata& log_metadata) {
     return options_.server_request_logger->Log(request, response, log_metadata);
+  }
+
+  // Starts logging a stream through returning a StreamLogger created through
+  // `create_stream_logger_fn`. Returns NULL if the stream should not be logged.
+  template <typename Request, typename Response>
+  std::unique_ptr<StreamLogger<Request, Response>> StartLoggingStream(
+      const LogMetadata& log_metadata,
+      ServerRequestLogger::CreateStreamLoggerFn<Request, Response>
+          create_stream_logger_fn) {
+    return options_.server_request_logger->StartLoggingStream(
+        log_metadata, std::move(create_stream_logger_fn));
   }
 
   internal::PredictResponseTensorSerializationOption
@@ -396,7 +433,7 @@ class ServerCore : public Manager {
 
   // Gets the version associated with 'label', for the given model name.
   Status GetModelVersionForLabel(const string& model_name, const string& label,
-                                 int64* version) const
+                                 int64_t* version) const
       TF_LOCKS_EXCLUDED(model_labels_to_versions_mu_);
 
   Status GetUntypedServableHandle(
@@ -426,7 +463,7 @@ class ServerCore : public Manager {
   ModelServerConfig config_ TF_GUARDED_BY(config_mu_);
 
   // A model_name->label->version# map.
-  std::unique_ptr<std::map<string, std::map<string, int64>>>
+  std::unique_ptr<std::map<string, std::map<string, int64_t>>>
       model_labels_to_versions_ TF_GUARDED_BY(model_labels_to_versions_mu_);
 
   struct StoragePathSourceAndRouter {

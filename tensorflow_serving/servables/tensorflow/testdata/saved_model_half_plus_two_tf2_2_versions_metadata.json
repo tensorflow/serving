@@ -42,7 +42,8 @@
        "name": "StatefulPartitionedCall_3:0"
       }
      },
-     "method_name": "tensorflow/serving/predict"
+     "method_name": "tensorflow/serving/predict",
+     "defaults": {}
     },
     "regress_x_to_y2": {
      "inputs": {
@@ -79,7 +80,8 @@
        "name": "StatefulPartitionedCall_4:0"
       }
      },
-     "method_name": "tensorflow/serving/predict"
+     "method_name": "tensorflow/serving/predict",
+     "defaults": {}
     },
     "classify_x_to_y": {
      "inputs": {
@@ -116,7 +118,8 @@
        "name": "StatefulPartitionedCall_1:0"
       }
      },
-     "method_name": "tensorflow/serving/predict"
+     "method_name": "tensorflow/serving/predict",
+     "defaults": {}
     },
     "serving_default": {
      "inputs": {
@@ -149,7 +152,8 @@
        "name": "StatefulPartitionedCall_5:0"
       }
      },
-     "method_name": "tensorflow/serving/predict"
+     "method_name": "tensorflow/serving/predict",
+     "defaults": {}
     },
     "regress_x2_to_y3": {
      "inputs": {
@@ -182,7 +186,8 @@
        "name": "StatefulPartitionedCall_2:0"
       }
      },
-     "method_name": "tensorflow/serving/predict"
+     "method_name": "tensorflow/serving/predict",
+     "defaults": {}
     },
     "classify_x2_to_y3": {
      "inputs": {
@@ -215,7 +220,8 @@
        "name": "StatefulPartitionedCall:0"
       }
      },
-     "method_name": "tensorflow/serving/predict"
+     "method_name": "tensorflow/serving/predict",
+     "defaults": {}
     },
     "__saved_model_init_op": {
      "inputs": {},

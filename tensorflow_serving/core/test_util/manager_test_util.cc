@@ -58,7 +58,7 @@ uint32 BasicManagerTestAccess::num_load_threads() const {
 CachingManagerTestAccess::CachingManagerTestAccess(CachingManager* manager)
     : manager_(manager) {}
 
-int64 CachingManagerTestAccess::GetLoadMutexMapSize() const {
+int64_t CachingManagerTestAccess::GetLoadMutexMapSize() const {
   return manager_->GetLoadMutexMapSize();
 }
 

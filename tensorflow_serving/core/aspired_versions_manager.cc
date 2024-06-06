@@ -19,12 +19,15 @@ limitations under the License.
 #include <iterator>
 #include <map>
 #include <memory>
+#include <set>
+#include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/strings/strcat.h"
+#include "tensorflow/core/platform/context.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/core/loader_harness.h"
@@ -91,13 +94,13 @@ Status ValidateAspiredVersions(
           " doesn't match name in servable version: ", version.id().name));
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 // Returns the set of version numbers in 'versions'.
-std::set<int64> GetVersionNumbers(
+std::set<int64_t> GetVersionNumbers(
     const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) {
-  std::set<int64> version_numbers;
+  std::set<int64_t> version_numbers;
   for (const auto& version : versions) {
     version_numbers.insert(version.id().version);
   }
@@ -169,16 +172,17 @@ Status AspiredVersionsManager::Create(
 
   manager->reset(new AspiredVersionsManager(
       options.manage_state_interval_micros, options.env,
-      std::move(options.aspired_version_policy), std::move(basic_manager)));
+      std::move(options.aspired_version_policy), std::move(basic_manager),
+      options.with_current_context));
   (manager->get())->enable_reload_servables_with_error_ =
       options.enable_reload_servables_with_error;
-  return Status::OK();
+  return OkStatus();
 }
 
 AspiredVersionsManager::AspiredVersionsManager(
-    int64 manage_state_interval_micros, Env* env,
+    int64_t manage_state_interval_micros, Env* env,
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy,
-    std::unique_ptr<BasicManager> basic_manager)
+    std::unique_ptr<BasicManager> basic_manager, bool with_current_context)
     : aspired_version_policy_(std::move(aspired_version_policy)),
       target_impl_(new internal::AspiredVersionsManagerTargetImpl(this)),
       basic_manager_(std::move(basic_manager)) {
@@ -190,13 +194,25 @@ AspiredVersionsManager::AspiredVersionsManager(
     PeriodicFunction::Options pf_options;
     pf_options.env = env;
     pf_options.thread_name_prefix = "AspiredVersionsManager_ManageState_Thread";
-    manage_state_thread_.reset(new PeriodicFunction(
-        [this]() {
-          this->FlushServables();
-          this->HandlePendingAspiredVersionsRequests();
-          this->InvokePolicyAndExecuteAction();
-        },
-        manage_state_interval_micros));
+    if (with_current_context) {
+      tensorflow::Context context(tensorflow::ContextKind::kThread);
+      manage_state_thread_.reset(new PeriodicFunction(
+          [this, context = std::move(context)]() {
+            tensorflow::WithContext wc(context);
+            this->FlushServables();
+            this->HandlePendingAspiredVersionsRequests();
+            this->InvokePolicyAndExecuteAction();
+          },
+          manage_state_interval_micros));
+    } else {
+      manage_state_thread_.reset(new PeriodicFunction(
+          [this]() {
+            this->FlushServables();
+            this->HandlePendingAspiredVersionsRequests();
+            this->InvokePolicyAndExecuteAction();
+          },
+          manage_state_interval_micros));
+    }
   }
 }
 
@@ -235,15 +251,15 @@ void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
     std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
   const Status validation_status =
       ValidateAspiredVersions(servable_name, versions);
-  DCHECK(validation_status.ok()) << validation_status.error_message();
+  DCHECK(validation_status.ok()) << validation_status.message();
   if (!validation_status.ok()) {
-    LOG(ERROR) << validation_status.error_message();
+    LOG(ERROR) << validation_status.message();
     return;
   }
 
   {
     mutex_lock l(pending_aspired_versions_requests_mu_);
-    VLOG(1) << "Enqueueing aspired versions request: " << servable_name << ": "
+    VLOG(2) << "Enqueueing aspired versions request: " << servable_name << ": "
             << ServableVersionsDebugString(versions);
     pending_aspired_versions_requests_[string(servable_name)] =
         std::move(versions);
@@ -253,17 +269,17 @@ void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
 void AspiredVersionsManager::ProcessAspiredVersionsRequest(
     const StringPiece servable_name,
     std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
-  VLOG(1) << "Processing aspired versions request: " << servable_name << ": "
+  VLOG(2) << "Processing aspired versions request: " << servable_name << ": "
           << ServableVersionsDebugString(versions);
 
-  const std::set<int64> next_aspired_versions = GetVersionNumbers(versions);
+  const std::set<int64_t> next_aspired_versions = GetVersionNumbers(versions);
 
   // We gather all the servables with the servable_name and
   // 1. Add the current aspired version numbers to a set,
   // 2. Set the aspired bool to false for all current servable harnesses which
   // are not aspired.
-  std::set<int64> current_aspired_versions;
-  std::set<int64> current_aspired_versions_with_error;
+  std::set<int64_t> current_aspired_versions;
+  std::set<int64_t> current_aspired_versions_with_error;
   const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
       basic_manager_->GetManagedServableStateSnapshots<Aspired>(
           string(servable_name));
@@ -287,7 +303,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
   // We do a set_difference (A - B), on the next aspired versions and the
   // current aspired versions to find the version numbers which need to be
   // added the harness map.
-  std::set<int64> additions;
+  std::set<int64_t> additions;
   std::set_difference(
       next_aspired_versions.begin(), next_aspired_versions.end(),
       current_aspired_versions.begin(), current_aspired_versions.end(),
@@ -308,11 +324,11 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
       id.name = std::string(servable_name);
       id.version = version_id.version;
       const Status manage_status = basic_manager_->StopManagingServable(id);
-      DCHECK(manage_status.ok()) << manage_status.error_message();
+      DCHECK(manage_status.ok()) << manage_status.message();
       if (!manage_status.ok()) {
         LOG(ERROR) << "Internal error: Unable to clear errored servable "
-                   << version_id.DebugString() << " from 'basic_manager_': "
-                   << manage_status.error_message();
+                   << version_id.DebugString()
+                   << " from 'basic_manager_': " << manage_status.message();
       }
       should_add = true;
     }
@@ -322,11 +338,11 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
       const Status manage_status =
           basic_manager_->ManageServableWithAdditionalState(
               std::move(version), std::unique_ptr<Aspired>(new Aspired{true}));
-      DCHECK(manage_status.ok()) << manage_status.error_message();
+      DCHECK(manage_status.ok()) << manage_status.message();
       if (!manage_status.ok()) {
         LOG(ERROR) << "Internal error: Unable to transfer servable "
                    << version_id.DebugString()
-                   << " to 'basic_manager_': " << manage_status.error_message();
+                   << " to 'basic_manager_': " << manage_status.message();
       }
     }
   }
@@ -338,7 +354,7 @@ bool AspiredVersionsManager::ContainsAnyReaspiredVersions(
   const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
       basic_manager_->GetManagedServableStateSnapshots<Aspired>(
           string(servable_name));
-  const std::set<int64> version_numbers = GetVersionNumbers(versions);
+  const std::set<int64_t> version_numbers = GetVersionNumbers(versions);
   for (const ServableStateSnapshot<Aspired>& state_snapshot : state_snapshots) {
     if (!state_snapshot.additional_state->is_aspired &&
         version_numbers.find(state_snapshot.id.version) !=

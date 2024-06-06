@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 
 #include "grpcpp/support/status_code_enum.h"
+#include "absl/strings/str_join.h"
 
 namespace tensorflow {
 namespace serving {
@@ -23,11 +24,11 @@ namespace serving {
 ::grpc::Status ToGRPCStatus(const ::tensorflow::Status& status) {
   const int kErrorMessageLimit = 1024;
   string error_message;
-  if (status.error_message().length() > kErrorMessageLimit) {
-    error_message =
-        status.error_message().substr(0, kErrorMessageLimit) + "...TRUNCATED";
+  if (status.message().length() > kErrorMessageLimit) {
+    error_message = absl::StrCat(status.message().substr(0, kErrorMessageLimit),
+                                 "...TRUNCATED");
   } else {
-    error_message = status.error_message();
+    error_message = status.message();
   }
   return ::grpc::Status(static_cast<grpc::StatusCode>(status.code()),
                         error_message);

@@ -19,11 +19,13 @@ limitations under the License.
 
 #include <iostream>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "google/protobuf/wrappers.pb.h"
 #include "grpc/grpc.h"
+#include "grpcpp/health_check_service_interface.h"
 #include "grpcpp/resource_quota.h"
 #include "grpcpp/security/server_credentials.h"
 #include "grpcpp/server_builder.h"
@@ -40,6 +42,7 @@ limitations under the License.
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/profiler/rpc/profiler_service_impl.h"
 #include "tensorflow/core/protobuf/config.pb.h"
+#include "tsl/platform/errors.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/config/monitoring_config.pb.h"
 #include "tensorflow_serving/config/platform_config.pb.h"
@@ -47,33 +50,18 @@ limitations under the License.
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
-#include "tensorflow_serving/model_servers/platform_config_util.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/model_servers/server_init.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/thread_pool_factory_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
+#include "tensorflow_serving/util/proto_util.h"
 
 namespace tensorflow {
 namespace serving {
 namespace main {
 
 namespace {
-
-template <typename ProtoType>
-tensorflow::Status ParseProtoTextFile(const string& file, ProtoType* proto) {
-  std::unique_ptr<tensorflow::ReadOnlyMemoryRegion> file_data;
-  TF_RETURN_IF_ERROR(
-      tensorflow::Env::Default()->NewReadOnlyMemoryRegionFromFile(file,
-                                                                  &file_data));
-  string file_data_str(static_cast<const char*>(file_data->data()),
-                       file_data->length());
-  if (tensorflow::protobuf::TextFormat::ParseFromString(file_data_str, proto)) {
-    return tensorflow::Status::OK();
-  } else {
-    return tensorflow::errors::InvalidArgument("Invalid protobuf file: '", file,
-                                               "'");
-  }
-}
 
 tensorflow::Status LoadCustomModelConfig(
     const ::google::protobuf::Any& any,
@@ -177,14 +165,14 @@ void Server::PollFilesystemAndReloadConfig(const string& config_file_path) {
       ParseProtoTextFile<ModelServerConfig>(config_file_path, &config);
   if (!read_status.ok()) {
     LOG(ERROR) << "Failed to read ModelServerConfig file: "
-               << read_status.error_message();
+               << read_status.message();
     return;
   }
 
   const Status reload_status = server_core_->ReloadConfig(config);
   if (!reload_status.ok()) {
     LOG(ERROR) << "PollFilesystemAndReloadConfig failed to ReloadConfig: "
-               << reload_status.error_message();
+               << reload_status.message();
   }
 }
 
@@ -226,6 +214,9 @@ Status Server::BuildAndStart(const Options& server_options) {
         server_options.model_config_file, &options.model_server_config));
   }
 
+  auto* tf_serving_registry =
+      init::TensorflowServingFunctionRegistration::GetRegistry();
+
   if (server_options.platform_config_file.empty()) {
     SessionBundleConfig session_bundle_config;
     // Batching config
@@ -239,10 +230,19 @@ Status Server::BuildAndStart(const Options& server_options) {
         TF_RETURN_IF_ERROR(ParseProtoTextFile<BatchingParameters>(
             server_options.batching_parameters_file, batching_parameters));
       }
+      if (server_options.enable_per_model_batching_params) {
+        session_bundle_config.set_enable_per_model_batching_params(true);
+      }
     } else if (!server_options.batching_parameters_file.empty()) {
       return errors::InvalidArgument(
           "server_options.batching_parameters_file is set without setting "
           "server_options.enable_batching to true.");
+    }
+
+    if (!server_options.tensorflow_session_config_file.empty()) {
+      TF_RETURN_IF_ERROR(
+          ParseProtoTextFile(server_options.tensorflow_session_config_file,
+                             session_bundle_config.mutable_session_config()));
     }
 
     session_bundle_config.mutable_session_config()
@@ -294,11 +294,15 @@ Status Server::BuildAndStart(const Options& server_options) {
     session_bundle_config.set_num_tflite_interpreters_per_pool(
         server_options.num_tflite_interpreters_per_pool);
     session_bundle_config.set_num_tflite_pools(server_options.num_tflite_pools);
-    options.platform_config_map =
-        CreateTensorFlowPlatformConfigMap(session_bundle_config);
+    session_bundle_config.set_mixed_precision(server_options.mixed_precision);
+
+    TF_RETURN_IF_ERROR(tf_serving_registry->GetSetupPlatformConfigMap()(
+        session_bundle_config, options.platform_config_map));
   } else {
     TF_RETURN_IF_ERROR(ParseProtoTextFile<PlatformConfigMap>(
         server_options.platform_config_file, &options.platform_config_map));
+    TF_RETURN_IF_ERROR(tf_serving_registry->GetUpdatePlatformConfigMap()(
+        options.platform_config_map));
   }
 
   options.custom_model_config_loader = &LoadCustomModelConfig;
@@ -314,6 +318,8 @@ Status Server::BuildAndStart(const Options& server_options) {
   options.flush_filesystem_caches = server_options.flush_filesystem_caches;
   options.allow_version_labels_for_unavailable_models =
       server_options.allow_version_labels_for_unavailable_models;
+  options.force_allow_any_version_labels_for_unavailable_models =
+      server_options.force_allow_any_version_labels_for_unavailable_models;
   options.enable_cors_support = server_options.enable_cors_support;
 
   TF_RETURN_IF_ERROR(ServerCore::Create(std::move(options), &server_core_));
@@ -341,7 +347,7 @@ Status Server::BuildAndStart(const Options& server_options) {
       "0.0.0.0:" + std::to_string(server_options.grpc_port);
   model_service_ = absl::make_unique<ModelServiceImpl>(server_core_.get());
 
-  PredictionServiceImpl::Options predict_server_options;
+  PredictionServiceOptions predict_server_options;
   predict_server_options.server_core = server_core_.get();
   predict_server_options.enforce_session_run_timeout =
       server_options.enforce_session_run_timeout;
@@ -356,8 +362,7 @@ Status Server::BuildAndStart(const Options& server_options) {
   }
   predict_server_options.thread_pool_factory = thread_pool_factory_.get();
   prediction_service_ =
-      absl::make_unique<PredictionServiceImpl>(predict_server_options);
-
+      tf_serving_registry->GetCreatePredictionService()(predict_server_options);
 
   ::grpc::ServerBuilder builder;
   // If defined, listen to a tcp port for gRPC/HTTP.
@@ -400,8 +405,17 @@ Status Server::BuildAndStart(const Options& server_options) {
   ::grpc::ResourceQuota res_quota;
   res_quota.SetMaxThreads(server_options.grpc_max_threads);
   builder.SetResourceQuota(res_quota);
-
+  ::grpc::EnableDefaultHealthCheckService(
+      server_options.enable_grpc_healthcheck_service);
   grpc_server_ = builder.BuildAndStart();
+
+  if (server_options.enable_grpc_healthcheck_service) {
+    grpc_server_->GetHealthCheckService()->SetServingStatus("ModelService",
+                                                            true);
+    grpc_server_->GetHealthCheckService()->SetServingStatus("PredictionService",
+                                                            true);
+  }
+
   if (grpc_server_ == nullptr) {
     return errors::InvalidArgument("Failed to BuildAndStart gRPC server");
   }
@@ -437,7 +451,7 @@ Status Server::BuildAndStart(const Options& server_options) {
                  << "Skipped exporting HTTP/REST API.";
     }
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 void Server::WaitForTermination() {

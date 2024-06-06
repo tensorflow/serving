@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/http_rest_api_util.h"
 
+#include <utility>
+#include <vector>
+
 #include "google/protobuf/util/json_util.h"
 #include "absl/strings/numbers.h"
 #include <curl/curl.h>
@@ -42,7 +45,7 @@ void AddCORSHeaders(std::vector<std::pair<string, string>>* headers) {
 
 Status FillModelSpecWithNameVersionAndLabel(
     const absl::string_view model_name,
-    const absl::optional<int64>& model_version,
+    const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view> model_version_label,
     ::tensorflow::serving::ModelSpec* model_spec) {
   model_spec->set_name(string(model_name));
@@ -60,7 +63,7 @@ Status FillModelSpecWithNameVersionAndLabel(
   if (model_version_label.has_value()) {
     model_spec->set_version_label(string(model_version_label.value()));
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 bool DecodeArg(string* arg) {
@@ -86,7 +89,7 @@ bool DecodeArg(string* arg) {
 
 Status ParseModelInfo(const absl::string_view http_method,
                       const absl::string_view request_path, string* model_name,
-                      absl::optional<int64>* model_version,
+                      absl::optional<int64_t>* model_version,
                       absl::optional<string>* model_version_label,
                       string* method, string* model_subresource,
                       bool* parse_successful) {
@@ -109,7 +112,7 @@ Status ParseModelInfo(const absl::string_view http_method,
     }
   }
   if (!model_version_str.empty()) {
-    int64 version;
+    int64_t version;
     if (!absl::SimpleAtoi(model_version_str, &version)) {
       return errors::InvalidArgument(
           "Failed to convert version: ", model_version_str, " to numeric.");
@@ -123,7 +126,7 @@ Status ParseModelInfo(const absl::string_view http_method,
     }
     *model_version_label = model_version_label_str;
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ToJsonString(const GetModelStatusResponse& response, string* output) {
@@ -136,7 +139,7 @@ Status ToJsonString(const GetModelStatusResponse& response, string* output) {
     return errors::Internal("Failed to convert proto to json. Error: ",
                             status.ToString());
   }
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status ToJsonString(const GetModelMetadataResponse& response, string* output) {
@@ -191,7 +194,7 @@ Status ToJsonString(const GetModelMetadataResponse& response, string* output) {
   absl::StrAppend(output, "\"signature_def\": ", signature_def_output, "}\n");
   absl::StrAppend(output, "}\n");
 
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 }  // namespace serving

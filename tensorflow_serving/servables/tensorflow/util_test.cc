@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/util.h"
 
+#include <map>
+#include <set>
+#include <vector>
+
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/example/example.pb.h"
@@ -61,7 +65,7 @@ class InputUtilTest : public ::testing::Test {
     return example;
   }
 
-  Example example_C(const int64 value = 33) {
+  Example example_C(const int64_t value = 33) {
     Feature feature;
     feature.mutable_int64_list()->add_value(value);
     Example example;
@@ -76,7 +80,7 @@ class InputUtilTest : public ::testing::Test {
 TEST_F(InputUtilTest, Empty_KindNotSet) {
   const Status status = InputToSerializedExampleTensor(input_, &tensor_);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.error_message(), HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), HasSubstr("Input is empty"));
 }
 
 TEST_F(InputUtilTest, Empty_ExampleList) {
@@ -84,7 +88,7 @@ TEST_F(InputUtilTest, Empty_ExampleList) {
 
   const Status status = InputToSerializedExampleTensor(input_, &tensor_);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.error_message(), HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), HasSubstr("Input is empty"));
 }
 
 TEST_F(InputUtilTest, Empty_ExampleListWithContext) {
@@ -92,7 +96,7 @@ TEST_F(InputUtilTest, Empty_ExampleListWithContext) {
 
   const Status status = InputToSerializedExampleTensor(input_, &tensor_);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.error_message(), HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), HasSubstr("Input is empty"));
 }
 
 TEST_F(InputUtilTest, ExampleList) {
@@ -196,7 +200,7 @@ TEST_F(InputUtilTest, ExampleListWithContext_OnlyContext) {
 
   const Status status = InputToSerializedExampleTensor(input_, &tensor_);
   ASSERT_FALSE(status.ok());
-  EXPECT_THAT(status.error_message(), HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), HasSubstr("Input is empty"));
 }
 
 TEST_F(InputUtilTest, RequestNumExamplesStreamz) {
@@ -292,14 +296,14 @@ TEST(ResourceEstimatorTest, EstimateResourceFromPathUsingDiskState) {
   // Set up the expectation that the directory contains exactly one child with
   // the given file size.
   test_util::MockFileProbingEnv env;
-  EXPECT_CALL(env, FileExists(export_dir)).WillRepeatedly(Return(Status::OK()));
+  EXPECT_CALL(env, FileExists(export_dir)).WillRepeatedly(Return(OkStatus()));
   EXPECT_CALL(env, GetChildren(export_dir, _))
       .WillRepeatedly(DoAll(SetArgPointee<1>(std::vector<string>({child})),
-                            Return(Status::OK())));
+                            Return(OkStatus())));
   EXPECT_CALL(env, IsDirectory(child_path))
       .WillRepeatedly(Return(errors::FailedPrecondition("")));
   EXPECT_CALL(env, GetFileSize(child_path, _))
-      .WillRepeatedly(DoAll(SetArgPointee<1>(file_size), Return(Status::OK())));
+      .WillRepeatedly(DoAll(SetArgPointee<1>(file_size), Return(OkStatus())));
 
   ResourceAllocation actual;
   TF_ASSERT_OK(

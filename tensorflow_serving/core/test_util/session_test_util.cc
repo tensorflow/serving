@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/core/test_util/session_test_util.h"
 
+#include <functional>
+#include <string>
+#include <utility>
+
 #include "absl/memory/memory.h"
 #include "absl/strings/strip.h"
 #include "tensorflow/core/common_runtime/session_factory.h"
@@ -57,7 +61,7 @@ class DelegatingSessionFactory : public SessionFactory {
     TF_RETURN_IF_ERROR(
         tensorflow::NewSession(actual_session_options, &actual_session));
     *out_session = actual_session;
-    return Status::OK();
+    return Status();
   }
 };
 

@@ -33,3 +33,22 @@ cc_test(
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
+
+cc_library(
+    name = "run_options",
+    hdrs = ["run_options.h"],
+    deps = [
+        "//tensorflow_serving/servables/tensorflow:run_options_base",
+    ],
+)
+
+cc_library(
+    name = "file_acl",
+    srcs = ["file_acl.cc"],
+    hdrs = ["file_acl.h"],
+    compatible_with = [],
+    deps = [
+        "//tensorflow_serving/core:servable_id",
+        "@com_google_absl//absl/status",
+    ],
+)

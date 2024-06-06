@@ -26,6 +26,11 @@ message PredictLog {
   PredictResponse response = 2;
 }
 
+message PredictStreamedLog {
+  repeated PredictRequest request = 1;
+  repeated PredictResponse response = 2;
+}
+
 message MultiInferenceLog {
   MultiInferenceRequest request = 1;
   MultiInferenceResponse response = 2;
@@ -43,6 +48,7 @@ message PredictionLog {
     ClassifyLog classify_log = 2;
     RegressLog regress_log = 3;
     PredictLog predict_log = 6;
+    PredictStreamedLog predict_streamed_log = 7;
     MultiInferenceLog multi_inference_log = 4;
     SessionRunLog session_run_log = 5;
   }

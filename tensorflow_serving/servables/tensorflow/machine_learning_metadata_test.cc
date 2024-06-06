@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/machine_learning_metadata.h"
 
+#include <memory>
+#include <string>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -30,15 +33,15 @@ const char mlmd_streamz[] = "/tensorflow/serving/mlmd_map";
 
 bool GetMlmdUuid(const string& model_name, const string& version,
                  std::string* mlmd_uuid) {
-  auto* collection_registry = monitoring::CollectionRegistry::Default();
-  monitoring::CollectionRegistry::CollectMetricsOptions options;
-  const std::unique_ptr<monitoring::CollectedMetrics> collected_metrics =
+  auto* collection_registry = tsl::monitoring::CollectionRegistry::Default();
+  tsl::monitoring::CollectionRegistry::CollectMetricsOptions options;
+  const std::unique_ptr<tsl::monitoring::CollectedMetrics> collected_metrics =
       collection_registry->CollectMetrics(options);
   const auto& point_set_map = collected_metrics->point_set_map;
   if (point_set_map.empty() ||
       point_set_map.find(mlmd_streamz) == point_set_map.end())
     return false;
-  const monitoring::PointSet& lps =
+  const tsl::monitoring::PointSet& lps =
       *collected_metrics->point_set_map.at(mlmd_streamz);
   for (int i = 0; i < lps.points.size(); ++i) {
     if ((lps.points[i]->labels[0].name == "model_name") &&

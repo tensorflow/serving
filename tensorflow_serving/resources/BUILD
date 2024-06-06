@@ -1,3 +1,4 @@
+# Placeholder: load py_proto_library
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 package(
@@ -7,7 +8,7 @@ package(
     features = ["-layering_check"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 filegroup(
     name = "all_files",
@@ -45,6 +46,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":resources_cc_proto",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

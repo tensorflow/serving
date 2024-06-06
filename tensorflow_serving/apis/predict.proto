@@ -1,10 +1,11 @@
 syntax = "proto3";
 
 package tensorflow.serving;
-option cc_enable_arenas = true;
 
 import "tensorflow/core/framework/tensor.proto";
 import "tensorflow_serving/apis/model.proto";
+
+option cc_enable_arenas = true;
 
 // PredictRequest specifies which TensorFlow model to run, as well as
 // how inputs are mapped to tensors and how outputs are filtered before
@@ -28,6 +29,125 @@ message PredictRequest {
   // exception that when none is specified, all tensors specified in the
   // named signature will be run/fetched and returned.
   repeated string output_filter = 3;
+
+  // Reserved field 4.
+  reserved 4;
+
+  // Options for streaming requests to control how multiple requests/responses
+  // are handled within a single stream.
+  PredictStreamedOptions predict_streamed_options = 5;
+
+  // Client identifier to group requests belonging to a specific entity.
+  // Example entities can be product ids, service names, user ids etc.
+  // Servers can use this to optimize placement, caching and colocation.
+  // TODO(b/329897437): Migrate to client_id in RequestOptions.
+  optional bytes client_id = 6;
+
+  // Options for PredictRequest.
+  message RequestOptions {
+    // Client identifier to group requests belonging to a specific entity.
+    // Example entities can be product ids, service names, user ids etc.
+    // Servers can use this to optimize placement, caching and colocation.
+    optional bytes client_id = 1;
+
+    // Deterministic mode for the request. When specified, model servers will
+    // reduce numeric instability based on different mode selections.
+    enum DeterministicMode {
+      DETERMINISTIC_MODE_UNSPECIFIED = 0;
+
+      // Only supported in disaggregated serving. When set, the request will be
+      // pinned to a fixed decoder slot index that's deterministic across
+      // processes.
+      FIXED_DECODER_SLOT = 1;
+    }
+
+    optional DeterministicMode deterministic_mode = 2;
+  }
+
+  optional RequestOptions request_options = 7;
+}
+
+// Options only used for streaming requests that control how inputs/ouputs are
+// handled in the stream.
+message PredictStreamedOptions {
+  // Request state used to handle splitting of requests.  NONE is the
+  // default when the stream request is not split.
+  //
+  // SPLIT is used when multiple streamed requests are used to generate a
+  // logical request. END_SPLIT should be called for the last split of the
+  // logical request. NONE can not be interspersed with SPLIT before END_SPLIT
+  // is called. If another request is sent on the same
+  // stream after END_SPLIT, it can be any of the RequestState since a new
+  // logical request has started.  If END_SPLIT is called on its own the
+  // behavior is the same as NONE.
+  //
+  // Some examples with a mix of request states and the logical request.
+  //
+  // Example 1 :
+  //   SPLIT
+  //   SPLIT
+  //   END_SPLIT
+  //
+  // Will be treated as a single logical request.
+  //
+  // Example 2:
+  //   NONE
+  //   END_SPLIT
+  //   NONE
+  //
+  // Will be treated as three logical requests (1. NONE 2. END_SPLIT, 3. NONE)
+  //
+  // Example 3:
+  //   SPLIT
+  //   SPLIT
+  //
+  // Invalid because END_SPLIT is never call.
+  //
+  // Example 4:
+  //   SPLIT
+  //   NONE
+  //   SPLIT
+  //   END_SPLIT
+  //
+  // Invalid because is interspersed with SPLIT.
+  //
+  // Example 5:
+  //   SPLIT
+  //   END_SPLIT
+  //   SPLIT
+  //   SPLIT
+  //   END_SPLIT
+  //
+  // Will be treated as two logical requests (1. SPLIT, END_SPLIT 2. SPLIT,
+  // SPLIT, END_SPLIT)
+
+  enum RequestState {
+    NONE = 0;
+    SPLIT = 1;
+    END_SPLIT = 2;
+  }
+
+  // Request state used to handle segmentation of requests.
+  RequestState request_state = 1;
+
+  // Input tensors split dimensions.
+  // Defines the dimension used to split input tensors specified
+  // in PredictRequest.inputs. The dimension will be used
+  // for concatenation of multiple SPLIT requests.
+  //
+  // For input tensor in PredictRequest.inputs that are not contained in this
+  // map, the tensors from the first SPLIT request will be used.
+  //
+  // For example, with an original input tensor of [[1, 2, 3, 4], [5, 6, 7, 8]].
+  //
+  // For a split dimension of 0 and two requests (SPLIT and END_SPLIT), the
+  // input tensors for request 1 should be [1, 2, 3, 4] and request 2 should be
+  // be [5, 6, 7, 8].
+  //
+  // For a split dimension of 1 and two requests (SPLIT and END_SPLIT), the
+  // input tensors for request 1 should be [[1, 2], [5, 6]] and request 2 should
+  // be [[3, 4], [7, 8]].
+  map<string, int32> split_dimensions = 2;
 }
 
 // Response for PredictRequest on successful run.

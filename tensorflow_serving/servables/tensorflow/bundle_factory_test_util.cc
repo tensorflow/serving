@@ -15,6 +15,12 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
 
+#include <memory>
+#include <queue>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
@@ -22,6 +28,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
@@ -73,12 +80,12 @@ std::vector<string> GetTestSavedModelBundleExportFiles() {
       tensorflow::io::JoinPath(dir, "variables/variables.data-00000-of-00001")};
 }
 
-uint64 GetTotalFileSize(const std::vector<string>& files) {
-  uint64 total_file_size = 0;
+uint64_t GetTotalFileSize(const std::vector<string>& files) {
+  uint64_t total_file_size = 0;
   for (const string& file : files) {
     if (!(Env::Default()->IsDirectory(file).ok()) &&
         Env::Default()->FileExists(file).ok()) {
-      uint64 file_size;
+      uint64_t file_size;
       TF_CHECK_OK(Env::Default()->GetFileSize(file, &file_size));
       total_file_size += file_size;
     }
@@ -97,11 +104,13 @@ SignatureDef GetTestSessionSignature() {
   return signature;
 }
 
-void TestSingleRequest(Session* session) {
-  Tensor input = test::AsTensor<float>({100.0f, 42.0f}, {2});
+void TestSingleRequest(Session* session, int input_batch_size) {
+  Tensor input(DT_FLOAT, TensorShape({input_batch_size}));
+  test::FillIota<float>(&input, 100.0f);
   // half plus two: output should be input / 2 + 2.
-  Tensor expected_output =
-      test::AsTensor<float>({100.0f / 2 + 2, 42.0f / 2 + 2}, {2});
+  Tensor expected_output(DT_FLOAT, TensorShape({input_batch_size}));
+  test::FillFn<float>(&expected_output,
+                      [](int i) -> float { return (100.0f + i) / 2 + 2; });
 
   // Note that "x" and "y" are the actual names of the nodes in the graph.
   // The saved manifest binds these to "input" and "output" respectively, but
@@ -111,21 +120,27 @@ void TestSingleRequest(Session* session) {
   const std::vector<string> empty_targets;
   std::vector<Tensor> outputs;
 
-  TF_ASSERT_OK(session->Run(inputs, output_names, empty_targets, &outputs));
+  RunMetadata run_metadata;
+  TF_ASSERT_OK(session->Run(RunOptions{}, inputs, output_names, empty_targets,
+                            &outputs, &run_metadata,
+                            thread::ThreadPoolOptions{}));
 
   ASSERT_EQ(1, outputs.size());
   const auto& single_output = outputs.at(0);
   test::ExpectTensorEqual<float>(expected_output, single_output);
 }
 
-void TestMultipleRequests(int num_requests, Session* session) {
+void TestMultipleRequests(Session* session, int num_requests,
+                          int input_batch_size) {
   std::vector<std::unique_ptr<Thread>> request_threads;
   request_threads.reserve(num_requests);
   for (int i = 0; i < num_requests; ++i) {
     request_threads.push_back(
         std::unique_ptr<Thread>(Env::Default()->StartThread(
             ThreadOptions(), strings::StrCat("thread_", i),
-            [session] { TestSingleRequest(session); })));
+            [session, input_batch_size] {
+              TestSingleRequest(session, input_batch_size);
+            })));
   }
 }
 
@@ -134,7 +149,7 @@ ResourceAllocation GetExpectedResourceEstimate(double total_file_size) {
   // match the constants defined in bundle_factory_util.cc.
   const double kResourceEstimateRAMMultiplier = 1.2;
   const int kResourceEstimateRAMPadBytes = 0;
-  const uint64 expected_ram_requirement =
+  const uint64_t expected_ram_requirement =
       total_file_size * kResourceEstimateRAMMultiplier +
       kResourceEstimateRAMPadBytes;
   ResourceAllocation resource_alloc;
@@ -145,6 +160,36 @@ ResourceAllocation GetExpectedResourceEstimate(double total_file_size) {
   ram_resource->set_kind(resource_kinds::kRamBytes);
   ram_entry->set_quantity(expected_ram_requirement);
   return resource_alloc;
+}
+
+void CopyDirOrDie(const string& src_dir, const string& dst_dir) {
+  int64_t u_files = 0;
+  int64_t u_dirs = 0;
+  if (Env::Default()->IsDirectory(dst_dir).ok()) {
+    TF_ASSERT_OK(Env::Default()->DeleteRecursively(dst_dir, &u_files, &u_dirs));
+  }
+  TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(dst_dir));
+  std::queue<std::string> dirs_to_copy;
+  dirs_to_copy.push(src_dir);
+  while (!dirs_to_copy.empty()) {
+    const string dir = dirs_to_copy.front();
+    dirs_to_copy.pop();
+    std::vector<std::string> children;
+    TF_ASSERT_OK(Env::Default()->GetChildren(dir, &children));
+    for (const string& child : children) {
+      const string child_path = io::JoinPath(dir, child);
+      StringPiece remainder = child_path;
+      CHECK(str_util::ConsumePrefix(&remainder, src_dir));
+      if (Env::Default()->IsDirectory(child_path).ok()) {
+        TF_ASSERT_OK(
+            Env::Default()->CreateDir(io::JoinPath(dst_dir, remainder)));
+        dirs_to_copy.push(child_path);
+      } else {
+        TF_ASSERT_OK(Env::Default()->CopyFile(
+            child_path, io::JoinPath(dst_dir, remainder)));
+      }
+    }
+  }
 }
 
 }  // namespace test_util

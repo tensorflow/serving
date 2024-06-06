@@ -285,3 +285,4 @@ notable ones. For a complete list, please refer to the
     model_base_path
 *   `--enable_model_warmup`: Enables [model warmup](saved_model_warmup.md) using
     user-provided PredictionLogs in assets.extra/ directory
+*   `--mixed_precision=bfloat16`: Enables BF16 Automatic Mixed Precision

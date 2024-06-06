@@ -62,7 +62,7 @@ const char kImproperlySizedOutputSignature[] = "ImproperlySizedOutputSignature";
 // Copies the "output" float feature from each Example.
 class FakeSession : public tensorflow::Session {
  public:
-  explicit FakeSession(absl::optional<int64> expected_timeout)
+  explicit FakeSession(absl::optional<int64_t> expected_timeout)
       : expected_timeout_(expected_timeout) {}
   ~FakeSession() override = default;
   Status Create(const GraphDef& graph) override {
@@ -119,7 +119,7 @@ class FakeSession : public tensorflow::Session {
     Tensor output;
     TF_RETURN_IF_ERROR(GetOutputTensor(examples, output_names[0], &output));
     outputs->push_back(output);
-    return Status::OK();
+    return OkStatus();
   }
 
   // Parses TensorFlow Examples from a string Tensor.
@@ -135,7 +135,7 @@ class FakeSession : public tensorflow::Session {
       }
       examples->push_back(example);
     }
-    return Status::OK();
+    return OkStatus();
   }
 
   // Gets the Feature from an Example with the given name.  Returns empty
@@ -162,7 +162,7 @@ class FakeSession : public tensorflow::Session {
       // Insert a rank 3 tensor which should be an error because outputs are
       // expected to be of shape [batch_size] or [batch_size, 1].
       *tensor = Tensor(DT_FLOAT, TensorShape({batch_size, 1, 10}));
-      return Status::OK();
+      return OkStatus();
     }
     // Both tensor shapes are valid, so make one of shape [batch_size, 1] and
     // the rest of shape [batch_size].
@@ -178,11 +178,11 @@ class FakeSession : public tensorflow::Session {
       }
       tensor->flat<float>()(i) = feature.float_list().value(0) + offset;
     }
-    return Status::OK();
+    return OkStatus();
   }
 
  private:
-  const absl::optional<int64> expected_timeout_;
+  const absl::optional<int64_t> expected_timeout_;
 };
 
 class RegressorTest : public ::testing::TestWithParam<bool> {
@@ -191,7 +191,7 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
     SetSignatureMethodNameCheckFeature(IsMethodNameCheckEnabled());
     saved_model_bundle_.reset(new SavedModelBundle);
     meta_graph_def_ = &saved_model_bundle_->meta_graph_def;
-    absl::optional<int64> expected_timeout = GetRunOptions().timeout_in_ms();
+    absl::optional<int64_t> expected_timeout = GetRunOptions().timeout_in_ms();
     fake_session_ = new FakeSession(expected_timeout);
     saved_model_bundle_->session.reset(fake_session_);
 
@@ -376,13 +376,17 @@ TEST_P(RegressorTest, InvalidNamedSignature) {
   *examples->Add() = example_with_output(3.0);
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
 
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
 }
 
 TEST_P(RegressorTest, MalformedOutputs) {
@@ -396,13 +400,17 @@ TEST_P(RegressorTest, MalformedOutputs) {
   Status status = regressor_->Regress(request_, &result_);
 
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
   // Test RunRegress
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
 }
 
 TEST_P(RegressorTest, EmptyInput) {
@@ -412,13 +420,13 @@ TEST_P(RegressorTest, EmptyInput) {
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
 
 TEST_P(RegressorTest, EmptyExampleList) {
@@ -427,13 +435,13 @@ TEST_P(RegressorTest, EmptyExampleList) {
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
 
 TEST_P(RegressorTest, EmptyExampleListWithContext) {
@@ -445,13 +453,13 @@ TEST_P(RegressorTest, EmptyExampleListWithContext) {
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr("Input is empty"));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
 
 TEST_P(RegressorTest, RunsFails) {
@@ -479,7 +487,7 @@ TEST_P(RegressorTest, UnexpectedOutputTensorSize) {
   std::vector<Tensor> outputs = {Tensor(DT_FLOAT, TensorShape({2}))};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                 ::testing::Return(Status::OK())));
+                                 ::testing::Return(OkStatus())));
   TF_ASSERT_OK(Create());
   *request_.mutable_input()->mutable_example_list()->mutable_examples()->Add() =
       example_with_output(2.0);
@@ -488,7 +496,7 @@ TEST_P(RegressorTest, UnexpectedOutputTensorSize) {
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("output batch size"));
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                 ::testing::Return(Status::OK())));
+                                 ::testing::Return(OkStatus())));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       mock, request_, &response);
@@ -503,7 +511,7 @@ TEST_P(RegressorTest, UnexpectedOutputTensorType) {
   std::vector<Tensor> outputs = {Tensor(DT_STRING, TensorShape({1}))};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                 ::testing::Return(Status::OK())));
+                                 ::testing::Return(OkStatus())));
   TF_ASSERT_OK(Create());
   *request_.mutable_input()->mutable_example_list()->mutable_examples()->Add() =
       example_with_output(2.0);
@@ -513,7 +521,7 @@ TEST_P(RegressorTest, UnexpectedOutputTensorType) {
               ::testing::HasSubstr("Expected output Tensor of DT_FLOAT"));
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillOnce(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                 ::testing::Return(Status::OK())));
+                                 ::testing::Return(OkStatus())));
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       mock, request_, &response);
@@ -536,12 +544,16 @@ TEST_P(RegressorTest, MissingRegressionSignature) {
   // TODO(b/26220896): This error should move to construction time.
   Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
   RegressionResponse response;
   status = RunRegress(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                       fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(::tensorflow::error::INVALID_ARGUMENT, status.code()) << status;
+  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+            status.code())
+      << status;
 }
 
 TEST_P(RegressorTest, MethodNameCheck) {

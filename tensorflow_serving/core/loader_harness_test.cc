@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/core/loader_harness.h"
 
 #include <memory>
+#include <utility>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -76,7 +77,7 @@ TEST(LoaderHarnessTest, Quiesce) {
   const ServableId servable_id = {"test", 0};
   LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(Return(Status::OK()));
+      .WillOnce(Return(OkStatus()));
   EXPECT_CALL(*loader, Unload()).WillOnce(Return());
 
   TF_ASSERT_OK(harness.LoadRequested());
@@ -101,7 +102,7 @@ TEST(LoaderHarnessTest, Load) {
   LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
 
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(Return(Status::OK()));
+      .WillOnce(Return(OkStatus()));
   {
     std::unique_ptr<Thread> test_thread(
         Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
@@ -123,7 +124,7 @@ TEST(LoaderHarnessTest, Unload) {
 
   LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(Return(Status::OK()));
+      .WillOnce(Return(OkStatus()));
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load());
@@ -143,7 +144,7 @@ TEST(LoaderHarnessTest, UnloadRequested) {
   const ServableId servable_id = {"test", 0};
   LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(Return(Status::OK()));
+      .WillOnce(Return(OkStatus()));
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load());
@@ -179,7 +180,7 @@ TEST(LoaderHarnessTest, LoadError) {
           TF_ASSERT_OK(harness.LoadRequested());
           TF_ASSERT_OK(harness.LoadApproved());
           Status status = harness.Load();
-          EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
+          EXPECT_THAT(status.message(), HasSubstr("test load error"));
         }));
   }
   EXPECT_EQ(LoaderHarness::State::kError, harness.state());
@@ -188,7 +189,9 @@ TEST(LoaderHarnessTest, LoadError) {
 TEST(LoaderHarnessTest, ExternallySignalledError) {
   LoaderHarness harness(ServableId{"test", 0}, nullptr /* no loader */);
   EXPECT_EQ(LoaderHarness::State::kNew, harness.state());
-  const Status status = Status(error::UNKNOWN, "Some unknown error");
+  const Status status =
+      Status(static_cast<tensorflow::errors::Code>(absl::StatusCode::kUnknown),
+             "Some unknown error");
   harness.Error(status);
   EXPECT_EQ(LoaderHarness::State::kError, harness.state());
   EXPECT_EQ(status, harness.status());
@@ -196,7 +199,9 @@ TEST(LoaderHarnessTest, ExternallySignalledError) {
 
 TEST(LoaderHarnessTest, ExternallySignalledErrorWithCallback) {
   const ServableId id = {"test_servable", 42};
-  const Status error = Status(error::UNKNOWN, "Some unknown error");
+  const Status error =
+      Status(static_cast<tensorflow::errors::Code>(absl::StatusCode::kUnknown),
+             "Some unknown error");
   Notification callback_called;
   LoaderHarness::Options options;
   options.error_callback = [&](const ServableId& callback_id,
@@ -236,7 +241,7 @@ TEST(LoaderHarnessTest, MultipleLoadRequestsOnlyFirstOneSucceeds) {
   const Status second_request_status = harness.LoadRequested();
   EXPECT_FALSE(second_request_status.ok());
   EXPECT_EQ(error::FAILED_PRECONDITION, second_request_status.code());
-  EXPECT_THAT(second_request_status.error_message(),
+  EXPECT_THAT(second_request_status.message(),
               HasSubstr("Duplicate load request"));
 
   EnableDestruction(&harness);
@@ -249,7 +254,7 @@ TEST(LoaderHarnessTest, MultipleUnloadRequestsOnlyFirstOneSucceeds) {
 
   TF_ASSERT_OK(harness.LoadRequested());
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(Return(Status::OK()));
+      .WillOnce(Return(OkStatus()));
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load());
 
@@ -258,7 +263,7 @@ TEST(LoaderHarnessTest, MultipleUnloadRequestsOnlyFirstOneSucceeds) {
   EXPECT_FALSE(second_status.ok());
   EXPECT_EQ(error::FAILED_PRECONDITION, second_status.code());
   EXPECT_THAT(
-      second_status.error_message(),
+      second_status.message(),
       HasSubstr("Servable not loaded, or unload already requested/ongoing"));
 
   EnableDestruction(&harness);
@@ -275,7 +280,7 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorFinallySucceeds) {
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
       .WillOnce(InvokeWithoutArgs(
           []() { return errors::Unknown("test load error"); }))
-      .WillOnce(InvokeWithoutArgs([]() { return Status::OK(); }));
+      .WillOnce(InvokeWithoutArgs([]() { return OkStatus(); }));
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load());
@@ -298,7 +303,7 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorFinallyFails) {
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   const Status status = harness.Load();
-  EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
+  EXPECT_THAT(status.message(), HasSubstr("test load error"));
 }
 
 // Tests cancelling load retries.
@@ -313,15 +318,38 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorCancelledLoad) {
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
       .WillOnce(InvokeWithoutArgs(
           []() { return errors::Unknown("test load error"); }))
-      // If the load is called again, we return Status::OK() to fail the test.
-      .WillRepeatedly(InvokeWithoutArgs([]() { return Status::OK(); }));
+      // If the load is called again, we return OkStatus() to fail the test.
+      .WillRepeatedly(InvokeWithoutArgs([]() { return OkStatus(); }));
   std::unique_ptr<Thread> test_thread(
       Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
         TF_ASSERT_OK(harness.LoadRequested());
         TF_ASSERT_OK(harness.LoadApproved());
         harness.set_cancel_load_retry(true);
         const Status status = harness.Load();
-        EXPECT_THAT(status.error_message(), HasSubstr("test load error"));
+        EXPECT_THAT(status.message(), HasSubstr("test load error"));
+      }));
+}
+
+// Tests unload when ongoing load is cancelled.
+TEST(LoaderHarnessTest, UnloadDueToCancelledLoad) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+
+  const ServableId servable_id = {"test", 0};
+  LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
+
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
+      .WillOnce(InvokeWithoutArgs([]() {
+        Env::Default()->SleepForMicroseconds(1000000);
+        return OkStatus();
+      }));
+
+  std::unique_ptr<Thread> test_thread(
+      Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
+        TF_ASSERT_OK(harness.LoadRequested());
+        TF_ASSERT_OK(harness.LoadApproved());
+        harness.set_cancel_load_retry(true);
+        const Status status = harness.Load();
+        EXPECT_THAT(status.message(), HasSubstr("cancelled"));
       }));
 }
 

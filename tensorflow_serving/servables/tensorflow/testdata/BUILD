@@ -1,5 +1,7 @@
 # Description: Example TensorFlow model export.
 
+# Placeholder: load py_binary
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",
@@ -10,7 +12,7 @@ package(
     ],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 exports_files(
     [
@@ -50,7 +52,6 @@ py_binary(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
 )
 
 py_binary(
@@ -60,7 +61,6 @@ py_binary(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
 )
 
 py_binary(
@@ -70,10 +70,7 @@ py_binary(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = [
-        "@org_tensorflow//tensorflow:tensorflow_py",
-        "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils",
-    ],
+    deps = ["@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils"],
 )
 
 py_binary(
@@ -84,10 +81,7 @@ py_binary(
     main = "parse_example_tflite.py",
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = [
-        "@org_tensorflow//tensorflow:tensorflow_py",
-        "@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils",
-    ],
+    deps = ["@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils"],
 )
 
 filegroup(
@@ -165,6 +159,26 @@ filegroup(
     srcs = glob(
         ["parse_example_tflite/**"],
     ),
+)
+
+filegroup(
+    name = "saved_model_half_plus_two_cpu_with_saved_model_config",
+    srcs = glob(
+        ["saved_model_half_plus_two_cpu_with_saved_model_config/**"],
+    ),
+    visibility = [
+        "//visibility:public",
+    ],
+)
+
+filegroup(
+    name = "saved_model_half_plus_two_cpu_with_empty_saved_model_config",
+    srcs = glob(
+        ["saved_model_half_plus_two_cpu_with_empty_saved_model_config/**"],
+    ),
+    visibility = [
+        "//visibility:public",
+    ],
 )
 
 exports_files([

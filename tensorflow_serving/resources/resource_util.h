@@ -49,6 +49,12 @@ class ResourceUtil {
   // have undefined behavior otherwise), and guarantee to produce valid outputs.
   virtual Status VerifyValidity(const ResourceAllocation& allocation) const;
 
+  // Determine if the override_allocation's device set is a subset of
+  // base_allocation. Only used by controller
+  Status VerifyOverrideDeviceValidity(
+      const ResourceAllocation& base_allocation,
+      const ResourceAllocation& override_allocation) const;
+
   // Verifies whether 'resource' is valid, i.e. it only refers to valid devices,
   // i.e. those supplied via Options.
   Status VerifyResourceValidity(const Resource& resource) const;
@@ -77,12 +83,12 @@ class ResourceUtil {
   // Gets the quantity of 'resource' present in 'allocation'. Returns 0 if
   // 'resource' is not mentioned in 'allocation', since unmentioned resources
   // are implicitly zero.
-  uint64 GetQuantity(const Resource& resource,
-                     const ResourceAllocation& allocation) const;
+  uint64_t GetQuantity(const Resource& resource,
+                       const ResourceAllocation& allocation) const;
 
   // Sets the quantity of 'resource' to 'quantity' in 'allocation', overwriting
   // any existing quantity.
-  void SetQuantity(const Resource& resource, uint64 quantity,
+  void SetQuantity(const Resource& resource, uint64_t quantity,
                    ResourceAllocation* allocation) const;
 
   // Adds 'to_add' to 'base'.
@@ -102,7 +108,7 @@ class ResourceUtil {
 
   // Multiplies every resource quantity in 'base' by 'multiplier'. Keeps bound
   // and unbound entries separate.
-  void Multiply(uint64 multiplier, ResourceAllocation* base) const;
+  void Multiply(uint64_t multiplier, ResourceAllocation* base) const;
 
   // Determines whether two ResourceAllocation objects are identical (modulo
   // normalization).
@@ -165,6 +171,14 @@ class ResourceUtil {
   ResourceAllocation Min(const ResourceAllocation& lhs,
                          const ResourceAllocation& rhs) const;
 
+  // The implementation of ResourceUtil::Normalize().
+  // Converts 'allocation' to normal form, meaning:
+  //  1. It has no entries with quantity 0.
+  //  2. Resources of a device that has exactly one instance are bound to that
+  //     instance.
+  ResourceAllocation NormalizeResourceAllocation(
+      const ResourceAllocation& allocation) const;
+
  private:
   enum class DCHECKFailOption { kDoDCHECKFail, kDoNotDCHECKFail };
 
@@ -194,7 +208,7 @@ class ResourceUtil {
 
   // Like Multiply(), but assumes the input is normalized and produces
   // normalized output.
-  void MultiplyNormalized(uint64 multiplier, ResourceAllocation* base) const;
+  void MultiplyNormalized(uint64_t multiplier, ResourceAllocation* base) const;
 
   // Like Equal(), but assumes the input is normalized.
   bool EqualNormalized(const ResourceAllocation& lhs,
@@ -221,6 +235,10 @@ class ResourceUtil {
   // result.
   ResourceAllocation MinNormalized(const ResourceAllocation& lhs,
                                    const ResourceAllocation& rhs) const;
+
+  // The implementation of ResourceUtil::IsNormalized().
+  bool IsResourceAllocationNormalized(
+      const ResourceAllocation& allocation) const;
 
   const std::map<string, uint32> devices_;
 

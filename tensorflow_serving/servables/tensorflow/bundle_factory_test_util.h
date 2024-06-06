@@ -45,21 +45,27 @@ std::vector<string> GetTestSessionBundleExportFiles();
 std::vector<string> GetTestSavedModelBundleExportFiles();
 
 // Returns the total size of the given files. Requires the files to exist.
-uint64 GetTotalFileSize(const std::vector<string>& files);
+uint64_t GetTotalFileSize(const std::vector<string>& files);
 
 // Returns a signature for the half plus two model.
 SignatureDef GetTestSessionSignature();
 
 // Test that a Session handles a single request for the half plus two
-// model properly. The request has size=2, for batching purposes.
-void TestSingleRequest(Session* session);
+// model properly. Each request contains `input_batch_size` sized input.
+void TestSingleRequest(Session* session, int input_batch_size = 2);
 
 // Test that a Session handles multiple concurrent requests for the half plus
-// two model properly. The request has size=2, for batching purposes.
-void TestMultipleRequests(int num_requests, Session* session);
+// two model properly. Send `num_requests` request, with each request containing
+// `input_batch_size` sized input.
+void TestMultipleRequests(Session* session, int num_requests,
+                          int input_batch_size);
 
 // Returns the expected resource estimate for the given total file size.
 ResourceAllocation GetExpectedResourceEstimate(double total_file_size);
+
+// Copy (recursively) directory from `src` to `dst`. If `dst` directory exists
+// it will be removed before copying. CHECK-fail on errors.
+void CopyDirOrDie(const string& src_dir, const string& dst_dir);
 
 }  // namespace test_util
 }  // namespace serving

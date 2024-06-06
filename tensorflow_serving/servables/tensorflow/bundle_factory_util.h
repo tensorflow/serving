@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_BUNDLE_FACTORY_UTIL_H_
 
 #include "google/protobuf/wrappers.pb.h"
+#include "absl/types/optional.h"
 #include "tensorflow/core/kernels/batching_util/shared_batch_scheduler.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/protobuf/config.pb.h"
@@ -41,28 +42,22 @@ SessionOptions GetSessionOptions(const SessionBundleConfig& config);
 // Saved Model.
 RunOptions GetRunOptions(const SessionBundleConfig& config);
 
+// Get per-model batching parameters if they are present.
+//
+// When `per_model_configured` is true we return model specific batching
+// parameters from `batching_params.pbtxt` file in SavedModel dir under `path`
+// if one exists.  If `per_model_configured` is false we return `common_params`.
+// Failure to parse model specific params will return error.
+Status GetPerModelBatchingParams(const string& path,
+                                 const BatchingParameters& common_params,
+                                 bool per_model_configured,
+                                 absl::optional<BatchingParameters>* params);
+
 // Creates a BatchScheduler based on the batching configuration.
 template <typename TaskType>
 Status CreateBatchScheduler(
     const BatchingParameters& batching_config,
     std::shared_ptr<SharedBatchScheduler<TaskType>>* batch_scheduler) {
-  if (!batching_config.allowed_batch_sizes().empty()) {
-    // Verify that the last allowed batch size matches the max batch size.
-    const int last_allowed_size = batching_config.allowed_batch_sizes(
-        batching_config.allowed_batch_sizes().size() - 1);
-    const int max_size =
-        batching_config.has_max_batch_size()
-            ? batching_config.max_batch_size().value()
-            : typename SharedBatchScheduler<TaskType>::QueueOptions()
-                  .input_batch_size_limit;
-    if (last_allowed_size != max_size) {
-      return errors::InvalidArgument(
-          "Last entry in allowed_batch_sizes must match max_batch_size; last "
-          "entry was ",
-          last_allowed_size, "; expected ", max_size);
-    }
-  }
-
   typename SharedBatchScheduler<TaskType>::Options options;
   if (batching_config.has_num_batch_threads()) {
     options.num_batch_threads = batching_config.num_batch_threads().value();
@@ -72,6 +67,11 @@ Status CreateBatchScheduler(
   }
   return SharedBatchScheduler<TaskType>::Create(options, batch_scheduler);
 }
+
+// Estimates the resources a session bundle or saved model bundle will use once
+// loaded, from infra validation.
+Status EstimateResourceFromValidationResult(const string& path,
+                                            ResourceAllocation* estimate);
 
 // Estimates the resources a session bundle or saved model bundle will use once
 // loaded, from its export or saved model path. tensorflow::Env::Default() will
@@ -86,17 +86,18 @@ Status EstimateResourceFromPath(const string& path, bool use_validation_result,
                                 ResourceAllocation* estimate);
 
 // Wraps a session in a new session that automatically batches Run() calls.
-// TODO(b/184973097): Remove enable_default_schedule_creator once TFLite is
-// fixed.
 Status WrapSessionForBatching(
     const BatchingParameters& batching_config,
     std::shared_ptr<SharedBatchScheduler<BatchingSessionTask>> batch_scheduler,
     const std::vector<SignatureDef>& signatures,
-    std::unique_ptr<Session>* session,
-    bool enable_default_schedule_creator = false);
+    std::unique_ptr<Session>* session);
 
 // Wraps a session in a new session that only supports Run() without batching.
 Status WrapSession(std::unique_ptr<Session>* session);
+
+// Wraps a session in a new session that only supports Run() without threading
+// parameters.
+Status WrapSessionIgnoreThreadPoolOptions(std::unique_ptr<Session>* session);
 
 // Construct Queue Options from BatchingParameters.
 template <typename TaskType>

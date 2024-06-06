@@ -37,8 +37,13 @@ function main() {
   mkdir -p ${TMPDIR}/tensorflow_serving/apis
   mkdir -p ${TMPDIR}/tensorflow_serving/config
 
+  BAZEL_OPT_DIR="k8-opt"
+  if [[ $(uname -m) == "aarch64" ]]; then
+          BAZEL_OPT_DIR="aarch64-opt"
+  fi
+
   echo "Adding python files"
-  cp bazel-out/k8-opt/bin/tensorflow_serving/apis/*_pb2.py \
+  cp bazel-out/${BAZEL_OPT_DIR}/bin/tensorflow_serving/apis/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/apis"
 
   cp ${BAZEL_PROJECT_DIR}/tensorflow_serving/apis/*_pb2.py \
@@ -47,7 +52,7 @@ function main() {
   cp ${BAZEL_PROJECT_DIR}/tensorflow_serving/apis/*_grpc.py \
     "${TMPDIR}/tensorflow_serving/apis"
 
-  cp bazel-out/k8-opt/bin/tensorflow_serving/config/*_pb2.py \
+  cp bazel-out/${BAZEL_OPT_DIR}/bin/tensorflow_serving/config/*_pb2.py \
     "${TMPDIR}/tensorflow_serving/config"
 
   touch "${TMPDIR}/tensorflow_serving/apis/__init__.py"

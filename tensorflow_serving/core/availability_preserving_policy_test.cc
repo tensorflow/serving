@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 
+#include <vector>
+
 #include <gtest/gtest.h>
 #include "tensorflow_serving/core/servable_id.h"
 

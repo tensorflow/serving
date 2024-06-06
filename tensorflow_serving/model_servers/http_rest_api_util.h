@@ -38,14 +38,14 @@ void AddCORSHeaders(std::vector<std::pair<string, string>>* headers);
 
 Status FillModelSpecWithNameVersionAndLabel(
     const absl::string_view model_name,
-    const absl::optional<int64>& model_version,
+    const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view> model_version_label,
     ::tensorflow::serving::ModelSpec* model_spec);
 
 // Parse model information from the request.
 Status ParseModelInfo(const absl::string_view http_method,
                       const absl::string_view request_path, string* model_name,
-                      absl::optional<int64>* model_version,
+                      absl::optional<int64_t>* model_version,
                       absl::optional<string>* model_version_label,
                       string* method, string* model_subresource,
                       bool* parse_successful);

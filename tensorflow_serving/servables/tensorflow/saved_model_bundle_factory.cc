@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
 
+#include <memory>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
 #include "absl/strings/string_view.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/framework/tensor.pb.h"
@@ -23,6 +28,7 @@ limitations under the License.
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
+#include "tensorflow/core/protobuf/rewriter_config.pb.h"
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
 #include "tensorflow_serving/servables/tensorflow/tflite_session.h"
@@ -52,7 +58,7 @@ Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
   std::unique_ptr<TfLiteSession> session;
 
   const string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
-  uint64 size;
+  uint64_t size;
   TF_RETURN_IF_ERROR(Env::Default()->GetFileSize(fname, &size));
 
   std::unique_ptr<RandomAccessFile> file;
@@ -69,7 +75,7 @@ Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
       num_interpreters_per_pool, &tflite_session,
       bundle->meta_graph_def.mutable_signature_def()));
   bundle->session = std::move(tflite_session);
-  return Status::OK();
+  return OkStatus();
 }
 
 bool TfLiteModelFound(const string& model_dir) {
@@ -88,7 +94,7 @@ Status SavedModelBundleFactory::Create(
         CreateBatchScheduler(config.batching_parameters(), &batcher));
   }
   factory->reset(new SavedModelBundleFactory(config, batcher));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status SavedModelBundleFactory::EstimateResourceRequirement(
@@ -121,6 +127,20 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
   }
   const auto& session_options = [&]() {
     auto result = GetSessionOptions(config_);
+    string mixed_precision_value = config_.mixed_precision();
+    if (!mixed_precision_value.empty()) {
+      if (mixed_precision_value == "bfloat16") {
+        LOG(INFO) << "Running inference with bfloat16 auto mixed precision";
+        tensorflow::ConfigProto& config = result.config;
+        GraphOptions* gopt = config.mutable_graph_options();
+        RewriterConfig* rwcfg = gopt->mutable_rewrite_options();
+        rwcfg->set_auto_mixed_precision_onednn_bfloat16(RewriterConfig::ON);
+      } else {
+        LOG(WARNING)
+            << config_.mixed_precision()
+            << " auto mixed precision is not supported. Valid option: bfloat16";
+      }
+    }
     if (metadata.has_value()) {
       auto* session_metadata =
           result.config.mutable_experimental()->mutable_session_metadata();
@@ -142,7 +162,7 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
   } else {
     TF_RETURN_IF_ERROR(session_bundle::LoadSessionBundleOrSavedModelBundle(
         session_options, GetRunOptions(config_), path, saved_model_tags,
-        bundle->get()));
+        config_.enable_saved_model_config(), bundle->get()));
   }
   if (config_.remove_unused_fields_from_bundle_metagraph()) {
     // Save memory by removing fields in MetaGraphDef proto message stored
@@ -156,21 +176,21 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
     (*bundle)->meta_graph_def.mutable_signature_def()->swap(
         *metagraph.mutable_signature_def());
   }
-  if (config_.has_batching_parameters()) {
-    LOG(INFO) << "Wrapping session to perform batch processing";
-    if (batch_scheduler_ == nullptr) {
-      return errors::Internal("batch_scheduler_ not set");
+  if (config_.wrap_session_with_no_threading_params()) {
+    return WrapSessionIgnoreThreadPoolOptions(&(*bundle)->session);
+  } else if (config_.has_batching_parameters()) {
+    absl::optional<BatchingParameters> batching_params;
+    TF_RETURN_IF_ERROR(GetPerModelBatchingParams(
+        path, config_.batching_parameters(),
+        config_.enable_per_model_batching_params(), &batching_params));
+    if (batching_params.has_value()) {
+      // Enable batching of requests to any one signature_def in the SavedModel.
+      // Note that in the future, the plan is to enable explicit configuration
+      // of the one or many SignatureDefs to enable.
+      const std::vector<SignatureDef> signatures = GetSignatureDefs(**bundle);
+      return WrapSessionForBatching(batching_params.value(), batch_scheduler_,
+                                    signatures, &(*bundle)->session);
     }
-    // Enable batching of requests to any one signature_def in the SavedModel.
-    // Note that in the future, the plan is to enable explicit configuration
-    // of the one or many SignatureDefs to enable.
-    // TODO(b/184973097): Remove enable_default_schedule_creator once TFLite is
-    // fixed.
-    const std::vector<SignatureDef> signatures = GetSignatureDefs(**bundle);
-    return WrapSessionForBatching(
-        config_.batching_parameters(), batch_scheduler_, signatures,
-        &(*bundle)->session,
-        /*enable_default_schedule_creator=*/!is_tflite);
   }
   return WrapSession(&(*bundle)->session);
 }

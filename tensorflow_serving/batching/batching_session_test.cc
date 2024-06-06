@@ -15,7 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/batching_session.h"
 
+#include <functional>
 #include <memory>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include "absl/synchronization/notification.h"
@@ -170,7 +174,7 @@ void ExpectError(const string& error_message,
   Status status = session->Run(inputs, output_tensor_names,
                                {} /* target nodes */, &outputs);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(error_message, status.error_message());
+  EXPECT_EQ(error_message, status.message());
 }
 
 // Creates a SignatureDef from a TensorSignature.
@@ -199,7 +203,7 @@ int GetPercentileTotal(string label) {
   if (point_set_map.find(label) == point_set_map.end()) return 0;
   const monitoring::PointSet& lps = *point_set_map.at(label);
   for (int i = 0; i < lps.points.size(); ++i) {
-    total_samples += lps.points[i]->percentiles_value.accumulator;
+    total_samples += lps.points[i]->histogram_value.sum();
   }
   return static_cast<int>(total_samples);
 }
@@ -277,7 +281,11 @@ class BatchingSessionTest
     output_options.enable_lazy_split = enable_lazy_split();
     if (enable_large_batch_splitting()) {
       output_options.split_input_task_func = get_split_input_task_func();
+      // Bump up the max batch size, and set execution batch size to the max
+      // size we actually want -- this will allow us to exercise large batch
+      // splits (they trigger when execution_batch_size < max_batch_size).
       output_options.max_execution_batch_size = input_options.max_batch_size;
+      output_options.max_batch_size = input_options.max_batch_size * 2;
     }
     return output_options;
   }
@@ -388,7 +396,7 @@ TEST_P(BatchingSessionTest, BatchingWithLargeBatch) {
           auto status =
               batching_session->Run({{"x", input2}}, {"y"}, {}, &output2);
           EXPECT_FALSE(status.ok());
-          EXPECT_THAT(status.error_message(),
+          EXPECT_THAT(status.message(),
                       HasSubstr("Task size 4 is larger than "
                                 "maximum input batch size 3"));
         }));
@@ -413,11 +421,10 @@ TEST_P(BatchingSessionTest, BatchHandlesSplitError) {
       CreateHalfPlusTwoSession(), &batching_session));
 
   string expected_error_msg =
-      "Tensors with name 'x' from different tasks"
-      " have different shapes and padding is turned off."
-      "Set pad_variable_length_inputs to true, or ensure that "
-      "all tensors with the same name"
-      "have equal dimensions starting with the first dim.";
+      "Tensors with name 'x' from different tasks have different shapes and "
+      "padding is turned off. Set pad_variable_length_inputs to true, or "
+      "ensure that all tensors with the same name have equal dimensions "
+      "starting with the first dim.";
 
   // `max_batch_size` is 3 and `max_execution_batch_size` is 2, so inputs of
   // first thread will span over two tasks, causing errors in both batch tasks.
@@ -632,11 +639,10 @@ TEST_P(BatchingSessionTest, UnequalTensorShapesWithPaddingTurnedOff) {
       schedule_options, batching_session_options, {{"x"}, {"y"}},
       CreateMatrixHalfPlusTwoSession(), &batching_session));
   string expected_error_msg =
-      "Tensors with name 'x' from different tasks"
-      " have different shapes and padding is turned off."
-      "Set pad_variable_length_inputs to true, or ensure that "
-      "all tensors with the same name"
-      "have equal dimensions starting with the first dim.";
+      "Tensors with name 'x' from different tasks have different shapes and "
+      "padding is turned off. Set pad_variable_length_inputs to true, or "
+      "ensure that all tensors with the same name have equal dimensions "
+      "starting with the first dim.";
   std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
       ThreadOptions(), "first_request",
       [&batching_session, &expected_error_msg] {
@@ -834,10 +840,13 @@ TEST_P(BatchingSessionTest,
   BatchingSessionOptions batching_session_options;
   batching_session_options.allowed_batch_sizes = {2, 8};  // Final entry != 4.
   std::unique_ptr<Session> batching_session;
-  EXPECT_FALSE(CreateBasicBatchingSession(
-                   schedule_options, batching_session_options, {{"x"}, {"y"}},
-                   CreateHalfPlusTwoSession(), &batching_session)
-                   .ok());
+  auto status = CreateBasicBatchingSession(
+      schedule_options, batching_session_options, {{"x"}, {"y"}},
+      CreateHalfPlusTwoSession(), &batching_session);
+  EXPECT_EQ(status.code(), error::INVALID_ARGUMENT);
+  EXPECT_THAT(status.message(), HasSubstr(enable_large_batch_splitting()
+                                              ? "max_execution_batch_size"
+                                              : "max_batch_size"));
 }
 
 TEST_P(BatchingSessionTest, DifferentOrderForInputAndOutputTensors) {
@@ -907,7 +916,7 @@ TEST_P(BatchingSessionTest, MultipleSignatures) {
             options, process_batch_callback, &basic_scheduler));
         schedulers.push_back(basic_scheduler.get());
         *scheduler = std::move(basic_scheduler);
-        return Status::OK();
+        return absl::OkStatus();
       };
   BatchingSessionOptions batching_session_options;
   std::unique_ptr<Session> batching_session;
@@ -975,7 +984,7 @@ TEST_P(BatchingSessionTest, EnqueuedLongerThanTimeout) {
             options, process_batch_callback, &basic_scheduler));
         scheduler = basic_scheduler.get();
         *new_scheduler = std::move(basic_scheduler);
-        return Status::OK();
+        return absl::OkStatus();
       };
   BatchingSessionOptions batching_session_options;
   std::unique_ptr<Session> batching_session;
@@ -998,7 +1007,7 @@ TEST_P(BatchingSessionTest, EnqueuedLongerThanTimeout) {
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(error::RESOURCE_EXHAUSTED, status.code());
     EXPECT_THAT(
-        status.error_message(),
+        status.message(),
         HasSubstr("Run() timeout exceeded while waiting in batching queue"));
     request_returned.Notify();
   };

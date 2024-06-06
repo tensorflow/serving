@@ -15,7 +15,14 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/util.h"
 
+#include <algorithm>
 #include <atomic>
+#include <cstdlib>
+#include <deque>
+#include <iterator>
+#include <set>
+#include <utility>
+#include <vector>
 
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
@@ -34,6 +41,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/internal/serialized_input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/resources/resource_values.h"
+#include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {
 namespace serving {
@@ -93,36 +101,7 @@ int NumInputExamples(const internal::SerializedInput& input) {
   return 0;
 }
 
-std::atomic<bool> signature_method_check{true};
-
-// Returns all the descendants, both directories and files, recursively under
-// 'dirname'. The paths returned are all prefixed with 'dirname'.
-Status GetAllDescendants(const string& dirname, FileProbingEnv* env,
-                         std::vector<string>* const descendants) {
-  descendants->clear();
-  // Make sure that dirname exists;
-  TF_RETURN_IF_ERROR(env->FileExists(dirname));
-  std::deque<string> dir_q;      // Queue for the BFS
-  std::vector<string> dir_list;  // List of all dirs discovered
-  dir_q.push_back(dirname);
-  // Do a BFS on the directory to discover all immediate children.
-  while (!dir_q.empty()) {
-    const string dir = dir_q.front();
-    dir_q.pop_front();
-    std::vector<string> children;
-    // GetChildren might fail if we don't have appropriate permissions.
-    TF_RETURN_IF_ERROR(env->GetChildren(dir, &children));
-    for (const string& child : children) {
-      const string child_path = io::JoinPath(dir, child);
-      descendants->push_back(child_path);
-      // If the child is a directory add it to the queue.
-      if (env->IsDirectory(child_path).ok()) {
-        dir_q.push_back(child_path);
-      }
-    }
-  }
-  return Status::OK();
-}
+std::atomic<bool> signature_method_check{false};
 
 }  // namespace
 
@@ -137,7 +116,8 @@ monitoring::Counter<1>* GetExampleCountTotal() { return example_count_total; }
 // Metrics by model
 void RecordModelRequestCount(const string& model_name, const Status& status) {
   model_request_status_count_total
-      ->GetCell(model_name, error::Code_Name(status.code()))
+      ->GetCell(model_name,
+                error::Code_Name(static_cast<error::Code>(status.code())))
       ->IncrementBy(1);
 }
 
@@ -162,10 +142,16 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
   // time get the count of num_examples as well.
   bool parse_serialized_input_ok = false;
 #if defined(PLATFORM_GOOGLE)
-  // Benchmark ('BM_InputToSerializedExample') can help measure the effect of
-  // changes in the future.
-  parse_serialized_input_ok =
-      serialized_input.ParseFromCord(input.SerializeAsCord());
+  {
+    // Benchmark ('BM_InputToSerializedExample') can help measure the effect of
+    // changes in the future.
+    absl::Cord tmp;
+    if (!input.SerializeToCord(&tmp)) {
+      return errors::InvalidArgument("Input failed to serialize. Size = ",
+                                     input.ByteSizeLong());
+    }
+    parse_serialized_input_ok = serialized_input.ParseFromCord(tmp);
+  }
 #else
   parse_serialized_input_ok =
       serialized_input.ParseFromString(input.SerializeAsString());
@@ -174,7 +160,7 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
     return errors::Internal("Error parsing serialized input.");
   }
 
-  const int64 num_examples = NumInputExamples(serialized_input);
+  const int64_t num_examples = NumInputExamples(serialized_input);
   if (num_examples == 0) {
     return errors::InvalidArgument("Input is empty.");
   }
@@ -219,7 +205,7 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
       return errors::Unimplemented(
           "Input with kind ", serialized_input.kind_case(), " not supported.");
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status PerformOneShotTensorComputation(
@@ -228,23 +214,23 @@ Status PerformOneShotTensorComputation(
     const std::vector<string>& output_tensor_names, Session* session,
     std::vector<Tensor>* outputs, int* num_input_examples,
     const thread::ThreadPoolOptions& thread_pool_options,
-    int64* runtime_latency) {
+    int64_t* runtime_latency) {
   // Setup the input Tensor to be a vector of string containing the serialized
   // tensorflow.Example.
   Tensor input_tensor;
   TF_RETURN_IF_ERROR(InputToSerializedExampleTensor(input, &input_tensor));
   *num_input_examples = input_tensor.dim_size(0);
 
-  const uint64 start_microseconds = EnvTime::NowMicros();
+  const uint64_t start_microseconds = EnvTime::NowMicros();
   RunMetadata run_metadata;
   TF_RETURN_IF_ERROR(session->Run(
       run_options, {{input_tensor_name, input_tensor}}, output_tensor_names, {},
       outputs, &run_metadata, thread_pool_options));
-  const uint64 end_microseconds = EnvTime::NowMicros();
+  const uint64_t end_microseconds = EnvTime::NowMicros();
   if (runtime_latency != nullptr) {
     *runtime_latency = end_microseconds - start_microseconds;
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status PerformOneShotTensorComputation(
@@ -272,7 +258,7 @@ Status PerformOneShotTensorComputation(
 
 void MakeModelSpec(const string& model_name,
                    const absl::optional<string>& signature_name,
-                   const absl::optional<int64>& version,
+                   const absl::optional<int64_t>& version,
                    ModelSpec* model_spec) {
   model_spec->Clear();
   model_spec->set_name(model_name);
@@ -287,31 +273,69 @@ void MakeModelSpec(const string& model_name,
 }
 
 Status GetModelDiskSize(const string& path, FileProbingEnv* env,
-                        uint64* total_file_size) {
+                        uint64_t* total_file_size) {
   if (env == nullptr) {
     return errors::Internal("FileProbingEnv not set");
   }
+  // Make sure that path exists.
+  TF_RETURN_IF_ERROR(env->FileExists(path));
 
-  std::vector<string> descendants;
-  TF_RETURN_IF_ERROR(GetAllDescendants(path, env, &descendants));
   *total_file_size = 0;
-  for (const string& descendant : descendants) {
-    if (!(env->IsDirectory(descendant).ok())) {
-      uint64 file_size;
-      TF_RETURN_IF_ERROR(env->GetFileSize(descendant, &file_size));
-      *total_file_size += file_size;
+  std::deque<string> dir_q;  // Queue for the BFS
+
+  dir_q.push_back(path);
+  // Do a BFS on the directory to discover all immediate children.
+  while (!dir_q.empty()) {
+    const string dir = dir_q.front();
+    dir_q.pop_front();
+    std::vector<string> children;
+    // GetChildren might fail if we don't have appropriate permissions.
+    TF_RETURN_IF_ERROR(env->GetChildren(dir, &children));
+    // Multi-threaded writes are safe for int but not bool, so we use int below.
+    std::vector<int> child_is_dir(children.size());
+    std::vector<absl::StatusOr<uint64_t>> children_sizes(children.size());
+
+    {
+      // Filesystem operations may block for a long time so this process is
+      // vastly accelerated by parallelizing the iteration over children.
+      ThreadPoolExecutor executor(Env::Default(), "ModelDiskSizePool", 256);
+      for (int i = 0; i < children.size(); i++) {
+        const string child_path = io::JoinPath(dir, children[i]);
+        children[i] = child_path;
+        executor.Schedule(
+            [i, child_path, env, &child_is_dir, &children_sizes]() {
+              if (env->IsDirectory(child_path).ok()) {
+                // If the child is a directory add it to the queue.
+                child_is_dir[i] = 1;
+              } else {
+                // Otherwise, add its file size to total_file_size.
+                uint64_t file_size;
+                Status status = env->GetFileSize(child_path, &file_size);
+                children_sizes[i] =
+                    status.ok() ? absl::StatusOr<uint64_t>(file_size) : status;
+              }
+            });
+      }
+    }
+    for (int i = 0; i < children.size(); i++) {
+      if (child_is_dir[i] == 1) {
+        dir_q.push_back(children[i]);
+      } else {
+        TF_RETURN_IF_ERROR(children_sizes[i].status());
+        *total_file_size += *children_sizes[i];
+      }
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status EstimateResourceFromPathUsingDiskState(const string& path,
                                               FileProbingEnv* env,
                                               ResourceAllocation* estimate) {
-  uint64 total_file_size = 0;
+  uint64_t total_file_size = 0;
   TF_RETURN_IF_ERROR(GetModelDiskSize(path, env, &total_file_size));
 
-  const uint64 ram_requirement =
+  const uint64_t ram_requirement =
       total_file_size * kResourceEstimateRAMMultiplier +
       kResourceEstimateRAMPadBytes;
 
@@ -321,16 +345,16 @@ Status EstimateResourceFromPathUsingDiskState(const string& path,
   ram_resource->set_kind(resource_kinds::kRamBytes);
   ram_entry->set_quantity(ram_requirement);
 
-  return Status::OK();
+  return OkStatus();
 }
 
 void RecordRuntimeLatency(const string& model_name, const string& api,
-                          const string& runtime, int64 latency_usec) {
+                          const string& runtime, int64_t latency_usec) {
   runtime_latency->GetCell(model_name, api, runtime)->Add(latency_usec);
 }
 
 void RecordRequestLatency(const string& model_name, const string& api,
-                          const string& entrypoint, int64 latency_usec) {
+                          const string& entrypoint, int64_t latency_usec) {
   request_latency->GetCell(model_name, api, entrypoint)->Add(latency_usec);
 }
 
@@ -339,6 +363,11 @@ std::set<string> SetDifference(std::set<string> set_a, std::set<string> set_b) {
   std::set_difference(set_a.begin(), set_a.end(), set_b.begin(), set_b.end(),
                       std::inserter(result, result.end()));
   return result;
+}
+
+bool IsTfrtErrorLoggingEnabled() {
+  const char* env = getenv("ENABLE_TFRT_SERVING_ERROR_LOGGING");
+  return env != nullptr && env[0] == '1' && env[1] == '\0';
 }
 
 }  // namespace serving

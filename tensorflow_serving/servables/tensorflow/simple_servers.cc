@@ -18,6 +18,7 @@ limitations under the License.
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -47,16 +48,17 @@ Status CreateStoragePathSource(
     const string& base_path, const string& servable_name,
     std::unique_ptr<Source<StoragePath>>* path_source) {
   FileSystemStoragePathSourceConfig config;
-  config.set_servable_name(servable_name);
-  config.set_base_path(base_path);
   config.set_file_system_poll_wait_seconds(1);
+  auto* servable = config.add_servables();
+  servable->set_servable_name(servable_name);
+  servable->set_base_path(base_path);
 
   std::unique_ptr<FileSystemStoragePathSource> file_system_source;
   TF_RETURN_IF_ERROR(
       FileSystemStoragePathSource::Create(config, &file_system_source));
 
   *path_source = std::move(file_system_source);
-  return Status::OK();
+  return OkStatus();
 }
 
 // Creates a SavedModelBundle Source by adapting the underlying
@@ -69,7 +71,7 @@ Status CreateSavedModelBundleSource(
   SavedModelBundleSourceAdapterConfig config;
   TF_RETURN_IF_ERROR(SavedModelBundleSourceAdapter::Create(config, source));
 
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace
@@ -91,7 +93,7 @@ Status CreateSingleTFModelManagerFromBasePath(
   builder->AddSourceChain(std::move(path_source), std::move(bundle_source));
   *manager = builder->Build();
 
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace simple_servers

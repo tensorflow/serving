@@ -16,7 +16,9 @@ limitations under the License.
 #include "tensorflow_serving/servables/hashmap/hashmap_source_adapter.h"
 
 #include <stddef.h>
+
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"
@@ -59,7 +61,7 @@ Status LoadHashmapFromFile(const string& path,
       return errors::InvalidArgument("Unrecognized format enum value: ",
                                      format);
   }
-  return Status::OK();
+  return Status();
 }
 
 }  // namespace

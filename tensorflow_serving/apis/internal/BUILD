@@ -1,5 +1,7 @@
 # Internal implementation details of serving APIs.
 
+load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",
@@ -7,9 +9,7 @@ package(
     features = ["-layering_check"],
 )
 
-licenses(["notice"])  # Apache 2.0
-
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+licenses(["notice"])
 
 serving_proto_library(
     name = "serialized_input_proto",

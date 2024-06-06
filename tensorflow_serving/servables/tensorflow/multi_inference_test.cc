@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/multi_inference.h"
 
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/loader.h"
@@ -95,7 +100,7 @@ class MultiInferenceTest : public ::testing::Test {
     inference_runner->reset(new TensorFlowMultiInferenceRunner(
         bundle->session.get(), &bundle->meta_graph_def,
         {this->servable_version_}));
-    return Status::OK();
+    return OkStatus();
   }
 
   Status GetServableHandle(ServableHandle<SavedModelBundle>* bundle) {
@@ -104,7 +109,7 @@ class MultiInferenceTest : public ::testing::Test {
     return GetServerCore()->GetServableHandle(model_spec, bundle);
   }
 
-  const int64 servable_version_ = 1;
+  const int64_t servable_version_ = 1;
 
  private:
   static std::unique_ptr<ServerCore> server_core_;
@@ -138,10 +143,10 @@ void PopulateTask(const string& signature_name, const string& method_name,
 }
 
 void ExpectStatusError(const Status& status,
-                       const tensorflow::error::Code expected_code,
+                       const tensorflow::errors::Code expected_code,
                        const string& message_substring) {
   EXPECT_EQ(expected_code, status.code());
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr(message_substring));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr(message_substring));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -155,8 +160,10 @@ TYPED_TEST_P(MultiInferenceTest, MissingInputTest) {
   PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
-                    tensorflow::error::INVALID_ARGUMENT, "Input is empty");
+  ExpectStatusError(
+      inference_runner->Infer(RunOptions(), request, &response),
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      "Input is empty");
 
   // MultiInference testing
   ServableHandle<SavedModelBundle> bundle;
@@ -165,7 +172,8 @@ TYPED_TEST_P(MultiInferenceTest, MissingInputTest) {
       RunMultiInference(RunOptions(), bundle->meta_graph_def,
                         this->servable_version_, bundle->session.get(), request,
                         &response),
-      tensorflow::error::INVALID_ARGUMENT, "Input is empty");
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      "Input is empty");
 }
 
 TYPED_TEST_P(MultiInferenceTest, UndefinedSignatureTest) {
@@ -178,8 +186,10 @@ TYPED_TEST_P(MultiInferenceTest, UndefinedSignatureTest) {
                request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
-                    tensorflow::error::INVALID_ARGUMENT, "signature not found");
+  ExpectStatusError(
+      inference_runner->Infer(RunOptions(), request, &response),
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      "signature not found");
 
   // MultiInference testing
   ServableHandle<SavedModelBundle> bundle;
@@ -188,7 +198,8 @@ TYPED_TEST_P(MultiInferenceTest, UndefinedSignatureTest) {
       RunMultiInference(RunOptions(), bundle->meta_graph_def,
                         this->servable_version_, bundle->session.get(), request,
                         &response),
-      tensorflow::error::INVALID_ARGUMENT, "signature not found");
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      "signature not found");
 }
 
 // Two ModelSpecs, accessing different models.
@@ -210,9 +221,10 @@ TYPED_TEST_P(MultiInferenceTest, InconsistentModelSpecsInRequestTest) {
   task->set_method_name(kRegressMethodName);
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
-                    tensorflow::error::INVALID_ARGUMENT,
-                    "must access the same model name");
+  ExpectStatusError(
+      inference_runner->Infer(RunOptions(), request, &response),
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      "must access the same model name");
 
   // MultiInference testing
   ServableHandle<SavedModelBundle> bundle;
@@ -221,7 +233,8 @@ TYPED_TEST_P(MultiInferenceTest, InconsistentModelSpecsInRequestTest) {
       RunMultiInference(RunOptions(), bundle->meta_graph_def,
                         this->servable_version_, bundle->session.get(), request,
                         &response),
-      tensorflow::error::INVALID_ARGUMENT, "must access the same model name");
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      "must access the same model name");
 }
 
 TYPED_TEST_P(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
@@ -235,9 +248,10 @@ TYPED_TEST_P(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
   PopulateTask("regress_x_to_y", kRegressMethodName, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
-                    tensorflow::error::INVALID_ARGUMENT,
-                    "Duplicate evaluation of signature: regress_x_to_y");
+  ExpectStatusError(
+      inference_runner->Infer(RunOptions(), request, &response),
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      "Duplicate evaluation of signature: regress_x_to_y");
 
   // MultiInference testing
   ServableHandle<SavedModelBundle> bundle;
@@ -246,7 +260,7 @@ TYPED_TEST_P(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
       RunMultiInference(RunOptions(), bundle->meta_graph_def,
                         this->servable_version_, bundle->session.get(), request,
                         &response),
-      tensorflow::error::INVALID_ARGUMENT,
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
       "Duplicate evaluation of signature: regress_x_to_y");
 }
 
@@ -259,8 +273,10 @@ TYPED_TEST_P(MultiInferenceTest, UsupportedSignatureTypeTest) {
   PopulateTask("serving_default", kPredictMethodName, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(inference_runner->Infer(RunOptions(), request, &response),
-                    tensorflow::error::UNIMPLEMENTED, "Unsupported signature");
+  ExpectStatusError(
+      inference_runner->Infer(RunOptions(), request, &response),
+      static_cast<tsl::errors::Code>(absl::StatusCode ::kUnimplemented),
+      "Unsupported signature");
 
   // MultiInference testing
   ServableHandle<SavedModelBundle> bundle;
@@ -269,7 +285,8 @@ TYPED_TEST_P(MultiInferenceTest, UsupportedSignatureTypeTest) {
       RunMultiInference(RunOptions(), bundle->meta_graph_def,
                         this->servable_version_, bundle->session.get(), request,
                         &response),
-      tensorflow::error::UNIMPLEMENTED, "Unsupported signature");
+      static_cast<tsl::errors::Code>(absl::StatusCode::kUnimplemented),
+      "Unsupported signature");
 }
 
 TYPED_TEST_P(MultiInferenceTest, ValidSingleSignatureTest) {

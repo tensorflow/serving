@@ -1,29 +1,21 @@
 # Description: a lightweight http server and related utils to support Web clients
 
-package(
-    default_visibility = [
-        ":http_server_clients",
-        "//tensorflow_serving:internal",
-        "//tensorflow_serving/util/net_http:__subpackages__",
-    ],
-)
+package(default_visibility = [
+    "//tensorflow_serving:internal",
+    "//tensorflow_serving/util/net_http:__subpackages__",
+    "//tensorflow_serving/util/net_http/public:http_server_clients",
+])
 
-package_group(name = "http_server_clients")
-
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 cc_library(
     name = "http_server_api",
-    srcs = [
-        "header_names.cc",
-    ],
     hdrs = [
-        "header_names.h",
         "httpserver_interface.h",
-        "response_code_enum.h",
         "server_request_interface.h",
     ],
     deps = [
+        "//tensorflow_serving/util/net_http/public:shared_files",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
     ],

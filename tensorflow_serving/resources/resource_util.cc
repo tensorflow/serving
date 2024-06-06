@@ -16,14 +16,19 @@ limitations under the License.
 #include "tensorflow_serving/resources/resource_util.h"
 
 #include <algorithm>
+#include <functional>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "google/protobuf/wrappers.pb.h"
+#include "absl/container/flat_hash_set.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/logging.h"
+#include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/platform/types.h"
+#include "tsl/platform/errors.h"
 
 namespace tensorflow {
 namespace serving {
@@ -110,7 +115,7 @@ Status ResourceUtil::VerifyValidity(
 
       *validated_entries.add_resource_quantities() = entry;
     }
-    return Status::OK();
+    return Status();
   }();
   if (!result.ok()) {
     LOG(ERROR) << result;
@@ -133,7 +138,7 @@ Status ResourceUtil::VerifyResourceValidity(const Resource& resource) const {
           "Invalid resource allocation: Invalid device instance ",
           resource.device(), ":", resource.device_instance().value());
     }
-    return Status::OK();
+    return Status();
   }();
   if (!result.ok()) {
     LOG(ERROR) << result;
@@ -142,45 +147,35 @@ Status ResourceUtil::VerifyResourceValidity(const Resource& resource) const {
   return result;
 }
 
+Status ResourceUtil::VerifyOverrideDeviceValidity(
+    const ResourceAllocation& base_allocation,
+    const ResourceAllocation& override_allocation) const {
+  absl::flat_hash_set<std::pair<std::string, std::string>>
+      base_device_kind_pairs;
+  for (const auto& entry : base_allocation.resource_quantities()) {
+    base_device_kind_pairs.insert(
+        {entry.resource().device(), entry.resource().kind()});
+  }
+  for (const auto& entry : override_allocation.resource_quantities()) {
+    if (base_device_kind_pairs.find(
+            {entry.resource().device(), entry.resource().kind()}) ==
+        base_device_kind_pairs.end()) {
+      return errors::InvalidArgument(
+          "Invalid resource allocation: device-kind from override "
+          "resource was not found in base resource: ",
+          entry.resource().DebugString());
+    }
+  }
+  return Status();
+}
+
 ResourceAllocation ResourceUtil::Normalize(
     const ResourceAllocation& allocation) const {
-  if (!VerifyFunctionInternal([&]() { return VerifyValidity(allocation); },
-                              DCHECKFailOption::kDoDCHECKFail)
-           .ok()) {
-    return allocation;
-  }
-
-  ResourceAllocation normalized;
-  for (const ResourceAllocation::Entry& entry :
-       allocation.resource_quantities()) {
-    if (entry.quantity() == 0) {
-      continue;
-    }
-
-    ResourceAllocation::Entry* normalized_entry =
-        normalized.add_resource_quantities();
-    *normalized_entry->mutable_resource() = NormalizeResource(entry.resource());
-    normalized_entry->set_quantity(entry.quantity());
-  }
-  return normalized;
+  return NormalizeResourceAllocation(allocation);
 }
 
 bool ResourceUtil::IsNormalized(const ResourceAllocation& allocation) const {
-  if (!VerifyFunctionInternal([&]() { return VerifyValidity(allocation); },
-                              DCHECKFailOption::kDoDCHECKFail)
-           .ok()) {
-    return false;
-  }
-
-  for (const auto& entry : allocation.resource_quantities()) {
-    if (entry.quantity() == 0) {
-      return false;
-    }
-    if (!IsResourceNormalized(entry.resource())) {
-      return false;
-    }
-  }
-  return true;
+  return IsResourceAllocationNormalized(allocation);
 }
 
 bool ResourceUtil::IsBound(const ResourceAllocation& allocation) const {
@@ -198,8 +193,8 @@ Resource ResourceUtil::CreateBoundResource(const string& device,
   return resource;
 }
 
-uint64 ResourceUtil::GetQuantity(const Resource& resource,
-                                 const ResourceAllocation& allocation) const {
+uint64_t ResourceUtil::GetQuantity(const Resource& resource,
+                                   const ResourceAllocation& allocation) const {
   DCHECK(devices_.find(resource.device()) != devices_.end());
   for (const ResourceAllocation::Entry& entry :
        allocation.resource_quantities()) {
@@ -210,7 +205,7 @@ uint64 ResourceUtil::GetQuantity(const Resource& resource,
   return 0;
 }
 
-void ResourceUtil::SetQuantity(const Resource& resource, uint64 quantity,
+void ResourceUtil::SetQuantity(const Resource& resource, uint64_t quantity,
                                ResourceAllocation* allocation) const {
   DCHECK(devices_.find(resource.device()) != devices_.end());
   for (int i = 0; i < allocation->resource_quantities().size(); ++i) {
@@ -238,7 +233,8 @@ bool ResourceUtil::Subtract(const ResourceAllocation& to_subtract,
   return SubtractNormalized(Normalize(to_subtract), base);
 }
 
-void ResourceUtil::Multiply(uint64 multiplier, ResourceAllocation* base) const {
+void ResourceUtil::Multiply(uint64_t multiplier,
+                            ResourceAllocation* base) const {
   *base = Normalize(*base);
   return MultiplyNormalized(multiplier, base);
 }
@@ -272,6 +268,48 @@ ResourceAllocation ResourceUtil::Max(const ResourceAllocation& lhs,
 ResourceAllocation ResourceUtil::Min(const ResourceAllocation& lhs,
                                      const ResourceAllocation& rhs) const {
   return MinNormalized(Normalize(lhs), Normalize(rhs));
+}
+
+ResourceAllocation ResourceUtil::NormalizeResourceAllocation(
+    const ResourceAllocation& allocation) const {
+  if (!VerifyFunctionInternal([&]() { return VerifyValidity(allocation); },
+                              DCHECKFailOption::kDoDCHECKFail)
+           .ok()) {
+    return allocation;
+  }
+
+  ResourceAllocation normalized;
+  for (const ResourceAllocation::Entry& entry :
+       allocation.resource_quantities()) {
+    if (entry.quantity() == 0) {
+      continue;
+    }
+
+    ResourceAllocation::Entry* normalized_entry =
+        normalized.add_resource_quantities();
+    *normalized_entry->mutable_resource() = NormalizeResource(entry.resource());
+    normalized_entry->set_quantity(entry.quantity());
+  }
+  return normalized;
+}
+
+bool ResourceUtil::IsResourceAllocationNormalized(
+    const ResourceAllocation& allocation) const {
+  if (!VerifyFunctionInternal([&]() { return VerifyValidity(allocation); },
+                              DCHECKFailOption::kDoDCHECKFail)
+           .ok()) {
+    return false;
+  }
+
+  for (const auto& entry : allocation.resource_quantities()) {
+    if (entry.quantity() == 0) {
+      return false;
+    }
+    if (!IsResourceNormalized(entry.resource())) {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool ResourceUtil::IsBoundNormalized(
@@ -340,7 +378,7 @@ bool ResourceUtil::SubtractNormalized(const ResourceAllocation& to_subtract,
   DCHECK(IsNormalized(*base));
   // We buffer the mutations to 'base' so that if we bail out due to a negative
   // quantity we leave it untouched.
-  std::vector<std::pair<ResourceAllocation::Entry*, uint64>> new_quantities;
+  std::vector<std::pair<ResourceAllocation::Entry*, uint64_t>> new_quantities;
   for (const ResourceAllocation::Entry& to_subtract_entry :
        to_subtract.resource_quantities()) {
     ResourceAllocation::Entry* base_entry =
@@ -349,20 +387,20 @@ bool ResourceUtil::SubtractNormalized(const ResourceAllocation& to_subtract,
         base_entry->quantity() < to_subtract_entry.quantity()) {
       return false;
     }
-    const uint64 new_quantity =
+    const uint64_t new_quantity =
         base_entry->quantity() - to_subtract_entry.quantity();
     new_quantities.push_back({base_entry, new_quantity});
   }
   for (const auto& new_quantity : new_quantities) {
     ResourceAllocation::Entry* base_entry = new_quantity.first;
-    const uint64 quantity = new_quantity.second;
+    const uint64_t quantity = new_quantity.second;
     base_entry->set_quantity(quantity);
   }
   *base = Normalize(*base);
   return true;
 }
 
-void ResourceUtil::MultiplyNormalized(uint64 multiplier,
+void ResourceUtil::MultiplyNormalized(uint64_t multiplier,
                                       ResourceAllocation* base) const {
   DCHECK(IsNormalized(*base));
   for (int i = 0; i < base->resource_quantities().size(); ++i) {

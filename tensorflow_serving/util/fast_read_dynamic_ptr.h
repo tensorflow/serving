@@ -280,14 +280,14 @@ class ShardedReadPtrs {
     }
     // Otherwise, return a random shard.  random::New64 would introduce a mutex
     // lock here, which would defeat the purpose of the sharding.  Similarly, a
-    // static std::atomic<uint64>, if updated with any memory order other than
+    // static std::atomic<uint64_t>, if updated with any memory order other than
     // std::memory_order_relaxed, would re-introduce contention on that memory
     // location.  A thread_local sidesteps both problems with only eight bytes
     // per thread of overhead.
     //
     // MCGs need to be seeded with an odd number, so we ensure the lowest bit is
     // set.
-    thread_local uint64 state = {random::New64() | 1ULL};
+    thread_local uint64_t state = {random::New64() | 1ULL};
     // We just need something simple and good enough.  The multiplier here was
     // picked from "COMPUTATIONALLY EASY, SPECTRALLY GOOD MULTIPLIERS FOR
     // CONGRUENTIAL PSEUDORANDOM NUMBER GENERATORS" by Steele and Vigna.

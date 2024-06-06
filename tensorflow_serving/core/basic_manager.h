@@ -138,7 +138,7 @@ class BasicManager : public Manager {
     // The interval, in microseconds, between each servable load retry. If set
     // negative, we don't wait.
     // Default: 1 minute.
-    int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
+    int64_t load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
 
     // If true, and there are not multiple load threads, filesystem caches will
     // be flushed after each servable is loaded. (Cache flush is skipped when
@@ -269,7 +269,7 @@ class BasicManager : public Manager {
   friend class test_util::BasicManagerTestAccess;
 
   BasicManager(Env* env, uint32 num_load_threads, uint32 num_unload_threads,
-               uint32 max_num_load_retries, int64 load_retry_interval_micros,
+               uint32 max_num_load_retries, int64_t load_retry_interval_micros,
                bool flush_filesystem_caches,
                std::unique_ptr<ResourceTracker> resource_tracker,
                EventBus<ServableState>* servable_event_bus,

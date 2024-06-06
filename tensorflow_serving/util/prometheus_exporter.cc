@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/util/prometheus_exporter.h"
 
+#include <memory>
+#include <vector>
+
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
@@ -80,7 +83,7 @@ void SerializeHistogram(const monitoring::MetricDescriptor& metric_descriptor,
                                        SanatizeLabelName(label.name),
                                        SanitizeLabelValue(label.value)));
     }
-    int64 cumulative_count = 0;
+    int64_t cumulative_count = 0;
     string bucket_prefix =
         absl::StrCat(prom_metric_name, "_bucket{", absl::StrJoin(labels, ","));
     if (!labels.empty()) {
@@ -158,7 +161,9 @@ PrometheusExporter::PrometheusExporter()
 
 Status PrometheusExporter::GeneratePage(string* http_page) {
   if (http_page == nullptr) {
-    return Status(error::Code::INVALID_ARGUMENT, "Http page pointer is null");
+    return Status(
+        static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
+        "Http page pointer is null");
   }
   monitoring::CollectionRegistry::CollectMetricsOptions collect_options;
   collect_options.collect_metric_descriptors = true;
@@ -181,7 +186,7 @@ Status PrometheusExporter::GeneratePage(string* http_page) {
   }
   *http_page = absl::StrJoin(lines, "\n");
   absl::StrAppend(http_page, "\n");
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 }  // namespace serving

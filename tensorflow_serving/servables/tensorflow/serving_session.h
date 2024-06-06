@@ -93,6 +93,33 @@ class ServingSessionWrapper : public ServingSession {
   TF_DISALLOW_COPY_AND_ASSIGN(ServingSessionWrapper);
 };
 
+// Subclass of SessionWrapper which reroutes Run() calls with
+// thread_pool_options to Run() without those options.  This is to provide
+// support for RemoteSession::Run which does not implement the overloaded Run()
+// method with thread pool options.
+class SessionWrapperIgnoreThreadPoolOptions : public ServingSessionWrapper {
+ public:
+  explicit SessionWrapperIgnoreThreadPoolOptions(
+      std::unique_ptr<Session> wrapped)
+      : ServingSessionWrapper(std::move(wrapped)) {
+    VLOG(2) << "Created the SessionWrapperIgnoreThreadPoolOptions around the "
+               "Session.";
+  }
+
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_tensor_names,
+             const std::vector<string>& target_node_names,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata,
+             const thread::ThreadPoolOptions& thread_pool_options) override {
+    return ServingSessionWrapper::Run(run_options, inputs, output_tensor_names,
+                                      target_node_names, outputs, run_metadata);
+  }
+
+ private:
+  TF_DISALLOW_COPY_AND_ASSIGN(SessionWrapperIgnoreThreadPoolOptions);
+};
+
 }  // namespace serving
 }  // namespace tensorflow
 

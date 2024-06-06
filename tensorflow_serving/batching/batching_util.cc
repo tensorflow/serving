@@ -15,7 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/batching_util.h"
 
+#include <map>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/tensor.h"
@@ -33,8 +36,8 @@ namespace serving {
 // It requires padding to be an array of elements that have fields
 // "first" and "second".
 struct OneDimPadding {
-  int64 first;   // pad before
-  int64 second;  // pad after
+  int64_t first;   // pad before
+  int64_t second;  // pad after
 };
 
 // Constructs array of paddings, where:
@@ -84,7 +87,7 @@ struct PadTensor {
       if (!result) {
         return errors::Internal("Couldn't create output.");
       }
-      return Status::OK();
+      return absl::OkStatus();
     }
     if (input.NumElements() < 1) {
       return errors::InvalidArgument(
@@ -94,7 +97,7 @@ struct PadTensor {
     typename TTypes<T, num_dims>::Tensor inputs = input.tensor<T, num_dims>();
     T pad_value(input.flat<T>()(0));  // using existing values in padding
     output->tensor<T, num_dims>() = inputs.pad(padding, pad_value);
-    return Status::OK();
+    return absl::OkStatus();
   }
 };
 

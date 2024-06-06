@@ -16,6 +16,8 @@ limitations under the License.
 #include "tensorflow_serving/batching/batch_scheduler_retrier.h"
 
 #include <limits>
+#include <memory>
+#include <utility>
 
 #include <gtest/gtest.h>
 #include "tensorflow/core/kernels/batching_util/fake_clock_env.h"
@@ -78,7 +80,7 @@ class StubbornScheduler : public BatchScheduler<FakeTask> {
     ++num_attempts_;
     if (num_attempts_ >= num_attempts_to_succeed_) {
       std::unique_ptr<FakeTask> consumed_task = std::move(*task);
-      return Status::OK();
+      return absl::OkStatus();
     } else {
       return errors::Unavailable(
           "StubbornScheduler faithfully being stubborn; this is attempt ",

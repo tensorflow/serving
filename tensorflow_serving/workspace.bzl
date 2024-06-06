@@ -4,16 +4,24 @@ Some of the external dependencies need to be initialized. To do this, duplicate
 the initialization code from TensorFlow Serving's WORKSPACE file.
 """
 
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 def tf_serving_workspace():
     """All TensorFlow Serving external dependencies."""
 
+    # ===== Bazel skylib dependency =====
+    http_archive(
+        name = "bazel_skylib",
+        sha256 = "74d544d96f4a5bb630d465ca8bbcfe231e3594e5aae57e1edbf17a6eb3ca2506",
+        url = "https://github.com/bazelbuild/bazel-skylib/releases/download/1.3.0/bazel-skylib-1.3.0.tar.gz",
+    )
+
     # ===== Bazel package rules dependency =====
     http_archive(
         name = "rules_pkg",
-        sha256 = "352c090cc3d3f9a6b4e676cf42a6047c16824959b438895a76c2989c6d7c246a",
-        url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.2.5/rules_pkg-0.2.5.tar.gz",
+        sha256 = "451e08a4d78988c06fa3f9306ec813b836b1d076d0f055595444ba4ff22b867f",
+        url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.7.1/rules_pkg-0.7.1.tar.gz",
     )
 
     # ===== RapidJSON (rapidjson.org) dependency =====
@@ -28,9 +36,9 @@ def tf_serving_workspace():
     # ===== libevent (libevent.org) dependency =====
     http_archive(
         name = "com_github_libevent_libevent",
-        url = "https://github.com/libevent/libevent/archive/release-2.1.8-stable.zip",
-        sha256 = "70158101eab7ed44fd9cc34e7f247b3cae91a8e4490745d9d6eb7edc184e4d96",
-        strip_prefix = "libevent-release-2.1.8-stable",
+        url = "https://github.com/libevent/libevent/archive/release-2.1.12-stable.zip",
+        sha256 = "8836ad722ab211de41cb82fe098911986604f6286f67d10dfb2b6787bf418f49",
+        strip_prefix = "libevent-release-2.1.12-stable",
         build_file = "@//third_party/libevent:BUILD",
     )
 
@@ -56,9 +64,9 @@ def tf_serving_workspace():
     # https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/save_models.py
     http_archive(
         name = "org_tensorflow_text",
-        sha256 = "0991ff93959a0e3ec7d16ba9d9ff9b4463bba565da402f1460cdbfa731112034",
-        strip_prefix = "text-2.6.0",
-        url = "https://github.com/tensorflow/text/archive/v2.6.0.zip",
+        sha256 = "4e6ec543a1d70a50f0105e0ea69ea8a1edd0b17a38d0244aa3b14f889b2cf74d",
+        strip_prefix = "text-2.12.1",
+        url = "https://github.com/tensorflow/text/archive/v2.12.1.zip",
         patches = ["@//third_party/tf_text:tftext.patch"],
         patch_args = ["-p1"],
         repo_mapping = {"@com_google_re2": "@com_googlesource_code_re2"},
@@ -66,9 +74,24 @@ def tf_serving_workspace():
 
     http_archive(
         name = "com_google_sentencepiece",
-        strip_prefix = "sentencepiece-1.0.0",
-        sha256 = "c05901f30a1d0ed64cbcf40eba08e48894e1b0e985777217b7c9036cac631346",
-        url = "https://github.com/google/sentencepiece/archive/1.0.0.zip",
+        strip_prefix = "sentencepiece-0.1.96",
+        sha256 = "8409b0126ebd62b256c685d5757150cf7fcb2b92a2f2b98efb3f38fc36719754",
+        urls = [
+            "https://github.com/google/sentencepiece/archive/refs/tags/v0.1.96.zip",
+        ],
+        build_file = "//third_party/sentencepiece:BUILD",
+        patches = ["//third_party/sentencepiece:sentencepiece.patch"],
+        patch_args = ["-p1"],
+    )
+
+    http_archive(
+        name = "darts_clone",
+        build_file = "//third_party/darts_clone:BUILD",
+        sha256 = "c97f55d05c98da6fcaf7f9ecc6a6dc6bc5b18b8564465f77abff8879d446491c",
+        strip_prefix = "darts-clone-e40ce4627526985a7767444b6ed6893ab6ff8983",
+        urls = [
+            "https://github.com/s-yata/darts-clone/archive/e40ce4627526985a7767444b6ed6893ab6ff8983.zip",
+        ],
     )
 
     http_archive(
@@ -79,4 +102,32 @@ def tf_serving_workspace():
             "https://mirror.bazel.build/github.com/google/glog/archive/028d37889a1e80e8a07da1b8945ac706259e5fd8.tar.gz",
             "https://github.com/google/glog/archive/028d37889a1e80e8a07da1b8945ac706259e5fd8.tar.gz",
         ],
+    )
+
+    # ==== TensorFlow Decision Forests ===
+    http_archive(
+        name = "org_tensorflow_decision_forests",
+        sha256 = "86686bcb03bcf280cf739159fe4c285c667500a332292701259e636f5e1ec110",
+        strip_prefix = "decision-forests-1.3.0",
+        url = "https://github.com/tensorflow/decision-forests/archive/refs/tags/1.3.0.zip",
+        patches = ["@//third_party/tf_decision_forests:tf_decision_forests.patch"],
+        patch_args = ["-p1"],
+    )
+
+    http_archive(
+        name = "ydf",
+        sha256 = "5abb2e440c0b8b13095bd208cfab3a5e569706af9a52b6a702d86ec0e25a7991",
+        strip_prefix = "yggdrasil-decision-forests-1.4.0",
+        urls = ["https://github.com/google/yggdrasil-decision-forests/archive/refs/tags/1.4.0.zip"],
+    )
+
+    # The Boost repo is organized into git sub-modules (see the list at
+    # https://github.com/boostorg/boost/tree/master/libs), which requires "new_git_repository".
+    new_git_repository(
+        name = "org_boost",
+        commit = "b7b1371294b4bdfc8d85e49236ebced114bc1d8f",  # boost-1.75.0
+        build_file = "//third_party/boost:BUILD",
+        init_submodules = True,
+        recursive_init_submodules = True,
+        remote = "https://github.com/boostorg/boost",
     )

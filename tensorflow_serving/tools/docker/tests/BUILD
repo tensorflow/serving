@@ -7,7 +7,7 @@
 # Tests are local and manual as they require docker and the image to be
 # installed.
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 sh_library(
     name = "docker_test_lib",

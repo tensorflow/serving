@@ -25,6 +25,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/mem.h"
+#include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/source_adapter.h"
@@ -56,11 +57,11 @@ namespace serving {
 //   auto servable_creator = [](std::unique_ptr<time_t>* servable) {
 //       servable->reset(new time_t);
 //       *servable = time(nullptr);
-//       return Status::OK();
+//       return Status();
 //   };
 //   auto resource_estimator = [](ResourceAllocation* estimate) {
 //       estimate->mutable_...(...)->set_...(...);
-//       return Status::OK();
+//       return Status();
 //   };
 //   std::unique_ptr<Loader> loader(new SimpleLoader<time_t>(
 //       servable_creator, resource_estimator));
@@ -145,7 +146,9 @@ class SimpleLoader : public Loader {
   absl::optional<ResourceEstimator> post_load_resource_estimator_;
 
   // The memoized estimated resource requirement of the servable.
-  mutable absl::optional<ResourceAllocation> memoized_resource_estimate_;
+  mutable absl::optional<ResourceAllocation> memoized_resource_estimate_
+      TF_GUARDED_BY(memoized_resource_estimate_mu_);
+  mutable mutex memoized_resource_estimate_mu_;
 
   std::unique_ptr<ResourceUtil> resource_util_;
   Resource ram_resource_;
@@ -224,7 +227,7 @@ typename SimpleLoader<ServableType>::ResourceEstimator
 SimpleLoader<ServableType>::EstimateNoResources() {
   return [](ResourceAllocation* estimate) {
     estimate->Clear();
-    return Status::OK();
+    return Status();
   };
 }
 
@@ -275,15 +278,16 @@ SimpleLoader<ServableType>::SimpleLoader(
 template <typename ServableType>
 Status SimpleLoader<ServableType>::EstimateResources(
     ResourceAllocation* estimate) const {
+  mutex_lock l(memoized_resource_estimate_mu_);
   if (memoized_resource_estimate_) {
     *estimate = *memoized_resource_estimate_;
-    return Status::OK();
+    return Status();
   }
 
   // Compute and memoize the resource estimate.
   TF_RETURN_IF_ERROR(resource_estimator_(estimate));
   memoized_resource_estimate_ = *estimate;
-  return Status::OK();
+  return Status();
 }
 
 template <typename ServableType>
@@ -320,15 +324,18 @@ Status SimpleLoader<ServableType>::EstimateResourcesPostLoad() {
     ResourceAllocation post_load_resource_estimate;
     TF_RETURN_IF_ERROR(
         (*post_load_resource_estimator_)(&post_load_resource_estimate));
-    memoized_resource_estimate_ = post_load_resource_estimate;
+    {
+      mutex_lock l(memoized_resource_estimate_mu_);
+      memoized_resource_estimate_ = post_load_resource_estimate;
+    }
 
     // Release any transient memory used only during load to the OS.
-    const uint64 during_load_ram_estimate = resource_util_->GetQuantity(
+    const uint64_t during_load_ram_estimate = resource_util_->GetQuantity(
         ram_resource_, during_load_resource_estimate);
-    const uint64 post_load_ram_estimate =
+    const uint64_t post_load_ram_estimate =
         resource_util_->GetQuantity(ram_resource_, post_load_resource_estimate);
     if (post_load_ram_estimate < during_load_ram_estimate) {
-      const uint64 transient_ram_estimate =
+      const uint64_t transient_ram_estimate =
           during_load_ram_estimate - post_load_ram_estimate;
       LOG(INFO) << "Calling MallocExtension_ReleaseToSystem() after servable "
                    "load with "
@@ -338,7 +345,7 @@ Status SimpleLoader<ServableType>::EstimateResourcesPostLoad() {
     }
   }
 
-  return Status::OK();
+  return Status();
 }
 
 template <typename ServableType>
@@ -358,7 +365,7 @@ void SimpleLoader<ServableType>::Unload() {
 
   // If we have a main-memory footprint estimate, release that amount of memory
   // to the OS.
-  const uint64 memory_estimate =
+  const uint64_t memory_estimate =
       resource_util_->GetQuantity(ram_resource_, resource_estimate);
   if (memory_estimate > 0) {
     LOG(INFO) << "Calling MallocExtension_ReleaseToSystem() after servable "
@@ -377,7 +384,7 @@ typename SimpleLoaderSourceAdapter<DataType, ServableType>::ResourceEstimator
 SimpleLoaderSourceAdapter<DataType, ServableType>::EstimateNoResources() {
   return [](const DataType& data, ResourceAllocation* estimate) {
     estimate->Clear();
-    return Status::OK();
+    return Status();
   };
 }
 
@@ -401,7 +408,7 @@ Status SimpleLoaderSourceAdapter<DataType, ServableType>::Convert(
       [resource_estimator, data](ResourceAllocation* estimate) {
         return resource_estimator(data, estimate);
       }));
-  return Status::OK();
+  return Status();
 }
 
 }  // namespace serving

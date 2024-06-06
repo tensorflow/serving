@@ -16,6 +16,8 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/http_rest_api_handler.h"
 
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "google/protobuf/any.pb.h"
 #include "google/protobuf/arena.h"
@@ -46,18 +48,17 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-using protobuf::util::JsonPrintOptions;
-using protobuf::util::MessageToJsonString;
 using tensorflow::serving::ServerCore;
 using tensorflow::serving::TensorflowPredictor;
 
 const char* const HttpRestApiHandler::kPathRegex = kHTTPRestApiHandlerPathRegex;
 
-HttpRestApiHandler::HttpRestApiHandler(const RunOptions& run_options,
-                                       ServerCore* core)
-    : run_options_(run_options),
-      core_(core),
-      predictor_(new TensorflowPredictor()) {}
+HttpRestApiHandler::HttpRestApiHandler(int timeout_in_ms, ServerCore* core)
+    : run_options_(), core_(core), predictor_(new TensorflowPredictor()) {
+  if (timeout_in_ms > 0) {
+    run_options_.set_timeout_in_ms(timeout_in_ms);
+  }
+}
 
 HttpRestApiHandler::~HttpRestApiHandler() {}
 
@@ -72,7 +73,7 @@ Status HttpRestApiHandler::ProcessRequest(
   string model_subresource;
   Status status = errors::InvalidArgument("Malformed request: ", http_method,
                                           " ", request_path);
-  absl::optional<int64> model_version;
+  absl::optional<int64_t> model_version;
   absl::optional<string> model_version_label;
   bool parse_successful;
 
@@ -109,54 +110,53 @@ Status HttpRestApiHandler::ProcessRequest(
 
 Status HttpRestApiHandler::ProcessClassifyRequest(
     const absl::string_view model_name,
-    const absl::optional<int64>& model_version,
+    const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
     const absl::string_view request_body, string* output) {
   ::google::protobuf::Arena arena;
 
-  auto* request = ::google::protobuf::Arena::CreateMessage<ClassificationRequest>(&arena);
+  auto* request = ::google::protobuf::Arena::Create<ClassificationRequest>(&arena);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
       request->mutable_model_spec()));
   TF_RETURN_IF_ERROR(FillClassificationRequestFromJson(request_body, request));
 
-  auto* response =
-      ::google::protobuf::Arena::CreateMessage<ClassificationResponse>(&arena);
+  auto* response = ::google::protobuf::Arena::Create<ClassificationResponse>(&arena);
   TF_RETURN_IF_ERROR(TensorflowClassificationServiceImpl::Classify(
       run_options_, core_, thread::ThreadPoolOptions(), *request, response));
   TF_RETURN_IF_ERROR(
       MakeJsonFromClassificationResult(response->result(), output));
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status HttpRestApiHandler::ProcessRegressRequest(
     const absl::string_view model_name,
-    const absl::optional<int64>& model_version,
+    const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
     const absl::string_view request_body, string* output) {
   ::google::protobuf::Arena arena;
 
-  auto* request = ::google::protobuf::Arena::CreateMessage<RegressionRequest>(&arena);
+  auto* request = ::google::protobuf::Arena::Create<RegressionRequest>(&arena);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
       request->mutable_model_spec()));
   TF_RETURN_IF_ERROR(FillRegressionRequestFromJson(request_body, request));
 
-  auto* response = ::google::protobuf::Arena::CreateMessage<RegressionResponse>(&arena);
+  auto* response = ::google::protobuf::Arena::Create<RegressionResponse>(&arena);
   TF_RETURN_IF_ERROR(TensorflowRegressionServiceImpl::Regress(
       run_options_, core_, thread::ThreadPoolOptions(), *request, response));
   TF_RETURN_IF_ERROR(MakeJsonFromRegressionResult(response->result(), output));
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status HttpRestApiHandler::ProcessPredictRequest(
     const absl::string_view model_name,
-    const absl::optional<int64>& model_version,
+    const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
     const absl::string_view request_body, string* output) {
   ::google::protobuf::Arena arena;
 
-  auto* request = ::google::protobuf::Arena::CreateMessage<PredictRequest>(&arena);
+  auto* request = ::google::protobuf::Arena::Create<PredictRequest>(&arena);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
       request->mutable_model_spec()));
@@ -170,16 +170,16 @@ Status HttpRestApiHandler::ProcessPredictRequest(
       },
       request, &format));
 
-  auto* response = ::google::protobuf::Arena::CreateMessage<PredictResponse>(&arena);
+  auto* response = ::google::protobuf::Arena::Create<PredictResponse>(&arena);
   TF_RETURN_IF_ERROR(
       predictor_->Predict(run_options_, core_, *request, response));
   TF_RETURN_IF_ERROR(MakeJsonFromTensors(response->outputs(), format, output));
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 Status HttpRestApiHandler::ProcessModelStatusRequest(
     const absl::string_view model_name,
-    const absl::optional<int64>& model_version,
+    const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
     string* output) {
   // We do not yet support returning status of all models
@@ -190,13 +190,12 @@ Status HttpRestApiHandler::ProcessModelStatusRequest(
 
   ::google::protobuf::Arena arena;
 
-  auto* request = ::google::protobuf::Arena::CreateMessage<GetModelStatusRequest>(&arena);
+  auto* request = ::google::protobuf::Arena::Create<GetModelStatusRequest>(&arena);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
       request->mutable_model_spec()));
 
-  auto* response =
-      ::google::protobuf::Arena::CreateMessage<GetModelStatusResponse>(&arena);
+  auto* response = ::google::protobuf::Arena::Create<GetModelStatusResponse>(&arena);
   TF_RETURN_IF_ERROR(
       GetModelStatusImpl::GetModelStatus(core_, *request, response));
   return ToJsonString(*response, output);
@@ -204,7 +203,7 @@ Status HttpRestApiHandler::ProcessModelStatusRequest(
 
 Status HttpRestApiHandler::ProcessModelMetadataRequest(
     const absl::string_view model_name,
-    const absl::optional<int64>& model_version,
+    const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
     string* output) {
   if (model_name.empty()) {
@@ -213,16 +212,14 @@ Status HttpRestApiHandler::ProcessModelMetadataRequest(
 
   ::google::protobuf::Arena arena;
 
-  auto* request =
-      ::google::protobuf::Arena::CreateMessage<GetModelMetadataRequest>(&arena);
+  auto* request = ::google::protobuf::Arena::Create<GetModelMetadataRequest>(&arena);
   // We currently only support the kSignatureDef metadata field
   request->add_metadata_field(GetModelMetadataImpl::kSignatureDef);
   TF_RETURN_IF_ERROR(FillModelSpecWithNameVersionAndLabel(
       model_name, model_version, model_version_label,
       request->mutable_model_spec()));
 
-  auto* response =
-      ::google::protobuf::Arena::CreateMessage<GetModelMetadataResponse>(&arena);
+  auto* response = ::google::protobuf::Arena::Create<GetModelMetadataResponse>(&arena);
   TF_RETURN_IF_ERROR(
       GetModelMetadataImpl::GetModelMetadata(core_, *request, response));
   return ToJsonString(*response, output);
@@ -241,7 +238,7 @@ Status HttpRestApiHandler::GetInfoMap(
                                    "\" not found in signature def");
   }
   *infomap = iter->second.inputs();
-  return Status::OK();
+  return absl::OkStatus();
 }
 
 }  // namespace serving

@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/core/log_collector.h"
 
+#include <memory>
 #include <unordered_map>
 
 #include "tensorflow/core/lib/core/errors.h"
@@ -37,7 +38,7 @@ class Registry {
       return errors::AlreadyExists("Type ", type, " already registered.");
     }
     factory_map_.insert({type, factory});
-    return Status::OK();
+    return OkStatus();
   }
 
   const LogCollector::Factory* Lookup(const string& type) const

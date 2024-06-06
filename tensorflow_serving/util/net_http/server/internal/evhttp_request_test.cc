@@ -14,18 +14,21 @@ limitations under the License.
 ==============================================================================*/
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <random>
+#include <string>
+#include <utility>
 
 #include <gtest/gtest.h>
 #include "absl/memory/memory.h"
-#include "tensorflow_serving/util/net_http/client/internal/evhttp_connection.h"
+#include "tensorflow_serving/util/net_http/client/test_client/internal/evhttp_connection.h"
 #include "tensorflow_serving/util/net_http/compression/gzip_zlib.h"
 #include "tensorflow_serving/util/net_http/internal/fixed_thread_pool.h"
+#include "tensorflow_serving/util/net_http/public/response_code_enum.h"
 #include "tensorflow_serving/util/net_http/server/internal/evhttp_server.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver.h"
 #include "tensorflow_serving/util/net_http/server/public/httpserver_interface.h"
-#include "tensorflow_serving/util/net_http/server/public/response_code_enum.h"
 #include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
 
 namespace tensorflow {
@@ -76,11 +79,11 @@ TEST_F(EvHTTPRequestTest, SimpleGETNotFound) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/noop", "GET", {}, ""};
-  ClientResponse response = {};
+  TestClientRequest request = {"/noop", "GET", {}, ""};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::NOT_FOUND);
@@ -101,11 +104,11 @@ TEST_F(EvHTTPRequestTest, SimpleGETOK) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "GET", {}, ""};
-  ClientResponse response = {};
+  TestClientRequest request = {"/ok", "GET", {}, ""};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
@@ -131,11 +134,11 @@ TEST_F(EvHTTPRequestTest, SimplePOST) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "POST", {}, "abcde"};
-  ClientResponse response = {};
+  TestClientRequest request = {"/ok", "POST", {}, "abcde"};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
@@ -171,12 +174,12 @@ TEST_F(EvHTTPRequestTest, RequestUri) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
   for (const char* path : kUriPath) {
-    ClientRequest request = {path, "GET", {}, ""};
-    ClientResponse response = {};
+    TestClientRequest request = {path, "GET", {}, ""};
+    TestClientResponse response = {};
 
     EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   }
@@ -200,15 +203,15 @@ TEST_F(EvHTTPRequestTest, RequestHeaders) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok",
-                           "GET",
-                           {ClientRequest::HeaderKeyValue("H1", "v1"),
-                            ClientRequest::HeaderKeyValue("H2", "v2")},
-                           ""};
-  ClientResponse response = {};
+  TestClientRequest request = {"/ok",
+                               "GET",
+                               {TestClientRequest::HeaderKeyValue("H1", "v1"),
+                                TestClientRequest::HeaderKeyValue("H2", "v2")},
+                               ""};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
@@ -232,11 +235,11 @@ TEST_F(EvHTTPRequestTest, ResponseHeaders) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "GET", {}, ""};
-  ClientResponse response = {};
+  TestClientRequest request = {"/ok", "GET", {}, ""};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   for (auto keyvalue : response.headers) {
@@ -272,12 +275,12 @@ TEST_F(EvHTTPRequestTest, InvalidGzipPost) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "POST", {}, "abcde"};
+  TestClientRequest request = {"/ok", "POST", {}, "abcde"};
   request.headers.emplace_back("Content-Encoding", "my_gzip");
-  ClientResponse response = {};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
@@ -301,12 +304,12 @@ TEST_F(EvHTTPRequestTest, DisableGzipPost) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "POST", {}, "abcde"};
+  TestClientRequest request = {"/ok", "POST", {}, "abcde"};
   request.headers.emplace_back("Content-Encoding", "my_gzip");
-  ClientResponse response = {};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
@@ -352,12 +355,12 @@ TEST_F(EvHTTPRequestTest, ValidGzipPost) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "POST", {}, compressed};
+  TestClientRequest request = {"/ok", "POST", {}, compressed};
   request.headers.emplace_back("Content-Encoding", "my_gzip");
-  ClientResponse response = {};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
@@ -389,12 +392,12 @@ TEST_F(EvHTTPRequestTest, GzipExceedingLimit) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "POST", {}, compressed};
+  TestClientRequest request = {"/ok", "POST", {}, compressed};
   request.headers.emplace_back("Content-Encoding", "my_gzip");
-  ClientResponse response = {};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);
@@ -439,12 +442,12 @@ TEST_F(EvHTTPRequestTest, LargeGzipPost) {
   server->StartAcceptingRequests();
 
   auto connection =
-      EvHTTPConnection::Connect("localhost", server->listen_port());
+      TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
 
-  ClientRequest request = {"/ok", "POST", {}, compressed};
+  TestClientRequest request = {"/ok", "POST", {}, compressed};
   request.headers.emplace_back("Content-Encoding", "my_gzip");
-  ClientResponse response = {};
+  TestClientResponse response = {};
 
   EXPECT_TRUE(connection->BlockingSendRequest(request, &response));
   EXPECT_EQ(response.status, HTTPStatusCode::OK);

@@ -22,7 +22,10 @@ limitations under the License.
 #include <sys/socket.h>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
+#include <tuple>
 #include <utility>
 
 #include "absl/base/call_once.h"
@@ -240,16 +243,16 @@ bool EvHTTPServer::StartAcceptingRequests() {
     ResolveEphemeralPort(ev_listener_, &port_);
   }
 
+  accepting_requests_.Notify();
+
   IncOps();
   server_options_->executor()->Schedule([this]() {
     NET_LOG(INFO, "Entering the event loop ...");
-    int result = event_base_dispatch(ev_base_);
-    NET_LOG(INFO, "event_base_dispatch() exits with value %d", result);
+    int result = event_base_loop(ev_base_, EVLOOP_NO_EXIT_ON_EMPTY);
+    NET_LOG(INFO, "event_base_loop() exits with value %d", result);
 
     DecOps();
   });
-
-  accepting_requests_.Notify();
 
   return true;
 }

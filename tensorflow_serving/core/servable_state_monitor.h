@@ -20,6 +20,7 @@ limitations under the License.
 #include <functional>
 #include <map>
 
+#include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/macros.h"
@@ -47,14 +48,15 @@ class ServableStateMonitor {
   // START_SKIP_DOXYGEN
   struct ServableStateAndTime {
     ServableStateAndTime() = default;
-    ServableStateAndTime(ServableState servable_state, const uint64 event_time)
+    ServableStateAndTime(ServableState servable_state,
+                         const uint64_t event_time)
         : state(std::move(servable_state)), event_time_micros(event_time) {}
 
     /// State of the servable.
     ServableState state;
 
     /// Time at which servable state event was published.
-    uint64 event_time_micros;
+    uint64_t event_time_micros;
 
     /// Returns a string representation of this struct useful for debugging or
     /// logging.
@@ -73,7 +75,7 @@ class ServableStateMonitor {
 
     /// Upper bound for the number of events captured in the bounded log. If set
     /// to 0, logging is disabled.
-    uint64 max_count_log_events = 0;
+    uint64_t max_count_log_events = 0;
   };
   // END_SKIP_DOXYGEN
 
@@ -155,11 +157,19 @@ class ServableStateMonitor {
   ///
   /// To understand the return value and the return parameter 'states_reached',
   /// please read the documentation on NotifyWhenServablesReachState(...).
+  /// WaitUntilServablesReachStateWithTimeout and WaitUntilServablesReachState
+  /// perform the same function, but the former has a timeout while the latter
+  /// waits indefinitely.
+  bool WaitUntilServablesReachStateWithTimeout(
+      const std::vector<ServableRequest>& servables,
+      ServableState::ManagerState goal_state, absl::Duration timeout,
+      std::map<ServableId, ServableState::ManagerState>* states_reached =
+          nullptr) TF_LOCKS_EXCLUDED(mu_) TF_MUST_USE_RESULT;
   bool WaitUntilServablesReachState(
       const std::vector<ServableRequest>& servables,
       ServableState::ManagerState goal_state,
       std::map<ServableId, ServableState::ManagerState>* states_reached =
-          nullptr) TF_LOCKS_EXCLUDED(mu_) TF_MUST_USE_RESULT;
+          nullptr) TF_MUST_USE_RESULT;
 
   // Subscribes to all servable state changes hitting this monitor. This is
   // called after the monitor updates its own state based on the event.

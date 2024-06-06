@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/util/class_registration_util.h"
 
+#include <vector>
+
 namespace tensorflow {
 namespace serving {
 
@@ -26,7 +28,7 @@ Status ParseUrlForAnyType(const string& type_url,
         "Supplied config's type_url could not be parsed: ", type_url);
   }
   *full_type_name = splits[splits.size() - 1];
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace serving

@@ -22,7 +22,9 @@ namespace serving {
 namespace {
 
 TEST(StatusUtilTest, ConvertsErrorStatusToStatusProto) {
-  Status status = Status(tensorflow::error::ABORTED, "aborted error message");
+  Status status =
+      Status(static_cast<absl::StatusCode>(absl::StatusCode::kAborted),
+             "aborted error message");
   StatusProto status_proto = ToStatusProto(status);
   EXPECT_EQ(tensorflow::error::ABORTED, status_proto.error_code());
   EXPECT_EQ("aborted error message", status_proto.error_message());
@@ -41,7 +43,7 @@ TEST(StatusUtilTest, ConvertsErrorStatusProtoToStatus) {
   status_proto.set_error_message("already exists error message");
   Status status = FromStatusProto(status_proto);
   EXPECT_EQ(tensorflow::error::ALREADY_EXISTS, status.code());
-  EXPECT_EQ("already exists error message", status.error_message());
+  EXPECT_EQ("already exists error message", status.message());
 }
 
 TEST(StatusUtilTest, ConvertsOkStatusProtoToStatus) {
@@ -49,7 +51,7 @@ TEST(StatusUtilTest, ConvertsOkStatusProtoToStatus) {
   status_proto.set_error_code(tensorflow::error::OK);
   Status status = FromStatusProto(status_proto);
   EXPECT_EQ(tensorflow::error::OK, status.code());
-  EXPECT_EQ("", status.error_message());
+  EXPECT_EQ("", status.message());
 }
 
 }  // namespace

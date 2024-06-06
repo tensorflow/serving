@@ -5,7 +5,7 @@ package(
     features = ["-layering_check"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 filegroup(
     name = "all_files",
@@ -202,5 +202,41 @@ cc_test(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
+    name = "tfrt_saved_model_with_batching",
+    srcs = ["tfrt_saved_model_with_batching.cc"],
+    hdrs = ["tfrt_saved_model_with_batching.h"],
+    deps = [
+        ":batching_options",
+        ":batching_session",
+        ":batching_util",
+        ":incremental_barrier",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:inlined_vector",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core/kernels/batching_util:batch_scheduler",
+        "@org_tensorflow//tensorflow/core/tfrt/saved_model",
+    ],
+)
+
+cc_test(
+    name = "tfrt_saved_model_with_batching_test",
+    srcs = ["tfrt_saved_model_with_batching_test.cc"],
+    deps = [
+        ":batching_util",
+        ":tfrt_saved_model_with_batching",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/servables/tensorflow/test_util:mock_tfrt_saved_model",
+        "@com_google_absl//absl/functional:bind_front",
+        "@com_google_googletest//:gtest",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
+        "@org_tensorflow//tensorflow/core/kernels/batching_util:basic_batch_scheduler",
+        "@org_tensorflow//tensorflow/core/tfrt/utils:tensor_util",
     ],
 )

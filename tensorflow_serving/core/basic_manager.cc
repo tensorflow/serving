@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/core/basic_manager.h"
 
 #include <algorithm>
+#include <functional>
 #include <iterator>
 #include <map>
 #include <memory>
@@ -73,7 +74,7 @@ struct BasicManager::ServingMap::EqRequest {
 };
 
 struct BasicManager::ServingMap::HashRequest {
-  uint64 operator()(const ServableRequest& request) const {
+  uint64_t operator()(const ServableRequest& request) const {
     // Hash codes for many common types are remarkably bad, often clustering
     // around the same values of the low and/or high bits for linear
     // sequences of inputs such as 1, 2, 3; or addresses of consecutively
@@ -84,9 +85,9 @@ struct BasicManager::ServingMap::HashRequest {
     // make the high bits contain more entropy from the entire hash code.
     // It's based on Fibonacci hashing from Knuth's Art of Computer
     // Programming volume 3, section 6.4.
-    const uint64 version_hash = [&]() -> uint64 {
+    const uint64_t version_hash = [&]() -> uint64_t {
       if (request.version) {
-        return std::hash<int64>()(request.version.value()) *
+        return std::hash<int64_t>()(request.version.value()) *
                0x9E3779B97F4A7C13;  // (sqrt(5) - 1)/2 as a binary fraction.
       } else {
         switch (request.auto_version_policy) {
@@ -139,7 +140,7 @@ Status BasicManager::ServingMap::GetUntypedServableHandle(
   // previous map is freed, when we are doing handles_map updates.
   untyped_handle->reset(new SharedPtrHandle(
       harness.id(), std::shared_ptr<Loader>(handles_map, harness.loader())));
-  return Status::OK();
+  return OkStatus();
 }
 
 std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
@@ -227,13 +228,13 @@ Status BasicManager::Create(Options options,
       options.max_num_load_retries, options.load_retry_interval_micros,
       options.flush_filesystem_caches, std::move(options.resource_tracker),
       options.servable_event_bus, std::move(options.pre_load_hook)));
-  return Status::OK();
+  return OkStatus();
 }
 
 BasicManager::BasicManager(Env* const env, const uint32 num_load_threads,
                            const uint32 num_unload_threads,
                            uint32 max_num_load_retries,
-                           int64 load_retry_interval_micros,
+                           int64_t load_retry_interval_micros,
                            bool flush_filesystem_caches,
                            std::unique_ptr<ResourceTracker> resource_tracker,
                            EventBus<ServableState>* servable_event_bus,
@@ -277,7 +278,7 @@ BasicManager::~BasicManager() {
 
 Status BasicManager::UnloadAllServables() {
   LOG(INFO) << "Unload all remaining servables in the manager.";
-  Status status = Status::OK();
+  Status status = OkStatus();
   {
     mutex_lock l(mu_);
     for (auto it = managed_map_.begin(); it != managed_map_.end(); ++it) {
@@ -364,7 +365,7 @@ Status BasicManager::ManageServableInternal(
   }
   managed_map_.emplace(servable.id().name, harness);
 
-  return Status::OK();
+  return OkStatus();
 }
 
 Status BasicManager::ManageServable(
@@ -399,7 +400,7 @@ Status BasicManager::StopManagingServable(const ServableId& id) {
         id.DebugString(), " ", LoaderHarness::StateDebugString(state));
   }
   managed_map_.erase(it);
-  return Status::OK();
+  return OkStatus();
 }
 
 Status BasicManager::GetHealthyHarness(const ServableId& id,
@@ -413,7 +414,7 @@ Status BasicManager::GetHealthyHarness(const ServableId& id,
   }
   TF_RETURN_IF_ERROR(iter->second->status());
   *harness = iter->second.get();
-  return Status::OK();
+  return OkStatus();
 }
 
 std::vector<const Loader*> BasicManager::GetLoadersCurrentlyUsingResources()
@@ -506,9 +507,8 @@ Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
     UpdateServingMap();
   }
 
-  PublishOnEventBus(
-      {id, ServableState::ManagerState::kAvailable, Status::OK()});
-  return Status::OK();
+  PublishOnEventBus({id, ServableState::ManagerState::kAvailable, OkStatus()});
+  return OkStatus();
 }
 
 void BasicManager::LoadServable(const ServableId& id,
@@ -547,8 +547,8 @@ Status BasicManager::ExecuteUnload(LoaderHarness* harness) {
 
   // We don't hold the lock while calling Unload() as it may block.
   TF_RETURN_IF_ERROR(harness->Unload());
-  PublishOnEventBus({id, ServableState::ManagerState::kEnd, Status::OK()});
-  return Status::OK();
+  PublishOnEventBus({id, ServableState::ManagerState::kEnd, OkStatus()});
+  return OkStatus();
 }
 
 void BasicManager::UnloadServable(const ServableId& id,
@@ -611,7 +611,7 @@ void BasicManager::LoadOrUnloadServable(const LoadOrUnloadRequest& request,
         TF_RETURN_IF_ERROR(harness->UnloadRequested());
         break;
     }
-    return Status::OK();
+    return OkStatus();
   }();
   if (!status.ok()) {
     done_callback(status);
@@ -676,7 +676,7 @@ Status BasicManager::ApproveLoadOrUnload(const LoadOrUnloadRequest& request,
 
   ++num_ongoing_load_unload_executions_;
 
-  return Status::OK();
+  return OkStatus();
 }
 
 Status BasicManager::ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock) {
@@ -698,7 +698,7 @@ Status BasicManager::ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock) {
   // GetLoadersCurrentlyUsingResources().
   TF_RETURN_IF_ERROR(harness->LoadApproved());
 
-  return Status::OK();
+  return OkStatus();
 }
 
 Status BasicManager::ApproveUnload(LoaderHarness* harness) {
@@ -706,7 +706,7 @@ Status BasicManager::ApproveUnload(LoaderHarness* harness) {
   // concurrent unload requests from executing.
   TF_RETURN_IF_ERROR(harness->StartQuiescing());
 
-  return Status::OK();
+  return OkStatus();
 }
 
 Status BasicManager::ReserveResources(LoaderHarness* harness,
@@ -733,13 +733,13 @@ Status BasicManager::ReserveResources(LoaderHarness* harness,
           strings::StrCat(
               "Error while attempting to reserve resources to load servable ",
               harness->id().DebugString(), ": ",
-              reserve_resources_status.error_message()));
+              reserve_resources_status.message()));
     }
     if (resources_reserved) {
       // Woohoo! We got our resources.
       LOG(INFO) << "Successfully reserved resources to load servable "
                 << harness->id().DebugString();
-      return Status::OK();
+      return OkStatus();
     }
 
     // We weren't able to reserve the resources. See if there are any

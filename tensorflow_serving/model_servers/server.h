@@ -57,31 +57,35 @@ class Server {
     // Model Server options.
     //
     bool enable_batching = false;
+    bool enable_per_model_batching_params = false;
     bool allow_version_labels_for_unavailable_models = false;
+    bool force_allow_any_version_labels_for_unavailable_models = false;
     float per_process_gpu_memory_fraction = 0;
     tensorflow::string batching_parameters_file;
     tensorflow::string model_name;
     tensorflow::int32 num_load_threads = 0;
     tensorflow::int32 num_unload_threads = 0;
     tensorflow::int32 max_num_load_retries = 5;
-    tensorflow::int64 load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
+    int64_t load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
     tensorflow::int32 file_system_poll_wait_seconds = 1;
     bool flush_filesystem_caches = true;
     tensorflow::string model_base_path;
     tensorflow::string saved_model_tags;
     // Tensorflow session parallelism of zero means that both inter and intra op
     // thread pools will be auto configured.
-    tensorflow::int64 tensorflow_session_parallelism = 0;
+    int64_t tensorflow_session_parallelism = 0;
 
     // Zero means that the thread pools will be auto configured.
-    tensorflow::int64 tensorflow_intra_op_parallelism = 0;
-    tensorflow::int64 tensorflow_inter_op_parallelism = 0;
+    int64_t tensorflow_intra_op_parallelism = 0;
+    int64_t tensorflow_inter_op_parallelism = 0;
     tensorflow::string platform_config_file;
     // Only one of ALTS or SSl can be specified. I.e. either
     // use_alts_credentials must be false or ssl_config_file must be empty.
     bool use_alts_credentials = false;
     tensorflow::string ssl_config_file;
     string model_config_file;
+    // Text proto file for TensorFlow Session ConfigProto.
+    string tensorflow_session_config_file;
     // Zero means server will not poll FS for model config file after start-up.
     tensorflow::int32 fs_model_config_poll_wait_seconds = 0;
     bool enable_model_warmup = true;
@@ -97,7 +101,10 @@ class Server {
     tensorflow::string thread_pool_factory_config_file;
     bool enable_signature_method_name_check = false;
     bool enable_profiler = true;
-
+    tensorflow::string mixed_precision;
+    bool skip_initialize_tpu = false;
+    // Misc GRPC features
+    bool enable_grpc_healthcheck_service = false;
     Options();
   };
 
@@ -120,7 +127,7 @@ class Server {
 
   std::unique_ptr<ServerCore> server_core_;
   std::unique_ptr<ModelServiceImpl> model_service_;
-  std::unique_ptr<PredictionServiceImpl> prediction_service_;
+  std::unique_ptr<PredictionService::Service> prediction_service_;
   std::unique_ptr<tensorflow::grpc::ProfilerService::Service> profiler_service_;
   std::unique_ptr<::grpc::Server> grpc_server_;
   std::unique_ptr<net_http::HTTPServerInterface> http_server_;

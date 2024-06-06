@@ -23,7 +23,15 @@ namespace tensorflow {
 namespace serving {
 
 // Estimates the ram resources a session bundle or saved model bundle will use
+// once loaded, from validation results. Currently, it returns UNIMPLEMENTED.
+//
+// TODO(b/150736159): Add support for using validation result.
+Status EstimateMainRamBytesFromValidationResult(const string& path,
+                                                ResourceAllocation* estimate);
+
+// Estimates the ram resources a session bundle or saved model bundle will use
 // once loaded, from its export or saved model path.
+//
 // TODO(b/150736159): Support use_validation_result. Right now,
 // use_validation_result is ignored and the function always get resource
 // estimation from disk.

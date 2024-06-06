@@ -34,7 +34,7 @@ TEST(RetrierTest, RetryFinallySucceeds) {
     if (count == 1) {
       return errors::Unknown("Error");
     }
-    return Status::OK();
+    return OkStatus();
   };
 
   TF_EXPECT_OK(Retry("RetryFinallySucceeds", 1 /* max_num_retries */,
@@ -47,12 +47,12 @@ TEST(RetrierTest, RetryFinallyFails) {
     if (++count <= 2) {
       return errors::Unknown("Error");
     }
-    return Status::OK();
+    return OkStatus();
   };
 
   const auto status = Retry("RetryFinallyFails", 1 /* max_num_retries */,
                             0 /* retry_interval_micros */, retried_fn);
-  EXPECT_THAT(status.error_message(), HasSubstr("Error"));
+  EXPECT_THAT(status.message(), HasSubstr("Error"));
 }
 
 TEST(RetrierTest, RetryCancelled) {
@@ -64,7 +64,7 @@ TEST(RetrierTest, RetryCancelled) {
   const auto status = Retry("RetryCancelled", 10 /* max_num_retries */,
                             0 /* retry_interval_micros */, retried_fn,
                             []() { return true; } /* cancelled */);
-  EXPECT_THAT(status.error_message(), HasSubstr("Error"));
+  EXPECT_THAT(status.message(), HasSubstr("Error"));
   EXPECT_EQ(1, call_count);
 }
 

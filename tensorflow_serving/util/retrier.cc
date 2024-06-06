@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/util/retrier.h"
 
+#include <functional>
+
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/logging.h"
 
@@ -22,7 +24,7 @@ namespace tensorflow {
 namespace serving {
 
 Status Retry(const string& description, const uint32 max_num_retries,
-             const int64 retry_interval_micros,
+             const int64_t retry_interval_micros,
              const std::function<Status()>& retried_fn,
              const std::function<bool()>& is_cancelled) {
   Status status;

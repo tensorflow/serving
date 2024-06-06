@@ -64,13 +64,16 @@ Status RunWarmupRequest(const PredictionLog& warmup_record,
           run_options, meta_graph_def, {}, session,
           warmup_record.multi_inference_log().request(), &response));
     } break;
+    case PredictionLog::kPredictStreamedLog:
+      return errors::Unimplemented(strings::StrCat(
+          "Unsupported log_type for warmup: ", warmup_record.log_type_case()));
     case PredictionLog::kSessionRunLog:
       return errors::Unimplemented(strings::StrCat(
           "Unsupported log_type for warmup: ", warmup_record.log_type_case()));
     default:
       break;
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace

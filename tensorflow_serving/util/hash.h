@@ -22,7 +22,7 @@ namespace tensorflow {
 namespace serving {
 
 // Combines 2 hashes and returns a 3rd one.
-uint64 HashCombine(uint64 hash1, uint64 hash2);
+uint64_t HashCombine(uint64_t hash1, uint64_t hash2);
 
 }  // namespace serving
 }  // namespace tensorflow

@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -24,6 +25,7 @@ limitations under the License.
 #include "absl/strings/str_join.h"
 #include "absl/strings/substitute.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
+#include "tensorflow/cc/saved_model/util.h"
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
@@ -43,12 +45,14 @@ Status VerifySignature(const SignatureDef& signature) {
         kPredictMethodName, ", ", kClassifyMethodName, ", ", kRegressMethodName,
         "}. Was: ", signature.method_name()));
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status VerifyRequestInputsSize(const SignatureDef& signature,
                                const PredictRequest& request) {
-  if (request.inputs().size() != signature.inputs().size()) {
+  if (request.inputs().size() > signature.inputs().size() ||
+      (request.inputs().size() < signature.inputs().size() &&
+       signature.defaults().empty())) {
     const std::set<string> request_inputs = GetMapKeys(request.inputs());
     const std::set<string> signature_inputs = GetMapKeys(signature.inputs());
     const std::set<string> sent_extra =
@@ -56,7 +60,7 @@ Status VerifyRequestInputsSize(const SignatureDef& signature,
     const std::set<string> missing =
         SetDifference(signature_inputs, request_inputs);
     return tensorflow::Status(
-        tensorflow::error::INVALID_ARGUMENT,
+        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
         absl::StrCat(
             "input size does not match signature: ", request.inputs().size(),
             "!=", signature.inputs().size(), " len({",
@@ -65,7 +69,7 @@ Status VerifyRequestInputsSize(const SignatureDef& signature,
             absl::StrJoin(sent_extra, ","), "}. Missing but required: {",
             absl::StrJoin(missing, ","), "}."));
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace
@@ -73,7 +77,7 @@ Status VerifyRequestInputsSize(const SignatureDef& signature,
 namespace internal {
 Status RunPredict(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
-    const absl::optional<int64>& servable_version,
+    const absl::optional<int64_t>& servable_version,
     const internal::PredictResponseTensorSerializationOption option,
     Session* session, const PredictRequest& request, PredictResponse* response,
     const thread::ThreadPoolOptions& thread_pool_options) {
@@ -99,11 +103,11 @@ Status RunPredict(
                                           &output_tensor_aliases));
   std::vector<Tensor> outputs;
   RunMetadata run_metadata;
-  const uint64 start_microseconds = EnvTime::NowMicros();
+  const uint64_t start_microseconds = EnvTime::NowMicros();
   TF_RETURN_IF_ERROR(session->Run(run_options, input_tensors,
                                   output_tensor_names, {}, &outputs,
                                   &run_metadata, thread_pool_options));
-  const uint64 end_microseconds = EnvTime::NowMicros();
+  const uint64_t end_microseconds = EnvTime::NowMicros();
   RecordRuntimeLatency(request.model_spec().name(), /*api=*/"Predict",
                        /*runtime=*/"TF1",
                        end_microseconds - start_microseconds);
@@ -119,24 +123,8 @@ Status PreProcessPrediction(const SignatureDef& signature,
                             std::vector<string>* output_tensor_aliases) {
   TF_RETURN_IF_ERROR(VerifySignature(signature));
   TF_RETURN_IF_ERROR(VerifyRequestInputsSize(signature, request));
-  for (auto& input : request.inputs()) {
-    const string& alias = input.first;
-    auto iter = signature.inputs().find(alias);
-    if (iter == signature.inputs().end()) {
-      return tensorflow::Status(
-          tensorflow::error::INVALID_ARGUMENT,
-          strings::StrCat("input tensor alias not found in signature: ", alias,
-                          ". Inputs expected to be in the set {",
-                          absl::StrJoin(GetMapKeys(signature.inputs()), ","),
-                          "}."));
-    }
-    Tensor tensor;
-    if (!tensor.FromProto(input.second)) {
-      return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
-                                "tensor parsing error: " + alias);
-    }
-    inputs->emplace_back(std::make_pair(iter->second.name(), tensor));
-  }
+  TF_RETURN_IF_ERROR(
+      saved_model::GetInputValues(signature, request.inputs(), *inputs));
 
   // Prepare run target.
   std::set<string> seen_outputs;
@@ -146,15 +134,16 @@ Status PreProcessPrediction(const SignatureDef& signature,
     auto iter = signature.outputs().find(alias);
     if (iter == signature.outputs().end()) {
       return tensorflow::Status(
-          tensorflow::error::INVALID_ARGUMENT,
+          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
           strings::StrCat("output tensor alias not found in signature: ", alias,
                           " Outputs expected to be in the set {",
                           absl::StrJoin(GetMapKeys(signature.outputs()), ","),
                           "}."));
     }
     if (seen_outputs.find(alias) != seen_outputs.end()) {
-      return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
-                                "duplicate output tensor alias: " + alias);
+      return tensorflow::Status(
+          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+          "duplicate output tensor alias: " + alias);
     }
     seen_outputs.insert(alias);
     output_tensor_names->emplace_back(iter->second.name());
@@ -168,7 +157,7 @@ Status PreProcessPrediction(const SignatureDef& signature,
       output_tensor_aliases->emplace_back(iter.first);
     }
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status PostProcessPredictionResult(
@@ -178,8 +167,9 @@ Status PostProcessPredictionResult(
     PredictResponse* response) {
   // Validate and return output.
   if (output_tensors.size() != output_tensor_aliases.size()) {
-    return tensorflow::Status(tensorflow::error::UNKNOWN,
-                              "Predict internal error");
+    return tensorflow::Status(
+        static_cast<tensorflow::errors::Code>(absl::StatusCode::kUnknown),
+        "Predict internal error");
   }
   switch (option) {
     case internal::PredictResponseTensorSerializationOption::kAsProtoField: {
@@ -196,14 +186,14 @@ Status PostProcessPredictionResult(
     } break;
   }
 
-  return Status::OK();
+  return OkStatus();
 }
 
 }  // namespace internal
 
 Status RunPredict(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
-                  const absl::optional<int64>& servable_version,
+                  const absl::optional<int64_t>& servable_version,
                   Session* session, const PredictRequest& request,
                   PredictResponse* response,
                   const thread::ThreadPoolOptions& thread_pool_options) {

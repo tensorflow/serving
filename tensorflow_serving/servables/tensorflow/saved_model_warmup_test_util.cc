@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup_test_util.h"
 
+#include <memory>
+#include <vector>
+
 #include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/tensor.pb.h"
@@ -63,8 +66,14 @@ void PopulateRegressionRequest(RegressionRequest* request) {
   request->mutable_model_spec()->set_signature_name(kRegressMethodName);
 }
 
-void PopulatePredictionLog(PredictionLog* prediction_log,
-                           PredictionLog::LogTypeCase log_type) {
+Status PopulatePredictionLog(PredictionLog* prediction_log,
+                             PredictionLog::LogTypeCase log_type,
+                             int num_repeated_values) {
+  if ((num_repeated_values > 1) &&
+      (log_type != PredictionLog::kPredictStreamedLog)) {
+    return errors::InvalidArgument(
+        "Only predict_streamed_log supports num_repeated_values > 1.");
+  }
   switch (log_type) {
     case PredictionLog::kRegressLog: {
       PopulateRegressionRequest(
@@ -78,6 +87,12 @@ void PopulatePredictionLog(PredictionLog* prediction_log,
       PopulatePredictRequest(
           prediction_log->mutable_predict_log()->mutable_request());
     } break;
+    case PredictionLog::kPredictStreamedLog: {
+      for (int i = 0; i < num_repeated_values; ++i) {
+        PopulatePredictRequest(
+            prediction_log->mutable_predict_streamed_log()->add_request());
+      }
+    } break;
     case PredictionLog::kMultiInferenceLog: {
       PopulateMultiInferenceRequest(
           prediction_log->mutable_multi_inference_log()->mutable_request());
@@ -86,8 +101,9 @@ void PopulatePredictionLog(PredictionLog* prediction_log,
       prediction_log->mutable_session_run_log();
       TF_FALLTHROUGH_INTENDED;
     default:
-      return;
+      break;
   }
+  return OkStatus();
 }
 
 Status WriteWarmupData(const string& fname,
@@ -105,7 +121,7 @@ Status WriteWarmupData(const string& fname,
     }
   }
   TF_RETURN_IF_ERROR(writer.Flush());
-  return Status::OK();
+  return OkStatus();
 }
 
 Status WriteWarmupDataAsSerializedProtos(
@@ -120,17 +136,26 @@ Status WriteWarmupDataAsSerializedProtos(
     }
   }
   TF_RETURN_IF_ERROR(file->Close());
-  return Status::OK();
+  return OkStatus();
 }
 
-void AddMixedWarmupData(
+Status AddMixedWarmupData(
     std::vector<string>* warmup_records,
     const std::vector<PredictionLog::LogTypeCase>& log_types) {
   for (auto& log_type : log_types) {
-    PredictionLog prediction_log;
-    PopulatePredictionLog(&prediction_log, log_type);
-    warmup_records->push_back(prediction_log.SerializeAsString());
+    TF_RETURN_IF_ERROR(AddToWarmupData(warmup_records, log_type, 1));
   }
+  return OkStatus();
+}
+
+Status AddToWarmupData(std::vector<string>* warmup_records,
+                       PredictionLog::LogTypeCase log_type,
+                       int num_repeated_values) {
+  PredictionLog prediction_log;
+  TF_RETURN_IF_ERROR(
+      PopulatePredictionLog(&prediction_log, log_type, num_repeated_values));
+  warmup_records->push_back(prediction_log.SerializeAsString());
+  return OkStatus();
 }
 
 // Creates a test SignatureDef with the given parameters

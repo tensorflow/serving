@@ -135,7 +135,7 @@ class StreamingBatchScheduler : public BatchScheduler<TaskType> {
     //
     // A negative value means that no timeout will be enforced. This setting is
     // useful in some test code.
-    int64 batch_timeout_micros = 0;
+    int64_t batch_timeout_micros = 0;
 
     // The name to use for the pool of batch threads.
     string thread_pool_name = "batch_threads";
@@ -151,7 +151,7 @@ class StreamingBatchScheduler : public BatchScheduler<TaskType> {
 
     // How long SingleTaskScheduler should wait if there are no scheduled tasks,
     // in microseconds.
-    uint64 no_tasks_wait_time_micros = 1000;  // 1 millisecond
+    uint64_t no_tasks_wait_time_micros = 1000;  // 1 millisecond
   };
   static Status Create(
       const Options& options,
@@ -188,7 +188,7 @@ class StreamingBatchScheduler : public BatchScheduler<TaskType> {
   // Takes a snapshot of 'open_batch_num_', and schedules an event with
   // 'batch_closer_' to close it at time 'close_time_micros' if it is still open
   // at that time.
-  void ScheduleCloseOfCurrentOpenBatch(uint64 close_time_micros)
+  void ScheduleCloseOfCurrentOpenBatch(uint64_t close_time_micros)
       TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   const Options options_;
@@ -209,7 +209,7 @@ class StreamingBatchScheduler : public BatchScheduler<TaskType> {
 
   // The sequence number of 'open_batch_'. Incremented each time 'open_batch_'
   // is assigned to a new (non-null) batch object.
-  int64 open_batch_num_ TF_GUARDED_BY(mu_) = 0;
+  int64_t open_batch_num_ TF_GUARDED_BY(mu_) = 0;
 
   // The number of batches "in progress", i.e. batches that have been started
   // but for which the process-batch callback hasn't finished. Note that this
@@ -246,7 +246,7 @@ namespace internal {
 class SingleTaskScheduler {
  public:
   SingleTaskScheduler(Env* env, string thread_name,
-                      uint64 no_tasks_wait_time_micros);
+                      uint64_t no_tasks_wait_time_micros);
 
   // Blocks until the currently-set closure (if any) runs.
   ~SingleTaskScheduler();
@@ -256,7 +256,7 @@ class SingleTaskScheduler {
   // cancels any closures provided in them (if they haven't already been run).
   //
   // IMPORTANT: 'time_micros' must be monotonically non-decreasing across calls.
-  void Schedule(uint64 time_micros, std::function<void()> closure);
+  void Schedule(uint64_t time_micros, std::function<void()> closure);
 
  private:
   // The code executed in 'thread_'. Looks for updated tasks, and executes them
@@ -271,7 +271,7 @@ class SingleTaskScheduler {
 
   // The arguments to Schedule().
   struct Task {
-    uint64 time_micros;
+    uint64_t time_micros;
     std::function<void()> closure;
   };
 
@@ -280,7 +280,7 @@ class SingleTaskScheduler {
 
   // The time parameter passed in the most recent Schedule() invocation.
   // Used to enforce monotonicity.
-  uint64 last_task_time_ = 0;
+  uint64_t last_task_time_ = 0;
 
   // A notification for stopping the thread, during destruction.
   Notification stop_;
@@ -292,7 +292,7 @@ class SingleTaskScheduler {
   std::unique_ptr<Thread> thread_;
 
   // How long to wait if there are no scheduled tasks, in microseconds.
-  const uint64 no_tasks_wait_time_micros_;
+  const uint64_t no_tasks_wait_time_micros_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(SingleTaskScheduler);
 };
@@ -315,7 +315,7 @@ Status StreamingBatchScheduler<TaskType>::Create(
   }
   scheduler->reset(
       new StreamingBatchScheduler<TaskType>(options, process_batch_callback));
-  return Status::OK();
+  return Status();
 }
 
 template <typename TaskType>
@@ -363,7 +363,7 @@ Status StreamingBatchScheduler<TaskType>::Schedule(
     // If we are about to add the first task to a batch, schedule the batch to
     // be closed after the timeout.
     if (options_.batch_timeout_micros > 0 && open_batch_->empty()) {
-      const uint64 batch_deadline =
+      const uint64_t batch_deadline =
           options_.env->NowMicros() + options_.batch_timeout_micros;
       ScheduleCloseOfCurrentOpenBatch(batch_deadline);
     }
@@ -376,7 +376,7 @@ Status StreamingBatchScheduler<TaskType>::Schedule(
     }
   }
 
-  return Status::OK();
+  return Status();
 }
 
 template <typename TaskType>
@@ -433,13 +433,13 @@ void StreamingBatchScheduler<TaskType>::StartNewBatch() {
 
 template <typename TaskType>
 void StreamingBatchScheduler<TaskType>::ScheduleCloseOfCurrentOpenBatch(
-    uint64 close_time_micros) {
+    uint64_t close_time_micros) {
   if (batch_closer_ == nullptr) {
     batch_closer_.reset(new internal::SingleTaskScheduler(
         options_.env, "batch_closer", options_.no_tasks_wait_time_micros));
   }
 
-  const int64 batch_num_to_close = open_batch_num_;
+  const int64_t batch_num_to_close = open_batch_num_;
   batch_closer_->Schedule(close_time_micros, [this, batch_num_to_close] {
     {
       mutex_lock l(this->mu_);
@@ -464,7 +464,7 @@ Status CreateRetryingStreamingBatchScheduler(
   TF_RETURN_IF_ERROR(BatchSchedulerRetrier<TaskType>::Create(
       retry_options, std::move(streaming_scheduler), &retrier));
   *scheduler = std::move(retrier);
-  return Status::OK();
+  return Status();
 }
 
 }  // namespace serving

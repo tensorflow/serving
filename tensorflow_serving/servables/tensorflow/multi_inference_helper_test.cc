@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/multi_inference_helper.h"
 
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/loader.h"
@@ -86,7 +91,7 @@ class MultiInferenceTest : public ::testing::Test {
 
   ServerCore* GetServerCore() { return this->server_core_.get(); }
 
-  const int64 servable_version_ = kTestModelVersion;
+  const int64_t servable_version_ = kTestModelVersion;
 
  private:
   static std::unique_ptr<ServerCore> server_core_;
@@ -111,7 +116,7 @@ void AddInput(const std::vector<std::pair<string, float>>& feature_kv,
 }
 
 void PopulateTask(const string& signature_name, const string& method_name,
-                  int64 version, InferenceTask* task) {
+                  int64_t version, InferenceTask* task) {
   ModelSpec model_spec;
   model_spec.set_name(kTestModelName);
   if (version > 0) {
@@ -123,10 +128,10 @@ void PopulateTask(const string& signature_name, const string& method_name,
 }
 
 void ExpectStatusError(const Status& status,
-                       const tensorflow::error::Code expected_code,
+                       const tensorflow::errors::Code expected_code,
                        const string& message_substring) {
   ASSERT_EQ(expected_code, status.code());
-  EXPECT_THAT(status.error_message(), ::testing::HasSubstr(message_substring));
+  EXPECT_THAT(status.message(), ::testing::HasSubstr(message_substring));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -137,10 +142,12 @@ TYPED_TEST_P(MultiInferenceTest, MissingInputTest) {
   PopulateTask("regress_x_to_y", kRegressMethodName, -1, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(RunMultiInferenceWithServerCore(
-                        RunOptions(), this->GetServerCore(),
-                        thread::ThreadPoolOptions(), request, &response),
-                    tensorflow::error::INVALID_ARGUMENT, "Input is empty");
+  ExpectStatusError(
+      RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
+                                      thread::ThreadPoolOptions(), request,
+                                      &response),
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      "Input is empty");
 }
 
 TYPED_TEST_P(MultiInferenceTest, UndefinedSignatureTest) {
@@ -150,10 +157,12 @@ TYPED_TEST_P(MultiInferenceTest, UndefinedSignatureTest) {
                request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(RunMultiInferenceWithServerCore(
-                        RunOptions(), this->GetServerCore(),
-                        thread::ThreadPoolOptions(), request, &response),
-                    tensorflow::error::INVALID_ARGUMENT, "signature not found");
+  ExpectStatusError(
+      RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
+                                      thread::ThreadPoolOptions(), request,
+                                      &response),
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      "signature not found");
 }
 
 // Two ModelSpecs, accessing different models.
@@ -172,11 +181,12 @@ TYPED_TEST_P(MultiInferenceTest, InconsistentModelSpecsInRequestTest) {
   task->set_method_name(kRegressMethodName);
 
   MultiInferenceResponse response;
-  ExpectStatusError(RunMultiInferenceWithServerCore(
-                        RunOptions(), this->GetServerCore(),
-                        thread::ThreadPoolOptions(), request, &response),
-                    tensorflow::error::INVALID_ARGUMENT,
-                    "must access the same model name");
+  ExpectStatusError(
+      RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
+                                      thread::ThreadPoolOptions(), request,
+                                      &response),
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      "must access the same model name");
 }
 
 TYPED_TEST_P(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
@@ -187,11 +197,12 @@ TYPED_TEST_P(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
   PopulateTask("regress_x_to_y", kRegressMethodName, -1, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(RunMultiInferenceWithServerCore(
-                        RunOptions(), this->GetServerCore(),
-                        thread::ThreadPoolOptions(), request, &response),
-                    tensorflow::error::INVALID_ARGUMENT,
-                    "Duplicate evaluation of signature: regress_x_to_y");
+  ExpectStatusError(
+      RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
+                                      thread::ThreadPoolOptions(), request,
+                                      &response),
+      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      "Duplicate evaluation of signature: regress_x_to_y");
 }
 
 TYPED_TEST_P(MultiInferenceTest, UsupportedSignatureTypeTest) {
@@ -200,10 +211,12 @@ TYPED_TEST_P(MultiInferenceTest, UsupportedSignatureTypeTest) {
   PopulateTask("serving_default", kPredictMethodName, -1, request.add_tasks());
 
   MultiInferenceResponse response;
-  ExpectStatusError(RunMultiInferenceWithServerCore(
-                        RunOptions(), this->GetServerCore(),
-                        thread::ThreadPoolOptions(), request, &response),
-                    tensorflow::error::UNIMPLEMENTED, "Unsupported signature");
+  ExpectStatusError(
+      RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
+                                      thread::ThreadPoolOptions(), request,
+                                      &response),
+      static_cast<tsl::errors::Code>(absl::StatusCode::kUnimplemented),
+      "Unsupported signature");
 }
 
 TYPED_TEST_P(MultiInferenceTest, ValidSingleSignatureTest) {

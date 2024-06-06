@@ -85,7 +85,7 @@ template <typename TaskType>
 Status PuppetBatchScheduler<TaskType>::Schedule(
     std::unique_ptr<TaskType>* task) {
   queue_.push(std::move(*task));
-  return Status::OK();
+  return Status();
 }
 
 template <typename TaskType>

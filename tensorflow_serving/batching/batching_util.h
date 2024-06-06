@@ -23,8 +23,6 @@ limitations under the License.
 #include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
 #include "tensorflow/core/framework/tensor.h"
-#include "tensorflow/core/lib/core/status.h"
-#include "tensorflow/core/lib/monitoring/percentile_sampler.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
 
 namespace tensorflow {
@@ -108,7 +106,7 @@ Status ComputeTensorBatchSize(TensorList inputs, size_t* size, DimFunc dim_func,
       }
     }
   }
-  return Status::OK();
+  return Status();
 }
 
 /***************** Below utilities are for monitoring purpose *****************/
@@ -119,13 +117,13 @@ Status ComputeTensorBatchSize(TensorList inputs, size_t* size, DimFunc dim_func,
 template <typename BatchingTask>
 void RecordPaddingSize(int32 padding_size, int32 execution_batch_size) {
   static const std::string batching_task_name = BatchingTask::Name();
-  static auto* cell = tensorflow::monitoring::PercentileSampler<1>::New(
+  static auto* cell = tensorflow::monitoring::Sampler<1>::New(
       {absl::StrCat("/tensorflow/serving/", batching_task_name,
                     "/padding_size"),
        "Tracks the padding size distribution on batches.",
        "execution_batch_size"},
-      /*percentiles=*/{25.0, 50.0, 75.0, 90.0, 95.0, 99.0},
-      /*max_samples=*/1024, tensorflow::monitoring::UnitOfMeasure::kNumber);
+      // Exponential buckets [1*2^0, ..., 1*2^13, DBL_MAX].
+      monitoring::Buckets::Exponential(1, 2, 14));
   cell->GetCell(absl::StrCat(execution_batch_size))
       ->Add(static_cast<double>(padding_size));
 }
@@ -133,29 +131,25 @@ void RecordPaddingSize(int32 padding_size, int32 execution_batch_size) {
 template <typename BatchingTask>
 void RecordInputBatchSize(int32 batch_size) {
   static const std::string batching_task_name = BatchingTask::Name();
-  static tensorflow::monitoring::PercentileSamplerCell* cell =
-      tensorflow::monitoring::PercentileSampler<0>::New(
-          {absl::StrCat("/tensorflow/serving/", batching_task_name,
-                        "/input_batch_size"),
-           "Tracks the batch size distribution on the inputs."},
-          /*percentiles=*/{25.0, 50.0, 75.0, 90.0, 95.0, 99.0},
-          /*max_samples=*/1024, tensorflow::monitoring::UnitOfMeasure::kNumber)
-          ->GetCell();
-  cell->Add(static_cast<double>(batch_size));
+  static auto* cell = tensorflow::monitoring::Sampler<0>::New(
+      {absl::StrCat("/tensorflow/serving/", batching_task_name,
+                    "/input_batch_size"),
+       "Tracks the batch size distribution on the inputs."},
+      // Exponential buckets [1*2^0, ..., 1*2^13, DBL_MAX].
+      monitoring::Buckets::Exponential(1, 2, 14));
+  cell->GetCell()->Add(static_cast<double>(batch_size));
 }
 
 template <typename BatchingTask>
 void RecordProcessedBatchSize(int32 batch_size) {
   static const std::string batching_task_name = BatchingTask::Name();
-  static tensorflow::monitoring::PercentileSamplerCell* cell =
-      tensorflow::monitoring::PercentileSampler<0>::New(
-          {absl::StrCat("/tensorflow/serving/", batching_task_name,
-                        "/processed_batch_size"),
-           "Tracks the batch size distribution on processing."},
-          /*percentiles=*/{25.0, 50.0, 75.0, 90.0, 95.0, 99.0},
-          /*max_samples=*/1024, tensorflow::monitoring::UnitOfMeasure::kNumber)
-          ->GetCell();
-  cell->Add(static_cast<double>(batch_size));
+  static auto* cell = tensorflow::monitoring::Sampler<0>::New(
+      {absl::StrCat("/tensorflow/serving/", batching_task_name,
+                    "/processed_batch_size"),
+       "Tracks the batch size distribution on processing."},
+      // Exponential buckets [1*2^0, ..., 1*2^13, DBL_MAX].
+      monitoring::Buckets::Exponential(1, 2, 14));
+  cell->GetCell()->Add(static_cast<double>(batch_size));
 }
 
 }  // namespace serving

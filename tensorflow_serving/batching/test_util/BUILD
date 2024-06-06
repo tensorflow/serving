@@ -1,11 +1,13 @@
 # Description: Tensorflow Serving batching test utilities.
 
+# Placeholder: load py_binary
+
 package(
     default_visibility = ["//tensorflow_serving:internal"],
     features = ["-layering_check"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 filegroup(
     name = "all_files",
@@ -48,5 +50,4 @@ py_binary(
     srcs = ["matrix_half_plus_two_saved_model.py"],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = ["@org_tensorflow//tensorflow:tensorflow_py"],
 )

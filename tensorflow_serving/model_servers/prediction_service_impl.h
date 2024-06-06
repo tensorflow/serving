@@ -17,23 +17,15 @@ limitations under the License.
 #define TENSORFLOW_SERVING_MODEL_SERVERS_PREDICTION_SERVICE_IMPL_H_
 
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
-#include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/model_servers/prediction_service_util.h"
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
-#include "tensorflow_serving/servables/tensorflow/thread_pool_factory.h"
 
 namespace tensorflow {
 namespace serving {
 
 class PredictionServiceImpl final : public PredictionService::Service {
  public:
-  // Options for configuring a PredictionServiceImpl object.
-  struct Options {
-    ServerCore* server_core;
-    bool enforce_session_run_timeout;
-    ThreadPoolFactory* thread_pool_factory = nullptr;
-  };
-
-  explicit PredictionServiceImpl(const Options& options)
+  explicit PredictionServiceImpl(const PredictionServiceOptions& options)
       : core_(options.server_core),
         predictor_(new TensorflowPredictor(options.thread_pool_factory)),
         enforce_session_run_timeout_(options.enforce_session_run_timeout),

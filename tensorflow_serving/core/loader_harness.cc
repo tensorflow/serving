@@ -16,6 +16,8 @@ limitations under the License.
 #include "tensorflow_serving/core/loader_harness.h"
 
 #include <algorithm>
+#include <memory>
+#include <utility>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/strings/strcat.h"
@@ -56,7 +58,7 @@ Status LoaderHarness::LoadRequested() {
   state_ = State::kLoadRequested;
   VLOG(1) << "Load requested for servable version " << id_;
 
-  return Status::OK();
+  return OkStatus();
 }
 
 Status LoaderHarness::LoadApproved() {
@@ -64,7 +66,7 @@ Status LoaderHarness::LoadApproved() {
   TF_RETURN_IF_ERROR(
       TransitionState(State::kLoadRequested, State::kLoadApproved));
   LOG(INFO) << "Approving load for servable version " << id_;
-  return Status::OK();
+  return OkStatus();
 }
 
 Status LoaderHarness::Load() {
@@ -80,14 +82,23 @@ Status LoaderHarness::Load() {
       [&]() { return loader_->LoadWithMetadata({id_}); },
       [&]() { return cancel_load_retry(); });
 
-  {
-    mutex_lock l(mu_);
-    if (status.ok()) {
+  if (status.ok()) {
+    if (cancel_load_retry()) {
+      // Servable is going to be unloaded very soon,
+      // we report a failure here so that we do not accidentally
+      // report that the servable is available.
+      TF_RETURN_IF_ERROR(UnloadDueToCancelledLoad());
+      return errors::Cancelled(
+          strings::StrCat("Loading of servable cancelled"));
+    }
+    {
+      mutex_lock l(mu_);
       TF_RETURN_IF_ERROR(TransitionState(State::kLoading, State::kReady));
       LOG(INFO) << "Successfully loaded servable version " << id_;
-    } else {
-      ErrorInternal(status);
     }
+  } else {
+    mutex_lock l(mu_);
+    ErrorInternal(status);
   }
 
   return status;
@@ -100,7 +111,28 @@ Status LoaderHarness::UnloadRequested() {
         "Servable not loaded, or unload already requested/ongoing");
   }
   state_ = State::kUnloadRequested;
-  return Status::OK();
+  return OkStatus();
+}
+
+Status LoaderHarness::UnloadInternal(State from_state) {
+  {
+    mutex_lock l(mu_);
+    TF_RETURN_IF_ERROR(TransitionState(from_state, State::kUnloading));
+    LOG(INFO) << "Unloading just-loaded servable version " << id_;
+  }
+
+  loader_->Unload();
+
+  {
+    mutex_lock l(mu_);
+    TF_RETURN_IF_ERROR(TransitionState(State::kUnloading, State::kDisabled));
+    LOG(INFO) << "Done unloading servable version " << id_;
+  }
+  return OkStatus();
+}
+
+Status LoaderHarness::UnloadDueToCancelledLoad() {
+  return UnloadInternal(State::kLoading);
 }
 
 void LoaderHarness::set_cancel_load_retry(const bool value) {
@@ -113,37 +145,21 @@ bool LoaderHarness::cancel_load_retry() {
   return cancel_load_retry_;
 }
 
-Status LoaderHarness::Unload() {
-  {
-    mutex_lock l(mu_);
-    TF_RETURN_IF_ERROR(TransitionState(State::kQuiesced, State::kUnloading));
-    LOG(INFO) << "Unloading servable version " << id_;
-  }
-
-  loader_->Unload();
-
-  {
-    mutex_lock l(mu_);
-    TF_RETURN_IF_ERROR(TransitionState(State::kUnloading, State::kDisabled));
-    LOG(INFO) << "Done unloading servable version " << id_;
-  }
-
-  return Status::OK();
-}
+Status LoaderHarness::Unload() { return UnloadInternal(State::kQuiesced); }
 
 Status LoaderHarness::StartQuiescing() {
   mutex_lock l(mu_);
   TF_RETURN_IF_ERROR(
       TransitionState(State::kUnloadRequested, State::kQuiescing));
   LOG(INFO) << "Quiescing servable version " << id_;
-  return Status::OK();
+  return OkStatus();
 }
 
 Status LoaderHarness::DoneQuiescing() {
   mutex_lock l(mu_);
   TF_RETURN_IF_ERROR(TransitionState(State::kQuiescing, State::kQuiesced));
   LOG(INFO) << "Done quiescing servable version " << id_;
-  return Status::OK();
+  return OkStatus();
 }
 
 void LoaderHarness::ErrorInternal(const Status& status) {
@@ -174,7 +190,7 @@ Status LoaderHarness::TransitionState(const State from, const State to) {
     return error;
   }
   state_ = to;
-  return Status::OK();
+  return OkStatus();
 }
 
 Status LoaderHarness::status() const {

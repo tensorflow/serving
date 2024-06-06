@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/util/any_ptr.h"
 
+#include <memory>
+#include <utility>
+
 #include <gtest/gtest.h>
 #include "absl/base/attributes.h"
 

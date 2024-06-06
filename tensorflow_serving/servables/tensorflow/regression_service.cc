@@ -31,8 +31,9 @@ Status TensorflowRegressionServiceImpl::Regress(
     const RegressionRequest& request, RegressionResponse* response) {
   // Verify Request Metadata and create a ServableRequest
   if (!request.has_model_spec()) {
-    return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
-                              "Missing ModelSpec");
+    return tensorflow::Status(
+        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+        "Missing ModelSpec");
   }
 
   return RegressWithModelSpec(run_options, core, thread_pool_options,

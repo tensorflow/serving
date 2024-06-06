@@ -33,10 +33,12 @@ limitations under the License.
 // e.g.: --benchmark_min_time=60.0
 
 #include <limits.h>
+
 #include <algorithm>
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -103,7 +105,7 @@ class BenchmarkState {
   FastReadIntPtr fast_ptr_;
 
   // The update interval in microseconds.
-  int64 update_micros_;
+  int64_t update_micros_;
 
   // In each iteration, to simulate a more realistic access pattern that does
   // more than content for the mutex.

@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/get_model_status_impl.h"
 
+#include <memory>
+#include <set>
+#include <utility>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/loader.h"
@@ -92,7 +96,7 @@ TEST_F(GetModelStatusImplTest, MissingOrEmptyModelSpecFailure) {
 
   // Empty request is invalid.
   EXPECT_EQ(
-      tensorflow::error::INVALID_ARGUMENT,
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       GetModelStatusImpl::GetModelStatus(GetServerCore(), request, &response)
           .code());
 }
@@ -141,8 +145,9 @@ TEST_F(GetModelStatusImplTest, AllVersionsSuccess) {
   TF_EXPECT_OK(
       GetModelStatusImpl::GetModelStatus(GetServerCore(), request, &response));
   EXPECT_EQ(2, response.model_version_status_size());
-  std::set<int64> expected_versions = {kTestModelVersion1, kTestModelVersion2};
-  std::set<int64> actual_versions = {
+  std::set<int64_t> expected_versions = {kTestModelVersion1,
+                                         kTestModelVersion2};
+  std::set<int64_t> actual_versions = {
       response.model_version_status(0).version(),
       response.model_version_status(1).version()};
   EXPECT_EQ(expected_versions, actual_versions);

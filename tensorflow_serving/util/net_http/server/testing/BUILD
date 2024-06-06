@@ -1,10 +1,8 @@
 # Description: net_http/server/testing
 
-package(
-    default_visibility = ["//visibility:private"],
-)
+package(default_visibility = ["//visibility:private"])
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 cc_binary(
     name = "evhttp_echo_server",

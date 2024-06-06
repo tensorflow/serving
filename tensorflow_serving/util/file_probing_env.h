@@ -42,7 +42,7 @@ class FileProbingEnv {
   virtual Status IsDirectory(const string& fname) = 0;
 
   // Stores the size of `fname` in `*file_size`.
-  virtual Status GetFileSize(const string& fname, uint64* file_size) = 0;
+  virtual Status GetFileSize(const string& fname, uint64_t* file_size) = 0;
 };
 
 // An implementation of FileProbingEnv which delegates the calls to
@@ -60,7 +60,7 @@ class TensorflowFileProbingEnv : public FileProbingEnv {
 
   Status IsDirectory(const string& fname) override;
 
-  Status GetFileSize(const string& fname, uint64* file_size) override;
+  Status GetFileSize(const string& fname, uint64_t* file_size) override;
 
  private:
   // Not owned.

@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
 
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/core/kernels/batching_util/batch_scheduler.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -24,6 +29,7 @@ limitations under the License.
 #include "tensorflow_serving/batching/batching_session.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/servables/tensorflow/serving_session.h"
+#include "tensorflow_serving/util/proto_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -31,6 +37,13 @@ namespace serving {
 namespace {
 
 using Batcher = SharedBatchScheduler<BatchingSessionTask>;
+
+const char kBatchingParamsFilename[] = "batching_params.pbtxt";
+
+bool BatchingParamsFound(const string& model_dir) {
+  const string& fname = io::JoinPath(model_dir, kBatchingParamsFilename);
+  return Env::Default()->FilesExist({fname}, nullptr);
+}
 
 }  // namespace
 
@@ -50,6 +63,33 @@ RunOptions GetRunOptions(const SessionBundleConfig& config) {
   return run_options;
 }
 
+Status GetPerModelBatchingParams(const string& path,
+                                 const BatchingParameters& common_params,
+                                 bool per_model_configured,
+                                 absl::optional<BatchingParameters>* params) {
+  if (per_model_configured) {
+    if (BatchingParamsFound(path)) {
+      *params = absl::make_optional(BatchingParameters());
+      TF_RETURN_IF_ERROR(ParseProtoTextFile(
+          io::JoinPath(path, kBatchingParamsFilename), &params->value()));
+      VLOG(1) << "Wrapping session to perform batch processing "
+              << "using SavedModel batching params: "
+              << params->value().DebugString();
+    }
+  } else {
+    *params = absl::make_optional(common_params);
+    VLOG(1) << "Wrapping session to perform batch processing "
+            << "using session config batching params: "
+            << params->value().DebugString();
+  }
+  return OkStatus();
+}
+
+Status EstimateResourceFromValidationResult(const string& path,
+                                            ResourceAllocation* estimate) {
+  return EstimateMainRamBytesFromValidationResult(path, estimate);
+}
+
 Status EstimateResourceFromPath(const string& path, bool use_validation_result,
                                 ResourceAllocation* estimate) {
   TensorflowFileProbingEnv env(Env::Default());
@@ -60,8 +100,7 @@ Status EstimateResourceFromPath(const string& path, bool use_validation_result,
 Status WrapSessionForBatching(const BatchingParameters& batching_config,
                               std::shared_ptr<Batcher> batch_scheduler,
                               const std::vector<SignatureDef>& signatures,
-                              std::unique_ptr<Session>* session,
-                              bool enable_default_schedule_creator) {
+                              std::unique_ptr<Session>* session) {
   LOG(INFO) << "Wrapping session to perform batch processing";
 
   if (batch_scheduler == nullptr) {
@@ -69,6 +108,21 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
   }
   if (*session == nullptr) {
     return errors::Internal("session not set");
+  }
+
+  if (!batching_config.allowed_batch_sizes().empty()) {
+    // Verify that the last allowed batch size matches the max batch size.
+    const int last_allowed_size = batching_config.allowed_batch_sizes(
+        batching_config.allowed_batch_sizes().size() - 1);
+    const int max_size = batching_config.has_max_batch_size()
+                             ? batching_config.max_batch_size().value()
+                             : Batcher::QueueOptions().input_batch_size_limit;
+    if (last_allowed_size != max_size) {
+      return errors::InvalidArgument(
+          "Last entry in allowed_batch_sizes must match max_batch_size; last "
+          "entry was ",
+          last_allowed_size, "; expected ", max_size);
+    }
   }
 
   auto queue_options = GetQueueOptions<
@@ -96,7 +150,7 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
       std::unique_ptr<BatchScheduler<BatchingSessionTask>>* queue) {
     TF_RETURN_IF_ERROR(batch_scheduler->AddQueue(
         queue_options, process_batch_callback, queue));
-    return Status::OK();
+    return OkStatus();
   };
   std::vector<SignatureWithBatchingSessionSchedulerCreator>
       signatures_with_scheduler_creators;
@@ -107,22 +161,20 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
         {tensor_signature, create_queue});
   }
 
-  // TODO(b/184973097): Remove enable_default_schedule_creator once TFLite is
-  // fixed.
-  if (enable_default_schedule_creator) {
-    return CreateBatchingSession(batching_session_options,
-                                 signatures_with_scheduler_creators,
-                                 create_queue, std::move(*session), session);
-  } else {
-    return CreateBatchingSession(batching_session_options,
-                                 signatures_with_scheduler_creators,
-                                 std::move(*session), session);
-  }
+  return CreateBatchingSession(batching_session_options,
+                               signatures_with_scheduler_creators, create_queue,
+                               std::move(*session), session);
 }
 
 Status WrapSession(std::unique_ptr<Session>* session) {
   session->reset(new ServingSessionWrapper(std::move(*session)));
-  return Status::OK();
+  return OkStatus();
+}
+
+Status WrapSessionIgnoreThreadPoolOptions(std::unique_ptr<Session>* session) {
+  session->reset(
+      new SessionWrapperIgnoreThreadPoolOptions(std::move(*session)));
+  return OkStatus();
 }
 
 }  // namespace serving

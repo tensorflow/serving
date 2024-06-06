@@ -54,6 +54,31 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/server.h"
 #include "tensorflow_serving/model_servers/version.h"
 
+#if defined(LIBTPU_ON_GCE) || defined(PLATFORM_CLOUD_TPU)
+#include "tensorflow/core/protobuf/tpu/topology.pb.h"
+#include "tensorflow/core/tpu/tpu_global_init.h"
+
+void InitializeTPU(tensorflow::serving::main::Server::Options& server_options) {
+  server_options.enforce_session_run_timeout = false;
+  if (server_options.saved_model_tags.empty()) {
+    server_options.saved_model_tags = "tpu,serve";
+  }
+
+  if (server_options.skip_initialize_tpu) {
+    std::cout << "Skipping model server level Initializing TPU system.";
+    return;
+  }
+  std::cout << "Initializing TPU system.";
+  tensorflow::tpu::TopologyProto tpu_topology;
+  TF_QCHECK_OK(tensorflow::InitializeTPUSystemGlobally(
+      tensorflow::Env::Default(), &tpu_topology))
+      << "Failed to initialize TPU system.";
+  std::cout << "Initialized TPU topology: " << tpu_topology.DebugString();
+  server_options.num_request_iterations_for_warmup =
+      tpu_topology.num_tpu_devices_per_task();
+}
+#endif
+
 int main(int argc, char** argv) {
   tensorflow::serving::main::Server::Options options;
   bool display_version = false;
@@ -90,6 +115,18 @@ int main(int argc, char** argv) {
                        "If non-empty, read an ascii BatchingParameters "
                        "protobuf from the supplied file name and use the "
                        "contained values instead of the defaults."),
+      tensorflow::Flag(
+          "enable_per_model_batching_parameters",
+          &options.enable_per_model_batching_params,
+          "Enables model specific batching params like batch "
+          "sizes, timeouts, batching feature flags to be read from "
+          "`batching_params.pbtxt` file present in SavedModel dir "
+          "of the model. Associated params in the global config "
+          "from --batching_parameters_file are *ignored*. Only "
+          "threadpool (name and size) related params are used from "
+          "the global config, as this threadpool is shared across "
+          "all the models that want to batch requests. This option "
+          "is only applicable when --enable_batching flag is set."),
       tensorflow::Flag("model_config_file", &options.model_config_file,
                        "If non-empty, read an ascii ModelServerConfig "
                        "protobuf from the supplied file name, and serve the "
@@ -156,6 +193,14 @@ int main(int argc, char** argv) {
                        "Tensorflow session. Auto-configured by default."
                        "Note that this option is ignored if "
                        "--platform_config_file is non-empty."),
+      tensorflow::Flag(
+          "tensorflow_session_config_file",
+          &options.tensorflow_session_config_file,
+          "If non-empty, read an ascii TensorFlow Session "
+          "ConfigProto protobuf from the supplied file name. Note, "
+          "parts of the session config (threads, parallelism etc.) "
+          "can be overridden if needed, via corresponding command "
+          "line flags."),
       tensorflow::Flag("tensorflow_intra_op_parallelism",
                        &options.tensorflow_intra_op_parallelism,
                        "Number of threads to use to parallelize the execution"
@@ -200,6 +245,10 @@ int main(int argc, char** argv) {
                        "Enables model warmup, which triggers lazy "
                        "initializations (such as TF optimizations) at load "
                        "time, to reduce first request latency."),
+      tensorflow::Flag("num_request_iterations_for_warmup",
+                       &options.num_request_iterations_for_warmup,
+                       "Number of times a request is iterated during warmup "
+                       "replay. This value is used only if > 0."),
       tensorflow::Flag("version", &display_version, "Display version"),
       tensorflow::Flag(
           "monitoring_config_file", &options.monitoring_config_file,
@@ -246,7 +295,14 @@ int main(int argc, char** argv) {
       tensorflow::Flag("thread_pool_factory_config_file",
                        &options.thread_pool_factory_config_file,
                        "If non-empty, read an ascii ThreadPoolConfig protobuf "
-                       "from the supplied file name.")};
+                       "from the supplied file name."),
+      tensorflow::Flag("mixed_precision", &options.mixed_precision,
+                       "specify mixed_precision mode"),
+      tensorflow::Flag("skip_initialize_tpu", &options.skip_initialize_tpu,
+                       "Whether to skip auto initializing TPU."),
+      tensorflow::Flag("enable_grpc_healthcheck_service",
+                       &options.enable_grpc_healthcheck_service,
+                       "Enable the standard gRPC healthcheck service.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {
@@ -254,13 +310,17 @@ int main(int argc, char** argv) {
     return -1;
   }
 
+  tensorflow::port::InitMain(argv[0], &argc, &argv);
+#if defined(LIBTPU_ON_GCE) || defined(PLATFORM_CLOUD_TPU)
+  InitializeTPU(options);
+#endif
+
   if (display_version) {
     std::cout << "TensorFlow ModelServer: " << TF_Serving_Version() << "\n"
               << "TensorFlow Library: " << TF_Version() << "\n";
     return 0;
   }
 
-  tensorflow::port::InitMain(argv[0], &argc, &argv);
   if (argc != 1) {
     std::cout << "unknown argument: " << argv[1] << "\n" << usage;
   }

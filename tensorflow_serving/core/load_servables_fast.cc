@@ -15,9 +15,13 @@ limitations under the License.
 
 #include "tensorflow_serving/core/load_servables_fast.h"
 
+#include <algorithm>
+#include <functional>
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -112,7 +116,7 @@ Status ConnectSourcesWithFastInitialLoad(
           strings::StrAppend(&message, "}");
           return errors::Unknown(message);
         }
-        return Status::OK();
+        return OkStatus();
       },
       num_threads);
 }

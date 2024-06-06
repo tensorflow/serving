@@ -33,7 +33,7 @@ namespace {
 Status ValidateGetModelMetadataRequest(const GetModelMetadataRequest& request) {
   if (request.metadata_field_size() == 0) {
     return tensorflow::Status(
-        tensorflow::error::INVALID_ARGUMENT,
+        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
         "GetModelMetadataRequest must specify at least one metadata_field");
   }
   for (const auto& metadata_field : request.metadata_field()) {
@@ -42,7 +42,7 @@ Status ValidateGetModelMetadataRequest(const GetModelMetadataRequest& request) {
           "Metadata field ", metadata_field, " is not supported");
     }
   }
-  return tensorflow::Status::OK();
+  return tensorflow::OkStatus();
 }
 
 Status SavedModelGetSignatureDef(ServerCore* core, const ModelSpec& model_spec,
@@ -61,7 +61,7 @@ Status SavedModelGetSignatureDef(ServerCore* core, const ModelSpec& model_spec,
 
   (*response->mutable_metadata())[GetModelMetadataImpl::kSignatureDef].PackFrom(
       signature_def_map);
-  return tensorflow::Status::OK();
+  return tensorflow::OkStatus();
 }
 
 }  // namespace
@@ -72,8 +72,9 @@ Status GetModelMetadataImpl::GetModelMetadata(
     ServerCore* core, const GetModelMetadataRequest& request,
     GetModelMetadataResponse* response) {
   if (!request.has_model_spec()) {
-    return tensorflow::Status(tensorflow::error::INVALID_ARGUMENT,
-                              "Missing ModelSpec");
+    return tensorflow::Status(
+        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+        "Missing ModelSpec");
   }
   return GetModelMetadataWithModelSpec(core, request.model_spec(), request,
                                        response);
@@ -93,7 +94,7 @@ Status GetModelMetadataImpl::GetModelMetadataWithModelSpec(
           "MetadataField ", metadata_field, " is not supported");
     }
   }
-  return tensorflow::Status::OK();
+  return tensorflow::OkStatus();
 }
 
 }  // namespace serving

@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/core/test_util/fake_storage_path_source_adapter.h"
 
+#include <functional>
+
 #include "tensorflow/core/lib/core/errors.h"
 
 namespace tensorflow {
@@ -42,7 +44,7 @@ Status FakeStoragePathSourceAdapter::Convert(
   }
   *converted_data =
       suffix_.empty() ? data : strings::StrCat(data, "/", suffix_);
-  return Status::OK();
+  return Status();
 }
 
 }  // namespace test_util

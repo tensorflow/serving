@@ -9,7 +9,7 @@ package(
     features = ["-layering_check"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 filegroup(
     name = "all_files",
@@ -26,9 +26,7 @@ cc_library(
     name = "static_storage_path_source",
     srcs = ["static_storage_path_source.cc"],
     hdrs = ["static_storage_path_source.h"],
-    visibility = [
-        "//visibility:public",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":static_storage_path_source_cc_proto",
         "//tensorflow_serving/core:servable_data",
@@ -43,7 +41,7 @@ serving_proto_library(
     name = "static_storage_path_source_proto",
     srcs = ["static_storage_path_source.proto"],
     cc_api_version = 2,
-    visibility = ["//visibility:public"],
+    visibility = ["//visibility:private"],
 )
 
 cc_test(
@@ -74,6 +72,8 @@ cc_library(
             "//tensorflow_serving/core:servable_id",
             "//tensorflow_serving/core:source",
             "//tensorflow_serving/core:storage_path",
+            "@com_google_absl//absl/status",
+            "@com_google_absl//absl/strings",
             "@com_google_absl//absl/types:variant",
             "@org_tensorflow//tensorflow/core:lib",
             "@org_tensorflow//tensorflow/core:tensorflow",

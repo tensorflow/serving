@@ -21,6 +21,7 @@ limitations under the License.
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "tensorflow/cc/saved_model/signature_constants.h"
@@ -68,7 +69,7 @@ class SavedModelTensorFlowRegressor : public RegressorInterface {
 
     std::vector<Tensor> outputs;
     int num_examples;
-    int64 runtime_latency;
+    int64_t runtime_latency;
     TF_RETURN_IF_ERROR(PerformOneShotTensorComputation(
         run_options_, request.input(), input_tensor_name, output_tensor_names,
         session_, &outputs, &num_examples, thread_pool_options_,
@@ -121,7 +122,7 @@ Status CreateRegressorFromSavedModelBundle(
     const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<RegressorInterface>* service) {
   service->reset(new SavedModelRegressor(run_options, std::move(bundle)));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status CreateFlyweightTensorFlowRegressor(
@@ -139,7 +140,7 @@ Status CreateFlyweightTensorFlowRegressor(
     std::unique_ptr<RegressorInterface>* service) {
   service->reset(new SavedModelTensorFlowRegressor(
       run_options, session, signature, thread_pool_options));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status GetRegressionSignatureDef(const ModelSpec& model_spec,
@@ -163,7 +164,7 @@ Status GetRegressionSignatureDef(const ModelSpec& model_spec,
     TF_RETURN_IF_ERROR(PreProcessRegression(iter->second, nullptr, nullptr));
   }
   *signature = iter->second;
-  return Status::OK();
+  return OkStatus();
 }
 
 Status PreProcessRegression(const SignatureDef& signature,
@@ -203,7 +204,7 @@ Status PreProcessRegression(const SignatureDef& signature,
   if (output_tensor_names != nullptr) {
     output_tensor_names->push_back(output_iter->second.name());
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status PostProcessRegressionResult(
@@ -262,12 +263,12 @@ Status PostProcessRegressionResult(
   for (int i = 0; i < num_examples; ++i) {
     result->add_regressions()->set_value(output_tensor_flat(i));
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status RunRegress(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
-                  const absl::optional<int64>& servable_version,
+                  const absl::optional<int64_t>& servable_version,
                   Session* session, const RegressionRequest& request,
                   RegressionResponse* response,
                   const thread::ThreadPoolOptions& thread_pool_options) {

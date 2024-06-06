@@ -34,7 +34,7 @@ namespace internal {
 // option for the TensorProtos in the response.
 Status RunPredict(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
-    const absl::optional<int64>& servable_version,
+    const absl::optional<int64_t>& servable_version,
     const PredictResponseTensorSerializationOption tensor_serialization_option,
     Session* session, const PredictRequest& request, PredictResponse* response,
     const thread::ThreadPoolOptions& thread_pool_options =
@@ -64,7 +64,7 @@ Status PostProcessPredictionResult(
 // specifying serialization option as kAsProtoField for backward compatibility.
 Status RunPredict(const RunOptions& run_options,
                   const MetaGraphDef& meta_graph_def,
-                  const absl::optional<int64>& servable_version,
+                  const absl::optional<int64_t>& servable_version,
                   Session* session, const PredictRequest& request,
                   PredictResponse* response,
                   const thread::ThreadPoolOptions& thread_pool_options =

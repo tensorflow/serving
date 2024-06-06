@@ -1,10 +1,8 @@
 # Description: net_http/socket testing utils
 
-package(
-    default_visibility = ["//visibility:private"],
-)
+package(default_visibility = ["//visibility:private"])
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 cc_binary(
     name = "ev_print_req_server",

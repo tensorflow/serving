@@ -30,10 +30,10 @@ namespace serving {
 // interval of 'retry_interval_micros'. The 'description' is useful for logging.
 //
 // Returns the status returned by the last call to 'retried_fn'.
-Status Retry(const string& description, uint32 max_num_retries,
-             int64 retry_interval_micros,
-             const std::function<Status()>& retried_fn,
-             const std::function<bool()>& is_cancelled = [] { return false; });
+Status Retry(
+    const string& description, uint32 max_num_retries,
+    int64_t retry_interval_micros, const std::function<Status()>& retried_fn,
+    const std::function<bool()>& is_cancelled = [] { return false; });
 
 }  // namespace serving
 }  // namespace tensorflow

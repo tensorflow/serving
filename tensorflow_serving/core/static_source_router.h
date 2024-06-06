@@ -69,7 +69,7 @@ Status StaticSourceRouter<T>::Create(
     const std::vector<string>& route_substrings,
     std::unique_ptr<StaticSourceRouter<T>>* result) {
   result->reset(new StaticSourceRouter<T>(route_substrings));
-  return Status::OK();
+  return Status();
 }
 
 template <typename T>

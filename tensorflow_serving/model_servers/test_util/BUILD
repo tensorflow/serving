@@ -1,7 +1,7 @@
 # Description: Model Server test utility
 
-load("//tensorflow_serving:oss_or_google.bzl", "if_google")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+# Placeholder: load py_library
+load("//tensorflow_serving:serving.bzl", "if_google", "serving_proto_library")
 
 package(
     default_visibility = [
@@ -10,7 +10,7 @@ package(
     features = ["-layering_check"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 filegroup(
     name = "all_files",
@@ -31,19 +31,25 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "//tensorflow_serving/apis:logging_cc_proto",
         "//tensorflow_serving/apis:model_cc_proto",
         "//tensorflow_serving/config:model_server_config_cc_proto",
         "//tensorflow_serving/config:platform_config_cc_proto",
         "//tensorflow_serving/core:aspired_versions_manager",
         "//tensorflow_serving/core:servable_handle",
+        "//tensorflow_serving/core:servable_id",
         "//tensorflow_serving/core:servable_state",
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/core:server_request_logger",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter_cc_proto",
+        "//tensorflow_serving/core/test_util:servable_handle_test_util",
         "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/servables/tensorflow:mock_servable",
+        "//tensorflow_serving/servables/tensorflow:servable",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:unique_ptr_with_deps",
+        "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest",
         "@com_google_protobuf//:cc_wkt_protos",
         "@com_google_protobuf//:protobuf_lite",
@@ -57,8 +63,8 @@ cc_library(
     srcs = ["server_core_test_util.cc"],
     hdrs = ["server_core_test_util.h"],
     data = [
-        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
         "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_2_versions",
+        "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ] + if_google([
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.data-00000-of-00001",
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
@@ -84,6 +90,7 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
         "//tensorflow_serving/test_util",
         "@com_google_googletest//:gtest",
+        "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )
@@ -123,9 +130,7 @@ py_library(
     deps = [
         "//tensorflow_serving/apis:predict_proto_py_pb2",
         "//tensorflow_serving/apis:prediction_service_proto_py_pb2",
-        "@org_tensorflow//tensorflow:tensorflow_py",
         "@org_tensorflow//tensorflow/core:protos_all_py",
-        "@org_tensorflow//tensorflow/python:platform",
         "@org_tensorflow//tensorflow/python/saved_model:signature_constants",
         "@six_archive//:six",
     ],

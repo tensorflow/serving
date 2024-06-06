@@ -45,7 +45,7 @@ TEST(PrometheusExporterTest, Counter) {
 
 TEST(PrometheusExporterTest, Gauge) {
   auto exporter = absl::make_unique<PrometheusExporter>();
-  auto gauge = absl::WrapUnique(monitoring::Gauge<int64, 2>::New(
+  auto gauge = absl::WrapUnique(monitoring::Gauge<int64_t, 2>::New(
       "/test/path/gague", "A gauge", "x", "y"));
   gauge->GetCell("abc", "def")->Set(5);
 

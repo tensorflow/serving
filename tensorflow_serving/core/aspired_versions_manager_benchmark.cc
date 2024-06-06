@@ -24,6 +24,7 @@ limitations under the License.
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "tensorflow/core/kernels/batching_util/periodic_function.h"
@@ -93,10 +94,10 @@ class BenchmarkState {
   void RunUpdate();
 
   // Starts serving this loader version.
-  void StartServing(int64 loader_version);
+  void StartServing(int64_t loader_version);
 
   // Gets the latest version of the loader available for serving.
-  int64 GetLatestVersion(bool do_work);
+  int64_t GetLatestVersion(bool do_work);
 
   // To avoid having the benchmark timing include time spent scheduling threads,
   // we use this notification to notify when the read threads should begin.
@@ -119,14 +120,14 @@ class BenchmarkState {
   bool do_work_;
 };
 
-void BenchmarkState::StartServing(const int64 loader_version) {
-  std::unique_ptr<Loader> loader(new SimpleLoader<int64>(
-      [loader_version](std::unique_ptr<int64>* const servable) {
-        servable->reset(new int64);
+void BenchmarkState::StartServing(const int64_t loader_version) {
+  std::unique_ptr<Loader> loader(new SimpleLoader<int64_t>(
+      [loader_version](std::unique_ptr<int64_t>* const servable) {
+        servable->reset(new int64_t);
         **servable = loader_version;
-        return Status::OK();
+        return OkStatus();
       },
-      SimpleLoader<int64>::EstimateNoResources()));
+      SimpleLoader<int64_t>::EstimateNoResources()));
   std::vector<ServableData<std::unique_ptr<Loader>>> versions;
   versions.push_back({{kServableName, loader_version}, std::move(loader)});
   manager_->GetAspiredVersionsCallback()(kServableName, std::move(versions));
@@ -144,8 +145,8 @@ void BenchmarkState::StartServing(const int64 loader_version) {
   CHECK_EQ(1, manager_->ListAvailableServableIds().size());
 }
 
-int64 BenchmarkState::GetLatestVersion(const bool do_work) {
-  ServableHandle<int64> handle;
+int64_t BenchmarkState::GetLatestVersion(const bool do_work) {
+  ServableHandle<int64_t> handle;
   const Status status = manager_->GetServableHandle(
       ServableRequest::Latest(kServableName), &handle);
   TF_CHECK_OK(status) << status;
@@ -330,13 +331,13 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
       const string servable_name = strings::StrCat(kServableName, i);
       std::vector<ServableData<std::unique_ptr<Loader>>> versions;
       for (int j = 0; j < kNumServableVersions; ++j) {
-        std::unique_ptr<Loader> loader(new SimpleLoader<int64>(
-            [j](std::unique_ptr<int64>* const servable) {
-              servable->reset(new int64);
+        std::unique_ptr<Loader> loader(new SimpleLoader<int64_t>(
+            [j](std::unique_ptr<int64_t>* const servable) {
+              servable->reset(new int64_t);
               **servable = j;
-              return Status::OK();
+              return OkStatus();
             },
-            SimpleLoader<int64>::EstimateNoResources()));
+            SimpleLoader<int64_t>::EstimateNoResources()));
         versions.push_back({{servable_name, j}, std::move(loader)});
       }
 
@@ -365,7 +366,7 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
       const string name =
           strings::StrCat(kServableName, random.Uniform(kNumServableStreams));
       if (random.RandFloat() > kLatestRatio) {
-        const int64 version = random.Uniform(kNumServableVersions);
+        const int64_t version = random.Uniform(kNumServableVersions);
         requests->push_back(ServableRequest::Specific(name, version));
       } else {
         requests->push_back(ServableRequest::Latest(name));
@@ -374,7 +375,7 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
     return requests;
   }();
 
-  ServableHandle<int64> handle;
+  ServableHandle<int64_t> handle;
   int i = 0;
   for (auto s : state) {
     const Status status =

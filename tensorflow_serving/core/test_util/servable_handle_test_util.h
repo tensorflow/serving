@@ -67,7 +67,7 @@ static ServableHandle<T> WrapAsHandle(const ServableId& id, T* t) {
         const ServableRequest& request,
         std::unique_ptr<UntypedServableHandle>* result) override {
       result->reset(new DummyHandle(id_, servable_));
-      return Status::OK();
+      return Status();
     }
 
     // Unimplemented: always returns an empty map.

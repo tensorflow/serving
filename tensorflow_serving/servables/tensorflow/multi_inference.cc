@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/multi_inference.h"
 
+#include <set>
+#include <vector>
+
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/platform/tracing.h"
@@ -120,12 +123,12 @@ Status TensorFlowMultiInferenceRunner::Infer(
                   response->mutable_results(response->results_size() - 1)
                       ->mutable_model_spec());
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status RunMultiInference(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
-    const absl::optional<int64>& servable_version, Session* session,
+    const absl::optional<int64_t>& servable_version, Session* session,
     const MultiInferenceRequest& request, MultiInferenceResponse* response,
     const tensorflow::thread::ThreadPoolOptions& thread_pool_options) {
   TRACELITERAL("RunMultiInference");

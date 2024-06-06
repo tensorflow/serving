@@ -49,6 +49,40 @@ using test_util::EqualsProto;
 
 using Batcher = SharedBatchScheduler<BatchingSessionTask>;
 
+class MockSession : public Session {
+ public:
+  MOCK_METHOD(tensorflow::Status, Create, (const GraphDef& graph), (override));
+  MOCK_METHOD(tensorflow::Status, Extend, (const GraphDef& graph), (override));
+  MOCK_METHOD(tensorflow::Status, ListDevices,
+              (std::vector<DeviceAttributes> * response), (override));
+  MOCK_METHOD(tensorflow::Status, Close, (), (override));
+
+  Status Run(const RunOptions& run_options,
+             const std::vector<std::pair<string, Tensor>>& inputs,
+             const std::vector<string>& output_tensor_names,
+             const std::vector<string>& target_node_names,
+             std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+    // half plus two: output should be input / 2 + 2.
+    const auto& input = inputs[0].second.flat<float>();
+    Tensor output(DT_FLOAT, inputs[0].second.shape());
+    test::FillFn<float>(&output,
+                        [&](int i) -> float { return input(i) / 2 + 2; });
+    outputs->push_back(output);
+    return tensorflow::OkStatus();
+  }
+
+  // Unused, but we need to provide a definition (virtual = 0).
+  Status Run(const std::vector<std::pair<std::string, Tensor>>&,
+             const std::vector<std::string>&, const std::vector<std::string>&,
+             std::vector<Tensor>* outputs) override {
+    return errors::Unimplemented(
+        "Run with threadpool is not supported for this session.");
+  }
+
+  // NOTE: The default definition for Run(...) with threading options already
+  // returns errors::Unimplemented.
+};
+
 class BundleFactoryUtilTest : public ::testing::Test {
  protected:
   BundleFactoryUtilTest() : export_dir_(test_util::GetTestSavedModelPath()) {}
@@ -91,6 +125,13 @@ TEST_F(BundleFactoryUtilTest, WrapSession) {
   test_util::TestSingleRequest(bundle.session.get());
 }
 
+TEST_F(BundleFactoryUtilTest, WrapSessionIgnoreThreadPoolOptions) {
+  std::unique_ptr<Session> session(new MockSession);
+
+  TF_ASSERT_OK(WrapSessionIgnoreThreadPoolOptions(&session));
+  test_util::TestSingleRequest(session.get());
+}
+
 TEST_F(BundleFactoryUtilTest, WrapSessionForBatching) {
   SavedModelBundle bundle;
   TF_ASSERT_OK(LoadSavedModel(SessionOptions(), RunOptions(), export_dir_,
@@ -110,18 +151,70 @@ TEST_F(BundleFactoryUtilTest, WrapSessionForBatching) {
                                       &bundle.session));
 
   // Run multiple requests concurrently. They should be executed as 5 batches.
-  test_util::TestMultipleRequests(10, bundle.session.get());
+  test_util::TestMultipleRequests(bundle.session.get(), 10, 2);
 }
 
-TEST_F(BundleFactoryUtilTest, BatchingConfigError) {
+TEST_F(BundleFactoryUtilTest, WrapSessionForBatchingConfigError) {
   BatchingParameters batching_params;
   batching_params.mutable_max_batch_size()->set_value(2);
   // The last entry in 'allowed_batch_sizes' is supposed to equal
   // 'max_batch_size'. Let's violate that constraint and ensure we get an error.
   batching_params.add_allowed_batch_sizes(1);
   batching_params.add_allowed_batch_sizes(3);
+
   std::shared_ptr<Batcher> batch_scheduler;
-  EXPECT_FALSE(CreateBatchScheduler(batching_params, &batch_scheduler).ok());
+  TF_ASSERT_OK(CreateBatchScheduler(batching_params, &batch_scheduler));
+
+  SavedModelBundle bundle;
+  TF_ASSERT_OK(LoadSavedModel(SessionOptions(), RunOptions(), export_dir_,
+                              {"serve"}, &bundle));
+  auto status = WrapSessionForBatching(batching_params, batch_scheduler,
+                                       {test_util::GetTestSessionSignature()},
+                                       &bundle.session);
+  ASSERT_TRUE(errors::IsInvalidArgument(status));
+}
+
+TEST_F(BundleFactoryUtilTest, GetPerModelBatchingParams) {
+  const BatchingParameters common_params =
+      test_util::CreateProto<BatchingParameters>(R"(
+    allowed_batch_sizes: 8
+    allowed_batch_sizes: 16
+    max_batch_size { value: 16 })");
+
+  const string per_model_params_pbtxt(R"(
+    allowed_batch_sizes: 8
+    allowed_batch_sizes: 16
+    allowed_batch_sizes: 128
+    max_batch_size { value: 128 })");
+
+  std::unique_ptr<WritableFile> file;
+  TF_ASSERT_OK(Env::Default()->NewWritableFile(
+      io::JoinPath(testing::TmpDir(), "/batching_params.pbtxt"), &file));
+  TF_ASSERT_OK(file->Append(per_model_params_pbtxt));
+  TF_ASSERT_OK(file->Close());
+
+  absl::optional<BatchingParameters> params;
+  TF_ASSERT_OK(GetPerModelBatchingParams("does/not/exists", common_params,
+                                         /*per_model_configured=*/false,
+                                         &params));
+  EXPECT_THAT(params.value(), test_util::EqualsProto(common_params));
+
+  params.reset();
+  ASSERT_TRUE(GetPerModelBatchingParams("does/not/exists", common_params,
+                                        /*per_model_configured=*/true, &params)
+                  .ok());
+
+  params.reset();
+  TF_ASSERT_OK(GetPerModelBatchingParams(testing::TmpDir(), common_params,
+                                         /*per_model_configured=*/false,
+                                         &params));
+  EXPECT_THAT(params.value(), test_util::EqualsProto(common_params));
+
+  params.reset();
+  TF_ASSERT_OK(GetPerModelBatchingParams(testing::TmpDir(), common_params,
+                                         /*per_model_configured=*/true,
+                                         &params));
+  EXPECT_THAT(params.value(), test_util::EqualsProto(per_model_params_pbtxt));
 }
 
 TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithBadExport) {
@@ -150,7 +243,7 @@ TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithGoodExport) {
 
 void BM_HalfPlusTwo(benchmark::State& state) {
   static Session* session;
-  if (state.thread_index == 0) {
+  if (state.thread_index() == 0) {
     SavedModelBundle bundle;
     TF_ASSERT_OK(LoadSavedModel(SessionOptions(), RunOptions(),
                                 test_util::GetTestSavedModelPath(), {"serve"},

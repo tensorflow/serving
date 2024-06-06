@@ -248,7 +248,7 @@ ErrorInjectingSourceAdapter<InputType, OutputType>::Adapt(
   for (const ServableData<InputType>& version : versions) {
     if (version.status().ok()) {
       LOG(INFO) << "Injecting error for servable " << version.id() << ": "
-                << error_.error_message();
+                << error_.message();
       adapted_versions.emplace_back(
           ServableData<OutputType>{version.id(), error_});
     } else {

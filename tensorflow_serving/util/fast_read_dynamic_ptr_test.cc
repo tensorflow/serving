@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/util/fast_read_dynamic_ptr.h"
 
+#include <memory>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>

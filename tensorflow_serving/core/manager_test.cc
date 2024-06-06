@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/core/manager.h"
 
+#include <map>
+#include <memory>
+#include <vector>
+
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow_serving/core/test_util/servable_handle_test_util.h"
@@ -51,7 +55,7 @@ class TestManager : public Manager {
       const ServableRequest& request,
       std::unique_ptr<UntypedServableHandle>* result) override {
     result->reset(new TestHandle);
-    return Status::OK();
+    return OkStatus();
   }
 
   std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
@@ -104,7 +108,7 @@ class ReturnNullManager : public TestManager {
       const ServableRequest& request,
       std::unique_ptr<UntypedServableHandle>* result) override {
     *result = nullptr;
-    return Status::OK();
+    return OkStatus();
   }
 };
 

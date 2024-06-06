@@ -1,14 +1,20 @@
 # Description: Tensorflow Serving APIs.
 
-load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
+# buildifier: disable=out-of-order-load
+
+# Placeholder: load py_library
+# Placeholder: load kt_jvm_proto_library
 load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
+load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
+
+# buildifier: enable=out-of-order-load
 
 package(
     default_visibility = ["//visibility:public"],
-    features = ["-layering_check"],
+    features = ["layering_check"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 filegroup(
     name = "all_files",
@@ -42,6 +48,12 @@ serving_proto_library_py(
         ":model_proto_py_pb2",
         "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
+)
+
+tf_pyclif_proto_library(
+    name = "get_model_metadata_pyclif",
+    proto_lib = ":get_model_metadata_proto",
+    proto_srcfile = "get_model_metadata.proto",
 )
 
 serving_proto_library(
@@ -175,6 +187,12 @@ serving_proto_library_py(
         ":session_service_proto_py_pb2",
         "//tensorflow_serving/apis:logging_proto_py_pb2",
     ],
+)
+
+tf_pyclif_proto_library(
+    name = "prediction_log_pyclif",
+    proto_lib = ":prediction_log_proto",
+    proto_srcfile = "prediction_log.proto",
 )
 
 serving_proto_library(
@@ -417,6 +435,12 @@ serving_proto_library(
     ],
 )
 
+tf_jspb_proto_library(
+    name = "session_service_jspb_proto",
+    visibility = ["//research/vision/loco/visualization/interactive_computation:__pkg__"],
+    deps = [":session_service_proto"],
+)
+
 serving_proto_library_py(
     name = "session_service_proto_py_pb2",
     srcs = ["session_service.proto"],
@@ -425,6 +449,12 @@ serving_proto_library_py(
         ":model_proto_py_pb2",
         "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
+)
+
+tf_pyclif_proto_library(
+    name = "session_service_pyclif",
+    proto_lib = ":session_service_proto",
+    proto_srcfile = "session_service.proto",
 )
 
 tf_pyclif_proto_library(

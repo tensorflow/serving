@@ -15,12 +15,21 @@ limitations under the License.
 
 #include "tensorflow_serving/core/server_request_logger.h"
 
+#include <functional>
+#include <map>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/gtl/map_util.h"
 #include "tensorflow/core/lib/strings/proto_serialization.h"
 #include "tensorflow/core/platform/macros.h"
+#include "tensorflow/core/platform/status.h"
+#include "tsl/platform/errors.h"
 #include "tensorflow_serving/apis/logging.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
+#include "tensorflow_serving/core/request_logger.h"
 
 namespace tensorflow {
 namespace serving {
@@ -31,7 +40,7 @@ Status ServerRequestLogger::Create(
     std::unique_ptr<ServerRequestLogger>* server_request_logger) {
   server_request_logger->reset(
       new ServerRequestLogger(std::move(request_logger_creator)));
-  return Status::OK();
+  return OkStatus();
 }
 
 ServerRequestLogger::ServerRequestLogger(LoggerCreator request_logger_creator)
@@ -40,7 +49,7 @@ ServerRequestLogger::ServerRequestLogger(LoggerCreator request_logger_creator)
 Status ServerRequestLogger::FindOrCreateLogger(
     const LoggingConfig& config,
     StringToUniqueRequestLoggerMap* new_config_to_logger_map,
-    RequestLogger** result) {
+    std::shared_ptr<RequestLogger>* result) {
   string serialized_config;
   if (!SerializeToStringDeterministic(config, &serialized_config)) {
     return errors::InvalidArgument("Cannot serialize config.");
@@ -49,8 +58,8 @@ Status ServerRequestLogger::FindOrCreateLogger(
   auto find_new_it = new_config_to_logger_map->find(serialized_config);
   if (find_new_it != new_config_to_logger_map->end()) {
     // The logger is already in new_config_to_logger_map, simply return it.
-    *result = find_new_it->second.get();
-    return Status::OK();
+    *result = find_new_it->second;
+    return OkStatus();
   }
 
   auto find_old_it = config_to_logger_map_.find(serialized_config);
@@ -58,21 +67,18 @@ Status ServerRequestLogger::FindOrCreateLogger(
     // The logger is in old_config_to_logger_map. Move it to
     // new_config_to_logger_map, erase the entry in config_to_logger_map_ and
     // return the logger.
-    *result = find_old_it->second.get();
+    *result = find_old_it->second;
     new_config_to_logger_map->emplace(
         std::make_pair(serialized_config, std::move(find_old_it->second)));
     config_to_logger_map_.erase(find_old_it);
-    return Status::OK();
+    return OkStatus();
   }
 
   // The logger does not exist. Create a new logger, insert it into
   // new_config_to_logger_map and return it.
-  std::unique_ptr<RequestLogger> logger;
-  TF_RETURN_IF_ERROR(request_logger_creator_(config, &logger));
-  *result = logger.get();
-  new_config_to_logger_map->emplace(
-      std::make_pair(serialized_config, std::move(logger)));
-  return Status::OK();
+  TF_RETURN_IF_ERROR(request_logger_creator_(config, result));
+  new_config_to_logger_map->emplace(std::make_pair(serialized_config, *result));
+  return OkStatus();
 }
 
 Status ServerRequestLogger::Update(
@@ -91,7 +97,7 @@ Status ServerRequestLogger::Update(
 
   for (const auto& model_and_logging_config : logging_config_map) {
     for (const auto& logging_config : model_and_logging_config.second) {
-      RequestLogger* logger;
+      std::shared_ptr<RequestLogger> logger;
       TF_RETURN_IF_ERROR(FindOrCreateLogger(
           logging_config, &new_config_to_logger_map, &logger));
       const string& model_name = model_and_logging_config.first;
@@ -104,30 +110,39 @@ Status ServerRequestLogger::Update(
   // and destructed at this point.
   config_to_logger_map_ = std::move(new_config_to_logger_map);
 
-  return Status::OK();
+  return OkStatus();
 }
 
 Status ServerRequestLogger::Log(const google::protobuf::Message& request,
                                 const google::protobuf::Message& response,
                                 const LogMetadata& log_metadata) {
+  Status status;
+  InvokeLoggerForModel(
+      log_metadata, [&status, &request, &response, &log_metadata](
+                        const std::shared_ptr<RequestLogger>& logger) {
+        // Note: Only first error will be tracked/returned.
+        status.Update(logger->Log(request, response, log_metadata));
+      });
+  return status;
+}
+
+void ServerRequestLogger::InvokeLoggerForModel(
+    const LogMetadata& log_metadata,
+    std::function<void(const std::shared_ptr<RequestLogger>&)> fn) {
   const string& model_name = log_metadata.model_spec().name();
   auto model_to_loggers_map = model_to_loggers_map_.get();
   if (!model_to_loggers_map || model_to_loggers_map->empty()) {
     VLOG(2) << "Request loggers map is empty.";
-    return Status::OK();
+    return;
   }
   auto found_it = model_to_loggers_map->find(model_name);
   if (found_it == model_to_loggers_map->end()) {
     VLOG(2) << "Cannot find request-loggers for model: " << model_name;
-    return Status::OK();
+    return;
   }
-
-  Status status;
   for (const auto& logger : found_it->second) {
-    // Note: Only first error will be tracked/returned.
-    status.Update(logger->Log(request, response, log_metadata));
+    fn(logger);
   }
-  return status;
 }
 
 }  // namespace serving

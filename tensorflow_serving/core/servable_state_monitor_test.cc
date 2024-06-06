@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/core/servable_state_monitor.h"
 
+#include <map>
+#include <memory>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/kernels/batching_util/fake_clock_env.h"
@@ -52,7 +56,7 @@ TEST(ServableStateMonitorTest, AddingStates) {
 
   // Initial servable.
   const ServableState state_0 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kStart, Status::OK()};
+      ServableId{"foo", 42}, ServableState::ManagerState::kStart, OkStatus()};
   env.AdvanceByMicroseconds(1);
   const ServableStateAndTime state_0_and_time = {state_0, 1};
   bus->Publish(state_0);
@@ -97,7 +101,7 @@ TEST(ServableStateMonitorTest, AddingStates) {
   // New servable name.
   const ServableState state_2 = {ServableId{"bar", 7},
                                  ServableState::ManagerState::kUnloading,
-                                 Status::OK()};
+                                 OkStatus()};
   env.AdvanceByMicroseconds(4);
   const ServableStateAndTime state_2_and_time = {state_2, 7};
   bus->Publish(state_2);
@@ -138,7 +142,7 @@ TEST(ServableStateMonitorTest, UpdatingStates) {
 
   // Initial servables.
   const ServableState state_0 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kStart, Status::OK()};
+      ServableId{"foo", 42}, ServableState::ManagerState::kStart, OkStatus()};
   env.AdvanceByMicroseconds(4);
   const ServableStateAndTime state_0_and_time = {state_0, 4};
   bus->Publish(state_0);
@@ -149,7 +153,7 @@ TEST(ServableStateMonitorTest, UpdatingStates) {
   bus->Publish(state_1);
   const ServableState state_2 = {ServableId{"bar", 7},
                                  ServableState::ManagerState::kUnloading,
-                                 Status::OK()};
+                                 OkStatus()};
   const ServableStateAndTime state_2_and_time = {state_2, 4};
   bus->Publish(state_2);
   EXPECT_THAT(monitor.GetAllServableStates(),
@@ -162,9 +166,8 @@ TEST(ServableStateMonitorTest, UpdatingStates) {
       ElementsAre(state_0_and_time, state_1_and_time, state_2_and_time));
 
   // Update one of them.
-  const ServableState state_1_updated = {ServableId{"foo", 43},
-                                         ServableState::ManagerState::kLoading,
-                                         Status::OK()};
+  const ServableState state_1_updated = {
+      ServableId{"foo", 43}, ServableState::ManagerState::kLoading, OkStatus()};
   env.AdvanceByMicroseconds(4);
   const ServableStateAndTime state_1_updated_and_time = {state_1_updated, 8};
   bus->Publish(state_1_updated);
@@ -203,7 +206,7 @@ TEST(ServableStateMonitorTest, DisableBoundedLogging) {
   // logging.
   ServableStateMonitor monitor(bus.get());
   const ServableState state_0 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kStart, Status::OK()};
+      ServableId{"foo", 42}, ServableState::ManagerState::kStart, OkStatus()};
   env.AdvanceByMicroseconds(1);
   const ServableStateAndTime state_0_and_time = {state_0, 1};
   bus->Publish(state_0);
@@ -221,7 +224,7 @@ TEST(ServableStateMonitorTest, GetLiveServableStates) {
   ServableStateMonitor monitor(bus.get());
 
   const ServableState state_0 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kStart, Status::OK()};
+      ServableId{"foo", 42}, ServableState::ManagerState::kStart, OkStatus()};
   env.AdvanceByMicroseconds(1);
   const ServableStateAndTime state_0_and_time = {state_0, 1};
   bus->Publish(state_0);
@@ -231,7 +234,7 @@ TEST(ServableStateMonitorTest, GetLiveServableStates) {
 
   const ServableState state_1 = {ServableId{"bar", 7},
                                  ServableState::ManagerState::kAvailable,
-                                 Status::OK()};
+                                 OkStatus()};
   env.AdvanceByMicroseconds(1);
   const ServableStateAndTime state_1_and_time = {state_1, 2};
   bus->Publish(state_1);
@@ -243,7 +246,7 @@ TEST(ServableStateMonitorTest, GetLiveServableStates) {
   // Servable {foo, 42} moves to state kEnd and is removed from the live states
   // servables.
   const ServableState state_0_update = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kEnd, Status::OK()};
+      ServableId{"foo", 42}, ServableState::ManagerState::kEnd, OkStatus()};
   env.AdvanceByMicroseconds(1);
   bus->Publish(state_0_update);
   EXPECT_THAT(monitor.GetLiveServableStates(),
@@ -259,7 +262,7 @@ TEST(ServableStateMonitorTest, GetAvailableServableStates) {
   ServableStateMonitor monitor(bus.get());
 
   const ServableState state_0 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kStart, Status::OK()};
+      ServableId{"foo", 42}, ServableState::ManagerState::kStart, OkStatus()};
   env.AdvanceByMicroseconds(1);
   const ServableStateAndTime state_0_and_time = {state_0, 1};
   bus->Publish(state_0);
@@ -269,7 +272,7 @@ TEST(ServableStateMonitorTest, GetAvailableServableStates) {
   std::vector<ServableStateAndTime> servable_state_and_time;
   for (const auto& servable_id : {ServableId{"bar", 6}, ServableId{"bar", 7}}) {
     const ServableState state = {
-        servable_id, ServableState::ManagerState::kAvailable, Status::OK()};
+        servable_id, ServableState::ManagerState::kAvailable, OkStatus()};
     const ServableStateAndTime state_and_time = {state, 2};
     servable_state_and_time.push_back({state, 2});
     bus->Publish(state);
@@ -282,7 +285,7 @@ TEST(ServableStateMonitorTest, GetAvailableServableStates) {
   // servable states.
   const ServableState state_0_update = {ServableId{"bar", 6},
                                         ServableState::ManagerState::kUnloading,
-                                        Status::OK()};
+                                        OkStatus()};
   env.AdvanceByMicroseconds(1);
   bus->Publish(state_0_update);
   EXPECT_THAT(monitor.GetAvailableServableStates(),
@@ -290,7 +293,7 @@ TEST(ServableStateMonitorTest, GetAvailableServableStates) {
   // Servable {bar, 7} moves to state kEnd and is removed from available
   // servable states.
   const ServableState state_1_update = {
-      ServableId{"bar", 7}, ServableState::ManagerState::kEnd, Status::OK()};
+      ServableId{"bar", 7}, ServableState::ManagerState::kEnd, OkStatus()};
   env.AdvanceByMicroseconds(1);
   bus->Publish(state_1_update);
   // No available state now.
@@ -305,7 +308,7 @@ TEST(ServableStateMonitorTest, VersionMapDescendingOrder) {
   ServableStateMonitor monitor(bus.get());
 
   const ServableState state_0 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kStart, Status::OK()};
+      ServableId{"foo", 42}, ServableState::ManagerState::kStart, OkStatus()};
   env.AdvanceByMicroseconds(1);
   const ServableStateAndTime state_0_and_time = {state_0, 1};
   bus->Publish(state_0);
@@ -315,7 +318,7 @@ TEST(ServableStateMonitorTest, VersionMapDescendingOrder) {
 
   const ServableState state_1 = {ServableId{"foo", 7},
                                  ServableState::ManagerState::kAvailable,
-                                 Status::OK()};
+                                 OkStatus()};
   env.AdvanceByMicroseconds(1);
   const ServableStateAndTime state_1_and_time = {state_1, 2};
   bus->Publish(state_1);
@@ -333,7 +336,7 @@ TEST(ServableStateMonitorTest, ForgetUnloadedServableStates) {
 
   const ServableState state_0 = {ServableId{"foo", 42},
                                  ServableState::ManagerState::kAvailable,
-                                 Status::OK()};
+                                 OkStatus()};
   env.AdvanceByMicroseconds(1);
   const ServableStateAndTime state_0_and_time = {state_0, 1};
   bus->Publish(state_0);
@@ -343,7 +346,7 @@ TEST(ServableStateMonitorTest, ForgetUnloadedServableStates) {
 
   const ServableState state_1 = {ServableId{"bar", 1},
                                  ServableState::ManagerState::kAvailable,
-                                 Status::OK()};
+                                 OkStatus()};
   env.AdvanceByMicroseconds(1);
   const ServableStateAndTime state_1_and_time = {state_1, 2};
   bus->Publish(state_1);
@@ -354,7 +357,7 @@ TEST(ServableStateMonitorTest, ForgetUnloadedServableStates) {
 
   const ServableState state_2 = {ServableId{"foo", 42},
                                  ServableState::ManagerState::kUnloading,
-                                 Status::OK()};
+                                 OkStatus()};
   env.AdvanceByMicroseconds(1);
   const ServableStateAndTime state_2_and_time = {state_2, 3};
   bus->Publish(state_2);
@@ -365,8 +368,8 @@ TEST(ServableStateMonitorTest, ForgetUnloadedServableStates) {
                   Pair("foo", ElementsAre(Pair(42, state_2_and_time))),
                   Pair("bar", ElementsAre(Pair(1, state_1_and_time)))));
 
-  const ServableState state_3 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kEnd, Status::OK()};
+  const ServableState state_3 = {ServableId{"foo", 42},
+                                 ServableState::ManagerState::kEnd, OkStatus()};
   env.AdvanceByMicroseconds(1);
   const ServableStateAndTime state_3_and_time = {state_3, 4};
   bus->Publish(state_3);
@@ -409,7 +412,7 @@ TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateSpecificAvailable) {
 
   using ManagerState = ServableState::ManagerState;
   const ServableState specific_goal_state = {
-      specific_goal_state_id, ManagerState::kAvailable, Status::OK()};
+      specific_goal_state_id, ManagerState::kAvailable, OkStatus()};
 
   Notification notified;
   monitor.NotifyWhenServablesReachState(
@@ -462,8 +465,7 @@ TEST(ServableStateMonitorTest,
 
   using ManagerState = ServableState::ManagerState;
   const ServableState servable_stream_available_state = {
-      servable_stream_available_state_id, ManagerState::kAvailable,
-      Status::OK()};
+      servable_stream_available_state_id, ManagerState::kAvailable, OkStatus()};
 
   Notification notified;
   monitor.NotifyWhenServablesReachState(
@@ -535,11 +537,11 @@ TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateFullFunctionality) {
       });
 
   const ServableState specific_goal_state = {
-      specific_goal_state_id, ManagerState::kAvailable, Status::OK()};
+      specific_goal_state_id, ManagerState::kAvailable, OkStatus()};
   const ServableState specific_error_state = {
       specific_error_state_id, ManagerState::kEnd, errors::Internal("error")};
   const ServableState servable_stream_state = {
-      servable_stream_id, ManagerState::kAvailable, Status::OK()};
+      servable_stream_id, ManagerState::kAvailable, OkStatus()};
 
   bus->Publish(specific_goal_state);
   ASSERT_FALSE(notified.HasBeenNotified());
@@ -558,7 +560,7 @@ TEST(ServableStateMonitorTest, NotifyWhenServablesReachStateOnlyNotifiedOnce) {
 
   using ManagerState = ServableState::ManagerState;
   const ServableState specific_goal_state = {
-      specific_goal_state_id, ManagerState::kAvailable, Status::OK()};
+      specific_goal_state_id, ManagerState::kAvailable, OkStatus()};
 
   Notification notified;
   monitor.NotifyWhenServablesReachState(
@@ -592,11 +594,11 @@ TEST(ServableStateMonitorTest, WaitUntilServablesReachStateFullFunctionality) {
   const ServableId servable_stream_id = {"servable_stream", 7};
 
   const ServableState specific_goal_state = {
-      specific_goal_state_id, ManagerState::kAvailable, Status::OK()};
+      specific_goal_state_id, ManagerState::kAvailable, OkStatus()};
   const ServableState specific_error_state = {
       specific_error_state_id, ManagerState::kEnd, errors::Internal("error")};
   const ServableState servable_stream_state = {
-      servable_stream_id, ManagerState::kAvailable, Status::OK()};
+      servable_stream_id, ManagerState::kAvailable, OkStatus()};
 
   bus->Publish(specific_goal_state);
   bus->Publish(specific_error_state);

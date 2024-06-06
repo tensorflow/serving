@@ -9,7 +9,7 @@ To learn more about TensorFlow Serving, we recommend
 [TensorFlow Serving advanced tutorial](serving_advanced.md).
 
 To learn more about TensorFlow ResNet model, we recommend reading
-[ResNet in TensorFlow](https://github.com/tensorflow/models/tree/master/official/resnet).
+[ResNet in TensorFlow](https://www.tensorflow.org/api_docs/python/tf/keras/applications/resnet).
 
 -   [Part 1](#part_1_setup) gets your environment setup
 -   [Part 2](#part_2_running_in_docker) shows how to run the local Docker
@@ -34,9 +34,12 @@ networks. For our example, we will download a TensorFlow SavedModel of ResNet
 for the ImageNet dataset.
 
 ```shell
-mkdir /tmp/resnet
-curl -s http://download.tensorflow.org/models/official/20181001_resnet/savedmodels/resnet_v2_fp32_savedmodel_NHWC_jpg.tar.gz | \
-tar --strip-components=2 -C /tmp/resnet -xvz
+# Download Resnet model from TF Hub
+wget https://tfhub.dev/tensorflow/resnet_50/classification/1?tf-hub-format=compressed -o resnet.tar.gz
+
+# Extract SavedModel into a versioned subfolder ‘123’
+mkdir -p /tmp/resnet/123
+tar xvfz resnet.tar.gz -C /tmp/resnet/123/
 ```
 
 We can verify we have the SavedModel:
@@ -154,7 +157,7 @@ outputs {
 model_spec {
   name: "resnet"
   version {
-    value: 1538687457
+    value: 123
   }
   signature_name: "serving_default"
 }

@@ -22,9 +22,19 @@ from __future__ import print_function
 import json
 import os
 import subprocess
+import sys
 import time
 
-# This is a placeholder for a Google-internal import.
+
+# During the creation of the 'tensorflow_serving' package, bazel emits a python
+# 'tensorflow' module which contains its dependencies (e.g. example.proto).
+# Since bazel python libraries take precedence in sys.path and the created
+# 'tensorflow' module will not be fully constructed, we reorder the bazel-out
+# python libs to take a lower precedence than the pip installed packages.
+sys.path = ([i for i in sys.path if 'bazel-out' not in i] +
+            [i for i in sys.path if 'bazel-out' in i])
+
+# This is a placeholder for a Google-internal import.  # pylint: disable=g-import-not-at-top
 
 import grpc
 from six.moves import range
@@ -44,7 +54,7 @@ from tensorflow_serving.model_servers.test_util import tensorflow_model_server_t
 
 FLAGS = flags.FLAGS
 
-RPC_TIMEOUT = 5.0
+RPC_TIMEOUT = 20.0
 GRPC_SOCKET_PATH = '/tmp/tf-serving.sock'
 
 
@@ -751,7 +761,7 @@ class TensorflowModelServerTest(
     logdir = os.path.join(self.temp_dir, 'logs')
     worker_list = ''
     duration_ms = 1000
-    num_tracing_attempts = 3
+    num_tracing_attempts = 10
     os.makedirs(logdir)
 
     # Send a tracing request
