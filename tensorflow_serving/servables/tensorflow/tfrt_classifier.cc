@@ -75,7 +75,7 @@ Status PreProcessClassification(
         kClassifyOutputClasses, "\" and/or \"", kClassifyOutputScores, "\". "));
   }
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status PostProcessClassificationResult(
@@ -164,7 +164,7 @@ Status PostProcessClassificationResult(
       }
     }
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status RunClassify(const tfrt::SavedModel::RunOptions& run_options,

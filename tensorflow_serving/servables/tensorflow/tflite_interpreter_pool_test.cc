@@ -148,7 +148,7 @@ TEST(TfLiteInterpreterWrapper, TfLiteInterpreterWrapperTest) {
   }
   data.push_back(&t);
   ASSERT_FALSE(interpreter_wrapper->SetStringData(
-                   data, tensor, -1, actual_batch_size) == OkStatus());
+                   data, tensor, -1, actual_batch_size) == absl::OkStatus());
   TF_ASSERT_OK(
       interpreter_wrapper->SetStringData(data, tensor, idx, actual_batch_size));
   auto wrapped = interpreter_wrapper->Get();

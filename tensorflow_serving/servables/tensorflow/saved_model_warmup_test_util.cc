@@ -103,7 +103,7 @@ Status PopulatePredictionLog(PredictionLog* prediction_log,
     default:
       break;
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status WriteWarmupData(const string& fname,
@@ -121,7 +121,7 @@ Status WriteWarmupData(const string& fname,
     }
   }
   TF_RETURN_IF_ERROR(writer.Flush());
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status WriteWarmupDataAsSerializedProtos(
@@ -136,7 +136,7 @@ Status WriteWarmupDataAsSerializedProtos(
     }
   }
   TF_RETURN_IF_ERROR(file->Close());
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status AddMixedWarmupData(
@@ -145,7 +145,7 @@ Status AddMixedWarmupData(
   for (auto& log_type : log_types) {
     TF_RETURN_IF_ERROR(AddToWarmupData(warmup_records, log_type, 1));
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status AddToWarmupData(std::vector<string>* warmup_records,
@@ -155,7 +155,7 @@ Status AddToWarmupData(std::vector<string>* warmup_records,
   TF_RETURN_IF_ERROR(
       PopulatePredictionLog(&prediction_log, log_type, num_repeated_values));
   warmup_records->push_back(prediction_log.SerializeAsString());
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Creates a test SignatureDef with the given parameters

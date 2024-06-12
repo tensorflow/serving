@@ -58,7 +58,7 @@ Status CreateStoragePathSource(
       FileSystemStoragePathSource::Create(config, &file_system_source));
 
   *path_source = std::move(file_system_source);
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Creates a SavedModelBundle Source by adapting the underlying
@@ -71,7 +71,7 @@ Status CreateSavedModelBundleSource(
   SavedModelBundleSourceAdapterConfig config;
   TF_RETURN_IF_ERROR(SavedModelBundleSourceAdapter::Create(config, source));
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace
@@ -93,7 +93,7 @@ Status CreateSingleTFModelManagerFromBasePath(
   builder->AddSourceChain(std::move(path_source), std::move(bundle_source));
   *manager = builder->Build();
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace simple_servers

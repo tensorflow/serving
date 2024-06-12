@@ -129,7 +129,7 @@ Status RunMultiInference(const tfrt::SavedModel::RunOptions& run_options,
                       ->mutable_model_spec());
   }
   RecordRequestExampleCount(model_name, num_examples);
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace serving

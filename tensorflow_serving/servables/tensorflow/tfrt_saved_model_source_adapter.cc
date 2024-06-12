@@ -41,7 +41,7 @@ Status TfrtSavedModelSourceAdapter::Create(
   TF_RETURN_IF_ERROR(
       TfrtSavedModelFactory::Create(config.saved_model_config(), &factory));
   adapter->reset(new TfrtSavedModelSourceAdapter(std::move(factory)));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 TfrtSavedModelSourceAdapter::~TfrtSavedModelSourceAdapter() { Detach(); }
@@ -59,7 +59,7 @@ TfrtSavedModelSourceAdapter::GetServableCreator(
     TF_RETURN_IF_ERROR(RegisterModelRoot(metadata.servable_id, path));
     TF_RETURN_IF_ERROR(
         factory->CreateTfrtSavedModelWithMetadata(metadata, path, servable));
-    return OkStatus();
+    return absl::OkStatus();
   };
 }
 
@@ -80,7 +80,7 @@ Status TfrtSavedModelSourceAdapter::Convert(const StoragePath& path,
         ram_resource, resource_util->GetQuantity(ram_resource, *estimate),
         estimate);
 
-    return OkStatus();
+    return absl::OkStatus();
   };
   auto post_load_resource_estimator = [factory,
                                        path](ResourceAllocation* estimate) {
@@ -88,7 +88,7 @@ Status TfrtSavedModelSourceAdapter::Convert(const StoragePath& path,
   };
   loader->reset(new SimpleLoader<Servable>(servable_creator, resource_estimator,
                                            {post_load_resource_estimator}));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Register the source adapter.
@@ -102,7 +102,7 @@ class TfrtSavedModelSourceAdapterCreator {
     TF_RETURN_IF_ERROR(
         TfrtSavedModelFactory::Create(config.saved_model_config(), &factory));
     adapter->reset(new TfrtSavedModelSourceAdapter(std::move(factory)));
-    return OkStatus();
+    return absl::OkStatus();
   }
 };
 REGISTER_STORAGE_PATH_SOURCE_ADAPTER(TfrtSavedModelSourceAdapterCreator,

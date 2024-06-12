@@ -100,7 +100,7 @@ class MultiInferenceTest : public ::testing::Test {
     inference_runner->reset(new TensorFlowMultiInferenceRunner(
         bundle->session.get(), &bundle->meta_graph_def,
         {this->servable_version_}));
-    return OkStatus();
+    return absl::OkStatus();
   }
 
   Status GetServableHandle(ServableHandle<SavedModelBundle>* bundle) {
@@ -162,7 +162,7 @@ TYPED_TEST_P(MultiInferenceTest, MissingInputTest) {
   MultiInferenceResponse response;
   ExpectStatusError(
       inference_runner->Infer(RunOptions(), request, &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "Input is empty");
 
   // MultiInference testing
@@ -172,7 +172,7 @@ TYPED_TEST_P(MultiInferenceTest, MissingInputTest) {
       RunMultiInference(RunOptions(), bundle->meta_graph_def,
                         this->servable_version_, bundle->session.get(), request,
                         &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "Input is empty");
 }
 
@@ -188,7 +188,7 @@ TYPED_TEST_P(MultiInferenceTest, UndefinedSignatureTest) {
   MultiInferenceResponse response;
   ExpectStatusError(
       inference_runner->Infer(RunOptions(), request, &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "signature not found");
 
   // MultiInference testing
@@ -198,7 +198,7 @@ TYPED_TEST_P(MultiInferenceTest, UndefinedSignatureTest) {
       RunMultiInference(RunOptions(), bundle->meta_graph_def,
                         this->servable_version_, bundle->session.get(), request,
                         &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "signature not found");
 }
 
@@ -223,7 +223,7 @@ TYPED_TEST_P(MultiInferenceTest, InconsistentModelSpecsInRequestTest) {
   MultiInferenceResponse response;
   ExpectStatusError(
       inference_runner->Infer(RunOptions(), request, &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "must access the same model name");
 
   // MultiInference testing
@@ -233,7 +233,7 @@ TYPED_TEST_P(MultiInferenceTest, InconsistentModelSpecsInRequestTest) {
       RunMultiInference(RunOptions(), bundle->meta_graph_def,
                         this->servable_version_, bundle->session.get(), request,
                         &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "must access the same model name");
 }
 
@@ -250,7 +250,7 @@ TYPED_TEST_P(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
   MultiInferenceResponse response;
   ExpectStatusError(
       inference_runner->Infer(RunOptions(), request, &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "Duplicate evaluation of signature: regress_x_to_y");
 
   // MultiInference testing
@@ -260,7 +260,7 @@ TYPED_TEST_P(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
       RunMultiInference(RunOptions(), bundle->meta_graph_def,
                         this->servable_version_, bundle->session.get(), request,
                         &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "Duplicate evaluation of signature: regress_x_to_y");
 }
 
@@ -275,7 +275,7 @@ TYPED_TEST_P(MultiInferenceTest, UsupportedSignatureTypeTest) {
   MultiInferenceResponse response;
   ExpectStatusError(
       inference_runner->Infer(RunOptions(), request, &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode ::kUnimplemented),
+      static_cast<absl::StatusCode>(absl::StatusCode ::kUnimplemented),
       "Unsupported signature");
 
   // MultiInference testing
@@ -285,7 +285,7 @@ TYPED_TEST_P(MultiInferenceTest, UsupportedSignatureTypeTest) {
       RunMultiInference(RunOptions(), bundle->meta_graph_def,
                         this->servable_version_, bundle->session.get(), request,
                         &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kUnimplemented),
+      static_cast<absl::StatusCode>(absl::StatusCode::kUnimplemented),
       "Unsupported signature");
 }
 

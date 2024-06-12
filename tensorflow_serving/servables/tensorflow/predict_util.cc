@@ -45,7 +45,7 @@ Status VerifySignature(const SignatureDef& signature) {
         kPredictMethodName, ", ", kClassifyMethodName, ", ", kRegressMethodName,
         "}. Was: ", signature.method_name()));
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status VerifyRequestInputsSize(const SignatureDef& signature,
@@ -60,7 +60,7 @@ Status VerifyRequestInputsSize(const SignatureDef& signature,
     const std::set<string> missing =
         SetDifference(signature_inputs, request_inputs);
     return tensorflow::Status(
-        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+        static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
         absl::StrCat(
             "input size does not match signature: ", request.inputs().size(),
             "!=", signature.inputs().size(), " len({",
@@ -69,7 +69,7 @@ Status VerifyRequestInputsSize(const SignatureDef& signature,
             absl::StrJoin(sent_extra, ","), "}. Missing but required: {",
             absl::StrJoin(missing, ","), "}."));
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace
@@ -134,7 +134,7 @@ Status PreProcessPrediction(const SignatureDef& signature,
     auto iter = signature.outputs().find(alias);
     if (iter == signature.outputs().end()) {
       return tensorflow::Status(
-          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+          static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
           strings::StrCat("output tensor alias not found in signature: ", alias,
                           " Outputs expected to be in the set {",
                           absl::StrJoin(GetMapKeys(signature.outputs()), ","),
@@ -142,7 +142,7 @@ Status PreProcessPrediction(const SignatureDef& signature,
     }
     if (seen_outputs.find(alias) != seen_outputs.end()) {
       return tensorflow::Status(
-          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+          static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
           "duplicate output tensor alias: " + alias);
     }
     seen_outputs.insert(alias);
@@ -157,7 +157,7 @@ Status PreProcessPrediction(const SignatureDef& signature,
       output_tensor_aliases->emplace_back(iter.first);
     }
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status PostProcessPredictionResult(
@@ -186,7 +186,7 @@ Status PostProcessPredictionResult(
     } break;
   }
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace internal

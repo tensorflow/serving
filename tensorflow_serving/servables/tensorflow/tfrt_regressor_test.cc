@@ -473,7 +473,7 @@ TEST_F(TfrtRegressorTest, UnexpectedOutputTensorNumber) {
                   output_tensors->push_back(output);
                   output_tensors->push_back(output);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
   auto status = RunRegress(tfrt::SavedModel::RunOptions(), kTestModelVersion,
                            saved_model.get(), request_, &response);
   EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
@@ -501,7 +501,7 @@ TEST_F(TfrtRegressorTest, UnexpectedOutputTensorShape) {
           DoAll(WithArgs<3>([&](std::vector<Tensor>* output_tensors) {
                   output_tensors->push_back(output);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
   auto status = RunRegress(tfrt::SavedModel::RunOptions(), kTestModelVersion,
                            saved_model.get(), request_, &response);
   EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
@@ -528,7 +528,7 @@ TEST_F(TfrtRegressorTest, UnexpectedOutputTensorSize) {
           DoAll(WithArgs<3>([&](std::vector<Tensor>* output_tensors) {
                   output_tensors->push_back(output);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
   auto status = RunRegress(tfrt::SavedModel::RunOptions(), kTestModelVersion,
                            saved_model.get(), request_, &response);
   EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
@@ -555,7 +555,7 @@ TEST_F(TfrtRegressorTest, UnexpectedOutputTensorType) {
           DoAll(WithArgs<3>([&](std::vector<Tensor>* output_tensors) {
                   output_tensors->push_back(output);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
   auto status = RunRegress(tfrt::SavedModel::RunOptions(), kTestModelVersion,
                            saved_model.get(), request_, &response);
   EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);

@@ -114,7 +114,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, WarmupStateRegistration) {
   TF_ASSERT_OK(RunSavedModelWarmup(CreateModelWarmupOptions(), base_path,
                                 [this](PredictionLog prediction_log) {
                                   this->FakeRunWarmupRequest();
-                                  return OkStatus();
+                                  return absl::OkStatus();
                                 }));
   EXPECT_EQ(warmup_request_counter(), num_warmup_records);
   EXPECT_EQ(is_model_in_warmup_state_registry(), ParallelWarmUp());
@@ -133,7 +133,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, NoWarmupDataFile) {
   TF_EXPECT_OK(RunSavedModelWarmup(CreateModelWarmupOptions(), base_path,
                                    [this](PredictionLog prediction_log) {
                                      this->FakeRunWarmupRequest();
-                                     return OkStatus();
+                                     return absl::OkStatus();
                                    }));
   EXPECT_EQ(warmup_request_counter(), 0);
 }
@@ -152,7 +152,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, WarmupDataFileEmpty) {
   TF_EXPECT_OK(RunSavedModelWarmup(CreateModelWarmupOptions(), base_path,
                                    [this](PredictionLog prediction_log) {
                                      this->FakeRunWarmupRequest();
-                                     return OkStatus();
+                                     return absl::OkStatus();
                                    }));
   EXPECT_EQ(warmup_request_counter(), 0);
 }
@@ -176,7 +176,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, UnsupportedFileFormat) {
   AddSignatures(&saved_model_bundle.meta_graph_def);
   const Status status = RunSavedModelWarmup(
       CreateModelWarmupOptions(), base_path,
-      [](PredictionLog prediction_log) { return OkStatus(); });
+      [](PredictionLog prediction_log) { return absl::OkStatus(); });
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::DATA_LOSS, status.code()) << status;
   EXPECT_THAT(status.ToString(),
@@ -199,9 +199,9 @@ TEST_P(SavedModelBundleWarmupUtilTest, TooManyWarmupRecords) {
   AddSignatures(&saved_model_bundle.meta_graph_def);
   const Status status = RunSavedModelWarmup(
       CreateModelWarmupOptions(), base_path,
-      [](PredictionLog prediction_log) { return OkStatus(); });
+      [](PredictionLog prediction_log) { return absl::OkStatus(); });
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
       << status;
   EXPECT_THAT(
@@ -221,9 +221,9 @@ TEST_P(SavedModelBundleWarmupUtilTest, UnparsableRecord) {
   SavedModelBundle saved_model_bundle;
   const Status status = RunSavedModelWarmup(
       CreateModelWarmupOptions(), base_path,
-      [](PredictionLog prediction_log) { return OkStatus(); });
+      [](PredictionLog prediction_log) { return absl::OkStatus(); });
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
       << status;
   EXPECT_THAT(status.ToString(),
@@ -248,7 +248,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, RunFailure) {
         return errors::InvalidArgument("Run failed");
       });
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
       << status;
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run failed"));

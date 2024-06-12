@@ -296,14 +296,16 @@ TEST(ResourceEstimatorTest, EstimateResourceFromPathUsingDiskState) {
   // Set up the expectation that the directory contains exactly one child with
   // the given file size.
   test_util::MockFileProbingEnv env;
-  EXPECT_CALL(env, FileExists(export_dir)).WillRepeatedly(Return(OkStatus()));
+  EXPECT_CALL(env, FileExists(export_dir))
+      .WillRepeatedly(Return(absl::OkStatus()));
   EXPECT_CALL(env, GetChildren(export_dir, _))
       .WillRepeatedly(DoAll(SetArgPointee<1>(std::vector<string>({child})),
-                            Return(OkStatus())));
+                            Return(absl::OkStatus())));
   EXPECT_CALL(env, IsDirectory(child_path))
       .WillRepeatedly(Return(errors::FailedPrecondition("")));
   EXPECT_CALL(env, GetFileSize(child_path, _))
-      .WillRepeatedly(DoAll(SetArgPointee<1>(file_size), Return(OkStatus())));
+      .WillRepeatedly(
+          DoAll(SetArgPointee<1>(file_size), Return(absl::OkStatus())));
 
   ResourceAllocation actual;
   TF_ASSERT_OK(

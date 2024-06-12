@@ -301,7 +301,7 @@ TEST_F(PredictImplTest, PredictionUnmatchedOutputNumber) {
                   output_tensors->push_back(output);
                   output_tensors->push_back(output);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
   auto status =
       RunPredict(tfrt_stub::SavedModel::RunOptions(), kTestModelVersion,
                  saved_model.get(), request, &response);
@@ -364,7 +364,7 @@ TEST_F(PredictImplTest, OutputFilters) {
                   CHECK(output_tensor.FromProto(output_tensor_proto1));
                   output_tensors->push_back(output_tensor);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
   TF_EXPECT_OK(RunPredict(tfrt_stub::SavedModel::RunOptions(),
                           kTestModelVersion, saved_model.get(), request,
                           &response));
@@ -424,7 +424,7 @@ TEST_F(PredictImplTest, OutputFiltersFullSet) {
                   CHECK(output_tensor2.FromProto(output_tensor_proto2));
                   output_tensors->push_back(output_tensor2);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
 
   TF_EXPECT_OK(RunPredict(tfrt_stub::SavedModel::RunOptions(),
                           kTestModelVersion, saved_model.get(), request,
@@ -494,7 +494,7 @@ TEST_F(PredictImplTest, OutputFiltersWithDefaultInputs) {
                   CHECK(output_tensor.FromProto(output_tensor_proto1));
                   output_tensors->push_back(output_tensor);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
   TF_EXPECT_OK(RunPredict(tfrt::SavedModel::RunOptions(), kTestModelVersion,
                           saved_model.get(), request, &response));
   EXPECT_EQ(response.outputs_size(), 1);

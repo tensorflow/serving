@@ -73,7 +73,7 @@ Status RunWarmupRequest(const PredictionLog& warmup_record,
     default:
       break;
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace

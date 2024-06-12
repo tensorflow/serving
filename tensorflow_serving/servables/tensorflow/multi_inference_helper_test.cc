@@ -146,7 +146,7 @@ TYPED_TEST_P(MultiInferenceTest, MissingInputTest) {
       RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
                                       thread::ThreadPoolOptions(), request,
                                       &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "Input is empty");
 }
 
@@ -161,7 +161,7 @@ TYPED_TEST_P(MultiInferenceTest, UndefinedSignatureTest) {
       RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
                                       thread::ThreadPoolOptions(), request,
                                       &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "signature not found");
 }
 
@@ -185,7 +185,7 @@ TYPED_TEST_P(MultiInferenceTest, InconsistentModelSpecsInRequestTest) {
       RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
                                       thread::ThreadPoolOptions(), request,
                                       &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "must access the same model name");
 }
 
@@ -201,7 +201,7 @@ TYPED_TEST_P(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
       RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
                                       thread::ThreadPoolOptions(), request,
                                       &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "Duplicate evaluation of signature: regress_x_to_y");
 }
 
@@ -215,7 +215,7 @@ TYPED_TEST_P(MultiInferenceTest, UsupportedSignatureTypeTest) {
       RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
                                       thread::ThreadPoolOptions(), request,
                                       &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kUnimplemented),
+      static_cast<absl::StatusCode>(absl::StatusCode::kUnimplemented),
       "Unsupported signature");
 }
 

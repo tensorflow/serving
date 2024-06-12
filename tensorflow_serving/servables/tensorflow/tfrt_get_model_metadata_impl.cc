@@ -47,7 +47,7 @@ Status TFRTGetModelMetadataImpl::GetModelMetadataWithModelSpec(
   ServableHandle<Servable> servable;
   TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &servable));
   TF_RETURN_IF_ERROR(servable->GetModelMetadata(request, response));
-  return tensorflow::OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace serving

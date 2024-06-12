@@ -33,7 +33,7 @@ Status LoadSavedModelConfig(
   absl::StatusOr<SavedModelConfig> model_config =
       LoadSavedModelConfigOrDefault(export_dir);
   if (!model_config.ok()) {
-    return tensorflow::FromAbslStatus(model_config.status());
+    return model_config.status();
   }
 
   if (model_config->has_session_overrides()) {
@@ -48,7 +48,7 @@ Status LoadSavedModelConfig(
     if (created_runtime_config.ok()) {
       runtime_config = std::move(*created_runtime_config);
     } else {
-      return tensorflow::FromAbslStatus(created_runtime_config.status());
+      return created_runtime_config.status();
     }
   }
 

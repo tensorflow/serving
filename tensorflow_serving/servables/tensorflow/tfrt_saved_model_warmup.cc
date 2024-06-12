@@ -58,7 +58,7 @@ Status RunWarmupRequest(const PredictionLog& warmup_record,
       saved_model->GetMetaGraphDef().signature_def_size() <=
           lazy_init_threshold &&
       warmup_record.log_type_case() != PredictionLog::kMultiInferenceLog) {
-    return OkStatus();
+    return absl::OkStatus();
   }
 
   switch (warmup_record.log_type_case()) {
@@ -112,7 +112,7 @@ Status RunWarmupRequest(const PredictionLog& warmup_record,
           "Unsupported log_type for warmup: ", warmup_record.log_type_case()));
       break;
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace

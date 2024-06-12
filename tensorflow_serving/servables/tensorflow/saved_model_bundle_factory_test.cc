@@ -74,7 +74,7 @@ Status CreateBundleFromPath(const CreationType creation_type,
       EXPECT_EQ(expected_loader_metadata.servable_id.version,
                 actual_session_metadata.version());
     }
-    return OkStatus();
+    return absl::OkStatus();
   });
 
   switch (creation_type) {
@@ -86,7 +86,7 @@ Status CreateBundleFromPath(const CreationType creation_type,
           CreateMetadata(), path, bundle));
       break;
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 struct SavedModelBundleFactoryTestParam {
@@ -115,7 +115,7 @@ class SavedModelBundleFactoryTest
     TF_RETURN_IF_ERROR(CreateBundleFromPath(GetParam().creation_type, config,
                                             export_dir_, &bundle));
     *session = std::move(bundle->session);
-    return OkStatus();
+    return absl::OkStatus();
   }
 
   SessionBundleConfig GetSessionBundleConfig() const override {

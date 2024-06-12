@@ -40,7 +40,7 @@ Status SavedModelBundleSourceAdapter::Create(
   TF_RETURN_IF_ERROR(
       SavedModelBundleFactory::Create(config.legacy_config(), &bundle_factory));
   adapter->reset(new SavedModelBundleSourceAdapter(std::move(bundle_factory)));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 SavedModelBundleSourceAdapter::~SavedModelBundleSourceAdapter() { Detach(); }
@@ -72,7 +72,7 @@ SavedModelBundleSourceAdapter::GetServableCreator(
             bundle_factory->config().model_warmup_options(),
             GetRunOptions(bundle_factory->config()), path, bundle->get());
       }
-      return OkStatus();
+      return absl::OkStatus();
     };
   }
   return [bundle_factory, path](std::unique_ptr<SavedModelBundle>* bundle) {
@@ -82,7 +82,7 @@ SavedModelBundleSourceAdapter::GetServableCreator(
           bundle_factory->config().model_warmup_options(),
           GetRunOptions(bundle_factory->config()), path, bundle->get());
     }
-    return OkStatus();
+    return absl::OkStatus();
   };
 }
 
@@ -111,7 +111,7 @@ Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
                 .experimental_transient_ram_bytes_during_load(),
         estimate);
 
-    return OkStatus();
+    return absl::OkStatus();
   };
   auto post_load_resource_estimator = [bundle_factory,
                                        path](ResourceAllocation* estimate) {
@@ -119,7 +119,7 @@ Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
   };
   loader->reset(new SimpleLoader<SavedModelBundle>(
       servable_creator, resource_estimator, {post_load_resource_estimator}));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Register the source adapter.
@@ -134,7 +134,7 @@ class SavedModelBundleSourceAdapterCreator {
                                                        &bundle_factory));
     adapter->reset(
         new SavedModelBundleSourceAdapter(std::move(bundle_factory)));
-    return OkStatus();
+    return absl::OkStatus();
   }
 };
 REGISTER_STORAGE_PATH_SOURCE_ADAPTER(SavedModelBundleSourceAdapterCreator,

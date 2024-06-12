@@ -53,7 +53,7 @@ class TfrtSavedModelFactoryTest : public ::testing::Test {
     TF_RETURN_IF_ERROR(TfrtSavedModelFactory::Create(config, &factory));
     TF_RETURN_IF_ERROR(factory->CreateTfrtSavedModelWithMetadata(
         CreateMetadata(), model_path_, saved_model));
-    return OkStatus();
+    return absl::OkStatus();
   }
 
   std::vector<string> GetModelFiles() {
@@ -139,7 +139,7 @@ TEST_F(TfrtSavedModelFactoryTest, BasicWithSavedModelConfigAndGraphRewrite) {
   bool rewriter_was_called = false;
   TF_ASSERT_OK(tensorflow::serving::SetGraphRewriter([&](MetaGraphDef* graph) {
     rewriter_was_called = true;
-    return OkStatus();
+    return absl::OkStatus();
   }));
   std::unique_ptr<tfrt::SavedModel> saved_model;
   TfrtSavedModelConfig config;

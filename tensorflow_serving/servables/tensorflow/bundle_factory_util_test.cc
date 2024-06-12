@@ -68,7 +68,7 @@ class MockSession : public Session {
     test::FillFn<float>(&output,
                         [&](int i) -> float { return input(i) / 2 + 2; });
     outputs->push_back(output);
-    return tensorflow::OkStatus();
+    return absl::OkStatus();
   }
 
   // Unused, but we need to provide a definition (virtual = 0).

@@ -36,7 +36,7 @@ Status TensorflowPredictor::Predict(const RunOptions& run_options,
                                     PredictResponse* response) {
   if (!request.has_model_spec()) {
     return tensorflow::Status(
-        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+        static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
         "Missing ModelSpec");
   }
   return PredictWithModelSpec(run_options, core, request.model_spec(), request,

@@ -93,7 +93,7 @@ Status PreProcessPredictionWithoutOutputFilter(
     }
     input_tensors->emplace_back(std::move(tensor));
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Validate results and populate a PredictResponse.
@@ -134,7 +134,7 @@ Status PostProcessPredictionResultWithoutOutputFilter(
         "output_filter contains non-existed output names. output_filter: ",
         absl::StrJoin(output_filter, ",")));
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 bool IsOutputFilterEmptyOrFullSet(

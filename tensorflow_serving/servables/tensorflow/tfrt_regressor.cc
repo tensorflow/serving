@@ -65,7 +65,7 @@ Status PreProcessRegression(const tfrt::FunctionMetadata& function_metadata) {
         function_metadata.GetOutputNames()[0]);
   }
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status PostProcessRegressionResult(
@@ -105,7 +105,7 @@ Status PostProcessRegressionResult(
   for (int i = 0; i < num_examples; ++i) {
     result->add_regressions()->set_value(output_tensor_flat(i));
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 Status RunRegress(const tfrt::SavedModel::RunOptions& run_options,
