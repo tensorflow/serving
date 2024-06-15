@@ -52,10 +52,6 @@ cc_library(
     name = "remote_predict_ops_cc",
     srcs = ["cc/ops/remote_predict_op.cc"],
     hdrs = ["cc/ops/remote_predict_op.h"],
-    visibility = [
-        "//tensorflow_serving/experimental/example:__subpackages__",
-        "//tensorflow_serving/model_servers:__subpackages__",
-    ],
     deps = [
         ":remote_predict_op_op_lib",
         "@org_tensorflow//tensorflow/cc:const_op",
@@ -81,10 +77,6 @@ tf_kernel_library(
     hdrs = [
         "kernels/prediction_service_grpc.h",
         "kernels/remote_predict_op_kernel.h",
-    ],
-    visibility = [
-        "//tensorflow_serving/experimental/example:__subpackages__",
-        "//tensorflow_serving/model_servers:__subpackages__",
     ],
     deps = [
         ":remote_predict_op_op_lib",
@@ -199,7 +191,5 @@ filegroup(
             "**/OWNERS",
         ],
     ),
-    visibility = [
-        "//tensorflow_serving:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
 )
