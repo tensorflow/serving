@@ -208,6 +208,9 @@ message TfrtSavedModelConfig {
   // Whether to enable paging. This should only be true when using Pathways
   // backend.
   bool enable_paging = 2022;
+
+  // PjRt memory kind to use for paged-out buffers.
+  string paging_host_memory_kind = 2023;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.
