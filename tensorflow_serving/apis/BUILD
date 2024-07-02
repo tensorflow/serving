@@ -437,7 +437,7 @@ serving_proto_library(
 
 tf_jspb_proto_library(
     name = "session_service_jspb_proto",
-    visibility = ["//research/vision/loco/visualization/interactive_computation:__pkg__"],
+    visibility = ["//visibility:private"],
     deps = [":session_service_proto"],
 )
 
