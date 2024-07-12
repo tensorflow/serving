@@ -31,11 +31,14 @@ limitations under the License.
 #include "tensorflow/core/lib/random/random.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/path.h"
+#include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
+#include "tsl/lib/core/status_test_util.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/core/request_logger.h"
 #include "tensorflow_serving/core/servable_handle.h"
+#include "tensorflow_serving/core/servable_id.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.pb.h"
@@ -59,6 +62,8 @@ using ::testing::_;
 using ::testing::Invoke;
 using ::testing::MockFunction;
 using ::testing::NiceMock;
+using ::testing::Pair;
+using ::testing::UnorderedElementsAre;
 
 TEST_P(ServerCoreTest, PreLoadHook) {
   std::unique_ptr<ServerCore> server_core;
@@ -92,6 +97,19 @@ TEST_P(ServerCoreTest, CreateWaitsTillModelsAvailable) {
   TF_ASSERT_OK(
       server_core->GetServableHandle<string>(model_spec, &servable_handle));
   EXPECT_EQ(servable_handle.id(), expected_id);
+
+  // Validate monitoring states.
+  const auto servable_map =
+      server_core->servable_state_monitor()->GetAllServableStates();
+  auto it_servable = servable_map.find(test_util::kTestModelName);
+  ASSERT_NE(it_servable, servable_map.end());
+  ASSERT_THAT(it_servable->second,
+              UnorderedElementsAre(Pair(test_util::kTestModelVersion, _)));
+  const auto state_and_time =
+      it_servable->second.at(test_util::kTestModelVersion);
+  EXPECT_TRUE(state_and_time.state.health.ok());
+  EXPECT_EQ(state_and_time.state.manager_state,
+            ServableState::ManagerState::kAvailable);
 }
 
 TEST_P(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
@@ -128,6 +146,17 @@ TEST_P(ServerCoreTest, ReloadConfigUnloadsModels) {
   test_util::WaitUntilServableManagerStateIsOneOf(
       *server_core->servable_state_monitor(), servable_id,
       {ServableState::ManagerState::kEnd});
+  // Validate monitoring states.
+  const auto servable_map =
+      server_core->servable_state_monitor()->GetAllServableStates();
+  auto it_servable = servable_map.find(test_util::kTestModelName);
+  ASSERT_NE(it_servable, servable_map.end());
+  ASSERT_THAT(it_servable->second,
+              UnorderedElementsAre(Pair(test_util::kTestModelVersion, _)));
+  const auto state_and_time =
+      it_servable->second.at(test_util::kTestModelVersion);
+  ASSERT_EQ(state_and_time.state.manager_state,
+            ServableState::ManagerState::kEnd);
 }
 
 TEST_P(ServerCoreTest, ReloadConfigHandlesLoadingAPreviouslyUnloadedModel) {
@@ -309,6 +338,21 @@ TEST_P(ServerCoreTest, ErroringModel) {
   EXPECT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("1 servable(s) did not become available"));
+
+  // Validate monitoring states.
+  const auto servable_map =
+      server_core->servable_state_monitor()->GetAllServableStates();
+  auto it_servable = servable_map.find(test_util::kTestModelName);
+  ASSERT_NE(it_servable, servable_map.end());
+  ASSERT_THAT(it_servable->second,
+              UnorderedElementsAre(Pair(test_util::kTestModelVersion, _)));
+  const auto state_and_time =
+      it_servable->second.at(test_util::kTestModelVersion);
+  EXPECT_EQ(state_and_time.state.health.code(), absl::StatusCode::kCancelled);
+  EXPECT_THAT(state_and_time.state.health.ToString(),
+              ::testing::HasSubstr("injected error"));
+  EXPECT_EQ(state_and_time.state.manager_state,
+            ServableState::ManagerState::kEnd);
 }
 
 TEST_P(ServerCoreTest, IllegalReconfigurationToCustomConfig) {
