@@ -149,6 +149,12 @@ class ServingClient {
 };
 
 int main(int argc, char** argv) {
+  // When gRPC version is updated to the latest version, the build will fail
+  // because gpr_set_log_verbosity will be deleted. Since in the latest
+  // version of gRPC uses absl internally, If you want to set absl severity or
+  // verbosity you need to use absl : --v, --vmodule, --minloglevel,
+  // absl::SetVLogLevel, absl::SetGlobalVLogLevel, and absl::SetMinLogLevel.
+  // You can delete gpr_set_log_verbosity statement when your build fails.
   gpr_set_log_verbosity(GPR_LOG_SEVERITY_ERROR);
   absl::ParseCommandLine(argc, argv);
 
