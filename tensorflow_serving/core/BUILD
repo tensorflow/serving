@@ -428,8 +428,12 @@ cc_test(
     size = "small",
     srcs = ["servable_state_monitor_test.cc"],
     deps = [
+        ":manager",
+        ":servable_id",
+        ":servable_state",
         ":servable_state_monitor",
         "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/util:event_bus",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:fake_clock_env",
     ],
