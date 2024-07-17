@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_factory.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -41,6 +42,7 @@ limitations under the License.
 #include "tsl/platform/errors.h"
 #include "tensorflow_serving/batching/tfrt_saved_model_with_batching.h"
 #include "tensorflow_serving/core/loader.h"
+#include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
 #include "tensorflow_serving/servables/tensorflow/machine_learning_metadata.h"
@@ -328,6 +330,20 @@ TfrtSavedModelFactoryRegistry::TfrtSavedModelFactoryRegistry() {
   factory_create_fn_ = [](const TfrtSavedModelConfig& config) {
     return CreateDefaultTfrtSavedModelFactory(config);
   };
+}
+
+absl::string_view TfrtSavedModelFactory::GetServingResourceType() const {
+  if (std::any_of(config_.saved_model_tags().begin(),
+                  config_.saved_model_tags().end(),
+                  [](const auto& tag) { return tag == kSavedModelTagTpu; })) {
+    return device_types::kTpu;
+  }
+  if (std::any_of(config_.saved_model_tags().begin(),
+                  config_.saved_model_tags().end(),
+                  [](const auto& tag) { return tag == kSavedModelTagGpu; })) {
+    return device_types::kGpu;
+  }
+  return device_types::kMain;
 }
 
 TfrtSavedModelFactoryRegistry& GetGlobalTfrtSavedModelFactoryRegistry() {

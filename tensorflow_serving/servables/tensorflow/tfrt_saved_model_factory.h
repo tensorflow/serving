@@ -100,6 +100,7 @@ class TfrtSavedModelFactory {
 
   const TfrtSavedModelConfig& config() const { return config_; }
   TfrtSavedModelConfig& mutable_config() { return config_; }
+  absl::string_view GetServingResourceType() const;
 
  private:
   // The subclass can override this method to return a custom servable

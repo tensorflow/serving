@@ -1228,6 +1228,7 @@ cc_library(
         ":thread_pool_factory_config_cc_proto",
         "//tensorflow_serving/batching:tfrt_saved_model_with_batching",
         "//tensorflow_serving/core:loader",
+        "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/resources:resources_cc_proto",
         "//tensorflow_serving/session_bundle:graph_rewriter",
         "@com_google_absl//absl/status",
