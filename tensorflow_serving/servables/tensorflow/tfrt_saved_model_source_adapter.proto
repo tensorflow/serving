@@ -211,6 +211,16 @@ message TfrtSavedModelConfig {
 
   // PjRt memory kind to use for paged-out buffers.
   string paging_host_memory_kind = 2023;
+
+  // Specific IFRT client type.
+  enum IfrtClientType {
+    IFRT_CLIENT_UNSPECIFIED = 0;
+    // PJRT IFRT client.
+    IFRT_CLIENT_PJRT = 1;
+    // Pathways IFRT client.
+    IFRT_CLIENT_PATHWAYS = 2;
+  }
+  IfrtClientType ifrt_client_type = 2024;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.
