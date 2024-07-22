@@ -1,3 +1,36 @@
+# Release 2.17.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Add RequestOptions and DeterministicMode options. (commit: a8b200b6363f4761478aa64e345b0822a32065b4)
+* Remove usages of bridge fallback. (commit: 98570a6181910017d19990b4be7d9ccf9ae4d174)
+* Provide a runtime option to lower bound the number of batch threads. (commit: 50b07e4ceac4f7c0e901f341b5d70b6a61dee736)
+* Avoid GetChildren when using Specific servable versions (commit: 6fb94038e62fcc67627729e7f8416e0f146ec3fe)
+* Add python clif target for prediction_log.proto. (commit: 39ba6232106cc8bdf99dfb54f5736ad88a17684a)
+* Build with --xnn_enable_avx512amx=false (commit: f6c4219a564d8a37bda8ef612b2aca8c3953f304)
+* Update comment in tfrt_saved_model_factory.h for wrong param name. (commit: 14ce91115cead955d9ce973866b48373a2ad52db)
+* Upgraded libevent to 2.1.12.  Fixed minor bug in EvHTTPServer. (commit: 2cda80ac6c30fe09e41a414669579d2d35460880)
+* Introduce RequestRecorder in tfrt_servable so that implementation can record customized costs and metrics. (commit: 749007b9f94da6ab6ef3ed0dcfb3e19829f27298)
+* Integrate TFRT+IFRT with tensorflow serving (commit: a8b64dd5e919efce56b52b2dbee39bb884f73296)
+* Add core selector support for TFRT+IFRT serving on tensorflow serving (commit: 84a71a42ebdca0a518073ebb02eaac461b582316)
+* Remove GPR_ASSERT . (commit: 2dca3af0cb435d00f7af90acbf0eb12db83a3cb8)
+* Add timeout support when waiting on servables to load. (commit: 093d841041d3260d4e49ed2401494f0d8b9d1f19)
+* Build with --xnn_enable_avx512fp16=false (commit: eeac086b6960923426aaf0eba615a5529bf8f95b)
+* Support paging in TfrtSavedModelServable. (commit: 993a53c9a7bd37b70d2db52104bf63daa6b04582)
+* Add max_enqueued_batches option for model servers. (commit: d914192fc890811e615be714a0e4769bf9b6dab2)
+* Add max_enqueued_batches option for model servers. (commit: 67a2dcb2b9c057847616fb5ce54cb8545955d144)
+* Update version for 2.17.0 release. (#2225) (commit: 68eda92e579da6d80d364fde1601504a415be817)
+* Include patch files necessary for building at TF 2.17 (commit: 6311b72ea7efdc8c306de3c3bc808388468b7a3d)
+* This release is based on TF version 2.17.0.
+
 # Release 2.16.1
 
 ## Major Features and Improvements
