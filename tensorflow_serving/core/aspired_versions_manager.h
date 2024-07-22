@@ -284,8 +284,8 @@ class AspiredVersionsManager : public Manager,
 
   // Sets the number of load threads.
   //
-  // We immediately block all new load requests while the current executor is
-  // destructed, a new one is created and then swapped with the current one.
+  // This may block all new load requests, or temporarily allow more threads to
+  // start, before it returns. See BasicManager::SetNumLoadThreads for details
   void SetNumLoadThreads(uint32 num_load_threads);
   uint32 num_load_threads() const;
 

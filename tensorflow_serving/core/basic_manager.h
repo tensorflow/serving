@@ -383,10 +383,16 @@ class BasicManager : public Manager {
 
   // Sets the number of load threads.
   //
-  // We block all new load requests while the old thread pool is destructed, a
-  // new one is created and then swapped with the old one. Note that destructing
+  // When either existing or target num_load_threads means single thread, we
+  // block all new load requests while the old thread pool is destructed, a new
+  // one is created and then swapped with the old one. Note that destructing
   // the old thread pool blocks until all threads are done, so it could block
   // for a long time.
+  //
+  // When both existing and target num_load_threads are multi-threaded, this
+  // call still blocks until the old thread pool is destructed, but other loads
+  // can happen concurrently, potentially increasing the number of running load
+  // threads, up to the sum of existing and target num_load_threads.
   void SetNumLoadThreads(uint32 num_load_threads)
       TF_LOCKS_EXCLUDED(load_executor_mu_);
   uint32 num_load_threads() const;

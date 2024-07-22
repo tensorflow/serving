@@ -583,12 +583,34 @@ Status BasicManager::ExecuteLoadOrUnload(const LoadOrUnloadRequest& request,
 }
 
 void BasicManager::SetNumLoadThreads(const uint32 num_load_threads) {
-  mutex_lock l(load_executor_mu_);
-
-  load_executor_.reset();
-  num_load_threads_.store(num_load_threads);
-  load_executor_ =
-      CreateExecutor(env_, num_load_threads, "BasicManager_Load_ThreadPool");
+  // ThreadPoolExecutor destructor, implicitly calling ThreadPool destructor,
+  // waits for all scheduled work to finish. Should we wait within
+  // `load_executor_mu_` or outside?
+  //
+  // When changing `num_load_threads_` from M to N, the effective number of
+  // threads changes like this:
+  // - From M to 0 then to N, if destruct within lock; or
+  // - From M to (up to) M+N then to N, if destruct outside lock.
+  // The former is more intuitive when M and N are small (e.g. client intention
+  // is inline or single threaded loading), while the latter makes more sense
+  // when they are large.
+  const uint32 old_num_threads = num_load_threads_.load();
+  if (old_num_threads < 2 || num_load_threads < 2) {  // destruct within lock
+    mutex_lock l(load_executor_mu_);
+    load_executor_.reset();
+    num_load_threads_.store(num_load_threads);
+    load_executor_ =
+        CreateExecutor(env_, num_load_threads, "BasicManager_Load_ThreadPool");
+  } else {  // destruct outside lock
+    std::unique_ptr<Executor> old_executor;
+    {
+      mutex_lock l(load_executor_mu_);
+      old_executor = std::move(load_executor_);
+      num_load_threads_.store(num_load_threads);
+      load_executor_ = CreateExecutor(env_, num_load_threads,
+                                      "BasicManager_Load_ThreadPool");
+    }
+  }
 }
 
 uint32 BasicManager::num_load_threads() const {
