@@ -25,9 +25,7 @@ cc_library(
     name = "hashmap_source_adapter",
     srcs = ["hashmap_source_adapter.cc"],
     hdrs = ["hashmap_source_adapter.h"],
-    visibility = [
-        "//visibility:public",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":hashmap_source_adapter_cc_proto",
         "//tensorflow_serving/core:simple_loader",
