@@ -102,7 +102,7 @@ absl::StatusOr<SavedModelConfig> LoadSavedModelConfigOrDefault(
   TF_RETURN_IF_ERROR(
       tsl::Env::Default()->NewRandomAccessFile(saved_model_config_path, &file));
 
-  tsl::StringPiece result;
+  absl::string_view result;
   TF_RETURN_IF_ERROR(file->Read(0, file_size, &result, &(content)[0]));
 
   if (!saved_model_config.ParseFromString(content)) {
