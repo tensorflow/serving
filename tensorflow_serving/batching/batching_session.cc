@@ -69,9 +69,9 @@ auto* wrapped_run_count = monitoring::Counter<0>::New(
 
 string TensorSignatureDebugString(const TensorSignature& signature) {
   return strings::StrCat("{input_tensors: <",
-                         str_util::Join(signature.input_tensors, ", "),
+                         absl::StrJoin(signature.input_tensors, ", "),
                          ">, output_tensors: <",
-                         str_util::Join(signature.output_tensors, ", "), ">}");
+                         absl::StrJoin(signature.output_tensors, ", "), ">}");
 }
 
 struct HashTensorSignature {
