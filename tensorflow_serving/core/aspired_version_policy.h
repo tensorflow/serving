@@ -18,12 +18,15 @@ limitations under the License.
 
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/loader_harness.h"
 #include "tensorflow_serving/core/servable_id.h"
+#include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
+
 namespace tensorflow {
 namespace serving {
 
@@ -77,6 +80,15 @@ class AspiredVersionPolicy {
   virtual absl::optional<ServableAction> GetNextAction(
       const std::vector<AspiredServableStateSnapshot>& all_versions) const = 0;
 
+  void set_storage_path_source(
+      FileSystemStoragePathSource* storage_path_source) {
+    mutex_lock l(mu_);
+    storage_path_source_ = storage_path_source;
+  }
+
+  std::unordered_set<int64> GetSpecificVersionsInConfig(
+      const std::string& servable_name) const;
+	  
  protected:
   /// Returns the aspired ServableId with the highest version that matches
   /// kNew state, if any exists.
@@ -85,6 +97,8 @@ class AspiredVersionPolicy {
 
  private:
   friend class AspiredVersionPolicyTest;
+  mutable mutex mu_;
+  FileSystemStoragePathSource* storage_path_source_ GUARDED_BY(mu_) = nullptr;
 };
 
 inline bool operator==(const AspiredVersionPolicy::ServableAction& lhs,
