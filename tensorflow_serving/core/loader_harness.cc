@@ -15,10 +15,12 @@ limitations under the License.
 
 #include "tensorflow_serving/core/loader_harness.h"
 
-#include <algorithm>
+#include <functional>
 #include <memory>
 #include <utility>
 
+#include "absl/log/log.h"
+#include "absl/status/status.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/env.h"
@@ -33,7 +35,8 @@ LoaderHarness::LoaderHarness(const ServableId& id,
     : id_(id),
       loader_(std::move(loader)),
       additional_state_(nullptr),
-      options_(options) {
+      options_(options),
+      should_retry_([&](absl::Status status) { return true; }) {
   VLOG(1) << "Starting to manage servable version " << id_;
 }
 
@@ -80,13 +83,13 @@ Status LoaderHarness::Load() {
       strings::StrCat("Loading servable: ", id_.DebugString()),
       options_.max_num_load_retries, options_.load_retry_interval_micros,
       [&]() { return loader_->LoadWithMetadata({id_}); },
-      [&]() { return cancel_load_retry(); });
+      [&](absl::Status status) { return should_retry(status); });
 
   if (status.ok()) {
-    if (cancel_load_retry()) {
-      // Servable is going to be unloaded very soon,
-      // we report a failure here so that we do not accidentally
-      // report that the servable is available.
+    if (!should_retry(absl::UnknownError(""))) {
+      // Using UnknownError to check if the load is cancelled. If so, it means
+      // Servable is going to be unloaded very soon, we report a failure here so
+      // that we do not accidentally report that the servable is available.
       TF_RETURN_IF_ERROR(UnloadDueToCancelledLoad());
       return errors::Cancelled(
           strings::StrCat("Loading of servable cancelled"));
@@ -135,14 +138,15 @@ Status LoaderHarness::UnloadDueToCancelledLoad() {
   return UnloadInternal(State::kLoading);
 }
 
-void LoaderHarness::set_cancel_load_retry(const bool value) {
+void LoaderHarness::set_should_retry(
+    std::function<bool(absl::Status)> should_retry) {
   mutex_lock l(mu_);
-  cancel_load_retry_ = value;
+  should_retry_ = std::move(should_retry);
 }
 
-bool LoaderHarness::cancel_load_retry() {
+bool LoaderHarness::should_retry(absl::Status status) {
   mutex_lock l(mu_);
-  return cancel_load_retry_;
+  return should_retry_(status);
 }
 
 Status LoaderHarness::Unload() { return UnloadInternal(State::kQuiesced); }

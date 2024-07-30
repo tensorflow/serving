@@ -759,6 +759,9 @@ Status ServerCore::CreateAspiredVersionsManager(
   manager_options.enable_reload_servables_with_error =
       options_.enable_reload_servables_with_error;
   manager_options.with_current_context = options_.with_current_context;
+  if (options_.should_retry_model_load) {
+    manager_options.should_retry_model_load = options_.should_retry_model_load;
+  }
   const tensorflow::Status status =
       AspiredVersionsManager::Create(std::move(manager_options), manager);
   if (!status.ok()) {

@@ -24,12 +24,16 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow_serving/core/servable_handle.h"
+#include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/source.h"
+#include "tensorflow_serving/resources/resource_tracker.h"
+#include "tensorflow_serving/util/event_bus.h"
 #include "tensorflow_serving/util/hash.h"
 #include "tensorflow_serving/util/inline_executor.h"
 #include "tensorflow_serving/util/retrier.h"
@@ -225,21 +229,23 @@ Status BasicManager::Create(Options options,
                             std::unique_ptr<BasicManager>* manager) {
   manager->reset(new BasicManager(
       options.env, options.num_load_threads, options.num_unload_threads,
-      options.max_num_load_retries, options.load_retry_interval_micros,
-      options.flush_filesystem_caches, std::move(options.resource_tracker),
-      options.servable_event_bus, std::move(options.pre_load_hook)));
+      options.max_num_load_retries, std::move(options.should_retry_model_load),
+      options.load_retry_interval_micros, options.flush_filesystem_caches,
+      std::move(options.resource_tracker), options.servable_event_bus,
+      std::move(options.pre_load_hook)));
   return OkStatus();
 }
 
-BasicManager::BasicManager(Env* const env, const uint32 num_load_threads,
-                           const uint32 num_unload_threads,
-                           uint32 max_num_load_retries,
-                           int64_t load_retry_interval_micros,
-                           bool flush_filesystem_caches,
-                           std::unique_ptr<ResourceTracker> resource_tracker,
-                           EventBus<ServableState>* servable_event_bus,
-                           std::function<void(const ServableId&)> pre_load_hook)
+BasicManager::BasicManager(
+    Env* const env, const uint32 num_load_threads,
+    const uint32 num_unload_threads, uint32 max_num_load_retries,
+    std::function<bool(absl::Status)> should_retry_model_load,
+    int64_t load_retry_interval_micros, bool flush_filesystem_caches,
+    std::unique_ptr<ResourceTracker> resource_tracker,
+    EventBus<ServableState>* servable_event_bus,
+    std::function<void(const ServableId&)> pre_load_hook)
     : servable_event_bus_(servable_event_bus),
+      should_retry_model_load_(std::move(should_retry_model_load)),
       env_(env),
       num_load_threads_(num_load_threads),
       flush_filesystem_caches_(flush_filesystem_caches),
@@ -357,6 +363,9 @@ Status BasicManager::ManageServableInternal(
 
   std::shared_ptr<LoaderHarness> harness =
       harness_creator(servable.id(), std::move(loader));
+  if (should_retry_model_load_) {
+    harness->set_should_retry(should_retry_model_load_);
+  }
   if (!servable.status().ok()) {
     harness->Error(servable.status());
   } else {
@@ -527,7 +536,7 @@ void BasicManager::CancelLoadServableRetry(const ServableId& id) {
   if (!status.ok()) {
     return;
   }
-  harness->set_cancel_load_retry(true);
+  harness->set_should_retry([](absl::Status status) { return false; });
 }
 
 Status BasicManager::ExecuteUnload(LoaderHarness* harness) {
@@ -748,7 +757,7 @@ Status BasicManager::ReserveResources(LoaderHarness* harness,
           return resource_tracker_->ReserveResources(*harness->loader(),
                                                      &resources_reserved);
         },
-        [&]() { return harness->cancel_load_retry(); });
+        [&](absl::Status status) { return harness->should_retry(status); });
     if (!reserve_resources_status.ok()) {
       return Status(
           reserve_resources_status.code(),

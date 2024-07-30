@@ -19,6 +19,7 @@ limitations under the License.
 #include <functional>
 #include <string>
 
+#include "absl/status/status.h"
 #include "tensorflow/core/lib/core/status.h"
 
 namespace tensorflow {
@@ -26,14 +27,16 @@ namespace serving {
 
 // Tries running 'retried_fn' once, and if it doesn't succeed, retries running
 // the 'retried_fn' till it returns an ok status or max_num_retries are
-// exhausted or cancelled() returns true. Each retry is attempted after an
+// exhausted or should_retry() returns false. Each retry is attempted after an
 // interval of 'retry_interval_micros'. The 'description' is useful for logging.
 //
 // Returns the status returned by the last call to 'retried_fn'.
-Status Retry(
+absl::Status Retry(
     const string& description, uint32 max_num_retries,
-    int64_t retry_interval_micros, const std::function<Status()>& retried_fn,
-    const std::function<bool()>& is_cancelled = [] { return false; });
+    int64_t retry_interval_micros,
+    const std::function<absl::Status()>& retried_fn,
+    const std::function<bool(absl::Status)>& should_retry =
+        [](absl::Status status) { return true; });
 
 }  // namespace serving
 }  // namespace tensorflow

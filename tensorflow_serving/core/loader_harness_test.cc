@@ -20,11 +20,14 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/status/status.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
+#include "tensorflow_serving/core/loader.h"
+#include "tensorflow_serving/core/servable_id.h"
 #include "tensorflow_serving/core/test_util/mock_loader.h"
 #include "tensorflow_serving/test_util/test_util.h"
 #include "tensorflow_serving/util/any_ptr.h"
@@ -324,7 +327,7 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorCancelledLoad) {
       Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
         TF_ASSERT_OK(harness.LoadRequested());
         TF_ASSERT_OK(harness.LoadApproved());
-        harness.set_cancel_load_retry(true);
+        harness.set_should_retry([](absl::Status status) { return false; });
         const Status status = harness.Load();
         EXPECT_THAT(status.message(), HasSubstr("test load error"));
       }));
@@ -347,9 +350,34 @@ TEST(LoaderHarnessTest, UnloadDueToCancelledLoad) {
       Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
         TF_ASSERT_OK(harness.LoadRequested());
         TF_ASSERT_OK(harness.LoadApproved());
-        harness.set_cancel_load_retry(true);
+        harness.set_should_retry([](absl::Status status) { return false; });
         const Status status = harness.Load();
         EXPECT_THAT(status.message(), HasSubstr("cancelled"));
+      }));
+}
+
+TEST(LoaderHarnessTest, UnloadDueToNonRetriableError) {
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+
+  const ServableId servable_id = {"test", 0};
+  LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
+
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
+      .WillOnce(Return(absl::InvalidArgumentError("Non-retriable error.")))
+      .WillRepeatedly(InvokeWithoutArgs([]() {
+        Env::Default()->SleepForMicroseconds(1000000);
+        return absl::OkStatus();
+      }));
+
+  std::unique_ptr<Thread> test_thread(
+      Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
+        TF_ASSERT_OK(harness.LoadRequested());
+        TF_ASSERT_OK(harness.LoadApproved());
+        harness.set_should_retry([](absl::Status status) {
+          return !absl::IsInvalidArgument(status);
+        });
+        const absl::Status status = harness.Load();
+        EXPECT_THAT(status.message(), HasSubstr("Non-retriable error."));
       }));
 }
 

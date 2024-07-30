@@ -26,11 +26,13 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/status/status.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/blocking_counter.h"
+#include "tensorflow/core/platform/errors.h"
 #include "tensorflow/core/platform/null_file_system.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
@@ -1689,10 +1691,49 @@ TEST(EstimateResourcesRetriedTest, Fails) {
       id, [](const Status& status) { EXPECT_FALSE(status.ok()); });
   WaitUntilServableManagerStateIsOneOf(servable_state_monitor, id,
                                        {ServableState::ManagerState::kEnd});
-  const ServableState available_state = {
-      id, ServableState::ManagerState::kEnd,
-      errors::Internal("Error on estimate resources.")};
   EXPECT_FALSE(servable_state_monitor.GetState(id)->health.ok());
+}
+
+TEST(EstimateResourcesRetriedTest, NonRetriableError) {
+  std::shared_ptr<EventBus<ServableState>> servable_event_bus =
+      EventBus<ServableState>::CreateEventBus();
+  ServableStateMonitor servable_state_monitor(servable_event_bus.get());
+
+  BasicManager::Options options;
+  // Seed the manager with ten resource units.
+  options.resource_tracker = CreateSimpleResourceTracker(10);
+  options.servable_event_bus = servable_event_bus.get();
+  options.num_load_threads = 0;
+  options.num_unload_threads = 0;
+  options.should_retry_model_load =
+      ([](absl::Status status) { return !absl::IsInvalidArgument(status); });
+
+  options.max_num_load_retries = 10;
+  options.load_retry_interval_micros = 100000000;
+
+  std::unique_ptr<BasicManager> basic_manager;
+  TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager));
+
+  const ServableId id = {kServableName, 7};
+  test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
+  EXPECT_CALL(*loader, LoadWithMetadata(_))
+      .WillOnce(Return(errors::InvalidArgument("Non-retriable error.")))
+      .WillRepeatedly(Return(absl::OkStatus()));
+  TF_ASSERT_OK(basic_manager->ManageServable(
+      CreateServableData(id, std::unique_ptr<Loader>(loader))));
+  basic_manager->LoadServable(
+      id, [](const auto& status) { EXPECT_FALSE(status.ok()); });
+
+  // Make sure the final state is kEnd.
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor, id,
+      {ServableState::ManagerState::kEnd,
+       ServableState::ManagerState::kAvailable});
+  const auto final_state = servable_state_monitor.GetState(id);
+  ASSERT_TRUE(final_state.has_value());
+  EXPECT_EQ(final_state->manager_state, ServableState::ManagerState::kEnd);
+  EXPECT_FALSE(final_state->health.ok());
+  EXPECT_EQ(final_state->health.message(), "Non-retriable error.");
 }
 
 }  // namespace

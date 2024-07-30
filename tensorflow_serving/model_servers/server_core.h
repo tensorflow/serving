@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_SERVER_CORE_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_SERVER_CORE_H_
 
+#include <functional>
 #include <limits>
 #include <map>
 #include <memory>
@@ -24,6 +25,7 @@ limitations under the License.
 
 #include "google/protobuf/any.pb.h"
 #include "absl/base/macros.h"
+#include "absl/status/status.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -209,7 +211,11 @@ class ServerCore : public Manager {
     // functions) in AspiredVersionsManager.
     bool with_current_context = false;
 
+    // How long to wait for servables to reach a given state.
     absl::Duration servable_state_waiter_timeout = absl::InfiniteDuration();
+
+    // Defines how we want to retry when model loading fails.
+    std::function<bool(absl::Status)> should_retry_model_load;
   };
 
   virtual ~ServerCore() = default;

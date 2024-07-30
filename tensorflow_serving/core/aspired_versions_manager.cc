@@ -166,6 +166,10 @@ Status AspiredVersionsManager::Create(
   basic_manager_options.env = options.env;
   basic_manager_options.servable_event_bus = options.servable_event_bus;
   basic_manager_options.pre_load_hook = std::move(options.pre_load_hook);
+  if (options.should_retry_model_load) {
+    basic_manager_options.should_retry_model_load =
+        std::move(options.should_retry_model_load);
+  }
   std::unique_ptr<BasicManager> basic_manager;
   TF_RETURN_IF_ERROR(
       BasicManager::Create(std::move(basic_manager_options), &basic_manager));

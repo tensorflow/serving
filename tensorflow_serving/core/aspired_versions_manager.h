@@ -127,6 +127,9 @@ class AspiredVersionsManager : public Manager,
     /// Default: 1 minute.
     int64_t load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
 
+    // Defines how we want to retry when model loading fails.
+    std::function<bool(absl::Status)> should_retry_model_load;
+
     // If true, and there are not multiple load threads, filesystem caches will
     // be flushed after each servable is loaded. (Cache flush is skipped when
     // multiple load threads are active, in order to avoid setting back a

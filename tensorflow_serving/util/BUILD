@@ -274,6 +274,7 @@ cc_library(
     srcs = ["retrier.cc"],
     hdrs = ["retrier.h"],
     deps = [
+        "@com_google_absl//absl/status",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -284,7 +285,9 @@ cc_test(
     deps = [
         ":retrier",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/status",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
     ],
 )
 

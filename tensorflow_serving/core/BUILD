@@ -447,6 +447,8 @@ cc_library(
         ":loader",
         ":servable_id",
         "//tensorflow_serving/util:retrier",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],
