@@ -340,6 +340,7 @@ cc_test(
         "//tensorflow_serving/apis:regression_cc_proto",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
+        "@com_google_absl//absl/strings",
         "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",

@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/util/json_tensor.h"
 
 #include <functional>
+#include <string>
 
 #include "google/protobuf/message.h"
 #include "google/protobuf/text_format.h"
@@ -81,6 +82,40 @@ TEST(JsontensorTest, SingleUnnamedTensor) {
     int_val: 5
     int_val: 6
     )"));
+}
+
+TEST(JsontensorTest, DeeplyNestedWellFormed) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_INT32", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  std::string json_req = R"({"instances":[1], "nested":)";
+  json_req.append(500000, '[');
+  json_req.append(500000, ']');
+  json_req.append("}");
+  TF_EXPECT_OK(
+      FillPredictRequestFromJson(json_req, getmap(infomap), &req, &format));
+  auto tmap = req.inputs();
+  EXPECT_EQ(tmap.size(), 1);
+}
+
+TEST(JsontensorTest, DeeplyNestedMalformed) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_INT32", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  std::string json_req = R"({"signature_name":)";
+  json_req.append(500000, '[');
+  json_req.append(500000, ']');
+  json_req.append("}");
+  auto status =
+      FillPredictRequestFromJson(json_req, getmap(infomap), &req, &format);
+  ASSERT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_THAT(status.message(), HasSubstr("key must be a string value"));
 }
 
 TEST(JsontensorTest, MixedInputForFloatTensor) {
