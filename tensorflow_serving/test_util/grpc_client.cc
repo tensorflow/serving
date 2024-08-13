@@ -26,10 +26,10 @@ limitations under the License.
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/strings/match.h"
+#include "xla/tsl/lib/histogram/histogram.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/env_time.h"
 #include "tensorflow/core/platform/protobuf.h"
-#include "tsl/lib/histogram/histogram.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 
 using grpc::ClientAsyncResponseReader;
