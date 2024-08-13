@@ -99,3 +99,8 @@ build --define use_absl_anyinvocable=1
 # TensorFlow Decision Forests does not use Absl concurrency primitives on MacOs.
 # Reason: TensorFlow/ABSL ODR violation (b/214189609) # copybara:strip
 build:macos --define std_synchronization_primitives=1
+
+# Taken from https://github.com/openxla/xla/blob/99559d7a4f7c55490f46385ad29a3cbf9c3911af/warnings.bazelrc#L6
+# We silence warnings for code in `external`.
+build --per_file_copt=external/.*@-w
+build --host_per_file_copt=external/.*@-w
