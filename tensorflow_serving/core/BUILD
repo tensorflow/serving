@@ -551,6 +551,7 @@ cc_test(
     size = "small",
     srcs = ["aspired_versions_manager_test.cc"],
     deps = [
+        ":aspired_version_policy",
         ":aspired_versions_manager",
         ":availability_preserving_policy",
         ":servable_state_monitor",

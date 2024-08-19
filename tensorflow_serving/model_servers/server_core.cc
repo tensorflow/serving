@@ -29,6 +29,7 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow_serving/config/file_system_storage_path_source.pb.h"
+#include "tensorflow_serving/core/aspired_versions_manager.h"
 #include "tensorflow_serving/core/load_servables_fast.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
@@ -247,10 +248,13 @@ Status ServerCore::Create(Options options,
   // server_core_config (which contains aspired_version_policy) below.
   std::unique_ptr<AspiredVersionPolicy> aspired_version_policy =
       std::move(options.aspired_version_policy);
+  AspiredVersionsManager::CustomSortActionsFn custom_sort_actions =
+      std::move(options.custom_sort_actions);
   auto model_server_config = options.model_server_config;
   server_core->reset(new ServerCore(std::move(options)));
-  TF_RETURN_IF_ERROR(
-      (*server_core)->Initialize(std::move(aspired_version_policy)));
+  TF_RETURN_IF_ERROR((*server_core)
+                         ->Initialize(std::move(aspired_version_policy),
+                                      std::move(custom_sort_actions)));
   return (*server_core)->ReloadConfig(model_server_config);
 }
 
@@ -270,7 +274,9 @@ ServerCore::ServerCore(Options options)
   }
 }
 
-Status ServerCore::Initialize(std::unique_ptr<AspiredVersionPolicy> policy) {
+Status ServerCore::Initialize(
+    std::unique_ptr<AspiredVersionPolicy> policy,
+    AspiredVersionsManager::CustomSortActionsFn custom_sort_actions) {
   std::unique_ptr<ServableStateMonitor> servable_state_monitor;
   const tensorflow::Status status = options_.servable_state_monitor_creator(
       servable_event_bus_.get(), &servable_state_monitor);
@@ -282,8 +288,9 @@ Status ServerCore::Initialize(std::unique_ptr<AspiredVersionPolicy> policy) {
   servable_state_monitor_ = std::move(servable_state_monitor);
 
   std::unique_ptr<AspiredVersionsManager> aspired_versions_manager;
-  TF_RETURN_IF_ERROR(CreateAspiredVersionsManager(std::move(policy),
-                                                  &aspired_versions_manager));
+  TF_RETURN_IF_ERROR(CreateAspiredVersionsManager(
+      std::move(policy), std::move(custom_sort_actions),
+      &aspired_versions_manager));
   manager_.SetOwned(std::move(aspired_versions_manager));
 
   return absl::OkStatus();
@@ -741,6 +748,7 @@ Status ServerCore::ReloadRoutes(
 
 Status ServerCore::CreateAspiredVersionsManager(
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy,
+    AspiredVersionsManager::CustomSortActionsFn custom_sort_actions,
     std::unique_ptr<AspiredVersionsManager>* const manager) {
   std::unique_ptr<AspiredVersionsManager> aspired_versions_manager;
   AspiredVersionsManager::Options manager_options;
@@ -749,6 +757,7 @@ Status ServerCore::CreateAspiredVersionsManager(
   manager_options.resource_tracker = std::move(resource_tracker);
   manager_options.servable_event_bus = servable_event_bus_.get();
   manager_options.aspired_version_policy = std::move(aspired_version_policy);
+  manager_options.custom_sort_actions = std::move(custom_sort_actions);
   manager_options.num_load_threads = options_.num_load_threads;
   manager_options.num_unload_threads = options_.num_unload_threads;
   manager_options.max_num_load_retries = options_.max_num_load_retries;

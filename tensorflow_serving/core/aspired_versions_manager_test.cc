@@ -32,6 +32,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
+#include "tensorflow_serving/core/aspired_version_policy.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
@@ -687,6 +688,94 @@ TEST_P(AspiredVersionsManagerTest, ManagerPrefersUnloadOverLoad) {
       ServableRequest::Specific(kServableName2, 2), &found_2_handle);
   TF_ASSERT_OK(found_2_status);
   EXPECT_EQ(2, *found_2_handle);
+}
+
+TEST_P(AspiredVersionsManagerTest, CustomSortActions) {
+  test_util::AspiredVersionsManagerTestAccess(manager_.get())
+      .SetCustomSortActions(
+          [](const AspiredVersionPolicy::ServableAction& lhs,
+             const AspiredVersionPolicy::ServableAction& rhs) -> bool {
+            // Prefer kServableName2 over anything else; note the impl needs to
+            // be a valid strict-weak ordering
+            bool lhs_is_servable_2 = lhs.id.name == kServableName2;
+            bool rhs_is_servable_2 = rhs.id.name == kServableName2;
+            if (lhs_is_servable_2 != rhs_is_servable_2) {
+              return lhs_is_servable_2;
+            }
+            return false;
+          });
+
+  {
+    ServableHandle<int64_t> not_found_2_handle;
+    Status not_found_2_status = manager_->GetServableHandle(
+        ServableRequest::Specific(kServableName2, 2), &not_found_2_handle);
+    ASSERT_FALSE(not_found_2_status.ok()) << not_found_2_status;
+    EXPECT_EQ(error::NOT_FOUND, not_found_2_status.code());
+  }
+
+  {
+    ServableHandle<int64_t> found_0_handle;
+    Status found_0_status = manager_->GetServableHandle(
+        ServableRequest::Specific(kServableName, 0), &found_0_handle);
+    TF_ASSERT_OK(found_0_status);
+    EXPECT_EQ(0, *found_0_handle);
+  }
+
+  // We want to unload version 0 of the first servable stream and load version 2
+  // of the second stream.
+  struct {
+    StringPiece name;
+    int start;
+    int end;
+  } servable_aspired_list[2] = {{kServableName, 1, 1}, {kServableName2, 0, 2}};
+  for (const auto& servable_aspired : servable_aspired_list) {
+    std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
+    for (int i = servable_aspired.start; i <= servable_aspired.end; ++i) {
+      const ServableId id = {string(servable_aspired.name), i};
+      aspired_versions.push_back(CreateAspiredVersion(id));
+    }
+    manager_->GetAspiredVersionsCallback()(servable_aspired.name,
+                                           std::move(aspired_versions));
+    HandlePendingAspiredVersionsRequests();
+  }
+
+  // By default, the manager prefers to unload a servable before loading a
+  // servable, see ManagerPrefersUnloadOverLoad test case above; but here our
+  // custom sort order prefers kServableName2
+  InvokePolicyAndExecuteAction();
+  WaitUntilServableManagerStateIsOneOf(
+      servable_state_monitor_, {kServableName2, 2},
+      {ServableState::ManagerState::kAvailable});
+
+  {
+    ServableHandle<int64_t> found_0_handle;
+    Status found_0_status = manager_->GetServableHandle(
+        ServableRequest::Specific(kServableName, 0), &found_0_handle);
+    TF_ASSERT_OK(found_0_status);
+    EXPECT_EQ(0, *found_0_handle);
+  }
+
+  {
+    ServableHandle<int64_t> found_2_handle;
+    const Status found_2_status = manager_->GetServableHandle(
+        ServableRequest::Specific(kServableName2, 2), &found_2_handle);
+    TF_ASSERT_OK(found_2_status);
+    EXPECT_EQ(2, *found_2_handle);
+  }
+
+  // Now it would unload the first
+  InvokePolicyAndExecuteAction();
+  WaitUntilServableManagerStateIsOneOf(servable_state_monitor_,
+                                       {kServableName, 0},
+                                       {ServableState::ManagerState::kEnd});
+
+  {
+    ServableHandle<int64_t> not_found_0_handle;
+    const Status not_found_0_status = manager_->GetServableHandle(
+        ServableRequest::Specific(kServableName, 0), &not_found_0_handle);
+    ASSERT_FALSE(not_found_0_status.ok()) << not_found_0_status;
+    EXPECT_EQ(error::NOT_FOUND, not_found_0_status.code());
+  }
 }
 
 // Test to ensure the manager doesn't try to load or serve an incoming erroneous

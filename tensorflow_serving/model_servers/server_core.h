@@ -103,6 +103,9 @@ class ServerCore : public Manager {
     // The AspiredVersionPolicy to use for the manager. Must be non-null.
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy;
 
+    // See AspiredVersionsManager::Options::custom_sort_actions
+    AspiredVersionsManager::CustomSortActionsFn custom_sort_actions;
+
     // The number of threads used to load models. If set to 0, then no thread
     // pool is used and loads are performed serially in the manager thread.
     int32 num_load_threads = 0;
@@ -330,11 +333,13 @@ class ServerCore : public Manager {
   // Initializes server core.
   // Must be run once and only once per ServerCore instance.
   Status Initialize(
-      std::unique_ptr<AspiredVersionPolicy> aspired_version_policy);
+      std::unique_ptr<AspiredVersionPolicy> aspired_version_policy,
+      AspiredVersionsManager::CustomSortActionsFn custom_sort_actions);
 
   // Creates a AspiredVersionsManager with the specified policy.
   Status CreateAspiredVersionsManager(
       std::unique_ptr<AspiredVersionPolicy> policy,
+      AspiredVersionsManager::CustomSortActionsFn custom_sort_actions,
       std::unique_ptr<AspiredVersionsManager>* manager);
 
   // Creates a ResourceTracker.

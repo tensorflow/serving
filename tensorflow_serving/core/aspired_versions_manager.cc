@@ -53,6 +53,10 @@ struct Aspired {
 // Note that this returns a strict weak ordering.
 struct CompareActions {
  public:
+  explicit CompareActions(
+      AspiredVersionsManager::CustomSortActionsFn custom_sort_actions)
+      : custom_sort_actions_(custom_sort_actions) {}
+
   bool operator()(
       const absl::optional<AspiredVersionPolicy::ServableAction>& lhs,
       const absl::optional<AspiredVersionPolicy::ServableAction>& rhs) {
@@ -63,6 +67,9 @@ struct CompareActions {
       return true;
     }
     // By this point, we are sure the optionals have values.
+    if (custom_sort_actions_) {
+      return custom_sort_actions_(lhs.value(), rhs.value());
+    }
     return OrderActions(lhs.value(), rhs.value()).action != rhs.value().action;
   }
 
@@ -80,6 +87,7 @@ struct CompareActions {
         return lhs;
     }
   }
+  AspiredVersionsManager::CustomSortActionsFn custom_sort_actions_;
 };
 
 // Validates whether all entries in 'versions' pertain to the servable named
@@ -122,7 +130,7 @@ string ServableVersionsDebugString(
 
 namespace internal {
 
-// AspiredVersionManager's implementation of the Target API.
+// AspiredVersionsManager's implementation of the Target API.
 class AspiredVersionsManagerTargetImpl final
     : public TargetBase<std::unique_ptr<Loader>> {
  public:
@@ -176,7 +184,8 @@ Status AspiredVersionsManager::Create(
 
   manager->reset(new AspiredVersionsManager(
       options.manage_state_interval_micros, options.env,
-      std::move(options.aspired_version_policy), std::move(basic_manager),
+      std::move(options.aspired_version_policy),
+      std::move(options.custom_sort_actions), std::move(basic_manager),
       options.with_current_context));
   (manager->get())->enable_reload_servables_with_error_ =
       options.enable_reload_servables_with_error;
@@ -186,8 +195,10 @@ Status AspiredVersionsManager::Create(
 AspiredVersionsManager::AspiredVersionsManager(
     int64_t manage_state_interval_micros, Env* env,
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy,
+    CustomSortActionsFn custom_sort_actions,
     std::unique_ptr<BasicManager> basic_manager, bool with_current_context)
     : aspired_version_policy_(std::move(aspired_version_policy)),
+      custom_sort_actions_(std::move(custom_sort_actions)),
       target_impl_(new internal::AspiredVersionsManagerTargetImpl(this)),
       basic_manager_(std::move(basic_manager)) {
   set_num_load_threads_observer_.reset(
@@ -388,7 +399,8 @@ AspiredVersionsManager::GetNextAction() {
         aspired_version_policy_->GetNextAction(aspired_state_snapshots));
   }
 
-  std::sort(actions.begin(), actions.end(), CompareActions());
+  std::sort(actions.begin(), actions.end(),
+            CompareActions(custom_sort_actions_));
   const absl::optional<AspiredVersionPolicy::ServableAction> next_action =
       !actions.empty() ? actions[0] : absl::nullopt;
   if (next_action) {
