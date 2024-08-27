@@ -13,7 +13,6 @@ package(
 tf_proto_library(
     name = "manifest_proto",
     srcs = ["manifest.proto"],
-    cc_api_version = 2,
 )
 
 cc_library(

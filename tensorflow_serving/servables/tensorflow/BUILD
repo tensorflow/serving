@@ -1786,7 +1786,6 @@ serving_proto_library_py(
 tf_proto_library(
     name = "tf_protos_deps",
     srcs = [],
-    cc_api_version = 2,
     create_go_proto = False,
     create_java_proto = False,
     create_kotlin_proto = False,
