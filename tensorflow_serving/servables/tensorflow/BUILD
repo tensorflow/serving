@@ -26,7 +26,6 @@ filegroup(
 serving_proto_library(
     name = "session_bundle_config_proto",
     srcs = ["session_bundle_config.proto"],
-    cc_api_version = 2,
     visibility = [
         "//visibility:public",
     ],
@@ -263,7 +262,6 @@ cc_test(
 serving_proto_library(
     name = "saved_model_bundle_source_adapter_proto",
     srcs = ["saved_model_bundle_source_adapter.proto"],
-    cc_api_version = 2,
     visibility = [
         "//visibility:public",
     ],
@@ -1062,7 +1060,6 @@ cc_test(
 serving_proto_library(
     name = "thread_pool_factory_config_proto",
     srcs = ["thread_pool_factory_config.proto"],
-    cc_api_version = 2,
     visibility = [
         "//visibility:public",
     ],
@@ -1277,7 +1274,6 @@ cc_test(
 serving_proto_library(
     name = "tfrt_saved_model_source_adapter_proto",
     srcs = ["tfrt_saved_model_source_adapter.proto"],
-    cc_api_version = 2,
     visibility = [
         "//visibility:public",
     ],
@@ -1770,7 +1766,6 @@ cc_test(
 serving_proto_library(
     name = "remote_op_config_rewriter_proto",
     srcs = ["remote_op_config_rewriter.proto"],
-    cc_api_version = 2,
     visibility = ["//visibility:public"],
 )
 
@@ -1799,7 +1794,6 @@ tf_proto_library(
 serving_proto_library(
     name = "saved_model_config_proto",
     srcs = ["saved_model_config.proto"],
-    cc_api_version = 2,
     visibility = [
         "//visibility:public",
     ],

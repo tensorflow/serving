@@ -40,7 +40,6 @@ cc_library(
 serving_proto_library(
     name = "static_storage_path_source_proto",
     srcs = ["static_storage_path_source.proto"],
-    cc_api_version = 2,
     visibility = ["//visibility:private"],
 )
 

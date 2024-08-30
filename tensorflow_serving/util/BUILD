@@ -371,7 +371,6 @@ serving_proto_library(
     name = "class_registration_test_proto",
     testonly = 1,
     srcs = ["class_registration_test.proto"],
-    cc_api_version = 2,
     deps = [
         "@com_google_protobuf//:cc_wkt_protos",
     ],

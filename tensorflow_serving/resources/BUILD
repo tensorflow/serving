@@ -25,7 +25,6 @@ filegroup(
 serving_proto_library(
     name = "resources_proto",
     srcs = ["resources.proto"],
-    cc_api_version = 2,
     visibility = ["//visibility:public"],
     deps = ["@com_google_protobuf//:cc_wkt_protos"],
 )

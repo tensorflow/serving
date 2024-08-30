@@ -86,7 +86,6 @@ serving_proto_library(
     name = "fake_loader_source_adapter_proto",
     testonly = 1,
     srcs = ["fake_loader_source_adapter.proto"],
-    cc_api_version = 2,
     visibility = ["//visibility:public"],
 )
 

@@ -25,8 +25,7 @@ def serving_proto_library(
         deps = [],
         visibility = None,
         testonly = 0,
-        cc_grpc_version = None,
-        cc_api_version = 2):  # pylint: disable=unused-argument
+        cc_grpc_version = None):
     native.filegroup(
         name = name + "_proto_srcs",
         srcs = srcs,

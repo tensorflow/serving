@@ -30,7 +30,6 @@ filegroup(
 serving_proto_library(
     name = "get_model_metadata_proto",
     srcs = ["get_model_metadata.proto"],
-    cc_api_version = 2,
     deps = [
         ":model_proto",
         "@com_google_protobuf//:cc_wkt_protos",
@@ -59,7 +58,6 @@ tf_pyclif_proto_library(
 serving_proto_library(
     name = "input_proto",
     srcs = ["input.proto"],
-    cc_api_version = 2,
     deps = [
         serving_tensorflow_proto_dep(
             "@org_tensorflow//tensorflow/core:protos_all",
@@ -90,7 +88,6 @@ tf_jspb_proto_library(
 serving_proto_library(
     name = "model_proto",
     srcs = ["model.proto"],
-    cc_api_version = 2,
     deps = [
         "@com_google_protobuf//:cc_wkt_protos",
     ],
@@ -117,7 +114,6 @@ tf_jspb_proto_library(
 serving_proto_library(
     name = "predict_proto",
     srcs = ["predict.proto"],
-    cc_api_version = 2,
     deps = [
         ":model_proto",
         serving_tensorflow_proto_dep(
@@ -144,7 +140,6 @@ tf_jspb_proto_library(
 serving_proto_library(
     name = "logging_proto",
     srcs = ["logging.proto"],
-    cc_api_version = 2,
     deps = [
         ":model_proto",
         "//tensorflow_serving/config:logging_config_proto",
@@ -164,7 +159,6 @@ serving_proto_library_py(
 serving_proto_library(
     name = "prediction_log_proto",
     srcs = ["prediction_log.proto"],
-    cc_api_version = 2,
     deps = [
         ":classification_proto",
         ":inference_proto",
@@ -199,7 +193,6 @@ serving_proto_library(
     name = "prediction_service_proto",
     srcs = ["prediction_service.proto"],
     has_services = 1,
-    cc_api_version = 2,
     cc_grpc_version = 1,
     deps = [
         ":classification_proto",
@@ -241,7 +234,6 @@ serving_go_grpc_library(
 serving_proto_library(
     name = "status_proto",
     srcs = ["status.proto"],
-    cc_api_version = 2,
     deps = [
         serving_tensorflow_proto_dep(
             "@org_tensorflow//tensorflow/core:protos_all",
@@ -261,7 +253,6 @@ serving_proto_library_py(
 serving_proto_library(
     name = "model_management_proto",
     srcs = ["model_management.proto"],
-    cc_api_version = 2,
     deps = [
         ":status_proto",
         "//tensorflow_serving/config:model_server_config_proto",
@@ -281,7 +272,6 @@ serving_proto_library_py(
 serving_proto_library(
     name = "get_model_status_proto",
     srcs = ["get_model_status.proto"],
-    cc_api_version = 2,
     deps = [
         ":model_proto",
         ":status_proto",
@@ -302,7 +292,6 @@ serving_proto_library(
     name = "model_service_proto",
     srcs = ["model_service.proto"],
     has_services = 1,
-    cc_api_version = 2,
     cc_grpc_version = 1,
     deps = [
         ":get_model_status_proto",
@@ -332,7 +321,6 @@ serving_go_grpc_library(
 serving_proto_library(
     name = "classification_proto",
     srcs = ["classification.proto"],
-    cc_api_version = 2,
     deps = [
         ":input_proto",
         ":model_proto",
@@ -364,7 +352,6 @@ tf_jspb_proto_library(
 serving_proto_library(
     name = "inference_proto",
     srcs = ["inference.proto"],
-    cc_api_version = 2,
     deps = [
         ":classification_proto",
         ":input_proto",
@@ -399,7 +386,6 @@ tf_jspb_proto_library(
 serving_proto_library(
     name = "regression_proto",
     srcs = ["regression.proto"],
-    cc_api_version = 2,
     deps = [
         ":input_proto",
         ":model_proto",
@@ -426,7 +412,6 @@ serving_proto_library(
     name = "session_service_proto",
     srcs = ["session_service.proto"],
     has_services = 1,
-    cc_api_version = 2,
     deps = [
         ":model_proto",
         serving_tensorflow_proto_dep(

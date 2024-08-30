@@ -8,7 +8,6 @@ serving_proto_library(
     name = "fake_thread_pool_factory_proto",
     testonly = 1,
     srcs = ["fake_thread_pool_factory.proto"],
-    cc_api_version = 2,
     visibility = [
         "//visibility:public",
     ],

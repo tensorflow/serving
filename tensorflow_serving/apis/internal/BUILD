@@ -14,7 +14,6 @@ licenses(["notice"])
 serving_proto_library(
     name = "serialized_input_proto",
     srcs = ["serialized_input.proto"],
-    cc_api_version = 2,
     visibility = [
         "//tensorflow_serving:internal",
         "@org_tensorflow//tensorflow_ranking/google:__pkg__",
