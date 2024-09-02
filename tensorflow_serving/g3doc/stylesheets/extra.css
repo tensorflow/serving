@@ -1,0 +1,15 @@
+:root {
+  --md-primary-fg-color:        #FFA800;
+  --md-primary-fg-color--light: #CCCCCC;
+  --md-primary-fg-color--dark:  #425066;
+}
+
+.video-wrapper {
+  max-width: 240px;
+  display: flex;
+  flex-direction: row;
+}
+.video-wrapper > iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
