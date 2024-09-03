@@ -140,7 +140,7 @@ docker cp models/<my model> serving_base:/models/<my model>
 ```
 
 Finally, commit the container that's serving your model by changing `MODEL_NAME`
-to match your model's name `<my model>':
+to match your model's name `<my model>`:
 
 ```shell
 docker commit --change "ENV MODEL_NAME <my model>" serving_base <my container>
