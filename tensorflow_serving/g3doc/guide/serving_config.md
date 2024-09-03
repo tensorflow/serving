@@ -283,6 +283,6 @@ notable ones. For a complete list, please refer to the
 *   `--file_system_poll_wait_seconds`: The period with which the server polls
     the filesystem for new model versions at each model's respective
     model_base_path
-*   `--enable_model_warmup`: Enables [model warmup](saved_model_warmup.md) using
+*   `--enable_model_warmup`: Enables [model warmup](../tutorials/saved_model_warmup.md) using
     user-provided PredictionLogs in assets.extra/ directory
 *   `--mixed_precision=bfloat16`: Enables BF16 Automatic Mixed Precision

@@ -22,7 +22,7 @@ curl -d '{"instances": [1.0, 2.0, 5.0]}' \
 # Returns => { "predictions": [2.5, 3.0, 4.5] }
 ```
 
-For additional serving endpoints, see the [Client REST API](api/api_rest.md).
+For additional serving endpoints, see the [Client REST API](../api/api_rest.md).
 
 ## Install Docker
 
@@ -209,7 +209,7 @@ This should return a set of values:
 { "predictions": [2.5, 3.0, 4.5] }
 ```
 
-More information on using the RESTful API can be found [here](api/api_rest.md).
+More information on using the RESTful API can be found [here](../api/api_rest.md).
 
 ## Serving with Docker using your GPU
 
@@ -302,9 +302,9 @@ GPU build of TensorFlow Model Server will result in an error that looks like:
 Cannot assign a device for operation 'a': Operation was explicitly assigned to /device:GPU:0
 ```
 
-More information on using the RESTful API can be found [here](api/api_rest.md).
+More information on using the RESTful API can be found [here](../api/api_rest.md).
 
 ## Developing with Docker
 
 For instructions on how to build and develop Tensorflow Serving, please refer to
-[Developing with Docker guide](building_with_docker.md).
+[Developing with Docker guide](../tutorials/building_with_docker.md).

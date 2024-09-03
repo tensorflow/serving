@@ -108,19 +108,21 @@ watch:
   - tensorflow_serving
 nav:
   - Guide:
-      - serving.md
-      - docker.md
-      - setup.md
-      - serving_basic.md
-      - architecture.md
-      - serving_config.md
-      - serving_advanced.md
-      - serving_kubernetes.md
-      - custom_servable.md
-      - custom_source.md
-      - custom_op.md
-      - signature_defs.md
+      - guide/serving.md
+      - guide/docker.md
+      - guide/setup.md
+      - guide/serving_basic.md
+      - guide/architecture.md
+      - guide/serving_config.md
+      - guide/serving_advanced.md
+      - guide/serving_kubernetes.md
+      - guide/custom_servable.md
+      - guide/custom_source.md
+      - guide/custom_op.md
+      - guide/signature_defs.md
 
   - API:
       - Client API (REST): api/api_rest.md
       - Client API (gRPC): https://github.com/tensorflow/serving/tree/master/tensorflow_serving/apis
+      # - api/tensorflow_serving.md
+        

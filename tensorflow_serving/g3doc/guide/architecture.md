@@ -131,7 +131,7 @@ TensorFlow Serving Core treats servables and loaders as opaque objects.
 
 ## Life of a Servable
 
-![tf serving architecture diagram](images/serving_architecture.svg)
+![tf serving architecture diagram](../images/serving_architecture.svg)
 
 Broadly speaking:
 

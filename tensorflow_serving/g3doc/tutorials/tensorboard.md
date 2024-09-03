@@ -79,7 +79,7 @@ Navigate to http://localhost:6006/ to view the TensorBoard UI. Use the drop-down
 menu at the top to navigate to the Profile tab. Click Capture Profile and
 provide the address of Tensorflow Serving's gRPC server.
 
-![Profiling Tool](images/tb_profile_setup_dialog.png)
+![Profiling Tool](../images/tb_profile_setup_dialog.png)
 
 As soon as you press "Capture," TensorBoard will start sending profile requests
 to the model server. In the dialog above, you can set both the deadline for each
@@ -110,7 +110,7 @@ version older than 2.1.
 
 ## Analyze the Inference Request Trace
 
-![Inference Request Trace](images/tb_profile_overview.png)
+![Inference Request Trace](../images/tb_profile_overview.png)
 
 You can now easily see what computation is taking place as a result of your
 inference request. You can zoom and click on any of the rectangles (trace
@@ -122,7 +122,7 @@ request and creating a TensorFlow Session.
 
 We can zoom in to see what happens inside the SessionRun.
 
-![Inference Request Trace Zoomed-in](images/tb_profile_zoom.png)
+![Inference Request Trace Zoomed-in](../images/tb_profile_zoom.png)
 
 In the second thread, we see an initial ExecutorState::Process call in which no
 TensorFlow ops run but initialization steps are executed.
