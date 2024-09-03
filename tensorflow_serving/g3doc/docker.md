@@ -3,26 +3,26 @@
 One of the easiest ways to get started using TensorFlow Serving is with
 [Docker](http://www.docker.com/).
 
-<pre class="prettyprint lang-bsh">
+```shell
 # Download the TensorFlow Serving Docker image and repo
-<code class="devsite-terminal">docker pull tensorflow/serving</code><br/>
-<code class="devsite-terminal">git clone https://github.com/tensorflow/serving</code>
+docker pull tensorflow/serving
+git clone https://github.com/tensorflow/serving
 # Location of demo models
-<code class="devsite-terminal">TESTDATA="$(pwd)/serving/tensorflow_serving/servables/tensorflow/testdata"</code>
+TESTDATA="$(pwd)/serving/tensorflow_serving/servables/tensorflow/testdata"
 
 # Start TensorFlow Serving container and open the REST API port
-<code class="devsite-terminal">docker run -t --rm -p 8501:8501 \
+docker run -t --rm -p 8501:8501 \
     -v "$TESTDATA/saved_model_half_plus_two_cpu:/models/half_plus_two" \
     -e MODEL_NAME=half_plus_two \
-    tensorflow/serving &</code>
+    tensorflow/serving &
 
 # Query the model using the predict API
-<code class="devsite-terminal">curl -d '{"instances": [1.0, 2.0, 5.0]}' \
-    -X POST http://localhost:8501/v1/models/half_plus_two:predict</code><br/>
+curl -d '{"instances": [1.0, 2.0, 5.0]}' \
+    -X POST http://localhost:8501/v1/models/half_plus_two:predict
 # Returns => { "predictions": [2.5, 3.0, 4.5] }
-</pre>
+```
 
-For additional serving endpoints, see the <a href="./api_rest.md">Client REST API</a>.
+For additional serving endpoints, see the [Client REST API](api_rest.md).
 
 ## Install Docker
 
