@@ -216,7 +216,7 @@ More information on using the RESTful API can be found [here](api_rest.md).
 ### Install nvidia-docker
 
 Before serving with a GPU, in addition to
-[installing Docker](#installing_docker), you will need:
+[installing Docker](#install-docker), you will need:
 
 *   Up-to-date [NVIDIA drivers](http://www.nvidia.com/drivers) for your system
 *   `nvidia-docker`: You can follow the
