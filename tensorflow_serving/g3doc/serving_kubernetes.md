@@ -18,7 +18,7 @@ To learn more about TensorFlow ResNet model, we recommend reading
 
 ## Part 1: Setup
 
-Before getting started, first [install Docker](docker.md#installing-docker).
+Before getting started, first [install Docker](docker.md#install-docker).
 
 ### Download the ResNet SavedModel
 

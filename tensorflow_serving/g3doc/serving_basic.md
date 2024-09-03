@@ -22,7 +22,7 @@ The code for this tutorial consists of two parts:
     The TensorFlow Serving ModelServer discovers new exported models and runs a
     [gRPC](http://www.grpc.io) service for serving them.
 
-Before getting started, first [install Docker](docker.md#installing-docker).
+Before getting started, first [install Docker](docker.md#install-docker).
 
 ## Train and export TensorFlow model
 
