@@ -121,6 +121,11 @@ nav:
       - guide/custom_op.md
       - guide/signature_defs.md
 
+  - Tutorials:
+      - tutorials/building_with_docker.md
+      - tutorials/saved_model_warmup.md
+      - tutorials/performance.md
+      - tutorials/tensorboard.md
   - API:
       - Client API (REST): api/api_rest.md
       - Client API (gRPC): https://github.com/tensorflow/serving/tree/master/tensorflow_serving/apis
