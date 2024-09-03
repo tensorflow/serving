@@ -179,7 +179,7 @@ To create a serving image that's fully optimized for your host, simply:
         ```
 
         Your new optimized Docker image is now `$USER/tensorflow-serving`, which
-        you can [use](#running-a-serving-image) just as you would the standard
+        you can [use](#running-a-container) just as you would the standard
         `tensorflow/serving:latest` image.
 
     *   For GPU:
@@ -191,5 +191,5 @@ To create a serving image that's fully optimized for your host, simply:
         ```
 
         Your new optimized Docker image is now `$USER/tensorflow-serving-gpu`,
-        which you can [use](#running-a-gpu-serving-image) just as you would the
+        which you can [use](#running-a-container) just as you would the
         standard `tensorflow/serving:latest-gpu` image.
