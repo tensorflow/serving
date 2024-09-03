@@ -120,3 +120,6 @@ nav:
       - custom_source.md
       - custom_op.md
       - signature_defs.md
+
+  - API:
+      - Client API (REST): api/api_rest.md
