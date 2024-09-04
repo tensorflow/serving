@@ -71,45 +71,43 @@ message PredictRequest {
 // handled in the stream.
 message PredictStreamedOptions {
   // Request state used to handle splitting of requests.  NONE is the
-  // default when the stream request is not split.
+  // default when the stream request is not split and used for a single-turn,
+  // single request.
   //
   // SPLIT is used when multiple streamed requests are used to generate a
   // logical request. END_SPLIT should be called for the last split of the
-  // logical request. NONE can not be interspersed with SPLIT before END_SPLIT
-  // is called. If another request is sent on the same
-  // stream after END_SPLIT, it can be any of the RequestState since a new
-  // logical request has started.  If END_SPLIT is called on its own the
-  // behavior is the same as NONE.
+  // multi-turn request to start the processing of the current turn. NONE can
+  // not be interspersed with SPLIT and END_SPLIT messages.
+  // If another request is sent on the same stream after END_SPLIT, it can be
+  // either SPLIT or END_SPLIT to start accumulating input or trigger the next
+  // model turn respectively.
   //
   // Some examples with a mix of request states and the logical request.
   //
-  // Example 1 :
-  //   SPLIT
-  //   SPLIT
-  //   END_SPLIT
-  //
-  // Will be treated as a single logical request.
-  //
-  // Example 2:
-  //   NONE
-  //   END_SPLIT
+  // Example 1:
   //   NONE
   //
-  // Will be treated as three logical requests (1. NONE 2. END_SPLIT, 3. NONE)
+  // Single turn, single request.
+  //
+  // Example 2 :
+  //   END_SPLIT
+  //
+  // Will be treated as a single logical input request for a single turn,
+  // similar to Example 1.
   //
   // Example 3:
   //   SPLIT
   //   SPLIT
-  //
-  // Invalid because END_SPLIT is never call.
-  //
-  // Example 4:
-  //   SPLIT
-  //   NONE
-  //   SPLIT
   //   END_SPLIT
   //
-  // Invalid because is interspersed with SPLIT.
+  // Will be treated as a single logical input request for a single turn,
+  // similar to Example 1.
+  //
+  // Example 4:
+  //   END_SPLIT
+  //   END_SPLIT
+  //
+  // Will be treated as two logical turn requests (1. END_SPLIT 2. END_SPLIT)
   //
   // Example 5:
   //   SPLIT
@@ -118,8 +116,28 @@ message PredictStreamedOptions {
   //   SPLIT
   //   END_SPLIT
   //
-  // Will be treated as two logical requests (1. SPLIT, END_SPLIT 2. SPLIT,
+  // Will be treated as two logical turn requests (1. SPLIT, END_SPLIT 2. SPLIT,
   // SPLIT, END_SPLIT)
+  //
+  // Incorrect Example 1:
+  //   NONE
+  //   END_SPLIT
+  //
+  // Invalid because NONE and END_SPLIT are interspersed.
+  //
+  // Incorrect Example 2:
+  //   SPLIT
+  //   SPLIT
+  //
+  // Invalid because END_SPLIT is never called.
+  //
+  // Incorrect Example 3:
+  //   SPLIT
+  //   NONE
+  //   SPLIT
+  //   END_SPLIT
+  //
+  // Invalid because NONE is interspersed with SPLIT/END_SPLIT.
 
   enum RequestState {
     NONE = 0;
