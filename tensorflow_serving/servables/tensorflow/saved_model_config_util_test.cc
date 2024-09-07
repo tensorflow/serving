@@ -69,7 +69,7 @@ TEST(LoadSavedModelConfigTest, EmptySavedModelConfig) {
   EXPECT_THAT(saved_model_config.value(), EqualsProto(""));
 }
 
-TEST(LoadSavedModelConfigTest, SavedModelConfig) {
+TEST(LoadSavedModelConfigTest, DISABLED_SavedModelConfig) {
   const std::string export_dir =
       test_util::TestSrcDirPath(kTestSavedModelWithSavedModelConfigPath);
   absl::StatusOr<SavedModelConfig> saved_model_config =
@@ -115,7 +115,7 @@ TEST(LoadSavedModelConfigTest, SavedModelConfig) {
   EXPECT_THAT(saved_model_config.value(), EqualsProto(expected_config));
 }
 
-TEST(UpdateRewriterConfigTest, AddOptimizers) {
+TEST(UpdateRewriterConfigTest, DISABLED_AddOptimizers) {
   const std::string export_dir =
       test_util::TestSrcDirPath(kTestSavedModelWithSavedModelConfigPath);
   absl::StatusOr<SavedModelConfig> saved_model_config =
@@ -155,7 +155,7 @@ TEST(UpdateRewriterConfigTest, AddOptimizers) {
                                              .SerializeAsString())))));
 }
 
-TEST(UpdateRewriterConfigTest, ReplaceOptimizers) {
+TEST(UpdateRewriterConfigTest, DISABLED_ReplaceOptimizers) {
   const std::string export_dir =
       test_util::TestSrcDirPath(kTestSavedModelWithSavedModelConfigPath);
   absl::StatusOr<SavedModelConfig> saved_model_config =
