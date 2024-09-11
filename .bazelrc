@@ -102,3 +102,7 @@ build:macos --define std_synchronization_primitives=1
 # We silence warnings for code in `external`.
 build --per_file_copt=external/.*@-w
 build --host_per_file_copt=external/.*@-w
+build --copt=-Wno-macro-redefined # absl vs tsl logging clash
+build --copt=-Wno-sign-compare # int as loop variable
+build --copt=-Wno-deprecated-declarations
+build --copt=-Wno-unused-but-set-variable # due to `ifdefs` in ml_dtypes
