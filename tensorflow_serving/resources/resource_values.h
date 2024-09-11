@@ -45,6 +45,9 @@ namespace resource_kinds {
 // "model slots", this is the number of slots needed or allocated.
 extern const char* const kNumModelSlots;
 
+// If a server can accommodate at most N LoRA adapter models.
+extern const char* const kNumLoraSlots;
+
 // RAM in bytes.
 // NOTES:
 // - For TPU or GPU device, The kHeapRamBytes and kStackRamBytes are aggregated

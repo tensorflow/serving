@@ -26,6 +26,7 @@ const char* const kTpu = "tpu";
 
 namespace resource_kinds {
 const char* const kNumModelSlots = "num_model_slots";
+const char* const kNumLoraSlots = "num_lora_slots";
 const char* const kRamBytes = "ram_in_bytes";
 const char* const kPeakRamBytes = "peak_ram_in_bytes";
 const char* const kHeapRamBytes = "heap_ram_in_bytes";
