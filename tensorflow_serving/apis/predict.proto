@@ -166,6 +166,11 @@ message PredictStreamedOptions {
   // input tensors for request 1 should be [[1, 2], [5, 6]] and request 2 should
   // be [[3, 4], [7, 8]].
   map<string, int32> split_dimensions = 2;
+
+  // If true, there will be a single PredictResponse output.
+  // If false, output can be split into 1 or more PredictResponses.
+  // Value of this field should be the same for all requests in the stream.
+  bool return_single_response = 3;
 }
 
 // Response for PredictRequest on successful run.
