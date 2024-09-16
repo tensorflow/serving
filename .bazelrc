@@ -20,8 +20,6 @@ build:cuda_clang --repo_env=TF_CUDA_COMPUTE_CAPABILITIES="sm_50,sm_60,sm_70,sm_8
 build:cuda_clang --repo_env=HERMETIC_CUDA_VERSION="12.2.0"
 build:cuda_clang --repo_env=HERMETIC_CUDNN_VERSION="8.9.4.25"
 build:cuda_clang --action_env=GCC_HOST_COMPILER_PATH="/usr/bin/gcc-10"
-build --repo_env=CC="/usr/bin/gcc-10"
-build --action_env=CC="/usr/bin/gcc-10"
 build:cuda_clang --action_env=CLANG_CUDA_COMPILER_PATH="/usr/lib/llvm-17/bin/clang"
 
 build:kokoro --repo_env=CC="/usr/bin/gcc-10"
