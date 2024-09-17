@@ -27,6 +27,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
         git \
+        gcc-10 \
+        g++-10 \
         libcurl3-dev \
         libfreetype6-dev \
         libpng-dev \
@@ -105,6 +107,7 @@ RUN bazel build --color=yes --curses=yes \
     --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \
     ${TF_SERVING_BUILD_OPTIONS} \
+    --config=kokoro \
     tensorflow_serving/model_servers:tensorflow_model_server && \
     cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server \
     /usr/local/bin/
@@ -115,6 +118,7 @@ RUN bazel build --color=yes --curses=yes \
     --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \
     ${TF_SERVING_BUILD_OPTIONS} \
+    --config=kokoro \
     tensorflow_serving/tools/pip_package:build_pip_package && \
     bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package \
     /tmp/pip && \
