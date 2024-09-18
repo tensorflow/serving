@@ -117,6 +117,7 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/test_util",
+        "//testing/base/public:gunit",
         "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",

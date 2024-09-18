@@ -250,14 +250,11 @@ TEST(BatchingSessionSignatureTest, TensorSignatureFromSignatureDefs) {
               UnorderedElementsAre("y0", "y1", "y3"));
 }
 
-class BatchingSessionTest
-    : public ::testing::TestWithParam<std::tuple<bool, bool>> {
+class BatchingSessionTest : public ::testing::TestWithParam<bool> {
  public:
   BatchingSessionTest() {}
 
-  bool enable_large_batch_splitting() const { return std::get<0>(GetParam()); }
-
-  bool enable_lazy_split() const { return std::get<1>(GetParam()); }
+  bool enable_large_batch_splitting() const { return GetParam(); }
 
   std::function<
       Status(std::unique_ptr<BatchingSessionTask>* input_task,
@@ -278,7 +275,6 @@ class BatchingSessionTest
         input_options;
     output_options.enable_large_batch_splitting =
         enable_large_batch_splitting();
-    output_options.enable_lazy_split = enable_lazy_split();
     if (enable_large_batch_splitting()) {
       output_options.split_input_task_func = get_split_input_task_func();
       // Bump up the max batch size, and set execution batch size to the max
@@ -1104,14 +1100,7 @@ TEST_P(BatchingSessionTest, SubsetOutputTensors) {
       }));
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    Parameter, BatchingSessionTest,
-    ::testing::Values(std::make_tuple(/*enable_input_batch_split=*/false,
-                                      /*enable_lazy_split=*/false),
-                      std::make_tuple(/*enable_input_batch_split=*/true,
-                                      /*enable_lazy_split=*/false),
-                      std::make_tuple(/*enable_input_batch_split=*/true,
-                                      /*enable_lazy_split=*/true)));
+INSTANTIATE_TEST_SUITE_P(Parameter, BatchingSessionTest, ::testing::Bool());
 
 }  // namespace
 }  // namespace serving
