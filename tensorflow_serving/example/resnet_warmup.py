@@ -14,36 +14,34 @@
 # ==============================================================================
 """Creates the tf_serving_warmup_requests file to warm up a ResNet SavedModel.
 
-   1. Invoke this script passing in the saved_model directory (including version
-        folder, the folder containing saved_model.pb) as an argument.
-   2. Restart tensorflow_model_server.
+1. Invoke this script passing in the saved_model directory (including version
+folder, the folder containing saved_model.pb) as an argument.
+2. Restart tensorflow_model_server.
 
-   If unsure of the model directory, look for the output:
-   'No warmup data file found at' in the tensorflow_model_server
-   startup log
+If unsure of the model directory, look for the output:
+'No warmup data file found at' in the tensorflow_model_server
+startup log
 
-   After the script is run, and tensorflow_model_server is restarted, to verify
-   it is working look for the output:
-   'Starting to read warmup data for model at' and 'Finished reading warmup data
-   for model at' in the tensorflow_model_server startup log
+After the script is run, and tensorflow_model_server is restarted, to verify
+it is working look for the output:
+'Starting to read warmup data for model at' and 'Finished reading warmup data
+for model at' in the tensorflow_model_server startup log
 
-   Usage example:
-     python resnet_warmup.py saved_model_dir
+Usage example:
+python resnet_warmup.py saved_model_dir
 """
 
-from __future__ import print_function
 
 import io
 import os
 import sys
 
 import numpy as np
-from PIL import Image
 import requests
 import tensorflow as tf
-from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_log_pb2
+from PIL import Image
 
+from tensorflow_serving.apis import predict_pb2, prediction_log_pb2
 
 # IMAGE_URLS are the locations of the images we use to warmup the model
 IMAGE_URLS = ['https://tensorflow.org/images/blogs/serving/cat.jpg',

@@ -15,9 +15,6 @@
 
 """Tests for tensorflow_model_server."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import atexit
 import json
@@ -28,17 +25,14 @@ import subprocess
 import time
 
 # This is a placeholder for a Google-internal import.
-
 import grpc
-from six.moves import range
-from six.moves import urllib
 import tensorflow as tf
-
+from six.moves import range, urllib
 from tensorflow.core.framework import types_pb2
 from tensorflow.python.platform import flags
 from tensorflow.python.saved_model import signature_constants
-from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_service_pb2_grpc
+
+from tensorflow_serving.apis import predict_pb2, prediction_service_pb2_grpc
 
 FLAGS = flags.FLAGS
 
@@ -87,7 +81,7 @@ def WaitForServerReady(port):
 
     try:
       # Send empty request to missing model
-      channel = grpc.insecure_channel('localhost:{}'.format(port))
+      channel = grpc.insecure_channel(f'localhost:{port}')
       stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
       stub.Predict(request, RPC_TIMEOUT)
     except grpc.RpcError as error:
@@ -101,16 +95,15 @@ def CallREST(url, req, max_attempts=60):
   """Returns HTTP response body from a REST API call."""
   for attempt in range(max_attempts):
     try:
-      print('Attempt {}: Sending request to {} with data:\n{}'.format(
-          attempt, url, req))
+      print(f'Attempt {attempt}: Sending request to {url} with data:\n{req}')
       json_data = json.dumps(req).encode('utf-8') if req is not None else None
       resp = urllib.request.urlopen(urllib.request.Request(url, data=json_data))
       resp_data = resp.read()
-      print('Received response:\n{}'.format(resp_data))
+      print(f'Received response:\n{resp_data}')
       resp.close()
       return resp_data
     except Exception as e:  # pylint: disable=broad-except
-      print('Failed attempt {}. Error: {}'.format(attempt, e))
+      print(f'Failed attempt {attempt}. Error: {e}')
       if attempt == max_attempts - 1:
         raise
       print('Retrying...')
@@ -190,9 +183,8 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
       return TensorflowModelServerTestBase.model_servers_dict[args_key]
     port = PickUnusedPort()
     rest_api_port = PickUnusedPort()
-    print(('Starting test server on port: {} for model_name: '
-           '{}/model_config_file: {}'.format(port, model_name,
-                                             model_config_file)))
+    print(f'Starting test server on port: {port} for model_name: '
+           f'{model_name}/model_config_file: {model_config_file}')
 
     command = os.path.join(
         TensorflowModelServerTestBase.TestSrcDirPath(model_server_path),

@@ -19,4 +19,3 @@ and is updated using
 bazel run -c opt parse_example_tflite_with_string
 cp /tmp/parse_example_tflite parse_example_tflite/00000123/model.tflite
 ```
-

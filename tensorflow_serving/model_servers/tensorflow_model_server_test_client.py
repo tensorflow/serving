@@ -14,20 +14,14 @@
 # ==============================================================================
 """Manual test client for tensorflow_model_server."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 # This is a placeholder for a Google-internal import.
 
 import grpc
 import tensorflow as tf
-
 from tensorflow.core.framework import types_pb2
-from tensorflow.python.platform import flags
-from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_service_pb2_grpc
 
+from tensorflow_serving.apis import predict_pb2, prediction_service_pb2_grpc
 
 tf.compat.v1.app.flags.DEFINE_string('server', 'localhost:8500',
                                      'inception_inference service host:port')

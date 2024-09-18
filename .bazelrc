@@ -90,7 +90,7 @@ build --experimental_cc_shared_library
 # uses TensorFlow for all IO operations.
 build --define=use_tensorflow_io=1
 
-# TensorFlow Decision Forests need absl::anyInvocable support for new versions 
+# TensorFlow Decision Forests need absl::anyInvocable support for new versions
 # of Tensorflow.
 build --define use_absl_anyinvocable=1
 

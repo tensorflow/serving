@@ -21,7 +21,6 @@ signatures. This is used to test the fault-tolerance of tensorflow_model_server.
 import os
 
 # This is a placeholder for a Google-internal import.
-
 import tensorflow as tf
 
 

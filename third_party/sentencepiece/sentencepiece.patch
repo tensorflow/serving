@@ -3,13 +3,13 @@ index 22cd115..97e0bda 100644
 --- a/src/bpe_model.cc
 +++ b/src/bpe_model.cc
 @@ -21,7 +21,7 @@
- 
+
  #include "bpe_model.h"
  #include "freelist.h"
 -#include "third_party/absl/container/flat_hash_map.h"
 +#include "absl/container/flat_hash_map.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/bpe_model_trainer.cc b/src/bpe_model_trainer.cc
 index 964d44e..ae8983c 100644
@@ -17,12 +17,12 @@ index 964d44e..ae8983c 100644
 +++ b/src/bpe_model_trainer.cc
 @@ -18,7 +18,7 @@
  #include <vector>
- 
+
  #include "bpe_model_trainer.h"
 -#include "third_party/absl/container/flat_hash_set.h"
 +#include "absl/container/flat_hash_set.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/bpe_model_trainer.h b/src/bpe_model_trainer.h
 index e011a37..17f6e06 100644
@@ -30,12 +30,12 @@ index e011a37..17f6e06 100644
 +++ b/src/bpe_model_trainer.h
 @@ -20,7 +20,7 @@
  #include <vector>
- 
+
  #include "sentencepiece_model.pb.h"
 -#include "third_party/absl/container/flat_hash_map.h"
 +#include "absl/container/flat_hash_map.h"
  #include "trainer_interface.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/bpe_model_trainer_test.cc b/src/bpe_model_trainer_test.cc
 index 173eb9c..2a43c3a 100644
@@ -50,14 +50,14 @@ index 173eb9c..2a43c3a 100644
 +#include "absl/strings/str_cat.h"
 +#include "absl/strings/str_join.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/builder.cc b/src/builder.cc
 index 378aaa0..1557a07 100644
 --- a/src/builder.cc
 +++ b/src/builder.cc
 @@ -18,10 +18,10 @@
- 
+
  #include "builder.h"
  #include "filesystem.h"
 -#include "third_party/absl/strings/str_join.h"
@@ -68,17 +68,17 @@ index 378aaa0..1557a07 100644
 +#include "absl/strings/str_replace.h"
 +#include "absl/strings/str_split.h"
 +#include "absl/strings/strip.h"
- 
+
  #ifdef ENABLE_NFKC_COMPILE
  #include <unicode/errorcode.h>
 @@ -36,7 +36,7 @@
- 
+
  #include "normalization_rule.h"
  #include "normalizer.h"
 -#include "third_party/darts_clone/darts.h"
 +#include "include/darts.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/builder.h b/src/builder.h
 index 49d2884..289fab6 100644
@@ -90,7 +90,7 @@ index 49d2884..289fab6 100644
  #include "sentencepiece_processor.h"
 -#include "third_party/absl/strings/string_view.h"
 +#include "absl/strings/string_view.h"
- 
+
  namespace sentencepiece {
  namespace normalizer {
 diff --git a/src/builder_test.cc b/src/builder_test.cc
@@ -104,7 +104,7 @@ index 4acb7b3..1dee5c7 100644
 -#include "third_party/absl/strings/str_cat.h"
 +#include "absl/strings/str_cat.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/char_model_trainer_test.cc b/src/char_model_trainer_test.cc
 index 8c2e4b7..e8b4979 100644
@@ -119,7 +119,7 @@ index 8c2e4b7..e8b4979 100644
 +#include "absl/strings/str_cat.h"
 +#include "absl/strings/str_join.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/compile_charsmap_main.cc b/src/compile_charsmap_main.cc
 index c5a5188..931028b 100644
@@ -133,9 +133,9 @@ index c5a5188..931028b 100644
 -#include "third_party/absl/strings/string_view.h"
 +#include "absl/flags/flag.h"
 +#include "absl/strings/string_view.h"
- 
+
  using sentencepiece::normalizer::Builder;
- 
+
 diff --git a/src/error.cc b/src/error.cc
 index a226d98..ab4675d 100644
 --- a/src/error.cc
@@ -157,24 +157,24 @@ index 833c8f7..6a169d9 100644
 +++ b/src/filesystem.cc
 @@ -15,7 +15,7 @@
  #include <iostream>
- 
+
  #include "filesystem.h"
 -#include "third_party/absl/memory/memory.h"
 +#include "absl/memory/memory.h"
  #include "util.h"
- 
+
  #if defined(OS_WIN) && defined(UNICODE) && defined(_UNICODE)
 diff --git a/src/filesystem.h b/src/filesystem.h
 index e572b4b..dbcce48 100644
 --- a/src/filesystem.h
 +++ b/src/filesystem.h
 @@ -23,7 +23,7 @@
- 
+
  #include "common.h"
  #include "sentencepiece_processor.h"
 -#include "third_party/absl/strings/string_view.h"
 +#include "absl/strings/string_view.h"
- 
+
  namespace sentencepiece {
  namespace filesystem {
 diff --git a/src/filesystem_test.cc b/src/filesystem_test.cc
@@ -182,13 +182,13 @@ index 790e756..39ece99 100644
 --- a/src/filesystem_test.cc
 +++ b/src/filesystem_test.cc
 @@ -14,7 +14,7 @@
- 
+
  #include "filesystem.h"
  #include "testharness.h"
 -#include "third_party/absl/strings/str_cat.h"
 +#include "absl/strings/str_cat.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/init.h b/src/init.h
 index 090a2d9..acfda8a 100644
@@ -196,15 +196,15 @@ index 090a2d9..acfda8a 100644
 +++ b/src/init.h
 @@ -16,8 +16,8 @@
  #define INIT_H_
- 
+
  #include "common.h"
 -#include "third_party/absl/flags/flag.h"
 -#include "third_party/absl/flags/parse.h"
 +#include "absl/flags/flag.h"
 +#include "absl/flags/parse.h"
- 
+
  ABSL_DECLARE_FLAG(int32, minloglevel);
- 
+
 diff --git a/src/model_factory.cc b/src/model_factory.cc
 index be99501..040c00c 100644
 --- a/src/model_factory.cc
@@ -217,13 +217,13 @@ index be99501..040c00c 100644
 +#include "absl/memory/memory.h"
  #include "unigram_model.h"
  #include "word_model.h"
- 
+
 diff --git a/src/model_interface.cc b/src/model_interface.cc
 index c49be1e..22c6378 100644
 --- a/src/model_interface.cc
 +++ b/src/model_interface.cc
 @@ -16,8 +16,8 @@
- 
+
  #include "model_interface.h"
  #include "sentencepiece_model.pb.h"
 -#include "third_party/absl/memory/memory.h"
@@ -231,7 +231,7 @@ index c49be1e..22c6378 100644
 +#include "absl/memory/memory.h"
 +#include "absl/strings/str_format.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/model_interface.h b/src/model_interface.h
 index aef5b53..fc14257 100644
@@ -248,7 +248,7 @@ index aef5b53..fc14257 100644
 +#include "absl/strings/string_view.h"
 +#include "include/darts.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/model_interface_test.cc b/src/model_interface_test.cc
 index 69ee4e6..26a1e05 100644
@@ -261,7 +261,7 @@ index 69ee4e6..26a1e05 100644
 -#include "third_party/absl/container/flat_hash_map.h"
 +#include "absl/container/flat_hash_map.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/normalizer.cc b/src/normalizer.cc
 index 100b875..1791bd1 100644
@@ -269,7 +269,7 @@ index 100b875..1791bd1 100644
 +++ b/src/normalizer.cc
 @@ -18,11 +18,11 @@
  #include <vector>
- 
+
  #include "common.h"
 -#include "third_party/absl/memory/memory.h"
 -#include "third_party/absl/strings/match.h"
@@ -282,7 +282,7 @@ index 100b875..1791bd1 100644
 +#include "absl/strings/strip.h"
 +#include "include/darts.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/normalizer.h b/src/normalizer.h
 index 622bbd2..1326102 100644
@@ -297,7 +297,7 @@ index 622bbd2..1326102 100644
 +#include "absl/strings/string_view.h"
 +#include "include/darts.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/pretokenizer_for_training.cc b/src/pretokenizer_for_training.cc
 index 049658e..8021511 100644
@@ -305,11 +305,11 @@ index 049658e..8021511 100644
 +++ b/src/pretokenizer_for_training.cc
 @@ -14,7 +14,7 @@
  #include <string>
- 
+
  #include "pretokenizer_for_training.h"
 -#include "third_party/absl/strings/str_replace.h"
 +#include "absl/strings/str_replace.h"
- 
+
  namespace sentencepiece {
  namespace pretokenizer {
 diff --git a/src/pretokenizer_for_training.h b/src/pretokenizer_for_training.h
@@ -322,7 +322,7 @@ index 2d3bc82..38beaa6 100644
  #include "sentencepiece_processor.h"
 -#include "third_party/absl/strings/string_view.h"
 +#include "absl/strings/string_view.h"
- 
+
  namespace sentencepiece {
  namespace pretokenizer {
 diff --git a/src/pretokenizer_for_training_test.cc b/src/pretokenizer_for_training_test.cc
@@ -336,7 +336,7 @@ index 80f4787..c559eb8 100644
 -#include "third_party/absl/strings/str_cat.h"
 +#include "absl/strings/str_cat.h"
  #include "trainer_interface.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/sentencepiece_processor.cc b/src/sentencepiece_processor.cc
 index 1e4e7a0..1ff3990 100644
@@ -364,14 +364,14 @@ index 1e4e7a0..1ff3990 100644
 +#include "absl/strings/strip.h"
  #include "unigram_model.h"
  #include "util.h"
- 
+
 diff --git a/src/sentencepiece_processor.h b/src/sentencepiece_processor.h
 index e8bd5f5..e81ebbf 100644
 --- a/src/sentencepiece_processor.h
 +++ b/src/sentencepiece_processor.h
 @@ -22,7 +22,7 @@
  #include <vector>
- 
+
  #if defined(_USE_INTERNAL_STRING_VIEW)
 -#include "third_party/absl/strings/string_view.h"
 +#include "absl/strings/string_view.h"
@@ -395,7 +395,7 @@ index 373e73e..829c3d4 100644
 +#include "absl/strings/str_cat.h"
 +#include "absl/strings/string_view.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/sentencepiece_trainer.cc b/src/sentencepiece_trainer.cc
 index b9fe64f..47ef33c 100644
@@ -419,7 +419,7 @@ index b9fe64f..47ef33c 100644
 +#include "absl/strings/strip.h"
  #include "trainer_factory.h"
  #include "util.h"
- 
+
 diff --git a/src/sentencepiece_trainer_test.cc b/src/sentencepiece_trainer_test.cc
 index e44e66b..fc73b1d 100644
 --- a/src/sentencepiece_trainer_test.cc
@@ -431,7 +431,7 @@ index e44e66b..fc73b1d 100644
 -#include "third_party/absl/strings/str_cat.h"
 +#include "absl/strings/str_cat.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/spec_parser.h b/src/spec_parser.h
 index 2c5a95b..263f2bd 100644
@@ -439,14 +439,14 @@ index 2c5a95b..263f2bd 100644
 +++ b/src/spec_parser.h
 @@ -19,8 +19,8 @@
  #include <vector>
- 
+
  #include "sentencepiece_processor.h"
 -#include "third_party/absl/strings/ascii.h"
 -#include "third_party/absl/strings/str_split.h"
 +#include "absl/strings/ascii.h"
 +#include "absl/strings/str_split.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/spm_decode_main.cc b/src/spm_decode_main.cc
 index 3382ddc..9dda65c 100644
@@ -461,7 +461,7 @@ index 3382ddc..9dda65c 100644
 +#include "absl/flags/flag.h"
 +#include "absl/strings/str_split.h"
  #include "util.h"
- 
+
  ABSL_FLAG(std::string, model, "", "model file name");
 diff --git a/src/spm_encode_main.cc b/src/spm_encode_main.cc
 index 4d12a38..29b7458 100644
@@ -480,7 +480,7 @@ index 4d12a38..29b7458 100644
 +#include "absl/strings/str_cat.h"
 +#include "absl/strings/str_join.h"
  #include "trainer_interface.h"
- 
+
  ABSL_FLAG(std::string, model, "", "model file name");
 diff --git a/src/spm_export_vocab_main.cc b/src/spm_export_vocab_main.cc
 index b5d93cb..70a65c1 100644
@@ -492,7 +492,7 @@ index b5d93cb..70a65c1 100644
  #include "sentencepiece_processor.h"
 -#include "third_party/absl/flags/flag.h"
 +#include "absl/flags/flag.h"
- 
+
  ABSL_FLAG(std::string, output, "", "Output filename");
  ABSL_FLAG(std::string, model, "", "input model file name");
 diff --git a/src/spm_normalize_main.cc b/src/spm_normalize_main.cc
@@ -505,7 +505,7 @@ index 96da360..8c541b8 100644
  #include "sentencepiece_trainer.h"
 -#include "third_party/absl/flags/flag.h"
 +#include "absl/flags/flag.h"
- 
+
  ABSL_FLAG(std::string, model, "", "Model file name");
  ABSL_FLAG(bool, use_internal_normalization, false,
 diff --git a/src/spm_train_main.cc b/src/spm_train_main.cc
@@ -525,7 +525,7 @@ index baf8dbf..ba1e811 100644
 +#include "absl/strings/str_join.h"
 +#include "absl/strings/str_split.h"
  #include "util.h"
- 
+
  using sentencepiece::NormalizerSpec;
 diff --git a/src/testharness.cc b/src/testharness.cc
 index f6b1efe..daf2d14 100644
@@ -533,12 +533,12 @@ index f6b1efe..daf2d14 100644
 +++ b/src/testharness.cc
 @@ -26,7 +26,7 @@
  #include <vector>
- 
+
  #include "common.h"
 -#include "third_party/absl/strings/str_cat.h"
 +#include "absl/strings/str_cat.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/testharness.h b/src/testharness.h
 index 9879b06..98317ad 100644
@@ -546,7 +546,7 @@ index 9879b06..98317ad 100644
 +++ b/src/testharness.h
 @@ -21,9 +21,9 @@
  #include <string>
- 
+
  #include "common.h"
 -#include "third_party/absl/flags/flag.h"
 -#include "third_party/absl/flags/parse.h"
@@ -554,7 +554,7 @@ index 9879b06..98317ad 100644
 +#include "absl/flags/flag.h"
 +#include "absl/flags/parse.h"
 +#include "absl/strings/string_view.h"
- 
+
  ABSL_DECLARE_FLAG(std::string, test_tmpdir);
  ABSL_DECLARE_FLAG(std::string, test_srcdir);
 diff --git a/src/trainer_factory.cc b/src/trainer_factory.cc
@@ -562,7 +562,7 @@ index d1d2541..ff594d0 100644
 --- a/src/trainer_factory.cc
 +++ b/src/trainer_factory.cc
 @@ -14,7 +14,7 @@
- 
+
  #include "bpe_model_trainer.h"
  #include "char_model_trainer.h"
 -#include "third_party/absl/memory/memory.h"
@@ -606,14 +606,14 @@ index f66d59a..8a654ec 100644
 -#include "third_party/absl/container/flat_hash_map.h"
 +#include "absl/container/flat_hash_map.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/trainer_interface_test.cc b/src/trainer_interface_test.cc
 index 70a51ad..d7f3f0c 100644
 --- a/src/trainer_interface_test.cc
 +++ b/src/trainer_interface_test.cc
 @@ -16,8 +16,8 @@
- 
+
  #include "filesystem.h"
  #include "testharness.h"
 -#include "third_party/absl/strings/str_cat.h"
@@ -622,15 +622,15 @@ index 70a51ad..d7f3f0c 100644
 +#include "absl/strings/str_format.h"
  #include "trainer_interface.h"
  #include "util.h"
- 
+
 diff --git a/src/unicode_script.cc b/src/unicode_script.cc
 index 583dc30..11b24dc 100644
 --- a/src/unicode_script.cc
 +++ b/src/unicode_script.cc
 @@ -14,7 +14,7 @@
- 
+
  #include <unordered_map>
- 
+
 -#include "third_party/absl/container/flat_hash_map.h"
 +#include "absl/container/flat_hash_map.h"
  #include "unicode_script.h"
@@ -641,7 +641,7 @@ index f2e67e9..f1b8299 100644
 --- a/src/unicode_script_map.h
 +++ b/src/unicode_script_map.h
 @@ -14,7 +14,7 @@
- 
+
  #ifndef UNICODE_SCRIPT_DATA_H_
  #define UNICODE_SCRIPT_DATA_H_
 -#include "third_party/absl/container/flat_hash_map.h"
@@ -654,14 +654,14 @@ index ab33565..e0b1c4d 100644
 --- a/src/unicode_script_test.cc
 +++ b/src/unicode_script_test.cc
 @@ -14,7 +14,7 @@
- 
+
  #include "common.h"
  #include "testharness.h"
 -#include "third_party/absl/strings/string_view.h"
 +#include "absl/strings/string_view.h"
  #include "unicode_script.h"
  #include "util.h"
- 
+
 diff --git a/src/unigram_model.cc b/src/unigram_model.cc
 index 3b99060..9c72fb9 100644
 --- a/src/unigram_model.cc
@@ -669,7 +669,7 @@ index 3b99060..9c72fb9 100644
 @@ -22,9 +22,9 @@
  #include <utility>
  #include <vector>
- 
+
 -#include "third_party/absl/memory/memory.h"
 -#include "third_party/absl/strings/str_split.h"
 -#include "third_party/absl/strings/string_view.h"
@@ -678,7 +678,7 @@ index 3b99060..9c72fb9 100644
 +#include "absl/strings/string_view.h"
  #include "unigram_model.h"
  #include "util.h"
- 
+
 diff --git a/src/unigram_model.h b/src/unigram_model.h
 index 448e489..9062f12 100644
 --- a/src/unigram_model.h
@@ -689,7 +689,7 @@ index 448e489..9062f12 100644
  #include "sentencepiece_model.pb.h"
 -#include "third_party/darts_clone/darts.h"
 +#include "include/darts.h"
- 
+
  namespace sentencepiece {
  namespace unigram {
 diff --git a/src/unigram_model_test.cc b/src/unigram_model_test.cc
@@ -705,7 +705,7 @@ index f93b21c..808e907 100644
 +#include "absl/strings/str_cat.h"
 +#include "absl/strings/str_join.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/unigram_model_trainer.cc b/src/unigram_model_trainer.cc
 index 9615040..373ec95 100644
@@ -728,7 +728,7 @@ index 91fbeb4..f2d6b36 100644
 +++ b/src/unigram_model_trainer.h
 @@ -21,7 +21,7 @@
  #include <vector>
- 
+
  #include "sentencepiece_model.pb.h"
 -#include "third_party/absl/strings/string_view.h"
 +#include "absl/strings/string_view.h"
@@ -749,18 +749,18 @@ index ffe515e..fdb25f6 100644
 +#include "absl/strings/str_join.h"
  #include "unigram_model_trainer.h"
  #include "util.h"
- 
+
 diff --git a/src/util.h b/src/util.h
 index 0d15863..d4a2d51 100644
 --- a/src/util.h
 +++ b/src/util.h
 @@ -30,7 +30,7 @@
- 
+
  #include "common.h"
  #include "sentencepiece_processor.h"
 -#include "third_party/absl/strings/string_view.h"
 +#include "absl/strings/string_view.h"
- 
+
  #ifdef SPM_NO_THREADLOCAL
  #include <pthread.h>
 diff --git a/src/util_test.cc b/src/util_test.cc
@@ -768,13 +768,13 @@ index 71d006f..231fc96 100644
 --- a/src/util_test.cc
 +++ b/src/util_test.cc
 @@ -16,7 +16,7 @@
- 
+
  #include "filesystem.h"
  #include "testharness.h"
 -#include "third_party/absl/strings/str_cat.h"
 +#include "absl/strings/str_cat.h"
  #include "util.h"
- 
+
  namespace sentencepiece {
 diff --git a/src/word_model_trainer.cc b/src/word_model_trainer.cc
 index 0b8b062..b057843 100644
@@ -783,7 +783,7 @@ index 0b8b062..b057843 100644
 @@ -15,8 +15,8 @@
  #include <cmath>
  #include <string>
- 
+
 -#include "third_party/absl/container/flat_hash_map.h"
 -#include "third_party/absl/strings/string_view.h"
 +#include "absl/container/flat_hash_map.h"
@@ -805,4 +805,3 @@ index c4a8bc6..366810f 100644
 +#include "absl/strings/str_join.h"
  #include "util.h"
  #include "word_model_trainer.h"
- 

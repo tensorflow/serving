@@ -1,9 +1,9 @@
 --- a/icu4c/source/common/udata.cpp
 +++ b/icu4c/source/common/udata.cpp
 @@ -18,11 +18,10 @@
- 
+
  #include "unicode/utypes.h"  /* U_PLATFORM etc. */
- 
+
 -#ifdef __GNUC__
 -/* if gcc
 -#define ATTRIBUTE_WEAK __attribute__ ((weak))
@@ -14,7 +14,7 @@
 +#else
 +#  define ATTRIBUTE_WEAK
  #endif
- 
+
  #include "unicode/putil.h"
 @@ -649,10 +648,10 @@ extern "C" const DataHeader U_DATA_API U_ICUDATA_ENTRY_POINT;
   * partial-data-library access functions where each returns a pointer
@@ -28,7 +28,7 @@
 +const void *uprv_getICUData_conversion(void) ATTRIBUTE_WEAK;
 +const void *uprv_getICUData_other(void) ATTRIBUTE_WEAK;
 +U_CDECL_END
- 
+
  /*----------------------------------------------------------------------*
   *                                                                      *
 @@ -709,11 +708,14 @@ openCommonData(const char *path,          /*  Path from OpenChoice?          */
@@ -54,7 +54,7 @@ index e61eb5795c..95c43f2334 100644
 @@ -55,6 +55,11 @@
  #include "uconfig_local.h"
  #endif
- 
+
 +// Tensorflow is statically linked on all platforms.
 +#ifndef U_STATIC_IMPLEMENTATION
 +#define U_STATIC_IMPLEMENTATION

@@ -17,7 +17,6 @@
 
 """Functions for downloading and reading MNIST data."""
 
-from __future__ import print_function
 
 import gzip
 import os
@@ -95,12 +94,11 @@ def extract_labels(filename, one_hot=False):
     return labels
 
 
-class DataSet(object):
+class DataSet:
   """Class encompassing test, validation and training MNIST data set."""
 
   def __init__(self, images, labels, fake_data=False, one_hot=False):
     """Construct a DataSet. one_hot arg is used only if fake_data is true."""
-
     if fake_data:
       self._num_examples = 10000
       self.one_hot = one_hot
@@ -171,7 +169,7 @@ class DataSet(object):
 def read_data_sets(train_dir, fake_data=False, one_hot=False):
   """Return training, validation and testing data sets."""
 
-  class DataSets(object):
+  class DataSets:
     pass
 
   data_sets = DataSets()

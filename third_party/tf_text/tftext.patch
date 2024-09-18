@@ -60,7 +60,7 @@ index 7f2c7c3..a9a6e06 100644
 +  if (kGetOffsets) {
      output_start_offsets->resize(original_num_tokens + 1);
      output_start_offsets->back() = input_word_offset_in_text;
- 
+
 diff --git a/tensorflow_text/tftext.bzl b/tensorflow_text/tftext.bzl
 index 65430ca..e8584fb 100644
 --- a/tensorflow_text/tftext.bzl
@@ -97,7 +97,7 @@ index 013a35f..0c20d3e 100644
  #include "tensorflow/core/platform/logging.h"
 +#include "tensorflow/core/public/version.h"
  #include "tensorflow_text/core/kernels/wordpiece_tokenizer.h"
- 
+
  namespace tensorflow {
 @@ -159,7 +160,16 @@ LookupStatus LookupTableVocab::Contains(const absl::string_view key,
    keys.flat<tstring>()(0) = tstring(key.data(), key.size());
@@ -114,7 +114,7 @@ index 013a35f..0c20d3e 100644
 +    return LookupStatus(std::string(status.message()));
 +#endif
 +  }
- 
+
    if (static_cast<int64>(values.flat<int64>()(0)) != kOutOfVocabValue) {
      *value = true;
 diff --git a/tensorflow_text/core/kernels/wordpiece_tokenizer.h b/tensorflow_text/core/kernels/wordpiece_tokenizer.h
@@ -123,18 +123,17 @@ index d1def5b..c888aeb 100644
 +++ b/tensorflow_text/core/kernels/wordpiece_tokenizer.h
 @@ -16,6 +16,7 @@
  #define TENSORFLOW_TEXT_CORE_KERNELS_WORDPIECE_TOKENIZER_H_
- 
+
  #include <string>
 +#include <utility>
  #include <vector>
- 
+
  #include "absl/strings/string_view.h"
 @@ -25,7 +26,7 @@ namespace text {
- 
+
  struct LookupStatus {
    LookupStatus() : error_msg(""), success(true) {}
 -  LookupStatus(const std::string& msg) : error_msg(msg), success(false) {}
 +  LookupStatus(std::string msg) : error_msg(std::move(msg)), success(false) {}
    std::string error_msg;
    bool success;
- 
