@@ -13,3 +13,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
 }
+
+p img {
+  background: white;
+}
