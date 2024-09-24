@@ -179,7 +179,7 @@ void CopyDirOrDie(const string& src_dir, const string& dst_dir) {
     for (const string& child : children) {
       const string child_path = io::JoinPath(dir, child);
       StringPiece remainder = child_path;
-      CHECK(str_util::ConsumePrefix(&remainder, src_dir));
+      CHECK(absl::ConsumePrefix(&remainder, src_dir));
       if (Env::Default()->IsDirectory(child_path).ok()) {
         TF_ASSERT_OK(
             Env::Default()->CreateDir(io::JoinPath(dst_dir, remainder)));
