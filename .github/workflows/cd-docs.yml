@@ -2,9 +2,8 @@ name: deploy-docs
 on:
   workflow_dispatch:
   push:
-    # Uncomment these lines before merge
-    # branches:
-    #   - master
+    branches:
+      - master
 permissions:
   contents: write
 jobs:
