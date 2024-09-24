@@ -108,7 +108,6 @@ watch:
   - tensorflow_serving
 nav:
   - Guide:
-      - guide/serving.md
       - guide/docker.md
       - guide/setup.md
       - guide/serving_basic.md
