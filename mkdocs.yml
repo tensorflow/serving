@@ -32,7 +32,6 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to system preference
-  logo: images/tf_full_color_primary_icon.svg
   favicon: images/favicon.png
 
   features:
