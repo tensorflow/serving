@@ -43,10 +43,10 @@ Warmup data can be added in two ways:
     to write the PredictionLog entries into
     `YourSavedModel/assets.extra/tf_serving_warmup_requests`.
 *   By using TFX Infra Validator
-    [option to export a Saved Model with warmup](https://www.tensorflow.org/tfx/guide/infra_validator#producing_a_savedmodel_with_warmup).
+    [option to export a Saved Model with warmup](https://tensorflow.github.io/tfx/guide/infra_validator/#producing-a-savedmodel-with-warmup).
     With this option the TFX Infa Validator will populate
     `YourSavedModel/assets.extra/tf_serving_warmup_requests` based on the
     validation requests provided via
-    [RequestSpec](https://www.tensorflow.org/tfx/guide/infra_validator#requestspec).
+    [RequestSpec](https://tensorflow.github.io/tfx/guide/infra_validator/#requestspec).
 
 

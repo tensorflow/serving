@@ -111,5 +111,5 @@ curl http://localhost:8501/v1/models/<model_name>:predict -X POST \
 -d '{"inputs": [[1,2], [3,4]]}'
 ```
 
-[This page](https://www.tensorflow.org/tfx/serving/api_rest#top_of_page)
+[This page](../../api/api_rest/)
 contains a more complete API for sending REST requests to the model server.
