@@ -12,9 +12,10 @@ Please use the [Profile Inference Requests with TensorBoard](tensorboard.md)
 guide to understand the underlying behavior of your model's computation on
 inference requests, and use this guide to iteratively improve its performance.
 
-Note: If the following quick tips do not solve your problem, please read the
-longer discussion to develop a deep understanding of what affects TensorFlow
-Serving's performance.
+!!! Note
+	If the following quick tips do not solve your problem, please read the
+	longer discussion to develop a deep understanding of what affects TensorFlow
+	Serving's performance.
 
 ## Quick Tips
 

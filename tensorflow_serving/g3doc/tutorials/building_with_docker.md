@@ -90,9 +90,10 @@ docker build --pull -t $USER/tensorflow-serving-devel -f Dockerfile.devel .
 docker build --pull -t $USER/tensorflow-serving-devel-gpu -f Dockerfile.devel-gpu .
 ```
 
-TIP: Before attempting to build an image, check the Docker Hub
-[tensorflow/serving repo](http://hub.docker.com/r/tensorflow/serving/tags/) to
-make sure an image that meets your needs doesn't already exist.
+!!! TIP
+	Before attempting to build an image, check the Docker Hub
+	[tensorflow/serving repo](http://hub.docker.com/r/tensorflow/serving/tags/) to
+	make sure an image that meets your needs doesn't already exist.
 
 Building from sources consumes a lot of RAM. If RAM is an issue on your system,
 you may limit RAM usage by specifying `--local_ram_resources=2048` while
@@ -117,8 +118,9 @@ To run the container opening the gRPC port (8500):
 docker run -it -p 8500:8500 $USER/tensorflow-serving-devel
 ```
 
-TIP: If you're running a GPU image, be sure to run using the NVIDIA runtime
-[`--runtime=nvidia`](https://github.com/NVIDIA/nvidia-docker#quick-start).
+!!! TIP
+	If you're running a GPU image, be sure to run using the NVIDIA runtime
+	[`--runtime=nvidia`](https://github.com/NVIDIA/nvidia-docker#quick-start).
 
 From here, you can follow the instructions for
 [testing a development environment](#testing-the-development-environment).

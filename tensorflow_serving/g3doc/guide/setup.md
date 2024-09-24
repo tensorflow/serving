@@ -8,8 +8,9 @@ The easiest and most straight-forward way of using TensorFlow Serving is with
 [Docker images](docker.md). We highly recommend this route unless you have
 specific needs that are not addressed by running in a container.
 
-TIP: This is also the easiest way to get TensorFlow Serving working with [GPU
-support](docker.md#serving-with-docker-using-your-gpu).
+!!! TIP
+	This is also the easiest way to get TensorFlow Serving working with [GPU
+	support](docker.md#serving-with-docker-using-your-gpu).
 
 ### Installing using APT
 
@@ -68,9 +69,10 @@ apt-get upgrade tensorflow-model-server
 
 <!-- common_typos_enable -->
 
-Note: In the above commands, replace tensorflow-model-server with
-tensorflow-model-server-universal if your processor does not support AVX
-instructions.
+!!! Note
+	In the above commands, replace tensorflow-model-server with
+	tensorflow-model-server-universal if your processor does not support AVX
+	instructions.
 
 ## Building from source
 
@@ -83,7 +85,8 @@ Development Dockerfiles
 [[CPU](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel),
 [GPU](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/tools/docker/Dockerfile.devel-gpu)].
 
-Note: Currently we only support building binaries that run on Linux.
+!!! Note
+	Currently we only support building binaries that run on Linux.
 
 #### Installing Docker
 
@@ -184,9 +187,10 @@ For example:
 tools/run_in_docker.sh bazel build --copt=-mavx2 tensorflow_serving/...
 ```
 
-Note: These instruction sets are not available on all machines, especially with
-older processors. Use the default `--config=nativeopt` to build an optimized
-version of TensorFlow Serving for your processor if you are in doubt.
+!!! Note
+	These instruction sets are not available on all machines, especially with
+	older processors. Use the default `--config=nativeopt` to build an optimized
+	version of TensorFlow Serving for your processor if you are in doubt.
 
 
 ##### Building with GPU Support

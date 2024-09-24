@@ -11,9 +11,10 @@ explicitly:
     [this guide](https://github.com/tensorflow/custom-op))
 *   You are using an already implemented op that is not shipped with TensorFlow
 
-Note: Starting in version 2.0, TensorFlow no longer distributes the contrib
-module; if you are serving a TensorFlow program using contrib ops, use this
-guide to link these ops into ModelServer explicitly.
+!!! Note
+	Starting in version 2.0, TensorFlow no longer distributes the contrib
+	module; if you are serving a TensorFlow program using contrib ops, use this
+	guide to link these ops into ModelServer explicitly.
 
 Regardless of whether you implemented the op or not, in order to serve a model
 with custom ops, you need access to the source of the op. This guide walks you

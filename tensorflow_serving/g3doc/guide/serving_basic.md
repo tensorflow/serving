@@ -140,8 +140,9 @@ store tensor logical name to real name mapping ('images' ->
 allows the user to refer to these tensors with their logical names when
 running inference.
 
-Note: In addition to the description above, documentation related to signature
-def structure and how to set up them up can be found [here](signature_defs.md).
+!!! Note
+	In addition to the description above, documentation related to signature
+	def structure and how to set up them up can be found [here](signature_defs.md).
 
 Let's run it!
 

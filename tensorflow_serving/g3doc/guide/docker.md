@@ -200,8 +200,9 @@ curl -d '{"instances": [1.0, 2.0, 5.0]}' \
   -X POST http://localhost:8501/v1/models/half_plus_two:predict
 ```
 
-NOTE: Older versions of Windows and other systems without curl can download it
-[here](https://curl.haxx.se/download.html).
+!!! NOTE
+	Older versions of Windows and other systems without curl can download it
+	[here](https://curl.haxx.se/download.html).
 
 This should return a set of values:
 
@@ -271,13 +272,14 @@ desired model from our host to where models are expected in the container. We
 also pass the name of the model as an environment variable, which will be
 important when we query the model.
 
-TIP: Before querying the model, be sure to wait till you see a message like the
-following, indicating that the server is ready to receive requests:
+!!! TIP
+	Before querying the model, be sure to wait till you see a message like the
+	following, indicating that the server is ready to receive requests:
 
-```shell
-2018-07-27 00:07:20.773693: I tensorflow_serving/model_servers/main.cc:333]
-Exporting HTTP/REST API at:localhost:8501 ...
-```
+	```shell
+	2018-07-27 00:07:20.773693: I tensorflow_serving/model_servers/main.cc:333]
+	Exporting HTTP/REST API at:localhost:8501 ...
+	```
 
 To query the model using the predict API, you can run
 
@@ -286,8 +288,9 @@ curl -d '{"instances": [1.0, 2.0, 5.0]}' \
   -X POST http://localhost:8501/v1/models/half_plus_two:predict
 ```
 
-NOTE: Older versions of Windows and other systems without curl can download it
-[here](https://curl.haxx.se/download.html).
+!!! NOTE
+	Older versions of Windows and other systems without curl can download it
+	[here](https://curl.haxx.se/download.html).
 
 This should return a set of values:
 
@@ -295,12 +298,13 @@ This should return a set of values:
 { "predictions": [2.5, 3.0, 4.5] }
 ```
 
-TIP: Trying to run the GPU model on a machine without a GPU or without a working
-GPU build of TensorFlow Model Server will result in an error that looks like:
+!!! TIP
+	Trying to run the GPU model on a machine without a GPU or without a working
+	GPU build of TensorFlow Model Server will result in an error that looks like:
 
-```shell
-Cannot assign a device for operation 'a': Operation was explicitly assigned to /device:GPU:0
-```
+	```shell
+	Cannot assign a device for operation 'a': Operation was explicitly assigned to /device:GPU:0
+	```
 
 More information on using the RESTful API can be found [here](../api/api_rest.md).
 
