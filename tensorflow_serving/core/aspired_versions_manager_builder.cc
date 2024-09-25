@@ -30,7 +30,7 @@ Status AspiredVersionsManagerBuilder::Create(
                                                     &aspired_versions_manager));
   builder->reset(
       new AspiredVersionsManagerBuilder(std::move(aspired_versions_manager)));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 AspiredVersionsManagerBuilder::AspiredVersionsManagerBuilder(
