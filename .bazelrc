@@ -52,6 +52,7 @@ build:mkl_aarch64 --copt=-O3
 
 build --define=build_with_onednn_v2=true
 build --define=xnn_enable_avxvnni=false
+build --define=xnn_enable_avxvnniint8=false
 build --define=xnn_enable_avx256vnnigfni=false
 build --define=xnn_enable_avx512amx=false
 build --define=xnn_enable_avx512fp16=false
