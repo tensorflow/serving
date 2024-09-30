@@ -2,8 +2,7 @@ name: deploy-docs
 on:
   workflow_dispatch:
   push:
-    branches:
-      - master
+  pull_request:
 permissions:
   contents: write
 jobs:
@@ -17,6 +16,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+        if: (github.event_name != 'pull_request')
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
@@ -42,3 +42,8 @@ jobs:
 
       - name: Deploy to GitHub Pages
         run: mkdocs gh-deploy --force
+        if: (github.event_name != 'pull_request')
+
+      - name: Build docs to check for errors
+        run: mkdocs build --verbose
+        if: (github.event_name == 'pull_request')
