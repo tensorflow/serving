@@ -1,0 +1,1444 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../architecture/">
+      
+      
+        <link rel="next" href="../serving_advanced/">
+      
+      
+      <link rel="icon" href="../../images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.39">
+    
+    
+      
+        <title>Tensorflow Serving Configuration - Serving</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8c3ca2c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tensorflow-serving-configuration" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Serving" class="md-header__button md-logo" aria-label="Serving" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Serving
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tensorflow Serving Configuration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/tensorflow/serving" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Serving Models
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Serving" class="md-nav__button md-logo" aria-label="Serving" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Serving
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/tensorflow/serving" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Serving Models
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Serving Models
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Guide
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Guide
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    TensorFlow Serving with Docker
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../serving_basic/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Serving a TensorFlow Model
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Tensorflow Serving Configuration
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Tensorflow Serving Configuration
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model-server-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model Server Configuration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Model Server Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reloading-model-server-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reloading Model Server Configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#model-server-config-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model Server Config Details
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuring-one-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuring One Model
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serving-a-specific-version-of-a-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Serving a Specific Version of a Model
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serving-multiple-versions-of-a-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Serving Multiple Versions of a Model
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assigning-string-labels-to-model-versions-to-simplify-canary-and-rollback" class="md-nav__link">
+    <span class="md-ellipsis">
+      Assigning String Labels to Model Versions, To Simplify Canary and Rollback
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Assigning String Labels to Model Versions, To Simplify Canary and Rollback">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rest-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      REST Usage
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Monitoring Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#batching-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Batching Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#miscellaneous-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      Miscellaneous Flags
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../serving_advanced/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building Standard TensorFlow ModelServer
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../serving_kubernetes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use TensorFlow Serving with Kubernetes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom_servable/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Creating a new kind of servable
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom_source/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Creating a module that discovers new servable paths
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom_op/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Serving TensorFlow models with custom ops
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../signature_defs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SignatureDefs in SavedModel for TensorFlow Serving
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/building_with_docker/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building with docker
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/saved_model_warmup/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SavedModel Warmup
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/performance/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Performance Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/tensorboard/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Profile Inference Requests with TensorBoard
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/api_rest/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client API (REST)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/tensorflow/serving/tree/master/tensorflow_serving/apis" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client API (gRPC)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/tensorflow_serving/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Server API (C++)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model-server-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model Server Configuration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Model Server Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reloading-model-server-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reloading Model Server Configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#model-server-config-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model Server Config Details
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuring-one-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuring One Model
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serving-a-specific-version-of-a-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Serving a Specific Version of a Model
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serving-multiple-versions-of-a-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Serving Multiple Versions of a Model
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assigning-string-labels-to-model-versions-to-simplify-canary-and-rollback" class="md-nav__link">
+    <span class="md-ellipsis">
+      Assigning String Labels to Model Versions, To Simplify Canary and Rollback
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Assigning String Labels to Model Versions, To Simplify Canary and Rollback">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rest-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      REST Usage
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Monitoring Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#batching-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Batching Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#miscellaneous-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      Miscellaneous Flags
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="tensorflow-serving-configuration">Tensorflow Serving Configuration<a class="headerlink" href="#tensorflow-serving-configuration" title="Permanent link">¶</a></h1>
+<p>In this guide, we will go over the numerous configuration points for Tensorflow
+Serving.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
+<p>While most configurations relate to the Model Server, there are many ways to
+specify the behavior of Tensorflow Serving:</p>
+<ul>
+<li><a href="#model-server-configuration">Model Server Configuration</a>: Specify model
+    names, paths, version policy &amp; labels, logging configuration and more</li>
+<li><a href="#monitoring-configuration">Monitoring Configuration</a>: Enable and configure
+    Prometheus monitoring</li>
+<li><a href="#batching-configuration">Batching Configuration</a>: Enable batching and
+    configure its parameters</li>
+<li><a href="#miscellaneous-flags">Misc. Flags</a>: A number of misc. flags that can be
+    provided to fine-tune the behavior of a Tensorflow Serving deployment</li>
+</ul>
+<h2 id="model-server-configuration">Model Server Configuration<a class="headerlink" href="#model-server-configuration" title="Permanent link">¶</a></h2>
+<p>The easiest way to serve a model is to provide the <code>--model_name</code> and
+<code>--model_base_path</code> flags (or setting the <code>MODEL_NAME</code> environment variable if
+using Docker). However, if you would like to serve multiple models, or configure
+options like polling frequency for new versions, you may do so by writing a
+Model Server config file.</p>
+<p>You may provide this configuration file using the <code>--model_config_file</code> flag and
+instruct Tensorflow Serving to periodically poll for updated versions of this
+configuration file at the specifed path by setting the
+<code>--model_config_file_poll_wait_seconds</code> flag.</p>
+<p>Example using Docker:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>docker run -t --rm -p 8501:8501 \
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    -v "$(pwd)/models/:/models/" tensorflow/serving \
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    --model_config_file=/models/models.config \
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    --model_config_file_poll_wait_seconds=60
+</span></code></pre></div>
+<h3 id="reloading-model-server-configuration">Reloading Model Server Configuration<a class="headerlink" href="#reloading-model-server-configuration" title="Permanent link">¶</a></h3>
+<p>There are two ways to reload the Model Server configuration:</p>
+<ul>
+<li>
+<p>By setting the <code>--model_config_file_poll_wait_seconds</code> flag to instruct the
+    server to periodically check for a new config file at <code>--model_config_file</code>
+    filepath.</p>
+</li>
+<li>
+<p>By issuing
+    <a href="https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/model_service.proto#L22">HandleReloadConfigRequest</a>
+    RPC calls to the server and supplying a new Model Server config
+    programmatically.</p>
+</li>
+</ul>
+<p>Please note that each time the server loads the new config file, it will act to
+realize the content of the new specified config and <em>only</em> the new specified
+config. This means if model A was present in the first config file, which is
+replaced with a file that contains only model B, the server will load model B
+and unload model A.</p>
+<h3 id="model-server-config-details">Model Server Config Details<a class="headerlink" href="#model-server-config-details" title="Permanent link">¶</a></h3>
+<p>The Model Server configuration file provided must be a
+<a href="https://github.com/tensorflow/serving/blob/master/tensorflow_serving/config/model_server_config.proto#L76">ModelServerConfig</a>
+<a href="https://stackoverflow.com/questions/18873924/what-does-the-protobuf-text-format-look-like">protocol buffer</a>.</p>
+<p>For all but the most advanced use-cases, you'll want to use the ModelConfigList
+option, which is a list of
+<a href="https://github.com/tensorflow/serving/blob/master/tensorflow_serving/config/model_server_config.proto#L19">ModelConfig</a>
+protocol buffers. Here's a basic example, before we dive into advanced options
+below.</p>
+<div class="language-proto highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">model_config_list</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="n">config</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="n">name</span><span class="o">:</span><span class="w"> </span><span class="s">'my_first_model'</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="n">base_path</span><span class="o">:</span><span class="w"> </span><span class="s">'/tmp/my_first_model/'</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="n">model_platform</span><span class="o">:</span><span class="w"> </span><span class="s">'tensorflow'</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="n">config</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="n">name</span><span class="o">:</span><span class="w"> </span><span class="s">'my_second_model'</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="n">base_path</span><span class="o">:</span><span class="w"> </span><span class="s">'/tmp/my_second_model/'</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="n">model_platform</span><span class="o">:</span><span class="w"> </span><span class="s">'tensorflow'</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="configuring-one-model">Configuring One Model<a class="headerlink" href="#configuring-one-model" title="Permanent link">¶</a></h3>
+<p>Each ModelConfig specifies one model to be served, including its name and the
+path where the Model Server should look for versions of the model to serve, as
+seen in the above example. By default the server will serve the version with the
+largest version number. This default can be overridden by changing the
+model_version_policy field.</p>
+<h3 id="serving-a-specific-version-of-a-model">Serving a Specific Version of a Model<a class="headerlink" href="#serving-a-specific-version-of-a-model" title="Permanent link">¶</a></h3>
+<p>To serve a specific version of the model, rather than always transitioning to
+the one with the largest version number, set model_version_policy to "specific"
+and provide the version number you would like to serve. For example, to pin
+version 42 as the one to serve:</p>
+<div class="language-proto highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">model_version_policy</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="n">specific</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="n">versions</span><span class="o">:</span><span class="w"> </span><span class="mi">42</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>This option is useful for rolling back to a know good version, in the event a
+problem is discovered with the latest version(s).</p>
+<h3 id="serving-multiple-versions-of-a-model">Serving Multiple Versions of a Model<a class="headerlink" href="#serving-multiple-versions-of-a-model" title="Permanent link">¶</a></h3>
+<p>To serve multiple versions of the model simultaneously, e.g. to enable canarying
+a tentative new version with a slice of traffic, set model_version_policy to
+"specific" and provide multiple version numbers. For example, to serve versions
+42 and 43:</p>
+<div class="language-proto highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">model_version_policy</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="n">specific</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="n">versions</span><span class="o">:</span><span class="w"> </span><span class="mi">42</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="n">versions</span><span class="o">:</span><span class="w"> </span><span class="mi">43</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="assigning-string-labels-to-model-versions-to-simplify-canary-and-rollback">Assigning String Labels to Model Versions, To Simplify Canary and Rollback<a class="headerlink" href="#assigning-string-labels-to-model-versions-to-simplify-canary-and-rollback" title="Permanent link">¶</a></h3>
+<p>Sometimes it's helpful to add a level of indirection to model versions. Instead
+of letting all of your clients know that they should be querying version 42, you
+can assign an alias such as "stable" to whichever version is currently the one
+clients should query. If you want to redirect a slice of traffic to a tentative
+canary model version, you can use a second alias "canary".</p>
+<p>You can configure these model version aliases, or labels, like so:</p>
+<div class="language-proto highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">model_version_policy</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="n">specific</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="n">versions</span><span class="o">:</span><span class="w"> </span><span class="mi">42</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="n">versions</span><span class="o">:</span><span class="w"> </span><span class="mi">43</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">}</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">version_labels</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span><span class="n">key</span><span class="o">:</span><span class="w"> </span><span class="s">'stable'</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span><span class="n">value</span><span class="o">:</span><span class="w"> </span><span class="mi">42</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">}</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">version_labels</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">  </span><span class="n">key</span><span class="o">:</span><span class="w"> </span><span class="s">'canary'</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">  </span><span class="n">value</span><span class="o">:</span><span class="w"> </span><span class="mi">43</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>In the above example, you are serving versions 42 and 43, and associating the
+label "stable" with version 42 and the label "canary" with version 43. You can
+have your clients direct queries to one of "stable" or "canary" (perhaps based
+on hashing the user id) using the version_label field of the
+<a href="https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/model.proto#L27">ModelSpec</a>
+protocol buffer, and move forward the label on the server without notifying the
+clients. Once you are done canarying version 43 and are ready to promote it to
+stable, you can update the config to:</p>
+<div class="language-proto highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">model_version_policy</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="n">specific</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="n">versions</span><span class="o">:</span><span class="w"> </span><span class="mi">42</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="n">versions</span><span class="o">:</span><span class="w"> </span><span class="mi">43</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">}</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">version_labels</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="n">key</span><span class="o">:</span><span class="w"> </span><span class="s">'stable'</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="n">value</span><span class="o">:</span><span class="w"> </span><span class="mi">43</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">}</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="n">version_labels</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">  </span><span class="n">key</span><span class="o">:</span><span class="w"> </span><span class="s">'canary'</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">  </span><span class="n">value</span><span class="o">:</span><span class="w"> </span><span class="mi">43</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>If you subsequently need to perform a rollback, you can revert to the old config
+that has version 42 as "stable". Otherwise, you can march forward by unloading
+version 42 and loading the new version 44 when it is ready, and then advancing
+the canary label to 44, and so on.</p>
+<p>Please note that labels can only be assigned to model versions that are
+<em>already</em> loaded and available for serving. Once a model version is available,
+one may reload the model config on the fly to assign a label to it. This can be
+achieved using a
+<a href="https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/model_service.proto#L22">HandleReloadConfigRequest</a>
+RPC or if the server is set up to periodically poll the filesystem for the
+config file, as described <a href="#reloading-model-server-configuration">above</a>.</p>
+<p>If you would like to assign a label to a version that is not yet loaded (for ex.
+by supplying both the model version and the label at startup time) then you must
+set the <code>--allow_version_labels_for_unavailable_models</code> flag to true, which
+allows new labels to be assigned to model versions that are not loaded yet.</p>
+<p>Please note that this applies only to new version labels (i.e. ones not assigned
+to a version currently). This is to ensure that during version swaps, the server
+does not prematurely assign the label to the new version, thereby dropping all
+requests destined for that label while the new version is loading.</p>
+<p>In order to comply with this safety check, if re-assigning an already in-use
+version label, you must assign it only to already-loaded versions. For example,
+if you would like to move a label from pointing to version N to version N+1, you
+may first submit a config containing version N and N+1, and then submit a config
+that contains version N+1, the label pointing to N+1 and no version N.</p>
+<h4 id="rest-usage">REST Usage<a class="headerlink" href="#rest-usage" title="Permanent link">¶</a></h4>
+<p>If you're using the REST API surface to make inference requests, instead of
+using</p>
+<p><code>/v1/models/&lt;model name&gt;/versions/&lt;version number&gt;</code></p>
+<p>simply request a version using a label by structuring your request path like so</p>
+<p><code>/v1/models/&lt;model name&gt;/labels/&lt;version label&gt;</code>.</p>
+<p>Note that version label is restricted to a sequence of Word characters, composed
+of alphanumeral characters and underscores (i.e. <code>[a-zA-Z0-9_]+</code>).</p>
+<h2 id="monitoring-configuration">Monitoring Configuration<a class="headerlink" href="#monitoring-configuration" title="Permanent link">¶</a></h2>
+<p>You may provide a monitoring configuration to the server by using the
+<code>--monitoring_config_file</code> flag to specify a file containing a
+<a href="https://github.com/tensorflow/serving/blob/master/tensorflow_serving/config/monitoring_config.proto#L17">MonitoringConfig</a>
+protocol buffer. Here's an example:</p>
+<div class="language-proto highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">prometheus_config</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="n">enable</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="n">path</span><span class="o">:</span><span class="w"> </span><span class="s">"/monitoring/prometheus/metrics"</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>To read metrics from the above monitoring URL, you first need to enable the HTTP
+server by setting the <code>--rest_api_port</code> flag. You can then configure your
+Prometheus Server to pull metrics from Model Server by passing it the values of
+<code>--rest_api_port</code> and <code>path</code>.</p>
+<p>Tensorflow Serving collects all metrics that are captured by Serving as well as
+core Tensorflow.</p>
+<h2 id="batching-configuration">Batching Configuration<a class="headerlink" href="#batching-configuration" title="Permanent link">¶</a></h2>
+<p>Model Server has the ability to batch requests in a variety of settings in order
+to realize better throughput. The scheduling for this batching is done globally
+for all models and model versions on the server to ensure the best possible
+utilization of the underlying resources no matter how many models or model
+versions are currently being served by the server
+(<a href="http://github.com/tensorflow/serving/tree/master/tensorflow_serving/batching/README.md#servers-with-multiple-models-model-versions-or-subtasks">more details</a>).
+You may enable this behavior by setting the <code>--enable_batching</code> flag and control
+it by passing a config to the <code>--batching_parameters_file</code> flag.</p>
+<p>Example batching parameters file:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>max_batch_size { value: 128 }
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>batch_timeout_micros { value: 0 }
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>max_enqueued_batches { value: 1000000 }
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>num_batch_threads { value: 8 }
+</span></code></pre></div>
+<p>Please refer to the
+<a href="http://github.com/tensorflow/serving/tree/master/tensorflow_serving/batching/README.md">batching guide</a>
+for an in-depth discussion and refer to the
+<a href="http://github.com/tensorflow/serving/tree/master/tensorflow_serving/batching/README.md#batch-scheduling-parameters-and-tuning">section on parameters</a>
+to understand how to set the parameters.</p>
+<h2 id="miscellaneous-flags">Miscellaneous Flags<a class="headerlink" href="#miscellaneous-flags" title="Permanent link">¶</a></h2>
+<p>In addition to the flags covered so far in the guide, here we list a few other
+notable ones. For a complete list, please refer to the
+<a href="http://github.com/tensorflow/serving/tree/master/tensorflow_serving/model_servers/main.cc#L59">source code</a>.</p>
+<ul>
+<li><code>--port</code>: Port to listen on for gRPC API</li>
+<li><code>--rest_api_port</code>: Port to listen on for HTTP/REST API</li>
+<li><code>--rest_api_timeout_in_ms</code>: Timeout for HTTP/REST API calls</li>
+<li><code>--file_system_poll_wait_seconds</code>: The period with which the server polls
+    the filesystem for new model versions at each model's respective
+    model_base_path</li>
+<li><code>--enable_model_warmup</code>: Enables <a href="../../tutorials/saved_model_warmup/">model warmup</a> using
+    user-provided PredictionLogs in assets.extra/ directory</li>
+<li><code>--mixed_precision=bfloat16</code>: Enables BF16 Automatic Mixed Precision</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.code.select"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.525ec568.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

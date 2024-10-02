@@ -111,5 +111,5 @@ curl http://localhost:8501/v1/models/<model_name>:predict -X POST \
 -d '{"inputs": [[1,2], [3,4]]}'
 ```
 
-[This page](../../api/api_rest/)
+[This page](../api/api_rest.md)
 contains a more complete API for sending REST requests to the model server.

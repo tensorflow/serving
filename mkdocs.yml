@@ -2,8 +2,6 @@ site_name: "Serving"
 repo_name: "Serving Models"
 repo_url: https://github.com/tensorflow/serving
 
-docs_dir: tensorflow_serving/g3doc
-
 theme:
   name: material
   palette:
@@ -106,6 +104,9 @@ extra_javascript:
 watch:
   - tensorflow_serving
 nav:
+  - Overview:
+      - index.md
+
   - Guide:
       - guide/docker.md
       - guide/setup.md
@@ -128,4 +129,3 @@ nav:
       - Client API (REST): api/api_rest.md
       - Client API (gRPC): https://github.com/tensorflow/serving/tree/master/tensorflow_serving/apis
       - Server API (C++): api/tensorflow_serving.md
-        

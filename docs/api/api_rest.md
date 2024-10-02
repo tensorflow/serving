@@ -427,7 +427,7 @@ $ git clone --depth=1 https://github.com/tensorflow/serving
 
 We will use Docker to run the ModelServer. If you want to install ModelServer
 natively on your system, follow
-[setup instructions](../../guide/setup) to install
+[setup instructions](../guide/setup.md) to install
 instead, and start the ModelServer with `--rest_api_port` option to export
 REST API endpoint (this is not needed when using Docker).
 
