@@ -83,6 +83,7 @@ int main(int argc, char** argv) {
   tensorflow::serving::main::Server::Options options;
   bool display_version = false;
   bool xla_cpu_compilation_enabled = false;
+  bool xla_gpu_compilation_enabled = false;
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &options.grpc_port,
                        "TCP port to listen on for gRPC/HTTP API. Disabled if "
@@ -290,6 +291,10 @@ int main(int argc, char** argv) {
           "Enable XLA:CPU JIT (default is disabled). With XLA:CPU JIT "
           "disabled, models utilizing this feature will return bad Status "
           "on first compilation request."),
+      tensorflow::Flag(
+          "xla_gpu_compilation_enabled", &xla_gpu_compilation_enabled,
+          "EXPERIMENTAL; CAN BE REMOVED ANYTIME! "
+          "Enable both XLA:CPU JIT and XLA:GPU JIT (default is disabled)."),
       tensorflow::Flag("enable_profiler", &options.enable_profiler,
                        "Enable profiler service."),
       tensorflow::Flag("thread_pool_factory_config_file",
@@ -325,7 +330,7 @@ int main(int argc, char** argv) {
     std::cout << "unknown argument: " << argv[1] << "\n" << usage;
   }
 
-  if (!xla_cpu_compilation_enabled) {
+  if (!xla_cpu_compilation_enabled && !xla_gpu_compilation_enabled) {
     tensorflow::DisableXlaCompilation();
   }
 
