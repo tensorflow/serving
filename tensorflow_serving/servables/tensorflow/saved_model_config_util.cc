@@ -79,6 +79,10 @@ void UpdateRewriterConfig(
         session_overrides.batch_op_rewriter_config().SerializeAsString(),
         rewrite_options);
   }
+
+  // Other rewriter options.
+  rewrite_options->set_disable_meta_optimizer(
+      session_overrides.disable_meta_optimizer());
 }
 
 absl::StatusOr<SavedModelConfig> LoadSavedModelConfigOrDefault(

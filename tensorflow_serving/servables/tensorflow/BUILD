@@ -1826,8 +1826,8 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":remote_op_config_rewriter_cc_proto",
         ":saved_model_config_cc_proto",
-        "//tensorflow_serving/servables/tensorflow:remote_op_config_rewriter_cc_proto",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
