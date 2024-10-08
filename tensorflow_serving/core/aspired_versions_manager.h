@@ -224,6 +224,11 @@ class AspiredVersionsManager : public Manager,
   //
   Source<std::unique_ptr<Loader>>::AspiredVersionsCallback
   GetAspiredVersionsCallback() override;
+  
+  void SetPolicyStoragePathSource(
+      FileSystemStoragePathSource* storage_path_source) {
+    aspired_version_policy_->set_storage_path_source(storage_path_source);
+  }
 
  private:
   friend class internal::AspiredVersionsManagerTargetImpl;

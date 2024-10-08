@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <unordered_set>
+
 #include "tensorflow_serving/core/aspired_version_policy.h"
 
 #include <vector>
@@ -32,6 +34,17 @@ absl::optional<ServableId> AspiredVersionPolicy::GetHighestAspiredNewServableId(
     }
   }
   return highest_version_id;
+}
+
+std::unordered_set<int64>
+AspiredVersionPolicy::GetSpecificVersionsInConfig(
+    const std::string& servable_name) const {
+  mutex_lock l(mu_);
+  if (storage_path_source_ == nullptr) {
+    std::unordered_set<int64> empty_set;
+    return empty_set;
+  }
+  return storage_path_source_->GetSpecificVersionsInConfig(servable_name);
 }
 
 }  // namespace serving

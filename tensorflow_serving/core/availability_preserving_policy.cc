@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <unordered_set>
+
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 
 #include <algorithm>
@@ -70,7 +72,11 @@ AvailabilityPreservingPolicy::GetNextAction(
     absl::optional<ServableId> version_to_unload =
         GetLowestServableId(unaspired_serving_versions);
     if (version_to_unload) {
-      return {{Action::kUnload, version_to_unload.value()}};
+      std::unordered_set<int64> specific_versions =
+          GetSpecificVersionsInConfig(version_to_unload.value().name);
+      if (specific_versions.count(version_to_unload.value().version) == 0) {
+        return {{Action::kUnload, version_to_unload.value()}};
+      }
     }
   }
 

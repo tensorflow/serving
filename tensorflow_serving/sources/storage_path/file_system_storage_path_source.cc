@@ -437,6 +437,24 @@ void FileSystemStoragePathSource::SetAspiredVersionsCallback(
   }
 }
 
+std::unordered_set<int64>
+FileSystemStoragePathSource::GetSpecificVersionsInConfig(
+    const std::string& servable_name) const {
+  mutex_lock l(mu_);
+
+  std::unordered_set<int64> specific_versions;
+  for (const FileSystemStoragePathSourceConfig::ServableToMonitor& servable :
+       config_.servables()) {
+    if (servable.servable_name() == servable_name) {
+       specific_versions.insert(
+           servable.servable_version_policy().specific().versions().begin(),
+           servable.servable_version_policy().specific().versions().end());
+       break;
+    }
+  }
+  return specific_versions;
+}
+
 Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
   mutex_lock l(mu_);
   std::map<string, std::vector<ServableData<StoragePath>>>

@@ -363,6 +363,7 @@ Status ServerCore::AddModelsViaModelConfigList() {
 
     // Stow the source components.
     storage_path_source_and_router_ = {source.get(), router.get()};
+    manager_->SetPolicyStoragePathSource(storage_path_source_and_router_->source);
     manager_.AddDependency(std::move(source));
     if (prefix_source_adapter != nullptr) {
       manager_.AddDependency(std::move(prefix_source_adapter));
