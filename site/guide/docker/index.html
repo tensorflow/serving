@@ -1,0 +1,1445 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../..">
+      
+      
+        <link rel="next" href="../setup/">
+      
+      
+      <link rel="icon" href="../../images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.39">
+    
+    
+      
+        <title>TensorFlow Serving with Docker - Serving</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8c3ca2c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tensorflow-serving-with-docker" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Serving" class="md-header__button md-logo" aria-label="Serving" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Serving
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              TensorFlow Serving with Docker
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/tensorflow/serving" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Serving Models
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Serving" class="md-nav__button md-logo" aria-label="Serving" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Serving
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/tensorflow/serving" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Serving Models
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Serving Models
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Guide
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Guide
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    TensorFlow Serving with Docker
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    TensorFlow Serving with Docker
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install Docker
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serving-with-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Serving with Docker
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Serving with Docker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pulling-a-serving-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pulling a serving image
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-a-serving-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running a serving image
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running a serving image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#passing-additional-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Passing additional arguments
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-your-own-serving-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating your own serving image
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serving-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Serving example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serving-with-docker-using-your-gpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      Serving with Docker using your GPU
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Serving with Docker using your GPU">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-nvidia-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install nvidia-docker
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-a-gpu-serving-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running a GPU serving image
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gpu-serving-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      GPU Serving example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#developing-with-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Developing with Docker
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../serving_basic/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Serving a TensorFlow Model
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../serving_config/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tensorflow Serving Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../serving_advanced/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building Standard TensorFlow ModelServer
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../serving_kubernetes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use TensorFlow Serving with Kubernetes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom_servable/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Creating a new kind of servable
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom_source/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Creating a module that discovers new servable paths
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom_op/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Serving TensorFlow models with custom ops
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../signature_defs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SignatureDefs in SavedModel for TensorFlow Serving
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/building_with_docker/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building with docker
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/saved_model_warmup/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SavedModel Warmup
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/performance/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Performance Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/tensorboard/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Profile Inference Requests with TensorBoard
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/api_rest/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client API (REST)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/tensorflow/serving/tree/master/tensorflow_serving/apis" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client API (gRPC)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/tensorflow_serving/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Server API (C++)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install Docker
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serving-with-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Serving with Docker
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Serving with Docker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pulling-a-serving-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pulling a serving image
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-a-serving-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running a serving image
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running a serving image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#passing-additional-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Passing additional arguments
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-your-own-serving-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating your own serving image
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serving-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Serving example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serving-with-docker-using-your-gpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      Serving with Docker using your GPU
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Serving with Docker using your GPU">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-nvidia-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install nvidia-docker
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-a-gpu-serving-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running a GPU serving image
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gpu-serving-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      GPU Serving example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#developing-with-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Developing with Docker
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="tensorflow-serving-with-docker">TensorFlow Serving with Docker<a class="headerlink" href="#tensorflow-serving-with-docker" title="Permanent link">¶</a></h1>
+<p>One of the easiest ways to get started using TensorFlow Serving is with
+<a href="http://www.docker.com/">Docker</a>.</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Download the TensorFlow Serving Docker image and repo</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>docker<span class="w"> </span>pull<span class="w"> </span>tensorflow/serving
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/tensorflow/serving
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Location of demo models</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nv">TESTDATA</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/serving/tensorflow_serving/servables/tensorflow/testdata"</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Start TensorFlow Serving container and open the REST API port</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>docker<span class="w"> </span>run<span class="w"> </span>-t<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">8501</span>:8501<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$TESTDATA</span><span class="s2">/saved_model_half_plus_two_cpu:/models/half_plus_two"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span>-e<span class="w"> </span><span class="nv">MODEL_NAME</span><span class="o">=</span>half_plus_two<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span>tensorflow/serving<span class="w"> </span><span class="p">&amp;</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># Query the model using the predict API</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>curl<span class="w"> </span>-d<span class="w"> </span><span class="s1">'{"instances": [1.0, 2.0, 5.0]}'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8501/v1/models/half_plus_two:predict
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="c1"># Returns =&gt; { "predictions": [2.5, 3.0, 4.5] }</span>
+</span></code></pre></div>
+<p>For additional serving endpoints, see the <a href="../../api/api_rest/">Client REST API</a>.</p>
+<h2 id="install-docker">Install Docker<a class="headerlink" href="#install-docker" title="Permanent link">¶</a></h2>
+<p>General installation instructions are
+<a href="https://docs.docker.com/install/">on the Docker site</a>, but we give some quick
+links here:</p>
+<ul>
+<li><a href="https://docs.docker.com/docker-for-mac/install/">Docker for macOS</a></li>
+<li><a href="https://docs.docker.com/docker-for-windows/install/">Docker for Windows</a>
+    for Windows 10 Pro or later</li>
+<li><a href="https://docs.docker.com/toolbox/">Docker Toolbox</a> for much older versions
+    of macOS, or versions of Windows before Windows 10 Pro</li>
+</ul>
+<h2 id="serving-with-docker">Serving with Docker<a class="headerlink" href="#serving-with-docker" title="Permanent link">¶</a></h2>
+<h3 id="pulling-a-serving-image">Pulling a serving image<a class="headerlink" href="#pulling-a-serving-image" title="Permanent link">¶</a></h3>
+<p>Once you have Docker installed, you can pull the latest TensorFlow Serving
+docker image by running:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>docker<span class="w"> </span>pull<span class="w"> </span>tensorflow/serving
+</span></code></pre></div>
+<p>This will pull down a minimal Docker image with TensorFlow Serving installed.</p>
+<p>See the Docker Hub
+<a href="http://hub.docker.com/r/tensorflow/serving/tags/">tensorflow/serving repo</a> for
+other versions of images you can pull.</p>
+<h3 id="running-a-serving-image">Running a serving image<a class="headerlink" href="#running-a-serving-image" title="Permanent link">¶</a></h3>
+<p>The serving images (both CPU and GPU) have the following properties:</p>
+<ul>
+<li>Port 8500 exposed for gRPC</li>
+<li>Port 8501 exposed for the REST API</li>
+<li>Optional environment variable <code>MODEL_NAME</code> (defaults to <code>model</code>)</li>
+<li>Optional environment variable <code>MODEL_BASE_PATH</code> (defaults to <code>/models</code>)</li>
+</ul>
+<p>When the serving image runs ModelServer, it runs it as follows:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>tensorflow_model_server<span class="w"> </span>--port<span class="o">=</span><span class="m">8500</span><span class="w"> </span>--rest_api_port<span class="o">=</span><span class="m">8501</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>--model_name<span class="o">=</span><span class="si">${</span><span class="nv">MODEL_NAME</span><span class="si">}</span><span class="w"> </span>--model_base_path<span class="o">=</span><span class="si">${</span><span class="nv">MODEL_BASE_PATH</span><span class="si">}</span>/<span class="si">${</span><span class="nv">MODEL_NAME</span><span class="si">}</span>
+</span></code></pre></div>
+<p>To serve with Docker, you'll need:</p>
+<ul>
+<li>An open port on your host to serve on</li>
+<li>A SavedModel to serve</li>
+<li>A name for your model that your client will refer to</li>
+</ul>
+<p>What you'll do is
+<a href="https://docs.docker.com/engine/reference/run/">run the Docker</a> container,
+<a href="https://docs.docker.com/engine/reference/commandline/run/#publish-or-expose-port--p---expose">publish</a>
+the container's ports to your host's ports, and mounting your host's path to the
+SavedModel to where the container expects models.</p>
+<p>Let's look at an example:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span><span class="m">8501</span>:8501<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--mount<span class="w"> </span><span class="nv">type</span><span class="o">=</span>bind,source<span class="o">=</span>/path/to/my_model/,target<span class="o">=</span>/models/my_model<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">MODEL_NAME</span><span class="o">=</span>my_model<span class="w"> </span>-t<span class="w"> </span>tensorflow/serving
+</span></code></pre></div>
+<p>In this case, we've started a Docker container, published the REST API port 8501
+to our host's port 8501, and taken a model we named <code>my_model</code> and bound it to
+the default model base path (<code>${MODEL_BASE_PATH}/${MODEL_NAME}</code> =
+<code>/models/my_model</code>). Finally, we've filled in the environment variable
+<code>MODEL_NAME</code> with <code>my_model</code>, and left <code>MODEL_BASE_PATH</code> to its default value.</p>
+<p>This will run in the container:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>tensorflow_model_server<span class="w"> </span>--port<span class="o">=</span><span class="m">8500</span><span class="w"> </span>--rest_api_port<span class="o">=</span><span class="m">8501</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>--model_name<span class="o">=</span>my_model<span class="w"> </span>--model_base_path<span class="o">=</span>/models/my_model
+</span></code></pre></div>
+<p>If we wanted to publish the gRPC port, we would use <code>-p 8500:8500</code>. You can have
+both gRPC and REST API ports open at the same time, or choose to only open one
+or the other.</p>
+<h4 id="passing-additional-arguments">Passing additional arguments<a class="headerlink" href="#passing-additional-arguments" title="Permanent link">¶</a></h4>
+<p><code>tensorflow_model_server</code> supports many additional arguments that you could pass
+to the serving docker containers. For example, if we wanted to pass a model
+config file instead of specifying the model name, we could do the following:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span><span class="m">8500</span>:8500<span class="w"> </span>-p<span class="w"> </span><span class="m">8501</span>:8501<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>--mount<span class="w"> </span><span class="nv">type</span><span class="o">=</span>bind,source<span class="o">=</span>/path/to/my_model/,target<span class="o">=</span>/models/my_model<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span>--mount<span class="w"> </span><span class="nv">type</span><span class="o">=</span>bind,source<span class="o">=</span>/path/to/my/models.config,target<span class="o">=</span>/models/models.config<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span>-t<span class="w"> </span>tensorflow/serving<span class="w"> </span>--model_config_file<span class="o">=</span>/models/models.config
+</span></code></pre></div>
+<p>This approach works for any of the other command line arguments that
+<code>tensorflow_model_server</code> supports.</p>
+<h3 id="creating-your-own-serving-image">Creating your own serving image<a class="headerlink" href="#creating-your-own-serving-image" title="Permanent link">¶</a></h3>
+<p>If you want a serving image that has your model built into the container, you
+can create your own image.</p>
+<p>First run a serving image as a daemon:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>--name<span class="w"> </span>serving_base<span class="w"> </span>tensorflow/serving
+</span></code></pre></div>
+<p>Next, copy your SavedModel to the container's model folder:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>docker<span class="w"> </span>cp<span class="w"> </span>models/&lt;my<span class="w"> </span>model&gt;<span class="w"> </span>serving_base:/models/&lt;my<span class="w"> </span>model&gt;
+</span></code></pre></div>
+<p>Finally, commit the container that's serving your model by changing <code>MODEL_NAME</code>
+to match your model's name <code>&lt;my model&gt;</code>:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>docker<span class="w"> </span>commit<span class="w"> </span>--change<span class="w"> </span><span class="s2">"ENV MODEL_NAME &lt;my model&gt;"</span><span class="w"> </span>serving_base<span class="w"> </span>&lt;my<span class="w"> </span>container&gt;
+</span></code></pre></div>
+<p>You can now stop <code>serving_base</code></p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>docker<span class="w"> </span><span class="nb">kill</span><span class="w"> </span>serving_base
+</span></code></pre></div>
+<p>This will leave you with a Docker image called <code>&lt;my container&gt;</code> that you can
+deploy and will load your model for serving on startup.</p>
+<h3 id="serving-example">Serving example<a class="headerlink" href="#serving-example" title="Permanent link">¶</a></h3>
+<p>Let's run through a full example where we load a SavedModel and call it using
+the REST API. First pull the serving image:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>docker<span class="w"> </span>pull<span class="w"> </span>tensorflow/serving
+</span></code></pre></div>
+<p>This will pull the latest TensorFlow Serving image with ModelServer installed.</p>
+<p>Next, we will use a toy model called <code>Half Plus Two</code>, which generates <code>0.5 * x +
+2</code> for the values of <code>x</code> we provide for prediction.</p>
+<p>To get this model, first clone the TensorFlow Serving repo.</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/tfserving
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nb">cd</span><span class="w"> </span>/tmp/tfserving
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/tensorflow/serving
+</span></code></pre></div>
+<p>Next, run the TensorFlow Serving container pointing it to this model and opening
+the REST API port (8501):</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span><span class="m">8501</span>:8501<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>--mount<span class="w"> </span><span class="nv">type</span><span class="o">=</span>bind,<span class="se">\</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="nv">source</span><span class="o">=</span>/tmp/tfserving/serving/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_two_cpu,<span class="se">\</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nv">target</span><span class="o">=</span>/models/half_plus_two<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">MODEL_NAME</span><span class="o">=</span>half_plus_two<span class="w"> </span>-t<span class="w"> </span>tensorflow/serving<span class="w"> </span><span class="p">&amp;</span>
+</span></code></pre></div>
+<p>This will run the docker container and launch the TensorFlow Serving Model
+Server, bind the REST API port 8501, and map our desired model from our host to
+where models are expected in the container. We also pass the name of the model
+as an environment variable, which will be important when we query the model.</p>
+<p>To query the model using the predict API, you can run</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>curl<span class="w"> </span>-d<span class="w"> </span><span class="s1">'{"instances": [1.0, 2.0, 5.0]}'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8501/v1/models/half_plus_two:predict
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Older versions of Windows and other systems without curl can download it
+<a href="https://curl.haxx.se/download.html">here</a>.</p>
+</div>
+<p>This should return a set of values:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"predictions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">2.5</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0</span><span class="p">,</span><span class="w"> </span><span class="mf">4.5</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<p>More information on using the RESTful API can be found <a href="../../api/api_rest/">here</a>.</p>
+<h2 id="serving-with-docker-using-your-gpu">Serving with Docker using your GPU<a class="headerlink" href="#serving-with-docker-using-your-gpu" title="Permanent link">¶</a></h2>
+<h3 id="install-nvidia-docker">Install nvidia-docker<a class="headerlink" href="#install-nvidia-docker" title="Permanent link">¶</a></h3>
+<p>Before serving with a GPU, in addition to
+<a href="#install-docker">installing Docker</a>, you will need:</p>
+<ul>
+<li>Up-to-date <a href="http://www.nvidia.com/drivers">NVIDIA drivers</a> for your system</li>
+<li><code>nvidia-docker</code>: You can follow the
+    <a href="https://github.com/NVIDIA/nvidia-docker#quick-start">installation instructions here</a></li>
+</ul>
+<h3 id="running-a-gpu-serving-image">Running a GPU serving image<a class="headerlink" href="#running-a-gpu-serving-image" title="Permanent link">¶</a></h3>
+<p>Running a GPU serving image is identical to running a CPU image. For more
+details, see <a href="#running-a-serving-image">running a serving image</a>.</p>
+<h3 id="gpu-serving-example">GPU Serving example<a class="headerlink" href="#gpu-serving-example" title="Permanent link">¶</a></h3>
+<p>Let's run through a full example where we load a model with GPU-bound ops and
+call it using the REST API.</p>
+<p>First install <a href="https://github.com/NVIDIA/nvidia-docker#quick-start"><code>nvidia-docker</code></a>. Next you can pull the
+latest TensorFlow Serving GPU docker image by running:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>docker<span class="w"> </span>pull<span class="w"> </span>tensorflow/serving:latest-gpu
+</span></code></pre></div>
+<p>This will pull down an minimal Docker image with ModelServer built for running
+on GPUs installed.</p>
+<p>Next, we will use a toy model called <code>Half Plus Two</code>, which generates <code>0.5 * x +
+2</code> for the values of <code>x</code> we provide for prediction. This model will have ops
+bound to the GPU device, and will not run on the CPU.</p>
+<p>To get this model, first clone the TensorFlow Serving repo.</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/tfserving
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="nb">cd</span><span class="w"> </span>/tmp/tfserving
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/tensorflow/serving
+</span></code></pre></div>
+<p>Next, run the TensorFlow Serving container pointing it to this model and opening
+the REST API port (8501):</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-p<span class="w"> </span><span class="m">8501</span>:8501<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>--mount<span class="w"> </span><span class="nv">type</span><span class="o">=</span>bind,<span class="se">\</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="nv">source</span><span class="o">=</span>/tmp/tfserving/serving/tensorflow_serving/servables/tensorflow/testdata/saved_model_half_plus_two_gpu,<span class="se">\</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="nv">target</span><span class="o">=</span>/models/half_plus_two<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">MODEL_NAME</span><span class="o">=</span>half_plus_two<span class="w"> </span>-t<span class="w"> </span>tensorflow/serving:latest-gpu<span class="w"> </span><span class="p">&amp;</span>
+</span></code></pre></div>
+<p>This will run the docker container, launch the
+TensorFlow Serving Model Server, bind the REST API port 8501, and map our
+desired model from our host to where models are expected in the container. We
+also pass the name of the model as an environment variable, which will be
+important when we query the model.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Before querying the model, be sure to wait till you see a message like the
+following, indicating that the server is ready to receive requests:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="m">2018</span>-07-27<span class="w"> </span><span class="m">00</span>:07:20.773693:<span class="w"> </span>I<span class="w"> </span>tensorflow_serving/model_servers/main.cc:333<span class="o">]</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>Exporting<span class="w"> </span>HTTP/REST<span class="w"> </span>API<span class="w"> </span>at:localhost:8501<span class="w"> </span>...
+</span></code></pre></div>
+</div>
+<p>To query the model using the predict API, you can run</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>curl<span class="w"> </span>-d<span class="w"> </span><span class="s1">'{"instances": [1.0, 2.0, 5.0]}'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8501/v1/models/half_plus_two:predict
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Older versions of Windows and other systems without curl can download it
+<a href="https://curl.haxx.se/download.html">here</a>.</p>
+</div>
+<p>This should return a set of values:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"predictions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">2.5</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0</span><span class="p">,</span><span class="w"> </span><span class="mf">4.5</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Trying to run the GPU model on a machine without a GPU or without a working
+GPU build of TensorFlow Model Server will result in an error that looks like:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>Cannot<span class="w"> </span>assign<span class="w"> </span>a<span class="w"> </span>device<span class="w"> </span><span class="k">for</span><span class="w"> </span>operation<span class="w"> </span><span class="s1">'a'</span>:<span class="w"> </span>Operation<span class="w"> </span>was<span class="w"> </span>explicitly<span class="w"> </span>assigned<span class="w"> </span>to<span class="w"> </span>/device:GPU:0
+</span></code></pre></div>
+</div>
+<p>More information on using the RESTful API can be found <a href="../../api/api_rest/">here</a>.</p>
+<h2 id="developing-with-docker">Developing with Docker<a class="headerlink" href="#developing-with-docker" title="Permanent link">¶</a></h2>
+<p>For instructions on how to build and develop Tensorflow Serving, please refer to
+<a href="../../tutorials/building_with_docker/">Developing with Docker guide</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.code.select"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.525ec568.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
