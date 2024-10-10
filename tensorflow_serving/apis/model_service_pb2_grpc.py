@@ -19,11 +19,15 @@
 
 import grpc
 
-from tensorflow_serving.apis import get_model_status_pb2 as tensorflow__serving_dot_apis_dot_get__model__status__pb2
-from tensorflow_serving.apis import model_management_pb2 as tensorflow__serving_dot_apis_dot_model__management__pb2
+from tensorflow_serving.apis import (
+  get_model_status_pb2 as tensorflow__serving_dot_apis_dot_get__model__status__pb2,
+)
+from tensorflow_serving.apis import (
+  model_management_pb2 as tensorflow__serving_dot_apis_dot_model__management__pb2,
+)
 
 
-class ModelServiceStub(object):
+class ModelServiceStub:
   """ModelService provides methods to query and update the state of the server,
   e.g. which models/versions are being served.
   """
@@ -50,7 +54,7 @@ class ModelServiceStub(object):
     )
 
 
-class ModelServiceServicer(object):
+class ModelServiceServicer:
   """ModelService provides methods to query and update the state of the server,
   e.g. which models/versions are being served.
   """
