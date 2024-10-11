@@ -27,8 +27,8 @@ namespace tensorflow {
 namespace serving {
 namespace session_bundle {
 
-Status MaybeLoadSavedModelConfig(const std::string& export_dir,
-                                 SessionOptions* session_options) {
+absl::Status MaybeLoadSavedModelConfig(const std::string& export_dir,
+                                       SessionOptions* session_options) {
   absl::StatusOr<SavedModelConfig> saved_model_config =
       LoadSavedModelConfigOrDefault(export_dir);
   if (!saved_model_config.ok()) {
@@ -40,7 +40,7 @@ Status MaybeLoadSavedModelConfig(const std::string& export_dir,
                              ->mutable_rewrite_options());
   }
 
-  return Status();
+  return absl::Status();
 }
 
 }  // namespace session_bundle
