@@ -85,7 +85,8 @@ class TFRTHttpRestApiHandlerTest : public ::testing::Test {
   TFRTHttpRestApiHandlerTest()
       : handler_(/*timeout_in_ms=*/10000, GetServerCore()) {}
 
-  static Status CreateServerCore(std::unique_ptr<ServerCore>* server_core) {
+  static absl::Status CreateServerCore(
+      std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);
@@ -158,7 +159,7 @@ class TFRTHttpRestApiHandlerTest : public ::testing::Test {
 
 std::unique_ptr<ServerCore> TFRTHttpRestApiHandlerTest::server_core_;
 
-Status CompareJson(const string& json1, const string& json2) {
+absl::Status CompareJson(const string& json1, const string& json2) {
   rapidjson::Document doc1;
   if (doc1.Parse(json1.c_str()).HasParseError()) {
     return errors::InvalidArgument(
@@ -175,7 +176,7 @@ Status CompareJson(const string& json1, const string& json2) {
     return errors::InvalidArgument("JSON Different. JSON1: ", json1,
                                    "JSON2: ", json2);
   }
-  return Status();
+  return absl::Status();
 }
 
 TEST_F(TFRTHttpRestApiHandlerTest, kPathRegex) {
@@ -187,7 +188,7 @@ TEST_F(TFRTHttpRestApiHandlerTest, kPathRegex) {
 TEST_F(TFRTHttpRestApiHandlerTest, UnsupportedApiCalls) {
   HeaderList headers;
   string model_name, method, output;
-  Status status;
+  absl::Status status;
   status = handler_.ProcessRequest("GET", "/v1/foo", "", &headers, &model_name,
                                    &method, &output);
   EXPECT_TRUE(errors::IsInvalidArgument(status));
@@ -264,7 +265,7 @@ TEST_F(TFRTHttpRestApiHandlerTest, UnsupportedApiCalls) {
 TEST_F(TFRTHttpRestApiHandlerTest, PredictModelNameVersionErrors) {
   HeaderList headers;
   string model_name, method, output;
-  Status status;
+  absl::Status status;
   // 'foo' is not a valid model name.
   status = handler_.ProcessRequest("POST", "/v1/models/foo:predict",
                                    R"({ "instances": [1] })", &headers,
@@ -287,7 +288,7 @@ TEST_F(TFRTHttpRestApiHandlerTest, PredictModelNameVersionErrors) {
 TEST_F(TFRTHttpRestApiHandlerTest, PredictRequestErrors) {
   HeaderList headers;
   string model_name, method, output;
-  Status status;
+  absl::Status status;
   const string& req_path =
       absl::StrCat("/v1/models/", kTestModelName, ":predict");
 
@@ -334,7 +335,7 @@ TEST_F(TFRTHttpRestApiHandlerTest, PredictRequestErrors) {
 TEST_F(TFRTHttpRestApiHandlerTest, Predict) {
   HeaderList headers;
   string model_name, method, output;
-  Status status;
+  absl::Status status;
   // Query latest version.
   TF_EXPECT_OK(handler_.ProcessRequest(
       "POST", absl::StrCat("/v1/models/", kTestModelName, ":predict"),
@@ -391,7 +392,7 @@ TEST_F(TFRTHttpRestApiHandlerTest, Predict) {
 TEST_F(TFRTHttpRestApiHandlerTest, Regress) {
   HeaderList headers;
   string model_name, method, output;
-  Status status;
+  absl::Status status;
   // Query latest version.
   TF_EXPECT_OK(handler_.ProcessRequest(
       "POST", absl::StrCat("/v1/models/", kTestModelName, ":regress"),
@@ -427,7 +428,7 @@ TEST_F(TFRTHttpRestApiHandlerTest, Regress) {
 TEST_F(TFRTHttpRestApiHandlerTest, Classify) {
   HeaderList headers;
   string model_name, method, output;
-  Status status;
+  absl::Status status;
   // Query latest version.
   TF_EXPECT_OK(handler_.ProcessRequest(
       "POST", absl::StrCat("/v1/models/", kTestModelName, ":classify"),
@@ -452,7 +453,7 @@ TEST_F(TFRTHttpRestApiHandlerTest, Classify) {
 TEST_F(TFRTHttpRestApiHandlerTest, GetStatus) {
   HeaderList headers;
   string model_name, method, output;
-  Status status;
+  absl::Status status;
 
   // Get status for all versions.
   TF_EXPECT_OK(handler_.ProcessRequest(

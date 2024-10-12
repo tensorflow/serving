@@ -74,7 +74,7 @@ absl::Time TfrtPredictionServiceImpl::GetRequestDeadline(
 ::grpc::Status TfrtPredictionServiceImpl::GetModelMetadata(
     ::grpc::ServerContext *context, const GetModelMetadataRequest *request,
     GetModelMetadataResponse *response) {
-  const ::tensorflow::Status tf_status =
+  const absl::Status tf_status =
       TFRTGetModelMetadataImpl::GetModelMetadata(core_, *request, response);
   const ::grpc::Status status = ToGRPCStatus(tf_status);
   if (!status.ok()) {
