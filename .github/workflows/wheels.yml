@@ -17,14 +17,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build package
-        id: build-package
-        uses: ./.github/reusable-build
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Build package
+        id: build-package
+        uses: ./.github/reusable-build
         with:
           python-version: ${{ matrix.python-version }}
 
