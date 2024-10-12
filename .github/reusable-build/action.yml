@@ -18,7 +18,15 @@ runs:
       shell: bash
       run: |
         sudo apt update
-        sudo apt install -y automake build-essential ca-certificates curl git gcc-10 g++-10 libcurl3-dev libfreetype6-dev libpng-dev libtool libzmq3-dev mlocate openjdk-8-jdk openjdk-8-jre-headless pkg-config python-dev software-properties-common swig unzip wget zip zlib1g-dev
+        sudo apt install -y automake build-essential ca-certificates curl git gcc-10 g++-10 libcurl3-dev libfreetype6-dev libpng-dev libtool libzmq3-dev mlocate openjdk-8-jdk openjdk-8-jre-headless pkg-config software-properties-common swig unzip wget zip zlib1g-dev
+
+    - name: Install python dependencies
+      shell: bash
+      run: |
+        # This uses the pre-PEP517 setuptools approach, which means
+        # wheels aren't built in isolated environments. We therefore need to install
+        # a bunch of build-time stuff here.
+        pip install future>=0.17.1 grpcio h5py keras_applications>=1.0.8 keras_preprocessing>=1.1.0 mock numpy portpicker requests
 
     - uses: bazel-contrib/setup-bazel@0.8.5
       name: Set up Bazel
