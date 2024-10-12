@@ -29,16 +29,16 @@ namespace serving {
 
 namespace session_bundle {
 
-Status ConvertSignaturesToSignatureDefs(MetaGraphDef* meta_graph_def) {
+absl::Status ConvertSignaturesToSignatureDefs(MetaGraphDef* meta_graph_def) {
   return errors::Unimplemented("Session Bundle is deprecated and removed.");
 }
 
-Status ConvertSessionBundleToSavedModelBundle(
+absl::Status ConvertSessionBundleToSavedModelBundle(
     SessionBundle& session_bundle, SavedModelBundle* saved_model_bundle) {
   return errors::Unimplemented("Session Bundle is deprecated and removed.");
 }
 
-Status LoadSessionBundleOrSavedModelBundle(
+absl::Status LoadSessionBundleOrSavedModelBundle(
     const SessionOptions& session_options, const RunOptions& run_options,
     const string& export_dir, const std::unordered_set<string>& tags,
     bool maybe_load_saved_model_config, SavedModelBundle* bundle,
@@ -52,7 +52,7 @@ Status LoadSessionBundleOrSavedModelBundle(
                                              is_session_bundle);
 }
 
-Status LoadSessionBundleOrSavedModelBundle(
+absl::Status LoadSessionBundleOrSavedModelBundle(
     const SessionOptions& session_options, const RunOptions& run_options,
     const string& export_dir, const std::unordered_set<string>& tags,
     SavedModelBundle* bundle, bool* is_session_bundle) {
@@ -68,7 +68,7 @@ Status LoadSessionBundleOrSavedModelBundle(
     return LoadSavedModel(session_options, run_options, export_dir, tags,
                           bundle);
   }
-  return Status(
+  return absl::Status(
       static_cast<absl::StatusCode>(absl::StatusCode::kNotFound),
       strings::StrCat("Specified file path does not appear to contain a "
                       "SavedModel bundle (should have a file called "
@@ -77,42 +77,44 @@ Status LoadSessionBundleOrSavedModelBundle(
                       export_dir));
 }
 
-Status LoadSessionBundleFromPathUsingRunOptions(
+absl::Status LoadSessionBundleFromPathUsingRunOptions(
     const SessionOptions& session_options, const RunOptions& run_options,
     const StringPiece export_dir, SessionBundle* bundle) {
   return errors::Unimplemented("Session Bundle is deprecated and removed.");
 }
 
-Status SetSignatures(const Signatures& signatures,
-                     tensorflow::MetaGraphDef* meta_graph_def) {
+absl::Status SetSignatures(const Signatures& signatures,
+                           tensorflow::MetaGraphDef* meta_graph_def) {
   return errors::Unimplemented("Session Bundle is deprecated and removed.");
 }
 
-Status GetClassificationSignature(
+absl::Status GetClassificationSignature(
     const tensorflow::MetaGraphDef& meta_graph_def,
     ClassificationSignature* signature) {
   return errors::Unimplemented("Session Bundle is deprecated and removed.");
 }
 
-Status GetRegressionSignature(const tensorflow::MetaGraphDef& meta_graph_def,
-                              RegressionSignature* signature) {
+absl::Status GetRegressionSignature(
+    const tensorflow::MetaGraphDef& meta_graph_def,
+    RegressionSignature* signature) {
   return errors::Unimplemented("Session Bundle is deprecated and removed.");
 }
 
-Status RunClassification(const ClassificationSignature& signature,
-                         const Tensor& input, Session* session, Tensor* classes,
-                         Tensor* scores) {
+absl::Status RunClassification(const ClassificationSignature& signature,
+                               const Tensor& input, Session* session,
+                               Tensor* classes, Tensor* scores) {
   return errors::Unimplemented("Session Bundle is deprecated and removed.");
 }
 
-Status RunRegression(const RegressionSignature& signature, const Tensor& input,
-                     Session* session, Tensor* output) {
+absl::Status RunRegression(const RegressionSignature& signature,
+                           const Tensor& input, Session* session,
+                           Tensor* output) {
   return errors::Unimplemented("Session Bundle is deprecated and removed.");
 }
 
-Status GetNamedSignature(const string& name,
-                         const tensorflow::MetaGraphDef& meta_graph_def,
-                         Signature* default_signature) {
+absl::Status GetNamedSignature(const string& name,
+                               const tensorflow::MetaGraphDef& meta_graph_def,
+                               Signature* default_signature) {
   return errors::Unimplemented("Session Bundle is deprecated and removed.");
 }
 
