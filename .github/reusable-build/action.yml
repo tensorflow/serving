@@ -1,0 +1,56 @@
+name: Reusable action which builds serving
+
+inputs:
+  python-version:
+    description: 'Python version'
+    required: true
+env:
+  BAZEL_VERSION: '6.5.0'
+runs:
+  using: 'composite'
+  steps:
+  # - name: Build the package for Python ${{ inputs.python-version }}
+  #   shell: bash
+  #   run: |
+  #     docker build -f tensorflow_serving/tools/docker/Dockerfile.devel
+
+    - name: Install runner dependencies
+      shell: bash
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential curl git swig unzip wget zip zlib1g-dev
+
+    - uses: bazel-contrib/setup-bazel@0.8.5
+      name: Set up Bazel
+      with:
+        # Avoid downloading Bazel every time.
+        bazelisk-cache: true
+        # Store build cache per workflow.
+        disk-cache: ${{ github.workflow }}-${{ hashFiles('.github/workflows/wheels.yml') }}
+        # Share repository cache between workflows.
+        repository-cache: true
+
+    - name: Verify bazel installation
+      shell: bash
+      run: |
+        which bazel
+        bazel info
+        bazel version
+
+    - name: Build the package with bazel
+      shell: bash
+      run: |
+        bazel build --color=yes --curses=yes ${TF_SERVING_BAZEL_OPTIONS} --verbose_failures --output_filter=DONT_MATCH_ANYTHING ${TF_SERVING_BUILD_OPTIONS} --config=kokoro tensorflow_serving/model_servers:tensorflow_model_server
+        # cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server /usr/local/bin
+
+        # Build and install TensorFlow Serving API
+        bazel build --color=yes --curses=yes ${TF_SERVING_BAZEL_OPTIONS} --verbose_failures --output_filter=DONT_MATCH_ANYTHING ${TF_SERVING_BUILD_OPTIONS} --config=kokoro tensorflow_serving/tools/pip_package:build_pip_package
+        bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package /tmp/pip
+        cp /tmp/pip/tensorflow_serving_api-*.whl ./dist/
+        # pip --no-cache-dir install --upgrade /tmp/pip/tensorflow_serving_api-*.whl
+
+    - name: Upload wheel artifact for Python ${{ inputs.python-version }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ml-metadata-wheel-py${{ inputs.python-version }}
+        path: dist/tensorflow_serving_api-*.whl

@@ -1,0 +1,65 @@
+name: Build serving wheels
+
+on:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build package
+        id: build-package
+        uses: ./.github/reusable-build
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: List and check wheels
+        shell: bash
+        run: |
+          # Pin transitive dependency on pkginfo until https://github.com/pypa/twine/issues/1070 is
+          # fixed
+          pip install twine pkginfo>=1.10.0
+          ${{ matrix.ls || 'ls -lh' }} wheels/
+          twine check wheels/*
+
+
+  upload_to_pypi:
+    name: Upload to PyPI
+    runs-on: ubuntu-latest
+    if: (github.event_name == 'release' && startsWith(github.ref, 'refs/tags')) || (github.event_name == 'workflow_dispatch')
+    needs: [build]
+    environment:
+      name: pypi
+      url: https://pypi.org/p/tensorflow_serving/
+    permissions:
+      id-token: write
+    steps:
+      - name: Retrieve wheels
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: wheels
+
+      - name: List the build artifacts
+        run: |
+          ls -lAs wheels/
+
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages_dir: wheels/
