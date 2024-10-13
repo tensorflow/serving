@@ -5,7 +5,7 @@ inputs:
     description: 'Python version'
     required: true
 env:
-  BAZEL_VERSION: '6.5.0'
+  USE_BAZEL_VERSION: '6.5.0'
 runs:
   using: 'composite'
   steps:
@@ -48,11 +48,11 @@ runs:
     - name: Build the package with bazel
       shell: bash
       run: |
-        bazel build --color=yes --curses=yes ${TF_SERVING_BAZEL_OPTIONS} --verbose_failures --output_filter=DONT_MATCH_ANYTHING ${TF_SERVING_BUILD_OPTIONS} --config=kokoro tensorflow_serving/model_servers:tensorflow_model_server
+        bazel build --output_filter=DONT_MATCH_ANYTHING --config=kokoro tensorflow_serving/model_servers:tensorflow_model_server
         # cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server /usr/local/bin
 
         # Build and install TensorFlow Serving API
-        bazel build --color=yes --curses=yes ${TF_SERVING_BAZEL_OPTIONS} --verbose_failures --output_filter=DONT_MATCH_ANYTHING ${TF_SERVING_BUILD_OPTIONS} --config=kokoro tensorflow_serving/tools/pip_package:build_pip_package
+        bazel build --output_filter=DONT_MATCH_ANYTHING --config=kokoro tensorflow_serving/tools/pip_package:build_pip_package
         bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package /tmp/pip
         cp /tmp/pip/tensorflow_serving_api-*.whl ./dist/
         # pip --no-cache-dir install --upgrade /tmp/pip/tensorflow_serving_api-*.whl
