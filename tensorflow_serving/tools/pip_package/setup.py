@@ -66,6 +66,11 @@ REQUIRED_PACKAGES = [
     'protobuf>=3.20.3,<5.0.0dev,!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5',
 ] + _TF_REQ
 
+# Get documentation build requirements
+with open("requirements-docs.txt", "r") as fp:
+  docs_reqs = fp.readlines()
+docs_reqs = [req.replace("\n", "") for req in docs_reqs]
+
 setup(
     name=project_name,
     version=_VERSION.replace('-', ''),
@@ -78,6 +83,7 @@ setup(
     url='http://tensorflow.org/serving',
     keywords='tensorflow serving machine learning api libraries',
     install_requires=REQUIRED_PACKAGES,
+    extras_require={"docs": docs_reqs},
     # Supported Python versions. Match to what TF needs here:
     #   https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/pip_package/setup.py
     python_requires='>=3.9',

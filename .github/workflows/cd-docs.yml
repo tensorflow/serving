@@ -38,7 +38,7 @@ jobs:
             mkdocs-material-
 
       - name: Install Dependencies
-        run: pip install mkdocs mkdocs-material mkdocstrings[python] griffe-inherited-docstrings mkdocs-autorefs black mkdocs-jupyter mkdocs-caption mkdocstrings-c
+        run: pip install -r tensorflow_serving/tools/pip_package/requirements-docs.txt
 
       - name: Deploy to GitHub Pages
         run: mkdocs gh-deploy --force
