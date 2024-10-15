@@ -35,11 +35,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          sudo apt install -y graphviz
+          sudo apt install -y doxygen graphviz
           pip install -r tensorflow_serving/tools/pip_package/requirements-docs.txt
-
-      - name: Install Doxygen
-        uses: AdarshRawat1/Install-Doxygen@v1.0
 
       - name: Deploy to GitHub Pages
         run: |
