@@ -1,8 +1,6 @@
 from shutil import which
 from subprocess import run
 from pathlib import Path
-
-# import mkdocs
 from mkdocs.structure.files import File
 
 
