@@ -16,7 +16,7 @@ if not doxyfile_path.is_file():
 src_dir = Path.cwd() / "tmp-cpp-api-docs/html"
 src_dir.mkdir(exist_ok=True, parents=True)
 
-dest_dir = Path("api/cpp/html")
+dest_dir = Path("api/cpp/")
 
 
 def on_pre_build(config):
