@@ -33,6 +33,9 @@ jobs:
           restore-keys: |
             mkdocs-material-
 
+      - name: Install Doxygen
+        uses: AdarshRawat1/Install-Doxygen@v1.0
+            
       - name: Install Dependencies
         run: pip install -r tensorflow_serving/tools/pip_package/requirements-docs.txt
 
