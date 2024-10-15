@@ -33,11 +33,13 @@ jobs:
           restore-keys: |
             mkdocs-material-
 
+      - name: Install Dependencies
+        run: |
+          sudo apt install -y graphviz
+          pip install -r tensorflow_serving/tools/pip_package/requirements-docs.txt
+
       - name: Install Doxygen
         uses: AdarshRawat1/Install-Doxygen@v1.0
-            
-      - name: Install Dependencies
-        run: pip install -r tensorflow_serving/tools/pip_package/requirements-docs.txt
 
       - name: Deploy to GitHub Pages
         run: |
