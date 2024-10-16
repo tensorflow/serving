@@ -20,6 +20,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/framework/tensor.pb.h"
@@ -31,6 +32,8 @@ limitations under the License.
 #include "tensorflow/core/protobuf/rewriter_config.pb.h"
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_config.pb.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_config_util.h"
 #include "tensorflow_serving/servables/tensorflow/tflite_session.h"
 #include "tensorflow_serving/session_bundle/session_bundle_util.h"
 
@@ -125,15 +128,16 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
   if (saved_model_tags.empty()) {
     saved_model_tags.insert(kSavedModelTagServe);
   }
+  bool is_tflite = config_.prefer_tflite_model() && TfLiteModelFound(path);
   const auto& session_options = [&]() {
     auto result = GetSessionOptions(config_);
     string mixed_precision_value = config_.mixed_precision();
+    tensorflow::ConfigProto& config = result.config;
+    GraphOptions* gopt = config.mutable_graph_options();
+    RewriterConfig* rwcfg = gopt->mutable_rewrite_options();
     if (!mixed_precision_value.empty()) {
       if (mixed_precision_value == "bfloat16") {
         LOG(INFO) << "Running inference with bfloat16 auto mixed precision";
-        tensorflow::ConfigProto& config = result.config;
-        GraphOptions* gopt = config.mutable_graph_options();
-        RewriterConfig* rwcfg = gopt->mutable_rewrite_options();
         rwcfg->set_auto_mixed_precision_onednn_bfloat16(RewriterConfig::ON);
       } else {
         LOG(WARNING)
@@ -147,10 +151,20 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
       session_metadata->set_name(metadata->servable_id.name);
       session_metadata->set_version(metadata->servable_id.version);
     }
+    // Set other options from saved model config.
+    if (!is_tflite) {
+      absl::StatusOr<SavedModelConfig> model_config =
+          LoadSavedModelConfigOrDefault(path);
+      if (!model_config.ok()) {
+        LOG(WARNING) << "Failed to load saved model config: "
+                     << model_config.status();
+      } else if (model_config->has_session_overrides()) {
+        UpdateRewriterConfig(model_config->session_overrides(), rwcfg);
+      }
+    }
     return result;
   }();
 
-  bool is_tflite = config_.prefer_tflite_model() && TfLiteModelFound(path);
   if (is_tflite) {
     int num_tflite_pools = config_.num_tflite_pools();
     if (num_tflite_pools == 0 && config_.num_tflite_interpreters() > 0) {
