@@ -1,0 +1,123 @@
+line-length = 88
+
+[lint]
+select = [
+    # pycodestyle
+    "E",
+    "W",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # pep8 naming
+    "N",
+    # pydocstyle
+    "D",
+    # annotations
+    "ANN",
+    # debugger
+    "T10",
+    # flake8-pytest
+    "PT",
+    # flake8-return
+    "RET",
+    # flake8-unused-arguments
+    "ARG",
+    # flake8-fixme
+    "FIX",
+    # flake8-eradicate
+    "ERA",
+    # pandas-vet
+    "PD",
+    # numpy-specific rules
+    "NPY",
+]
+ignore = [
+    "D104", # Missing docstring in public package
+    "D100", # Missing docstring in public module
+    "D211", # No blank line before class
+    "D213", # Multiline summary second line
+    "PD901", # Avoid using 'df' for pandas dataframes. Perfectly fine in functions with limited scope
+    "ANN201", # Missing return type annotation for public function (makes no sense for NoneType return types...)
+    "ANN101", # Missing type annotation for `self`
+    "ANN102", # Missing type annotation for `cls` in classmethod
+    "ANN204", # Missing return type annotation for special method
+    "ANN206", # Missing return type annotation for classmethod
+    "ANN002", # Missing type annotation for `*args`
+    "ANN003", # Missing type annotation for `**kwargs`
+    "D105", # Missing docstring in magic method
+    "D203", # 1 blank line before after class docstring
+    "D204", # 1 blank line required after class docstring
+    "D413", # 1 blank line after parameters
+    "SIM108", # Simplify if/else to one line; not always clearer
+    "D206", # Advised to disable by ruff-format
+    "E501", # Advised to disable by ruff-format
+    "W191", # Advised to disable by ruff-format
+    "N802", # Function name should be lowercase; unittest uses mixed case
+    "D107", # Missing docstring in `__init__`
+
+    # These are issues which remain to be fixed
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D401", # First line of docstring should be in imperative mood
+    "D404", # First word of the docstring should not be "This"
+    "ANN001", # Missing type annotation for function argument
+    "ANN202", # Missing return type for private function
+    "ANN205", # Missing return type for staticmethod
+    "B024", # <class> is an abstract base class,  but it has no abstract methods
+    "FIX002", # Line contains TODO, consider resolving the issue
+    "ANN401", # Dynamically typed expressions (typing.Any) are disallowed
+    "UP008", # Use `super()` instead of `super(__class__, self)`
+    "SIM102", # Use a single `if` statement instead of nested `if` statements
+    "UP031", # Use format specifiers instead of percent format
+    "SIM115", # Use context handler for opening files
+    "B008", # Do not perform function call in argument defaults
+    "ARG001", # Unused function argument
+    "F841", # Local variable is assigned to but never used
+    "ERA001", # Found commented-out code
+    "RET505", # Unnecessary `else` after `return` statement
+    "RET503", # Missing explicit `return` at the end of function able to return non-`None` value
+    "UP029", # Unnecessary builtin import
+    "ARG005", # Unused lambda argument
+    "E402", # Module level import not at top of file
+    "F403", # Wildcard import
+    "NPY002", # Replace legacy numpy call
+    "D200", # One-line docstring should fit on one line
+    "D205", # 1 blank line required between summary line and description
+    "RET504", # Unnecessary assignment before return
+    "ARG002", # Unused method argument
+]
+
+[lint.per-file-ignores]
+"__init__.py" = [
+    "F401", # Unused import
+]
+"*_test_base.py" = [
+    "ANN001", # Type annotations aren't needed for tests; these are fixtures or parametrizations
+    "PT009", # Use a regular `assert` instead of a unittest-style `assertEqual`
+    "PT027", # Use `pytest.raises` instead of unittest-style `assertRaisesRegex`
+
+    # Missing docstrings; probably want to fill these out for tests. For now, we just disable
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+
+]
+"*_test.py" = [
+    "ANN001", # Type annotations aren't needed for tests; these are fixtures or parametrizations
+    "PT009", # Use a regular `assert` instead of a unittest-style `assertEqual`
+    "PT027", # Use `pytest.raises` instead of unittest-style `assertRaisesRegex`
+
+    # Missing docstrings; probably want to fill these out for tests. For now, we just disable
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+
+]
+
+[lint.pydocstyle]
+convention = "google"

@@ -25,18 +25,15 @@ Usage: mnist_saved_model.py [--training_iteration=x] [--model_version=y] \
     export_dir
 """
 
-from __future__ import print_function
 
 import os
 import sys
 
-# This is a placeholder for a Google-internal import.
-
-import tensorflow as tf
-
-from tensorflow.python.ops import lookup_ops
-
 import mnist_input_data
+
+# This is a placeholder for a Google-internal import.
+import tensorflow as tf
+from tensorflow.python.ops import lookup_ops
 
 tf.compat.v1.app.flags.DEFINE_integer('training_iteration', 1000,
                                       'number of training iterations.')
