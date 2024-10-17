@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package tensorflow.serving;
 option cc_enable_arenas = true;
+option use_java_stubby_library = false;
 
 import "tensorflow_serving/apis/classification.proto";
 import "tensorflow_serving/apis/get_model_metadata.proto";

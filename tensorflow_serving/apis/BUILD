@@ -194,6 +194,7 @@ serving_proto_library(
     srcs = ["prediction_service.proto"],
     has_services = 1,
     cc_grpc_version = 1,
+    use_java_stubby_library = False,
     deps = [
         ":classification_proto",
         ":get_model_metadata_proto",
