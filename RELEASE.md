@@ -1,3 +1,55 @@
+# Release 2.18.0-rc0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Extend GbmcChannel interface to implement redfish channel for TPUs (commit: 683cb64abb560324c9b1d391cdfe5b56ca1ee25a)
+* Add tests to validate monitoring states. (commit: fab5c054d5c4dd18b69e21326367f0c5acae2028)
+* Disable xnn_enable_avx256vnnigfni (commit: 19f9ccf9a3ddedc93812da7eac28554ebbc1f8dc)
+* Reduce duplicate code using a test class (commit: 51cf3a796d87ed8726bf5525be6481b28de0ef94)
+* Define an option to specify different IFRT client. (commit: aca5cfa285061815ab840274264fc6993cd620eb)
+* Add release notes for tf-serving 2.17.0 (commit: b72a86e5768017b1699b2c463953d9a5f7db1583)
+* avoid SetNumLoadThreads stall the server by forcing reset ThreadPool (commit: 6b9cf7c8777fd79868e73dc07663517993933be0)
+* Add max_enqueued_batches option for model servers (commit: 7c99259e82cfdc4f12dbd5715acd6d17fc936b5d)
+* Remove gpr_set_log_verbosity from grpc_client.cc (commit: 6e05a385d7f4591d46ae7b1d1a02244a5340a29b)
+* Add option to stop retrying on permanent loading errors. (commit: 9ba72fa8a5df6e320caf207bd88673ad4c88e12e)
+* Add the batch_padding_policy attribute the tensorflow serving api. (commit: ea02141a00089d77561db46aac0e2ca07bd44b2f)
+* Improve handling of large JSON objects. (commit: 6cb013167d13f2ed3930aabb86dbc2c8c53f5adf)
+* Silence warnings from external code (commit: 010d61a30f549423f61a3fa29ef0f2f0c8ed7f6c)
+* Migration of the histogram header and cc code for TSL. Move tsl/lib/histogram to compiler/tsl/lib/histogram and update users. (commit: ab33df407e103b746aec8e165e31f4bc92ed388c)
+* Add hermetic CUDA repository rule calls to TF serving project. (commit: 787c85f1a3f0268a243880418c97f37bed56762b)
+* Update users of `status_test_util` to use the new location in `xla/tsl` (commit: 22b2b1e21793c9f7c583a1ee51cf8d73657fb0d2)
+* Bump Bazel version from 6.4.0 to 6.5.0. (commit: 82e532fa3a3182560af6f23c38ddcb017c5e384f)
+* provide an option to customize the sort order among servable names (commit: 32a85a8b42e6892e380bd4d54cf10b0c5734da4b)
+* Remove cc_api_version stage 4: deletion where cc_api_version = 2 (commit: 7e0c1966627d9fa482acf1ef0ea983f4aa90f607)
+* Remove cc_api_version stage 4: deletion where cc_api_version = 2 (commit: 48e0f56b8f84310596de1c97037d8d02053a9d14)
+* This is a noop comment update for streaming inputs. (commit: cfac240ba956f29b0ae91008d1fe073f94c7ae84)
+* Add a resource kind for number of LoRA models. (commit: 6b7ba27fd9dfef8d03fab076ea236e296370a3fe)
+* Disable more warnings to make logs cleaner (commit: 4a830cadb604ed3d050b841e280a5b3486f86e4a)
+* Add `bool return_single_response` field to `PredictStreamedOptions`. (commit: 648c9ee6489a3cf820aa1fcab82b821209e82af5)
+* Use gcc-10 to avoid build issues while building XLA on CI (commit: 8bd1fda7e132a626921e458859db0e519deec451)
+* Create separate `kokoro` config (commit: dbc7681fb6b89ed184dc0b41ddcfd59df0bd55b4)
+* Remove top-level .bazelrc settings now that scripts use `--config=kokoro` (commit: f920b982ca7341eaf0b6456780d1268a3c8735be)
+* Update Dockerfile.devel to build with gcc-10 (commit: f9c0262ecff0425f4647e6d52ab8f346a812e456)
+* Move `tsl/lib/monitoring` to `xla/tsl/lib/monitoring` (commit: cb934df6ed2f1dd2b80e71611fe4db3f709dea4c)
+* Delete 'enable_lazy_split', since the flag is not used anywhere. The code paths for the above flag being false are retained and true are eliminated. This will ensure that improving batching will be easier. (commit: 873993f9f4c8506194e3a130b0185f71db10bdc6)
+* BUILD rule fix. (commit: d89b27235f94b245ae1822b5125f6c67e0b587db)
+* Automated Code Change (commit: 4decd0ab78bb3ffb205baeccc64340c2a180ed01)
+* Automated Code Change (commit: 0b05e865a05ca6a74344213ce74d0a43f1fbbc40)
+* Fix build error (commit: d341c3406f5c4e66525f06fb9232a2ce64d7989b)
+* Added capability to use XLA on a GPU. (commit: e5e795f518942a4c61b154a357bc4b16670d3f06)
+* Update version for 2.18.0-rc0 release. (#2258) (commit: d6d402263bb9c9dec0151e5aebfa81e5ec015e40)
+* Mark Tensorflow compatible with Protobuf v26+. (#2261) (commit: 424dba4101e3d28ac5cf9e65df5747676ef2a1e3)
+* Update version for 2.18.0-rc0 release. (#2262) (commit: 67f4ee85350fb48ddda0bd7d1c1ebfd4601ed3e1)
+* This release is based on TF version 2.18.0-rc2.
+
 # Release 2.17.0
 
 ## Major Features and Improvements
