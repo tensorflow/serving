@@ -43,13 +43,15 @@ apt-get remove tensorflow-model-server
     echo "deb [arch=amd64] http://storage.googleapis.com/tensorflow-serving-apt stable tensorflow-model-server tensorflow-model-server-universal" | sudo tee /etc/apt/sources.list.d/tensorflow-serving.list && \
     curl https://storage.googleapis.com/tensorflow-serving-apt/tensorflow-serving.release.pub.gpg | sudo apt-key add -
     ```
+Note that this leverages the deprecated `apt-key` and will need to be updated for `trusted.gpg.d` in the near future.
+
 
 2.  Install and update TensorFlow ModelServer
 
     <!-- common_typos_disable -->
 
     ```shell
-    apt-get update && apt-get install tensorflow-model-server
+    apt update && apt install tensorflow-model-server
     ```
 
     <!-- common_typos_enable -->
@@ -63,7 +65,7 @@ You can upgrade to a newer version of tensorflow-model-server with:
 <!-- common_typos_disable -->
 
 ```shell
-apt-get upgrade tensorflow-model-server
+apt install -U tensorflow-model-server
 ```
 
 <!-- common_typos_enable -->
