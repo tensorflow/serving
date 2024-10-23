@@ -35,9 +35,17 @@ jobs:
         # Share repository cache between workflows.
         repository-cache: true
 
-    - name: Run unit tests
+    - name: Build unit tests
       shell: bash
       run: |
         bazel build //tensorflow_serving/...
+
+    - name: Clean unit test artifacts
+      shell: bash
+      run: |
         bazel clean --expunge
+        
+    - name: Run unit tests
+      shell: bash
+      run: |        
         bazel test //tensorflow_serving/... --test_output=errors 
