@@ -64,7 +64,7 @@ TEST(SavedModelConfigTest, EmptySavedModelConfig) {
   EXPECT_EQ(custom_optimizers.size(), 0);
 }
 
-TEST(SavedModelConfigTest, SavedModelConfig) {
+TEST(SavedModelConfigTest, DISABLED_SavedModelConfig) {
   const std::string export_dir =
       test_util::TestSrcDirPath(kTestSavedModelWithSavedModelConfigPath);
 

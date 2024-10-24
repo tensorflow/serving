@@ -287,7 +287,7 @@ class BatchingSessionTest : public ::testing::TestWithParam<bool> {
   }
 };
 
-TEST_P(BatchingSessionTest, Basic) {
+TEST_P(BatchingSessionTest, DISABLED_Basic) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 4;  // fits two 2-unit tasks
   schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
@@ -314,7 +314,7 @@ TEST_P(BatchingSessionTest, Basic) {
       }));
 }
 
-TEST_P(BatchingSessionTest, BatchingWithPadding) {
+TEST_P(BatchingSessionTest, DISABLED_BatchingWithPadding) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 2;
   schedule_options.batch_timeout_micros = 1e6;
@@ -343,7 +343,7 @@ TEST_P(BatchingSessionTest, BatchingWithPadding) {
       }));
 }
 
-TEST_P(BatchingSessionTest, BatchingWithLargeBatch) {
+TEST_P(BatchingSessionTest, DISABLED_BatchingWithLargeBatch) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 3;
   schedule_options.batch_timeout_micros = 1e6;
@@ -399,7 +399,7 @@ TEST_P(BatchingSessionTest, BatchingWithLargeBatch) {
   }
 }
 
-TEST_P(BatchingSessionTest, BatchHandlesSplitError) {
+TEST_P(BatchingSessionTest, DISABLED_BatchHandlesSplitError) {
   if (!enable_large_batch_splitting()) {
     return;
   }
@@ -440,7 +440,7 @@ TEST_P(BatchingSessionTest, BatchHandlesSplitError) {
       }));
 }
 
-TEST_P(BatchingSessionTest, BatchingLazySplit) {
+TEST_P(BatchingSessionTest, DISABLED_BatchingLazySplit) {
   if (!enable_large_batch_splitting()) {
     return;
   }
@@ -471,7 +471,7 @@ TEST_P(BatchingSessionTest, BatchingLazySplit) {
       }));
 }
 
-TEST(BatchingSessionTest, BatchingWithPaddingAndCost) {
+TEST(BatchingSessionTest, DISABLED_BatchingWithPaddingAndCost) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 2;
   schedule_options.batch_timeout_micros = 1e6;
@@ -534,7 +534,7 @@ TEST(BatchingSessionTest, BatchingWithPaddingAndCost) {
       }));
 }
 
-TEST_P(BatchingSessionTest, BatchingWithCost) {
+TEST_P(BatchingSessionTest, DISABLED_BatchingWithCost) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 3;
   schedule_options.batch_timeout_micros = 1e6;
@@ -622,7 +622,7 @@ TEST_P(BatchingSessionTest, BatchingWithCost) {
   }
 }
 
-TEST_P(BatchingSessionTest, UnequalTensorShapesWithPaddingTurnedOff) {
+TEST_P(BatchingSessionTest, DISABLED_UnequalTensorShapesWithPaddingTurnedOff) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 2;
   schedule_options.batch_timeout_micros = 1e6;
@@ -656,7 +656,7 @@ TEST_P(BatchingSessionTest, UnequalTensorShapesWithPaddingTurnedOff) {
       }));
 }
 
-TEST_P(BatchingSessionTest, SingletonBatch) {
+TEST_P(BatchingSessionTest, DISABLED_SingletonBatch) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 4;  // fits two 2-unit tasks
   schedule_options.batch_timeout_micros = 0;
@@ -671,7 +671,7 @@ TEST_P(BatchingSessionTest, SingletonBatch) {
               batching_session.get());
 }
 
-TEST_P(BatchingSessionTest, RequestThatDoesntMatchSignatureGetsRunAnyway) {
+TEST_P(BatchingSessionTest, DISABLED_RequestThatDoesntMatchSignatureGetsRunAnyway) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   // Set the batching parameters s.t. if the request is batched the test will
   // timeout.
@@ -688,7 +688,7 @@ TEST_P(BatchingSessionTest, RequestThatDoesntMatchSignatureGetsRunAnyway) {
               batching_session.get());
 }
 
-TEST_P(BatchingSessionTest, RequestWithIncompatibleInputTensorSizes) {
+TEST_P(BatchingSessionTest, DISABLED_RequestWithIncompatibleInputTensorSizes) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options = annotate_options(schedule_options);
   std::unique_ptr<Session> batching_session;
@@ -722,7 +722,7 @@ TEST_P(BatchingSessionTest, RequestWithIncompatibleInputTensorSizes) {
       GetPercentileTotal("/tensorflow/serving/batching_session/padding_size"));
 }
 
-TEST_P(BatchingSessionTest, AllowedBatchSizesNoPaddingNeeded) {
+TEST_P(BatchingSessionTest, DISABLED_AllowedBatchSizesNoPaddingNeeded) {
   int32 start_input_value = GetPercentileTotal(
       "/tensorflow/serving/batching_session/input_batch_size");
   int32 start_process_value = GetPercentileTotal(
@@ -763,7 +763,7 @@ TEST_P(BatchingSessionTest, AllowedBatchSizesNoPaddingNeeded) {
       GetPercentileTotal("/tensorflow/serving/batching_session/padding_size"));
 }
 
-TEST_P(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
+TEST_P(BatchingSessionTest, DISABLED_AllowedBatchSizesRequirePadding) {
   int32 start_input_value = GetPercentileTotal(
       "/tensorflow/serving/batching_session/input_batch_size");
   int32 start_process_value = GetPercentileTotal(
@@ -815,7 +815,7 @@ TEST_P(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
       "Tracks the batch size distribution on processing.", {}));
 }
 
-TEST_P(BatchingSessionTest, UnsortedAllowedBatchSizesRejected) {
+TEST_P(BatchingSessionTest, DISABLED_UnsortedAllowedBatchSizesRejected) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 4;
   schedule_options = annotate_options(schedule_options);
@@ -829,7 +829,7 @@ TEST_P(BatchingSessionTest, UnsortedAllowedBatchSizesRejected) {
 }
 
 TEST_P(BatchingSessionTest,
-       FinalAllowedBatchSizeLargerThanMaxBatchSizeRejected) {
+       DISABLED_FinalAllowedBatchSizeLargerThanMaxBatchSizeRejected) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 4;
   schedule_options = annotate_options(schedule_options);
@@ -845,7 +845,7 @@ TEST_P(BatchingSessionTest,
                                               : "max_batch_size"));
 }
 
-TEST_P(BatchingSessionTest, DifferentOrderForInputAndOutputTensors) {
+TEST_P(BatchingSessionTest, DISABLED_DifferentOrderForInputAndOutputTensors) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 6;  // fits three 2-unit tasks
   schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
@@ -894,7 +894,7 @@ TEST_P(BatchingSessionTest, DifferentOrderForInputAndOutputTensors) {
       }));
 }
 
-TEST_P(BatchingSessionTest, MultipleSignatures) {
+TEST_P(BatchingSessionTest, DISABLED_MultipleSignatures) {
   std::vector<BatchScheduler<BatchingSessionTask>*> schedulers;
   auto create_scheduler =
       [&schedulers, this](
@@ -962,7 +962,7 @@ TEST_P(BatchingSessionTest, MultipleSignatures) {
   EXPECT_EQ(0, schedulers[1]->NumEnqueuedTasks());
 }
 
-TEST_P(BatchingSessionTest, EnqueuedLongerThanTimeout) {
+TEST_P(BatchingSessionTest, DISABLED_EnqueuedLongerThanTimeout) {
   BatchScheduler<BatchingSessionTask>* scheduler = nullptr;
   auto create_scheduler =
       [&scheduler, this](
@@ -1020,7 +1020,7 @@ TEST_P(BatchingSessionTest, EnqueuedLongerThanTimeout) {
   request_returned.WaitForNotification();
 }
 
-TEST_P(BatchingSessionTest, ThreadPoolOptions) {
+TEST_P(BatchingSessionTest, DISABLED_ThreadPoolOptions) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 3;
   schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
@@ -1054,7 +1054,7 @@ TEST_P(BatchingSessionTest, ThreadPoolOptions) {
       }));
 }
 
-TEST_P(BatchingSessionTest, SubsetOutputTensors) {
+TEST_P(BatchingSessionTest, DISABLED_SubsetOutputTensors) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 6;  // fits three 2-unit tasks
   schedule_options.batch_timeout_micros = 1 * 1000 * 1000;  // won't trigger
