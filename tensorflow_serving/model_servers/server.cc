@@ -52,6 +52,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/model_servers/server_init.h"
+#include "tensorflow_serving/servables/tensorflow/predict_response_tensor_serialization_option.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/thread_pool_factory_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
@@ -321,6 +322,10 @@ Status Server::BuildAndStart(const Options& server_options) {
   options.force_allow_any_version_labels_for_unavailable_models =
       server_options.force_allow_any_version_labels_for_unavailable_models;
   options.enable_cors_support = server_options.enable_cors_support;
+  if (server_options.enable_serialization_as_tensor_content) {
+    options.predict_response_tensor_serialization_option =
+        internal::PredictResponseTensorSerializationOption::kAsProtoContent;
+  }
 
   TF_RETURN_IF_ERROR(ServerCore::Create(std::move(options), &server_core_));
 

@@ -501,6 +501,9 @@ cc_test(
 cc_library(
     name = "predict_response_tensor_serialization_option",
     hdrs = ["predict_response_tensor_serialization_option.h"],
+    visibility = [
+        "//visibility:public",
+    ],
 )
 
 cc_library(
