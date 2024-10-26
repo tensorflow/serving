@@ -43,7 +43,7 @@ namespace serving {
 namespace {
 
 // Validate the request and construct input tensor handles.
-Status PreProcessPredictionWithoutOutputFilter(
+absl::Status PreProcessPredictionWithoutOutputFilter(
     const tfrt::FunctionMetadata& function_metadata,
     const PredictRequest& request, std::vector<Tensor>* input_tensors) {
   input_tensors->reserve(function_metadata.GetInputNames().size());
@@ -98,7 +98,7 @@ Status PreProcessPredictionWithoutOutputFilter(
 
 // Validate results and populate a PredictResponse.
 // Tensors are serialized as specified.
-Status PostProcessPredictionResultWithoutOutputFilter(
+absl::Status PostProcessPredictionResultWithoutOutputFilter(
     const std::vector<string>& output_tensor_names,
     const std::vector<Tensor>& output_tensors,
     const internal::PredictResponseTensorSerializationOption option,
@@ -157,7 +157,7 @@ bool IsOutputFilterEmptyOrFullSet(
 }  // namespace
 
 namespace internal {
-Status RunPredict(
+absl::Status RunPredict(
     const tfrt::SavedModel::RunOptions& run_options,
     const absl::optional<int64_t>& servable_version,
     const internal::PredictResponseTensorSerializationOption option,
@@ -259,11 +259,12 @@ Status RunPredict(
 }
 }  // namespace internal
 
-Status RunPredict(const tfrt::SavedModel::RunOptions& run_options,
-                  const absl::optional<int64_t>& servable_version,
-                  tfrt::SavedModel* saved_model, const PredictRequest& request,
-                  PredictResponse* response,
-                  const thread::ThreadPoolOptions& thread_pool_options) {
+absl::Status RunPredict(const tfrt::SavedModel::RunOptions& run_options,
+                        const absl::optional<int64_t>& servable_version,
+                        tfrt::SavedModel* saved_model,
+                        const PredictRequest& request,
+                        PredictResponse* response,
+                        const thread::ThreadPoolOptions& thread_pool_options) {
   return internal::RunPredict(
       run_options, servable_version,
       internal::PredictResponseTensorSerializationOption::kAsProtoField,

@@ -36,7 +36,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status PreProcessClassification(
+absl::Status PreProcessClassification(
     const tfrt::FunctionMetadata& function_metadata) {
   if (function_metadata.GetInputNames().size() != 1) {
     return errors::InvalidArgument(
@@ -78,7 +78,7 @@ Status PreProcessClassification(
   return absl::OkStatus();
 }
 
-Status PostProcessClassificationResult(
+absl::Status PostProcessClassificationResult(
     int num_examples, const std::vector<string>& output_names,
     const std::vector<Tensor>& output_tensors, ClassificationResult* result) {
   if (output_tensors.size() != output_names.size()) {
@@ -167,11 +167,11 @@ Status PostProcessClassificationResult(
   return absl::OkStatus();
 }
 
-Status RunClassify(const tfrt::SavedModel::RunOptions& run_options,
-                   const absl::optional<int64_t>& servable_version,
-                   tfrt::SavedModel* saved_model,
-                   const ClassificationRequest& request,
-                   ClassificationResponse* response) {
+absl::Status RunClassify(const tfrt::SavedModel::RunOptions& run_options,
+                         const absl::optional<int64_t>& servable_version,
+                         tfrt::SavedModel* saved_model,
+                         const ClassificationRequest& request,
+                         ClassificationResponse* response) {
   const string function_name = request.model_spec().signature_name().empty()
                                    ? kDefaultServingSignatureDefKey
                                    : request.model_spec().signature_name();

@@ -123,15 +123,16 @@ class TfrtRegressorTest : public ::testing::Test {
   static void TearDownTestSuite() { server_core_ = nullptr; }
 
  protected:
-  Status GetSavedModelServableHandle(ServerCore* server_core,
-                                     ServableHandle<Servable>* servable) {
+  absl::Status GetSavedModelServableHandle(ServerCore* server_core,
+                                           ServableHandle<Servable>* servable) {
     ModelSpec model_spec;
     model_spec.set_name(kTestModelName);
     return server_core->GetServableHandle(model_spec, servable);
   }
 
-  Status CallRegress(ServerCore* server_core, const RegressionRequest& request,
-                     RegressionResponse* response) {
+  absl::Status CallRegress(ServerCore* server_core,
+                           const RegressionRequest& request,
+                           RegressionResponse* response) {
     ServableHandle<Servable> servable;
     TF_RETURN_IF_ERROR(GetSavedModelServableHandle(server_core, &servable));
     tfrt::SavedModel::RunOptions run_options;  // Default RunOptions.
@@ -300,7 +301,7 @@ TEST_F(TfrtRegressorTest, EmptyExampleList) {
       "}");
   RegressionResponse response;
 
-  Status status = CallRegress(server_core_.get(), request, &response);
+  absl::Status status = CallRegress(server_core_.get(), request, &response);
   EXPECT_EQ(status.code(), error::INVALID_ARGUMENT);
   EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
@@ -329,7 +330,7 @@ TEST_F(TfrtRegressorTest, EmptyExampleListWithContext) {
       "}");
   RegressionResponse response;
 
-  Status status = CallRegress(server_core_.get(), request, &response);
+  absl::Status status = CallRegress(server_core_.get(), request, &response);
   EXPECT_EQ(status.code(), error::INVALID_ARGUMENT);
   EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
@@ -344,7 +345,7 @@ TEST_F(TfrtRegressorTest, EmptyInput) {
       "}");
   RegressionResponse response;
 
-  Status status = CallRegress(server_core_.get(), request, &response);
+  absl::Status status = CallRegress(server_core_.get(), request, &response);
   EXPECT_EQ(status.code(), error::INVALID_ARGUMENT);
   EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }

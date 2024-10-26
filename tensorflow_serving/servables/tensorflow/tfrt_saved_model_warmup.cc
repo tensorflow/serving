@@ -44,11 +44,11 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-Status RunWarmupRequest(const PredictionLog& warmup_record,
-                        const tfrt::SavedModel::RunOptions& run_options,
-                        int lazy_init_threshold,
-                        bool skip_warmup_requests_if_initialized,
-                        tfrt::SavedModel* saved_model) {
+absl::Status RunWarmupRequest(const PredictionLog& warmup_record,
+                              const tfrt::SavedModel::RunOptions& run_options,
+                              int lazy_init_threshold,
+                              bool skip_warmup_requests_if_initialized,
+                              tfrt::SavedModel* saved_model) {
   // If the signature defs are already initilized and
   // skip_warmup_requests_if_initialized is set to true, skip executing warmup
   // requests. We always execute MultiInference warmup requests as it will
@@ -117,10 +117,11 @@ Status RunWarmupRequest(const PredictionLog& warmup_record,
 
 }  // namespace
 
-Status RunSavedModelWarmup(const ModelWarmupOptions& model_warmup_options,
-                           const string& export_dir, int lazy_init_threshold,
-                           bool skip_warmup_requests_if_initialized,
-                           tfrt::SavedModel* saved_model) {
+absl::Status RunSavedModelWarmup(const ModelWarmupOptions& model_warmup_options,
+                                 const string& export_dir,
+                                 int lazy_init_threshold,
+                                 bool skip_warmup_requests_if_initialized,
+                                 tfrt::SavedModel* saved_model) {
   tfrt::SavedModel::RunOptions run_options;  // Default RunOptions.
   return internal::RunSavedModelWarmup(
       model_warmup_options, export_dir, [&](PredictionLog prediction_log) {

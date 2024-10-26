@@ -29,18 +29,18 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status TFRTGetModelMetadataImpl::GetModelMetadata(
+absl::Status TFRTGetModelMetadataImpl::GetModelMetadata(
     ServerCore* core, const GetModelMetadataRequest& request,
     GetModelMetadataResponse* response) {
   if (!request.has_model_spec()) {
-    return tensorflow::Status(absl::StatusCode::kInvalidArgument,
-                              "Missing ModelSpec");
+    return absl::Status(absl::StatusCode::kInvalidArgument,
+                        "Missing ModelSpec");
   }
   return GetModelMetadataWithModelSpec(core, request.model_spec(), request,
                                        response);
 }
 
-Status TFRTGetModelMetadataImpl::GetModelMetadataWithModelSpec(
+absl::Status TFRTGetModelMetadataImpl::GetModelMetadataWithModelSpec(
     ServerCore* core, const ModelSpec& model_spec,
     const GetModelMetadataRequest& request,
     GetModelMetadataResponse* response) {

@@ -34,7 +34,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status TfrtSavedModelSourceAdapter::Create(
+absl::Status TfrtSavedModelSourceAdapter::Create(
     const TfrtSavedModelSourceAdapterConfig& config,
     std::unique_ptr<TfrtSavedModelSourceAdapter>* adapter) {
   std::unique_ptr<TfrtSavedModelFactory> factory;
@@ -63,8 +63,8 @@ TfrtSavedModelSourceAdapter::GetServableCreator(
   };
 }
 
-Status TfrtSavedModelSourceAdapter::Convert(const StoragePath& path,
-                                            std::unique_ptr<Loader>* loader) {
+absl::Status TfrtSavedModelSourceAdapter::Convert(
+    const StoragePath& path, std::unique_ptr<Loader>* loader) {
   std::shared_ptr<TfrtSavedModelFactory> factory = factory_;
   auto servable_creator = GetServableCreator(factory, path);
   auto resource_estimator = [factory, path](ResourceAllocation* estimate) {
@@ -94,7 +94,7 @@ Status TfrtSavedModelSourceAdapter::Convert(const StoragePath& path,
 // Register the source adapter.
 class TfrtSavedModelSourceAdapterCreator {
  public:
-  static Status Create(
+  static absl::Status Create(
       const TfrtSavedModelSourceAdapterConfig& config,
       std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
           adapter) {
