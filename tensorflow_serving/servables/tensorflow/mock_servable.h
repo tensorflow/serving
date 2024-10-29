@@ -37,6 +37,7 @@ class MockPredictStreamedContext : public PredictStreamedContext {
   MOCK_METHOD(absl::Status, ProcessRequest, (const PredictRequest& request),
               (final));
   MOCK_METHOD(absl::Status, Close, (), (final));
+  MOCK_METHOD(absl::Status, WaitResponses, (), (final));
 };
 
 // A mock of tensorflow::serving::Servable.
