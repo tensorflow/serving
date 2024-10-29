@@ -41,7 +41,7 @@ serving_proto_library_py(
     name = "session_bundle_config_proto_py_pb2",
     srcs = ["session_bundle_config.proto"],
     proto_library = "session_bundle_config_proto",
-    visibility = ["//visibility:public"],
+    visibility = ["//visibility:private"],
     deps = [
         "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
@@ -1414,9 +1414,7 @@ cc_library(
     name = "tfrt_regression_service",
     srcs = ["tfrt_regression_service.cc"],
     hdrs = ["tfrt_regression_service.h"],
-    visibility = [
-        "//visibility:public",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":servable",
         ":util",
@@ -1581,9 +1579,7 @@ cc_library(
     name = "tfrt_classification_service",
     srcs = ["tfrt_classification_service.cc"],
     hdrs = ["tfrt_classification_service.h"],
-    visibility = [
-        "//visibility:public",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":servable",
         ":tfrt_classifier",
@@ -1784,7 +1780,7 @@ serving_proto_library_py(
     name = "remote_op_config_rewriter_proto_py_pb2",
     srcs = ["remote_op_config_rewriter.proto"],
     proto_library = "remote_op_config_rewriter_proto",
-    visibility = ["//visibility:public"],
+    visibility = ["//visibility:private"],
     deps = [],
 )
 
@@ -1878,9 +1874,7 @@ cc_library(
     name = "saved_model_config",
     srcs = ["saved_model_config.cc"],
     hdrs = ["saved_model_config.h"],
-    visibility = [
-        "//visibility:public",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":saved_model_config_cc_proto",
         ":saved_model_config_util",
