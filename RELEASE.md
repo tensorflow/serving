@@ -50,6 +50,22 @@
 * Update version for 2.18.0-rc0 release. (#2262) (commit: 67f4ee85350fb48ddda0bd7d1c1ebfd4601ed3e1)
 * This release is based on TF version 2.18.0-rc2.
 
+# Release 2.17.1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Create separate `kokoro` config (commit: 3af106649212377ef845a9d53fccddb00c10293f)
+* Update version for 2.17.1 release. (#2266) (commit: 7b6021dd4cc6c1a815a84f160b77438c84818a66)
+* This release is based on TF version 2.17.1.
+
 # Release 2.17.0
 
 ## Major Features and Improvements
