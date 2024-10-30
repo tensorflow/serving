@@ -24,7 +24,7 @@ limitations under the License.
 
 #define TF_MODELSERVER_MAJOR_VERSION 2
 #define TF_MODELSERVER_MINOR_VERSION 17
-#define TF_MODELSERVER_PATCH_VERSION 0
+#define TF_MODELSERVER_PATCH_VERSION 1
 // TF_MODELSERVER_VERSION_SUFFIX is non-empty for pre-releases
 // (e.g. "-alpha", "-alpha.1", "-beta", "-rc", "-rc.1")
 #define TF_MODELSERVER_VERSION_SUFFIX ""
