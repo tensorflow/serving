@@ -9,6 +9,8 @@ load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library", "serving_pro
 
 # buildifier: enable=out-of-order-load
 
+# Placeholder: load go_proto_library
+
 package(
     default_visibility = ["//visibility:public"],
     features = ["layering_check"],

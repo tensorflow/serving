@@ -1,6 +1,7 @@
 # Description: Tensorflow Serving configs.
 
 load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_proto_library_py")
+# Placeholder: load go_proto_library
 
 package(
     default_visibility = ["//visibility:public"],

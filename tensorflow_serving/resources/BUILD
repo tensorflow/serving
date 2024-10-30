@@ -1,5 +1,6 @@
 # Placeholder: load py_proto_library
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+# Placeholder: load go_proto_library
 
 package(
     default_visibility = [
