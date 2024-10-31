@@ -1,3 +1,18 @@
+# Release 2.18.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Update version for 2.18.0 release. (#2264) (commit: 5815bfdd1d1bbd9d0d3557576c98f13afc4d9016)
+* This release is based on TF version 2.18.0.
+
 # Release 2.18.0-rc0
 
 ## Major Features and Improvements
