@@ -73,8 +73,9 @@ class SimpleServersTest : public ::testing::Test {
 
 TEST_F(SimpleServersTest, Basic) {
   std::unique_ptr<Manager> manager;
-  const Status status = simple_servers::CreateSingleTFModelManagerFromBasePath(
-      test_data_path_, &manager);
+  const absl::Status status =
+      simple_servers::CreateSingleTFModelManagerFromBasePath(test_data_path_,
+                                                             &manager);
   TF_CHECK_OK(status);
   // We wait until the manager starts serving the servable.
   // TODO(b/25545570): Use the waiter api when it's ready.
@@ -82,7 +83,7 @@ TEST_F(SimpleServersTest, Basic) {
     Env::Default()->SleepForMicroseconds(1000);
   }
   ServableHandle<SavedModelBundle> bundle;
-  const Status handle_status =
+  const absl::Status handle_status =
       manager->GetServableHandle(ServableRequest::Latest("default"), &bundle);
   TF_CHECK_OK(handle_status);
   TestSingleRequest(*bundle);

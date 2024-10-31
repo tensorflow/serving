@@ -33,7 +33,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status SavedModelBundleSourceAdapter::Create(
+absl::Status SavedModelBundleSourceAdapter::Create(
     const SavedModelBundleSourceAdapterConfig& config,
     std::unique_ptr<SavedModelBundleSourceAdapter>* adapter) {
   std::unique_ptr<SavedModelBundleFactory> bundle_factory;
@@ -86,8 +86,8 @@ SavedModelBundleSourceAdapter::GetServableCreator(
   };
 }
 
-Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
-                                              std::unique_ptr<Loader>* loader) {
+absl::Status SavedModelBundleSourceAdapter::Convert(
+    const StoragePath& path, std::unique_ptr<Loader>* loader) {
   std::shared_ptr<SavedModelBundleFactory> bundle_factory = bundle_factory_;
   auto servable_creator = GetServableCreator(bundle_factory, path);
   auto resource_estimator = [bundle_factory,
@@ -125,7 +125,7 @@ Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
 // Register the source adapter.
 class SavedModelBundleSourceAdapterCreator {
  public:
-  static Status Create(
+  static absl::Status Create(
       const SavedModelBundleSourceAdapterConfig& config,
       std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
           adapter) {

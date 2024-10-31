@@ -36,9 +36,10 @@ namespace serving {
 
 namespace {
 
-Status RunWarmupRequest(const PredictionLog& warmup_record,
-                        const RunOptions& run_options,
-                        const MetaGraphDef& meta_graph_def, Session* session) {
+absl::Status RunWarmupRequest(const PredictionLog& warmup_record,
+                              const RunOptions& run_options,
+                              const MetaGraphDef& meta_graph_def,
+                              Session* session) {
   switch (warmup_record.log_type_case()) {
     case PredictionLog::kRegressLog: {
       RegressionResponse response;
@@ -78,9 +79,10 @@ Status RunWarmupRequest(const PredictionLog& warmup_record,
 
 }  // namespace
 
-Status RunSavedModelWarmup(const ModelWarmupOptions& model_warmup_options,
-                           const RunOptions& run_options,
-                           const string& export_dir, SavedModelBundle* bundle) {
+absl::Status RunSavedModelWarmup(const ModelWarmupOptions& model_warmup_options,
+                                 const RunOptions& run_options,
+                                 const string& export_dir,
+                                 SavedModelBundle* bundle) {
   return internal::RunSavedModelWarmup(
       model_warmup_options, export_dir, [&](PredictionLog prediction_log) {
         return RunWarmupRequest(prediction_log, run_options,

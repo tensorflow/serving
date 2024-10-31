@@ -60,10 +60,10 @@ enum class ModelType { kTfModel, kTfLiteModel };
 Loader::Metadata CreateMetadata() { return {ServableId{"name", 42}}; }
 
 // Creates a new session based on the config and export path.
-Status CreateBundleFromPath(const CreationType creation_type,
-                            const SessionBundleConfig& config,
-                            const string& path,
-                            std::unique_ptr<SavedModelBundle>* bundle) {
+absl::Status CreateBundleFromPath(const CreationType creation_type,
+                                  const SessionBundleConfig& config,
+                                  const string& path,
+                                  std::unique_ptr<SavedModelBundle>* bundle) {
   std::unique_ptr<SavedModelBundleFactory> factory;
   auto config_with_session_hook = config;
   config_with_session_hook.set_session_target(
@@ -119,8 +119,8 @@ class SavedModelBundleFactoryTest
   virtual ~SavedModelBundleFactoryTest() = default;
 
  protected:
-  Status CreateSession(const SessionBundleConfig& config,
-                       std::unique_ptr<Session>* session) const override {
+  absl::Status CreateSession(const SessionBundleConfig& config,
+                             std::unique_ptr<Session>* session) const override {
     std::unique_ptr<SavedModelBundle> bundle;
     TF_RETURN_IF_ERROR(CreateBundleFromPath(GetParam().creation_type, config,
                                             export_dir_, &bundle));
