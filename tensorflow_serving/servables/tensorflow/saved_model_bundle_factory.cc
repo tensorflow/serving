@@ -55,9 +55,10 @@ std::vector<SignatureDef> GetSignatureDefs(const SavedModelBundle& bundle) {
 // TODO(b/140959776): Move this upstream alongside `kSavedModelFilenamePb`.
 const char kTfLiteModelFilename[] = "model.tflite";
 
-Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
-                       const SessionOptions& options, int num_interpreter_pools,
-                       int num_interpreters_per_pool) {
+absl::Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
+                             const SessionOptions& options,
+                             int num_interpreter_pools,
+                             int num_interpreters_per_pool) {
   std::unique_ptr<TfLiteSession> session;
 
   const string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
@@ -88,7 +89,7 @@ bool TfLiteModelFound(const string& model_dir) {
 
 }  // namespace
 
-Status SavedModelBundleFactory::Create(
+absl::Status SavedModelBundleFactory::Create(
     const SessionBundleConfig& config,
     std::unique_ptr<SavedModelBundleFactory>* factory) {
   std::shared_ptr<Batcher> batcher;
@@ -100,24 +101,24 @@ Status SavedModelBundleFactory::Create(
   return absl::OkStatus();
 }
 
-Status SavedModelBundleFactory::EstimateResourceRequirement(
+absl::Status SavedModelBundleFactory::EstimateResourceRequirement(
     const string& path, ResourceAllocation* estimate) const {
   return EstimateResourceFromPath(
       path, config_.resource_estimation_uses_validation_result(), estimate);
 }
 
-Status SavedModelBundleFactory::CreateSavedModelBundleWithMetadata(
+absl::Status SavedModelBundleFactory::CreateSavedModelBundleWithMetadata(
     const Loader::Metadata& metadata, const string& path,
     std::unique_ptr<SavedModelBundle>* bundle) {
   return InternalCreateSavedModelBundle(metadata, path, bundle);
 }
 
-Status SavedModelBundleFactory::CreateSavedModelBundle(
+absl::Status SavedModelBundleFactory::CreateSavedModelBundle(
     const string& path, std::unique_ptr<SavedModelBundle>* bundle) {
   return InternalCreateSavedModelBundle({}, path, bundle);
 }
 
-Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
+absl::Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
     const absl::optional<Loader::Metadata>& metadata, const string& path,
     std::unique_ptr<SavedModelBundle>* bundle) {
   bundle->reset(new SavedModelBundle);

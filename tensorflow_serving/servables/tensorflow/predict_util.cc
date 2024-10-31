@@ -35,7 +35,7 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-Status VerifySignature(const SignatureDef& signature) {
+absl::Status VerifySignature(const SignatureDef& signature) {
   if (GetSignatureMethodNameCheckFeature() &&
       signature.method_name() != kPredictMethodName &&
       signature.method_name() != kClassifyMethodName &&
@@ -48,8 +48,8 @@ Status VerifySignature(const SignatureDef& signature) {
   return absl::OkStatus();
 }
 
-Status VerifyRequestInputsSize(const SignatureDef& signature,
-                               const PredictRequest& request) {
+absl::Status VerifyRequestInputsSize(const SignatureDef& signature,
+                                     const PredictRequest& request) {
   if (request.inputs().size() > signature.inputs().size() ||
       (request.inputs().size() < signature.inputs().size() &&
        signature.defaults().empty())) {
@@ -59,7 +59,7 @@ Status VerifyRequestInputsSize(const SignatureDef& signature,
         SetDifference(request_inputs, signature_inputs);
     const std::set<string> missing =
         SetDifference(signature_inputs, request_inputs);
-    return tensorflow::Status(
+    return absl::Status(
         static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
         absl::StrCat(
             "input size does not match signature: ", request.inputs().size(),
@@ -75,7 +75,7 @@ Status VerifyRequestInputsSize(const SignatureDef& signature,
 }  // namespace
 
 namespace internal {
-Status RunPredict(
+absl::Status RunPredict(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
     const absl::optional<int64_t>& servable_version,
     const internal::PredictResponseTensorSerializationOption option,
@@ -116,11 +116,11 @@ Status RunPredict(
                                      response);
 }
 
-Status PreProcessPrediction(const SignatureDef& signature,
-                            const PredictRequest& request,
-                            std::vector<std::pair<string, Tensor>>* inputs,
-                            std::vector<string>* output_tensor_names,
-                            std::vector<string>* output_tensor_aliases) {
+absl::Status PreProcessPrediction(
+    const SignatureDef& signature, const PredictRequest& request,
+    std::vector<std::pair<string, Tensor>>* inputs,
+    std::vector<string>* output_tensor_names,
+    std::vector<string>* output_tensor_aliases) {
   TF_RETURN_IF_ERROR(VerifySignature(signature));
   TF_RETURN_IF_ERROR(VerifyRequestInputsSize(signature, request));
   TF_RETURN_IF_ERROR(
@@ -133,7 +133,7 @@ Status PreProcessPrediction(const SignatureDef& signature,
   for (auto& alias : output_filter) {
     auto iter = signature.outputs().find(alias);
     if (iter == signature.outputs().end()) {
-      return tensorflow::Status(
+      return absl::Status(
           static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
           strings::StrCat("output tensor alias not found in signature: ", alias,
                           " Outputs expected to be in the set {",
@@ -141,7 +141,7 @@ Status PreProcessPrediction(const SignatureDef& signature,
                           "}."));
     }
     if (seen_outputs.find(alias) != seen_outputs.end()) {
-      return tensorflow::Status(
+      return absl::Status(
           static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
           "duplicate output tensor alias: " + alias);
     }
@@ -160,15 +160,15 @@ Status PreProcessPrediction(const SignatureDef& signature,
   return absl::OkStatus();
 }
 
-Status PostProcessPredictionResult(
+absl::Status PostProcessPredictionResult(
     const std::vector<string>& output_tensor_aliases,
     const std::vector<Tensor>& output_tensors,
     const internal::PredictResponseTensorSerializationOption option,
     PredictResponse* response) {
   // Validate and return output.
   if (output_tensors.size() != output_tensor_aliases.size()) {
-    return tensorflow::Status(
-        static_cast<tensorflow::errors::Code>(absl::StatusCode::kUnknown),
+    return absl::Status(
+        static_cast<absl::StatusCode>(absl::StatusCode::kUnknown),
         "Predict internal error");
   }
   switch (option) {
@@ -191,12 +191,12 @@ Status PostProcessPredictionResult(
 
 }  // namespace internal
 
-Status RunPredict(const RunOptions& run_options,
-                  const MetaGraphDef& meta_graph_def,
-                  const absl::optional<int64_t>& servable_version,
-                  Session* session, const PredictRequest& request,
-                  PredictResponse* response,
-                  const thread::ThreadPoolOptions& thread_pool_options) {
+absl::Status RunPredict(const RunOptions& run_options,
+                        const MetaGraphDef& meta_graph_def,
+                        const absl::optional<int64_t>& servable_version,
+                        Session* session, const PredictRequest& request,
+                        PredictResponse* response,
+                        const thread::ThreadPoolOptions& thread_pool_options) {
   return internal::RunPredict(
       run_options, meta_graph_def, servable_version,
       internal::PredictResponseTensorSerializationOption::kAsProtoField,

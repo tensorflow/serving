@@ -174,7 +174,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, UnsupportedFileFormat) {
   TF_ASSERT_OK(WriteWarmupDataAsSerializedProtos(fname, warmup_records, 10));
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);
-  const Status status = RunSavedModelWarmup(
+  const absl::Status status = RunSavedModelWarmup(
       CreateModelWarmupOptions(), base_path,
       [](PredictionLog prediction_log) { return absl::OkStatus(); });
   ASSERT_FALSE(status.ok());
@@ -197,7 +197,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, TooManyWarmupRecords) {
                                internal::WarmupConsts::kMaxNumRecords + 1));
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);
-  const Status status = RunSavedModelWarmup(
+  const absl::Status status = RunSavedModelWarmup(
       CreateModelWarmupOptions(), base_path,
       [](PredictionLog prediction_log) { return absl::OkStatus(); });
   ASSERT_FALSE(status.ok());
@@ -219,7 +219,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, UnparsableRecord) {
   std::vector<string> warmup_records = {"malformed_record"};
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, 10));
   SavedModelBundle saved_model_bundle;
-  const Status status = RunSavedModelWarmup(
+  const absl::Status status = RunSavedModelWarmup(
       CreateModelWarmupOptions(), base_path,
       [](PredictionLog prediction_log) { return absl::OkStatus(); });
   ASSERT_FALSE(status.ok());
@@ -243,7 +243,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, RunFailure) {
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, num_warmup_records));
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);
-  Status status = RunSavedModelWarmup(
+  absl::Status status = RunSavedModelWarmup(
       CreateModelWarmupOptions(), base_path, [](PredictionLog prediction_log) {
         return errors::InvalidArgument("Run failed");
       });

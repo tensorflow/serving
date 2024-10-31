@@ -58,8 +58,8 @@ class SavedModelTensorFlowRegressor : public RegressorInterface {
 
   ~SavedModelTensorFlowRegressor() override = default;
 
-  Status Regress(const RegressionRequest& request,
-                 RegressionResult* result) override {
+  absl::Status Regress(const RegressionRequest& request,
+                       RegressionResult* result) override {
     TRACELITERAL("SavedModelTensorFlowRegressor::Regress");
 
     string input_tensor_name;
@@ -99,8 +99,8 @@ class SavedModelRegressor : public RegressorInterface {
 
   ~SavedModelRegressor() override = default;
 
-  Status Regress(const RegressionRequest& request,
-                 RegressionResult* result) override {
+  absl::Status Regress(const RegressionRequest& request,
+                       RegressionResult* result) override {
     SignatureDef signature;
     TF_RETURN_IF_ERROR(GetRegressionSignatureDef(
         request.model_spec(), bundle_->meta_graph_def, &signature));
@@ -118,14 +118,14 @@ class SavedModelRegressor : public RegressorInterface {
 
 }  // namespace
 
-Status CreateRegressorFromSavedModelBundle(
+absl::Status CreateRegressorFromSavedModelBundle(
     const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<RegressorInterface>* service) {
   service->reset(new SavedModelRegressor(run_options, std::move(bundle)));
   return absl::OkStatus();
 }
 
-Status CreateFlyweightTensorFlowRegressor(
+absl::Status CreateFlyweightTensorFlowRegressor(
     const RunOptions& run_options, Session* session,
     const SignatureDef* signature,
     std::unique_ptr<RegressorInterface>* service) {
@@ -133,7 +133,7 @@ Status CreateFlyweightTensorFlowRegressor(
       run_options, session, signature, thread::ThreadPoolOptions(), service);
 }
 
-Status CreateFlyweightTensorFlowRegressor(
+absl::Status CreateFlyweightTensorFlowRegressor(
     const RunOptions& run_options, Session* session,
     const SignatureDef* signature,
     const thread::ThreadPoolOptions& thread_pool_options,
@@ -143,9 +143,9 @@ Status CreateFlyweightTensorFlowRegressor(
   return absl::OkStatus();
 }
 
-Status GetRegressionSignatureDef(const ModelSpec& model_spec,
-                                 const MetaGraphDef& meta_graph_def,
-                                 SignatureDef* signature) {
+absl::Status GetRegressionSignatureDef(const ModelSpec& model_spec,
+                                       const MetaGraphDef& meta_graph_def,
+                                       SignatureDef* signature) {
   const string signature_name = model_spec.signature_name().empty()
                                     ? kDefaultServingSignatureDefKey
                                     : model_spec.signature_name();
@@ -167,9 +167,9 @@ Status GetRegressionSignatureDef(const ModelSpec& model_spec,
   return absl::OkStatus();
 }
 
-Status PreProcessRegression(const SignatureDef& signature,
-                            string* input_tensor_name,
-                            std::vector<string>* output_tensor_names) {
+absl::Status PreProcessRegression(const SignatureDef& signature,
+                                  string* input_tensor_name,
+                                  std::vector<string>* output_tensor_names) {
   if (GetSignatureMethodNameCheckFeature() &&
       signature.method_name() != kRegressMethodName) {
     return errors::InvalidArgument(strings::StrCat(
@@ -207,7 +207,7 @@ Status PreProcessRegression(const SignatureDef& signature,
   return absl::OkStatus();
 }
 
-Status PostProcessRegressionResult(
+absl::Status PostProcessRegressionResult(
     const SignatureDef& signature, int num_examples,
     const std::vector<string>& output_tensor_names,
     const std::vector<Tensor>& output_tensors, RegressionResult* result) {
@@ -266,12 +266,12 @@ Status PostProcessRegressionResult(
   return absl::OkStatus();
 }
 
-Status RunRegress(const RunOptions& run_options,
-                  const MetaGraphDef& meta_graph_def,
-                  const absl::optional<int64_t>& servable_version,
-                  Session* session, const RegressionRequest& request,
-                  RegressionResponse* response,
-                  const thread::ThreadPoolOptions& thread_pool_options) {
+absl::Status RunRegress(const RunOptions& run_options,
+                        const MetaGraphDef& meta_graph_def,
+                        const absl::optional<int64_t>& servable_version,
+                        Session* session, const RegressionRequest& request,
+                        RegressionResponse* response,
+                        const thread::ThreadPoolOptions& thread_pool_options) {
   SignatureDef signature;
   TF_RETURN_IF_ERROR(GetRegressionSignatureDef(request.model_spec(),
                                                meta_graph_def, &signature));
