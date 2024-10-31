@@ -62,6 +62,10 @@ message PredictRequest {
     }
 
     optional DeterministicMode deterministic_mode = 2;
+
+    // Only supported in disaggregated serving. When set, additional arrays from
+    // prefill will be returned if available.
+    optional bool return_additional_arrays_from_prefill = 3;
   }
 
   optional RequestOptions request_options = 7;
