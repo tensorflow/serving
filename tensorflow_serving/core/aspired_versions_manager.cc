@@ -123,7 +123,7 @@ string ServableVersionsDebugString(
   for (const ServableData<std::unique_ptr<Loader>>& version : versions) {
     version_strings.push_back(version.id().DebugString());
   }
-  return str_util::Join(version_strings, ", ");
+  return absl::StrJoin(version_strings, ", ");
 }
 
 }  // namespace
