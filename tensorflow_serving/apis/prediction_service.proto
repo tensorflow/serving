@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package tensorflow.serving;
 option cc_enable_arenas = true;
-// internal rpc option
 
 import "tensorflow_serving/apis/classification.proto";
 import "tensorflow_serving/apis/get_model_metadata.proto";
