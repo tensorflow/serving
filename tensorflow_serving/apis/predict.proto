@@ -66,6 +66,10 @@ message PredictRequest {
     // Only supported in disaggregated serving. When set, additional arrays from
     // prefill will be returned if available.
     optional bool return_additional_arrays_from_prefill = 3;
+
+    // Returns these stop tokens in response if the model stops at them. The
+    // model may stop at other tokens, but will not return them in the response.
+    repeated int64 return_stoptokens = 4;
   }
 
   optional RequestOptions request_options = 7;
