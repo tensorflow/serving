@@ -25,8 +25,7 @@ This package contains the TensorFlow Serving Python APIs.
 
 import sys
 
-from setuptools import find_packages
-from setuptools import setup
+from setuptools import find_packages, setup
 
 DOCLINES = __doc__.split('\n')
 
