@@ -94,10 +94,6 @@ build --experimental_cc_shared_library
 # uses TensorFlow for all IO operations.
 build --define=use_tensorflow_io=1
 
-# TensorFlow Decision Forests need absl::anyInvocable support for new versions 
-# of Tensorflow.
-build --define use_absl_anyinvocable=1
-
 # TensorFlow Decision Forests does not use Absl concurrency primitives on MacOs.
 # Reason: TensorFlow/ABSL ODR violation (b/214189609) # copybara:strip
 build:macos --define std_synchronization_primitives=1
