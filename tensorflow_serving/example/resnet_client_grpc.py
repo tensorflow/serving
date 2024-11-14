@@ -20,8 +20,6 @@ from __future__ import print_function
 
 import io
 
-# This is a placeholder for a Google-internal import.
-
 import grpc
 import numpy as np
 from PIL import Image

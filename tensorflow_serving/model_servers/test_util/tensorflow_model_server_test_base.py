@@ -27,8 +27,6 @@ import socket
 import subprocess
 import time
 
-# This is a placeholder for a Google-internal import.
-
 import grpc
 from six.moves import range
 from six.moves import urllib
