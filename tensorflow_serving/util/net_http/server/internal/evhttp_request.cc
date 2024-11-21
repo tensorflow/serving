@@ -16,7 +16,7 @@ limitations under the License.
 // libevent based request implementation
 
 #include "tensorflow_serving/util/net_http/server/internal/evhttp_request.h"
-
+#include <iostream>
 #include <zlib.h>
 
 #include <cassert>
@@ -126,6 +126,19 @@ EvHTTPRequest::EvHTTPRequest(std::unique_ptr<ParsedEvRequest> request,
 
 EvHTTPRequest::~EvHTTPRequest() {
   if (output_buf != nullptr) {
+     size_t buffer_len = evbuffer_get_length(buffer); // 获取缓冲区中数据的长度
+    if (buffer_len > 0) {
+        // 创建一个足够大的 std::string 来存储 evbuffer 的数据
+        std::string data(buffer_len, '\0');  // 创建一个大小为 buffer_len 的字符串
+        // 将 evbuffer 中的数据复制到 std::string 中
+        evbuffer_copyout(buffer, &data[0], buffer_len);  // 将数据复制到 std::string 的内部缓冲区
+
+        // 打印转换后的字符串
+        std::cout << "Data in evbuffer释放之前: " << data << std::endl;
+        std::cout << "buffer_len:" << buffer_len << std::endl;
+    } else {
+        std::cout << "evbuffer is empty释放之前:" << std::endl;
+    }
     evbuffer_free(output_buf);
   }
 }
@@ -149,8 +162,51 @@ void EvHTTPRequest::WriteResponseBytes(const char* data, int64_t size) {
     NET_LOG(FATAL, "Request not initialized.");
     return;
   }
+  size_t buffer_len = evbuffer_get_length(buffer); // 获取缓冲区中数据的长度
+    if (buffer_len > 0) {
+        // 创建一个足够大的 std::string 来存储 evbuffer 的数据
+        std::string data(buffer_len, '\0');  // 创建一个大小为 buffer_len 的字符串
+        // 将 evbuffer 中的数据复制到 std::string 中
+        evbuffer_copyout(buffer, &data[0], buffer_len);  // 将数据复制到 std::string 的内部缓冲区
 
+        // 打印转换后的字符串
+        std::cout << "Data in evbuffer写入之前: " << data << std::endl;
+        std::cout << "buffer_len:" << buffer_len << std::endl;
+    } else {
+        std::cout << "evbuffer is empty写入之前:" << std::endl;
+    }
+  std::cout << "buffer_len:" 
+  << buffer_len
+  << std::endl;
+  std::cout << "缓存写入结果：" 
+  << ret
+  << std::endl;
+  std::cout << "失败写入数据大小：" 
+  << static_cast<size_t>(size)
+  << std::endl;
   int ret = evbuffer_add(output_buf, data, static_cast<size_t>(size));
+  size_t buffer_len = evbuffer_get_length(buffer); // 获取缓冲区中数据的长度
+    if (buffer_len > 0) {
+        // 创建一个足够大的 std::string 来存储 evbuffer 的数据
+        std::string data(buffer_len, '\0');  // 创建一个大小为 buffer_len 的字符串
+        // 将 evbuffer 中的数据复制到 std::string 中
+        evbuffer_copyout(buffer, &data[0], buffer_len);  // 将数据复制到 std::string 的内部缓冲区
+
+        // 打印转换后的字符串
+        std::cout << "Data in evbuffer写入之后: " << data << std::endl;
+        std::cout << "buffer_len:" << buffer_len << std::endl;
+    } else {
+        std::cout << "evbuffer is empty写入之后:" << std::endl;
+    }
+  std::cout << "buffer_len:" 
+  << buffer_len
+  << std::endl;
+  std::cout << "缓存写入结果：" 
+  << ret
+  << std::endl;
+  std::cout << "失败写入数据大小：" 
+  << static_cast<size_t>(size)
+  << std::endl;
   if (ret == -1) {
     NET_LOG(ERROR, "Failed to write %zu bytes data to output buffer",
             static_cast<size_t>(size));
@@ -365,8 +421,33 @@ void EvHTTPRequest::ReplyWithStatus(HTTPStatusCode status) {
 }
 
 void EvHTTPRequest::EvSendReply(HTTPStatusCode status) {
+  size_t buffer_len = evbuffer_get_length(buffer); // 获取缓冲区中数据的长度
+    if (buffer_len > 0) {
+        // 创建一个足够大的 std::string 来存储 evbuffer 的数据
+        std::string data(buffer_len, '\0');  // 创建一个大小为 buffer_len 的字符串
+        // 将 evbuffer 中的数据复制到 std::string 中
+        evbuffer_copyout(buffer, &data[0], buffer_len);  // 将数据复制到 std::string 的内部缓冲区
+
+        // 打印转换后的字符串
+        std::cout << "Data in evbuffer响应之前: " << data << std::endl;
+        std::cout << "buffer_len:" << buffer_len << std::endl;
+    } else {
+        std::cout << "evbuffer is empty响应之前:" << std::endl;
+    }
   evhttp_send_reply(parsed_request_->request, static_cast<int>(status), nullptr,
-                    output_buf);
+  size_t buffer_len = evbuffer_get_length(buffer); // 获取缓冲区中数据的长度
+    if (buffer_len > 0) {
+        // 创建一个足够大的 std::string 来存储 evbuffer 的数据
+        std::string data(buffer_len, '\0');  // 创建一个大小为 buffer_len 的字符串
+        // 将 evbuffer 中的数据复制到 std::string 中
+        evbuffer_copyout(buffer, &data[0], buffer_len);  // 将数据复制到 std::string 的内部缓冲区
+
+        // 打印转换后的字符串
+        std::cout << "Data in evbuffer响应之后: " << data << std::endl;
+        std::cout << "buffer_len:" << buffer_len << std::endl;
+    } else {
+        std::cout << "evbuffer is empty响应之后:" << std::endl;
+    }                  output_buf);
   server_->DecOps();
   delete this;
 }
