@@ -1,5 +1,5 @@
 load("@com_google_protobuf//:protobuf.bzl", "cc_proto_library")
-load("@local_tsl//tsl/platform/default:build_config.bzl", "py_proto_library")
+load("@local_xla//xla/tsl/platform/default:build_config.bzl", "py_proto_library")
 
 def if_oss(oss_value):
     """Returns oss_value if in OSS build env.
