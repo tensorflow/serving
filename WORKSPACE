@@ -59,10 +59,24 @@ http_archive(
 
 load("@rules_python//python:repositories.bzl", "python_register_toolchains")
 
+load(
+    "@rules_python//python:repositories.bzl",
+    "py_repositories",
+    "python_register_toolchains",
+)
+py_repositories()
+
+load(
+    "@org_tensorflow//tensorflow/tools/toolchains/python:python_repo.bzl",
+    "python_repository",
+)
+python_repository(name = "python_version_repo")
+load("@python_version_repo//:py_version.bzl", "HERMETIC_PYTHON_VERSION")
+
 python_register_toolchains(
     name = "python",
     ignore_root_user_error = True,
-    python_version = "3.9",
+    python_version = HERMETIC_PYTHON_VERSION,
 )
 
 # Initialize TensorFlow's external dependencies.
