@@ -2,6 +2,8 @@
 
 # buildifier: disable=out-of-order-load
 
+# Placeholder: load java_proto_library
+
 # Placeholder: load py_library
 # Placeholder: load kt_jvm_proto_library
 load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
