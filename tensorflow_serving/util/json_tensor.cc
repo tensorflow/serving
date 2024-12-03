@@ -884,6 +884,37 @@ bool IsNamedTensorBytes(const string& name, const TensorProto& tensor) {
          absl::EndsWith(name, kBytesTensorNameSuffix);
 }
 
+float intBitsToFloat(int32_t x)
+{
+    union int_float_bits bits;
+    bits.int_bits = x;
+    return bits.float_bits;
+}
+
+float toFloat16(int bits) {
+  // 10 bits mantissa
+  int mant = bits & 0x03ff;
+  int exp =  bits & 0x7c00;
+
+  if (exp == 0x7c00) {
+    exp = 0x3fc00;
+  } else if (exp != 0) {
+    exp += 0x1c000;
+
+    if( mant == 0 && exp > 0x1c400 ) {
+      return intBitsToFloat( ( bits & 0x8000 ) << 16 | exp << 13 | 0x3ff );
+    }
+  } else if( mant != 0 ) {
+    exp = 0x1c400;
+    do {
+      mant <<= 1;
+      exp -= 0x400;
+    } while( ( mant & 0x400 ) == 0 );
+    mant &= 0x3ff;
+  }
+    // else +/-0 -> +/-0
+  return intBitsToFloat((bits & 0x8000 ) << 16 | (exp | mant) << 13);
+}
 
 Status AddSingleValueAndAdvance(const TensorProto& tensor, bool string_as_bytes,
                                 RapidJsonWriter* writer, int* offset) {
@@ -902,6 +933,13 @@ Status AddSingleValueAndAdvance(const TensorProto& tensor, bool string_as_bytes,
     case DT_INT8:
     case DT_UINT8:
       success = writer->Int(tensor.int_val(*offset));
+      break;
+
+    case DT_HALF:
+      int src = tensor.half_val(*offset);
+      float dst;
+      dst = toFloat16( &src, &dst);
+      success = WriteDecimal(writer, dst);
       break;
 
     case DT_STRING: {
