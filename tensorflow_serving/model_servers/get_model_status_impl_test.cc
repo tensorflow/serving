@@ -177,6 +177,17 @@ TEST_F(GetModelStatusImplTest, SingleVersionSuccess) {
   EXPECT_EQ("", response.model_version_status(0).status().error_message());
 }
 
+TEST_F(GetModelStatusImplTest, Success) {
+  ListModelsRequest request;
+  ListModelsResponse response;
+  // If two versions of model are managed by ServerCore, succesfully get model
+  // status for both versions of the model.
+  TF_EXPECT_OK(
+      GetModelStatusImpl::ListModels(GetServerCore(), request, &response)
+      );
+  EXPECT_EQ(1, response.model_names_size());
+}
+
 // Verifies that GetModelStatusWithModelSpec() uses the model spec override
 // rather than the one in the request.
 TEST_F(GetModelStatusImplTest, ModelSpecOverride) {
