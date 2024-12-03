@@ -67,11 +67,12 @@ auto* model_request_status_count_total = monitoring::Counter<2>::New(
     "/tensorflow/serving/request_count", "The total number of requests.",
     "model_name", "status");
 
-auto* runtime_latency = monitoring::Sampler<3>::New(
+auto* runtime_latency = monitoring::Sampler<4>::New(
     {
         "/tensorflow/serving/runtime_latency",
         "Distribution of wall time (in microseconds) for Tensorflow runtime.",
         "model_name",
+        "signature_name",
         "API",
         "runtime",
     },  // Scale of 10, power of 1.8 with bucket count 33 (~20 minutes).
@@ -349,9 +350,11 @@ absl::Status EstimateResourceFromPathUsingDiskState(
   return absl::OkStatus();
 }
 
-void RecordRuntimeLatency(const string& model_name, const string& api,
+void RecordRuntimeLatency(const string& model_name,
+                          const string& signature_name, const string& api,
                           const string& runtime, int64_t latency_usec) {
-  runtime_latency->GetCell(model_name, api, runtime)->Add(latency_usec);
+  runtime_latency->GetCell(model_name, signature_name, api, runtime)->Add(
+      latency_usec);
 }
 
 void RecordRequestLatency(const string& model_name, const string& api,
