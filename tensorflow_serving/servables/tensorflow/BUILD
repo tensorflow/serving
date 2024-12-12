@@ -1118,6 +1118,10 @@ cc_library(
     name = "mock_servable",
     testonly = True,
     hdrs = ["mock_servable.h"],
+    visibility = [
+        "//learning/gemini/deployment/disaggregation/wiz_py/cc_driver:__pkg__",
+        "//tensorflow_serving:internal",
+    ],
     deps = [
         ":servable",
         "//tensorflow_serving/apis:classification_cc_proto",
