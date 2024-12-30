@@ -223,14 +223,25 @@ bool EvHTTPServer::StartAcceptingRequests() {
 
   const int port = server_options_->ports().front();
 
-  // "::"  =>  in6addr_any
-  ev_uint16_t ev_port = static_cast<ev_uint16_t>(port);
-  ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, "::", ev_port);
-  if (ev_listener_ == nullptr) {
-    // in case ipv6 is not supported, fallback to inaddr_any
-    ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, nullptr, ev_port);
+  if (server_options_->ip_addresses().empty()) {
+    // "::"  =>  in6addr_any
+    ev_uint16_t ev_port = static_cast<ev_uint16_t>(port);
+    ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, "::", ev_port);
     if (ev_listener_ == nullptr) {
-      NET_LOG(ERROR, "Couldn't bind to port %d", port);
+      // in case ipv6 is not supported, fallback to inaddr_any
+      ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, nullptr, ev_port);
+      if (ev_listener_ == nullptr) {
+        NET_LOG(ERROR, "Couldn't bind to port %d", port);
+        return false;
+      }
+    }
+  } else {
+    const std::string& ip_address = server_options_->ip_addresses().front();
+    ev_listener_ =
+        evhttp_bind_socket_with_handle(ev_http_, ip_address.c_str(), port);
+    if (ev_listener_ == nullptr) {
+      NET_LOG(ERROR, "Couldn't bind address %s to port %d", ip_address.c_str(),
+              port);
       return false;
     }
   }
