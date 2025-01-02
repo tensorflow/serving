@@ -15,6 +15,7 @@ package_group(
         "//platforms/gsys/...",
         "//platforms/redfish/...",
         "//platforms/syshealth/shdc/...",
+        "//prodkernel/networking/tcpdirect/buffer_mgmt_daemon/...",
         "//security/crypta/commands/ecclesia/...",
         "//security/loas/l2/internal/service/notar/...",
         "//third_party/ebpf_transport_monitoring/...",
