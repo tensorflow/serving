@@ -29,6 +29,7 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/errors.h"
+#include "tensorflow/core/platform/tracing.h"  // NOLINT
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow/core/tfrt/runtime/tf_threadpool_concurrent_work_queue.h"
@@ -190,12 +191,14 @@ absl::Status RunPredict(
   }
 
   if (IsOutputFilterEmptyOrFullSet(request, function_metadata.value())) {
+    TRACELITERAL("Pre process prediction without output filter");
     // Pre-processing.
     std::vector<Tensor> input_tensors;
     TF_RETURN_IF_ERROR(PreProcessPredictionWithoutOutputFilter(
         function_metadata.value(), request, &input_tensors));
 
     // Executes requests.
+    TRACELITERAL("Execute prediction without output filter");
     std::vector<Tensor> outputs;
     const uint64_t start_microseconds = EnvTime::NowMicros();
     if (const auto status =
@@ -213,6 +216,7 @@ absl::Status RunPredict(
                          end_microseconds - start_microseconds);
 
     // Post-processing.
+    TRACELITERAL("Post process prediction without output filter");
     return PostProcessPredictionResultWithoutOutputFilter(
         function_metadata->GetOutputNames(), outputs, option, request,
         response);
@@ -229,6 +233,7 @@ absl::Status RunPredict(
     }
     const SignatureDef& signature = iter->second;
 
+    TRACELITERAL("Pre process prediction with output filter");
     std::vector<std::pair<string, Tensor>> input_tensors;
     std::vector<string> output_tensor_names;
     std::vector<string> output_tensor_aliases;
@@ -236,6 +241,7 @@ absl::Status RunPredict(
                                             &output_tensor_names,
                                             &output_tensor_aliases));
 
+    TRACELITERAL("Execute prediction with output filter");
     const uint64_t start_microseconds = EnvTime::NowMicros();
     std::vector<Tensor> outputs;
     if (const auto status = saved_model->RunByTensorNames(
@@ -253,6 +259,7 @@ absl::Status RunPredict(
                          /*runtime=*/"TFRT",
                          end_microseconds - start_microseconds);
 
+    TRACELITERAL("Post process prediction with output filter");
     return PostProcessPredictionResult(output_tensor_aliases, outputs, option,
                                        response);
   }

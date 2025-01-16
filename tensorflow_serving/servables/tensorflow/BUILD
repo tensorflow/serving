@@ -1181,6 +1181,7 @@ cc_library(
         "@org_tensorflow//tensorflow/cc/saved_model:util",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core/platform:tracing",
         "@org_tensorflow//tensorflow/core/tfrt/runtime:tf_threadpool_concurrent_work_queue",
         "@org_tensorflow//tensorflow/core/tfrt/saved_model:saved_model_cpu",
     ],
