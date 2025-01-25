@@ -85,7 +85,7 @@ void AspireVersion(
 // Converts the string version path to an integer.
 // Returns false if the input is invalid.
 bool ParseVersionNumber(const string& version_path, int64_t* version_number) {
-  return strings::safe_strto64(version_path.c_str(), version_number);
+  return absl::SimpleAtoi(version_path.c_str(), version_number);
 }
 
 // Update the servable data to include all the servable versions found in the
