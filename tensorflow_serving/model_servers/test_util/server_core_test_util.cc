@@ -44,15 +44,15 @@ void AddSessionRunLoadThreadPool(SessionBundleConfig* const bundle_config) {
 
 }  // namespace
 
-Status CreateServerCore(const ModelServerConfig& config,
-                        ServerCore::Options options,
-                        std::unique_ptr<ServerCore>* server_core) {
+absl::Status CreateServerCore(const ModelServerConfig& config,
+                              ServerCore::Options options,
+                              std::unique_ptr<ServerCore>* server_core) {
   options.model_server_config = config;
   return ServerCore::Create(std::move(options), server_core);
 }
 
-Status CreateServerCore(const ModelServerConfig& config,
-                        std::unique_ptr<ServerCore>* server_core) {
+absl::Status CreateServerCore(const ModelServerConfig& config,
+                              std::unique_ptr<ServerCore>* server_core) {
   return CreateServerCore(config, ServerCoreTest::GetDefaultOptions(),
                           server_core);
 }
@@ -67,8 +67,8 @@ ServerCore::Options ServerCoreTest::GetDefaultOptions() {
       std::unique_ptr<AspiredVersionPolicy>(new AvailabilityPreservingPolicy);
   options.custom_model_config_loader =
       [](const ::google::protobuf::Any& any, EventBus<ServableState>* event_bus,
-         UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
-    return Status();
+         UniquePtrWithDeps<AspiredVersionsManager>* manager) -> absl::Status {
+    return absl::Status();
   };
 
   SessionBundleConfig bundle_config;
@@ -131,7 +131,7 @@ void ServerCoreTest::SwitchToHalfPlusTwoWith2Versions(
   }
 }
 
-Status ServerCoreTest::CreateServerCore(
+absl::Status ServerCoreTest::CreateServerCore(
     const ModelServerConfig& config, ServerCore::Options options,
     std::unique_ptr<ServerCore>* server_core) {
   return test_util::CreateServerCore(config, std::move(options), server_core);
