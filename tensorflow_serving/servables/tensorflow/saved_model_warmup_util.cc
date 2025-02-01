@@ -22,6 +22,7 @@ limitations under the License.
 
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/cc/saved_model/constants.h"
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/kernels/batching_util/warmup.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/io/path.h"
@@ -29,7 +30,6 @@ limitations under the License.
 #include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/status.h"
-#include "tsl/platform/errors.h"
 #include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {

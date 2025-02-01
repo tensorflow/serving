@@ -21,8 +21,8 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tsl/platform/errors.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
 

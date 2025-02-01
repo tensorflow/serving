@@ -15,9 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/tfrt_regression_service.h"
 
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/tracing.h"
-#include "tsl/platform/errors.h"
 #include "tensorflow_serving/apis/regressor.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/model_servers/server_core.h"
