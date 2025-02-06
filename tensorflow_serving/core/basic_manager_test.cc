@@ -27,11 +27,12 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "absl/status/status.h"
+#include "absl/synchronization/barrier.h"
+#include "absl/synchronization/notification.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
-#include "tensorflow/core/platform/blocking_counter.h"
 #include "tensorflow/core/platform/errors.h"
 #include "tensorflow/core/platform/null_file_system.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
@@ -317,13 +318,13 @@ TEST_P(BasicManagerTest, UpdateServingMapServableHandleLatest) {
   // We will now try to unload v1, but we only allow it to move out from kReady
   // state, and not complete the unload. Also, after it moves out from kReady,
   // the serving map is also updated, so v0 would be the latest.
-  Notification unload_started;
-  Notification finish_unload;
+  absl::Notification unload_started;
+  absl::Notification finish_unload;
   EXPECT_CALL(*notify_to_unload, Unload()).WillOnce(Invoke([&]() {
     unload_started.Notify();
     finish_unload.WaitForNotification();
   }));
-  Notification unload_finished;
+  absl::Notification unload_finished;
   std::unique_ptr<Thread> unload_last_servable(
       Env::Default()->StartThread({}, "UnloadLastServable", [&]() {
         basic_manager_->UnloadServable(id1, [&](const Status& status) {
@@ -554,7 +555,7 @@ TEST_P(BasicManagerTest, DestructOnNonServingThread) {
   TF_ASSERT_OK(status);
   EXPECT_EQ(7, **latest_handle);
 
-  Notification done_unload_servable;
+  absl::Notification done_unload_servable;
   std::unique_ptr<Thread> unload_servable(
       Env::Default()->StartThread({}, "UnloadServable", [&]() {
         // Unload the servable.
@@ -702,8 +703,8 @@ TEST_P(BasicManagerTest, EventBusServableLifecycle) {
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(start_state));
 
-  Notification load_called;
-  Notification load_continue;
+  absl::Notification load_called;
+  absl::Notification load_continue;
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&]() {
         load_called.Notify();
@@ -732,8 +733,8 @@ TEST_P(BasicManagerTest, EventBusServableLifecycle) {
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(available_state));
 
-  Notification unload_called;
-  Notification unload_continue;
+  absl::Notification unload_called;
+  absl::Notification unload_continue;
   EXPECT_CALL(*loader, Unload()).WillOnce(Invoke([&]() {
     unload_called.Notify();
     unload_continue.WaitForNotification();
@@ -824,7 +825,7 @@ TEST_P(BasicManagerTest, InterleavedLoadsAndUnloads) {
     executor.Schedule([this, i]() {
       const ServableId id = {kServableName3, i};
       TF_ASSERT_OK(basic_manager_->ManageServable(CreateServable(id)));
-      Notification load_done;
+      absl::Notification load_done;
       basic_manager_->LoadServable(id, [&load_done](const Status& status) {
         TF_ASSERT_OK(status);
         load_done.Notify();
@@ -893,8 +894,8 @@ TEST_F(SetNumLoadThreadsBasicManagerTest, ThreadPoolsNotAliveSimultaneously) {
 
   const ServableId id0 = {kServableName3, 0};
   TF_ASSERT_OK(basic_manager_->ManageServable(CreateServable(id0)));
-  Notification notify_for_setting;
-  Notification continue_load;
+  absl::Notification notify_for_setting;
+  absl::Notification continue_load;
   basic_manager_->LoadServable(id0, [&](const Status& status) {
     notify_for_setting.Notify();
     continue_load.WaitForNotification();
@@ -1147,8 +1148,8 @@ TEST_P(BasicManagerTest, RetryOnLoadErrorCancelledLoad) {
   TF_ASSERT_OK(
       basic_manager_->ManageServable({id, std::unique_ptr<Loader>(loader)}));
 
-  Notification load_called;
-  Notification load_should_return;
+  absl::Notification load_called;
+  absl::Notification load_should_return;
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
         load_called.Notify();
@@ -1175,8 +1176,8 @@ TEST_P(BasicManagerTest, LoadAfterCancelledLoad) {
   TF_ASSERT_OK(
       basic_manager_->ManageServable({id, std::unique_ptr<Loader>(loader)}));
 
-  Notification load_called;
-  Notification load_should_return;
+  absl::Notification load_called;
+  absl::Notification load_should_return;
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
         load_called.Notify();
@@ -1277,7 +1278,7 @@ class ResourceConstrainedBasicManagerTest : public ::testing::Test {
 // resource units, i.e. half of the total system resources.
 class BarrierLoader : public Loader {
  public:
-  explicit BarrierLoader(BlockingCounter* counter) : counter_(counter) {}
+  explicit BarrierLoader(absl::Barrier* barrier) : barrier_(barrier) {}
   ~BarrierLoader() override = default;
 
   Status EstimateResources(ResourceAllocation* estimate) const override {
@@ -1286,8 +1287,7 @@ class BarrierLoader : public Loader {
   }
 
   Status Load() override {
-    counter_->DecrementCount();
-    counter_->Wait();
+    barrier_->Block();
     return OkStatus();
   }
 
@@ -1296,7 +1296,7 @@ class BarrierLoader : public Loader {
   AnyPtr servable() override { return AnyPtr(); }
 
  private:
-  BlockingCounter* const counter_;
+  absl::Barrier* const barrier_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(BarrierLoader);
 };
@@ -1306,7 +1306,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, ConcurrentLoads) {
   // concurrently (i.e. the manager should not serialize them needlessly).
   // BarrierLoader verifies that the Load() calls occur concurrently.
   int kNumLoaders = 2;
-  BlockingCounter barrier(kNumLoaders);
+  absl::Barrier barrier(kNumLoaders);
   for (int i = 0; i < kNumLoaders; ++i) {
     std::unique_ptr<Loader> loader(new BarrierLoader(&barrier));
     const ServableId id = {"barrier", i};
@@ -1333,7 +1333,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
       .WillOnce(Return(OkStatus()));
   TF_ASSERT_OK(basic_manager_->ManageServable(
       CreateServableData(hogging_id, std::unique_ptr<Loader>(hogging_loader))));
-  Notification hogging_loaded;
+  absl::Notification hogging_loaded;
   basic_manager_->LoadServable(hogging_id,
                                [&hogging_loaded](const Status& status) {
                                  TF_EXPECT_OK(status);
@@ -1351,7 +1351,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
       }));
   TF_ASSERT_OK(basic_manager_->ManageServable(CreateServableData(
       rejected_id, std::unique_ptr<Loader>(rejected_loader))));
-  Notification rejection_received;
+  absl::Notification rejection_received;
   Status rejected_status;
   basic_manager_->LoadServable(
       rejected_id,
@@ -1386,7 +1386,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedIfLoadFails) {
       .WillOnce(Return(errors::Unknown("Load failure")));
   TF_ASSERT_OK(basic_manager_->ManageServable(
       CreateServableData(failing_id, std::unique_ptr<Loader>(failing_loader))));
-  Notification failing_failed;
+  absl::Notification failing_failed;
   basic_manager_->LoadServable(failing_id,
                                [&failing_failed](const Status& status) {
                                  EXPECT_FALSE(status.ok());
@@ -1440,7 +1440,7 @@ TEST_F(ResourceConstrainedBasicManagerTest,
   }
   TF_ASSERT_OK(basic_manager_->ManageServable(CreateServableData(
       overestimating_id, std::unique_ptr<Loader>(overestimating_loader))));
-  Notification overestimating_loaded;
+  absl::Notification overestimating_loaded;
   basic_manager_->LoadServable(overestimating_id,
                                [&overestimating_loaded](const Status& status) {
                                  TF_EXPECT_OK(status);
@@ -1476,7 +1476,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedAfterUnload) {
         *estimate = CreateResourceQuantity(10);
         return OkStatus();
       }));
-  Notification load_done;
+  absl::Notification load_done;
   EXPECT_CALL(*unloading_loader,
               LoadWithMetadata(Loader::Metadata{unloading_id}))
       .WillOnce(Return(OkStatus()));
@@ -1488,8 +1488,8 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedAfterUnload) {
                                  load_done.Notify();
                                });
   load_done.WaitForNotification();
-  Notification unload_started;
-  Notification finish_unload;
+  absl::Notification unload_started;
+  absl::Notification finish_unload;
   EXPECT_CALL(*unloading_loader, Unload())
       .WillOnce(Invoke([&unload_started, &finish_unload] {
         unload_started.Notify();
@@ -1531,8 +1531,8 @@ TEST_F(ResourceConstrainedBasicManagerTest, FirstLoadDeniedSecondOneApproved) {
   // A first loader that gets rejected due to insufficient resources.
   const ServableId denied_id = {"denied", 0};
   test_util::MockLoader* denied_loader = new NiceMock<test_util::MockLoader>;
-  Notification denied_estimate_started;
-  Notification finish_denied_estimate;
+  absl::Notification denied_estimate_started;
+  absl::Notification finish_denied_estimate;
   EXPECT_CALL(*denied_loader, EstimateResources(_))
       .WillOnce(Invoke([&denied_estimate_started,
                         &finish_denied_estimate](ResourceAllocation* estimate) {

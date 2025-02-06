@@ -511,11 +511,12 @@ cc_test(
         "//tensorflow_serving/util:any_ptr",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:threadpool_executor",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
-        "@org_tensorflow//tensorflow/core/platform:blocking_counter",
     ],
 )
 
