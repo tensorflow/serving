@@ -190,7 +190,8 @@ absl::Status RunPredict(
     run_opts.work_queue = &(*thread_pool);
   }
 
-  if (IsOutputFilterEmptyOrFullSet(request, function_metadata.value())) {
+  if (IsOutputFilterEmptyOrFullSet(request, function_metadata.value()) ||
+      saved_model->disable_output_filter()) {
     TRACELITERAL("Pre process prediction without output filter");
     // Pre-processing.
     std::vector<Tensor> input_tensors;

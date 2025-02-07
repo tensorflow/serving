@@ -229,6 +229,8 @@ message TfrtSavedModelConfig {
   // See the description of the batch_padding_policy attribute of
   // BatchFunction in core/ops/batch_ops.cc.
   string batch_padding_policy = 2026;
+
+  bool disable_output_filter = 2027;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.

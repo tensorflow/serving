@@ -197,6 +197,7 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
       graph_rewriter.IsRegistered()) {
     TF_RETURN_IF_ERROR(graph_rewriter.Get()(&meta_graph_def));
   }
+  options.disable_output_filter = config_.disable_output_filter();
   options.enable_lazy_loading =
       meta_graph_def.signature_def_size() > config_.lazy_init_threshold();
   options.maybe_load_from_mla = config_.maybe_load_from_mla();
