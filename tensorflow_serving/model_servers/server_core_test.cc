@@ -334,7 +334,7 @@ TEST_P(ServerCoreTest, ErroringModel) {
         .mutable_source_adapter_config()) = source_adapter_config_any;
   options.model_server_config = GetTestModelServerConfigForFakePlatform();
   std::unique_ptr<ServerCore> server_core;
-  Status status = ServerCore::Create(std::move(options), &server_core);
+  absl::Status status = ServerCore::Create(std::move(options), &server_core);
   EXPECT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("1 servable(s) did not become available"));
@@ -622,7 +622,7 @@ TEST_P(ServerCoreTest, IllegalToChangeModelPlatform) {
   ModelServerConfig new_config = initial_config;
   new_config.mutable_model_config_list()->mutable_config(0)->set_model_platform(
       platforms[1]);
-  const Status reconfigure_status = server_core->ReloadConfig(new_config);
+  const absl::Status reconfigure_status = server_core->ReloadConfig(new_config);
   EXPECT_FALSE(reconfigure_status.ok());
   EXPECT_THAT(reconfigure_status.ToString(),
               ::testing::HasSubstr("Illegal to change a model's platform"));
@@ -795,7 +795,7 @@ TEST_P(ServerCoreTest, ModelSpecMultipleVersionsAvailable) {
     model_spec.set_name(test_util::kTestModelName);
     model_spec.set_version_label("nonexistent label");
     ServableHandle<string> servable_handle;
-    Status status =
+    absl::Status status =
         server_core->GetServableHandle<string>(model_spec, &servable_handle);
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.ToString(),
@@ -822,7 +822,7 @@ TEST_P(ServerCoreTest, AssignLabelToUnavailableVersion) {
   ASSERT_EQ(1, two_version_config.model_config_list().config().size());
   test_util::MutateModelConfig(&two_version_config)
       .SetLabelVersion("nice try", test_util::kTestModelBogusVersion);
-  Status status = server_core->ReloadConfig(two_version_config);
+  absl::Status status = server_core->ReloadConfig(two_version_config);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("not currently available for inference"));
@@ -847,7 +847,7 @@ TEST_P(ServerCoreTest, AssignLabelToUnavailableVersionAllowed) {
   ASSERT_EQ(1, two_version_config.model_config_list().config().size());
   test_util::MutateModelConfig(&two_version_config)
       .SetLabelVersion("nice try", test_util::kTestModelBogusVersion);
-  Status status = server_core->ReloadConfig(two_version_config);
+  absl::Status status = server_core->ReloadConfig(two_version_config);
   EXPECT_TRUE(status.ok());
 }
 
@@ -877,7 +877,7 @@ TEST_P(ServerCoreTest, AssignExistingLabelToUnavailableVersionDisallowed) {
   ASSERT_EQ(1, two_version_config.model_config_list().config().size());
   test_util::MutateModelConfig(&two_version_config)
       .SetLabelVersion("A", test_util::kTestModelBogusVersion);
-  Status status = server_core->ReloadConfig(two_version_config);
+  absl::Status status = server_core->ReloadConfig(two_version_config);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("not currently available for inference"));
@@ -928,7 +928,7 @@ TEST_P(ServerCoreTest, VersionLabelsNotAllowed) {
   ASSERT_EQ(1, config.model_config_list().config().size());
   test_util::MutateModelConfig(&config).SetLabelVersion(
       "A", test_util::kTestModelVersion);
-  Status status = server_core->ReloadConfig(config);
+  absl::Status status = server_core->ReloadConfig(config);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(
       status.ToString(),
