@@ -64,7 +64,7 @@ namespace main {
 
 namespace {
 
-tensorflow::Status LoadCustomModelConfig(
+absl::Status LoadCustomModelConfig(
     const ::google::protobuf::Any& any,
     EventBus<ServableState>* servable_event_bus,
     UniquePtrWithDeps<AspiredVersionsManager>* manager) {
@@ -162,7 +162,7 @@ Server::~Server() {
 
 void Server::PollFilesystemAndReloadConfig(const string& config_file_path) {
   ModelServerConfig config;
-  const Status read_status =
+  const absl::Status read_status =
       ParseProtoTextFile<ModelServerConfig>(config_file_path, &config);
   if (!read_status.ok()) {
     LOG(ERROR) << "Failed to read ModelServerConfig file: "
@@ -170,14 +170,14 @@ void Server::PollFilesystemAndReloadConfig(const string& config_file_path) {
     return;
   }
 
-  const Status reload_status = server_core_->ReloadConfig(config);
+  const absl::Status reload_status = server_core_->ReloadConfig(config);
   if (!reload_status.ok()) {
     LOG(ERROR) << "PollFilesystemAndReloadConfig failed to ReloadConfig: "
                << reload_status.message();
   }
 }
 
-Status Server::BuildAndStart(const Options& server_options) {
+absl::Status Server::BuildAndStart(const Options& server_options) {
   if (server_options.grpc_port == 0 &&
       server_options.grpc_socket_path.empty()) {
     return errors::InvalidArgument(
@@ -400,7 +400,7 @@ Status Server::BuildAndStart(const Options& server_options) {
     // parse each arg as int and pass it on as such if successful. Otherwise we
     // will pass it as a string. gRPC will log arguments that were not accepted.
     tensorflow::int32 value;
-    if (tensorflow::strings::safe_strto32(channel_argument.value, &value)) {
+    if (absl::SimpleAtoi(channel_argument.value, &value)) {
       builder.AddChannelArgument(channel_argument.key, value);
     } else {
       builder.AddChannelArgument(channel_argument.key, channel_argument.value);
