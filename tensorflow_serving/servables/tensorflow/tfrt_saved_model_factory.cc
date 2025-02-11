@@ -240,6 +240,7 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
   compile_options.min_max_enqueued_batches =
       config_.tfrt_min_max_enqueued_batches();
   compile_options.batch_padding_policy = config_.batch_padding_policy();
+  compile_options.batch_options = config_.in_graph_batching_parameters();
 
   options.graph_execution_options.run_placer_grappler_on_functions =
       config_.run_placer_grappler_on_functions();

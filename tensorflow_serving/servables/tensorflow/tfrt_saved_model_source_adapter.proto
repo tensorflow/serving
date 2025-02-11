@@ -231,6 +231,9 @@ message TfrtSavedModelConfig {
   string batch_padding_policy = 2026;
 
   bool disable_output_filter = 2027;
+
+  // Batching parameters to be rewritten in the existing BatchFunction ops.
+  BatchingOptions in_graph_batching_parameters = 2028;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.
