@@ -1,0 +1,10 @@
+services:
+  build-wheels:
+    build:
+      context: .
+      dockerfile: tensorflow_serving/tools/docker/Dockerfile.devel
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION}
+        - USE_BAZEL_VERSION=${USE_BAZEL_VERSION}
+    volumes:
+      - .:/build:delegated
