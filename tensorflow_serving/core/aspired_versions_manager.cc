@@ -93,7 +93,7 @@ struct CompareActions {
 // Validates whether all entries in 'versions' pertain to the servable named
 // 'servable_name'.
 Status ValidateAspiredVersions(
-    const StringPiece servable_name,
+    const absl::string_view servable_name,
     const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) {
   for (const auto& version : versions) {
     if (servable_name != version.id().name) {
@@ -141,7 +141,7 @@ class AspiredVersionsManagerTargetImpl final
 
  protected:
   void SetAspiredVersions(
-      const StringPiece servable_name,
+      const absl::string_view servable_name,
       std::vector<ServableData<std::unique_ptr<Loader>>> versions) override {
     parent_->EnqueueAspiredVersionsRequest(servable_name, std::move(versions));
   }
@@ -262,7 +262,7 @@ AspiredVersionsManager::GetAspiredVersionsCallback() {
 }
 
 void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
-    const StringPiece servable_name,
+    const absl::string_view servable_name,
     std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
   const Status validation_status =
       ValidateAspiredVersions(servable_name, versions);
@@ -282,7 +282,7 @@ void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
 }
 
 void AspiredVersionsManager::ProcessAspiredVersionsRequest(
-    const StringPiece servable_name,
+    const absl::string_view servable_name,
     std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
   VLOG(2) << "Processing aspired versions request: " << servable_name << ": "
           << ServableVersionsDebugString(versions);
@@ -364,7 +364,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
 }
 
 bool AspiredVersionsManager::ContainsAnyReaspiredVersions(
-    const StringPiece servable_name,
+    const absl::string_view servable_name,
     const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) const {
   const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
       basic_manager_->GetManagedServableStateSnapshots<Aspired>(

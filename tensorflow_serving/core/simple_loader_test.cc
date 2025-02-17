@@ -276,7 +276,7 @@ TEST(SimpleLoaderSourceAdapterTest, Basic) {
   const string kServableName = "test_servable_name";
   bool callback_called;
   adapter.SetAspiredVersionsCallback(
-      [&](const StringPiece servable_name,
+      [&](const absl::string_view servable_name,
           std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
         callback_called = true;
         EXPECT_EQ(kServableName, servable_name);
@@ -319,7 +319,7 @@ TEST(SimpleLoaderSourceAdapterTest, OkayToDeleteAdapter) {
 
     const string kServableName = "test_servable_name";
     adapter->SetAspiredVersionsCallback(
-        [&](const StringPiece servable_name,
+        [&](const absl::string_view servable_name,
             std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
           ASSERT_EQ(1, versions.size());
           TF_ASSERT_OK(versions[0].status());
