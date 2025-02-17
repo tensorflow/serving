@@ -46,11 +46,11 @@ using ::testing::HasSubstr;
 using TensorInfoMap = ::google::protobuf::Map<string, TensorInfo>;
 using TensorMap = ::google::protobuf::Map<string, TensorProto>;
 
-std::function<tensorflow::Status(const string&, TensorInfoMap*)> getmap(
+std::function<absl::Status(const string&, TensorInfoMap*)> getmap(
     const TensorInfoMap& map) {
   return [&map](const string&, TensorInfoMap* m) {
     *m = map;
-    return OkStatus();
+    return absl::OkStatus();
   };
 }
 
@@ -646,7 +646,7 @@ TEST(JsontensorTest, SingleUnnamedTensorErrors) {
 
   PredictRequest req;
   JsonPredictRequestFormat format;
-  Status status;
+  absl::Status status;
   status = FillPredictRequestFromJson("", getmap(infomap), &req, &format);
   ASSERT_TRUE(errors::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("document is empty"));
@@ -713,7 +713,7 @@ TEST(JsontensorTest, MultipleNamedTensorErrors) {
 
   PredictRequest req;
   JsonPredictRequestFormat format;
-  Status status;
+  absl::Status status;
   // Different shapes across int_tensor instances.
   status = FillPredictRequestFromJson(R"(
     {
@@ -794,7 +794,7 @@ TEST(JsontensorTest, MultipleNamedTensorErrors) {
 }
 
 template <const unsigned int parseflags = rapidjson::kParseNanAndInfFlag>
-Status CompareJson(const string& json1, const string& json2) {
+absl::Status CompareJson(const string& json1, const string& json2) {
   rapidjson::Document doc1;
   if (doc1.Parse<parseflags>(json1.c_str()).HasParseError()) {
     return errors::InvalidArgument(
@@ -813,7 +813,7 @@ Status CompareJson(const string& json1, const string& json2) {
     return errors::InvalidArgument("JSON Different. JSON1: ", json1,
                                    "JSON2: ", json2);
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Compare two JSON documents treating values (including numbers) as strings.
@@ -823,7 +823,8 @@ Status CompareJson(const string& json1, const string& json2) {
 // to the approximate nature of decimal representation.
 //
 // For most use cases, prefer CompareJson() defined above.
-Status CompareJsonAllValuesAsStrings(const string& json1, const string& json2) {
+absl::Status CompareJsonAllValuesAsStrings(const string& json1,
+                                           const string& json2) {
   return CompareJson<rapidjson::kParseNanAndInfFlag |
                      rapidjson::kParseNumbersAsStringsFlag>(json1, json2);
 }
@@ -975,7 +976,7 @@ TEST(JsontensorTest, FromJsonSingleFloatTensorNonFinite) {
 TEST(JsontensorTest, FromJsonSingleTensorErrors) {
   TensorMap tensormap;
   string json;
-  Status status;
+  absl::Status status;
 
   status =
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json);
@@ -1226,11 +1227,11 @@ TEST(JsontensorTest, FromJsonMultipleZeroBatchTensorsErrors) {
 template <typename RequestType>
 class ClassifyRegressRequestTest : public ::testing::Test {
  protected:
-  Status FillRequest(const string& json, ClassificationRequest* req) {
+  absl::Status FillRequest(const string& json, ClassificationRequest* req) {
     return FillClassificationRequestFromJson(json, req);
   }
 
-  Status FillRequest(const string& json, RegressionRequest* req) {
+  absl::Status FillRequest(const string& json, RegressionRequest* req) {
     return FillRegressionRequestFromJson(json, req);
   }
 };
@@ -1599,7 +1600,7 @@ TEST(ClassifyRegressnResultTest, JsonFromResultErrors) {
 
 TEST(MakeJsonFromTensors, StatusOK) {
   string json;
-  MakeJsonFromStatus(OkStatus(), &json);
+  MakeJsonFromStatus(absl::OkStatus(), &json);
   EXPECT_EQ(json, "");
 }
 
