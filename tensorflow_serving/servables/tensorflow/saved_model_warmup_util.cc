@@ -99,12 +99,12 @@ absl::Status RunSavedModelWarmup(
 
   int num_model_warmup_threads =
       model_warmup_options.has_num_model_warmup_threads()
-          ? std::max(model_warmup_options.num_model_warmup_threads().value(), 1)
-          : 1;
+          ? std::max(model_warmup_options.num_model_warmup_threads().value(), 0)
+          : 0;
   std::unique_ptr<tensorflow::io::SequentialRecordReader> tf_record_file_reader;
   absl::Status status;
   int num_warmup_records = 0;
-  if (num_model_warmup_threads <= 1) {
+  if (num_model_warmup_threads < 1) {
     tf_record_file_reader.reset(
         new tensorflow::io::SequentialRecordReader(tf_record_file.get()));
     tstring record;
