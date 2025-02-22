@@ -36,7 +36,7 @@ FakeLoaderSourceAdapter::FakeLoaderSourceAdapter(
                                         ? strings::StrCat(path, "/", suffix_)
                                         : path;
             servable_ptr->reset(new string(servable));
-            return Status();
+            return absl::Status();
           },
           SimpleLoaderSourceAdapter<StoragePath,
                                     string>::EstimateNoResources()),
@@ -53,12 +53,12 @@ FakeLoaderSourceAdapter::~FakeLoaderSourceAdapter() {
 // Register the source adapter.
 class FakeLoaderSourceAdapterCreator {
  public:
-  static Status Create(
+  static absl::Status Create(
       const FakeLoaderSourceAdapterConfig& config,
       std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
           adapter) {
     adapter->reset(new FakeLoaderSourceAdapter(config.suffix()));
-    return Status();
+    return absl::Status();
   }
 };
 REGISTER_STORAGE_PATH_SOURCE_ADAPTER(FakeLoaderSourceAdapterCreator,
