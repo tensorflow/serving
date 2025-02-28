@@ -28,7 +28,7 @@ namespace tensorflow {
 namespace serving {
 namespace init {
 
-Status SetupPlatformConfigMapForTensorFlowImpl(
+absl::Status SetupPlatformConfigMapForTensorFlowImpl(
     const SessionBundleConfig& session_bundle_config,
     PlatformConfigMap& platform_config_map) {
   platform_config_map =
@@ -36,7 +36,7 @@ Status SetupPlatformConfigMapForTensorFlowImpl(
   return absl::OkStatus();
 }
 
-Status UpdatePlatformConfigMapForTensorFlowImpl(
+absl::Status UpdatePlatformConfigMapForTensorFlowImpl(
     PlatformConfigMap& platform_config_map) {
   return absl::OkStatus();
 }
