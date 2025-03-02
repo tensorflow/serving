@@ -24,8 +24,8 @@ local_repository(
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "f254663f55d8fc6896a3cc4571a17f4475aea47b6614de4d9c976c02a03b3d34",
-    git_commit = "80f19b7be7695cd12aa6eda8f1a30510764e1f7d",
+    sha256 = "9b6d9a1267c5370b3aa51a73744c9527f3d21d5012a322e0683a7b28ccf5f4db",
+    git_commit = "4cbf8a70b90ef7d614ab6da68af911aee8fa05a4",
     patch = "//third_party/tensorflow:tensorflow.patch",
 )
 
