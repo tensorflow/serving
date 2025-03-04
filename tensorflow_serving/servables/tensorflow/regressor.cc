@@ -74,8 +74,9 @@ class SavedModelTensorFlowRegressor : public RegressorInterface {
         run_options_, request.input(), input_tensor_name, output_tensor_names,
         session_, &outputs, &num_examples, thread_pool_options_,
         &runtime_latency));
-    RecordRuntimeLatency(request.model_spec().name(), /*api=*/"Regress",
-                         /*runtime=*/"TF1", runtime_latency);
+    RecordRuntimeLatency(request.model_spec().name(),
+                         /*signature_name=*/"tensorflow/serving/regress",
+                         /*api=*/"Regress", /*runtime=*/"TF1", runtime_latency);
 
     TRACELITERAL("ConvertToRegressionResult");
     return PostProcessRegressionResult(*signature_, num_examples,
