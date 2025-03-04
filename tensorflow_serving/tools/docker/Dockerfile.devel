@@ -11,17 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM ubuntu:20.04 as base_build
-
-ARG TF_SERVING_VERSION_GIT_BRANCH=master
-ARG TF_SERVING_VERSION_GIT_COMMIT=HEAD
-ARG DEBIAN_FRONTEND=noninteractive
-
+# FROM ubuntu:20.04 as base_build
+FROM quay.io/condaforge/miniforge3
 LABEL maintainer=gvasudevan@google.com
-LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
-LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+ENV DEBIAN_FRONTEND=noninteractive
+
+ARG PYTHON_VERSION
+ARG USE_BAZEL_VERSION
+
+RUN apt update -y && apt install -y --no-install-recommends \
         automake \
         build-essential \
         ca-certificates \
@@ -38,96 +37,46 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         openjdk-8-jdk\
         openjdk-8-jre-headless \
         pkg-config \
-        python-dev \
         software-properties-common \
         swig \
         unzip \
         wget \
         zip \
-        zlib1g-dev \
-        python3-distutils \
-        && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        zlib1g-dev
 
-# Install python 3.9.
-RUN add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && apt-get install -y \
-    python3.9 python3.9-dev python3-pip python3.9-venv && \
-    rm -rf /var/lib/apt/lists/* && \
-    python3.9 -m pip install pip --upgrade && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 0
+# Install python
+RUN conda create -n build -y python==${PYTHON_VERSION}
+RUN conda run -n build pip install future>=0.17.1 grpcio h5py keras_applications>=1.0.8 keras_preprocessing>=1.1.0 mock numpy portpicker requests
 
-# Make python3.9 the default python version
-# If updating default python version, also update version in the WORKSPACE file.
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 0
+# Set up bazelisk v1.22.0
+RUN wget https://github.com/bazelbuild/bazelisk/releases/download/v1.22.0/bazelisk-linux-amd64 -O /usr/local/bin/bazel && chmod +x /usr/local/bin/bazel
 
-RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
-    python3 get-pip.py && \
-    rm get-pip.py
+# Copy the repo into the container
+COPY . /build
+WORKDIR /build
 
-RUN pip3 --no-cache-dir install \
-    future>=0.17.1 \
-    grpcio \
-    h5py \
-    keras_applications>=1.0.8 \
-    keras_preprocessing>=1.1.0 \
-    mock \
-    numpy \
-    portpicker \
-    requests \
-    --ignore-installed setuptools \
-    --ignore-installed six>=1.12.0
-
-# Set up Bazel
-ENV BAZEL_VERSION 6.5.0
-WORKDIR /
-RUN mkdir /bazel && \
-    cd /bazel && \
-    curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
-    curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -o /bazel/LICENSE.txt https://raw.githubusercontent.com/bazelbuild/bazel/master/LICENSE && \
-    chmod +x bazel-*.sh && \
-    ./bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
-    cd / && \
-    rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
-
-# Download TF Serving sources (optionally at specific commit).
-WORKDIR /tensorflow-serving
-RUN curl -sSL --retry 5 https://github.com/tensorflow/serving/tarball/${TF_SERVING_VERSION_GIT_COMMIT} | tar --strip-components=1 -xzf -
-
-FROM base_build as binary_build
+# FROM base_build as binary_build
 # Build, and install TensorFlow Serving
 ARG TF_SERVING_BUILD_OPTIONS="--config=release"
 RUN echo "Building with build options: ${TF_SERVING_BUILD_OPTIONS}"
 ARG TF_SERVING_BAZEL_OPTIONS=""
 RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
 
-RUN bazel build --color=yes --curses=yes \
+RUN mkdir dist/
+
+RUN conda run -n build bazel build \
     ${TF_SERVING_BAZEL_OPTIONS} \
-    --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \
     ${TF_SERVING_BUILD_OPTIONS} \
     --config=kokoro \
-    tensorflow_serving/model_servers:tensorflow_model_server && \
-    cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server \
-    /usr/local/bin/
+    tensorflow_serving/model_servers:tensorflow_model_server
 
 # Build and install TensorFlow Serving API
-RUN bazel build --color=yes --curses=yes \
+RUN conda run -n build bazel build \
     ${TF_SERVING_BAZEL_OPTIONS} \
-    --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \
     ${TF_SERVING_BUILD_OPTIONS} \
     --config=kokoro \
     tensorflow_serving/tools/pip_package:build_pip_package && \
     bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package \
-    /tmp/pip && \
-    pip --no-cache-dir install --upgrade \
-    /tmp/pip/tensorflow_serving_api-*.whl && \
-    rm -rf /tmp/pip
-
-FROM binary_build as clean_build
-# Clean up Bazel cache when done.
-RUN bazel clean --expunge --color=yes && \
-    rm -rf /root/.cache
-CMD ["/bin/bash"]
+    ./dist
