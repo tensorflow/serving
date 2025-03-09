@@ -388,7 +388,7 @@ absl::Status Server::BuildAndStart(const Options& server_options) {
   builder.RegisterService(model_service_.get());
   builder.RegisterService(prediction_service_.get());
   if (server_options.enable_profiler) {
-    profiler_service_ = tensorflow::profiler::CreateProfilerService();
+    profiler_service_ = tsl::profiler::CreateProfilerService();
     builder.RegisterService(profiler_service_.get());
     LOG(INFO) << "Profiler service is enabled";
   }
