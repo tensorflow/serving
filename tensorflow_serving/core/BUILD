@@ -824,11 +824,14 @@ cc_library(
     ],
     deps = [
         ":request_logger",
+        ":stream_logger",
         "//tensorflow_serving/apis:logging_cc_proto",
         "//tensorflow_serving/apis:model_cc_proto",
         "//tensorflow_serving/config:logging_config_cc_proto",
         "//tensorflow_serving/util:fast_read_dynamic_ptr",
-        "@com_google_protobuf//:protobuf",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

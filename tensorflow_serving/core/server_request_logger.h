@@ -19,15 +19,16 @@ limitations under the License.
 #include <functional>
 #include <map>
 #include <memory>
-#include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "google/protobuf/message.h"
-#include "tensorflow/core/lib/core/status.h"
+#include "absl/status/status.h"
+#include "absl/synchronization/mutex.h"
+#include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/logging.pb.h"
 #include "tensorflow_serving/config/logging_config.pb.h"
 #include "tensorflow_serving/core/request_logger.h"
+#include "tensorflow_serving/core/stream_logger.h"
 #include "tensorflow_serving/util/fast_read_dynamic_ptr.h"
 
 namespace tensorflow {
@@ -39,34 +40,35 @@ namespace serving {
 // sampling config.
 class ServerRequestLogger {
  public:
-  using LoggerCreator = std::function<Status(
+  using LoggerCreator = std::function<absl::Status(
       const LoggingConfig& logging_config, std::shared_ptr<RequestLogger>*)>;
+
   // Creates the ServerRequestLogger based on a custom request_logger_creator
   // method.
   //
   // You can create an empty ServerRequestLogger with an empty
   // request_logger_creator.
-  static Status Create(
+  static absl::Status Create(
       LoggerCreator request_logger_creator,
       std::unique_ptr<ServerRequestLogger>* server_request_logger);
 
   virtual ~ServerRequestLogger() = default;
 
-  // Updates the logger with the new 'logging_config_map'.
+  // Fallibly updates the logger with the new 'logging_config_map'.
   //
   // If the ServerRequestLogger was created using an empty
   // request_logger_creator, this will return an error if a non-empty
   // logging_config_map is passed in.
-  virtual Status Update(
+  virtual absl::Status Update(
       const std::map<string, std::vector<LoggingConfig>>& logging_config_map);
 
   // Similar to RequestLogger::Log().
   //
   // If request is logged/written to multiple sinks, we return error from
   // the first failed write (and continue attempting to write to all).
-  virtual Status Log(const google::protobuf::Message& request,
-                     const google::protobuf::Message& response,
-                     const LogMetadata& log_metadata);
+  virtual absl::Status Log(const google::protobuf::Message& request,
+                           const google::protobuf::Message& response,
+                           const LogMetadata& log_metadata);
 
   // Starts logging a stream. Returns a StreamLogger created through
   // `create_stream_logger_fn`. Returns NULL if the stream should not be logged.
@@ -96,7 +98,7 @@ class ServerRequestLogger {
   // entry from config_to_logger_map_. If such a logger does not exist,
   // create a new logger and insert it into new_config_to_logger_map. Return the
   // logger in result.
-  Status FindOrCreateLogger(
+  absl::Status FindOrCreateLogger(
       const LoggingConfig& config,
       StringToUniqueRequestLoggerMap* new_config_to_logger_map,
       std::shared_ptr<RequestLogger>* result);
@@ -107,7 +109,7 @@ class ServerRequestLogger {
       std::function<void(const std::shared_ptr<RequestLogger>&)> fn);
 
   // Mutex to ensure concurrent calls to Update() are serialized.
-  mutable mutex update_mu_;
+  mutable absl::Mutex update_mu_;
   // A map from serialized model logging config to its corresponding
   // RequestLogger. If two models have the same logging config, they
   // will share the RequestLogger.

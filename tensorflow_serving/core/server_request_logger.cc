@@ -21,12 +21,13 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/log/log.h"
+#include "absl/status/status.h"
+#include "absl/synchronization/mutex.h"
 #include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/gtl/map_util.h"
 #include "tensorflow/core/lib/strings/proto_serialization.h"
-#include "tensorflow/core/platform/macros.h"
-#include "tensorflow/core/platform/status.h"
+#include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/logging.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/core/request_logger.h"
@@ -35,18 +36,18 @@ namespace tensorflow {
 namespace serving {
 
 // static
-Status ServerRequestLogger::Create(
+absl::Status ServerRequestLogger::Create(
     LoggerCreator request_logger_creator,
     std::unique_ptr<ServerRequestLogger>* server_request_logger) {
   server_request_logger->reset(
       new ServerRequestLogger(std::move(request_logger_creator)));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 ServerRequestLogger::ServerRequestLogger(LoggerCreator request_logger_creator)
     : request_logger_creator_(std::move(request_logger_creator)) {}
 
-Status ServerRequestLogger::FindOrCreateLogger(
+absl::Status ServerRequestLogger::FindOrCreateLogger(
     const LoggingConfig& config,
     StringToUniqueRequestLoggerMap* new_config_to_logger_map,
     std::shared_ptr<RequestLogger>* result) {
@@ -59,7 +60,7 @@ Status ServerRequestLogger::FindOrCreateLogger(
   if (find_new_it != new_config_to_logger_map->end()) {
     // The logger is already in new_config_to_logger_map, simply return it.
     *result = find_new_it->second;
-    return OkStatus();
+    return absl::OkStatus();
   }
 
   auto find_old_it = config_to_logger_map_.find(serialized_config);
@@ -71,17 +72,17 @@ Status ServerRequestLogger::FindOrCreateLogger(
     new_config_to_logger_map->emplace(
         std::make_pair(serialized_config, std::move(find_old_it->second)));
     config_to_logger_map_.erase(find_old_it);
-    return OkStatus();
+    return absl::OkStatus();
   }
 
   // The logger does not exist. Create a new logger, insert it into
   // new_config_to_logger_map and return it.
   TF_RETURN_IF_ERROR(request_logger_creator_(config, result));
   new_config_to_logger_map->emplace(std::make_pair(serialized_config, *result));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status ServerRequestLogger::Update(
+absl::Status ServerRequestLogger::Update(
     const std::map<string, std::vector<LoggingConfig>>& logging_config_map) {
   if (!logging_config_map.empty() && !request_logger_creator_) {
     return errors::InvalidArgument("No request-logger-creator provided.");
@@ -93,7 +94,7 @@ Status ServerRequestLogger::Update(
       new StringToRequestLoggersMap());
   StringToUniqueRequestLoggerMap new_config_to_logger_map;
 
-  mutex_lock l(update_mu_);
+  absl::MutexLock l(&update_mu_);
 
   for (const auto& model_and_logging_config : logging_config_map) {
     for (const auto& logging_config : model_and_logging_config.second) {
@@ -110,13 +111,13 @@ Status ServerRequestLogger::Update(
   // and destructed at this point.
   config_to_logger_map_ = std::move(new_config_to_logger_map);
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status ServerRequestLogger::Log(const google::protobuf::Message& request,
-                                const google::protobuf::Message& response,
-                                const LogMetadata& log_metadata) {
-  Status status;
+absl::Status ServerRequestLogger::Log(const google::protobuf::Message& request,
+                                      const google::protobuf::Message& response,
+                                      const LogMetadata& log_metadata) {
+  absl::Status status;
   InvokeLoggerForModel(
       log_metadata, [&status, &request, &response, &log_metadata](
                         const std::shared_ptr<RequestLogger>& logger) {
