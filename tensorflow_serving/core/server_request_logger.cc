@@ -50,7 +50,7 @@ ServerRequestLogger::ServerRequestLogger(LoggerCreator request_logger_creator)
 absl::Status ServerRequestLogger::FindOrCreateLogger(
     const LoggingConfig& config,
     StringToUniqueRequestLoggerMap* new_config_to_logger_map,
-    std::shared_ptr<RequestLogger>* result) {
+    std::shared_ptr<RequestLogger>* result) const {
   string serialized_config;
   if (!SerializeToStringDeterministic(config, &serialized_config)) {
     return errors::InvalidArgument("Cannot serialize config.");
@@ -63,15 +63,14 @@ absl::Status ServerRequestLogger::FindOrCreateLogger(
     return absl::OkStatus();
   }
 
-  auto find_old_it = config_to_logger_map_.find(serialized_config);
+  const auto find_old_it = config_to_logger_map_.find(serialized_config);
   if (find_old_it != config_to_logger_map_.end()) {
-    // The logger is in old_config_to_logger_map. Move it to
-    // new_config_to_logger_map, erase the entry in config_to_logger_map_ and
-    // return the logger.
+    // The logger is in old_config_to_logger_map. Create a copy to
+    // new_config_to_logger_map. Note we cannot move, as entries in
+    // config_to_logger_map_ should not be updated here.
     *result = find_old_it->second;
     new_config_to_logger_map->emplace(
-        std::make_pair(serialized_config, std::move(find_old_it->second)));
-    config_to_logger_map_.erase(find_old_it);
+        std::make_pair(serialized_config, find_old_it->second));
     return absl::OkStatus();
   }
 

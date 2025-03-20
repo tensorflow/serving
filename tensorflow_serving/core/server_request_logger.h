@@ -93,15 +93,15 @@ class ServerRequestLogger {
       std::unordered_map<string, std::shared_ptr<RequestLogger>>;
 
   // Find a logger for config in either config_to_logger_map_ or
-  // new_config_to_logger_map. If the logger was found in
-  // config_to_logger_map_ move it to new_config_to_logger_map and erase the
-  // entry from config_to_logger_map_. If such a logger does not exist,
-  // create a new logger and insert it into new_config_to_logger_map. Return the
-  // logger in result.
+  // new_config_to_logger_map. If the logger was found in one of existing maps,
+  // a shared_ptr that points to the existing logging config will be added to
+  // the new_config_to_logger_map, this avoids unnecessary creation of duplicate
+  // configs. If such a logger does not exist, create a new logger and insert it
+  // into new_config_to_logger_map. Return the logger in `result`.
   absl::Status FindOrCreateLogger(
       const LoggingConfig& config,
       StringToUniqueRequestLoggerMap* new_config_to_logger_map,
-      std::shared_ptr<RequestLogger>* result);
+      std::shared_ptr<RequestLogger>* result) const;
 
   // Invokes `fn` with all loggers for the corresponding model.
   void InvokeLoggerForModel(
