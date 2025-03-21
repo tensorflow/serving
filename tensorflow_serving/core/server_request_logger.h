@@ -22,7 +22,9 @@ limitations under the License.
 #include <unordered_map>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/synchronization/mutex.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/logging.pb.h"
@@ -53,6 +55,37 @@ class ServerRequestLogger {
       std::unique_ptr<ServerRequestLogger>* server_request_logger);
 
   virtual ~ServerRequestLogger() = default;
+
+  using StringToRequestLoggersMap =
+      std::unordered_map<string, std::vector<std::shared_ptr<RequestLogger>>>;
+  using StringToUniqueRequestLoggerMap =
+      std::unordered_map<string, std::shared_ptr<RequestLogger>>;
+  struct UpdateRequest {
+    absl::Nonnull<std::unique_ptr<StringToRequestLoggersMap>>
+        model_to_loggers_map;
+    absl::Nonnull<std::unique_ptr<StringToUniqueRequestLoggerMap>>
+        config_to_logger_map;
+  };
+
+  // `CreateUpdateRequest()` allows you to validate the given logging config
+  // map without actually applying the update. A `UpdateRequest` struct is
+  // returned if the given `logging_config_map` passed all the validation
+  // checks, and the returned object can be passed to `ApplyUpdateRequest()`
+  // function which allows an infallible update later. This allows the caller to
+  // perform the validation step and the apply step separately.
+  //
+  // Note, if you plan to do validation and apply as separate steps, you must
+  // lock this object to ensure no `Update()` or `ApplyUpdateRequest()` is
+  // called concurrently.
+  virtual absl::StatusOr<UpdateRequest> CreateUpdateRequest(
+      const std::map<string, std::vector<LoggingConfig>>& logging_config_map)
+      const;
+
+  // Infallible update function. The `req` provided in this function is not
+  // validated, for this reason the caller is advised to validate the request
+  // before calling this function. Most optimally the caller should use the
+  // output generated from the `CreateUpdateRequest()` function.
+  virtual void ApplyUpdateRequest(UpdateRequest& req);
 
   // Fallibly updates the logger with the new 'logging_config_map'.
   //
@@ -87,17 +120,23 @@ class ServerRequestLogger {
   explicit ServerRequestLogger(LoggerCreator request_logger_creator);
 
  private:
-  using StringToRequestLoggersMap =
-      std::unordered_map<string, std::vector<std::shared_ptr<RequestLogger>>>;
-  using StringToUniqueRequestLoggerMap =
-      std::unordered_map<string, std::shared_ptr<RequestLogger>>;
+  // Locked version of `CreateUpdateRequest()`. `update_mu_` must be held when
+  // calling this function.
+  absl::StatusOr<UpdateRequest> CreateUpdateRequestLocked(
+      const std::map<string, std::vector<LoggingConfig>>& logging_config_map)
+      const;
+
+  // Locked version of `ApplyUpdateRequest()`. `update_mu_` must be held when
+  // calling this function.
+  void ApplyUpdateRequestLocked(UpdateRequest& req);
 
   // Find a logger for config in either config_to_logger_map_ or
-  // new_config_to_logger_map. If the logger was found in one of existing maps,
-  // a shared_ptr that points to the existing logging config will be added to
-  // the new_config_to_logger_map, this avoids unnecessary creation of duplicate
-  // configs. If such a logger does not exist, create a new logger and insert it
-  // into new_config_to_logger_map. Return the logger in `result`.
+  // new_config_to_logger_map. If the logger was found in one of existing
+  // maps, a shared_ptr that points to the existing logging config will be
+  // added to the new_config_to_logger_map, this avoids unnecessary creation
+  // of duplicate configs. If such a logger does not exist, create a new
+  // logger and insert it into new_config_to_logger_map. Return the logger
+  // in `result`.
   absl::Status FindOrCreateLogger(
       const LoggingConfig& config,
       StringToUniqueRequestLoggerMap* new_config_to_logger_map,

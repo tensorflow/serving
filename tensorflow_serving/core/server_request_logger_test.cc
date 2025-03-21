@@ -51,9 +51,15 @@ namespace {
 
 using test_util::MockPredictionStreamLogger;
 using ::testing::_;
+using ::testing::Eq;
 using ::testing::Invoke;
 using ::testing::NiceMock;
+using ::testing::Pair;
+using ::testing::SizeIs;
+using ::testing::UnorderedElementsAre;
 using ::testing::status::StatusIs;
+
+using UpdateRequest = ServerRequestLogger::UpdateRequest;
 
 LogCollectorConfig CreateLogCollectorConfig(const string& type,
                                             const string& filename_prefix) {
@@ -294,6 +300,67 @@ TEST_F(ServerRequestLoggerTest, PartiallyBadUpdate) {
   ASSERT_TRUE(log_collector_map_.contains("/file/model1-path1"));
   EXPECT_EQ(log_collector_map_["/file/model1-path1"]->collect_count(), 1);
   EXPECT_FALSE(log_collector_map_.contains("/file/model1-path2"));
+}
+
+TEST_F(ServerRequestLoggerTest, CreateUpdateRequestErrors) {
+  // Null.
+  ASSERT_OK_AND_ASSIGN(UpdateRequest req,
+                       server_request_logger_->CreateUpdateRequest({}));
+  EXPECT_TRUE(req.config_to_logger_map->empty());
+  EXPECT_TRUE(req.model_to_loggers_map->empty());
+
+  // Bad config.
+  std::pair<string, LoggingConfig> model0_bad_config =
+      CreateLoggingConfigForModel(/*model_name=*/"model0",
+                                  /*log_filename_suffix=*/"bad_config_path");
+  model0_bad_config.second.mutable_sampling_config()->set_sampling_rate(-1);
+  EXPECT_THAT(server_request_logger_->CreateUpdateRequest(
+                  CreateLoggingConfigMap({model0_bad_config})),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+
+  // Ok+bad config.
+  std::pair<string, LoggingConfig> model0_ok_config =
+      CreateLoggingConfigForModel(/*model_name=*/"model0",
+                                  /*log_filename_suffix=*/"ok_conig_path");
+  EXPECT_THAT(
+      server_request_logger_->CreateUpdateRequest(
+          CreateLoggingConfigMap({model0_ok_config, model0_bad_config})),
+      StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST_F(ServerRequestLoggerTest, CreateUpdateRequestSingleConfigOk) {
+  std::pair<string, LoggingConfig> model0_ok_config =
+      CreateLoggingConfigForModel(/*model_name=*/"model0",
+                                  /*log_filename_suffix=*/"ok_conig_path");
+  ASSERT_OK_AND_ASSIGN(UpdateRequest req,
+                       server_request_logger_->CreateUpdateRequest(
+                           CreateLoggingConfigMap({model0_ok_config})));
+  EXPECT_THAT(*req.model_to_loggers_map,
+              UnorderedElementsAre(Pair(Eq("model0"), SizeIs(1))));
+  EXPECT_THAT(*req.config_to_logger_map, SizeIs(1));
+}
+
+TEST_F(ServerRequestLoggerTest, CreateUpdateRequestMultipleConfigsOk) {
+  // Both model0 and model1 are using the same config, expect only 1 logger
+  // created.
+  std::pair<string, LoggingConfig> model0_v1_config =
+      CreateLoggingConfigForModel(/*model_name=*/"model0",
+                                  /*log_filename_suffix=*/"same_conig_path");
+  std::pair<string, LoggingConfig> model0_v2_config = model0_v1_config;
+  model0_v2_config.first = "model0_v2";
+
+  ASSERT_OK_AND_ASSIGN(
+      UpdateRequest req,
+      server_request_logger_->CreateUpdateRequest(
+          CreateLoggingConfigMap({model0_v1_config, model0_v2_config})));
+  EXPECT_THAT(*req.model_to_loggers_map,
+              UnorderedElementsAre(Pair(Eq("model0"), SizeIs(1)),
+                                   Pair(Eq("model0_v2"), SizeIs(1))));
+
+  // Only 1 creation and 1 entry in the config map. As the same config is
+  // reused.
+  EXPECT_THAT(*req.config_to_logger_map, SizeIs(1));
+  EXPECT_EQ(created_logger_counter(), 1);
 }
 
 TEST_F(ServerRequestLoggerTest, MultipleLoggersForOneModel) {

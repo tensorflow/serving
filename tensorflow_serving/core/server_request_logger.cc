@@ -22,6 +22,7 @@ limitations under the License.
 #include <vector>
 
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/synchronization/mutex.h"
 #include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -33,6 +34,8 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
+
+using UpdateRequest = ServerRequestLogger::UpdateRequest;
 
 // static
 absl::Status ServerRequestLogger::Create(
@@ -80,35 +83,61 @@ absl::Status ServerRequestLogger::FindOrCreateLogger(
   return absl::OkStatus();
 }
 
-absl::Status ServerRequestLogger::Update(
-    const std::map<string, std::vector<LoggingConfig>>& logging_config_map) {
+absl::StatusOr<UpdateRequest> ServerRequestLogger::CreateUpdateRequestLocked(
+    const std::map<string, std::vector<LoggingConfig>>& logging_config_map)
+    const {
   if (!logging_config_map.empty() && !request_logger_creator_) {
-    return errors::InvalidArgument("No request-logger-creator provided.");
+    return absl::InvalidArgumentError("No request-logger-creator provided.");
   }
 
-  // Those new maps will only contain loggers from logging_config_map and
-  // replace the current versions further down.
-  std::unique_ptr<StringToRequestLoggersMap> new_model_to_loggers_map(
-      new StringToRequestLoggersMap());
-  StringToUniqueRequestLoggerMap new_config_to_logger_map;
+  auto model_to_loggers_map = std::make_unique<StringToRequestLoggersMap>();
+  auto config_to_logger_map =
+      std::make_unique<StringToUniqueRequestLoggerMap>();
 
-  absl::MutexLock l(&update_mu_);
-
-  for (const auto& model_and_logging_config : logging_config_map) {
-    for (const auto& logging_config : model_and_logging_config.second) {
+  for (const auto& [model_name, logging_configs] : logging_config_map) {
+    for (const auto& logging_config : logging_configs) {
       std::shared_ptr<RequestLogger> logger;
-      TF_RETURN_IF_ERROR(FindOrCreateLogger(
-          logging_config, &new_config_to_logger_map, &logger));
-      const string& model_name = model_and_logging_config.first;
-      (*new_model_to_loggers_map)[model_name].push_back(logger);
+      absl::Status creation_status = FindOrCreateLogger(
+          logging_config, config_to_logger_map.get(), &logger);
+      if (!creation_status.ok()) {
+        return creation_status;
+      }
+      (*model_to_loggers_map)[model_name].push_back(logger);
     }
   }
 
-  model_to_loggers_map_.Update(std::move(new_model_to_loggers_map));
-  // Any remaining loggers in config_to_logger_map_ will not be needed anymore
-  // and destructed at this point.
-  config_to_logger_map_ = std::move(new_config_to_logger_map);
+  return UpdateRequest{.model_to_loggers_map = std::move(model_to_loggers_map),
+                       .config_to_logger_map = std::move(config_to_logger_map)};
+}
 
+absl::StatusOr<UpdateRequest> ServerRequestLogger::CreateUpdateRequest(
+    const std::map<string, std::vector<LoggingConfig>>& logging_config_map)
+    const {
+  absl::MutexLock l(&update_mu_);
+  return CreateUpdateRequestLocked(logging_config_map);
+}
+
+void ServerRequestLogger::ApplyUpdateRequestLocked(UpdateRequest& req) {
+  model_to_loggers_map_.Update(std::move(req.model_to_loggers_map));
+  config_to_logger_map_ = std::move(*req.config_to_logger_map);
+}
+
+void ServerRequestLogger::ApplyUpdateRequest(UpdateRequest& req) {
+  absl::MutexLock l(&update_mu_);
+  ApplyUpdateRequestLocked(req);
+}
+
+absl::Status ServerRequestLogger::Update(
+    const std::map<string, std::vector<LoggingConfig>>& logging_config_map) {
+  absl::MutexLock l(&update_mu_);
+
+  absl::StatusOr<UpdateRequest> req =
+      CreateUpdateRequestLocked(logging_config_map);
+  if (!req.ok()) {
+    return req.status();
+  }
+
+  ApplyUpdateRequestLocked(*req);
   return absl::OkStatus();
 }
 
