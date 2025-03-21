@@ -19,7 +19,6 @@ limitations under the License.
 #include <memory>
 #include <utility>
 
-#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/strings/strcat.h"

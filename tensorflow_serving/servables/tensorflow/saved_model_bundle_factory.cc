@@ -20,7 +20,6 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
-#include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/framework/tensor.pb.h"
@@ -171,9 +170,9 @@ absl::Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
     if (num_tflite_pools == 0 && config_.num_tflite_interpreters() > 0) {
       num_tflite_pools = config_.num_tflite_interpreters();
     }
-    TF_RETURN_IF_ERROR(LoadTfLiteModel(
-        path, bundle->get(), session_options, num_tflite_pools,
-        config_.num_tflite_interpreters_per_pool()));
+    TF_RETURN_IF_ERROR(
+        LoadTfLiteModel(path, bundle->get(), session_options, num_tflite_pools,
+                        config_.num_tflite_interpreters_per_pool()));
   } else {
     TF_RETURN_IF_ERROR(session_bundle::LoadSessionBundleOrSavedModelBundle(
         session_options, GetRunOptions(config_), path, saved_model_tags,

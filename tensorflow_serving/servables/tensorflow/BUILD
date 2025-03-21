@@ -167,7 +167,6 @@ cc_library(
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/resources:resources_cc_proto",
         "//tensorflow_serving/session_bundle:session_bundle_util",  # buildcleaner: keep
-        "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
@@ -1840,7 +1839,6 @@ cc_library(
     deps = [
         ":remote_op_config_rewriter_cc_proto",
         ":saved_model_config_cc_proto",
-        "@com_google_absl//absl/log",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@local_xla//xla/tsl/platform:types",

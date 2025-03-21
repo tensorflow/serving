@@ -21,7 +21,6 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
-#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
 #include "xla/tsl/platform/errors.h"

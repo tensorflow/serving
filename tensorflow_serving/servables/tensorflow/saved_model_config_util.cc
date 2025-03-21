@@ -18,7 +18,6 @@ limitations under the License.
 #include <memory>
 #include <string>
 
-#include "absl/log/log.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "tensorflow/cc/saved_model/constants.h"

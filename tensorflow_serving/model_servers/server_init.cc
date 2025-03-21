@@ -17,7 +17,6 @@ limitations under the License.
 
 #include <memory>
 
-#include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 #include "tensorflow_serving/model_servers/http_rest_api_handler.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
