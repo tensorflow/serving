@@ -859,6 +859,7 @@ cc_test(
         "@com_google_absl//absl/synchronization",
         "@com_google_protobuf//:cc_wkt_protos",
         "@local_xla//xla/tsl/platform:status",
+        "@local_xla//xla/tsl/platform:status_matchers",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",

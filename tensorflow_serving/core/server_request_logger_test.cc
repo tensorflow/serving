@@ -32,6 +32,8 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "xla/tsl/lib/core/status_test_util.h"
 #include "xla/tsl/platform/status.h"
+#include "xla/tsl/platform/status_matchers.h"
+#include "xla/tsl/platform/statusor.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/logging.pb.h"
@@ -57,7 +59,7 @@ using ::testing::NiceMock;
 using ::testing::Pair;
 using ::testing::SizeIs;
 using ::testing::UnorderedElementsAre;
-using ::testing::status::StatusIs;
+using ::tsl::testing::StatusIs;
 
 using UpdateRequest = ServerRequestLogger::UpdateRequest;
 
@@ -266,7 +268,7 @@ TEST_F(ServerRequestLoggerTest, PartiallyBadUpdate) {
   std::pair<string, LoggingConfig> model1_ok_config =
       CreateLoggingConfigForModel(/*model_name=*/"model1",
                                   /*log_filename_suffix=*/"path1");
-  ASSERT_OK(server_request_logger_->Update(
+  TF_ASSERT_OK(server_request_logger_->Update(
       CreateLoggingConfigMap({model0_ok_config, model1_ok_config})));
   EXPECT_EQ(created_logger_counter(), 2);
   EXPECT_EQ(deleted_logger_counter(), 0);
@@ -289,7 +291,7 @@ TEST_F(ServerRequestLoggerTest, PartiallyBadUpdate) {
   TF_ASSERT_OK(server_request_logger_->Log(PredictRequest(), PredictResponse(),
                                            log_metadata0));
   ASSERT_EQ(log_collector_map_.size(), 2);
-  ASSERT_TRUE(log_collector_map_.contains("/file/model0-path0"));
+  EXPECT_EQ(log_collector_map_.count("/file/model0-path0"), 1);
   EXPECT_EQ(log_collector_map_["/file/model0-path0"]->collect_count(), 1);
 
   // Model1 is still using the old config.
@@ -297,15 +299,15 @@ TEST_F(ServerRequestLoggerTest, PartiallyBadUpdate) {
   log_metadata1.mutable_model_spec()->set_name("model1");
   TF_ASSERT_OK(server_request_logger_->Log(PredictRequest(), PredictResponse(),
                                            log_metadata1));
-  ASSERT_TRUE(log_collector_map_.contains("/file/model1-path1"));
+  EXPECT_EQ(log_collector_map_.count("/file/model1-path1"), 1);
   EXPECT_EQ(log_collector_map_["/file/model1-path1"]->collect_count(), 1);
-  EXPECT_FALSE(log_collector_map_.contains("/file/model1-path2"));
+  EXPECT_EQ(log_collector_map_.count("/file/model1-path2"), 0);
 }
 
 TEST_F(ServerRequestLoggerTest, CreateUpdateRequestErrors) {
   // Null.
-  ASSERT_OK_AND_ASSIGN(UpdateRequest req,
-                       server_request_logger_->CreateUpdateRequest({}));
+  TF_ASSERT_OK_AND_ASSIGN(UpdateRequest req,
+                          server_request_logger_->CreateUpdateRequest({}));
   EXPECT_TRUE(req.config_to_logger_map->empty());
   EXPECT_TRUE(req.model_to_loggers_map->empty());
 
@@ -332,9 +334,9 @@ TEST_F(ServerRequestLoggerTest, CreateUpdateRequestSingleConfigOk) {
   std::pair<string, LoggingConfig> model0_ok_config =
       CreateLoggingConfigForModel(/*model_name=*/"model0",
                                   /*log_filename_suffix=*/"ok_conig_path");
-  ASSERT_OK_AND_ASSIGN(UpdateRequest req,
-                       server_request_logger_->CreateUpdateRequest(
-                           CreateLoggingConfigMap({model0_ok_config})));
+  TF_ASSERT_OK_AND_ASSIGN(UpdateRequest req,
+                          server_request_logger_->CreateUpdateRequest(
+                              CreateLoggingConfigMap({model0_ok_config})));
   EXPECT_THAT(*req.model_to_loggers_map,
               UnorderedElementsAre(Pair(Eq("model0"), SizeIs(1))));
   EXPECT_THAT(*req.config_to_logger_map, SizeIs(1));
@@ -349,7 +351,7 @@ TEST_F(ServerRequestLoggerTest, CreateUpdateRequestMultipleConfigsOk) {
   std::pair<string, LoggingConfig> model0_v2_config = model0_v1_config;
   model0_v2_config.first = "model0_v2";
 
-  ASSERT_OK_AND_ASSIGN(
+  TF_ASSERT_OK_AND_ASSIGN(
       UpdateRequest req,
       server_request_logger_->CreateUpdateRequest(
           CreateLoggingConfigMap({model0_v1_config, model0_v2_config})));
