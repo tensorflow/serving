@@ -127,7 +127,7 @@ std::vector<ServableId> BasicManager::ServingMap::ListAvailableServableIds()
   return ids;
 }
 
-Status BasicManager::ServingMap::GetUntypedServableHandle(
+absl::Status BasicManager::ServingMap::GetUntypedServableHandle(
     const ServableRequest& request,
     std::unique_ptr<UntypedServableHandle>* const untyped_handle) {
   std::shared_ptr<const HandlesMap> handles_map = handles_map_.get();
@@ -144,7 +144,7 @@ Status BasicManager::ServingMap::GetUntypedServableHandle(
   // previous map is freed, when we are doing handles_map updates.
   untyped_handle->reset(new SharedPtrHandle(
       harness.id(), std::shared_ptr<Loader>(handles_map, harness.loader())));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
@@ -225,15 +225,15 @@ void BasicManager::ServingMap::Update(const ManagedMap& managed_map) {
   handles_map_.Update(std::move(new_handles_map));
 }
 
-Status BasicManager::Create(Options options,
-                            std::unique_ptr<BasicManager>* manager) {
+absl::Status BasicManager::Create(Options options,
+                                  std::unique_ptr<BasicManager>* manager) {
   manager->reset(new BasicManager(
       options.env, options.num_load_threads, options.num_unload_threads,
       options.max_num_load_retries, std::move(options.should_retry_model_load),
       options.load_retry_interval_micros, options.flush_filesystem_caches,
       std::move(options.resource_tracker), options.servable_event_bus,
       std::move(options.pre_load_hook)));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 BasicManager::BasicManager(
@@ -253,7 +253,7 @@ BasicManager::BasicManager(
   harness_options_.max_num_load_retries = max_num_load_retries;
   harness_options_.load_retry_interval_micros = load_retry_interval_micros;
   harness_options_.error_callback = [this](const ServableId& id,
-                                           const Status& error) {
+                                           const absl::Status& error) {
     PublishOnEventBus({id, ServableState::ManagerState::kEnd, error});
   };
 
@@ -275,16 +275,16 @@ BasicManager::~BasicManager() {
   }
   unload_executor_.reset();
 
-  const Status unload_status = UnloadAllServables();
+  const absl::Status unload_status = UnloadAllServables();
   if (!unload_status.ok()) {
     LOG(ERROR) << "Error unloading all servables in BasicManager destructor: "
                << unload_status;
   }
 }
 
-Status BasicManager::UnloadAllServables() {
+absl::Status BasicManager::UnloadAllServables() {
   LOG(INFO) << "Unload all remaining servables in the manager.";
-  Status status = OkStatus();
+  absl::Status status = absl::OkStatus();
   {
     mutex_lock l(mu_);
     for (auto it = managed_map_.begin(); it != managed_map_.end(); ++it) {
@@ -312,7 +312,7 @@ std::vector<ServableId> BasicManager::ListAvailableServableIds() const {
   return serving_map_.ListAvailableServableIds();
 }
 
-Status BasicManager::GetUntypedServableHandle(
+absl::Status BasicManager::GetUntypedServableHandle(
     const ServableRequest& request,
     std::unique_ptr<UntypedServableHandle>* const untyped_handle) {
   return serving_map_.GetUntypedServableHandle(request, untyped_handle);
@@ -340,7 +340,7 @@ BasicManager::ManagedMap::iterator BasicManager::FindHarnessInMap(
   return managed_map_.end();
 }
 
-Status BasicManager::ManageServableInternal(
+absl::Status BasicManager::ManageServableInternal(
     ServableData<std::unique_ptr<Loader>> servable,
     std::function<std::shared_ptr<LoaderHarness>(const ServableId&,
                                                  std::unique_ptr<Loader>)>
@@ -374,10 +374,10 @@ Status BasicManager::ManageServableInternal(
   }
   managed_map_.emplace(servable.id().name, harness);
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status BasicManager::ManageServable(
+absl::Status BasicManager::ManageServable(
     ServableData<std::unique_ptr<Loader>> servable) {
   return ManageServableInternal(
       std::move(servable),
@@ -387,7 +387,7 @@ Status BasicManager::ManageServable(
       });
 }
 
-Status BasicManager::StopManagingServable(const ServableId& id) {
+absl::Status BasicManager::StopManagingServable(const ServableId& id) {
   VLOG(1) << "Request to stop managing servable " << id;
   mutex_lock l(mu_);
   const auto it = FindHarnessInMap(id);
@@ -409,11 +409,11 @@ Status BasicManager::StopManagingServable(const ServableId& id) {
         id.DebugString(), " ", LoaderHarness::StateDebugString(state));
   }
   managed_map_.erase(it);
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status BasicManager::GetHealthyHarness(const ServableId& id,
-                                       LoaderHarness** harness) {
+absl::Status BasicManager::GetHealthyHarness(const ServableId& id,
+                                             LoaderHarness** harness) {
   // Look up the request servable's harness.
   auto iter = FindHarnessInMap(id);
   if (iter == managed_map_.end()) {
@@ -423,7 +423,7 @@ Status BasicManager::GetHealthyHarness(const ServableId& id,
   }
   TF_RETURN_IF_ERROR(iter->second->status());
   *harness = iter->second.get();
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 std::vector<const Loader*> BasicManager::GetLoadersCurrentlyUsingResources()
@@ -485,7 +485,7 @@ std::vector<string> BasicManager::GetManagedServableNames() const {
   return servable_names;
 }
 
-Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
+absl::Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
   PublishOnEventBus({harness->id(), ServableState::ManagerState::kLoading,
                      harness->status()});
   // We save the id of the harness so that we can publish it after Load(). (We
@@ -498,12 +498,12 @@ Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
   }
 
   // We don't hold the lock while calling Load() as it may block.
-  const Status status = harness->Load();
+  const absl::Status status = harness->Load();
 
   // Whether the load succeeded or failed, flush filesystem caches if there is
   // only one load thread.
   if (flush_filesystem_caches_ && num_load_threads() <= 1) {
-    const Status flush_status = Env::Default()->FlushFileSystemCaches();
+    const absl::Status flush_status = Env::Default()->FlushFileSystemCaches();
     if (!flush_status.ok()) {
       LOG(WARNING) << "flushing filesystem caches failed: " << flush_status;
     }
@@ -516,8 +516,9 @@ Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
     UpdateServingMap();
   }
 
-  PublishOnEventBus({id, ServableState::ManagerState::kAvailable, OkStatus()});
-  return OkStatus();
+  PublishOnEventBus(
+      {id, ServableState::ManagerState::kAvailable, absl::OkStatus()});
+  return absl::OkStatus();
 }
 
 void BasicManager::LoadServable(const ServableId& id,
@@ -532,14 +533,14 @@ void BasicManager::LoadServable(const ServableId& id,
 void BasicManager::CancelLoadServableRetry(const ServableId& id) {
   mutex_lock l(mu_);
   LoaderHarness* harness;
-  const Status status = GetHealthyHarness(id, &harness);
+  const absl::Status status = GetHealthyHarness(id, &harness);
   if (!status.ok()) {
     return;
   }
   harness->set_should_retry([](absl::Status status) { return false; });
 }
 
-Status BasicManager::ExecuteUnload(LoaderHarness* harness) {
+absl::Status BasicManager::ExecuteUnload(LoaderHarness* harness) {
   // We save the id of the harness so that we can publish it after Unload(). (We
   // can't query harness again after Unload() as it may be deleted by another
   // thread that called StopManagingServable().)
@@ -556,8 +557,8 @@ Status BasicManager::ExecuteUnload(LoaderHarness* harness) {
 
   // We don't hold the lock while calling Unload() as it may block.
   TF_RETURN_IF_ERROR(harness->Unload());
-  PublishOnEventBus({id, ServableState::ManagerState::kEnd, OkStatus()});
-  return OkStatus();
+  PublishOnEventBus({id, ServableState::ManagerState::kEnd, absl::OkStatus()});
+  return absl::OkStatus();
 }
 
 void BasicManager::UnloadServable(const ServableId& id,
@@ -569,9 +570,9 @@ void BasicManager::UnloadServable(const ServableId& id,
   LoadOrUnloadServable(request, done_callback);
 }
 
-Status BasicManager::ExecuteLoadOrUnload(const LoadOrUnloadRequest& request,
-                                         LoaderHarness* harness) {
-  Status execution_status;
+absl::Status BasicManager::ExecuteLoadOrUnload(
+    const LoadOrUnloadRequest& request, LoaderHarness* harness) {
+  absl::Status execution_status;
   switch (request.kind) {
     case LoadOrUnloadRequest::Kind::kLoad:
       execution_status = ExecuteLoad(harness);
@@ -628,7 +629,7 @@ uint32 BasicManager::num_load_threads() const {
 
 void BasicManager::LoadOrUnloadServable(const LoadOrUnloadRequest& request,
                                         DoneCallback done_callback) {
-  const Status status = [&]() {
+  const absl::Status status = [&]() {
     mutex_lock l(mu_);
     LoaderHarness* harness;
     TF_RETURN_IF_ERROR(GetHealthyHarness(request.servable_id, &harness));
@@ -642,7 +643,7 @@ void BasicManager::LoadOrUnloadServable(const LoadOrUnloadRequest& request,
         TF_RETURN_IF_ERROR(harness->UnloadRequested());
         break;
     }
-    return OkStatus();
+    return absl::OkStatus();
   }();
   if (!status.ok()) {
     done_callback(status);
@@ -669,7 +670,7 @@ void BasicManager::LoadOrUnloadServable(const LoadOrUnloadRequest& request,
 void BasicManager::HandleLoadOrUnloadRequest(const LoadOrUnloadRequest& request,
                                              DoneCallback done_callback) {
   // Decision phase.
-  Status decision_status;
+  absl::Status decision_status;
   LoaderHarness* harness;
   {
     // We serialize the decision phases of the requests. We will make a decision
@@ -684,12 +685,12 @@ void BasicManager::HandleLoadOrUnloadRequest(const LoadOrUnloadRequest& request,
   }
 
   // Execution phase.
-  const Status execution_status = ExecuteLoadOrUnload(request, harness);
+  const absl::Status execution_status = ExecuteLoadOrUnload(request, harness);
   done_callback(execution_status);
 }
 
-Status BasicManager::ApproveLoadOrUnload(const LoadOrUnloadRequest& request,
-                                         LoaderHarness** harness) {
+absl::Status BasicManager::ApproveLoadOrUnload(
+    const LoadOrUnloadRequest& request, LoaderHarness** harness) {
   mutex_lock l(mu_);
 
   TF_RETURN_IF_ERROR(GetHealthyHarness(request.servable_id, harness));
@@ -707,13 +708,14 @@ Status BasicManager::ApproveLoadOrUnload(const LoadOrUnloadRequest& request,
 
   ++num_ongoing_load_unload_executions_;
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status BasicManager::ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock) {
+absl::Status BasicManager::ApproveLoad(LoaderHarness* harness,
+                                       mutex_lock* mu_lock) {
   if (resource_tracker_ != nullptr) {
     // Attempt to reserve resources for the load.
-    const Status resource_reservation_status =
+    const absl::Status resource_reservation_status =
         ReserveResources(harness, mu_lock);
     if (!resource_reservation_status.ok()) {
       LOG(WARNING) << resource_reservation_status;
@@ -729,26 +731,26 @@ Status BasicManager::ApproveLoad(LoaderHarness* harness, mutex_lock* mu_lock) {
   // GetLoadersCurrentlyUsingResources().
   TF_RETURN_IF_ERROR(harness->LoadApproved());
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status BasicManager::ApproveUnload(LoaderHarness* harness) {
+absl::Status BasicManager::ApproveUnload(LoaderHarness* harness) {
   // Transition to state kQuiescing inside the decision phase, to prevent any
   // concurrent unload requests from executing.
   TF_RETURN_IF_ERROR(harness->StartQuiescing());
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status BasicManager::ReserveResources(LoaderHarness* harness,
-                                      mutex_lock* mu_lock) {
+absl::Status BasicManager::ReserveResources(LoaderHarness* harness,
+                                            mutex_lock* mu_lock) {
   while (true) {
     TF_RETURN_IF_ERROR(resource_tracker_->RecomputeUsedResources(
         GetLoadersCurrentlyUsingResources()));
     bool resources_reserved;
     // We retry reserving resources because it may involve transiently failing
     // operations like file-reads.
-    const Status reserve_resources_status = Retry(
+    const absl::Status reserve_resources_status = Retry(
         strings::StrCat("Reserving resources for servable: ",
                         harness->id().DebugString()),
         harness_options_.max_num_load_retries,
@@ -759,7 +761,7 @@ Status BasicManager::ReserveResources(LoaderHarness* harness,
         },
         [&](absl::Status status) { return harness->should_retry(status); });
     if (!reserve_resources_status.ok()) {
-      return Status(
+      return absl::Status(
           reserve_resources_status.code(),
           strings::StrCat(
               "Error while attempting to reserve resources to load servable ",
@@ -770,7 +772,7 @@ Status BasicManager::ReserveResources(LoaderHarness* harness,
       // Woohoo! We got our resources.
       LOG(INFO) << "Successfully reserved resources to load servable "
                 << harness->id().DebugString();
-      return OkStatus();
+      return absl::OkStatus();
     }
 
     // We weren't able to reserve the resources. See if there are any
