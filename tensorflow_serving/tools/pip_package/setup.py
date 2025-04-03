@@ -31,9 +31,9 @@ from setuptools import setup
 DOCLINES = __doc__.split('\n')
 
 # Set when releasing a new version of TensorFlow Serving (e.g. 1.0.0).
-_VERSION = '0.0.0'
+_VERSION = '2.19.0-rc0'
 # Have this by default be open; releasing a new version will lock to TF version
-_TF_VERSION = '>=1.2.0,<3'
+_TF_VERSION = '>=2.19.0-rc0,<3'
 _TF_VERSION_SANITIZED = _TF_VERSION.replace('-', '')
 
 project_name = 'tensorflow-serving-api'
