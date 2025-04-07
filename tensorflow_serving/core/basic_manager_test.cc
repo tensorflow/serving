@@ -563,7 +563,6 @@ TEST_P(BasicManagerTest, DestructOnNonServingThread) {
             id, [](const Status& status) { TF_ASSERT_OK(status); });
         WaitUntilServableManagerStateIsOneOf(
             servable_state_monitor_, id, {ServableState::ManagerState::kEnd});
-        // TODO(b/35997855): Don't just ignore this status!
         TF_ASSERT_OK(basic_manager_->StopManagingServable(id));
         // The servable has been deleted in this thread if there is no
         // thread-pool for load/unload.
