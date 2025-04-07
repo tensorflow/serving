@@ -35,8 +35,6 @@ namespace tensorflow {
 namespace serving {
 namespace simple_servers {
 
-// TODO(b/25969594): Add full test coverage.
-
 // Creates a Manager and associated Source for a single TensorFlow model that
 // automatically loads new versions over time. All versions of the model will be
 // loaded from new directories under the specified base path. Uses default
