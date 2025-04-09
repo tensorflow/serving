@@ -10,3 +10,16 @@ index 47fe64d7b7b..a01a1f19c8b 100644
  """
  
  def _python_repository_impl(repository_ctx):
+ diff --git a/third_party/xla/xla/backends/cpu/runtime/convolution_thunk_internal.h b/third_party/xla/xla/backends/cpu/runtime/convolution_thunk_internal.h
+index 84fed6bb786..d91665ed148 100644
+--- a/third_party/xla/xla/backends/cpu/runtime/convolution_thunk_internal.h
++++ b/third_party/xla/xla/backends/cpu/runtime/convolution_thunk_internal.h
+@@ -338,7 +338,7 @@ void EigenGenericConv2D(
+     auto num_tasks = Eigen::numext::div_ceil(feature_group_count, task_size);
+
+     if (use_thunk_runtime) {
+-      ScheduleAll(&device, num_tasks, [=, &device](Eigen::Index task_index) {
++      ScheduleAll(&device, num_tasks, [=, &device](Eigen::Index task_index) mutable {
+         Eigen::Index start = task_index * task_size;
+         Eigen::Index end = std::min(start + task_size, feature_group_count);
+         for (Eigen::Index i = start; i < end; ++i) {
