@@ -392,7 +392,7 @@ such values. This implies that requests like the following one are valid:
 {
   "example": [
     {
-      "sensor_readings": [ 1.0, -3.14, Nan, Infinity ]
+      "sensor_readings": [ 1.0, -3.14, NaN, Infinity ]
     }
   ]
 }
