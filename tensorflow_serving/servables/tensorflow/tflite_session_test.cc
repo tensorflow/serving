@@ -85,6 +85,9 @@ TEST(TfLiteSession, BasicTest) {
   TF_ASSERT_OK(ReadFileToString(tensorflow::Env::Default(),
                                 test_util::TestSrcDirPath(kTestModel),
                                 &model_bytes));
+#if FLATBUFFERS_LITTLEENDIAN == 0
+  tflite::FlatBufferModel::ByteSwapSerializedModel(&model_bytes, false);
+#endif
 
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> session;
@@ -143,6 +146,9 @@ TEST(TfLiteSession, ResizeWithSameNumElementsTest) {
   TF_ASSERT_OK(ReadFileToString(tensorflow::Env::Default(),
                                 test_util::TestSrcDirPath(kTestModel),
                                 &model_bytes));
+#if FLATBUFFERS_LITTLEENDIAN == 0
+  tflite::FlatBufferModel::ByteSwapSerializedModel(&model_bytes, false);
+#endif
 
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> session;
@@ -196,6 +202,9 @@ TEST(TfLiteSession, ModelFromLegacyConverterWithSigdef) {
   TF_ASSERT_OK(ReadFileToString(tensorflow::Env::Default(),
                                 test_util::TestSrcDirPath(kTestModelWithSigdef),
                                 &model_bytes));
+#if FLATBUFFERS_LITTLEENDIAN == 0
+  tflite::FlatBufferModel::ByteSwapSerializedModel(&model_bytes, false);
+#endif
 
   ::google::protobuf::Map<string, SignatureDef> signatures;
   std::unique_ptr<TfLiteSession> session;
@@ -644,6 +653,9 @@ absl::Status BuildSessionInBatch(std::unique_ptr<TfLiteSession>* sess,
   std::string model_bytes;
   TF_RETURN_IF_ERROR(ReadFileToString(
       Env::Default(), test_util::TestSrcDirPath(model_path), &model_bytes));
+#if FLATBUFFERS_LITTLEENDIAN == 0
+  tflite::FlatBufferModel::ByteSwapSerializedModel(&model_bytes, false);
+#endif
   auto model = tflite::FlatBufferModel::BuildFromModel(
       flatbuffers::GetRoot<tflite::Model>(model_bytes.data()));
   const int model_batch_size = 5;
@@ -781,6 +793,9 @@ TEST(TfLiteSession, TestSetScheduler) {
   TF_ASSERT_OK(ReadFileToString(Env::Default(),
                                 test_util::TestSrcDirPath(kParseExampleModel),
                                 &model_bytes));
+#if FLATBUFFERS_LITTLEENDIAN == 0
+  tflite::FlatBufferModel::ByteSwapSerializedModel(&model_bytes, false);
+#endif
   auto model = tflite::FlatBufferModel::BuildFromModel(
       flatbuffers::GetRoot<tflite::Model>(model_bytes.data()));
   auto model_signature_def_map = GetTestSignatureDefMap();
