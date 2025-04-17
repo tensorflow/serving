@@ -70,7 +70,7 @@ absl::Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
   string model_bytes;
   model_bytes.resize(size);
   absl::string_view sv;
-  TF_RETURN_IF_ERROR(file->Read(0, size, &sv, &model_bytes[0]));
+  TF_RETURN_IF_ERROR(file->Read(0, sv, absl::MakeSpan(&model_bytes[0], size)));
 
   std::unique_ptr<TfLiteSession> tflite_session;
   TF_RETURN_IF_ERROR(TfLiteSession::Create(
