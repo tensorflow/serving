@@ -11,9 +11,10 @@ explicitly:
     [this guide](https://github.com/tensorflow/custom-op))
 *   You are using an already implemented op that is not shipped with TensorFlow
 
-Note: Starting in version 2.0, TensorFlow no longer distributes the contrib
-module; if you are serving a TensorFlow program using contrib ops, use this
-guide to link these ops into ModelServer explicitly.
+!!! Note
+	Starting in version 2.0, TensorFlow no longer distributes the contrib
+	module; if you are serving a TensorFlow program using contrib ops, use this
+	guide to link these ops into ModelServer explicitly.
 
 Regardless of whether you implemented the op or not, in order to serve a model
 with custom ops, you need access to the source of the op. This guide walks you
@@ -110,5 +111,5 @@ curl http://localhost:8501/v1/models/<model_name>:predict -X POST \
 -d '{"inputs": [[1,2], [3,4]]}'
 ```
 
-[This page](https://www.tensorflow.org/tfx/serving/api_rest#top_of_page)
+[This page](../api/api_rest.md)
 contains a more complete API for sending REST requests to the model server.
