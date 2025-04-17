@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_factory.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -167,6 +168,80 @@ absl::Status TfrtSavedModelFactory::EstimateResourceRequirement(
       path, config().resource_estimation_uses_validation_result(), estimate);
 }
 
+absl::StatusOr<tfrt::SavedModel::Options> CreateCommonSavedModelOptions(
+    const TfrtSavedModelConfig& config, tfrt_stub::Runtime* runtime,
+    const std::string& path,
+    const std::unordered_set<std::string>& saved_model_tags,
+    const tensorflow::MetaGraphDef& meta_graph_def,
+    const std::string& model_name, int64_t model_version) {
+  tfrt::SavedModel::Options options(runtime);
+
+  // Register the right type of custom backend currently only requires setting
+  // `use_ifrt`.
+  options.graph_execution_options.use_ifrt = config.tfrt_use_ifrt();
+
+  options.disable_output_filter = config.disable_output_filter();
+  options.enable_lazy_loading =
+      meta_graph_def.signature_def_size() > config.lazy_init_threshold();
+  options.maybe_load_from_mla = config.maybe_load_from_mla();
+  options.lazy_loading_use_graph_executor =
+      config.lazy_loading_use_graph_executor();
+  auto& compile_options = options.graph_execution_options.compile_options;
+  compile_options.enable_grappler = config.enable_grappler();
+  compile_options.graph_options = config.graph_options();
+  if (config.enable_saved_model_config()) {
+    TF_RETURN_IF_ERROR(LoadSavedModelConfig(
+        path, options.graph_execution_options.compile_options.graph_options,
+        options.graph_execution_options.runtime_config));
+  }
+  if (config.target_tpu()) {
+    compile_options.device_target = TfrtDeviceInfraTarget::kTpurt;
+  } else if (config.enable_tfrt_gpu()) {
+    compile_options.device_target = TfrtDeviceInfraTarget::kGpu;
+  } else {
+    compile_options.device_target = TfrtDeviceInfraTarget::kCpu;
+  }
+  compile_options.hoist_invariant_ops = config.hoist_invariant_ops();
+  compile_options.sink_in_invariant_ops = config.sink_in_invariant_ops();
+  compile_options.cost_threshold = config.stream_merge_threshold();
+  compile_options.merge_inter_dependent_streams =
+      config.merge_inter_dependent_streams();
+  compile_options.tpu_move_resource_gather_to_host =
+      config.tpu_move_resource_gather_to_host();
+  compile_options.tpu_gather_table_width_threshold_bytes =
+      config.tpu_gather_table_width_threshold_bytes();
+  compile_options.tpu_fuse_ops = config.use_fused_tpu_op();
+  compile_options.enable_while_parallel_iterations =
+      config.enable_while_parallel_iterations();
+  compile_options.use_tpu_host_allocator_for_inputs =
+      config.use_tpu_host_allocator_for_inputs();
+  compile_options.tpu_allow_unpadded_batch =
+      ToTpuAllowUnpaddedBatch(config.tpu_unpadded_batch_mode());
+  compile_options.use_gpu_compile_and_execute_op =
+      config.tfrt_use_fused_gpu_op();
+  compile_options.min_num_batch_threads = config.tfrt_min_num_batch_threads();
+  compile_options.min_max_enqueued_batches =
+      config.tfrt_min_max_enqueued_batches();
+  compile_options.batch_padding_policy = config.batch_padding_policy();
+  compile_options.batch_options = config.in_graph_batching_parameters();
+
+  options.graph_execution_options.run_placer_grappler_on_functions =
+      config.run_placer_grappler_on_functions();
+  options.graph_execution_options.enable_tfrt_gpu = config.enable_tfrt_gpu();
+  options.graph_execution_options.tfrt_gpu_parallelism =
+      config.tfrt_gpu_parallelism();
+  options.graph_execution_options.gpu_system_memory_size_in_mb =
+      config.gpu_system_memory_size_in_mb();
+  options.graph_execution_options.enable_grappler_function_optimizer =
+      config.enable_grappler_function_optimizer();
+  options.graph_execution_options.enable_online_cost_analysis =
+      config.enable_online_cost_analysis();
+  options.graph_execution_options.enable_mlrt = config.enable_mlrt();
+  options.graph_execution_options.model_metadata.set_name(model_name);
+  options.graph_execution_options.model_metadata.set_version(model_version);
+  return options;
+}
+
 absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
     const Loader::Metadata& metadata, const std::string& path,
     std::unique_ptr<tfrt::SavedModel>* saved_model) {
@@ -181,15 +256,6 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
   LOG(INFO) << "Creating TFRT SavedModel for path: " << path
             << " with config: " << config_.DebugString();
   auto* runtime = tensorflow::tfrt_stub::GetGlobalRuntime();
-  tfrt::SavedModel::Options options(runtime);
-
-  // Register the right type of custom backend currently only requires setting
-  // `use_ifrt`.
-  options.graph_execution_options.use_ifrt = config_.tfrt_use_ifrt();
-  TF_RETURN_IF_ERROR(RegisterCustomBackend(options.graph_execution_options));
-
-  // TODO(b/326069213): Consider using arena allocation when loading a
-  // MetaGraphDef.
   tensorflow::MetaGraphDef meta_graph_def;
   TF_RETURN_IF_ERROR(tensorflow::ReadMetaGraphDefFromSavedModel(
       std::string(path), saved_model_tags, &meta_graph_def));
@@ -197,67 +263,13 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
       graph_rewriter.IsRegistered()) {
     TF_RETURN_IF_ERROR(graph_rewriter.Get()(&meta_graph_def));
   }
-  options.disable_output_filter = config_.disable_output_filter();
-  options.enable_lazy_loading =
-      meta_graph_def.signature_def_size() > config_.lazy_init_threshold();
-  options.maybe_load_from_mla = config_.maybe_load_from_mla();
-  options.lazy_loading_use_graph_executor =
-      config_.lazy_loading_use_graph_executor();
-  auto& compile_options = options.graph_execution_options.compile_options;
-  compile_options.enable_grappler = config_.enable_grappler();
-  compile_options.graph_options = config_.graph_options();
-  if (config_.enable_saved_model_config()) {
-    TF_RETURN_IF_ERROR(LoadSavedModelConfig(
-        path, options.graph_execution_options.compile_options.graph_options,
-        options.graph_execution_options.runtime_config));
-  }
-  if (config_.target_tpu()) {
-    compile_options.device_target = TfrtDeviceInfraTarget::kTpurt;
-  } else if (config_.enable_tfrt_gpu()) {
-    compile_options.device_target = TfrtDeviceInfraTarget::kGpu;
-  } else {
-    compile_options.device_target = TfrtDeviceInfraTarget::kCpu;
-  }
-  compile_options.hoist_invariant_ops = config_.hoist_invariant_ops();
-  compile_options.sink_in_invariant_ops = config_.sink_in_invariant_ops();
-  compile_options.cost_threshold = config_.stream_merge_threshold();
-  compile_options.merge_inter_dependent_streams =
-      config_.merge_inter_dependent_streams();
-  compile_options.tpu_move_resource_gather_to_host =
-      config_.tpu_move_resource_gather_to_host();
-  compile_options.tpu_gather_table_width_threshold_bytes =
-      config_.tpu_gather_table_width_threshold_bytes();
-  compile_options.tpu_fuse_ops = config_.use_fused_tpu_op();
-  compile_options.enable_while_parallel_iterations =
-      config_.enable_while_parallel_iterations();
-  compile_options.use_tpu_host_allocator_for_inputs =
-      config_.use_tpu_host_allocator_for_inputs();
-  compile_options.tpu_allow_unpadded_batch =
-      ToTpuAllowUnpaddedBatch(config_.tpu_unpadded_batch_mode());
-  compile_options.use_gpu_compile_and_execute_op =
-      config_.tfrt_use_fused_gpu_op();
-  compile_options.min_num_batch_threads = config_.tfrt_min_num_batch_threads();
-  compile_options.min_max_enqueued_batches =
-      config_.tfrt_min_max_enqueued_batches();
-  compile_options.batch_padding_policy = config_.batch_padding_policy();
-  compile_options.batch_options = config_.in_graph_batching_parameters();
+  TF_ASSIGN_OR_RETURN(
+      tfrt::SavedModel::Options options,
+      CreateCommonSavedModelOptions(config_, runtime, path, saved_model_tags,
+                                    meta_graph_def, metadata.servable_id.name,
+                                    metadata.servable_id.version));
 
-  options.graph_execution_options.run_placer_grappler_on_functions =
-      config_.run_placer_grappler_on_functions();
-  options.graph_execution_options.enable_tfrt_gpu = config_.enable_tfrt_gpu();
-  options.graph_execution_options.tfrt_gpu_parallelism =
-      config_.tfrt_gpu_parallelism();
-  options.graph_execution_options.gpu_system_memory_size_in_mb =
-      config_.gpu_system_memory_size_in_mb();
-  options.graph_execution_options.enable_grappler_function_optimizer =
-      config_.enable_grappler_function_optimizer();
-  options.graph_execution_options.enable_online_cost_analysis =
-      config_.enable_online_cost_analysis();
-  options.graph_execution_options.enable_mlrt = config_.enable_mlrt();
-  options.graph_execution_options.model_metadata.set_name(
-      metadata.servable_id.name);
-  options.graph_execution_options.model_metadata.set_version(
-      metadata.servable_id.version);
+  TF_RETURN_IF_ERROR(RegisterCustomBackend(options.graph_execution_options));
 
   TF_ASSIGN_OR_RETURN(*saved_model,
                       tfrt::SavedModelImpl::LoadSavedModel(
