@@ -60,6 +60,13 @@ extern const char* const kRamBytes;
 // Peak RAM in bytes, collected from Tcmalloc peak metric.
 extern const char* const kPeakRamBytes;
 
+// Model steady RAM in bytes, including model variables, graphs, etc.
+extern const char* const kModelSteadyRamBytes;
+
+// Model initialization RAM in bytes, including compilation, model loading,
+// warmup, etc.
+extern const char* const kModelInitRamBytes;
+
 // RAM allocated on the heap.
 extern const char* const kHeapRamBytes;
 
