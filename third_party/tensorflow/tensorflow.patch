@@ -23,35 +23,3 @@ index 84fed6bb786..d91665ed148 100644
          Eigen::Index start = task_index * task_size;
          Eigen::Index end = std::min(start + task_size, feature_group_count);
          for (Eigen::Index i = start; i < end; ++i) {
-diff --git a/third_party/xla/xla/shape.cc b/third_party/xla/xla/shape.cc
-index 274d32a78d8..11d4ab4b9e5 100644
---- a/third_party/xla/xla/shape.cc
-+++ b/third_party/xla/xla/shape.cc
-@@ -40,9 +40,9 @@ namespace xla {
- Shape::Shape() = default;
- Shape::~Shape() = default;
- Shape::Shape(const Shape&) = default;
--Shape::Shape(Shape&&) noexcept = default;
-+Shape::Shape(Shape&&) = default;
- Shape& Shape::operator=(const Shape&) = default;
--Shape& Shape::operator=(Shape&&) noexcept = default;
-+Shape& Shape::operator=(Shape&&) = default;
- 
- Shape::Shape(const ShapeProto& shape_proto) {
-   set_element_type(shape_proto.element_type());
-diff --git a/third_party/xla/xla/shape.h b/third_party/xla/xla/shape.h
-index 27a244c39fa..507b71f6738 100644
---- a/third_party/xla/xla/shape.h
-+++ b/third_party/xla/xla/shape.h
-@@ -44,9 +44,9 @@ class Shape {
-   Shape();
-   ~Shape();
-   Shape(const Shape&);
--  Shape(Shape&&) noexcept;
-+  Shape(Shape&&);
-   Shape& operator=(const Shape&);
--  Shape& operator=(Shape&&) noexcept;
-+  Shape& operator=(Shape&&);
- 
-   // Construct a shape from a ShapeProto.
-   explicit Shape(const ShapeProto& shape_proto);
