@@ -61,9 +61,9 @@ if (
 
 REQUIRED_PACKAGES = [
     # Match versions to what TF needs here:
-    #   https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/pip_package/setup.py
+    #   https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/pip_package/setup.py.tpl
     'grpcio >= 1.24.3, < 2.0',
-    'protobuf>=3.20.3,<7.0.0dev,!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5',
+    'protobuf>=4.21.6',
 ] + _TF_REQ
 
 setup(
@@ -79,7 +79,7 @@ setup(
     keywords='tensorflow serving machine learning api libraries',
     install_requires=REQUIRED_PACKAGES,
     # Supported Python versions. Match to what TF needs here:
-    #   https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/pip_package/setup.py
+    #   https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/pip_package/setup.py.tpl
     python_requires='>=3.9',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
