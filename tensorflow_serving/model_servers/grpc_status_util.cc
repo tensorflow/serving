@@ -21,7 +21,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-::grpc::Status ToGRPCStatus(const ::tensorflow::Status& status) {
+::grpc::Status ToGRPCStatus(const absl::Status& status) {
   const int kErrorMessageLimit = 1024;
   string error_message;
   if (status.message().length() > kErrorMessageLimit) {

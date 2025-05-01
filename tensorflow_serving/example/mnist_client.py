@@ -30,8 +30,6 @@ from __future__ import print_function
 import sys
 import threading
 
-# This is a placeholder for a Google-internal import.
-
 import grpc
 import numpy
 import tensorflow as tf

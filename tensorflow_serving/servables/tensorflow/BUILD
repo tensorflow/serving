@@ -41,7 +41,7 @@ serving_proto_library_py(
     name = "session_bundle_config_proto_py_pb2",
     srcs = ["session_bundle_config.proto"],
     proto_library = "session_bundle_config_proto",
-    visibility = ["//visibility:public"],
+    visibility = ["//visibility:private"],
     deps = [
         "@org_tensorflow//tensorflow/core:protos_all_py",
     ],
@@ -167,7 +167,6 @@ cc_library(
         "//tensorflow_serving/core:loader",
         "//tensorflow_serving/resources:resources_cc_proto",
         "//tensorflow_serving/session_bundle:session_bundle_util",  # buildcleaner: keep
-        "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
@@ -501,6 +500,9 @@ cc_test(
 cc_library(
     name = "predict_response_tensor_serialization_option",
     hdrs = ["predict_response_tensor_serialization_option.h"],
+    visibility = [
+        "//visibility:public",
+    ],
 )
 
 cc_library(
@@ -1115,6 +1117,10 @@ cc_library(
     name = "mock_servable",
     testonly = True,
     hdrs = ["mock_servable.h"],
+    visibility = [
+        "//learning/gemini/deployment/disaggregation/wiz_py/cc_driver:__pkg__",
+        "//tensorflow_serving:internal",
+    ],
     deps = [
         ":servable",
         "//tensorflow_serving/apis:classification_cc_proto",
@@ -1174,6 +1180,7 @@ cc_library(
         "@org_tensorflow//tensorflow/cc/saved_model:util",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core/platform:tracing",
         "@org_tensorflow//tensorflow/core/tfrt/runtime:tf_threadpool_concurrent_work_queue",
         "@org_tensorflow//tensorflow/core/tfrt/saved_model:saved_model_cpu",
     ],
@@ -1411,9 +1418,7 @@ cc_library(
     name = "tfrt_regression_service",
     srcs = ["tfrt_regression_service.cc"],
     hdrs = ["tfrt_regression_service.h"],
-    visibility = [
-        "//visibility:public",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":servable",
         ":util",
@@ -1578,9 +1583,7 @@ cc_library(
     name = "tfrt_classification_service",
     srcs = ["tfrt_classification_service.cc"],
     hdrs = ["tfrt_classification_service.h"],
-    visibility = [
-        "//visibility:public",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":servable",
         ":tfrt_classifier",
@@ -1726,9 +1729,9 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
-        "@local_tsl//tsl/platform:errors",
-        "@local_tsl//tsl/platform:statusor",
-        "@local_tsl//tsl/platform:threadpool_options",
+        "@local_xla//xla/tsl/platform:errors",
+        "@local_xla//xla/tsl/platform:statusor",
+        "@local_xla//xla/tsl/platform:threadpool_options",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -1781,7 +1784,7 @@ serving_proto_library_py(
     name = "remote_op_config_rewriter_proto_py_pb2",
     srcs = ["remote_op_config_rewriter.proto"],
     proto_library = "remote_op_config_rewriter_proto",
-    visibility = ["//visibility:public"],
+    visibility = ["//visibility:private"],
     deps = [],
 )
 
@@ -1836,10 +1839,9 @@ cc_library(
     deps = [
         ":remote_op_config_rewriter_cc_proto",
         ":saved_model_config_cc_proto",
-        "@com_google_absl//absl/log",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@local_tsl//tsl/platform:types",
+        "@local_xla//xla/tsl/platform:types",
         "@org_tensorflow//tensorflow/cc/saved_model:constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -1875,9 +1877,7 @@ cc_library(
     name = "saved_model_config",
     srcs = ["saved_model_config.cc"],
     hdrs = ["saved_model_config.h"],
-    visibility = [
-        "//visibility:public",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":saved_model_config_cc_proto",
         ":saved_model_config_util",
@@ -1905,8 +1905,8 @@ cc_test(
         "//tensorflow_serving/test_util",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest",
-        "@local_tsl//tsl/platform:status",
         "@local_xla//xla/tsl/lib/core:status_test_util",
+        "@local_xla//xla/tsl/platform:status",
         "@org_tensorflow//tensorflow/cc/saved_model:constants",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",

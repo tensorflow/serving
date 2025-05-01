@@ -1,6 +1,7 @@
 # Description: Tensorflow Serving configs.
 
 load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_proto_library_py")
+# Placeholder: load go_proto_library
 
 package(
     default_visibility = ["//visibility:public"],
@@ -84,6 +85,7 @@ serving_proto_library(
     srcs = ["logging_config.proto"],
     deps = [
         ":log_collector_config_proto",
+        "@com_google_protobuf//:cc_wkt_protos",
     ],
 )
 

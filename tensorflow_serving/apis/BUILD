@@ -2,12 +2,16 @@
 
 # buildifier: disable=out-of-order-load
 
+# Placeholder: load java_proto_library
+
 # Placeholder: load py_library
 # Placeholder: load kt_jvm_proto_library
 load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_jspb_proto_library", "tf_pyclif_proto_library")
 load("//tensorflow_serving:serving.bzl", "serving_go_grpc_library", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
 
 # buildifier: enable=out-of-order-load
+
+# Placeholder: load go_proto_library
 
 package(
     default_visibility = ["//visibility:public"],
@@ -194,7 +198,6 @@ serving_proto_library(
     srcs = ["prediction_service.proto"],
     has_services = 1,
     cc_grpc_version = 1,
-    use_java_stubby_library = False,
     deps = [
         ":classification_proto",
         ":get_model_metadata_proto",

@@ -30,12 +30,12 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status TensorflowPredictor::Predict(const RunOptions& run_options,
-                                    ServerCore* core,
-                                    const PredictRequest& request,
-                                    PredictResponse* response) {
+absl::Status TensorflowPredictor::Predict(const RunOptions& run_options,
+                                          ServerCore* core,
+                                          const PredictRequest& request,
+                                          PredictResponse* response) {
   if (!request.has_model_spec()) {
-    return tensorflow::Status(
+    return absl::Status(
         static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
         "Missing ModelSpec");
   }
@@ -43,11 +43,10 @@ Status TensorflowPredictor::Predict(const RunOptions& run_options,
                               response);
 }
 
-Status TensorflowPredictor::PredictWithModelSpec(const RunOptions& run_options,
-                                                 ServerCore* core,
-                                                 const ModelSpec& model_spec,
-                                                 const PredictRequest& request,
-                                                 PredictResponse* response) {
+absl::Status TensorflowPredictor::PredictWithModelSpec(
+    const RunOptions& run_options, ServerCore* core,
+    const ModelSpec& model_spec, const PredictRequest& request,
+    PredictResponse* response) {
   ServableHandle<SavedModelBundle> bundle;
   TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &bundle));
   return internal::RunPredict(

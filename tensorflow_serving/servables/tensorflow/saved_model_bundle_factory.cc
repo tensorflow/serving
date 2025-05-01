@@ -20,7 +20,6 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
-#include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "tensorflow/core/framework/tensor.pb.h"
@@ -55,9 +54,10 @@ std::vector<SignatureDef> GetSignatureDefs(const SavedModelBundle& bundle) {
 // TODO(b/140959776): Move this upstream alongside `kSavedModelFilenamePb`.
 const char kTfLiteModelFilename[] = "model.tflite";
 
-Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
-                       const SessionOptions& options, int num_interpreter_pools,
-                       int num_interpreters_per_pool) {
+absl::Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
+                             const SessionOptions& options,
+                             int num_interpreter_pools,
+                             int num_interpreters_per_pool) {
   std::unique_ptr<TfLiteSession> session;
 
   const string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
@@ -70,7 +70,7 @@ Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
   string model_bytes;
   model_bytes.resize(size);
   absl::string_view sv;
-  TF_RETURN_IF_ERROR(file->Read(0, size, &sv, &model_bytes[0]));
+  TF_RETURN_IF_ERROR(file->Read(0, sv, absl::MakeSpan(&model_bytes[0], size)));
 
   std::unique_ptr<TfLiteSession> tflite_session;
   TF_RETURN_IF_ERROR(TfLiteSession::Create(
@@ -88,7 +88,7 @@ bool TfLiteModelFound(const string& model_dir) {
 
 }  // namespace
 
-Status SavedModelBundleFactory::Create(
+absl::Status SavedModelBundleFactory::Create(
     const SessionBundleConfig& config,
     std::unique_ptr<SavedModelBundleFactory>* factory) {
   std::shared_ptr<Batcher> batcher;
@@ -100,24 +100,24 @@ Status SavedModelBundleFactory::Create(
   return absl::OkStatus();
 }
 
-Status SavedModelBundleFactory::EstimateResourceRequirement(
+absl::Status SavedModelBundleFactory::EstimateResourceRequirement(
     const string& path, ResourceAllocation* estimate) const {
   return EstimateResourceFromPath(
       path, config_.resource_estimation_uses_validation_result(), estimate);
 }
 
-Status SavedModelBundleFactory::CreateSavedModelBundleWithMetadata(
+absl::Status SavedModelBundleFactory::CreateSavedModelBundleWithMetadata(
     const Loader::Metadata& metadata, const string& path,
     std::unique_ptr<SavedModelBundle>* bundle) {
   return InternalCreateSavedModelBundle(metadata, path, bundle);
 }
 
-Status SavedModelBundleFactory::CreateSavedModelBundle(
+absl::Status SavedModelBundleFactory::CreateSavedModelBundle(
     const string& path, std::unique_ptr<SavedModelBundle>* bundle) {
   return InternalCreateSavedModelBundle({}, path, bundle);
 }
 
-Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
+absl::Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
     const absl::optional<Loader::Metadata>& metadata, const string& path,
     std::unique_ptr<SavedModelBundle>* bundle) {
   bundle->reset(new SavedModelBundle);
@@ -170,9 +170,9 @@ Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
     if (num_tflite_pools == 0 && config_.num_tflite_interpreters() > 0) {
       num_tflite_pools = config_.num_tflite_interpreters();
     }
-    TF_RETURN_IF_ERROR(LoadTfLiteModel(
-        path, bundle->get(), session_options, num_tflite_pools,
-        config_.num_tflite_interpreters_per_pool()));
+    TF_RETURN_IF_ERROR(
+        LoadTfLiteModel(path, bundle->get(), session_options, num_tflite_pools,
+                        config_.num_tflite_interpreters_per_pool()));
   } else {
     TF_RETURN_IF_ERROR(session_bundle::LoadSessionBundleOrSavedModelBundle(
         session_options, GetRunOptions(config_), path, saved_model_tags,

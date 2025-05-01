@@ -39,6 +39,14 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
+// Create common saved model options for TFRT saved model.
+absl::StatusOr<tfrt::SavedModel::Options> CreateCommonSavedModelOptions(
+    const TfrtSavedModelConfig& config, tfrt_stub::Runtime* runtime,
+    const std::string& path,
+    const std::unordered_set<std::string>& saved_model_tags,
+    const tensorflow::MetaGraphDef& meta_graph_def,
+    const std::string& model_name, int64_t model_version);
+
 /// A factory that creates tfrt_stub::SavedModel from SavedModel export paths.
 ///
 /// The factory can also estimate the resource (e.g. RAM) requirements of a

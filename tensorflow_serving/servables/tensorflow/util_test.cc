@@ -78,7 +78,7 @@ class InputUtilTest : public ::testing::Test {
 };
 
 TEST_F(InputUtilTest, Empty_KindNotSet) {
-  const Status status = InputToSerializedExampleTensor(input_, &tensor_);
+  const absl::Status status = InputToSerializedExampleTensor(input_, &tensor_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.message(), HasSubstr("Input is empty"));
 }
@@ -86,7 +86,7 @@ TEST_F(InputUtilTest, Empty_KindNotSet) {
 TEST_F(InputUtilTest, Empty_ExampleList) {
   input_.mutable_example_list();
 
-  const Status status = InputToSerializedExampleTensor(input_, &tensor_);
+  const absl::Status status = InputToSerializedExampleTensor(input_, &tensor_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.message(), HasSubstr("Input is empty"));
 }
@@ -94,7 +94,7 @@ TEST_F(InputUtilTest, Empty_ExampleList) {
 TEST_F(InputUtilTest, Empty_ExampleListWithContext) {
   input_.mutable_example_list_with_context();
 
-  const Status status = InputToSerializedExampleTensor(input_, &tensor_);
+  const absl::Status status = InputToSerializedExampleTensor(input_, &tensor_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.message(), HasSubstr("Input is empty"));
 }
@@ -198,7 +198,7 @@ TEST_F(InputUtilTest, ExampleListWithContext_OnlyContext) {
   // context is specified).
   *input_.mutable_example_list_with_context()->mutable_context() = example_C();
 
-  const Status status = InputToSerializedExampleTensor(input_, &tensor_);
+  const absl::Status status = InputToSerializedExampleTensor(input_, &tensor_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.message(), HasSubstr("Input is empty"));
 }

@@ -18,19 +18,18 @@ limitations under the License.
 #include <memory>
 #include <string>
 
-#include "absl/log/log.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "tensorflow/cc/saved_model/constants.h"
+#include "xla/tsl/platform/env.h"
+#include "xla/tsl/platform/errors.h"
+#include "xla/tsl/platform/file_system.h"
+#include "xla/tsl/platform/types.h"
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/grappler/optimizers/inference/batch_op_rewriter.pb.h"
 #include "tensorflow/core/protobuf/rewriter_config.pb.h"
-#include "tsl/platform/env.h"
-#include "tsl/platform/errors.h"
-#include "tsl/platform/file_system.h"
 #include "tsl/platform/path.h"
 #include "tsl/platform/stringpiece.h"
-#include "tsl/platform/types.h"
 #include "tensorflow_serving/servables/tensorflow/remote_op_config_rewriter.pb.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_config.pb.h"
 

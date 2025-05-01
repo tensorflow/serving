@@ -24,11 +24,11 @@ limitations under the License.
 
 #include "google/protobuf/wrappers.pb.h"
 #include "absl/container/flat_hash_set.h"
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/platform/types.h"
-#include "tsl/platform/errors.h"
 
 namespace tensorflow {
 namespace serving {

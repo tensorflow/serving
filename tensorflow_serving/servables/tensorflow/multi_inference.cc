@@ -30,7 +30,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status TensorFlowMultiInferenceRunner::Infer(
+absl::Status TensorFlowMultiInferenceRunner::Infer(
     const RunOptions& run_options, const MultiInferenceRequest& request,
     MultiInferenceResponse* response) {
   TRACELITERAL("TensorFlowMultiInferenceRunner::Infer");
@@ -126,7 +126,7 @@ Status TensorFlowMultiInferenceRunner::Infer(
   return absl::OkStatus();
 }
 
-Status RunMultiInference(
+absl::Status RunMultiInference(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
     const absl::optional<int64_t>& servable_version, Session* session,
     const MultiInferenceRequest& request, MultiInferenceResponse* response,

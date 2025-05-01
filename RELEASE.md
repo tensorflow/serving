@@ -1,3 +1,33 @@
+<!-- disableFinding(HEADING_REPEAT_H1) -->
+# Release 2.18.1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.18.1.
+
+# Release 2.18.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Update version for 2.18.0 release. (#2264) (commit: 5815bfdd1d1bbd9d0d3557576c98f13afc4d9016)
+* This release is based on TF version 2.18.0.
+
 # Release 2.18.0-rc0
 
 ## Major Features and Improvements
@@ -49,6 +79,22 @@
 * Mark Tensorflow compatible with Protobuf v26+. (#2261) (commit: 424dba4101e3d28ac5cf9e65df5747676ef2a1e3)
 * Update version for 2.18.0-rc0 release. (#2262) (commit: 67f4ee85350fb48ddda0bd7d1c1ebfd4601ed3e1)
 * This release is based on TF version 2.18.0-rc2.
+
+# Release 2.17.1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Create separate `kokoro` config (commit: 3af106649212377ef845a9d53fccddb00c10293f)
+* Update version for 2.17.1 release. (#2266) (commit: 7b6021dd4cc6c1a815a84f160b77438c84818a66)
+* This release is based on TF version 2.17.1.
 
 # Release 2.17.0
 

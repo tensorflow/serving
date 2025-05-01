@@ -307,7 +307,11 @@ int main(int argc, char** argv) {
                        "Whether to skip auto initializing TPU."),
       tensorflow::Flag("enable_grpc_healthcheck_service",
                        &options.enable_grpc_healthcheck_service,
-                       "Enable the standard gRPC healthcheck service.")};
+                       "Enable the standard gRPC healthcheck service."),
+      tensorflow::Flag(
+          "enable_serialization_as_tensor_content",
+          &options.enable_serialization_as_tensor_content,
+          "Enable serialization of predict response as tensor content.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {

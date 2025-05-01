@@ -30,6 +30,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
 #include "xla/tsl/lib/core/status_test_util.h"
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -42,7 +43,6 @@ limitations under the License.
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow/core/public/version.h"
-#include "tsl/platform/errors.h"
 #include "tensorflow_serving/core/test_util/session_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
@@ -60,10 +60,10 @@ enum class ModelType { kTfModel, kTfLiteModel };
 Loader::Metadata CreateMetadata() { return {ServableId{"name", 42}}; }
 
 // Creates a new session based on the config and export path.
-Status CreateBundleFromPath(const CreationType creation_type,
-                            const SessionBundleConfig& config,
-                            const string& path,
-                            std::unique_ptr<SavedModelBundle>* bundle) {
+absl::Status CreateBundleFromPath(const CreationType creation_type,
+                                  const SessionBundleConfig& config,
+                                  const string& path,
+                                  std::unique_ptr<SavedModelBundle>* bundle) {
   std::unique_ptr<SavedModelBundleFactory> factory;
   auto config_with_session_hook = config;
   config_with_session_hook.set_session_target(
@@ -119,8 +119,8 @@ class SavedModelBundleFactoryTest
   virtual ~SavedModelBundleFactoryTest() = default;
 
  protected:
-  Status CreateSession(const SessionBundleConfig& config,
-                       std::unique_ptr<Session>* session) const override {
+  absl::Status CreateSession(const SessionBundleConfig& config,
+                             std::unique_ptr<Session>* session) const override {
     std::unique_ptr<SavedModelBundle> bundle;
     TF_RETURN_IF_ERROR(CreateBundleFromPath(GetParam().creation_type, config,
                                             export_dir_, &bundle));
