@@ -79,9 +79,15 @@ message PredictRequest {
 // Options only used for streaming requests that control how inputs/ouputs are
 // handled in the stream.
 message PredictStreamedOptions {
-  // Request state used to handle splitting of requests.  NONE is the
+  // Request state is used to control handling of individual streamed requests.
+  //
+  // SPLIT and END_SPLIT are used to handle splitting of requests.  NONE is the
   // default when the stream request is not split and used for a single-turn,
   // single request.
+  //
+  // CANCEL is used for early termination of a stream. It can be sent anytime to
+  // cancel the stream.
+  //
   //
   // SPLIT is used when multiple streamed requests are used to generate a
   // logical request. END_SPLIT should be called for the last split of the
@@ -147,11 +153,11 @@ message PredictStreamedOptions {
   //   END_SPLIT
   //
   // Invalid because NONE is interspersed with SPLIT/END_SPLIT.
-
   enum RequestState {
     NONE = 0;
     SPLIT = 1;
     END_SPLIT = 2;
+    CANCEL = 3;
   }
 
   // Request state used to handle segmentation of requests.
