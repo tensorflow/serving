@@ -53,3 +53,16 @@ index 27a244c39fa..6554e059755 100644
  
    // Construct a shape from a ShapeProto.
    explicit Shape(const ShapeProto& shape_proto);
+diff --git a/third_party/xla/xla/service/memory_space_assignment/allocation_value.h b/third_party/xla/xla/service/memory_space_assignment/allocation_value.h
+index ad4c9a4e22a..331ca1becf8 100644
+--- a/third_party/xla/xla/service/memory_space_assignment/allocation_value.h
++++ b/third_party/xla/xla/service/memory_space_assignment/allocation_value.h
+@@ -125,6 +125,8 @@ class AllocationValue {
+     }
+   };
+ 
++  AllocationValue(AllocationValue&&) noexcept = default;
++  AllocationValue& operator=(AllocationValue&&) noexcept = default;
+   AllocationValue(const HloValue* value, const HloPosition& position,
+                   int64_t size)
+       : value_(value),
