@@ -106,7 +106,8 @@ absl::StatusOr<SavedModelConfig> LoadSavedModelConfigOrDefault(
       tsl::Env::Default()->NewRandomAccessFile(saved_model_config_path, &file));
 
   absl::string_view result;
-  TF_RETURN_IF_ERROR(file->Read(0, file_size, &result, &(content)[0]));
+  TF_RETURN_IF_ERROR(
+      file->Read(0, result, absl::MakeSpan(&content[0], file_size)));
 
   if (!saved_model_config.ParseFromString(content)) {
     return tsl::errors::Internal("Unable to parse SavedModelConfig: ",
