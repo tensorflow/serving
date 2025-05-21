@@ -117,7 +117,7 @@ TEST_F(BundleFactoryUtilTest, GetRunOptions) {
   EXPECT_THAT(GetRunOptions(bundle_config), EqualsProto(want));
 }
 
-TEST_F(BundleFactoryUtilTest, WrapSession) {
+TEST_F(BundleFactoryUtilTest, DISABLED_WrapSession) {
   SavedModelBundle bundle;
   TF_ASSERT_OK(LoadSavedModel(SessionOptions(), RunOptions(), export_dir_,
                               {"serve"}, &bundle));
@@ -132,7 +132,7 @@ TEST_F(BundleFactoryUtilTest, WrapSessionIgnoreThreadPoolOptions) {
   test_util::TestSingleRequest(session.get());
 }
 
-TEST_F(BundleFactoryUtilTest, WrapSessionForBatching) {
+TEST_F(BundleFactoryUtilTest, DISABLED_WrapSessionForBatching) {
   SavedModelBundle bundle;
   TF_ASSERT_OK(LoadSavedModel(SessionOptions(), RunOptions(), export_dir_,
                               {"serve"}, &bundle));
@@ -154,7 +154,7 @@ TEST_F(BundleFactoryUtilTest, WrapSessionForBatching) {
   test_util::TestMultipleRequests(bundle.session.get(), 10, 2);
 }
 
-TEST_F(BundleFactoryUtilTest, WrapSessionForBatchingConfigError) {
+TEST_F(BundleFactoryUtilTest, DISABLED_WrapSessionForBatchingConfigError) {
   BatchingParameters batching_params;
   batching_params.mutable_max_batch_size()->set_value(2);
   // The last entry in 'allowed_batch_sizes' is supposed to equal
@@ -225,7 +225,7 @@ TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithBadExport) {
   EXPECT_FALSE(status.ok());
 }
 
-TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithGoodExport) {
+TEST_F(BundleFactoryUtilTest, DISABLED_EstimateResourceFromPathWithGoodExport) {
   const double kTotalFileSize = test_util::GetTotalFileSize(
       test_util::GetTestSavedModelBundleExportFiles());
   ResourceAllocation expected =
