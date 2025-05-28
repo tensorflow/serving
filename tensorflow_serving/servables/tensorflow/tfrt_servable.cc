@@ -98,6 +98,9 @@ TfrtSavedModelServable::GetTFRTSavedModelRunOptions(
   }
   options.validate_input_specs = config_.validate_input_specs();
   options.validate_input_specs_dry_run = config_.validate_input_specs_dry_run();
+  if (run_options.disable_host_compilation) {
+    options.disable_compilation = true;
+  }
   return options;
 }
 
