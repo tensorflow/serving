@@ -317,11 +317,11 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
       down_cast<TfrtSavedModelServable*>(servable->get());
 
   if (config().enable_model_warmup()) {
-    auto* warmup_options = mutable_config().mutable_model_warmup_options();
-    warmup_options->set_model_name(metadata.servable_id.name);
-    warmup_options->set_model_version(metadata.servable_id.version);
+    ModelWarmupOptions warmup_options = config().model_warmup_options();
+    warmup_options.set_model_name(metadata.servable_id.name);
+    warmup_options.set_model_version(metadata.servable_id.version);
     TF_RETURN_IF_ERROR(RunSavedModelWarmup(
-        *warmup_options, path, config().lazy_init_threshold(),
+        warmup_options, path, config().lazy_init_threshold(),
         config().skip_warmup_requests_if_initialized(),
         &tfrt_servable->saved_model()));
     if (config().freeze_after_init()) {
