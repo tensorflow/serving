@@ -37,16 +37,16 @@ apt-key adv --fetch-keys https://apt.llvm.org/llvm-snapshot.gpg.key
 
 # Set up custom sources
 cat >/etc/apt/sources.list.d/custom.list <<SOURCES
-# Nvidia CUDA packages: 18.04 has more available than 20.04, and we use those
+# Nvidia CUDA packages: 18.04 has more available than 20.04 or 22.04, and we use those
 deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /
 
 # More Python versions: Deadsnakes
-deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu focal main
-deb-src http://ppa.launchpad.net/deadsnakes/ppa/ubuntu focal main
+deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu jammy main
+deb-src http://ppa.launchpad.net/deadsnakes/ppa/ubuntu jammy main
 
 # LLVM/Clang repository
-deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main
-deb-src http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main
+deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main
+deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main
 SOURCES
 
 apt-get update
