@@ -215,7 +215,7 @@ absl::Status RunSavedModelWarmup(
   // OUT_OF_RANGE error means EOF was reached, re-write it to OK; in this way
   // the 'model_warm_up_latency' metric below records OK upon successful
   // warm-up.
-  if (errors::IsOutOfRange(status)) {
+  if (absl::IsOutOfRange(status)) {
     status = absl::OkStatus();
   }
 
@@ -223,7 +223,7 @@ absl::Status RunSavedModelWarmup(
   model_warm_up_latency->GetCell(export_dir, status.ToString())
       ->Add(warmup_latency);
 
-  if (errors::IsDataLoss(status)) {
+  if (absl::IsDataLoss(status)) {
     return errors::DataLoss(
         status.message(),
         ". Please verify your warmup data is in TFRecord format.");
