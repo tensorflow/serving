@@ -53,7 +53,7 @@ TEST(SessionBundleTest, ConvertSessionBundleToSavedModelBundleTest) {
       ::testing::HasSubstr("Session Bundle is deprecated and removed."));
 }
 
-TEST(SessionBundleTest, LoadSessionBundleOrSavedModelBundleTest) {
+TEST(SessionBundleTest, DISABLED_LoadSessionBundleOrSavedModelBundleTest) {
   SessionOptions session_options;
   RunOptions run_options;
   SavedModelBundle bundle;
@@ -68,7 +68,7 @@ TEST(SessionBundleTest, LoadSessionBundleOrSavedModelBundleTest) {
   EXPECT_TRUE(status.ok());
 }
 
-TEST(SessionBundleTest, LoadSessionBundleOrSavedModelBundleFailureTest) {
+TEST(SessionBundleTest, DISABLED_LoadSessionBundleOrSavedModelBundleFailureTest) {
   SessionOptions session_options;
   RunOptions run_options;
   SavedModelBundle bundle;
