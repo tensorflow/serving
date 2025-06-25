@@ -65,7 +65,7 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
     auto servable_creator = [&](std::unique_ptr<string>* servable) {
       servable->reset(new string);
       **servable = strings::StrCat(id.name, "-", id.version);
-      return OkStatus();
+      return absl::OkStatus();
     };
     std::unique_ptr<Loader> loader;
     loader.reset(new SimpleLoader<string>(
@@ -346,7 +346,7 @@ TEST_P(CachingManagerTest, ServableHandleWrongType) {
   // The servable is supposed to be of type string, but we request for a handle
   // of type int. This should cause an invalid argument error.
   ServableHandle<int> handle;
-  const Status status = manager_->GetServableHandle(
+  const absl::Status status = manager_->GetServableHandle(
       ServableRequest::FromId({kServableName, 30}), &handle);
   ASSERT_FALSE(status.ok()) << status;
   EXPECT_EQ(error::INVALID_ARGUMENT, status.code());
@@ -357,7 +357,7 @@ TEST_P(CachingManagerTest, ServableHandleError) {
   std::unique_ptr<CachingManager> error_manager =
       CreateManagerWithErrorLoaderFactory();
   ServableHandle<string> handle;
-  const Status status = error_manager->GetServableHandle(
+  const absl::Status status = error_manager->GetServableHandle(
       ServableRequest::FromId({kServableName, 30}), &handle);
   EXPECT_FALSE(status.ok()) << status;
 }
@@ -419,7 +419,7 @@ TEST_P(CachingManagerTest, AvailableServableHandlesError) {
   std::unique_ptr<CachingManager> error_manager =
       CreateManagerWithErrorLoaderFactory();
   ServableHandle<string> handle;
-  const Status status = error_manager->GetServableHandle(
+  const absl::Status status = error_manager->GetServableHandle(
       ServableRequest::FromId({kServableName, 30}), &handle);
   ASSERT_FALSE(status.ok()) << status;
   std::map<ServableId, ServableHandle<string>> handles =
@@ -474,7 +474,7 @@ TEST_P(CachingManagerTest, EventBusSingleRequest) {
   // Check that the state published on the event-bus matches produced by the
   // loader-factory for a successful request.
   const ServableState expected_published_state = {
-      id, ServableState::ManagerState::kAvailable, OkStatus()};
+      id, ServableState::ManagerState::kAvailable, absl::OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(expected_published_state));
 }
@@ -485,7 +485,7 @@ TEST_P(CachingManagerTest, EventBusErrorHandle) {
       CreateManagerWithErrorLoaderFactory();
   ServableHandle<string> handle;
   const ServableId id = {kServableName, 30};
-  const Status status =
+  const absl::Status status =
       error_manager->GetServableHandle(ServableRequest::FromId(id), &handle);
   // Check that the state published on the event-bus matches that produced
   // by the loader-factory for an error.
@@ -502,14 +502,14 @@ TEST_P(CachingManagerTest, EventBusErrorHandle) {
 TEST_P(CachingManagerTest, ConcurrentDisjointRequests) {
   // Track the status of each request.
   mutex status_mu;
-  std::vector<Status> statuses(4);
+  std::vector<absl::Status> statuses(4);
   {
     ThreadPoolExecutor request_executor(Env::Default(), "GetHandles",
                                         kNumThreads);
     for (int i = 0; i < 4; i++) {
       request_executor.Schedule([this, i, &statuses, &status_mu]() {
         ServableHandle<string> handle;
-        const Status status =
+        const absl::Status status =
             manager_->GetServableHandle({kServableName, i + 30}, &handle);
         mutex_lock l(status_mu);
         statuses[i] = status;
@@ -519,7 +519,7 @@ TEST_P(CachingManagerTest, ConcurrentDisjointRequests) {
   // Check that all requests returned with an ok status.
   for (int i = 0; i < 4; i++) {
     mutex_lock l(status_mu);
-    EXPECT_EQ(OkStatus(), statuses[i]);
+    EXPECT_EQ(absl::OkStatus(), statuses[i]);
   }
   // Check that the available servable handles now includes all requested
   // servables.
@@ -542,7 +542,7 @@ TEST_P(CachingManagerTest, ConcurrentDisjointRequests) {
 
 TEST_P(CachingManagerTest, ConcurrentIntersectingRequests) {
   mutex status_mu;
-  std::vector<Status> statuses(8);
+  std::vector<absl::Status> statuses(8);
   {
     ThreadPoolExecutor request_executor(Env::Default(), "GetHandles",
                                         kNumThreads);
@@ -552,7 +552,7 @@ TEST_P(CachingManagerTest, ConcurrentIntersectingRequests) {
       const ServableId id = {kServableName, version};
       request_executor.Schedule([this, i, id, &statuses, &status_mu]() {
         ServableHandle<string> handle;
-        const Status status =
+        const absl::Status status =
             manager_->GetServableHandle(ServableRequest::FromId(id), &handle);
         mutex_lock l(status_mu);
         statuses[i] = status;
@@ -562,7 +562,7 @@ TEST_P(CachingManagerTest, ConcurrentIntersectingRequests) {
   // Check that all requests returned with an ok status.
   for (int i = 0; i < 8; i++) {
     mutex_lock l(status_mu);
-    EXPECT_EQ(OkStatus(), statuses[i]);
+    EXPECT_EQ(absl::OkStatus(), statuses[i]);
   }
   // Check that the available servable handles now includes all requested
   // servables.

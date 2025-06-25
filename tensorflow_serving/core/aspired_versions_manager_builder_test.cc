@@ -91,7 +91,7 @@ TEST_F(AspiredVersionsManagerBuilderTest, AddSourceChainConnection) {
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   ServableHandle<StoragePath> handle;
-  const Status status =
+  const absl::Status status =
       manager->GetServableHandle(ServableRequest::FromId(id), &handle);
   EXPECT_EQ(StoragePath("/storage/path/adapter0/adapter1/adapter2"), *handle);
 }
