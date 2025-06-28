@@ -234,6 +234,10 @@ message TfrtSavedModelConfig {
 
   // Batching parameters to be rewritten in the existing BatchFunction ops.
   BatchingOptions in_graph_batching_parameters = 2028;
+
+  // If non-zero, all models on this server are switched to use a prioritized
+  // batching function using this number of global threads.
+  int64 tfrt_batch_queue_global_prioritization_num_threads = 2029;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.
