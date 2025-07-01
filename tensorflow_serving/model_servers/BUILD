@@ -96,6 +96,7 @@ cc_library(
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:unique_ptr_with_deps",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",

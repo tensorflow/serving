@@ -62,15 +62,13 @@ SavedModelBundleSourceAdapter::GetServableCreator(
       MaybePublishMLMDStreamz(path, metadata.servable_id.name,
                               metadata.servable_id.version);
       if (bundle_factory->config().enable_model_warmup()) {
-        bundle_factory->mutable_config()
-            .mutable_model_warmup_options()
-            ->set_model_name(metadata.servable_id.name);
-        bundle_factory->mutable_config()
-            .mutable_model_warmup_options()
-            ->set_model_version(metadata.servable_id.version);
-        return RunSavedModelWarmup(
-            bundle_factory->config().model_warmup_options(),
-            GetRunOptions(bundle_factory->config()), path, bundle->get());
+        ModelWarmupOptions warmup_options =
+            bundle_factory->config().model_warmup_options();
+        warmup_options.set_model_name(metadata.servable_id.name);
+        warmup_options.set_model_version(metadata.servable_id.version);
+        return RunSavedModelWarmup(warmup_options,
+                                   GetRunOptions(bundle_factory->config()),
+                                   path, bundle->get());
       }
       return absl::OkStatus();
     };

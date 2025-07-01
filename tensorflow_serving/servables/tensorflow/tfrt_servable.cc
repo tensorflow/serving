@@ -98,6 +98,9 @@ TfrtSavedModelServable::GetTFRTSavedModelRunOptions(
   }
   options.validate_input_specs = config_.validate_input_specs();
   options.validate_input_specs_dry_run = config_.validate_input_specs_dry_run();
+  if (run_options.disable_host_compilation) {
+    options.disable_compilation = true;
+  }
   return options;
 }
 
@@ -260,8 +263,12 @@ absl::Status TfrtSavedModelServable::GetModelMetadata(
       SignatureDefMap signature_def_map;
       for (const auto& signature :
            saved_model_->GetMetaGraphDef().signature_def()) {
-        (*signature_def_map.mutable_signature_def())[signature.first] =
-            signature.second;
+        // Explicitly avoid copying `SignatureDef.defaults` as they can be big.
+        SignatureDef& def =
+            (*signature_def_map.mutable_signature_def())[signature.first];
+        def.set_method_name(signature.second.method_name());
+        *def.mutable_inputs() = signature.second.inputs();
+        *def.mutable_outputs() = signature.second.outputs();
       }
 
       auto* response_model_spec = response->mutable_model_spec();

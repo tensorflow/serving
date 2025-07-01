@@ -222,6 +222,8 @@ absl::StatusOr<tfrt::SavedModel::Options> CreateCommonSavedModelOptions(
   compile_options.min_num_batch_threads = config.tfrt_min_num_batch_threads();
   compile_options.min_max_enqueued_batches =
       config.tfrt_min_max_enqueued_batches();
+  compile_options.batch_queue_global_prioritization_num_threads =
+      config.tfrt_batch_queue_global_prioritization_num_threads();
   compile_options.batch_padding_policy = config.batch_padding_policy();
   compile_options.batch_options = config.in_graph_batching_parameters();
 
@@ -317,11 +319,11 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
       down_cast<TfrtSavedModelServable*>(servable->get());
 
   if (config().enable_model_warmup()) {
-    auto* warmup_options = mutable_config().mutable_model_warmup_options();
-    warmup_options->set_model_name(metadata.servable_id.name);
-    warmup_options->set_model_version(metadata.servable_id.version);
+    ModelWarmupOptions warmup_options = config().model_warmup_options();
+    warmup_options.set_model_name(metadata.servable_id.name);
+    warmup_options.set_model_version(metadata.servable_id.version);
     TF_RETURN_IF_ERROR(RunSavedModelWarmup(
-        *warmup_options, path, config().lazy_init_threshold(),
+        warmup_options, path, config().lazy_init_threshold(),
         config().skip_warmup_requests_if_initialized(),
         &tfrt_servable->saved_model()));
     if (config().freeze_after_init()) {
