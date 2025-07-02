@@ -19,7 +19,6 @@ env:
 
 jobs:
   tests:
-    if: github.actor != 'copybara-service[bot]'
     runs-on: ubuntu-latest
 
     steps:
