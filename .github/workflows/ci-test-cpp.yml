@@ -33,16 +33,6 @@ jobs:
         disk-cache: ${{ github.workflow }}-${{ hashFiles('.github/workflows/ci-test.yml') }}
         # Share repository cache between workflows.
         repository-cache: true
-
-    - name: Build unit tests
-      shell: bash
-      run: |
-        bazel build //tensorflow_serving/...
-
-    - name: Clean unit test artifacts
-      shell: bash
-      run: |
-        bazel clean --expunge
         
     - name: Run unit tests
       shell: bash
