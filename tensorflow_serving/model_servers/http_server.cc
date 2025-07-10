@@ -43,7 +43,7 @@ namespace serving {
 
 namespace {
 
-net_http::HTTPStatusCode ToHTTPStatusCode(const Status& status) {
+net_http::HTTPStatusCode ToHTTPStatusCode(const absl::Status& status) {
   using error::Code;
   using net_http::HTTPStatusCode;
   switch (static_cast<absl::StatusCode>(status.code())) {
@@ -91,14 +91,14 @@ void ProcessPrometheusRequest(PrometheusExporter* exporter, const string& path,
   std::vector<std::pair<string, string>> headers;
   headers.push_back({"Content-Type", "text/plain"});
   string output;
-  Status status;
+  absl::Status status;
   // Check if url matches the path.
   if (req->uri_path() != path) {
     output = absl::StrFormat("Unexpected path: %s. Should be %s",
                              req->uri_path(), path);
-    status = Status(static_cast<tensorflow::errors::Code>(
-                        absl::StatusCode::kInvalidArgument),
-                    output);
+    status = absl::Status(
+        static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
+        output);
   } else {
     status = exporter->GeneratePage(&output);
   }
@@ -166,7 +166,7 @@ class RestApiRequestDispatcher {
     VLOG(1) << "Processing HTTP request: " << req->http_method() << " "
             << req->uri_path() << " body: " << body.size() << " bytes.";
 
-    Status status;
+    absl::Status status;
     if (req->http_method() == "OPTIONS") {
       absl::string_view origin_header = req->GetRequestHeader("Origin");
       if (RE2::PartialMatch(origin_header, "https?://")) {
