@@ -38,7 +38,7 @@ tf_serving_workspace()
 
 # Check bazel version requirement, which is stricter than TensorFlow's.
 load("@bazel_skylib//lib:versions.bzl", "versions")
-versions.check("6.5.0")
+versions.check("7.4.1")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
