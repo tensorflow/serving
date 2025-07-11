@@ -110,3 +110,4 @@ build --copt=-Wno-unused-but-set-variable # due to `ifdefs` in ml_dtypes
 # Revert to the legacy WORKSPACE dependency resolution system
 # and disable Bzlmod.
 common --enable_bzlmod=false
+common --noincompatible_enable_cc_toolchain_resolution
