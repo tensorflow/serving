@@ -222,6 +222,11 @@ absl::StatusOr<tfrt::SavedModel::Options> CreateCommonSavedModelOptions(
   compile_options.min_num_batch_threads = config.tfrt_min_num_batch_threads();
   compile_options.min_max_enqueued_batches =
       config.tfrt_min_max_enqueued_batches();
+#ifdef PLATFORM_GOOGLE
+  // TODO(shtatnov): Remove the IFDEF after TF 2.20 is released.
+  compile_options.batch_queue_global_prioritization_num_threads =
+      config.tfrt_batch_queue_global_prioritization_num_threads();
+#endif  // PLATFORM_GOOGLE
   compile_options.batch_padding_policy = config.batch_padding_policy();
   compile_options.batch_options = config.in_graph_batching_parameters();
 
