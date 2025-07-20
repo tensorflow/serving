@@ -51,7 +51,7 @@ LoaderHarness::State LoaderHarness::state() const {
   return state_;
 }
 
-Status LoaderHarness::LoadRequested() {
+absl::Status LoaderHarness::LoadRequested() {
   mutex_lock l(mu_);
 
   if (state_ != State::kNew) {
@@ -60,25 +60,25 @@ Status LoaderHarness::LoadRequested() {
   state_ = State::kLoadRequested;
   VLOG(1) << "Load requested for servable version " << id_;
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status LoaderHarness::LoadApproved() {
+absl::Status LoaderHarness::LoadApproved() {
   mutex_lock l(mu_);
   TF_RETURN_IF_ERROR(
       TransitionState(State::kLoadRequested, State::kLoadApproved));
   LOG(INFO) << "Approving load for servable version " << id_;
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status LoaderHarness::Load() {
+absl::Status LoaderHarness::Load() {
   {
     mutex_lock l(mu_);
     TF_RETURN_IF_ERROR(TransitionState(State::kLoadApproved, State::kLoading));
     LOG(INFO) << "Loading servable version " << id_;
   }
 
-  const Status status = Retry(
+  const absl::Status status = Retry(
       strings::StrCat("Loading servable: ", id_.DebugString()),
       options_.max_num_load_retries, options_.load_retry_interval_micros,
       [&]() { return loader_->LoadWithMetadata({id_}); },
@@ -111,17 +111,17 @@ Status LoaderHarness::Load() {
   return status;
 }
 
-Status LoaderHarness::UnloadRequested() {
+absl::Status LoaderHarness::UnloadRequested() {
   mutex_lock l(mu_);
   if (state_ != State::kReady) {
     return errors::FailedPrecondition(
         "Servable not loaded, or unload already requested/ongoing");
   }
   state_ = State::kUnloadRequested;
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status LoaderHarness::UnloadInternal(State from_state) {
+absl::Status LoaderHarness::UnloadInternal(State from_state) {
   {
     mutex_lock l(mu_);
     TF_RETURN_IF_ERROR(TransitionState(from_state, State::kUnloading));
@@ -135,10 +135,10 @@ Status LoaderHarness::UnloadInternal(State from_state) {
     TF_RETURN_IF_ERROR(TransitionState(State::kUnloading, State::kDisabled));
     LOG(INFO) << "Done unloading servable version " << id_;
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status LoaderHarness::UnloadDueToCancelledLoad() {
+absl::Status LoaderHarness::UnloadDueToCancelledLoad() {
   return UnloadInternal(State::kLoading);
 }
 
@@ -153,24 +153,26 @@ bool LoaderHarness::should_retry(absl::Status status) {
   return should_retry_(status);
 }
 
-Status LoaderHarness::Unload() { return UnloadInternal(State::kQuiesced); }
+absl::Status LoaderHarness::Unload() {
+  return UnloadInternal(State::kQuiesced);
+}
 
-Status LoaderHarness::StartQuiescing() {
+absl::Status LoaderHarness::StartQuiescing() {
   mutex_lock l(mu_);
   TF_RETURN_IF_ERROR(
       TransitionState(State::kUnloadRequested, State::kQuiescing));
   LOG(INFO) << "Quiescing servable version " << id_;
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status LoaderHarness::DoneQuiescing() {
+absl::Status LoaderHarness::DoneQuiescing() {
   mutex_lock l(mu_);
   TF_RETURN_IF_ERROR(TransitionState(State::kQuiescing, State::kQuiesced));
   LOG(INFO) << "Done quiescing servable version " << id_;
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-void LoaderHarness::ErrorInternal(const Status& status) {
+void LoaderHarness::ErrorInternal(const absl::Status& status) {
   state_ = State::kError;
   status_ = status;
   if (options_.error_callback) {
@@ -180,14 +182,14 @@ void LoaderHarness::ErrorInternal(const Status& status) {
             << status_;
 }
 
-void LoaderHarness::Error(const Status& status) {
+void LoaderHarness::Error(const absl::Status& status) {
   mutex_lock l(mu_);
   ErrorInternal(status);
 }
 
-Status LoaderHarness::TransitionState(const State from, const State to) {
+absl::Status LoaderHarness::TransitionState(const State from, const State to) {
   if (state_ != from) {
-    const Status error = errors::Internal(
+    const absl::Status error = errors::Internal(
         "Illegal request to transition from state ", StateDebugString(state_),
         " to ", StateDebugString(to));
 #ifndef NDEBUG
@@ -198,10 +200,10 @@ Status LoaderHarness::TransitionState(const State from, const State to) {
     return error;
   }
   state_ = to;
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status LoaderHarness::status() const {
+absl::Status LoaderHarness::status() const {
   mutex_lock l(mu_);
   return status_;
 }
