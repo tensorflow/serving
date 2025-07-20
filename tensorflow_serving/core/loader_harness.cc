@@ -19,7 +19,6 @@ limitations under the License.
 #include <memory>
 #include <utility>
 
-#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/strings/strcat.h"
@@ -91,8 +90,13 @@ Status LoaderHarness::Load() {
       // Servable is going to be unloaded very soon, we report a failure here so
       // that we do not accidentally report that the servable is available.
       TF_RETURN_IF_ERROR(UnloadDueToCancelledLoad());
-      return errors::Cancelled(
-          strings::StrCat("Loading of servable cancelled"));
+      absl::Status s =
+          errors::Cancelled(strings::StrCat("Loading of servable cancelled"));
+      if (options_.error_callback) {
+        // Invokes BasicManager::PublishOnEventBus(kEnd).
+        options_.error_callback(id_, s);
+      }
+      return s;
     }
     {
       mutex_lock l(mu_);

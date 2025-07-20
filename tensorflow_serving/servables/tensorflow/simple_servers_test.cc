@@ -78,7 +78,6 @@ TEST_F(SimpleServersTest, Basic) {
                                                              &manager);
   TF_CHECK_OK(status);
   // We wait until the manager starts serving the servable.
-  // TODO(b/25545570): Use the waiter api when it's ready.
   while (manager->ListAvailableServableIds().empty()) {
     Env::Default()->SleepForMicroseconds(1000);
   }

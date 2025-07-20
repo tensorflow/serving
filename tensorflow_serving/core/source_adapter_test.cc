@@ -48,7 +48,7 @@ class LimitedAdapter final : public SourceAdapter<StoragePath, StoragePath> {
 
  protected:
   std::vector<ServableData<StoragePath>> Adapt(
-      const StringPiece servable_name,
+      const absl::string_view servable_name,
       std::vector<ServableData<StoragePath>> versions) override {
     CHECK(versions.empty());
     return {};

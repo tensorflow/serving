@@ -27,15 +27,16 @@ namespace test_util {
 // Register the source adapter.
 class StoragePathErrorInjectingSourceAdapterCreator {
  public:
-  static Status Create(
+  static absl::Status Create(
       const StoragePathErrorInjectingSourceAdapterConfig& config,
       std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
           adapter) {
     adapter->reset(
         new ErrorInjectingSourceAdapter<StoragePath, std::unique_ptr<Loader>>(
-            Status(static_cast<absl::StatusCode>(absl::StatusCode::kCancelled),
-                   config.error_message())));
-    return Status();
+            absl::Status(
+                static_cast<absl::StatusCode>(absl::StatusCode::kCancelled),
+                config.error_message())));
+    return absl::Status();
   }
 };
 REGISTER_STORAGE_PATH_SOURCE_ADAPTER(

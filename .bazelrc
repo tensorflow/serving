@@ -15,7 +15,7 @@ build:cuda_clang --host_copt=-Wno-error=unused-command-line-argument
 build:cuda_clang --repo_env TF_NEED_TENSORRT=0
 build:cuda_clang --action_env=TF_CUDA_CLANG="1"
 build:cuda_clang --@local_config_cuda//:cuda_compiler=clang
-build:cuda_clang --repo_env=TF_CUDA_COMPUTE_CAPABILITIES="sm_50,sm_60,sm_70,sm_80,compute_90"
+build:cuda_clang --repo_env=TF_CUDA_COMPUTE_CAPABILITIES="sm_60,sm_70,sm_80,compute_90"
 
 build:cuda_clang --repo_env=HERMETIC_CUDA_VERSION="12.2.0"
 build:cuda_clang --repo_env=HERMETIC_CUDNN_VERSION="8.9.4.25"
@@ -106,3 +106,8 @@ build --copt=-Wno-macro-redefined # absl vs tsl logging clash
 build --copt=-Wno-sign-compare # int as loop variable
 build --copt=-Wno-deprecated-declarations
 build --copt=-Wno-unused-but-set-variable # due to `ifdefs` in ml_dtypes
+
+# Revert to the legacy WORKSPACE dependency resolution system
+# and disable Bzlmod.
+common --enable_bzlmod=false
+common --noincompatible_enable_cc_toolchain_resolution

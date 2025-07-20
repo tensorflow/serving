@@ -85,6 +85,7 @@ serving_proto_library(
     srcs = ["logging_config.proto"],
     deps = [
         ":log_collector_config_proto",
+        "@com_google_protobuf//:cc_wkt_protos",
     ],
 )
 

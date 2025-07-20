@@ -18,7 +18,7 @@ limitations under the License.
 #include "grpcpp/server_context.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "tsl/platform/errors.h"
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/core/servable_handle.h"

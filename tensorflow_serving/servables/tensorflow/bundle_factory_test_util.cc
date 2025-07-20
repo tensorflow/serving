@@ -178,7 +178,7 @@ void CopyDirOrDie(const string& src_dir, const string& dst_dir) {
     TF_ASSERT_OK(Env::Default()->GetChildren(dir, &children));
     for (const string& child : children) {
       const string child_path = io::JoinPath(dir, child);
-      StringPiece remainder = child_path;
+      absl::string_view remainder = child_path;
       CHECK(absl::ConsumePrefix(&remainder, src_dir));
       if (Env::Default()->IsDirectory(child_path).ok()) {
         TF_ASSERT_OK(

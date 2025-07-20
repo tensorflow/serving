@@ -79,7 +79,7 @@ absl::Status LoadSessionBundleOrSavedModelBundle(
 
 absl::Status LoadSessionBundleFromPathUsingRunOptions(
     const SessionOptions& session_options, const RunOptions& run_options,
-    const StringPiece export_dir, SessionBundle* bundle) {
+    const absl::string_view export_dir, SessionBundle* bundle) {
   return errors::Unimplemented("Session Bundle is deprecated and removed.");
 }
 

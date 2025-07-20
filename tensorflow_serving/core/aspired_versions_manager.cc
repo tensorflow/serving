@@ -92,8 +92,8 @@ struct CompareActions {
 
 // Validates whether all entries in 'versions' pertain to the servable named
 // 'servable_name'.
-Status ValidateAspiredVersions(
-    const StringPiece servable_name,
+absl::Status ValidateAspiredVersions(
+    const absl::string_view servable_name,
     const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) {
   for (const auto& version : versions) {
     if (servable_name != version.id().name) {
@@ -102,7 +102,7 @@ Status ValidateAspiredVersions(
           " doesn't match name in servable version: ", version.id().name));
     }
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Returns the set of version numbers in 'versions'.
@@ -141,7 +141,7 @@ class AspiredVersionsManagerTargetImpl final
 
  protected:
   void SetAspiredVersions(
-      const StringPiece servable_name,
+      const absl::string_view servable_name,
       std::vector<ServableData<std::unique_ptr<Loader>>> versions) override {
     parent_->EnqueueAspiredVersionsRequest(servable_name, std::move(versions));
   }
@@ -155,7 +155,7 @@ class AspiredVersionsManagerTargetImpl final
 
 }  // namespace internal
 
-Status AspiredVersionsManager::Create(
+absl::Status AspiredVersionsManager::Create(
     Options options, std::unique_ptr<AspiredVersionsManager>* manager) {
   if (options.aspired_version_policy == nullptr) {
     return errors::InvalidArgument(
@@ -189,7 +189,7 @@ Status AspiredVersionsManager::Create(
       options.with_current_context));
   (manager->get())->enable_reload_servables_with_error_ =
       options.enable_reload_servables_with_error;
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 AspiredVersionsManager::AspiredVersionsManager(
@@ -245,7 +245,7 @@ std::vector<ServableId> AspiredVersionsManager::ListAvailableServableIds()
   return basic_manager_->ListAvailableServableIds();
 }
 
-Status AspiredVersionsManager::GetUntypedServableHandle(
+absl::Status AspiredVersionsManager::GetUntypedServableHandle(
     const ServableRequest& request,
     std::unique_ptr<UntypedServableHandle>* const untyped_handle) {
   return basic_manager_->GetUntypedServableHandle(request, untyped_handle);
@@ -262,9 +262,9 @@ AspiredVersionsManager::GetAspiredVersionsCallback() {
 }
 
 void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
-    const StringPiece servable_name,
+    const absl::string_view servable_name,
     std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
-  const Status validation_status =
+  const absl::Status validation_status =
       ValidateAspiredVersions(servable_name, versions);
   DCHECK(validation_status.ok()) << validation_status.message();
   if (!validation_status.ok()) {
@@ -282,7 +282,7 @@ void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
 }
 
 void AspiredVersionsManager::ProcessAspiredVersionsRequest(
-    const StringPiece servable_name,
+    const absl::string_view servable_name,
     std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
   VLOG(2) << "Processing aspired versions request: " << servable_name << ": "
           << ServableVersionsDebugString(versions);
@@ -338,7 +338,8 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
       ServableId id;
       id.name = std::string(servable_name);
       id.version = version_id.version;
-      const Status manage_status = basic_manager_->StopManagingServable(id);
+      const absl::Status manage_status =
+          basic_manager_->StopManagingServable(id);
       DCHECK(manage_status.ok()) << manage_status.message();
       if (!manage_status.ok()) {
         LOG(ERROR) << "Internal error: Unable to clear errored servable "
@@ -350,7 +351,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
 
     // if this aspired version is not already present in the map.
     if (should_add) {
-      const Status manage_status =
+      const absl::Status manage_status =
           basic_manager_->ManageServableWithAdditionalState(
               std::move(version), std::unique_ptr<Aspired>(new Aspired{true}));
       DCHECK(manage_status.ok()) << manage_status.message();
@@ -364,7 +365,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
 }
 
 bool AspiredVersionsManager::ContainsAnyReaspiredVersions(
-    const StringPiece servable_name,
+    const absl::string_view servable_name,
     const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) const {
   const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
       basic_manager_->GetManagedServableStateSnapshots<Aspired>(
@@ -413,20 +414,22 @@ void AspiredVersionsManager::PerformAction(
     const AspiredVersionPolicy::ServableAction action) {
   switch (action.action) {
     case AspiredVersionPolicy::Action::kLoad: {
-      basic_manager_->LoadServable(action.id, [action](const Status& status) {
-        if (!status.ok()) {
-          LOG(ERROR) << "Servable " << action.id.DebugString()
-                     << " cannot be loaded: " << status;
-        }
-      });
+      basic_manager_->LoadServable(
+          action.id, [action](const absl::Status& status) {
+            if (!status.ok()) {
+              LOG(ERROR) << "Servable " << action.id.DebugString()
+                         << " cannot be loaded: " << status;
+            }
+          });
     } break;
     case AspiredVersionPolicy::Action::kUnload: {
-      basic_manager_->UnloadServable(action.id, [action](const Status& status) {
-        if (!status.ok()) {
-          LOG(ERROR) << "Servable " << action.id.DebugString()
-                     << " cannot be unloaded: " << status;
-        }
-      });
+      basic_manager_->UnloadServable(
+          action.id, [action](const absl::Status& status) {
+            if (!status.ok()) {
+              LOG(ERROR) << "Servable " << action.id.DebugString()
+                         << " cannot be unloaded: " << status;
+            }
+          });
     } break;
   }
 }
@@ -442,7 +445,7 @@ void AspiredVersionsManager::FlushServables() {
            state_snapshot.state == LoaderHarness::State::kDisabled ||
            state_snapshot.state == LoaderHarness::State::kError) &&
           !state_snapshot.additional_state->is_aspired) {
-        const Status status =
+        const absl::Status status =
             basic_manager_->StopManagingServable(state_snapshot.id);
         if (status.ok()) {
           VLOG(1) << "Removed " << state_snapshot.id << "from BasicManager";

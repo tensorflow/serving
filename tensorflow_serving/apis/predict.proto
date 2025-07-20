@@ -67,8 +67,9 @@ message PredictRequest {
     // prefill will be returned if available.
     optional bool return_additional_arrays_from_prefill = 3;
 
-    // Returns these stop tokens in response if the model stops at them. The
-    // model may stop at other tokens, but will not return them in the response.
+    // Only supported in disaggregated serving. Returns these stop tokens in
+    // response if the model stops at them. The model may stop at other tokens,
+    // but will not return them in the response.
     repeated int64 return_stoptokens = 4;
   }
 
@@ -78,9 +79,15 @@ message PredictRequest {
 // Options only used for streaming requests that control how inputs/ouputs are
 // handled in the stream.
 message PredictStreamedOptions {
-  // Request state used to handle splitting of requests.  NONE is the
+  // Request state is used to control handling of individual streamed requests.
+  //
+  // SPLIT and END_SPLIT are used to handle splitting of requests.  NONE is the
   // default when the stream request is not split and used for a single-turn,
   // single request.
+  //
+  // CANCEL is used for early termination of a stream. It can be sent anytime to
+  // cancel the stream.
+  //
   //
   // SPLIT is used when multiple streamed requests are used to generate a
   // logical request. END_SPLIT should be called for the last split of the
@@ -146,14 +153,15 @@ message PredictStreamedOptions {
   //   END_SPLIT
   //
   // Invalid because NONE is interspersed with SPLIT/END_SPLIT.
-
   enum RequestState {
     NONE = 0;
     SPLIT = 1;
     END_SPLIT = 2;
+    CANCEL = 3;
   }
 
   // Request state used to handle segmentation of requests.
+  // Only supported in disaggregated serving.
   RequestState request_state = 1;
 
   // Input tensors split dimensions.
@@ -173,11 +181,13 @@ message PredictStreamedOptions {
   // For a split dimension of 1 and two requests (SPLIT and END_SPLIT), the
   // input tensors for request 1 should be [[1, 2], [5, 6]] and request 2 should
   // be [[3, 4], [7, 8]].
+  // This field is ignored if request_state is NONE.
   map<string, int32> split_dimensions = 2;
 
   // If true, there will be a single PredictResponse output.
   // If false, output can be split into 1 or more PredictResponses.
   // Value of this field should be the same for all requests in the stream.
+  // Only supported in disaggregated serving.
   bool return_single_response = 3;
 }
 

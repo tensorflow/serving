@@ -1,3 +1,83 @@
+<!-- disableFinding(HEADING_REPEAT_H1) -->
+
+# Release 2.19.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.19.0.
+
+# Release 2.19.0-rc0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Update release notes for 2.18.0-rc0 (commit: a2253e5cb54de2f726e0b7d1756deb354f0ef6b0)
+* cleanup: explicitly set use_java_stubby_library (commit: c22da48061f411b3387e4c3c995d710132a980de)
+* cleanup: explicitly set use_java_stubby_library (commit: 5f55e76fbcf192d6026ddb2f284bfb16a921ec81)
+* cleanup: explicitly set use_java_stubby_library (commit: b2be8a3ae3d868f8d3e00917a07aac5db5e0d5d1)
+* Fix invalid argument to proto_library (commit: 36aa4a60e4fdd833f304136677cb9f97792e7aec)
+* Enable serialization of predict response as tensor content. (commit: 1e165518394ca6461859a71284721eb1ca1b72e7)
+* Prepare code for breaking change in Protobuf C++ API. (commit: 9a38b3aca84f245986a902c8c8d3fd0b0aebaf51)
+* Add WaitResponses to PredictStreamedContext Method. (commit: a0cd2ee9834ad9c781309f3b12f45875dd624f05)
+* Update release notes for 2.17.1 (commit: 8bb2af5f484af23600b8752be308860b432103c2)
+* Add a new field in PredictRequest. (commit: 166dbe21f0c3ffe26920bb2fa16016f084ec97f3)
+* Update release notes for 2.18.0 (commit: 313413006655bcab8ef24af074456e4d68d1c32b)
+* Adds option to return stop tokens to PredictRequest. (commit: 2ece3e4c37401da13c710a989970d8536409e855)
+* Remove obsolete anyinvocable flag (commit: ffc679630f29c57c1a048adf83325cae76802134)
+* Move `tsl/platform/{cloud,default,windows}` to `xla/tsl/platform` (commit: 2c9e66b26e579258945bc3efe186a83e092485fd)
+* Use hermetic python version. (commit: d0a16ccb98167ab182a8d4d75640e8124ed8c223)
+* Allow HTTP Server to bind to a specific address, as opposed to listening on all addresses. (commit: 8d6cc18f16a68b2fbebcf021d601f3042d8f16af)
+* Add more tracer (commit: 51f1cf6d2f46fdda9d209e27d70d33ac79fffec0)
+* Add a note about net_http being open-sourced as a standalone library (github.com/google/net_http) (commit: 17186e6b91bc21a657ffd2ad62ba53676b15977f)
+* Updating TensorFlow to latest passing continuous build. (commit: 04b7d4edf02f6c0104b6b73c5728aabc728035c0)
+* Add aggregation key. (commit: 406764047d490dfd415296dbfd7979fa8cfb39fb)
+* Update users of TSL headers and targets to new location in XLA (commit: 3087ed97c7e7c1fc4cac15fc1b48fcfa97a980a6)
+* Remove usage of tensorflow::BlockingCounter. (commit: f86d984b0e744e16ed852b9a6b637430eee0000a)
+* Update users of TSL headers and targets to new location in XLA (commit: 1e25043c495bd41c3f7933a6e6689d041cc25088)
+* Force to call SavedMode::Run when output_filter is disabled. Note that the
+  output filter will still be applied at
+  `PostProcessPredictionResultWithoutOutputFilter`. We just don't prune the
+  graph in such cases. (commit: 39e33a7271b237cafad40484ab1cf2eb6fa6e532)
+* Integrate BatchFunction op rewrite with serving stack (commit: 88ff3dd31ecde9ca8ba3dc21e194dce126202a48)
+* add missing error_callback when load is cancelled (commit: e6e78cee6f671455f529e05de5283e5a4b9212f5)
+* Add custom_logging_config so different loggers can introduce their own custom log processing logic. (commit: 4d5c006682f7373e6af9e3e8d0e0d092e5cbaf1a)
+* Update version for 2.19.0-rc0 release. (#4077) (commit: 9a8564a72ecb5eff2ba79adf459fb973b5c60822)
+* Added github.com/openxla/xla/pull/22572 into tensorflow.patch to resolve breakage. (commit: 72a33bd4befaf65a30104cd7574f48fbb9eaf6fc)
+* Fix for gcc10 breakage. (commit: 984448fc724adf326af538182dcfbc177d6b15fd)
+* Revert "Fix for gcc10 breakage." (commit: 69e5f6ba32fd612a331cffc034f64bfbde1d3083)
+* Mark Tensorflow compatible with Protobuf v30+. (commit: 8bd5eb8996960ca199147ca8c1f0bf55cce3b526)
+* Fix for gcc10 breakage, second attempt. (commit: 428fddee20009cf19e90431484736bd8ff6efd3f)
+* Additional fixes for gcc10. (commit: 021555e3f13828db037bf1a05741517ce50efea2)
+
+# Release 2.18.1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.18.1.
+
 # Release 2.18.0
 
 ## Major Features and Improvements

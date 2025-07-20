@@ -16,6 +16,7 @@ package_group(
         "//platforms/accel_ssw/common/lib/...",
         "//platforms/gsys/...",
         "//platforms/redfish/...",
+        "//platforms/storage/flash/warthog/firmware/...",
         "//platforms/syshealth/shdc/...",
         "//prodkernel/networking/tcpdirect/buffer_mgmt_daemon/...",
         "//security/crypta/commands/ecclesia/...",

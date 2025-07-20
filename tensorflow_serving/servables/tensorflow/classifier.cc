@@ -59,8 +59,8 @@ class SavedModelTensorFlowClassifier : public ClassifierInterface {
 
   ~SavedModelTensorFlowClassifier() override = default;
 
-  Status Classify(const ClassificationRequest& request,
-                  ClassificationResult* result) override {
+  absl::Status Classify(const ClassificationRequest& request,
+                        ClassificationResult* result) override {
     TRACELITERAL("TensorFlowClassifier::Classify");
 
     string input_tensor_name;
@@ -100,8 +100,8 @@ class SavedModelClassifier : public ClassifierInterface {
 
   ~SavedModelClassifier() override = default;
 
-  Status Classify(const ClassificationRequest& request,
-                  ClassificationResult* result) override {
+  absl::Status Classify(const ClassificationRequest& request,
+                        ClassificationResult* result) override {
     // Get the default signature of the graph.  Expected to be a
     // classification signature.
     // TODO(b/26220896): Move TensorFlowClassifier creation to construction
@@ -123,14 +123,14 @@ class SavedModelClassifier : public ClassifierInterface {
 
 }  // namespace
 
-Status CreateClassifierFromSavedModelBundle(
+absl::Status CreateClassifierFromSavedModelBundle(
     const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<ClassifierInterface>* service) {
   service->reset(new SavedModelClassifier(run_options, std::move(bundle)));
   return absl::OkStatus();
 }
 
-Status CreateFlyweightTensorFlowClassifier(
+absl::Status CreateFlyweightTensorFlowClassifier(
     const RunOptions& run_options, Session* session,
     const SignatureDef* signature,
     std::unique_ptr<ClassifierInterface>* service) {
@@ -138,7 +138,7 @@ Status CreateFlyweightTensorFlowClassifier(
       run_options, session, signature, thread::ThreadPoolOptions(), service);
 }
 
-Status CreateFlyweightTensorFlowClassifier(
+absl::Status CreateFlyweightTensorFlowClassifier(
     const RunOptions& run_options, Session* session,
     const SignatureDef* signature,
     const thread::ThreadPoolOptions& thread_pool_options,
@@ -148,9 +148,9 @@ Status CreateFlyweightTensorFlowClassifier(
   return absl::OkStatus();
 }
 
-Status GetClassificationSignatureDef(const ModelSpec& model_spec,
-                                     const MetaGraphDef& meta_graph_def,
-                                     SignatureDef* signature) {
+absl::Status GetClassificationSignatureDef(const ModelSpec& model_spec,
+                                           const MetaGraphDef& meta_graph_def,
+                                           SignatureDef* signature) {
   const string signature_name = model_spec.signature_name().empty()
                                     ? kDefaultServingSignatureDefKey
                                     : model_spec.signature_name();
@@ -173,9 +173,9 @@ Status GetClassificationSignatureDef(const ModelSpec& model_spec,
   return absl::OkStatus();
 }
 
-Status PreProcessClassification(const SignatureDef& signature,
-                                string* input_tensor_name,
-                                std::vector<string>* output_tensor_names) {
+absl::Status PreProcessClassification(
+    const SignatureDef& signature, string* input_tensor_name,
+    std::vector<string>* output_tensor_names) {
   if (GetSignatureMethodNameCheckFeature() &&
       signature.method_name() != kClassifyMethodName) {
     return errors::InvalidArgument(strings::StrCat(
@@ -222,7 +222,7 @@ Status PreProcessClassification(const SignatureDef& signature,
   return absl::OkStatus();
 }
 
-Status PostProcessClassificationResult(
+absl::Status PostProcessClassificationResult(
     const SignatureDef& signature, int num_examples,
     const std::vector<string>& output_tensor_names,
     const std::vector<Tensor>& output_tensors, ClassificationResult* result) {
@@ -323,12 +323,12 @@ Status PostProcessClassificationResult(
   return absl::OkStatus();
 }
 
-Status RunClassify(const RunOptions& run_options,
-                   const MetaGraphDef& meta_graph_def,
-                   const absl::optional<int64_t>& servable_version,
-                   Session* session, const ClassificationRequest& request,
-                   ClassificationResponse* response,
-                   const thread::ThreadPoolOptions& thread_pool_options) {
+absl::Status RunClassify(const RunOptions& run_options,
+                         const MetaGraphDef& meta_graph_def,
+                         const absl::optional<int64_t>& servable_version,
+                         Session* session, const ClassificationRequest& request,
+                         ClassificationResponse* response,
+                         const thread::ThreadPoolOptions& thread_pool_options) {
   SignatureDef signature;
   TF_RETURN_IF_ERROR(GetClassificationSignatureDef(request.model_spec(),
                                                    meta_graph_def, &signature));

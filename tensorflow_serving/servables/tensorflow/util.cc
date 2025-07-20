@@ -148,11 +148,11 @@ absl::Status InputToSerializedExampleTensor(const Input& input,
     // Benchmark ('BM_InputToSerializedExample') can help measure the effect of
     // changes in the future.
     absl::Cord tmp;
-    if (!input.SerializeToCord(&tmp)) {
+    if (!input.SerializeToString(&tmp)) {
       return errors::InvalidArgument("Input failed to serialize. Size = ",
                                      input.ByteSizeLong());
     }
-    parse_serialized_input_ok = serialized_input.ParseFromCord(tmp);
+    parse_serialized_input_ok = serialized_input.ParseFromString(tmp);
   }
 #else
   parse_serialized_input_ok =
