@@ -51,11 +51,11 @@ class TestManager : public Manager {
   }
 
  private:
-  Status GetUntypedServableHandle(
+  absl::Status GetUntypedServableHandle(
       const ServableRequest& request,
       std::unique_ptr<UntypedServableHandle>* result) override {
     result->reset(new TestHandle);
-    return OkStatus();
+    return absl::OkStatus();
   }
 
   std::map<ServableId, std::unique_ptr<UntypedServableHandle>>
@@ -104,11 +104,11 @@ TEST(ManagerTest, GetAvailableServableHandlesWrongType) {
 // is handled gracefully rather than a crash or memory corruption.
 class ReturnNullManager : public TestManager {
  private:
-  Status GetUntypedServableHandle(
+  absl::Status GetUntypedServableHandle(
       const ServableRequest& request,
       std::unique_ptr<UntypedServableHandle>* result) override {
     *result = nullptr;
-    return OkStatus();
+    return absl::OkStatus();
   }
 };
 
@@ -122,7 +122,7 @@ TEST(ManagerTest, NullHandleReturnsError) {
 // A manager that returns an error even though the result is non-null.
 class ReturnErrorManager : public TestManager {
  private:
-  Status GetUntypedServableHandle(
+  absl::Status GetUntypedServableHandle(
       const ServableRequest& request,
       std::unique_ptr<UntypedServableHandle>* result) override {
     result->reset(new TestHandle);

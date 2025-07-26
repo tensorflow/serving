@@ -125,7 +125,7 @@ void BenchmarkState::StartServing(const int64_t loader_version) {
       [loader_version](std::unique_ptr<int64_t>* const servable) {
         servable->reset(new int64_t);
         **servable = loader_version;
-        return OkStatus();
+        return absl::OkStatus();
       },
       SimpleLoader<int64_t>::EstimateNoResources()));
   std::vector<ServableData<std::unique_ptr<Loader>>> versions;
@@ -147,7 +147,7 @@ void BenchmarkState::StartServing(const int64_t loader_version) {
 
 int64_t BenchmarkState::GetLatestVersion(const bool do_work) {
   ServableHandle<int64_t> handle;
-  const Status status = manager_->GetServableHandle(
+  const absl::Status status = manager_->GetServableHandle(
       ServableRequest::Latest(kServableName), &handle);
   TF_CHECK_OK(status) << status;
   if (do_work) {
@@ -335,7 +335,7 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
             [j](std::unique_ptr<int64_t>* const servable) {
               servable->reset(new int64_t);
               **servable = j;
-              return OkStatus();
+              return absl::OkStatus();
             },
             SimpleLoader<int64_t>::EstimateNoResources()));
         versions.push_back({{servable_name, j}, std::move(loader)});
@@ -378,7 +378,7 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
   ServableHandle<int64_t> handle;
   int i = 0;
   for (auto s : state) {
-    const Status status =
+    const absl::Status status =
         manager->GetServableHandle(requests->at(i % kNumRequests), &handle);
     TF_CHECK_OK(status) << status;
     ++i;

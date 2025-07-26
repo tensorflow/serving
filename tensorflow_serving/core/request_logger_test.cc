@@ -98,9 +98,10 @@ TEST_F(RequestLoggerTest, Simple) {
                     test_util::EqualsProto(expected_log_metadata));
         *log =
             std::unique_ptr<google::protobuf::Any>(new google::protobuf::Any());
-        return OkStatus();
+        return absl::OkStatus();
       }));
-  EXPECT_CALL(*log_collector_, CollectMessage(_)).WillOnce(Return(OkStatus()));
+  EXPECT_CALL(*log_collector_, CollectMessage(_))
+      .WillOnce(Return(absl::OkStatus()));
   TF_ASSERT_OK(request_logger_->Log(request, PredictResponse(), log_metadata));
 }
 
@@ -122,7 +123,7 @@ TEST_F(RequestLoggerTest, ErroringCollectMessage) {
                                  std::unique_ptr<google::protobuf::Message>* log) {
         *log =
             std::unique_ptr<google::protobuf::Any>(new google::protobuf::Any());
-        return OkStatus();
+        return absl::OkStatus();
       }));
   EXPECT_CALL(*log_collector_, CollectMessage(_))
       .WillRepeatedly(Return(errors::Internal("Error")));
@@ -150,8 +151,9 @@ TEST_F(RequestLoggerTest, LoggingStreamSucceeds) {
       .WillOnce(DoAll(WithArg<1>([](std::unique_ptr<google::protobuf::Message>* log) {
                         *log = std::make_unique<google::protobuf::Any>();
                       }),
-                      Return(OkStatus())));
-  EXPECT_CALL(*log_collector_, CollectMessage(_)).WillOnce(Return(OkStatus()));
+                      Return(absl::OkStatus())));
+  EXPECT_CALL(*log_collector_, CollectMessage(_))
+      .WillOnce(Return(absl::OkStatus()));
   TF_ASSERT_OK(logger->LogMessage());
 }
 
@@ -173,7 +175,7 @@ TEST_F(RequestLoggerTest, LoggingStreamRequestLoggerDiesBeforeStreamCloses) {
       .WillOnce(DoAll(WithArg<1>([](std::unique_ptr<google::protobuf::Message>* log) {
                         *log = std::make_unique<google::protobuf::Any>();
                       }),
-                      Return(OkStatus())));
+                      Return(absl::OkStatus())));
   EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(0);
 
   request_logger_.reset();

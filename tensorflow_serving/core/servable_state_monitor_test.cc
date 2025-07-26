@@ -72,8 +72,9 @@ TEST_F(ServableStateMonitorTest, AddingStates) {
   EXPECT_TRUE(monitor_->GetBoundedLog().empty());
 
   // Initial servable.
-  const ServableState state_0 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kStart, OkStatus()};
+  const ServableState state_0 = {ServableId{"foo", 42},
+                                 ServableState::ManagerState::kStart,
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   const ServableStateAndTime state_0_and_time = {state_0, 1};
   bus_->Publish(state_0);
@@ -118,7 +119,7 @@ TEST_F(ServableStateMonitorTest, AddingStates) {
   // New servable name.
   const ServableState state_2 = {ServableId{"bar", 7},
                                  ServableState::ManagerState::kUnloading,
-                                 OkStatus()};
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(4);
   const ServableStateAndTime state_2_and_time = {state_2, 7};
   bus_->Publish(state_2);
@@ -151,8 +152,9 @@ TEST_F(ServableStateMonitorTest, UpdatingStates) {
   CreateMonitor(/*max_count_log_events=*/3);
 
   // Initial servables.
-  const ServableState state_0 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kStart, OkStatus()};
+  const ServableState state_0 = {ServableId{"foo", 42},
+                                 ServableState::ManagerState::kStart,
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(4);
   const ServableStateAndTime state_0_and_time = {state_0, 4};
   bus_->Publish(state_0);
@@ -163,7 +165,7 @@ TEST_F(ServableStateMonitorTest, UpdatingStates) {
   bus_->Publish(state_1);
   const ServableState state_2 = {ServableId{"bar", 7},
                                  ServableState::ManagerState::kUnloading,
-                                 OkStatus()};
+                                 absl::OkStatus()};
   const ServableStateAndTime state_2_and_time = {state_2, 4};
   bus_->Publish(state_2);
   EXPECT_THAT(monitor_->GetAllServableStates(),
@@ -176,8 +178,9 @@ TEST_F(ServableStateMonitorTest, UpdatingStates) {
       ElementsAre(state_0_and_time, state_1_and_time, state_2_and_time));
 
   // Update one of them.
-  const ServableState state_1_updated = {
-      ServableId{"foo", 43}, ServableState::ManagerState::kLoading, OkStatus()};
+  const ServableState state_1_updated = {ServableId{"foo", 43},
+                                         ServableState::ManagerState::kLoading,
+                                         absl::OkStatus()};
   env_->AdvanceByMicroseconds(4);
   const ServableStateAndTime state_1_updated_and_time = {state_1_updated, 8};
   bus_->Publish(state_1_updated);
@@ -210,8 +213,9 @@ TEST_F(ServableStateMonitorTest, DisableBoundedLogging) {
   // The default value for max_count_log_events in options is 0, which disables
   // logging.
   CreateMonitor();
-  const ServableState state_0 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kStart, OkStatus()};
+  const ServableState state_0 = {ServableId{"foo", 42},
+                                 ServableState::ManagerState::kStart,
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   const ServableStateAndTime state_0_and_time = {state_0, 1};
   bus_->Publish(state_0);
@@ -224,8 +228,9 @@ TEST_F(ServableStateMonitorTest, DisableBoundedLogging) {
 TEST_F(ServableStateMonitorTest, GetLiveServableStates) {
   CreateMonitor();
 
-  const ServableState state_0 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kStart, OkStatus()};
+  const ServableState state_0 = {ServableId{"foo", 42},
+                                 ServableState::ManagerState::kStart,
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   const ServableStateAndTime state_0_and_time = {state_0, 1};
   bus_->Publish(state_0);
@@ -235,7 +240,7 @@ TEST_F(ServableStateMonitorTest, GetLiveServableStates) {
 
   const ServableState state_1 = {ServableId{"bar", 7},
                                  ServableState::ManagerState::kAvailable,
-                                 OkStatus()};
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   const ServableStateAndTime state_1_and_time = {state_1, 2};
   bus_->Publish(state_1);
@@ -246,8 +251,9 @@ TEST_F(ServableStateMonitorTest, GetLiveServableStates) {
 
   // Servable {foo, 42} moves to state kEnd and is removed from the live states
   // servables.
-  const ServableState state_0_update = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kEnd, OkStatus()};
+  const ServableState state_0_update = {ServableId{"foo", 42},
+                                        ServableState::ManagerState::kEnd,
+                                        absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   bus_->Publish(state_0_update);
   EXPECT_THAT(monitor_->GetLiveServableStates(),
@@ -258,8 +264,9 @@ TEST_F(ServableStateMonitorTest, GetLiveServableStates) {
 TEST_F(ServableStateMonitorTest, GetAvailableServableStates) {
   CreateMonitor();
 
-  const ServableState state_0 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kStart, OkStatus()};
+  const ServableState state_0 = {ServableId{"foo", 42},
+                                 ServableState::ManagerState::kStart,
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   const ServableStateAndTime state_0_and_time = {state_0, 1};
   bus_->Publish(state_0);
@@ -269,7 +276,7 @@ TEST_F(ServableStateMonitorTest, GetAvailableServableStates) {
   std::vector<ServableStateAndTime> servable_state_and_time;
   for (const auto& servable_id : {ServableId{"bar", 6}, ServableId{"bar", 7}}) {
     const ServableState state = {
-        servable_id, ServableState::ManagerState::kAvailable, OkStatus()};
+        servable_id, ServableState::ManagerState::kAvailable, absl::OkStatus()};
     const ServableStateAndTime state_and_time = {state, 2};
     servable_state_and_time.push_back({state, 2});
     bus_->Publish(state);
@@ -282,15 +289,16 @@ TEST_F(ServableStateMonitorTest, GetAvailableServableStates) {
   // servable states.
   const ServableState state_0_update = {ServableId{"bar", 6},
                                         ServableState::ManagerState::kUnloading,
-                                        OkStatus()};
+                                        absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   bus_->Publish(state_0_update);
   EXPECT_THAT(monitor_->GetAvailableServableStates(),
               UnorderedElementsAre("bar"));
   // Servable {bar, 7} moves to state kEnd and is removed from available
   // servable states.
-  const ServableState state_1_update = {
-      ServableId{"bar", 7}, ServableState::ManagerState::kEnd, OkStatus()};
+  const ServableState state_1_update = {ServableId{"bar", 7},
+                                        ServableState::ManagerState::kEnd,
+                                        absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   bus_->Publish(state_1_update);
   // No available state now.
@@ -300,8 +308,9 @@ TEST_F(ServableStateMonitorTest, GetAvailableServableStates) {
 TEST_F(ServableStateMonitorTest, VersionMapDescendingOrder) {
   CreateMonitor();
 
-  const ServableState state_0 = {
-      ServableId{"foo", 42}, ServableState::ManagerState::kStart, OkStatus()};
+  const ServableState state_0 = {ServableId{"foo", 42},
+                                 ServableState::ManagerState::kStart,
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   const ServableStateAndTime state_0_and_time = {state_0, 1};
   bus_->Publish(state_0);
@@ -311,7 +320,7 @@ TEST_F(ServableStateMonitorTest, VersionMapDescendingOrder) {
 
   const ServableState state_1 = {ServableId{"foo", 7},
                                  ServableState::ManagerState::kAvailable,
-                                 OkStatus()};
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   const ServableStateAndTime state_1_and_time = {state_1, 2};
   bus_->Publish(state_1);
@@ -325,7 +334,7 @@ TEST_F(ServableStateMonitorTest, ForgetUnloadedServableStates) {
 
   const ServableState state_0 = {ServableId{"foo", 42},
                                  ServableState::ManagerState::kAvailable,
-                                 OkStatus()};
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   const ServableStateAndTime state_0_and_time = {state_0, 1};
   bus_->Publish(state_0);
@@ -335,7 +344,7 @@ TEST_F(ServableStateMonitorTest, ForgetUnloadedServableStates) {
 
   const ServableState state_1 = {ServableId{"bar", 1},
                                  ServableState::ManagerState::kAvailable,
-                                 OkStatus()};
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   const ServableStateAndTime state_1_and_time = {state_1, 2};
   bus_->Publish(state_1);
@@ -346,7 +355,7 @@ TEST_F(ServableStateMonitorTest, ForgetUnloadedServableStates) {
 
   const ServableState state_2 = {ServableId{"foo", 42},
                                  ServableState::ManagerState::kUnloading,
-                                 OkStatus()};
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   const ServableStateAndTime state_2_and_time = {state_2, 3};
   bus_->Publish(state_2);
@@ -358,7 +367,8 @@ TEST_F(ServableStateMonitorTest, ForgetUnloadedServableStates) {
                   Pair("bar", ElementsAre(Pair(1, state_1_and_time)))));
 
   const ServableState state_3 = {ServableId{"foo", 42},
-                                 ServableState::ManagerState::kEnd, OkStatus()};
+                                 ServableState::ManagerState::kEnd,
+                                 absl::OkStatus()};
   env_->AdvanceByMicroseconds(1);
   const ServableStateAndTime state_3_and_time = {state_3, 4};
   bus_->Publish(state_3);
@@ -400,7 +410,7 @@ TEST_F(ServableStateMonitorTest,
 
   using ManagerState = ServableState::ManagerState;
   const ServableState specific_goal_state = {
-      specific_goal_state_id, ManagerState::kAvailable, OkStatus()};
+      specific_goal_state_id, ManagerState::kAvailable, absl::OkStatus()};
 
   Notification notified;
   monitor_->NotifyWhenServablesReachState(
@@ -451,7 +461,8 @@ TEST_F(ServableStateMonitorTest,
 
   using ManagerState = ServableState::ManagerState;
   const ServableState servable_stream_available_state = {
-      servable_stream_available_state_id, ManagerState::kAvailable, OkStatus()};
+      servable_stream_available_state_id, ManagerState::kAvailable,
+      absl::OkStatus()};
 
   Notification notified;
   monitor_->NotifyWhenServablesReachState(
@@ -522,11 +533,11 @@ TEST_F(ServableStateMonitorTest,
       });
 
   const ServableState specific_goal_state = {
-      specific_goal_state_id, ManagerState::kAvailable, OkStatus()};
+      specific_goal_state_id, ManagerState::kAvailable, absl::OkStatus()};
   const ServableState specific_error_state = {
       specific_error_state_id, ManagerState::kEnd, errors::Internal("error")};
   const ServableState servable_stream_state = {
-      servable_stream_id, ManagerState::kAvailable, OkStatus()};
+      servable_stream_id, ManagerState::kAvailable, absl::OkStatus()};
 
   bus_->Publish(specific_goal_state);
   ASSERT_FALSE(notified.HasBeenNotified());
@@ -545,7 +556,7 @@ TEST_F(ServableStateMonitorTest,
 
   using ManagerState = ServableState::ManagerState;
   const ServableState specific_goal_state = {
-      specific_goal_state_id, ManagerState::kAvailable, OkStatus()};
+      specific_goal_state_id, ManagerState::kAvailable, absl::OkStatus()};
 
   Notification notified;
   monitor_->NotifyWhenServablesReachState(
@@ -579,11 +590,11 @@ TEST_F(ServableStateMonitorTest,
   const ServableId servable_stream_id = {"servable_stream", 7};
 
   const ServableState specific_goal_state = {
-      specific_goal_state_id, ManagerState::kAvailable, OkStatus()};
+      specific_goal_state_id, ManagerState::kAvailable, absl::OkStatus()};
   const ServableState specific_error_state = {
       specific_error_state_id, ManagerState::kEnd, errors::Internal("error")};
   const ServableState servable_stream_state = {
-      servable_stream_id, ManagerState::kAvailable, OkStatus()};
+      servable_stream_id, ManagerState::kAvailable, absl::OkStatus()};
 
   bus_->Publish(specific_goal_state);
   bus_->Publish(specific_error_state);
