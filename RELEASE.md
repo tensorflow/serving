@@ -1,3 +1,166 @@
+<!-- disableFinding(HEADING_REPEAT_H1) -->
+
+# Release 2.19.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.19.0.
+
+# Release 2.19.0-rc0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Update release notes for 2.18.0-rc0 (commit: a2253e5cb54de2f726e0b7d1756deb354f0ef6b0)
+* cleanup: explicitly set use_java_stubby_library (commit: c22da48061f411b3387e4c3c995d710132a980de)
+* cleanup: explicitly set use_java_stubby_library (commit: 5f55e76fbcf192d6026ddb2f284bfb16a921ec81)
+* cleanup: explicitly set use_java_stubby_library (commit: b2be8a3ae3d868f8d3e00917a07aac5db5e0d5d1)
+* Fix invalid argument to proto_library (commit: 36aa4a60e4fdd833f304136677cb9f97792e7aec)
+* Enable serialization of predict response as tensor content. (commit: 1e165518394ca6461859a71284721eb1ca1b72e7)
+* Prepare code for breaking change in Protobuf C++ API. (commit: 9a38b3aca84f245986a902c8c8d3fd0b0aebaf51)
+* Add WaitResponses to PredictStreamedContext Method. (commit: a0cd2ee9834ad9c781309f3b12f45875dd624f05)
+* Update release notes for 2.17.1 (commit: 8bb2af5f484af23600b8752be308860b432103c2)
+* Add a new field in PredictRequest. (commit: 166dbe21f0c3ffe26920bb2fa16016f084ec97f3)
+* Update release notes for 2.18.0 (commit: 313413006655bcab8ef24af074456e4d68d1c32b)
+* Adds option to return stop tokens to PredictRequest. (commit: 2ece3e4c37401da13c710a989970d8536409e855)
+* Remove obsolete anyinvocable flag (commit: ffc679630f29c57c1a048adf83325cae76802134)
+* Move `tsl/platform/{cloud,default,windows}` to `xla/tsl/platform` (commit: 2c9e66b26e579258945bc3efe186a83e092485fd)
+* Use hermetic python version. (commit: d0a16ccb98167ab182a8d4d75640e8124ed8c223)
+* Allow HTTP Server to bind to a specific address, as opposed to listening on all addresses. (commit: 8d6cc18f16a68b2fbebcf021d601f3042d8f16af)
+* Add more tracer (commit: 51f1cf6d2f46fdda9d209e27d70d33ac79fffec0)
+* Add a note about net_http being open-sourced as a standalone library (github.com/google/net_http) (commit: 17186e6b91bc21a657ffd2ad62ba53676b15977f)
+* Updating TensorFlow to latest passing continuous build. (commit: 04b7d4edf02f6c0104b6b73c5728aabc728035c0)
+* Add aggregation key. (commit: 406764047d490dfd415296dbfd7979fa8cfb39fb)
+* Update users of TSL headers and targets to new location in XLA (commit: 3087ed97c7e7c1fc4cac15fc1b48fcfa97a980a6)
+* Remove usage of tensorflow::BlockingCounter. (commit: f86d984b0e744e16ed852b9a6b637430eee0000a)
+* Update users of TSL headers and targets to new location in XLA (commit: 1e25043c495bd41c3f7933a6e6689d041cc25088)
+* Force to call SavedMode::Run when output_filter is disabled. Note that the
+  output filter will still be applied at
+  `PostProcessPredictionResultWithoutOutputFilter`. We just don't prune the
+  graph in such cases. (commit: 39e33a7271b237cafad40484ab1cf2eb6fa6e532)
+* Integrate BatchFunction op rewrite with serving stack (commit: 88ff3dd31ecde9ca8ba3dc21e194dce126202a48)
+* add missing error_callback when load is cancelled (commit: e6e78cee6f671455f529e05de5283e5a4b9212f5)
+* Add custom_logging_config so different loggers can introduce their own custom log processing logic. (commit: 4d5c006682f7373e6af9e3e8d0e0d092e5cbaf1a)
+* Update version for 2.19.0-rc0 release. (#4077) (commit: 9a8564a72ecb5eff2ba79adf459fb973b5c60822)
+* Added github.com/openxla/xla/pull/22572 into tensorflow.patch to resolve breakage. (commit: 72a33bd4befaf65a30104cd7574f48fbb9eaf6fc)
+* Fix for gcc10 breakage. (commit: 984448fc724adf326af538182dcfbc177d6b15fd)
+* Revert "Fix for gcc10 breakage." (commit: 69e5f6ba32fd612a331cffc034f64bfbde1d3083)
+* Mark Tensorflow compatible with Protobuf v30+. (commit: 8bd5eb8996960ca199147ca8c1f0bf55cce3b526)
+* Fix for gcc10 breakage, second attempt. (commit: 428fddee20009cf19e90431484736bd8ff6efd3f)
+* Additional fixes for gcc10. (commit: 021555e3f13828db037bf1a05741517ce50efea2)
+
+# Release 2.18.1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* This release is based on TF version 2.18.1.
+
+# Release 2.18.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Update version for 2.18.0 release. (#2264) (commit: 5815bfdd1d1bbd9d0d3557576c98f13afc4d9016)
+* This release is based on TF version 2.18.0.
+
+# Release 2.18.0-rc0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Extend GbmcChannel interface to implement redfish channel for TPUs (commit: 683cb64abb560324c9b1d391cdfe5b56ca1ee25a)
+* Add tests to validate monitoring states. (commit: fab5c054d5c4dd18b69e21326367f0c5acae2028)
+* Disable xnn_enable_avx256vnnigfni (commit: 19f9ccf9a3ddedc93812da7eac28554ebbc1f8dc)
+* Reduce duplicate code using a test class (commit: 51cf3a796d87ed8726bf5525be6481b28de0ef94)
+* Define an option to specify different IFRT client. (commit: aca5cfa285061815ab840274264fc6993cd620eb)
+* Add release notes for tf-serving 2.17.0 (commit: b72a86e5768017b1699b2c463953d9a5f7db1583)
+* avoid SetNumLoadThreads stall the server by forcing reset ThreadPool (commit: 6b9cf7c8777fd79868e73dc07663517993933be0)
+* Add max_enqueued_batches option for model servers (commit: 7c99259e82cfdc4f12dbd5715acd6d17fc936b5d)
+* Remove gpr_set_log_verbosity from grpc_client.cc (commit: 6e05a385d7f4591d46ae7b1d1a02244a5340a29b)
+* Add option to stop retrying on permanent loading errors. (commit: 9ba72fa8a5df6e320caf207bd88673ad4c88e12e)
+* Add the batch_padding_policy attribute the tensorflow serving api. (commit: ea02141a00089d77561db46aac0e2ca07bd44b2f)
+* Improve handling of large JSON objects. (commit: 6cb013167d13f2ed3930aabb86dbc2c8c53f5adf)
+* Silence warnings from external code (commit: 010d61a30f549423f61a3fa29ef0f2f0c8ed7f6c)
+* Migration of the histogram header and cc code for TSL. Move tsl/lib/histogram to compiler/tsl/lib/histogram and update users. (commit: ab33df407e103b746aec8e165e31f4bc92ed388c)
+* Add hermetic CUDA repository rule calls to TF serving project. (commit: 787c85f1a3f0268a243880418c97f37bed56762b)
+* Update users of `status_test_util` to use the new location in `xla/tsl` (commit: 22b2b1e21793c9f7c583a1ee51cf8d73657fb0d2)
+* Bump Bazel version from 6.4.0 to 6.5.0. (commit: 82e532fa3a3182560af6f23c38ddcb017c5e384f)
+* provide an option to customize the sort order among servable names (commit: 32a85a8b42e6892e380bd4d54cf10b0c5734da4b)
+* Remove cc_api_version stage 4: deletion where cc_api_version = 2 (commit: 7e0c1966627d9fa482acf1ef0ea983f4aa90f607)
+* Remove cc_api_version stage 4: deletion where cc_api_version = 2 (commit: 48e0f56b8f84310596de1c97037d8d02053a9d14)
+* This is a noop comment update for streaming inputs. (commit: cfac240ba956f29b0ae91008d1fe073f94c7ae84)
+* Add a resource kind for number of LoRA models. (commit: 6b7ba27fd9dfef8d03fab076ea236e296370a3fe)
+* Disable more warnings to make logs cleaner (commit: 4a830cadb604ed3d050b841e280a5b3486f86e4a)
+* Add `bool return_single_response` field to `PredictStreamedOptions`. (commit: 648c9ee6489a3cf820aa1fcab82b821209e82af5)
+* Use gcc-10 to avoid build issues while building XLA on CI (commit: 8bd1fda7e132a626921e458859db0e519deec451)
+* Create separate `kokoro` config (commit: dbc7681fb6b89ed184dc0b41ddcfd59df0bd55b4)
+* Remove top-level .bazelrc settings now that scripts use `--config=kokoro` (commit: f920b982ca7341eaf0b6456780d1268a3c8735be)
+* Update Dockerfile.devel to build with gcc-10 (commit: f9c0262ecff0425f4647e6d52ab8f346a812e456)
+* Move `tsl/lib/monitoring` to `xla/tsl/lib/monitoring` (commit: cb934df6ed2f1dd2b80e71611fe4db3f709dea4c)
+* Delete 'enable_lazy_split', since the flag is not used anywhere. The code paths for the above flag being false are retained and true are eliminated. This will ensure that improving batching will be easier. (commit: 873993f9f4c8506194e3a130b0185f71db10bdc6)
+* BUILD rule fix. (commit: d89b27235f94b245ae1822b5125f6c67e0b587db)
+* Automated Code Change (commit: 4decd0ab78bb3ffb205baeccc64340c2a180ed01)
+* Automated Code Change (commit: 0b05e865a05ca6a74344213ce74d0a43f1fbbc40)
+* Fix build error (commit: d341c3406f5c4e66525f06fb9232a2ce64d7989b)
+* Added capability to use XLA on a GPU. (commit: e5e795f518942a4c61b154a357bc4b16670d3f06)
+* Update version for 2.18.0-rc0 release. (#2258) (commit: d6d402263bb9c9dec0151e5aebfa81e5ec015e40)
+* Mark Tensorflow compatible with Protobuf v26+. (#2261) (commit: 424dba4101e3d28ac5cf9e65df5747676ef2a1e3)
+* Update version for 2.18.0-rc0 release. (#2262) (commit: 67f4ee85350fb48ddda0bd7d1c1ebfd4601ed3e1)
+* This release is based on TF version 2.18.0-rc2.
+
+# Release 2.17.1
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+* Create separate `kokoro` config (commit: 3af106649212377ef845a9d53fccddb00c10293f)
+* Update version for 2.17.1 release. (#2266) (commit: 7b6021dd4cc6c1a815a84f160b77438c84818a66)
+* This release is based on TF version 2.17.1.
+
 # Release 2.17.0
 
 ## Major Features and Improvements

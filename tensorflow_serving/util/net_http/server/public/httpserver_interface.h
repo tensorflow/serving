@@ -19,14 +19,13 @@ limitations under the License.
 #define TENSORFLOW_SERVING_UTIL_NET_HTTP_SERVER_PUBLIC_HTTPSERVER_INTERFACE_H_
 
 #include <cassert>
-
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-
 #include "tensorflow_serving/util/net_http/server/public/server_request_interface.h"
 
 namespace tensorflow {
@@ -62,18 +61,26 @@ class ServerOptions {
     ports_.emplace_back(port);
   }
 
+  // Add an IP address to listen on.  If not specified, the server will listen
+  // on all addresses.
+  void AddIPAddress(absl::string_view ip_address) {
+    ip_addresses_.emplace_back(ip_address);
+  }
+
   // The default executor for running I/O event polling.
   // This is a mandatory option.
   void SetExecutor(std::unique_ptr<EventExecutor> executor) {
     executor_ = std::move(executor);
   }
 
+  const std::vector<std::string>& ip_addresses() const { return ip_addresses_; }
   const std::vector<int>& ports() const { return ports_; }
 
   EventExecutor* executor() const { return executor_.get(); }
 
  private:
   std::vector<int> ports_;
+  std::vector<std::string> ip_addresses_;
   std::unique_ptr<EventExecutor> executor_;
 };
 

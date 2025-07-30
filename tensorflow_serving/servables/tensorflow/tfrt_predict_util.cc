@@ -29,6 +29,7 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/errors.h"
+#include "tensorflow/core/platform/tracing.h"  // NOLINT
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow/core/tfrt/runtime/tf_threadpool_concurrent_work_queue.h"
@@ -43,7 +44,7 @@ namespace serving {
 namespace {
 
 // Validate the request and construct input tensor handles.
-Status PreProcessPredictionWithoutOutputFilter(
+absl::Status PreProcessPredictionWithoutOutputFilter(
     const tfrt::FunctionMetadata& function_metadata,
     const PredictRequest& request, std::vector<Tensor>* input_tensors) {
   input_tensors->reserve(function_metadata.GetInputNames().size());
@@ -98,7 +99,7 @@ Status PreProcessPredictionWithoutOutputFilter(
 
 // Validate results and populate a PredictResponse.
 // Tensors are serialized as specified.
-Status PostProcessPredictionResultWithoutOutputFilter(
+absl::Status PostProcessPredictionResultWithoutOutputFilter(
     const std::vector<string>& output_tensor_names,
     const std::vector<Tensor>& output_tensors,
     const internal::PredictResponseTensorSerializationOption option,
@@ -157,7 +158,7 @@ bool IsOutputFilterEmptyOrFullSet(
 }  // namespace
 
 namespace internal {
-Status RunPredict(
+absl::Status RunPredict(
     const tfrt::SavedModel::RunOptions& run_options,
     const absl::optional<int64_t>& servable_version,
     const internal::PredictResponseTensorSerializationOption option,
@@ -189,13 +190,16 @@ Status RunPredict(
     run_opts.work_queue = &(*thread_pool);
   }
 
-  if (IsOutputFilterEmptyOrFullSet(request, function_metadata.value())) {
+  if (IsOutputFilterEmptyOrFullSet(request, function_metadata.value()) ||
+      saved_model->disable_output_filter()) {
+    TRACELITERAL("Pre process prediction without output filter");
     // Pre-processing.
     std::vector<Tensor> input_tensors;
     TF_RETURN_IF_ERROR(PreProcessPredictionWithoutOutputFilter(
         function_metadata.value(), request, &input_tensors));
 
     // Executes requests.
+    TRACELITERAL("Execute prediction without output filter");
     std::vector<Tensor> outputs;
     const uint64_t start_microseconds = EnvTime::NowMicros();
     if (const auto status =
@@ -213,6 +217,7 @@ Status RunPredict(
                          end_microseconds - start_microseconds);
 
     // Post-processing.
+    TRACELITERAL("Post process prediction without output filter");
     return PostProcessPredictionResultWithoutOutputFilter(
         function_metadata->GetOutputNames(), outputs, option, request,
         response);
@@ -229,6 +234,7 @@ Status RunPredict(
     }
     const SignatureDef& signature = iter->second;
 
+    TRACELITERAL("Pre process prediction with output filter");
     std::vector<std::pair<string, Tensor>> input_tensors;
     std::vector<string> output_tensor_names;
     std::vector<string> output_tensor_aliases;
@@ -236,6 +242,7 @@ Status RunPredict(
                                             &output_tensor_names,
                                             &output_tensor_aliases));
 
+    TRACELITERAL("Execute prediction with output filter");
     const uint64_t start_microseconds = EnvTime::NowMicros();
     std::vector<Tensor> outputs;
     if (const auto status = saved_model->RunByTensorNames(
@@ -253,17 +260,19 @@ Status RunPredict(
                          /*runtime=*/"TFRT",
                          end_microseconds - start_microseconds);
 
+    TRACELITERAL("Post process prediction with output filter");
     return PostProcessPredictionResult(output_tensor_aliases, outputs, option,
                                        response);
   }
 }
 }  // namespace internal
 
-Status RunPredict(const tfrt::SavedModel::RunOptions& run_options,
-                  const absl::optional<int64_t>& servable_version,
-                  tfrt::SavedModel* saved_model, const PredictRequest& request,
-                  PredictResponse* response,
-                  const thread::ThreadPoolOptions& thread_pool_options) {
+absl::Status RunPredict(const tfrt::SavedModel::RunOptions& run_options,
+                        const absl::optional<int64_t>& servable_version,
+                        tfrt::SavedModel* saved_model,
+                        const PredictRequest& request,
+                        PredictResponse* response,
+                        const thread::ThreadPoolOptions& thread_pool_options) {
   return internal::RunPredict(
       run_options, servable_version,
       internal::PredictResponseTensorSerializationOption::kAsProtoField,

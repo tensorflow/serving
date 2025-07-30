@@ -184,7 +184,7 @@ INSTANTIATE_TEST_CASE_P(
 
 TEST_P(AspiredVersionsManagerTest, ServableHandleNotFoundMissingLoaderName) {
   ServableHandle<int64_t> handle;
-  const Status status = manager_->GetServableHandle(
+  const absl::Status status = manager_->GetServableHandle(
       ServableRequest::Latest(strings::StrCat(kServableName, "missing")),
       &handle);
   ASSERT_FALSE(status.ok()) << status;
@@ -195,7 +195,7 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleNotFoundMissingVersion) {
   // This version is missing.
   const int64_t missing_version = 100;
   ServableHandle<int64_t> handle;
-  const Status status = manager_->GetServableHandle(
+  const absl::Status status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, missing_version), &handle);
   ASSERT_FALSE(status.ok()) << status;
   EXPECT_EQ(error::NOT_FOUND, status.code());
@@ -205,7 +205,7 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleInvalidArgument) {
   // The servable is supposed to be an int type and we ask for a float type,
   // thus causing an invalid argument error.
   ServableHandle<float> handle;
-  const Status status = manager_->GetServableHandle(
+  const absl::Status status = manager_->GetServableHandle(
       ServableRequest::Latest(kServableName), &handle);
   ASSERT_FALSE(status.ok()) << status;
   EXPECT_EQ(error::INVALID_ARGUMENT, status.code());
@@ -227,7 +227,7 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleLatest) {
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   ServableHandle<int64_t> handle;
-  const Status status = manager_->GetServableHandle(
+  const absl::Status status = manager_->GetServableHandle(
       ServableRequest::Latest(kServableName), &handle);
   TF_ASSERT_OK(status);
   EXPECT_EQ(kNumVersionsPerServable + 1, *handle);
@@ -249,7 +249,7 @@ TEST_P(AspiredVersionsManagerTest, ServableHandleLatestVersionIsZero) {
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   ServableHandle<int64_t> handle;
-  const Status status = manager_->GetServableHandle(
+  const absl::Status status = manager_->GetServableHandle(
       ServableRequest::Latest(kServableName3), &handle);
   TF_ASSERT_OK(status);
   EXPECT_EQ(0, *handle);
@@ -270,7 +270,7 @@ TEST_P(AspiredVersionsManagerTest, ReloadAspiredError) {
     WaitUntilServableManagerStateIsOneOf(
         servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
     ServableHandle<int64_t> handle;
-    const Status status = manager_->GetServableHandle(
+    const absl::Status status = manager_->GetServableHandle(
         ServableRequest::Latest(kServableName), &handle);
     TF_ASSERT_OK(status);
     EXPECT_EQ(1, *handle);
@@ -287,7 +287,7 @@ TEST_P(AspiredVersionsManagerTest, ReloadAspiredError) {
     WaitUntilServableManagerStateIsOneOf(servable_state_monitor_, id,
                                          {ServableState::ManagerState::kEnd});
     ServableHandle<int64_t> handle;
-    Status status = manager_->GetServableHandle(
+    absl::Status status = manager_->GetServableHandle(
         ServableRequest::Specific(kServableName, 2), &handle);
     EXPECT_FALSE(status.ok()) << status;
   }
@@ -304,14 +304,14 @@ TEST_P(AspiredVersionsManagerTest, ReloadAspiredError) {
           servable_state_monitor_, id,
           {ServableState::ManagerState::kAvailable});
       ServableHandle<int64_t> handle;
-      Status status = manager_->GetServableHandle(
+      absl::Status status = manager_->GetServableHandle(
           ServableRequest::Specific(kServableName, 2), &handle);
       TF_ASSERT_OK(status) << status;
     } else {
       // Sleep for 1ms. There's nothing to wait on as the state will not change.
       Env::Default()->SleepForMicroseconds(1000 /* 1 ms */);
       ServableHandle<int64_t> handle;
-      Status status = manager_->GetServableHandle(
+      absl::Status status = manager_->GetServableHandle(
           ServableRequest::Specific(kServableName, 2), &handle);
       EXPECT_FALSE(status.ok()) << status;
     }
@@ -321,7 +321,7 @@ TEST_P(AspiredVersionsManagerTest, ReloadAspiredError) {
 TEST_P(AspiredVersionsManagerTest, ServableHandleSpecificVersion) {
   ServableHandle<int64_t> handle;
   const ServableId id = {kServableName2, 0};
-  const Status status =
+  const absl::Status status =
       manager_->GetServableHandle(ServableRequest::FromId(id), &handle);
   TF_ASSERT_OK(status);
   EXPECT_EQ(0, *handle);
@@ -443,7 +443,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredRemovedFull) {
   // destructed when we run the manager looping thread.
   {
     ServableHandle<int64_t> handle;
-    const Status status = manager_->GetServableHandle(
+    const absl::Status status = manager_->GetServableHandle(
         ServableRequest::Latest(kServableName), &handle);
     TF_ASSERT_OK(status);
     EXPECT_EQ(1, *handle);
@@ -468,7 +468,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredRemovedFull) {
             num_fake_loaders_before - num_fake_loaders_after);
 
   ServableHandle<int64_t> missing_handle;
-  const Status missing_status = manager_->GetServableHandle(
+  const absl::Status missing_status = manager_->GetServableHandle(
       ServableRequest::Latest(kServableName), &missing_handle);
   ASSERT_FALSE(missing_status.ok());
   EXPECT_EQ(error::NOT_FOUND, missing_status.code());
@@ -488,14 +488,14 @@ TEST_P(AspiredVersionsManagerTest, AspiredRemovedPartial) {
 
   // Version 0 should remain available in the manager.
   ServableHandle<int64_t> v0_handle;
-  const Status v0_status = manager_->GetServableHandle(
+  const absl::Status v0_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 0), &v0_handle);
   TF_ASSERT_OK(v0_status);
   EXPECT_EQ(0, *v0_handle);
 
   // Version 1 should no longer be available.
   ServableHandle<int64_t> v1_handle;
-  const Status v1_status = manager_->GetServableHandle(
+  const absl::Status v1_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 1), &v1_handle);
   ASSERT_FALSE(v1_status.ok());
   EXPECT_EQ(error::NOT_FOUND, v1_status.code());
@@ -547,14 +547,14 @@ TEST_P(AspiredVersionsManagerTest, RevertToSmallerVersionNumber) {
 
   // Version 0 should be available.
   ServableHandle<int64_t> v0_handle;
-  const Status v0_status = manager_->GetServableHandle(
+  const absl::Status v0_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 0), &v0_handle);
   TF_ASSERT_OK(v0_status);
   EXPECT_EQ(0, *v0_handle);
 
   // Version 1 should not be available.
   ServableHandle<int64_t> v1_handle;
-  const Status v1_status = manager_->GetServableHandle(
+  const absl::Status v1_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 1), &v1_handle);
   ASSERT_FALSE(v1_status.ok());
   EXPECT_EQ(error::NOT_FOUND, v1_status.code());
@@ -563,7 +563,7 @@ TEST_P(AspiredVersionsManagerTest, RevertToSmallerVersionNumber) {
 TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {
   const ServableId id = {kServableName, 2};
   ServableHandle<int64_t> not_found_handle;
-  const Status not_found_status = manager_->GetServableHandle(
+  const absl::Status not_found_status = manager_->GetServableHandle(
       ServableRequest::FromId(id), &not_found_handle);
   ASSERT_FALSE(not_found_status.ok()) << not_found_status;
   EXPECT_EQ(error::NOT_FOUND, not_found_status.code());
@@ -575,7 +575,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {
   HandlePendingAspiredVersionsRequests();
 
   ServableHandle<int64_t> not_ready_handle;
-  const Status not_ready_status = manager_->GetServableHandle(
+  const absl::Status not_ready_status = manager_->GetServableHandle(
       ServableRequest::FromId(id), &not_ready_handle);
   ASSERT_FALSE(not_ready_status.ok()) << not_ready_status;
   EXPECT_EQ(error::NOT_FOUND, not_ready_status.code());
@@ -589,7 +589,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   ServableHandle<int64_t> handle;
-  const Status status =
+  const absl::Status status =
       manager_->GetServableHandle(ServableRequest::FromId(id), &handle);
   TF_ASSERT_OK(status);
   EXPECT_EQ(2, *handle);
@@ -598,7 +598,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateLoad) {
 TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateUnload) {
   {
     ServableHandle<int64_t> handle;
-    const Status status = manager_->GetServableHandle(
+    const absl::Status status = manager_->GetServableHandle(
         ServableRequest::Specific(kServableName, 0), &handle);
     TF_ASSERT_OK(status);
     EXPECT_EQ(0, *handle);
@@ -618,7 +618,7 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateUnload) {
                                        {ServableState::ManagerState::kEnd});
 
   ServableHandle<int64_t> not_found_handle;
-  const Status not_found_status = manager_->GetServableHandle(
+  const absl::Status not_found_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 0), &not_found_handle);
   ASSERT_FALSE(not_found_status.ok()) << not_found_status;
   EXPECT_EQ(error::NOT_FOUND, not_found_status.code());
@@ -628,14 +628,14 @@ TEST_P(AspiredVersionsManagerTest, AspiredAndManageStateUnload) {
 // servable actions. This behaviour is tested here.
 TEST_P(AspiredVersionsManagerTest, ManagerPrefersUnloadOverLoad) {
   ServableHandle<int64_t> not_found_2_handle;
-  Status not_found_2_status = manager_->GetServableHandle(
+  absl::Status not_found_2_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName2, 2), &not_found_2_handle);
   ASSERT_FALSE(not_found_2_status.ok()) << not_found_2_status;
   EXPECT_EQ(error::NOT_FOUND, not_found_2_status.code());
 
   {
     ServableHandle<int64_t> found_0_handle;
-    const Status found_0_status = manager_->GetServableHandle(
+    const absl::Status found_0_status = manager_->GetServableHandle(
         ServableRequest::Specific(kServableName, 0), &found_0_handle);
     TF_ASSERT_OK(found_0_status);
     EXPECT_EQ(0, *found_0_handle);
@@ -644,7 +644,7 @@ TEST_P(AspiredVersionsManagerTest, ManagerPrefersUnloadOverLoad) {
   // We want to unload version 0 of the first servable stream and load version 2
   // of the second stream.
   struct {
-    StringPiece name;
+    absl::string_view name;
     int start;
     int end;
   } servable_aspired_list[2] = {{kServableName, 1, 1}, {kServableName2, 0, 2}};
@@ -667,7 +667,7 @@ TEST_P(AspiredVersionsManagerTest, ManagerPrefersUnloadOverLoad) {
                                        {ServableState::ManagerState::kEnd});
 
   ServableHandle<int64_t> not_found_0_handle;
-  const Status not_found_0_status = manager_->GetServableHandle(
+  const absl::Status not_found_0_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 0), &not_found_0_handle);
   ASSERT_FALSE(not_found_0_status.ok()) << not_found_0_status;
   EXPECT_EQ(error::NOT_FOUND, not_found_2_status.code());
@@ -684,7 +684,7 @@ TEST_P(AspiredVersionsManagerTest, ManagerPrefersUnloadOverLoad) {
       {ServableState::ManagerState::kAvailable});
 
   ServableHandle<int64_t> found_2_handle;
-  const Status found_2_status = manager_->GetServableHandle(
+  const absl::Status found_2_status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName2, 2), &found_2_handle);
   TF_ASSERT_OK(found_2_status);
   EXPECT_EQ(2, *found_2_handle);
@@ -707,7 +707,7 @@ TEST_P(AspiredVersionsManagerTest, CustomSortActions) {
 
   {
     ServableHandle<int64_t> not_found_2_handle;
-    Status not_found_2_status = manager_->GetServableHandle(
+    absl::Status not_found_2_status = manager_->GetServableHandle(
         ServableRequest::Specific(kServableName2, 2), &not_found_2_handle);
     ASSERT_FALSE(not_found_2_status.ok()) << not_found_2_status;
     EXPECT_EQ(error::NOT_FOUND, not_found_2_status.code());
@@ -715,7 +715,7 @@ TEST_P(AspiredVersionsManagerTest, CustomSortActions) {
 
   {
     ServableHandle<int64_t> found_0_handle;
-    Status found_0_status = manager_->GetServableHandle(
+    absl::Status found_0_status = manager_->GetServableHandle(
         ServableRequest::Specific(kServableName, 0), &found_0_handle);
     TF_ASSERT_OK(found_0_status);
     EXPECT_EQ(0, *found_0_handle);
@@ -724,7 +724,7 @@ TEST_P(AspiredVersionsManagerTest, CustomSortActions) {
   // We want to unload version 0 of the first servable stream and load version 2
   // of the second stream.
   struct {
-    StringPiece name;
+    absl::string_view name;
     int start;
     int end;
   } servable_aspired_list[2] = {{kServableName, 1, 1}, {kServableName2, 0, 2}};
@@ -749,7 +749,7 @@ TEST_P(AspiredVersionsManagerTest, CustomSortActions) {
 
   {
     ServableHandle<int64_t> found_0_handle;
-    Status found_0_status = manager_->GetServableHandle(
+    absl::Status found_0_status = manager_->GetServableHandle(
         ServableRequest::Specific(kServableName, 0), &found_0_handle);
     TF_ASSERT_OK(found_0_status);
     EXPECT_EQ(0, *found_0_handle);
@@ -757,7 +757,7 @@ TEST_P(AspiredVersionsManagerTest, CustomSortActions) {
 
   {
     ServableHandle<int64_t> found_2_handle;
-    const Status found_2_status = manager_->GetServableHandle(
+    const absl::Status found_2_status = manager_->GetServableHandle(
         ServableRequest::Specific(kServableName2, 2), &found_2_handle);
     TF_ASSERT_OK(found_2_status);
     EXPECT_EQ(2, *found_2_handle);
@@ -771,7 +771,7 @@ TEST_P(AspiredVersionsManagerTest, CustomSortActions) {
 
   {
     ServableHandle<int64_t> not_found_0_handle;
-    const Status not_found_0_status = manager_->GetServableHandle(
+    const absl::Status not_found_0_status = manager_->GetServableHandle(
         ServableRequest::Specific(kServableName, 0), &not_found_0_handle);
     ASSERT_FALSE(not_found_0_status.ok()) << not_found_0_status;
     EXPECT_EQ(error::NOT_FOUND, not_found_0_status.code());
@@ -788,7 +788,7 @@ TEST_P(AspiredVersionsManagerTest, ErroneousAspiredVersion) {
   HandlePendingAspiredVersionsRequests();
 
   ServableHandle<int64_t> handle;
-  Status status = manager_->GetServableHandle(
+  absl::Status status = manager_->GetServableHandle(
       ServableRequest::Specific(kServableName, 3), &handle);
   EXPECT_FALSE(status.ok()) << status;
 
@@ -804,7 +804,7 @@ TEST_P(AspiredVersionsManagerTest, ErroneousAspiredVersion) {
 TEST_P(AspiredVersionsManagerTest, DestructOnNonServingThread) {
   std::unique_ptr<ServableHandle<int64_t>> latest_handle(
       new ServableHandle<int64_t>());
-  const Status status = manager_->GetServableHandle(
+  const absl::Status status = manager_->GetServableHandle(
       ServableRequest::Latest(kServableName), latest_handle.get());
   TF_ASSERT_OK(status);
   EXPECT_EQ(1, **latest_handle);
@@ -872,7 +872,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusErrorOnLoad) {
   HandlePendingAspiredVersionsRequests();
 
   const ServableState start_state = {id, ServableState::ManagerState::kStart,
-                                     OkStatus()};
+                                     absl::OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(start_state));
 
@@ -900,7 +900,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
   HandlePendingAspiredVersionsRequests();
 
   const ServableState start_state = {id, ServableState::ManagerState::kStart,
-                                     OkStatus()};
+                                     absl::OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(start_state));
 
@@ -910,7 +910,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
       .WillOnce(InvokeWithoutArgs([&]() {
         load_called.Notify();
         load_continue.WaitForNotification();
-        return OkStatus();
+        return absl::OkStatus();
       }));
 
   std::unique_ptr<Thread> load_unload_thread(
@@ -926,7 +926,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
   load_called.WaitForNotification();
 
   const ServableState loading_state = {
-      id, ServableState::ManagerState::kLoading, OkStatus()};
+      id, ServableState::ManagerState::kLoading, absl::OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(loading_state));
 
@@ -935,7 +935,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   const ServableState available_state = {
-      id, ServableState::ManagerState::kAvailable, OkStatus()};
+      id, ServableState::ManagerState::kAvailable, absl::OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(available_state));
 
@@ -960,7 +960,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
   unload_called.WaitForNotification();
 
   const ServableState unloading_state = {
-      id, ServableState::ManagerState::kUnloading, OkStatus()};
+      id, ServableState::ManagerState::kUnloading, absl::OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(unloading_state));
 
@@ -969,7 +969,7 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
                                        {ServableState::ManagerState::kEnd});
 
   const ServableState end_state = {
-      {kServableName, 7}, ServableState::ManagerState::kEnd, OkStatus()};
+      {kServableName, 7}, ServableState::ManagerState::kEnd, absl::OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(end_state));
 }
@@ -1001,7 +1001,7 @@ TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallySucceeds) {
   // We succeed on the last load, before the manager gives up.
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(Return(errors::Internal("Error on load.")))
-      .WillOnce(Return(OkStatus()));
+      .WillOnce(Return(absl::OkStatus()));
 
   std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;
   aspired_versions.push_back({id, std::unique_ptr<Loader>(loader)});
@@ -1018,7 +1018,7 @@ TEST_P(AspiredVersionsManagerTest, RetryOnLoadErrorFinallySucceeds) {
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   const ServableState available_state = {
-      id, ServableState::ManagerState::kAvailable, OkStatus()};
+      id, ServableState::ManagerState::kAvailable, absl::OkStatus()};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(available_state));
 }
@@ -1132,7 +1132,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   test_util::MockLoader* first_loader = new NiceMock<test_util::MockLoader>();
   first_aspired_versions.push_back({id, std::unique_ptr<Loader>(first_loader)});
   EXPECT_CALL(*first_loader, LoadWithMetadata(Loader::Metadata{id}))
-      .WillOnce(Return(OkStatus()));
+      .WillOnce(Return(absl::OkStatus()));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
   HandlePendingAspiredVersionsRequests();
@@ -1191,7 +1191,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   EXPECT_CALL(*second_loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&]() {
         second_load_called.Notify();
-        return OkStatus();
+        return absl::OkStatus();
       }));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(second_aspired_versions));
@@ -1229,9 +1229,9 @@ TEST_P(AspiredVersionsManagerTest,
   test_util::MockLoader* first_loader = new NiceMock<test_util::MockLoader>();
   first_aspired_versions.push_back({id, std::unique_ptr<Loader>(first_loader)});
   EXPECT_CALL(*first_loader, LoadWithMetadata(Loader::Metadata{id}))
-      .WillRepeatedly(Return(
-          Status(static_cast<tsl::errors::Code>(absl::StatusCode::kUnknown),
-                 "first load failing")));
+      .WillRepeatedly(Return(absl::Status(
+          static_cast<tsl::errors::Code>(absl::StatusCode::kUnknown),
+          "first load failing")));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(first_aspired_versions));
   HandlePendingAspiredVersionsRequests();
@@ -1261,7 +1261,7 @@ TEST_P(AspiredVersionsManagerTest,
   EXPECT_CALL(*second_loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&]() {
         second_load_called.Notify();
-        return OkStatus();
+        return absl::OkStatus();
       }));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(second_aspired_versions));
@@ -1320,7 +1320,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireNewServableThenImmediatelyReaspire) {
   EXPECT_CALL(*second_loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&]() {
         second_load_called.Notify();
-        return OkStatus();
+        return absl::OkStatus();
       }));
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(second_aspired_versions));

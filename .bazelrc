@@ -15,7 +15,7 @@ build:cuda_clang --host_copt=-Wno-error=unused-command-line-argument
 build:cuda_clang --repo_env TF_NEED_TENSORRT=0
 build:cuda_clang --action_env=TF_CUDA_CLANG="1"
 build:cuda_clang --@local_config_cuda//:cuda_compiler=clang
-build:cuda_clang --repo_env=TF_CUDA_COMPUTE_CAPABILITIES="sm_50,sm_60,sm_70,sm_80,compute_90"
+build:cuda_clang --repo_env=TF_CUDA_COMPUTE_CAPABILITIES="sm_60,sm_70,sm_80,compute_90"
 
 build:cuda_clang --repo_env=HERMETIC_CUDA_VERSION="12.2.0"
 build:cuda_clang --repo_env=HERMETIC_CUDNN_VERSION="8.9.4.25"
@@ -52,6 +52,7 @@ build:mkl_aarch64 --copt=-O3
 
 build --define=build_with_onednn_v2=true
 build --define=xnn_enable_avxvnni=false
+build --define=xnn_enable_avxvnniint8=false
 build --define=xnn_enable_avx256vnnigfni=false
 build --define=xnn_enable_avx512amx=false
 build --define=xnn_enable_avx512fp16=false
@@ -93,10 +94,6 @@ build --experimental_cc_shared_library
 # uses TensorFlow for all IO operations.
 build --define=use_tensorflow_io=1
 
-# TensorFlow Decision Forests need absl::anyInvocable support for new versions 
-# of Tensorflow.
-build --define use_absl_anyinvocable=1
-
 # TensorFlow Decision Forests does not use Absl concurrency primitives on MacOs.
 # Reason: TensorFlow/ABSL ODR violation (b/214189609) # copybara:strip
 build:macos --define std_synchronization_primitives=1
@@ -109,3 +106,8 @@ build --copt=-Wno-macro-redefined # absl vs tsl logging clash
 build --copt=-Wno-sign-compare # int as loop variable
 build --copt=-Wno-deprecated-declarations
 build --copt=-Wno-unused-but-set-variable # due to `ifdefs` in ml_dtypes
+
+# Revert to the legacy WORKSPACE dependency resolution system
+# and disable Bzlmod.
+common --enable_bzlmod=false
+common --noincompatible_enable_cc_toolchain_resolution

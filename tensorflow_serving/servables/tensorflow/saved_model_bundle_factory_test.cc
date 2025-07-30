@@ -25,19 +25,28 @@ limitations under the License.
 #include "google/protobuf/wrappers.pb.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/status/status.h"
 #include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
+#include "xla/tsl/lib/core/status_test_util.h"
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/io/path.h"
+#include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/path.h"
+#include "tensorflow/core/platform/test.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
+#include "tensorflow/core/protobuf/rewriter_config.pb.h"
 #include "tensorflow/core/public/session.h"
+#include "tensorflow/core/public/session_options.h"
 #include "tensorflow/core/public/version.h"
 #include "tensorflow_serving/core/test_util/session_test_util.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_test_util.h"
+#include "tensorflow_serving/servables/tensorflow/saved_model_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 
 namespace tensorflow {
@@ -51,15 +60,16 @@ enum class ModelType { kTfModel, kTfLiteModel };
 Loader::Metadata CreateMetadata() { return {ServableId{"name", 42}}; }
 
 // Creates a new session based on the config and export path.
-Status CreateBundleFromPath(const CreationType creation_type,
-                            const SessionBundleConfig& config,
-                            const string& path,
-                            std::unique_ptr<SavedModelBundle>* bundle) {
+absl::Status CreateBundleFromPath(const CreationType creation_type,
+                                  const SessionBundleConfig& config,
+                                  const string& path,
+                                  std::unique_ptr<SavedModelBundle>* bundle) {
   std::unique_ptr<SavedModelBundleFactory> factory;
-  TF_RETURN_IF_ERROR(SavedModelBundleFactory::Create(config, &factory));
   auto config_with_session_hook = config;
   config_with_session_hook.set_session_target(
       test_util::kNewSessionHookSessionTargetPrefix);
+  TF_RETURN_IF_ERROR(
+      SavedModelBundleFactory::Create(config_with_session_hook, &factory));
   test_util::SetNewSessionHook([&](const SessionOptions& session_options) {
     const bool enable_session_metadata =
         creation_type == CreationType::kWithMetadata;
@@ -109,8 +119,8 @@ class SavedModelBundleFactoryTest
   virtual ~SavedModelBundleFactoryTest() = default;
 
  protected:
-  Status CreateSession(const SessionBundleConfig& config,
-                       std::unique_ptr<Session>* session) const override {
+  absl::Status CreateSession(const SessionBundleConfig& config,
+                             std::unique_ptr<Session>* session) const override {
     std::unique_ptr<SavedModelBundle> bundle;
     TF_RETURN_IF_ERROR(CreateBundleFromPath(GetParam().creation_type, config,
                                             export_dir_, &bundle));
@@ -287,6 +297,48 @@ TEST_P(SavedModelBundleFactoryTest, EstimateResourceRequirementWithGoodExport) {
 TEST_P(SavedModelBundleFactoryTest, RunOptions) { TestRunOptions(); }
 
 TEST_P(SavedModelBundleFactoryTest, RunOptionsError) { TestRunOptionsError(); }
+
+TEST_P(SavedModelBundleFactoryTest, SetGraphOptionsFromSavedModelConfig) {
+  const std::string dst_dir = io::JoinPath(testing::TmpDir(), "model");
+  test_util::CopyDirOrDie(export_dir_, dst_dir);
+  tensorflow::Env* env = tensorflow::Env::Default();
+  TF_ASSERT_OK(env->CreateDir(io::JoinPath(dst_dir, "assets.extra")));
+  SavedModelConfig saved_model_config;
+  saved_model_config.mutable_session_overrides()->set_disable_meta_optimizer(
+      true);
+  TF_ASSERT_OK(tensorflow::WriteBinaryProto(
+      env, io::JoinPath(dst_dir, "assets.extra", "saved_model_config.pb"),
+      saved_model_config));
+  export_dir_ = dst_dir;
+
+  SessionBundleConfig config = GetSessionBundleConfig();
+  config.set_session_target(test_util::kNewSessionHookSessionTargetPrefix);
+  std::unique_ptr<SavedModelBundle> bundle;
+  if (ExpectCreateBundleFailure()) {
+    EXPECT_FALSE(CreateBundleFromPath(GetParam().creation_type, config,
+                                      export_dir_, &bundle)
+                     .ok());
+    return;
+  }
+  std::unique_ptr<SavedModelBundleFactory> factory;
+  TF_ASSERT_OK(SavedModelBundleFactory::Create(config, &factory));
+  test_util::SetNewSessionHook([&](const SessionOptions& session_options) {
+    EXPECT_TRUE(session_options.config.graph_options()
+                    .rewrite_options()
+                    .disable_meta_optimizer());
+    return absl::OkStatus();
+  });
+
+  switch (GetParam().creation_type) {
+    case CreationType::kWithoutMetadata:
+      TF_ASSERT_OK(factory->CreateSavedModelBundle(export_dir_, &bundle));
+      break;
+    case CreationType::kWithMetadata:
+      TF_ASSERT_OK(factory->CreateSavedModelBundleWithMetadata(
+          CreateMetadata(), export_dir_, &bundle));
+      break;
+  }
+}
 
 }  // namespace
 }  // namespace serving

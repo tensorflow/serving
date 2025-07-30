@@ -35,9 +35,9 @@ namespace {
 using Hashmap = std::unordered_map<string, string>;
 
 // Populates a hashmap from a file located at 'path', in format 'format'.
-Status LoadHashmapFromFile(const string& path,
-                           const HashmapSourceAdapterConfig::Format& format,
-                           std::unique_ptr<Hashmap>* hashmap) {
+absl::Status LoadHashmapFromFile(
+    const string& path, const HashmapSourceAdapterConfig::Format& format,
+    std::unique_ptr<Hashmap>* hashmap) {
   hashmap->reset(new Hashmap);
   switch (format) {
     case HashmapSourceAdapterConfig::SIMPLE_CSV: {
@@ -61,7 +61,7 @@ Status LoadHashmapFromFile(const string& path,
       return errors::InvalidArgument("Unrecognized format enum value: ",
                                      format);
   }
-  return Status();
+  return absl::Status();
 }
 
 }  // namespace

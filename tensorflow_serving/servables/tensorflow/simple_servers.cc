@@ -44,7 +44,7 @@ namespace {
 // directories. Upon finding these, it provides the target with the new version
 // (a directory). The servable_name param simply allows this source to create
 // all AspiredVersions for the target with the same servable_name.
-Status CreateStoragePathSource(
+absl::Status CreateStoragePathSource(
     const string& base_path, const string& servable_name,
     std::unique_ptr<Source<StoragePath>>* path_source) {
   FileSystemStoragePathSourceConfig config;
@@ -66,7 +66,7 @@ Status CreateStoragePathSource(
 // 'CreateSingleTFModelManagerFromBasePath' method, with the
 // FileSystemStoragePathSource as the Source and the SavedModelBundleSource as
 // the Target.
-Status CreateSavedModelBundleSource(
+absl::Status CreateSavedModelBundleSource(
     std::unique_ptr<SavedModelBundleSourceAdapter>* source) {
   SavedModelBundleSourceAdapterConfig config;
   TF_RETURN_IF_ERROR(SavedModelBundleSourceAdapter::Create(config, source));
@@ -76,7 +76,7 @@ Status CreateSavedModelBundleSource(
 
 }  // namespace
 
-Status CreateSingleTFModelManagerFromBasePath(
+absl::Status CreateSingleTFModelManagerFromBasePath(
     const string& base_path, std::unique_ptr<Manager>* const manager) {
   std::unique_ptr<SavedModelBundleSourceAdapter> bundle_source;
   TF_RETURN_IF_ERROR(CreateSavedModelBundleSource(&bundle_source));

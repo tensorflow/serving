@@ -27,7 +27,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status LoadSavedModelConfig(
+absl::Status LoadSavedModelConfig(
     const std::string& export_dir, tensorflow::GraphOptions& graph_options,
     tensorflow::tfrt_stub::RuntimeConfig& runtime_config) {
   absl::StatusOr<SavedModelConfig> model_config =
@@ -52,7 +52,7 @@ Status LoadSavedModelConfig(
     }
   }
 
-  return Status();
+  return absl::Status();
 }
 
 }  // namespace serving

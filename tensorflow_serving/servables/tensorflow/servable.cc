@@ -61,5 +61,9 @@ absl::Status SingleRequestPredictStreamedContext::Close() {
   return absl::OkStatus();
 }
 
+absl::Status SingleRequestPredictStreamedContext::WaitResponses() {
+  return absl::OkStatus();
+}
+
 }  // namespace serving
 }  // namespace tensorflow

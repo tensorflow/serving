@@ -57,43 +57,44 @@ class BatchSizeCapturingSession : public ServingSession {
       : wrapped_(std::move(wrapped)) {}
   ~BatchSizeCapturingSession() override = default;
 
-  Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_tensor_names,
-             const std::vector<string>& target_node_names,
-             std::vector<Tensor>* outputs) override {
+  absl::Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
+                   const std::vector<string>& output_tensor_names,
+                   const std::vector<string>& target_node_names,
+                   std::vector<Tensor>* outputs) override {
     RunMetadata run_metadata;
     return Run(RunOptions(), inputs, output_tensor_names, target_node_names,
                outputs, &run_metadata);
   }
 
-  Status Run(const RunOptions& run_options,
-             const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_tensor_names,
-             const std::vector<string>& target_node_names,
-             std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+  absl::Status Run(const RunOptions& run_options,
+                   const std::vector<std::pair<string, Tensor>>& inputs,
+                   const std::vector<string>& output_tensor_names,
+                   const std::vector<string>& target_node_names,
+                   std::vector<Tensor>* outputs,
+                   RunMetadata* run_metadata) override {
     return Run(run_options, inputs, output_tensor_names, target_node_names,
                outputs, run_metadata, thread::ThreadPoolOptions());
   }
 
-  Status Run(const RunOptions& run_options,
-             const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_tensor_names,
-             const std::vector<string>& target_node_names,
-             std::vector<Tensor>* outputs, RunMetadata* run_metadata,
-             const thread::ThreadPoolOptions& thread_pool_options) override
-      TF_LOCKS_EXCLUDED(latest_batch_size_mu_) {
+  absl::Status Run(const RunOptions& run_options,
+                   const std::vector<std::pair<string, Tensor>>& inputs,
+                   const std::vector<string>& output_tensor_names,
+                   const std::vector<string>& target_node_names,
+                   std::vector<Tensor>* outputs, RunMetadata* run_metadata,
+                   const thread::ThreadPoolOptions& thread_pool_options)
+      override TF_LOCKS_EXCLUDED(latest_batch_size_mu_) {
     {
       mutex_lock l(latest_batch_size_mu_);
       latest_batch_size_ = inputs[0].second.shape().dim_size(0);
     }
-    Status status = wrapped_->Run(run_options, inputs, output_tensor_names,
-                                  target_node_names, outputs, run_metadata,
-                                  thread_pool_options);
+    absl::Status status = wrapped_->Run(
+        run_options, inputs, output_tensor_names, target_node_names, outputs,
+        run_metadata, thread_pool_options);
     *(run_metadata->mutable_cost_graph()) = cost_graph_;
     return status;
   }
 
-  Status ListDevices(std::vector<DeviceAttributes>* response) override {
+  absl::Status ListDevices(std::vector<DeviceAttributes>* response) override {
     return wrapped_->ListDevices(response);
   }
 
@@ -171,8 +172,8 @@ void ExpectError(const string& error_message,
                  const std::vector<string>& output_tensor_names,
                  Session* session) {
   std::vector<Tensor> outputs;
-  Status status = session->Run(inputs, output_tensor_names,
-                               {} /* target nodes */, &outputs);
+  absl::Status status = session->Run(inputs, output_tensor_names,
+                                     {} /* target nodes */, &outputs);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(error_message, status.message());
 }
@@ -256,10 +257,10 @@ class BatchingSessionTest : public ::testing::TestWithParam<bool> {
 
   bool enable_large_batch_splitting() const { return GetParam(); }
 
-  std::function<
-      Status(std::unique_ptr<BatchingSessionTask>* input_task,
-             int first_output_task_size, int max_batch_size,
-             std::vector<std::unique_ptr<BatchingSessionTask>>* output_tasks)>
+  std::function<absl::Status(
+      std::unique_ptr<BatchingSessionTask>* input_task,
+      int first_output_task_size, int max_batch_size,
+      std::vector<std::unique_ptr<BatchingSessionTask>>* output_tasks)>
   get_split_input_task_func() const {
     if (enable_large_batch_splitting()) {
       return SplitInputTask;
@@ -997,7 +998,7 @@ TEST_P(BatchingSessionTest, EnqueuedLongerThanTimeout) {
     run_options.set_timeout_in_ms(1);
     std::vector<Tensor> outputs;
     RunMetadata run_metadata;
-    const Status status =
+    const absl::Status status =
         batching_session->Run(run_options, {{"x", input}}, {"y"} /* outputs */,
                               {} /* target nodes */, &outputs, &run_metadata);
     EXPECT_FALSE(status.ok());

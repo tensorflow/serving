@@ -47,8 +47,9 @@ class TfrtSavedModelFactoryTest : public ::testing::Test {
             "servables/tensorflow/"
             "testdata/saved_model_half_plus_two_cpu/00000123")) {}
 
-  Status CreateTfrtSavedModel(const TfrtSavedModelConfig& config,
-                              std::unique_ptr<tfrt::SavedModel>* saved_model) {
+  absl::Status CreateTfrtSavedModel(
+      const TfrtSavedModelConfig& config,
+      std::unique_ptr<tfrt::SavedModel>* saved_model) {
     std::unique_ptr<TfrtSavedModelFactory> factory;
     TF_RETURN_IF_ERROR(TfrtSavedModelFactory::Create(config, &factory));
     TF_RETURN_IF_ERROR(factory->CreateTfrtSavedModelWithMetadata(

@@ -48,7 +48,7 @@ namespace serving {
 // Map of TFLite tensor name to <TF TensorInfo, TFLite tensor index>.
 namespace {
 
-Status TfLiteTypeToTfType(TfLiteType tflite_type, DataType* type) {
+absl::Status TfLiteTypeToTfType(TfLiteType tflite_type, DataType* type) {
   switch (tflite_type) {
     case kTfLiteNoType:
       *type = tensorflow::DT_INVALID;
@@ -96,8 +96,8 @@ std::string TfToTfLiteLegacyTensorName(const string& tf_name) {
 
 // Checks that an input/output tensor actually exists. If not, attempts to
 // update the tensor name with legacy TFLite tensor naming.
-Status FixTfLiteTensorName(const std::map<string, int>& tensor_name_map,
-                           string& tensor_name) {
+absl::Status FixTfLiteTensorName(const std::map<string, int>& tensor_name_map,
+                                 string& tensor_name) {
   if (tensor_name_map.find(tensor_name) != tensor_name_map.end()) {
     return absl::OkStatus();
   }
@@ -112,8 +112,8 @@ Status FixTfLiteTensorName(const std::map<string, int>& tensor_name_map,
   return errors::Internal("Unknown tensor '", tensor_name, "'.");
 }
 
-Status TfLiteTensorToTensorInfo(const TfLiteTensor* tflite_tensor,
-                                TensorInfo* info) {
+absl::Status TfLiteTensorToTensorInfo(const TfLiteTensor* tflite_tensor,
+                                      TensorInfo* info) {
   DataType tf_type;
   TF_RETURN_IF_ERROR(TfLiteTypeToTfType(tflite_tensor->type, &tf_type));
   info->set_dtype(tf_type);
@@ -125,8 +125,8 @@ Status TfLiteTensorToTensorInfo(const TfLiteTensor* tflite_tensor,
   return absl::OkStatus();
 }
 
-Status GetTensorInfoMap(const tflite::Interpreter* interpreter, bool input,
-                        TensorInfoMap* infomap) {
+absl::Status GetTensorInfoMap(const tflite::Interpreter* interpreter,
+                              bool input, TensorInfoMap* infomap) {
   const std::vector<int>& indices =
       input ? interpreter->inputs() : interpreter->outputs();
   const string& input_str = input ? "Input" : "Output";
@@ -156,7 +156,7 @@ std::vector<int> TensorDims(const Tensor& tensor) {
 }
 
 // Create output tensors making sure they are the right size. //
-Status CreateOutputTensors(
+absl::Status CreateOutputTensors(
     std::unique_ptr<internal::TfLiteInterpreterWrapper>& interpreter_wrapper,
     const std::vector<string>& output_tensor_names,
     const std::map<string, int>& output_tensor_to_idx,
@@ -184,7 +184,7 @@ Status CreateOutputTensors(
   return absl::OkStatus();
 }
 
-Status SetInputAndInvokeMiniBatch(
+absl::Status SetInputAndInvokeMiniBatch(
     std::unique_ptr<internal::TfLiteInterpreterWrapper>& interpreter_wrapper,
     const std::vector<int>& tflite_input_indices,
     const std::vector<std::vector<const Tensor*>>& inputs, int batch_size,
@@ -254,7 +254,7 @@ Status SetInputAndInvokeMiniBatch(
   return absl::OkStatus();
 }
 
-Status SetMiniBatchOutput(
+absl::Status SetMiniBatchOutput(
     std::unique_ptr<internal::TfLiteInterpreterWrapper>& interpreter_wrapper,
     const std::map<int, Tensor*>& tflite_idx_to_output_tensor,
     std::vector<Tensor>* outputs) {
@@ -302,7 +302,7 @@ int GetModelBatchSize(const tflite::Model* model) {
 }  // namespace
 
 // Split an input task up into multiple tasks.
-Status TfLiteSession::SplitTfLiteInputTask(
+absl::Status TfLiteSession::SplitTfLiteInputTask(
     std::unique_ptr<TfLiteBatchTask>* input_task_ptr,
     int open_batch_remaining_slot, int max_batch_size,
     std::vector<std::unique_ptr<TfLiteBatchTask>>* output_tasks) {
@@ -389,7 +389,7 @@ Status TfLiteSession::SplitTfLiteInputTask(
   return absl::OkStatus();
 }
 
-Status TfLiteSession::CreateDefaultBasicBatchScheduler(
+absl::Status TfLiteSession::CreateDefaultBasicBatchScheduler(
     const BasicBatchScheduler<TfLiteBatchTask>::Options& options,
     std::function<void(std::unique_ptr<Batch<TfLiteBatchTask>>)>
         process_batch_callback,
@@ -401,7 +401,7 @@ Status TfLiteSession::CreateDefaultBasicBatchScheduler(
   return absl::OkStatus();
 }
 
-Status TfLiteSession::SetScheduler(
+absl::Status TfLiteSession::SetScheduler(
     const SchedulerCreator& scheduler_creator,
     const BasicBatchScheduler<TfLiteBatchTask>::Options& options) {
   use_fixed_batch_size_ = true;
@@ -415,10 +415,11 @@ Status TfLiteSession::SetScheduler(
       &scheduler_);
 }
 
-Status TfLiteSession::Create(string&& buffer, const SessionOptions& options,
-                             int num_pools, int num_interpreters_per_pool,
-                             std::unique_ptr<TfLiteSession>* tflite_session,
-                             ::google::protobuf::Map<string, SignatureDef>* signatures) {
+absl::Status TfLiteSession::Create(
+    string&& buffer, const SessionOptions& options, int num_pools,
+    int num_interpreters_per_pool,
+    std::unique_ptr<TfLiteSession>* tflite_session,
+    ::google::protobuf::Map<string, SignatureDef>* signatures) {
   auto model = tflite::FlatBufferModel::BuildFromModel(
       flatbuffers::GetRoot<tflite::Model>(buffer.data()));
   if (model == nullptr) {
@@ -544,26 +545,27 @@ TfLiteSession::TfLiteSession(
       model_(std::move(model)),
       interpreter_pool_(std::move(interpreter_pool)) {}
 
-Status TfLiteSession::Run(const std::vector<std::pair<string, Tensor>>& inputs,
-                          const std::vector<string>& output_tensor_names,
-                          const std::vector<string>& target_node_names,
-                          std::vector<Tensor>* outputs) {
+absl::Status TfLiteSession::Run(
+    const std::vector<std::pair<string, Tensor>>& inputs,
+    const std::vector<string>& output_tensor_names,
+    const std::vector<string>& target_node_names,
+    std::vector<Tensor>* outputs) {
   RunMetadata run_metadata;
   return Run(RunOptions(), inputs, output_tensor_names, target_node_names,
              outputs, &run_metadata);
 }
 
-Status TfLiteSession::Run(const RunOptions& run_options,
-                          const std::vector<std::pair<string, Tensor>>& inputs,
-                          const std::vector<string>& output_tensor_names,
-                          const std::vector<string>& target_node_names,
-                          std::vector<Tensor>* outputs,
-                          RunMetadata* run_metadata) {
+absl::Status TfLiteSession::Run(
+    const RunOptions& run_options,
+    const std::vector<std::pair<string, Tensor>>& inputs,
+    const std::vector<string>& output_tensor_names,
+    const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
+    RunMetadata* run_metadata) {
   return Run(run_options, inputs, output_tensor_names, target_node_names,
              outputs, run_metadata, thread::ThreadPoolOptions());
 }
 
-Status TfLiteSession::RunInternal(
+absl::Status TfLiteSession::RunInternal(
     const std::vector<int>& tflite_input_indices,
     const std::vector<std::vector<const Tensor*>>& merged_inputs,
     const std::vector<string>& output_tensor_names,
@@ -598,7 +600,7 @@ Status TfLiteSession::RunInternal(
   return absl::OkStatus();
 }
 
-Status TfLiteSession::Run(
+absl::Status TfLiteSession::Run(
     const RunOptions& run_options,
     const std::vector<std::pair<string, Tensor>>& inputs,
     const std::vector<string>& output_tensor_names,
@@ -629,7 +631,7 @@ Status TfLiteSession::Run(
                        batch_size);
   }
   Notification done;
-  Status status;
+  absl::Status status;
   std::unique_ptr<TfLiteBatchTask> task;
   TfLiteBatchTask::CreateTfLiteBatchTask(&output_tensor_names, outputs, &done,
                                          &status, &task);
@@ -642,13 +644,14 @@ Status TfLiteSession::Run(
   return status;
 }
 
-Status TfLiteSession::ListDevices(std::vector<DeviceAttributes>* response) {
+absl::Status TfLiteSession::ListDevices(
+    std::vector<DeviceAttributes>* response) {
   return errors::Unimplemented("ListDevices is not yet supported.");
 }
 
-Status MergeInputTensors(const Batch<TfLiteBatchTask>& batch,
-                         std::vector<std::vector<const Tensor*>>* merged_inputs,
-                         int* batch_size) {
+absl::Status MergeInputTensors(
+    const Batch<TfLiteBatchTask>& batch,
+    std::vector<std::vector<const Tensor*>>* merged_inputs, int* batch_size) {
   if (batch.num_tasks() < 1) {
     return errors::Internal("Batch size expected to be positive; was ",
                             batch.num_tasks());
@@ -672,8 +675,8 @@ Status MergeInputTensors(const Batch<TfLiteBatchTask>& batch,
   return absl::OkStatus();
 }
 
-Status SplitOutputTensors(const std::vector<Tensor>& combined_outputs,
-                          Batch<TfLiteBatchTask>* batch, int batch_size) {
+absl::Status SplitOutputTensors(const std::vector<Tensor>& combined_outputs,
+                                Batch<TfLiteBatchTask>* batch, int batch_size) {
   std::vector<int64_t> task_sizes(batch->num_tasks());
   int total_size = 0;
   for (int i = 0; i < batch->num_tasks(); ++i) {
@@ -689,7 +692,7 @@ Status SplitOutputTensors(const std::vector<Tensor>& combined_outputs,
   for (int i = 0; i < combined_outputs.size(); i++) {
     const auto& output_tensor = combined_outputs[i];
     std::vector<Tensor> split_tensor;
-    const Status split_status =
+    const absl::Status split_status =
         tensor::Split(output_tensor, task_sizes, &split_tensor);
     if (!split_status.ok()) {
       return errors::Internal("Tensor split operation failed: ",
@@ -720,7 +723,7 @@ void TfLiteSession::ProcessBatch(
   // Regardless of the outcome, we need to propagate the status to the
   // individual tasks and signal that they are done. We use MakeCleanup() to
   // ensure that this happens no matter how we exit the method below.
-  Status status;
+  absl::Status status;
   auto finally = gtl::MakeCleanup([&status, &batch] {
     for (int i = 0; i < batch->num_tasks(); ++i) {
       TfLiteBatchTask* task = batch->mutable_task(i);
@@ -758,9 +761,9 @@ void TfLiteSession::ProcessBatch(
     }
   }
   if (all_tasks_timeout_exceeded) {
-    status = Status(static_cast<tensorflow::errors::Code>(
-                        absl::StatusCode::kResourceExhausted),
-                    "Run() timeout exceeded while waiting in batching queue");
+    status = absl::Status(
+        static_cast<absl::StatusCode>(absl::StatusCode::kResourceExhausted),
+        "Run() timeout exceeded while waiting in batching queue");
     return;
   }
 

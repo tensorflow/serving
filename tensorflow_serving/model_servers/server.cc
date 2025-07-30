@@ -34,6 +34,7 @@ limitations under the License.
 #include "absl/memory/memory.h"
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/strings/numbers.h"
@@ -42,7 +43,6 @@ limitations under the License.
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/profiler/rpc/profiler_service_impl.h"
 #include "tensorflow/core/protobuf/config.pb.h"
-#include "tsl/platform/errors.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/config/monitoring_config.pb.h"
 #include "tensorflow_serving/config/platform_config.pb.h"
@@ -52,6 +52,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/server_core.h"
 #include "tensorflow_serving/model_servers/server_init.h"
+#include "tensorflow_serving/servables/tensorflow/predict_response_tensor_serialization_option.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/thread_pool_factory_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
@@ -63,7 +64,7 @@ namespace main {
 
 namespace {
 
-tensorflow::Status LoadCustomModelConfig(
+absl::Status LoadCustomModelConfig(
     const ::google::protobuf::Any& any,
     EventBus<ServableState>* servable_event_bus,
     UniquePtrWithDeps<AspiredVersionsManager>* manager) {
@@ -161,7 +162,7 @@ Server::~Server() {
 
 void Server::PollFilesystemAndReloadConfig(const string& config_file_path) {
   ModelServerConfig config;
-  const Status read_status =
+  const absl::Status read_status =
       ParseProtoTextFile<ModelServerConfig>(config_file_path, &config);
   if (!read_status.ok()) {
     LOG(ERROR) << "Failed to read ModelServerConfig file: "
@@ -169,14 +170,14 @@ void Server::PollFilesystemAndReloadConfig(const string& config_file_path) {
     return;
   }
 
-  const Status reload_status = server_core_->ReloadConfig(config);
+  const absl::Status reload_status = server_core_->ReloadConfig(config);
   if (!reload_status.ok()) {
     LOG(ERROR) << "PollFilesystemAndReloadConfig failed to ReloadConfig: "
                << reload_status.message();
   }
 }
 
-Status Server::BuildAndStart(const Options& server_options) {
+absl::Status Server::BuildAndStart(const Options& server_options) {
   if (server_options.grpc_port == 0 &&
       server_options.grpc_socket_path.empty()) {
     return errors::InvalidArgument(
@@ -321,6 +322,10 @@ Status Server::BuildAndStart(const Options& server_options) {
   options.force_allow_any_version_labels_for_unavailable_models =
       server_options.force_allow_any_version_labels_for_unavailable_models;
   options.enable_cors_support = server_options.enable_cors_support;
+  if (server_options.enable_serialization_as_tensor_content) {
+    options.predict_response_tensor_serialization_option =
+        internal::PredictResponseTensorSerializationOption::kAsProtoContent;
+  }
 
   TF_RETURN_IF_ERROR(ServerCore::Create(std::move(options), &server_core_));
 
@@ -383,7 +388,7 @@ Status Server::BuildAndStart(const Options& server_options) {
   builder.RegisterService(model_service_.get());
   builder.RegisterService(prediction_service_.get());
   if (server_options.enable_profiler) {
-    profiler_service_ = tensorflow::profiler::CreateProfilerService();
+    profiler_service_ = tsl::profiler::CreateProfilerService();
     builder.RegisterService(profiler_service_.get());
     LOG(INFO) << "Profiler service is enabled";
   }
@@ -395,7 +400,7 @@ Status Server::BuildAndStart(const Options& server_options) {
     // parse each arg as int and pass it on as such if successful. Otherwise we
     // will pass it as a string. gRPC will log arguments that were not accepted.
     tensorflow::int32 value;
-    if (tensorflow::strings::safe_strto32(channel_argument.value, &value)) {
+    if (absl::SimpleAtoi(channel_argument.value, &value)) {
       builder.AddChannelArgument(channel_argument.key, value);
     } else {
       builder.AddChannelArgument(channel_argument.key, channel_argument.value);

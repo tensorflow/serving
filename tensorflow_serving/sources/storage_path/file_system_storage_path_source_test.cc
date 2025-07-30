@@ -53,7 +53,7 @@ class FileSystemStoragePathSourceTestAccess {
   explicit FileSystemStoragePathSourceTestAccess(Source<StoragePath>* source)
       : source_(static_cast<FileSystemStoragePathSource*>(source)) {}
 
-  Status PollFileSystemAndInvokeCallback() {
+  absl::Status PollFileSystemAndInvokeCallback() {
     return source_->PollFileSystemAndInvokeCallback();
   }
 

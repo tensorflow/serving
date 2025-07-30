@@ -50,7 +50,7 @@ class TestSourceRouter final : public SourceRouter<StoragePath> {
   const int num_output_ports_;
   int num_output_ports() const override { return num_output_ports_; }
 
-  int Route(const StringPiece servable_name,
+  int Route(const absl::string_view servable_name,
             const std::vector<ServableData<StoragePath>>& versions) override {
     if (servable_name == "zero") {
       return 0;

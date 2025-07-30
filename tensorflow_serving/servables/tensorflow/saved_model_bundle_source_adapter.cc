@@ -33,7 +33,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status SavedModelBundleSourceAdapter::Create(
+absl::Status SavedModelBundleSourceAdapter::Create(
     const SavedModelBundleSourceAdapterConfig& config,
     std::unique_ptr<SavedModelBundleSourceAdapter>* adapter) {
   std::unique_ptr<SavedModelBundleFactory> bundle_factory;
@@ -62,15 +62,13 @@ SavedModelBundleSourceAdapter::GetServableCreator(
       MaybePublishMLMDStreamz(path, metadata.servable_id.name,
                               metadata.servable_id.version);
       if (bundle_factory->config().enable_model_warmup()) {
-        bundle_factory->mutable_config()
-            .mutable_model_warmup_options()
-            ->set_model_name(metadata.servable_id.name);
-        bundle_factory->mutable_config()
-            .mutable_model_warmup_options()
-            ->set_model_version(metadata.servable_id.version);
-        return RunSavedModelWarmup(
-            bundle_factory->config().model_warmup_options(),
-            GetRunOptions(bundle_factory->config()), path, bundle->get());
+        ModelWarmupOptions warmup_options =
+            bundle_factory->config().model_warmup_options();
+        warmup_options.set_model_name(metadata.servable_id.name);
+        warmup_options.set_model_version(metadata.servable_id.version);
+        return RunSavedModelWarmup(warmup_options,
+                                   GetRunOptions(bundle_factory->config()),
+                                   path, bundle->get());
       }
       return absl::OkStatus();
     };
@@ -86,8 +84,8 @@ SavedModelBundleSourceAdapter::GetServableCreator(
   };
 }
 
-Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
-                                              std::unique_ptr<Loader>* loader) {
+absl::Status SavedModelBundleSourceAdapter::Convert(
+    const StoragePath& path, std::unique_ptr<Loader>* loader) {
   std::shared_ptr<SavedModelBundleFactory> bundle_factory = bundle_factory_;
   auto servable_creator = GetServableCreator(bundle_factory, path);
   auto resource_estimator = [bundle_factory,
@@ -125,7 +123,7 @@ Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
 // Register the source adapter.
 class SavedModelBundleSourceAdapterCreator {
  public:
-  static Status Create(
+  static absl::Status Create(
       const SavedModelBundleSourceAdapterConfig& config,
       std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
           adapter) {

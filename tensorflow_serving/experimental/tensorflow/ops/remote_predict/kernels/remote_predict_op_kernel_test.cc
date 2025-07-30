@@ -92,7 +92,7 @@ REGISTER_KERNEL_BUILDER(Name("TfServingRemotePredict").Device(DEVICE_CPU),
 using RemotePredict = ops::TfServingRemotePredict;
 
 // Use model_name to specify the behavior of different tests.
-::tensorflow::Status RunRemotePredict(
+absl::Status RunRemotePredict(
     const string& model_name, std::vector<Tensor>* outputs,
     const DataTypeSlice& output_types = {DT_INT32, DT_INT32},
     const absl::optional<::absl::Duration> deadline = absl::nullopt,

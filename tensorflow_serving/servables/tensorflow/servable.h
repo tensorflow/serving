@@ -54,6 +54,9 @@ class PredictStreamedContext {
 
   // Closes the `PredictStreamed` session.
   virtual absl::Status Close() = 0;
+
+  // Waits for all of the responses to be generated
+  virtual absl::Status WaitResponses() = 0;
 };
 
 // A convenience wrapper for cases where the implementation allows exactly one
@@ -69,6 +72,7 @@ class SingleRequestPredictStreamedContext final
 
   absl::Status ProcessRequest(const PredictRequest& request) final;
   absl::Status Close() final;
+  absl::Status WaitResponses() final;
 
  private:
   absl::AnyInvocable<absl::Status(const PredictRequest&)> f_;

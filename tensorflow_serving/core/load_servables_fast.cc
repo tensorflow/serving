@@ -44,10 +44,10 @@ std::function<void(const uint32)> SetManagerNumLoadThreadsNotifier(
   return manager->set_num_load_threads_observer_->Notifier();
 }
 
-Status ConnectSourcesWithFastInitialLoad(
+absl::Status ConnectSourcesWithFastInitialLoad(
     AspiredVersionsManager* manager,
     std::vector<Source<std::unique_ptr<Loader>>*> sources,
-    const std::function<Status()>& wait_until_loaded_fn,
+    const std::function<absl::Status()>& wait_until_loaded_fn,
     const uint32 num_threads) {
   const uint32 prev_num_load_threads = GetManagerNumLoadThreads(manager);
   std::function<void(const uint32)> set_manager_num_load_threads =
@@ -56,14 +56,14 @@ Status ConnectSourcesWithFastInitialLoad(
   for (Source<std::unique_ptr<Loader>>* source : sources) {
     ConnectSourceToTarget(source, manager);
   }
-  const Status status = wait_until_loaded_fn();
+  const absl::Status status = wait_until_loaded_fn();
   set_manager_num_load_threads(prev_num_load_threads);
   return status;
 }
 
 }  // namespace internal
 
-Status ConnectSourceWithFastInitialLoad(
+absl::Status ConnectSourceWithFastInitialLoad(
     AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
     ServableStateMonitor* servable_state_monitor,
     const std::vector<ServableRequest>& initial_servables,
@@ -73,7 +73,7 @@ Status ConnectSourceWithFastInitialLoad(
                                            initial_servables, num_threads);
 }
 
-Status ConnectSourcesWithFastInitialLoad(
+absl::Status ConnectSourcesWithFastInitialLoad(
     AspiredVersionsManager* manager,
     std::vector<Source<std::unique_ptr<Loader>>*> sources,
     ServableStateMonitor* servable_state_monitor,
@@ -116,7 +116,7 @@ Status ConnectSourcesWithFastInitialLoad(
           strings::StrAppend(&message, "}");
           return errors::Unknown(message);
         }
-        return OkStatus();
+        return absl::OkStatus();
       },
       num_threads);
 }

@@ -28,11 +28,11 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status RunMultiInference(const tfrt::SavedModel::RunOptions& run_options,
-                         const absl::optional<int64_t>& servable_version,
-                         tfrt::SavedModel* saved_model,
-                         const MultiInferenceRequest& request,
-                         MultiInferenceResponse* response) {
+absl::Status RunMultiInference(const tfrt::SavedModel::RunOptions& run_options,
+                               const absl::optional<int64_t>& servable_version,
+                               tfrt::SavedModel* saved_model,
+                               const MultiInferenceRequest& request,
+                               MultiInferenceResponse* response) {
   Tensor input_tensor;
   TF_RETURN_IF_ERROR(
       InputToSerializedExampleTensor(request.input(), &input_tensor));
