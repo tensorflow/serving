@@ -16,7 +16,10 @@ limitations under the License.
 #ifndef THIRD_PARTY_TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SAVED_MODEL_WARMUP_UTIL_H_
 #define THIRD_PARTY_TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_SAVED_MODEL_WARMUP_UTIL_H_
 
-#include "tensorflow/cc/saved_model/loader.h"
+#include <functional>
+
+#include "absl/status/status.h"
+#include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/protobuf/saved_model.pb.h"
 #include "tensorflow_serving/apis/prediction_log.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
@@ -35,9 +38,18 @@ struct WarmupConsts {
 // to trigger lazy initializations (such as TF optimizations, XLA compilations)
 // at load time, and consequently improve first request latency.
 // Warmup is skipped if no warmup file present.
-Status RunSavedModelWarmup(
+absl::Status RunSavedModelWarmup(
     const ModelWarmupOptions& model_warmup_options, const string export_dir,
-    std::function<Status(PredictionLog)> warmup_request_executor);
+    std::function<absl::Status(PredictionLog)> warmup_request_executor);
+
+// Similar to `RunSavedModelWarmup()`, but does not track the warmup state.
+//
+// WARNING: Inside the function, multiple warmup threads might be dispatched to
+// run `warmup_request_executor`. Use with caution, especially when batching is
+// involved.
+absl::Status RunSavedModelWarmupUntracked(
+    const ModelWarmupOptions& model_warmup_options, const string export_dir,
+    std::function<absl::Status(PredictionLog)> warmup_request_executor);
 
 }  // namespace internal
 }  // namespace serving
