@@ -11,7 +11,7 @@ index 7f2c7c3..a9a6e06 100644
      return output_pieces->size();
    } else {
      return output_ids->size();
-@@ -540,10 +540,10 @@ void FastWordpieceTokenizer::AppendTokenToOutput(
+@@ -557,10 +557,10 @@ void FastWordpieceTokenizer::AppendTokenToOutput(
      std::vector<int>* output_end_offsets) const {
    auto token_id =
        fast_wordpiece_tokenizer_utils::GetTokenId(encoded_token_value);
@@ -24,7 +24,7 @@ index 7f2c7c3..a9a6e06 100644
      // For suffix tokens, the length below is without the suffix indicator.
      int token_substr_length =
          fast_wordpiece_tokenizer_utils::GetTokenLength(encoded_token_value);
-@@ -555,7 +555,7 @@ void FastWordpieceTokenizer::AppendTokenToOutput(
+@@ -572,7 +572,7 @@ void FastWordpieceTokenizer::AppendTokenToOutput(
        // to adjust and add the length of the suffix indicator string.
        token_substr_length += config_->suffix_indicator()->size();
      }
@@ -33,7 +33,7 @@ index 7f2c7c3..a9a6e06 100644
        // If token id is unk_token_id, it means that it is a dummy node for
        // punctuations that are not contained in the vocabulary, we append
        // the unk_token in this case. Otherwise, we
-@@ -571,7 +571,7 @@ void FastWordpieceTokenizer::AppendTokenToOutput(
+@@ -588,7 +588,7 @@ void FastWordpieceTokenizer::AppendTokenToOutput(
                ? absl::StrCat(config_->suffix_indicator()->str(), subword_str)
                : subword_str);
      }
@@ -42,7 +42,7 @@ index 7f2c7c3..a9a6e06 100644
        // Record the offsets relative to the start of the whole text.
        output_start_offsets->push_back(input_word_offset_in_text +
                                        cur_offset_in_input_word);
-@@ -648,15 +648,15 @@ void FastWordpieceTokenizer::ResetOutputAppendUnknownToken(
+@@ -665,15 +665,15 @@ void FastWordpieceTokenizer::ResetOutputAppendUnknownToken(
      std::vector<std::string>* output_pieces, std::vector<int>* output_ids,
      std::vector<int>* output_start_offsets,
      std::vector<int>* output_end_offsets) const {
@@ -65,76 +65,25 @@ diff --git a/tensorflow_text/tftext.bzl b/tensorflow_text/tftext.bzl
 index 65430ca..e8584fb 100644
 --- a/tensorflow_text/tftext.bzl
 +++ b/tensorflow_text/tftext.bzl
-@@ -142,8 +142,8 @@ def tf_cc_library(
+@@ -144,8 +144,8 @@ def tf_cc_library(
              "@org_tensorflow//tensorflow/core:portable_tensorflow_lib_lite",
          ],
          "//conditions:default": [
--            "@local_config_tf//:libtensorflow_framework",
--            "@local_config_tf//:tf_header_lib",
+-            "@release_or_nightly//:tensorflow_libtensorflow_framework",
+-            "@release_or_nightly//:tensorflow_tf_header_lib",
 +            "@org_tensorflow//tensorflow/core:tensorflow_opensource",
 +            "@org_tensorflow//tensorflow/lite/kernels/shim:status_macros", "@org_tensorflow//tensorflow/lite/kernels/shim:tf_op_shim", "@org_tensorflow//tensorflow/lite/kernels/shim:op_kernel", "@org_tensorflow//tensorflow/lite/kernels/shim:tensor_view", "@org_tensorflow//tensorflow/lite/kernels/shim:shape",
          ] + tf_deps + oss_deps,
      })
      native.cc_library(
-@@ -200,8 +200,8 @@ def tflite_cc_library(
+@@ -205,8 +205,8 @@ def tflite_cc_library(
              "@org_tensorflow//tensorflow/core:portable_tensorflow_lib_lite",
          ],
          "//conditions:default": [
--            "@local_config_tf//:libtensorflow_framework",
--            "@local_config_tf//:tf_header_lib",
+-            "@release_or_nightly//:tensorflow_libtensorflow_framework",
+-            "@release_or_nightly//:tensorflow_tf_header_lib",
 +            "@org_tensorflow//tensorflow/core:tensorflow_opensource",
 +            "@org_tensorflow//tensorflow/lite/kernels/shim:status_macros", "@org_tensorflow//tensorflow/lite/kernels/shim:tf_op_shim", "@org_tensorflow//tensorflow/lite/kernels/shim:op_kernel", "@org_tensorflow//tensorflow/lite/kernels/shim:tensor_view", "@org_tensorflow//tensorflow/lite/kernels/shim:shape",
          ] + oss_deps,
      })
      native.cc_library(
-diff --git a/tensorflow_text/core/kernels/wordpiece_kernel.cc b/tensorflow_text/core/kernels/wordpiece_kernel.cc
-index 013a35f..0c20d3e 100644
---- a/tensorflow_text/core/kernels/wordpiece_kernel.cc
-+++ b/tensorflow_text/core/kernels/wordpiece_kernel.cc
-@@ -27,6 +27,7 @@
- #include "tensorflow/core/lib/core/threadpool.h"
- #include "tensorflow/core/lib/io/path.h"
- #include "tensorflow/core/platform/logging.h"
-+#include "tensorflow/core/public/version.h"
- #include "tensorflow_text/core/kernels/wordpiece_tokenizer.h"
- 
- namespace tensorflow {
-@@ -159,7 +160,16 @@ LookupStatus LookupTableVocab::Contains(const absl::string_view key,
-   keys.flat<tstring>()(0) = tstring(key.data(), key.size());
-   Tensor values(DT_INT64, TensorShape({1}));
-   auto status = table_->Find(ctx_, keys, &values, default_value_);
--  if (!status.ok()) return LookupStatus(status.error_message());
-+  if (!status.ok()) {
-+// On April 2023, there is not yet an official release of Tensorflow which
-+// includes `message().` One will need to wait for the release following 2.12.0.
-+// The code can be updated to just be the else branch after such release exists.
-+#if TF_GRAPH_DEF_VERSION < 1467
-+    return LookupStatus(std::string(status.error_message()));
-+#else
-+    return LookupStatus(std::string(status.message()));
-+#endif
-+  }
- 
-   if (static_cast<int64>(values.flat<int64>()(0)) != kOutOfVocabValue) {
-     *value = true;
-diff --git a/tensorflow_text/core/kernels/wordpiece_tokenizer.h b/tensorflow_text/core/kernels/wordpiece_tokenizer.h
-index d1def5b..c888aeb 100644
---- a/tensorflow_text/core/kernels/wordpiece_tokenizer.h
-+++ b/tensorflow_text/core/kernels/wordpiece_tokenizer.h
-@@ -16,6 +16,7 @@
- #define TENSORFLOW_TEXT_CORE_KERNELS_WORDPIECE_TOKENIZER_H_
- 
- #include <string>
-+#include <utility>
- #include <vector>
- 
- #include "absl/strings/string_view.h"
-@@ -25,7 +26,7 @@ namespace text {
- 
- struct LookupStatus {
-   LookupStatus() : error_msg(""), success(true) {}
--  LookupStatus(const std::string& msg) : error_msg(msg), success(false) {}
-+  LookupStatus(std::string msg) : error_msg(std::move(msg)), success(false) {}
-   std::string error_msg;
-   bool success;
- 
