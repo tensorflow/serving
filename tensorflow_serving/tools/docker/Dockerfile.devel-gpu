@@ -187,4 +187,3 @@ FROM binary_build as clean_build
 RUN bazel clean --expunge --color=yes && \
     rm -rf /root/.cache
 CMD ["/bin/bash"]
-

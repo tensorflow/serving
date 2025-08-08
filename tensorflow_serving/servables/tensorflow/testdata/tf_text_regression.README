@@ -16,4 +16,3 @@
 This model is used to test the integration with TF Text, and is updated using
 this script:
 https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/save_models.py
-

@@ -48,5 +48,3 @@ Warmup data can be added in two ways:
     `YourSavedModel/assets.extra/tf_serving_warmup_requests` based on the
     validation requests provided via
     [RequestSpec](https://www.tensorflow.org/tfx/guide/infra_validator#requestspec).
-
-
