@@ -16,11 +16,21 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_source_adapter.h"
 
 #include <memory>
+#include <string>
+#include <utility>
 
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
+#include "tensorflow/cc/saved_model/loader.h"
+#include "xla/tsl/platform/env.h"
 #include "xla/tsl/platform/errors.h"
-#include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/platform/path.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/simple_loader.h"
+#include "tensorflow_serving/core/source_adapter.h"
+#include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/resources/resource_util.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/resources/resources.pb.h"
@@ -29,10 +39,30 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/machine_learning_metadata.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_factory.h"
-#include "tensorflow_serving/servables/tensorflow/tfrt_servable.h"
 
 namespace tensorflow {
 namespace serving {
+
+// copybara:strip_begin (Do not leak in tensorflow serving OSS.)
+namespace {
+// Orbax manifest file name.
+inline constexpr char kOrbaxModelManifestPb[] = "manifest.pb";
+// Orbax manifest version file name.
+inline constexpr char kOrbaxModelManifestVersionTxt[] = "manifest_version.txt";
+
+absl::Status IsOrbaxModelDirectory(absl::string_view path) {
+  const std::string orbax_model_manifest_pb_path =
+      tensorflow::io::JoinPath(path, kOrbaxModelManifestPb);
+  const std::string orbax_model_manifest_version_path =
+      tensorflow::io::JoinPath(path, kOrbaxModelManifestVersionTxt);
+  tsl::Env* env = tsl::Env::Default();
+  TF_RETURN_IF_ERROR(env->FileExists(orbax_model_manifest_pb_path));
+  TF_RETURN_IF_ERROR(env->FileExists(orbax_model_manifest_version_path));
+  return absl::OkStatus();
+}
+
+}  // namespace
+// copybara:strip_end
 
 absl::Status TfrtSavedModelSourceAdapter::Create(
     const TfrtSavedModelSourceAdapterConfig& config,
@@ -57,9 +87,20 @@ TfrtSavedModelSourceAdapter::GetServableCreator(
   return [factory, path](const Loader::Metadata& metadata,
                          std::unique_ptr<Servable>* servable) {
     TF_RETURN_IF_ERROR(RegisterModelRoot(metadata.servable_id, path));
-    TF_RETURN_IF_ERROR(
-        factory->CreateTfrtSavedModelWithMetadata(metadata, path, servable));
-    return absl::OkStatus();
+    if (MaybeSavedModelDirectory(path)) {
+      return factory->CreateTfrtSavedModelWithMetadata(metadata, path,
+                                                       servable);
+    }
+
+    // copybara:strip_begin (Do not leak in tesorflow serving OSS.)
+    if (IsOrbaxModelDirectory(path).ok()) {
+      return factory->CreateOrbaxServable(metadata, path, servable);
+    }
+    // copybara:strip_end
+
+    return absl::InvalidArgumentError(
+        absl::StrCat("Unsupported model directory: ", path,
+                     ". Only SavedModel and Orbax Model are supported."));
   };
 }
 

@@ -16,20 +16,30 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup_util.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <utility>
 
 #include "google/protobuf/wrappers.pb.h"
+#include "absl/base/thread_annotations.h"
+#include "absl/log/log.h"
+#include "absl/status/status.h"
 #include "tensorflow/cc/saved_model/constants.h"
 #include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/kernels/batching_util/warmup.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
+#include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/env_time.h"
+#include "tensorflow/core/platform/file_system.h"
 #include "tensorflow/core/platform/mutex.h"
-#include "tensorflow/core/platform/status.h"
+#include "tensorflow/core/platform/path.h"
+#include "tensorflow/core/platform/strcat.h"
+#include "tensorflow/core/platform/tstring.h"
+#include "tensorflow/core/platform/types.h"
+#include "tensorflow_serving/util/executor.h"
 #include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {
@@ -58,22 +68,9 @@ uint64_t GetLatencyMicroseconds(const uint64_t start_microseconds) {
 constexpr char WarmupConsts::kRequestsFileName[];
 constexpr int WarmupConsts::kMaxNumRecords;
 
-absl::Status RunSavedModelWarmup(
+absl::Status RunSavedModelWarmupUntracked(
     const ModelWarmupOptions& model_warmup_options, const string export_dir,
     std::function<absl::Status(PredictionLog)> warmup_request_executor) {
-  WarmupStateRegistry::Handle warmup_handle;
-  auto per_model_data = std::make_unique<WarmupStateRegistry::PerModelData>();
-  per_model_data->warmup_all_batch_sizes =
-      model_warmup_options.enable_all_batch_sizes_warmup();
-  if (!model_warmup_options.model_name().empty()) {
-    auto h = GetGlobalWarmupStateRegistry().Register(
-        {model_warmup_options.model_name(),
-         model_warmup_options.model_version()},
-        std::move(per_model_data));
-    TF_RETURN_IF_ERROR(h.status());
-    warmup_handle = std::move(h.value());
-  }
-
   const uint64_t start_microseconds = EnvTime::NowMicros();
   const string warmup_path =
       io::JoinPath(export_dir, kSavedModelAssetsExtraDirectory,
@@ -235,6 +232,26 @@ absl::Status RunSavedModelWarmup(
             << ". Number of warmup records read: " << num_warmup_records
             << ". Elapsed time (microseconds): " << warmup_latency << ".";
   return absl::OkStatus();
+}
+
+absl::Status RunSavedModelWarmup(
+    const ModelWarmupOptions& model_warmup_options, const string export_dir,
+    std::function<absl::Status(PredictionLog)> warmup_request_executor) {
+  WarmupStateRegistry::Handle warmup_handle;
+  auto per_model_data = std::make_unique<WarmupStateRegistry::PerModelData>();
+  per_model_data->warmup_all_batch_sizes =
+      model_warmup_options.enable_all_batch_sizes_warmup();
+  if (!model_warmup_options.model_name().empty()) {
+    auto h = GetGlobalWarmupStateRegistry().Register(
+        {model_warmup_options.model_name(),
+         model_warmup_options.model_version()},
+        std::move(per_model_data));
+    TF_RETURN_IF_ERROR(h.status());
+    warmup_handle = std::move(h.value());
+  }
+
+  return RunSavedModelWarmupUntracked(model_warmup_options, export_dir,
+                                      warmup_request_executor);
 }
 
 }  // namespace internal

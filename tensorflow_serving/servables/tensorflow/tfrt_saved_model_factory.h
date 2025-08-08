@@ -16,21 +16,30 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_TFRT_SAVED_MODEL_FACTORY_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_TFRT_SAVED_MODEL_FACTORY_H_
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_set>
+#include <utility>
 
+#include "absl/base/attributes.h"
+#include "absl/base/thread_annotations.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "absl/types/optional.h"
+#include "xla/tsl/platform/macros.h"
 #include "tensorflow/core/kernels/batching_util/shared_batch_scheduler.h"
-#include "tensorflow/core/lib/core/status.h"
-#include "tensorflow/core/platform/macros.h"
+#include "tensorflow/core/platform/types.h"
+#include "tensorflow/core/tfrt/graph_executor/graph_execution_options.h"
 #include "tensorflow/core/tfrt/runtime/runtime.h"
 #include "tensorflow/core/tfrt/saved_model/saved_model.h"
 #include "tensorflow_serving/batching/tfrt_saved_model_with_batching.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/resources/resources.pb.h"
+#include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_source_adapter.pb.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_servable.h"
@@ -105,6 +114,12 @@ class TfrtSavedModelFactory {
   /// resources (e.g. CPU, RAM, etc.) may get populated.
   absl::Status EstimateResourceRequirement(const string& path,
                                            ResourceAllocation* estimate) const;
+
+  // copybara:strip_begin (Do not leak in tesorflow serving OSS.)
+  virtual absl::Status CreateOrbaxServable(const Loader::Metadata& metadata,
+                                           const string& path,
+                                           std::unique_ptr<Servable>* servable);
+  // copybara:strip_end
 
   const TfrtSavedModelConfig& config() const { return config_; }
   TfrtSavedModelConfig& mutable_config() { return config_; }
