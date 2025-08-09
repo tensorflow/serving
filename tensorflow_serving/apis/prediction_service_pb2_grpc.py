@@ -80,31 +80,31 @@ class PredictionServiceServicer:
   open source marker; do not remove
   """
 
-  def Classify(self, request, context):
+  def Classify(self, request, context): # noqa: ARG002
     """Classify."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def Regress(self, request, context):
+  def Regress(self, request, context): # noqa: ARG002
     """Regress."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def Predict(self, request, context):
+  def Predict(self, request, context): # noqa: ARG002
     """Predict -- provides access to loaded TensorFlow model."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def MultiInference(self, request, context):
+  def MultiInference(self, request, context): # noqa: ARG002
     """MultiInference API for multi-headed models."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetModelMetadata(self, request, context):
+  def GetModelMetadata(self, request, context): # noqa: ARG002
     """GetModelMetadata - provides access to metadata for loaded models."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')

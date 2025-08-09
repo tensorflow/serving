@@ -55,7 +55,7 @@ class ModelServiceStub:
 class ModelServiceServicer:
   """ModelService provides methods to query and update the state of the server e.g. which models/versions are being served."""
 
-  def GetModelStatus(self, request, context):
+  def GetModelStatus(self, request, context): # noqa: ARG002
     """Gets status of model.
 
     If the ModelSpec in the request does not specify version, information about all versions of the model will be returned. If the ModelSpec in the request does specify a version, the status of only that version will be returned.
@@ -64,7 +64,7 @@ class ModelServiceServicer:
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def HandleReloadConfigRequest(self, request, context):
+  def HandleReloadConfigRequest(self, request, context): # noqa: ARG002
     """Reloads the set of served models.
 
     The new config supersedes the old one, so if a model is omitted from the new config it will be unloaded and no longer served.
