@@ -15,7 +15,6 @@
 
 """Tests for tensorflow_model_server."""
 
-from __future__ import absolute_import, division, print_function
 
 import json
 import os
@@ -73,7 +72,7 @@ class TensorflowModelServerTest(
     in the configuration template file and writes it out to another file
     used by the test.
     """
-    with open(self._GetGoodModelConfigTemplate(), 'r') as template_file:
+    with open(self._GetGoodModelConfigTemplate()) as template_file:
       config = template_file.read().replace('${TEST_HALF_PLUS_TWO_DIR}',
                                             self._GetSavedModelBundlePath())
       config = config.replace('${TEST_HALF_PLUS_THREE_DIR}',
@@ -439,7 +438,7 @@ class TensorflowModelServerTest(
                                                      model_path)[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/v1/models/default:classify'.format(host, port)
+    url = f'http://{host}:{port}/v1/models/default:classify'
     json_req = {'signature_name': 'classify_x_to_y', 'examples': [{'x': 2.0}]}
 
     # Send request
@@ -447,7 +446,7 @@ class TensorflowModelServerTest(
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail(f'Request failed with error: {e}')
 
     # Verify response
     self.assertEqual(json.loads(resp_data.decode()), {'results': [[['', 3.0]]]})
@@ -459,7 +458,7 @@ class TensorflowModelServerTest(
                                                      model_path)[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/v1/models/default:regress'.format(host, port)
+    url = f'http://{host}:{port}/v1/models/default:regress'
     json_req = {'signature_name': 'regress_x_to_y', 'examples': [{'x': 2.0}]}
 
     # Send request
@@ -467,7 +466,7 @@ class TensorflowModelServerTest(
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail(f'Request failed with error: {e}')
 
     # Verify response
     self.assertEqual(json.loads(resp_data.decode()), {'results': [3.0]})
@@ -479,7 +478,7 @@ class TensorflowModelServerTest(
                                                      model_path)[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/v1/models/default:predict'.format(host, port)
+    url = f'http://{host}:{port}/v1/models/default:predict'
     json_req = {'instances': [2.0, 3.0, 4.0]}
 
     # Send request
@@ -487,7 +486,7 @@ class TensorflowModelServerTest(
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail(f'Request failed with error: {e}')
 
     # Verify response
     self.assertEqual(
@@ -500,7 +499,7 @@ class TensorflowModelServerTest(
                                                      model_path)[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/v1/models/default:predict'.format(host, port)
+    url = f'http://{host}:{port}/v1/models/default:predict'
     json_req = {'inputs': [2.0, 3.0, 4.0]}
 
     # Send request
@@ -508,7 +507,7 @@ class TensorflowModelServerTest(
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail(f'Request failed with error: {e}')
 
     # Verify response
     self.assertEqual(
@@ -521,14 +520,14 @@ class TensorflowModelServerTest(
                                                      model_path)[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/v1/models/default'.format(host, port)
+    url = f'http://{host}:{port}/v1/models/default'
 
     # Send request
     resp_data = None
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, None)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail(f'Request failed with error: {e}')
 
     # Verify response
     self.assertEqual(
@@ -550,14 +549,14 @@ class TensorflowModelServerTest(
                                                      model_path)[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/v1/models/default/metadata'.format(host, port)
+    url = f'http://{host}:{port}/v1/models/default/metadata'
 
     # Send request
     resp_data = None
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, None)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail(f'Request failed with error: {e}')
 
     try:
       model_metadata_file = self._GetModelMetadataFile()
@@ -573,7 +572,7 @@ class TensorflowModelServerTest(
                 json.loads(resp_data.decode())),
             tensorflow_model_server_test_base.SortedObject(expected_metadata))
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail(f'Request failed with error: {e}')
 
   def testPrometheusEndpoint(self):
     """Test ModelStatus implementation over REST API with columnar inputs."""
@@ -584,14 +583,14 @@ class TensorflowModelServerTest(
         monitoring_config_file=self._GetMonitoringConfigFile())[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/monitoring/prometheus/metrics'.format(host, port)
+    url = f'http://{host}:{port}/monitoring/prometheus/metrics'
 
     # Send request
     resp_data = None
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, None)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail(f'Request failed with error: {e}')
 
     # Verify that there should be some metric type information.
     self.assertIn('# TYPE',
@@ -738,15 +737,13 @@ class TensorflowModelServerTest(
         'default', model_path)
 
     # Prepare predict request
-    url = 'http://{}/v1/models/default:predict'.format(rest_addr)
+    url = f'http://{rest_addr}/v1/models/default:predict'
     json_req = '{"instances": [2.0, 3.0, 4.0]}'
 
     # In a subprocess, send a REST predict request every second for 3 seconds
-    exec_command = ("wget {} --content-on-error=on -O- --post-data  '{}' "
-                    "--header='Content-Type:application/json'").format(
-                        url, json_req)
-    repeat_command = 'for n in {{1..3}}; do {} & sleep 1; done;'.format(
-        exec_command)
+    exec_command = (f"wget {url} --content-on-error=on -O- --post-data  '{json_req}' "
+                    "--header='Content-Type:application/json'")
+    repeat_command = f'for n in {{1..3}}; do {exec_command} & sleep 1; done;'
     proc = subprocess.Popen(
         repeat_command,
         shell=True,
@@ -766,7 +763,7 @@ class TensorflowModelServerTest(
 
     #  Log stdout & stderr of subprocess issuing predict requests for debugging
     out, err = proc.communicate()
-    print("stdout: '{}' | stderr: '{}'".format(out, err))
+    print(f"stdout: '{out}' | stderr: '{err}'")
 
   def test_tf_text(self):
     """Test TF Text."""

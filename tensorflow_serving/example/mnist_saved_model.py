@@ -25,7 +25,6 @@ Usage: mnist_saved_model.py [--training_iteration=x] [--model_version=y] \
     export_dir
 """
 
-from __future__ import print_function
 
 import os
 import sys

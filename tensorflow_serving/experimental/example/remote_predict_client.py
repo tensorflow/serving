@@ -17,7 +17,6 @@ r"""Remote Predict Op client example.
 Example client code which calls the Remote Predict Op directly.
 """
 
-from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
 

@@ -31,7 +31,6 @@ Usage example:
 python resnet_warmup.py saved_model_dir
 """
 
-from __future__ import print_function
 
 import io
 import os

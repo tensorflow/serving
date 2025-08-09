@@ -27,7 +27,7 @@ from tensorflow_serving.apis import (
 )
 
 
-class ModelServiceStub(object):
+class ModelServiceStub:
   """ModelService provides methods to query and update the state of the server, e.g. which models/versions are being served."""
 
   def __init__(self, channel):
@@ -52,7 +52,7 @@ class ModelServiceStub(object):
     )
 
 
-class ModelServiceServicer(object):
+class ModelServiceServicer:
   """ModelService provides methods to query and update the state of the server e.g. which models/versions are being served."""
 
   def GetModelStatus(self, request, context):

@@ -14,7 +14,6 @@
 # ==============================================================================
 """Send JPEG image to tensorflow_model_server loaded with ResNet model."""
 
-from __future__ import print_function
 
 import io
 
@@ -68,7 +67,7 @@ def main(_):
       tf.make_tensor_proto(data))
   result = stub.Predict(request, 10.0)  # 10 secs timeout
   result = result.outputs['activation_49'].float_val
-  print('Prediction class: {}'.format(np.argmax(result)))
+  print(f'Prediction class: {np.argmax(result)}')
 
 
 if __name__ == '__main__':

@@ -25,7 +25,6 @@ Typical usage example:
     mnist_client.py --num_tests=100 --server=localhost:9000
 """
 
-from __future__ import print_function
 
 import sys
 import threading
@@ -46,7 +45,7 @@ tf.compat.v1.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory. ')
 FLAGS = tf.compat.v1.app.flags.FLAGS
 
 
-class _ResultCounter(object):
+class _ResultCounter:
   """Counter for the prediction results."""
 
   def __init__(self, num_tests, concurrency):

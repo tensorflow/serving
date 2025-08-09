@@ -14,7 +14,6 @@
 # ==============================================================================
 """Manual test client for tensorflow_model_server."""
 
-from __future__ import absolute_import, division, print_function
 
 import grpc
 import tensorflow as tf

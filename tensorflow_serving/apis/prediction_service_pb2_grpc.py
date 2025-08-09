@@ -35,7 +35,7 @@ from tensorflow_serving.apis import (
 )
 
 
-class PredictionServiceStub(object):
+class PredictionServiceStub:
   """PredictionService provides access to machine-learned models loaded by model_servers.
 
   open source marker; do not remove
@@ -74,7 +74,7 @@ class PredictionServiceStub(object):
         )
 
 
-class PredictionServiceServicer(object):
+class PredictionServiceServicer:
   """PredictionService provides access to machine-learned models loaded by model_servers.
 
   open source marker; do not remove
