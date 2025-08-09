@@ -117,8 +117,7 @@ def SortedObject(obj):
     return sorted(SortedObject(x) for x in obj)
   if isinstance(obj, tuple):
     return list(sorted(SortedObject(x) for x in obj))
-  else:
-    return obj
+  return obj
 
 
 def GetArgsKey(*args, **kwargs):
