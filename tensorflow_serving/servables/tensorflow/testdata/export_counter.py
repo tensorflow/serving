@@ -94,7 +94,7 @@ def export_model(output_dir):
     save_model(sess, signature_def_map, output_dir)
 
 
-def main(unused_argv):
+def main(unused_argv): # noqa: ARG001
   export_model("/tmp/saved_model_counter/00000123")
 
 
