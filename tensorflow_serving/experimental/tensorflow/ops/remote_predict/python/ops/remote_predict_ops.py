@@ -24,7 +24,7 @@ from tensorflow_serving.experimental.tensorflow.ops.remote_predict.ops import (
 )
 
 # pylint: disable=wildcard-import
-from tensorflow_serving.experimental.tensorflow.ops.remote_predict.ops.gen_remote_predict_op import *
+from tensorflow_serving.experimental.tensorflow.ops.remote_predict.ops.gen_remote_predict_op import *  # noqa: F403
 
 # pylint: enable=wildcard-import
 
