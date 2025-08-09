@@ -154,7 +154,7 @@ class DataSet:
       self._epochs_completed += 1
       # Shuffle the data
       perm = numpy.arange(self._num_examples)
-      numpy.random.shuffle(perm)
+      numpy.random.default_rng().shuffle(perm)
       self._images = self._images[perm]
       self._labels = self._labels[perm]
       # Start next epoch
