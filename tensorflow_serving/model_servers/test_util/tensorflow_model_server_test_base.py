@@ -92,7 +92,7 @@ def WaitForServerReady(port):
 
 def CallREST(url, req, max_attempts=60):
   """Returns HTTP response body from a REST API call."""
-  for attempt in range(max_attempts):
+  for attempt in range(max_attempts): # noqa: RET503
     try:
       print(f'Attempt {attempt}: Sending request to {url} with data:\n{req}')
       json_data = json.dumps(req).encode('utf-8') if req is not None else None
