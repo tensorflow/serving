@@ -82,11 +82,12 @@ def main(_):
     train_step.run(feed_dict={x: batch[0], y_: batch[1]})
   correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
   accuracy = tf.math.reduce_mean(tf.cast(correct_prediction, 'float'))
-  print('training accuracy %g' % sess.run(
+  print(f'training accuracy {sess.run(
       accuracy, feed_dict={
           x: mnist.test.images,
           y_: mnist.test.labels
-      }))
+      }):g}'
+  )
   print('Done training!')
 
   # Export model

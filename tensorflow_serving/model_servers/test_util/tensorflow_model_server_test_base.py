@@ -26,7 +26,7 @@ import time
 
 import grpc
 import tensorflow as tf
-from six.moves import range, urllib
+from six.moves import urllib
 from tensorflow.core.framework import types_pb2
 from tensorflow.python.platform import flags
 from tensorflow.python.saved_model import signature_constants
@@ -45,8 +45,7 @@ GRPC_SOCKET_PATH = '/tmp/tf-serving.sock'
 def SetVirtualCpus(num_virtual_cpus):
   """Create virtual CPU devices if they haven't yet been created."""
   if num_virtual_cpus < 1:
-    raise ValueError('`num_virtual_cpus` must be at least 1 not %r' %
-                     (num_virtual_cpus,))
+    raise ValueError(f'`num_virtual_cpus` must be at least 1 not {num_virtual_cpus!r}')
   physical_devices = tf.config.experimental.list_physical_devices('CPU')
   if not physical_devices:
     raise RuntimeError('No CPUs found')
@@ -59,8 +58,9 @@ def SetVirtualCpus(num_virtual_cpus):
         physical_devices[0], virtual_devices)
   else:
     if len(configs) < num_virtual_cpus:
-      raise RuntimeError('Already configured with %d < %d virtual CPUs' %
-                         (len(configs), num_virtual_cpus))
+      raise RuntimeError(
+        f'Already configured with {len(configs)} < {num_virtual_cpus} virtual CPUs'
+      )
 
 
 def PickUnusedPort():

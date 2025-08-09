@@ -41,7 +41,7 @@ def maybe_download(filename, work_directory):
   if not os.path.exists(filepath):
     filepath, _ = urllib.request.urlretrieve(SOURCE_URL + filename, filepath)
     statinfo = os.stat(filepath)
-    print('Successfully downloaded %s %d bytes.' % (filename, statinfo.st_size))
+    print(f'Successfully downloaded {filename} {statinfo.st_size} bytes.')
   return filepath
 
 
@@ -52,13 +52,13 @@ def _read32(bytestream):
 
 def extract_images(filename):
   """Extract the images into a 4D uint8 numpy array [index, y, x, depth]."""
-  print('Extracting %s' % filename)
+  print(f'Extracting {filename}')
   with gzip.open(filename) as bytestream:
     magic = _read32(bytestream)
     if magic != 2051:
       raise ValueError(
-          'Invalid magic number %d in MNIST image file: %s' %
-          (magic, filename))
+          f'Invalid magic number {magic} in MNIST image file: {filename}'
+      )
     num_images = _read32(bytestream)
     rows = _read32(bytestream)
     cols = _read32(bytestream)
@@ -78,13 +78,13 @@ def dense_to_one_hot(labels_dense, num_classes=10):
 
 def extract_labels(filename, one_hot=False):
   """Extract the labels into a 1D uint8 numpy array [index]."""
-  print('Extracting %s' % filename)
+  print(f'Extracting {filename}')
   with gzip.open(filename) as bytestream:
     magic = _read32(bytestream)
     if magic != 2049:
       raise ValueError(
-          'Invalid magic number %d in MNIST label file: %s' %
-          (magic, filename))
+          f'Invalid magic number {magic} in MNIST label file: {filename}'
+      )
     num_items = _read32(bytestream)
     buf = bytestream.read(num_items)
     labels = numpy.frombuffer(buf, dtype=numpy.uint8)
@@ -103,8 +103,7 @@ class DataSet:
       self.one_hot = one_hot
     else:
       assert images.shape[0] == labels.shape[0], (
-          'images.shape: %s labels.shape: %s' % (images.shape,
-                                                 labels.shape))
+          f'images.shape: {images.shape} labels.shape: {labels.shape}')
       self._num_examples = images.shape[0]
 
       # Convert shape from [num examples, rows, columns, depth]

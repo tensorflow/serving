@@ -62,8 +62,8 @@ def main():
 
   model_dir = sys.argv[-1]
   if not os.path.isdir(model_dir):
-    print('The saved model directory: %s does not exist. '
-          'Specify the path of an existing model.' % model_dir)
+    print(f'The saved model directory: {model_dir} does not exist. '
+          'Specify the path of an existing model.')
     sys.exit(-1)
 
   # Create the assets.extra directory, assuming model_dir is the versioned
@@ -98,8 +98,8 @@ def main():
           predict_log=prediction_log_pb2.PredictLog(request=request))
       writer.write(log.SerializeToString())
 
-  print('Created the file \'%s\', restart tensorflow_model_server to warmup '
-        'the ResNet SavedModel.' % warmup_file)
+  print(f'Created the file \'{warmup_file}\', restart tensorflow_model_server to warmup '
+        'the ResNet SavedModel.')
 
 if __name__ == '__main__':
   main()

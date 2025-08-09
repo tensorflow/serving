@@ -410,57 +410,39 @@ def _generate_saved_model_for_half_plus_two(
 def main(_):
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir, device_type=FLAGS.device)
-  print("SavedModel generated for %(device)s at: %(dir)s" % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir
-  })
+  print(f"SavedModel generated for {FLAGS.device} at: {FLAGS.output_dir}")
 
   _generate_saved_model_for_half_plus_two(
-      "%s_%s" % (FLAGS.output_dir_tf2, FLAGS.device),
+      f"{FLAGS.output_dir_tf2}_{FLAGS.device}",
       tf2=True,
       device_type=FLAGS.device)
   print(
-      "SavedModel TF2 generated for %(device)s at: %(dir)s" % {
-          "device": FLAGS.device,
-          "dir": "%s_%s" % (FLAGS.output_dir_tf2, FLAGS.device),
-      })
+      "SavedModel TF2 generated for {device} at: {dir}".format(
+          device=FLAGS.device,
+          dir=f"{FLAGS.output_dir_tf2}_{FLAGS.device}",
+        ))
 
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir_pbtxt, as_text=True, device_type=FLAGS.device)
-  print("SavedModel generated for %(device)s at: %(dir)s" % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir_pbtxt
-  })
+  print(f"SavedModel generated for {FLAGS.device} at: {FLAGS.output_dir_pbtxt}")
 
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir_main_op, use_main_op=True, device_type=FLAGS.device)
-  print("SavedModel generated for %(device)s at: %(dir)s " % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir_main_op
-  })
+  print(f"SavedModel generated for {FLAGS.device} at: {FLAGS.output_dir_main_op} ")
 
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir_tflite, as_tflite=True, device_type=FLAGS.device)
-  print("SavedModel in TFLite format generated for %(device)s at: %(dir)s " % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir_tflite,
-  })
+  print(f"SavedModel in TFLite format generated for {FLAGS.device} at: {FLAGS.output_dir_tflite} ")
 
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir_mlmd, include_mlmd=True, device_type=FLAGS.device)
-  print("SavedModel with MLMD generated for %(device)s at: %(dir)s " % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir_mlmd,
-  })
+  print(f"SavedModel with MLMD generated for {FLAGS.device} at: {FLAGS.output_dir_mlmd} ")
 
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir_tflite_with_sigdef, device_type=FLAGS.device,
       as_tflite_with_sigdef=True)
   print("SavedModel in TFLite format with SignatureDef generated for "
-        "%(device)s at: %(dir)s " % {
-            "device": FLAGS.device,
-            "dir": FLAGS.output_dir_tflite_with_sigdef,
-        })
+        f"{FLAGS.device} at: {FLAGS.output_dir_tflite_with_sigdef} ")
 
 
 if __name__ == "__main__":

@@ -129,12 +129,8 @@ def main(_):
                                           FLAGS.target_address,
                                           FLAGS.remote_model_name)
   print(
-      "SavedModel generated at: %(dir)s with target_address: %(target_address)s"
-      ", remote_model_name: %(remote_model_name)s. " % {
-          "dir": FLAGS.output_dir,
-          "target_address": FLAGS.target_address,
-          "remote_model_name": FLAGS.remote_model_name
-      })
+      f"SavedModel generated at: {FLAGS.output_dir} with target_address: {FLAGS.target_address}"
+      f", remote_model_name: {FLAGS.remote_model_name}. ")
 
 
 if __name__ == "__main__":

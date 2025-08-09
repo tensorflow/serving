@@ -92,9 +92,7 @@ def _generate_tflite_for_parse_example_with_string(export_dir):
 
 def main(_):
   _generate_tflite_for_parse_example_with_string(FLAGS.output_dir)
-  print("TFLite model generated at: %(dir)s" % {
-      "dir": FLAGS.output_dir
-  })
+  print(f"TFLite model generated at: {FLAGS.output_dir}")
 
 
 if __name__ == "__main__":

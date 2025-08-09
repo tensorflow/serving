@@ -56,7 +56,7 @@ def main():
   if MODEL_ACCEPT_JPG:
     # Compose a JSON Predict request (send JPEG image in base64).
     jpeg_bytes = base64.b64encode(dl_request.content).decode('utf-8')
-    predict_request = '{"instances" : [{"b64": "%s"}]}' % jpeg_bytes
+    predict_request = f'{{"instances" : [{{"b64": "{jpeg_bytes}"}}]}}'
   else:
     # Compose a JOSN Predict request (send the image tensor).
     jpeg_rgb = Image.open(io.BytesIO(dl_request.content))

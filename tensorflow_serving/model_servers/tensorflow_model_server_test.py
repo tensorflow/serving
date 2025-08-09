@@ -34,7 +34,6 @@ sys.path = ([i for i in sys.path if 'bazel-out' not in i] +
 
 import grpc
 import tensorflow.compat.v1 as tf
-from six.moves import range
 from tensorflow.python.platform import flags
 from tensorflow.python.profiler import profiler_client
 from tensorflow.python.saved_model import signature_constants
@@ -600,7 +599,7 @@ class TensorflowModelServerTest(
     """Test saved model prediction over a Unix domain socket."""
     _ = TensorflowModelServerTest.RunServer('default',
                                             self._GetSavedModelBundlePath())
-    model_server_address = 'unix:%s' % GRPC_SOCKET_PATH
+    model_server_address = f'unix:{GRPC_SOCKET_PATH}'
     self.VerifyPredictRequest(
         model_server_address,
         expected_output=3.0,
