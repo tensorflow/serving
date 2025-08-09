@@ -196,7 +196,8 @@ class HalfPlusTwoModel(tf.Module):
     }
 
   @tf.function(input_signature=[tf.TensorSpec(shape=[1], dtype=tf.float32)])
-  def predict(self, x=tf.constant([0], shape=[1], dtype=tf.float32)):
+  def predict(self, x=None):
+    x = tf.constant([0], shape=[1], dtype=tf.float32) if x is None else x
     return {"y": self.compute(x, self.b)}
 
   @tf.function(
