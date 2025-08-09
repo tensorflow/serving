@@ -384,7 +384,8 @@ def _generate_saved_model_for_half_plus_two(
         k = tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
         tflite_model = signature_def_utils.set_signature_defs(
             tflite_model, {k: predict_signature_def})
-      open(export_dir + "/model.tflite", "wb").write(tflite_model)
+      with open(export_dir + "/model.tflite", "wb") as fp:
+        fp.write(tflite_model)
     else:
       if use_main_op:
         builder.add_meta_graph_and_variables(
