@@ -22,9 +22,9 @@ repos:
     rev: v4.6.0
     hooks:
       - id: end-of-file-fixer
-        exclude: '\.svg$'
+        exclude: '\.(svg|patch)$'
       - id: trailing-whitespace
-        exclude: '\.svg$'
+        exclude: '\.(svg|patch)$'
       - id: check-json
       - id: check-yaml
         args: [--allow-multiple-documents, --unsafe]
