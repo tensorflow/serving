@@ -18,9 +18,7 @@ It contains 4 signatures: get_counter incr_counter, incr_counter_by, and
 reset_counter, to test Predict service.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import tensorflow as tf
 

@@ -16,10 +16,12 @@
 
 @@run
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
+
 from tensorflow.python.util.all_util import remove_undocumented
-from tensorflow_serving.experimental.tensorflow.ops.remote_predict.python.ops.remote_predict_ops import run
+
+from tensorflow_serving.experimental.tensorflow.ops.remote_predict.python.ops.remote_predict_ops import (
+    run,
+)
 
 remove_undocumented(__name__)

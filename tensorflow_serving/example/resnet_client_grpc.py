@@ -22,12 +22,11 @@ import io
 
 import grpc
 import numpy as np
-from PIL import Image
 import requests
 import tensorflow as tf
+from PIL import Image
 
-from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_service_pb2_grpc
+from tensorflow_serving.apis import predict_pb2, prediction_service_pb2_grpc
 
 # The image URL is the location of the image we should send to the server
 IMAGE_URL = 'https://tensorflow.org/images/blogs/serving/cat.jpg'

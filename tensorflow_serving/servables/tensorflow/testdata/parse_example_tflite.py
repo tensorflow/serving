@@ -34,7 +34,6 @@ import argparse
 import sys
 
 import tensorflow.compat.v1 as tf
-
 from tensorflow.lite.tools.signature import signature_def_utils
 
 FLAGS = None

@@ -30,11 +30,9 @@ from __future__ import print_function
 import os
 import sys
 
-import tensorflow as tf
-
-from tensorflow.python.ops import lookup_ops
-
 import mnist_input_data
+import tensorflow as tf
+from tensorflow.python.ops import lookup_ops
 
 tf.compat.v1.app.flags.DEFINE_integer('training_iteration', 1000,
                                       'number of training iterations.')

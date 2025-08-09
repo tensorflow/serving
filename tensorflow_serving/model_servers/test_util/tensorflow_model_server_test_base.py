@@ -15,9 +15,7 @@
 
 """Tests for tensorflow_model_server."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import atexit
 import json
@@ -28,15 +26,13 @@ import subprocess
 import time
 
 import grpc
-from six.moves import range
-from six.moves import urllib
 import tensorflow as tf
-
+from six.moves import range, urllib
 from tensorflow.core.framework import types_pb2
 from tensorflow.python.platform import flags
 from tensorflow.python.saved_model import signature_constants
-from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_service_pb2_grpc
+
+from tensorflow_serving.apis import predict_pb2, prediction_service_pb2_grpc
 
 FLAGS = flags.FLAGS
 

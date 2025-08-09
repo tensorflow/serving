@@ -41,8 +41,7 @@ from __future__ import print_function
 import grpc
 import tensorflow.compat.v1 as tf
 
-from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_service_pb2_grpc
+from tensorflow_serving.apis import predict_pb2, prediction_service_pb2_grpc
 
 tf.app.flags.DEFINE_string('server', 'localhost:8500',
                            'PredictionService host:port')

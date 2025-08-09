@@ -38,12 +38,11 @@ import os
 import sys
 
 import numpy as np
-from PIL import Image
 import requests
 import tensorflow as tf
-from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_log_pb2
+from PIL import Image
 
+from tensorflow_serving.apis import predict_pb2, prediction_log_pb2
 
 # IMAGE_URLS are the locations of the images we use to warmup the model
 IMAGE_URLS = ['https://tensorflow.org/images/blogs/serving/cat.jpg',

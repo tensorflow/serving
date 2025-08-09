@@ -34,8 +34,8 @@ import io
 import json
 
 import numpy as np
-from PIL import Image
 import requests
+from PIL import Image
 
 # The server URL specifies the endpoint of your server running the ResNet
 # model with the name "resnet" and using the predict interface.

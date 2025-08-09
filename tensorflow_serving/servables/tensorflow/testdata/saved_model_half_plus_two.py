@@ -45,16 +45,13 @@ To create GPU model:
   --device=gpu
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import argparse
 import os
 import sys
 
 import tensorflow.compat.v1 as tf
-
 from tensorflow.lite.tools.signature import signature_def_utils
 from tensorflow.python.lib.io import file_io
 

@@ -14,6 +14,7 @@
 # ==============================================================================
 
 import tensorflow.compat.v1 as tf
+
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string("output_dir", "/tmp/matrix_half_plus_two/1",

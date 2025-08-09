@@ -15,16 +15,13 @@
 
 """Tests for tensorflow_model_server."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import json
 import os
 import subprocess
 import sys
 import time
-
 
 # During the creation of the 'tensorflow_serving' package, bazel emits a python
 # 'tensorflow' module which contains its dependencies (e.g. example.proto).
@@ -37,19 +34,21 @@ sys.path = ([i for i in sys.path if 'bazel-out' not in i] +
 
 
 import grpc
-from six.moves import range
 import tensorflow.compat.v1 as tf
-
+from six.moves import range
 from tensorflow.python.platform import flags
 from tensorflow.python.profiler import profiler_client
 from tensorflow.python.saved_model import signature_constants
-from tensorflow_serving.apis import classification_pb2
-from tensorflow_serving.apis import get_model_metadata_pb2
-from tensorflow_serving.apis import get_model_status_pb2
-from tensorflow_serving.apis import inference_pb2
-from tensorflow_serving.apis import model_service_pb2_grpc
-from tensorflow_serving.apis import prediction_service_pb2_grpc
-from tensorflow_serving.apis import regression_pb2
+
+from tensorflow_serving.apis import (
+  classification_pb2,
+  get_model_metadata_pb2,
+  get_model_status_pb2,
+  inference_pb2,
+  model_service_pb2_grpc,
+  prediction_service_pb2_grpc,
+  regression_pb2,
+)
 from tensorflow_serving.model_servers.test_util import tensorflow_model_server_test_base
 
 FLAGS = flags.FLAGS
