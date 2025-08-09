@@ -22,14 +22,15 @@ tf.app.flags.DEFINE_string("output_dir", "/tmp/matrix_half_plus_two/1",
 
 
 def _generate_saved_model_for_matrix_half_plus_two(export_dir):
-  """Creates SavedModel for half plus two model that accepts batches of
-       3*3 matrices.
-       The model divides all elements in each matrix by 2 and adds 2 to them.
-       So, for one input matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-       the result will be [[2.5, 3, 3.5], [4, 4.5, 5], [5.5, 6, 6.5]].
-    Args:
-      export_dir: The directory where to write SavedModel files.
-    """
+  """Creates SavedModel for half plus two model that accepts batches of 3*3 matrices.
+
+     The model divides all elements in each matrix by 2 and adds 2 to them.
+     So, for one input matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+     the result will be [[2.5, 3, 3.5], [4, 4.5, 5], [5.5, 6, 6.5]].
+
+  Args:
+    export_dir: The directory where to write SavedModel files.
+  """
   builder = tf.saved_model.builder.SavedModelBuilder(export_dir)
   with tf.Session() as session:
     x = tf.placeholder(tf.float32, shape=[None, 3, 3], name="x")

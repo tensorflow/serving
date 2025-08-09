@@ -100,7 +100,6 @@ class DataSet(object):
 
   def __init__(self, images, labels, fake_data=False, one_hot=False):
     """Construct a DataSet. one_hot arg is used only if fake_data is true."""
-
     if fake_data:
       self._num_examples = 10000
       self.one_hot = one_hot

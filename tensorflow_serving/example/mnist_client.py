@@ -90,6 +90,7 @@ def _create_rpc_callback(label, result_counter):
   Args:
     label: The correct label for the predicted example.
     result_counter: Counter for the prediction result.
+
   Returns:
     The callback function.
   """

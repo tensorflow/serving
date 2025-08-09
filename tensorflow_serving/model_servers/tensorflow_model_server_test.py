@@ -313,7 +313,6 @@ class TensorflowModelServerTest(
 
   def testModelConfigReload(self):
     """Test model server polls filesystem for model configuration."""
-
     base_config_proto = """
     model_config_list: {{
       config: {{
@@ -367,7 +366,6 @@ class TensorflowModelServerTest(
 
   def testModelConfigReloadWithZeroPollPeriod(self):
     """Test model server does not poll filesystem for model config."""
-
     base_config_proto = """
     model_config_list: {{
       config: {{
@@ -734,7 +732,6 @@ class TensorflowModelServerTest(
 
   def test_profiler_service_with_valid_trace_request(self):
     """Test integration with profiler service by sending tracing requests."""
-
     # Start model server
     model_path = self._GetSavedModelBundlePath()
     _, grpc_addr, rest_addr = TensorflowModelServerTest.RunServer(

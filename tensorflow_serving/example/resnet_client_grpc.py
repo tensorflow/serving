@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Send JPEG image to tensorflow_model_server loaded with ResNet model.
-
-"""
+"""Send JPEG image to tensorflow_model_server loaded with ResNet model."""
 
 from __future__ import print_function
 

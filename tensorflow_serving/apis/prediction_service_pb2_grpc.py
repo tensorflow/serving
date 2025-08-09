@@ -36,9 +36,9 @@ from tensorflow_serving.apis import (
 
 
 class PredictionServiceStub(object):
-  """open source marker; do not remove
-  PredictionService provides access to machine-learned models loaded by
-  model_servers.
+  """PredictionService provides access to machine-learned models loaded by model_servers.
+
+  open source marker; do not remove
   """
 
   def __init__(self, channel):
@@ -75,42 +75,37 @@ class PredictionServiceStub(object):
 
 
 class PredictionServiceServicer(object):
-  """open source marker; do not remove
-  PredictionService provides access to machine-learned models loaded by
-  model_servers.
+  """PredictionService provides access to machine-learned models loaded by model_servers.
+
+  open source marker; do not remove
   """
 
   def Classify(self, request, context):
-    """Classify.
-    """
+    """Classify."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def Regress(self, request, context):
-    """Regress.
-    """
+    """Regress."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def Predict(self, request, context):
-    """Predict -- provides access to loaded TensorFlow model.
-    """
+    """Predict -- provides access to loaded TensorFlow model."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def MultiInference(self, request, context):
-    """MultiInference API for multi-headed models.
-    """
+    """MultiInference API for multi-headed models."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetModelMetadata(self, request, context):
-    """GetModelMetadata - provides access to metadata for loaded models.
-    """
+    """GetModelMetadata - provides access to metadata for loaded models."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
