@@ -46,4 +46,3 @@ inline std::unique_ptr<TestHTTPClientInterface> CreateEvHTTPConnection(
 }  // namespace tensorflow
 
 #endif  // THIRD_PARTY_TENSORFLOW_SERVING_UTIL_NET_HTTP_CLIENT_TEST_CLIENT_PUBLIC_HTTPCLIENT_H_
-
