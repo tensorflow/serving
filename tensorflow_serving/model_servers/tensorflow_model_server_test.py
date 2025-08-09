@@ -651,9 +651,9 @@ class TensorflowModelServerTest(
     base_path = os.path.join(self.get_temp_dir(), 'tf_saved_model_save')
     export_path = os.path.join(base_path, '00000123')
     root = tf.train.Checkpoint()
-    root.f = tf.function(lambda x: {'y': 1.},
+    root.f = tf.function(lambda _: {'y': 1.},
                          input_signature=[tf.TensorSpec(None, tf.float32)])
-    root.g = tf.function(lambda x: {'y': 2.},
+    root.g = tf.function(lambda _: {'y': 2.},
                          input_signature=[tf.TensorSpec(None, tf.float32)])
     tf.saved_model.experimental.save(
         root, export_path,
