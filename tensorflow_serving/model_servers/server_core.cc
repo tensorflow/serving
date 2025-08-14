@@ -25,6 +25,7 @@ limitations under the License.
 #include "google/protobuf/any.pb.h"
 #include "google/protobuf/wrappers.pb.h"
 #include "google/protobuf/util/message_differencer.h"
+#include "absl/log/log.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/strings/strcat.h"
@@ -457,6 +458,10 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
        new_config.config_case() == ModelServerConfig::kModelConfigList) ||
       protobuf::util::MessageDifferencer::Equals(config_, new_config);
   if (!accept_transition) {
+    LOG(ERROR) << "Cannot transition to requested config. It is only legal to "
+                  "transition from one ModelConfigList to another.";
+    LOG(ERROR) << "Old config: " << config_.DebugString();
+    LOG(ERROR) << "New config: " << new_config.DebugString();
     return errors::FailedPrecondition(
         "Cannot transition to requested config. It is only legal to transition "
         "from one ModelConfigList to another.");

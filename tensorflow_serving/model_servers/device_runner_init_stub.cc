@@ -22,17 +22,17 @@ limitations under the License.
 namespace tensorflow::serving {
 
 namespace {
-Status InitializeDeviceRunnerAndTopologyStub(tfrt_stub::Runtime&, int*, int*,
-                                             const DeviceRunnerOptions&) {
+absl::Status InitializeDeviceRunnerAndTopologyStub(tfrt_stub::Runtime&, int*,
+                                                   int*,
+                                                   const DeviceRunnerOptions&) {
   return tensorflow::errors::Internal(
       "device_runner_init_impl is not linked into this binary");
 }
 }  // namespace
 
-Status InitializeDeviceRunnerAndTopology(tfrt_stub::Runtime& runtime,
-                                         int* num_local_devices,
-                                         int* cores_per_chip,
-                                         const DeviceRunnerOptions& options) {
+absl::Status InitializeDeviceRunnerAndTopology(
+    tfrt_stub::Runtime& runtime, int* num_local_devices, int* cores_per_chip,
+    const DeviceRunnerOptions& options) {
   return InitializeDeviceRunnerAndTopologyFunc(runtime, num_local_devices,
                                                cores_per_chip, options);
 }
