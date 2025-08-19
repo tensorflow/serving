@@ -60,7 +60,7 @@ class RemotePredictOp : public AsyncOpKernel {
     absl::Status prediction_service_status =
         PredictionServiceStubType::Create(target_address, &prediction_service_);
     OP_REQUIRES(context, prediction_service_status.ok(),
-                tensorflow::Status(static_cast<tensorflow::errors::Code>(
+                tensorflow::Status(static_cast<::absl::StatusCode>(
                                        prediction_service_status.code()),
                                    prediction_service_status.message()));
   }
@@ -107,7 +107,7 @@ class RemotePredictOp : public AsyncOpKernel {
     auto rpc_or = prediction_service_->CreateRpc(
         absl::Milliseconds(max_rpc_deadline_millis_));
     OP_REQUIRES_ASYNC(context, rpc_or.ok(),
-                      tensorflow::Status(static_cast<tensorflow::errors::Code>(
+                      tensorflow::Status(static_cast<::absl::StatusCode>(
                                              rpc_or.status().code()),
                                          rpc_or.status().message()),
                       [&]() {
@@ -154,12 +154,11 @@ class RemotePredictOp : public AsyncOpKernel {
     // Process the response.
     if (!rpc_status.ok()) {
       if (fail_op_on_rpc_error) {
-        OP_REQUIRES_OK_ASYNC(
-            context,
-            tensorflow::Status(
-                static_cast<tensorflow::errors::Code>(rpc_status.code()),
-                rpc_status.message()),
-            rpc_cleaner.release());
+        OP_REQUIRES_OK_ASYNC(context,
+                             tensorflow::Status(static_cast<::absl::StatusCode>(
+                                                    rpc_status.code()),
+                                                rpc_status.message()),
+                             rpc_cleaner.release());
       } else {
         // Allocate some empty output for the output_tensors.
         for (int i = 0; i < output_tensors_list.size(); ++i) {

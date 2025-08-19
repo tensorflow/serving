@@ -30,6 +30,7 @@ cc_library(
         "@org_tensorflow//tensorflow/core:framework_headers_lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core/kernels:ops_util_hdrs",
+        "@org_tensorflow//tensorflow/core/platform:status",
         "@org_tensorflow//tensorflow/core/platform:statusor",
     ],
     alwayslink = 1,
