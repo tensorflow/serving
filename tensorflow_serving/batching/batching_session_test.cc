@@ -375,7 +375,7 @@ TEST_P(BatchingSessionTest, BatchingWithLargeBatch) {
     Tensor expected_output1 =
         test::AsTensor<float>({4.5, 5, 5.5, 6}, {1, 2, 2});
     std::vector<Tensor> output1;
-    Notification notify;
+    absl::Notification notify;
     std::unique_ptr<Thread> first_request_thread(
         Env::Default()->StartThread(ThreadOptions(), "first_request", [&] {
           auto status =
@@ -991,7 +991,7 @@ TEST_P(BatchingSessionTest, EnqueuedLongerThanTimeout) {
   ASSERT_FALSE(scheduler == nullptr);
 
   // Enqueue a request with a timeout specified via RunOptions.
-  Notification request_returned;
+  absl::Notification request_returned;
   auto issue_request = [&batching_session, &request_returned] {
     Tensor input = test::AsTensor<float>({100.0f, 42.0f}, {2});
     RunOptions run_options;

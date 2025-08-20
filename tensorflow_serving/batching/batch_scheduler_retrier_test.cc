@@ -20,9 +20,9 @@ limitations under the License.
 #include <utility>
 
 #include <gtest/gtest.h>
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/kernels/batching_util/fake_clock_env.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/macros.h"
@@ -149,7 +149,7 @@ TEST(BatchSchedulerRetrierTest, MaxTime) {
           options, std::move(stubborn_scheduler), &retrier));
 
       const bool expect_success = max_attempts >= num_attempts_to_succeed;
-      Notification done;
+      absl::Notification done;
       std::unique_ptr<Thread> run_retrier(Env::Default()->StartThread(
           {}, "RunRetrier",
           [&retrier, &expect_success, &done]() {
@@ -191,7 +191,7 @@ TEST(BatchSchedulerRetrierTest, RetryDelay) {
   TF_CHECK_OK(BatchSchedulerRetrier<FakeTask>::Create(
       options, std::move(stubborn_scheduler), &retrier));
 
-  Notification done;
+  absl::Notification done;
   std::unique_ptr<Thread> run_retrier(Env::Default()->StartThread(
       {}, "RunRetrier",
       [&retrier, &done]() {

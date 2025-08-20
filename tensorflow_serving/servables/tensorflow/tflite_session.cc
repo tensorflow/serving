@@ -24,6 +24,7 @@ limitations under the License.
 #include <vector>
 
 #include "absl/functional/bind_front.h"
+#include "absl/synchronization/notification.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/tensor_shape.pb.h"
 #include "tensorflow/core/framework/tensor_util.h"
@@ -630,7 +631,7 @@ absl::Status TfLiteSession::Run(
     return RunInternal(input_indices, inputs, output_tensor_names, outputs,
                        batch_size);
   }
-  Notification done;
+  absl::Notification done;
   absl::Status status;
   std::unique_ptr<TfLiteBatchTask> task;
   TfLiteBatchTask::CreateTfLiteBatchTask(&output_tensor_names, outputs, &done,

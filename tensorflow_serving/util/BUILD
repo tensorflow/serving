@@ -129,6 +129,7 @@ cc_library(
     hdrs = ["fast_read_dynamic_ptr.h"],
     visibility = ["//visibility:public"],
     deps = [
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -139,6 +140,7 @@ cc_test(
     deps = [
         ":fast_read_dynamic_ptr",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
     ],
@@ -150,6 +152,7 @@ cc_test(
     srcs = ["fast_read_dynamic_ptr_benchmark.cc"],
     deps = [
         ":fast_read_dynamic_ptr",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
