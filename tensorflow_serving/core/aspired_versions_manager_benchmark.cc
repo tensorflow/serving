@@ -27,8 +27,8 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/kernels/batching_util/periodic_function.h"
-#include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/threadpool.h"
 #include "tensorflow/core/lib/random/philox_random.h"
@@ -102,7 +102,7 @@ class BenchmarkState {
   // To avoid having the benchmark timing include time spent scheduling threads,
   // we use this notification to notify when the read threads should begin.
   // This is notified immediately after the benchmark timing is started.
-  Notification all_read_threads_scheduled_;
+  absl::Notification all_read_threads_scheduled_;
 
   // Store the update thread as it is only safe to complete teardown and
   // destruct state after it has exited.

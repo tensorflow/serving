@@ -26,9 +26,9 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/synchronization/notification.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
@@ -529,7 +529,7 @@ TEST_P(AspiredVersionsManagerTest, RevertToSmallerVersionNumber) {
   manager_->GetAspiredVersionsCallback()(kServableName,
                                          std::move(new_aspired_versions));
   HandlePendingAspiredVersionsRequests();
-  Notification done_transitioning;
+  absl::Notification done_transitioning;
   std::unique_ptr<Thread> transition_servables(
       Env::Default()->StartThread({}, "TransitionServables", [&]() {
         while (!done_transitioning.HasBeenNotified()) {
@@ -812,7 +812,7 @@ TEST_P(AspiredVersionsManagerTest, DestructOnNonServingThread) {
   manager_->GetAspiredVersionsCallback()(kServableName, {});
   HandlePendingAspiredVersionsRequests();
 
-  Notification done_unload_servable;
+  absl::Notification done_unload_servable;
   std::unique_ptr<Thread> unload_servable(
       Env::Default()->StartThread({}, "UnloadServable", [&]() {
         // Unload the servable.
@@ -904,8 +904,8 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(start_state));
 
-  Notification load_called;
-  Notification load_continue;
+  absl::Notification load_called;
+  absl::Notification load_continue;
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&]() {
         load_called.Notify();
@@ -942,8 +942,8 @@ TEST_P(AspiredVersionsManagerTest, EventBusServableLifecycle) {
   manager_->GetAspiredVersionsCallback()(kServableName, {});
   HandlePendingAspiredVersionsRequests();
 
-  Notification unload_called;
-  Notification unload_continue;
+  absl::Notification unload_called;
+  absl::Notification unload_continue;
   EXPECT_CALL(*loader, Unload()).WillOnce(Invoke([&]() {
     unload_called.Notify();
     unload_continue.WaitForNotification();
@@ -1163,7 +1163,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   // The manager should wait until it is able to unload the first loader, then
   // bring up the second loader.
 
-  Notification first_unload_called;
+  absl::Notification first_unload_called;
   EXPECT_CALL(*first_loader, Unload()).WillOnce(InvokeWithoutArgs([&]() {
     first_unload_called.Notify();
   }));
@@ -1187,7 +1187,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireThenImmediatelyReaspire) {
   test_util::MockLoader* second_loader = new NiceMock<test_util::MockLoader>();
   second_aspired_versions.push_back(
       {id, std::unique_ptr<Loader>(second_loader)});
-  Notification second_load_called;
+  absl::Notification second_load_called;
   EXPECT_CALL(*second_loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&]() {
         second_load_called.Notify();
@@ -1257,7 +1257,7 @@ TEST_P(AspiredVersionsManagerTest,
   test_util::MockLoader* second_loader = new NiceMock<test_util::MockLoader>();
   second_aspired_versions.push_back(
       {id, std::unique_ptr<Loader>(second_loader)});
-  Notification second_load_called;
+  absl::Notification second_load_called;
   EXPECT_CALL(*second_loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&]() {
         second_load_called.Notify();
@@ -1316,7 +1316,7 @@ TEST_P(AspiredVersionsManagerTest, UnaspireNewServableThenImmediatelyReaspire) {
   test_util::MockLoader* second_loader = new NiceMock<test_util::MockLoader>();
   second_aspired_versions.push_back(
       {id, std::unique_ptr<Loader>(second_loader)});
-  Notification second_load_called;
+  absl::Notification second_load_called;
   EXPECT_CALL(*second_loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillOnce(InvokeWithoutArgs([&]() {
         second_load_called.Notify();

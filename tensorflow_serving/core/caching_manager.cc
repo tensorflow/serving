@@ -20,6 +20,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/synchronization/notification.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
@@ -160,7 +161,7 @@ absl::Status CachingManager::LoadServable(
         return errors::Internal(error_msg);
       }
 
-      Notification load_done;
+      absl::Notification load_done;
       absl::Status load_status;
       basic_manager_->LoadServable(servable_id,
                                    [&](const absl::Status& status) {

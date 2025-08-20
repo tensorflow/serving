@@ -19,6 +19,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
@@ -240,7 +241,7 @@ bool ServableStateMonitor::WaitUntilServablesReachStateWithTimeout(
     const ServableState::ManagerState goal_state, absl::Duration timeout,
     std::map<ServableId, ServableState::ManagerState>* const states_reached) {
   bool reached_goal_state = false;
-  Notification notified;
+  absl::Notification notified;
   NotifyWhenServablesReachState(
       servables, goal_state,
       [&](const bool incoming_reached_goal_state,

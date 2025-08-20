@@ -21,6 +21,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/kernels/batching_util/fake_clock_env.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/env.h"
@@ -389,7 +390,7 @@ TEST_F(ServableStateMonitorTest, NotifyWhenServablesReachStateZeroServables) {
 
   using ManagerState = ServableState::ManagerState;
 
-  Notification notified;
+  absl::Notification notified;
   monitor_->NotifyWhenServablesReachState(
       servables, ManagerState::kAvailable,
       [&](const bool reached,
@@ -412,7 +413,7 @@ TEST_F(ServableStateMonitorTest,
   const ServableState specific_goal_state = {
       specific_goal_state_id, ManagerState::kAvailable, absl::OkStatus()};
 
-  Notification notified;
+  absl::Notification notified;
   monitor_->NotifyWhenServablesReachState(
       servables, ManagerState::kAvailable,
       [&](const bool reached,
@@ -437,7 +438,7 @@ TEST_F(ServableStateMonitorTest, NotifyWhenServablesReachStateSpecificError) {
   const ServableState specific_error_state = {
       specific_error_state_id, ManagerState::kEnd, errors::Internal("error")};
 
-  Notification notified;
+  absl::Notification notified;
   monitor_->NotifyWhenServablesReachState(
       servables, ManagerState::kAvailable,
       [&](const bool reached,
@@ -464,7 +465,7 @@ TEST_F(ServableStateMonitorTest,
       servable_stream_available_state_id, ManagerState::kAvailable,
       absl::OkStatus()};
 
-  Notification notified;
+  absl::Notification notified;
   monitor_->NotifyWhenServablesReachState(
       servables, ManagerState::kAvailable,
       [&](const bool reached,
@@ -490,7 +491,7 @@ TEST_F(ServableStateMonitorTest, NotifyWhenServablesReachStateLatestError) {
       servable_stream_error_state_id, ManagerState::kEnd,
       errors::Internal("error")};
 
-  Notification notified;
+  absl::Notification notified;
   monitor_->NotifyWhenServablesReachState(
       servables, ManagerState::kAvailable,
       [&](const bool reached,
@@ -518,7 +519,7 @@ TEST_F(ServableStateMonitorTest,
   servables.push_back(ServableRequest::Latest("servable_stream"));
   const ServableId servable_stream_id = {"servable_stream", 7};
 
-  Notification notified;
+  absl::Notification notified;
   monitor_->NotifyWhenServablesReachState(
       servables, ManagerState::kAvailable,
       [&](const bool reached,
@@ -558,7 +559,7 @@ TEST_F(ServableStateMonitorTest,
   const ServableState specific_goal_state = {
       specific_goal_state_id, ManagerState::kAvailable, absl::OkStatus()};
 
-  Notification notified;
+  absl::Notification notified;
   monitor_->NotifyWhenServablesReachState(
       servables, ManagerState::kAvailable,
       [&](const bool reached,
@@ -600,7 +601,7 @@ TEST_F(ServableStateMonitorTest,
   bus_->Publish(specific_error_state);
 
   std::map<ServableId, ManagerState> states_reached;
-  Notification waiting_done;
+  absl::Notification waiting_done;
   std::unique_ptr<Thread> wait_till_servable_state_reached(
       Env::Default()->StartThread({}, "WaitUntilServablesReachState", [&]() {
         EXPECT_FALSE(monitor_->WaitUntilServablesReachState(
