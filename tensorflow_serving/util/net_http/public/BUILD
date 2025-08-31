@@ -1,5 +1,7 @@
 # Description: shared files
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 package(default_visibility = [
     ":http_server_clients",
     "//tensorflow_serving:internal",
