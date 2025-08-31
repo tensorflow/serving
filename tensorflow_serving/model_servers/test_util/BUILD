@@ -1,5 +1,7 @@
 # Description: Model Server test utility
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 # Placeholder: load py_library
 load("//tensorflow_serving:serving.bzl", "if_google", "serving_proto_library")
 

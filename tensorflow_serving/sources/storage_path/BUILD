@@ -1,5 +1,7 @@
 # Description: Tensorflow Serving storage path sources.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 package(

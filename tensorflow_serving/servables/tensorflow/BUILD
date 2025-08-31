@@ -1,6 +1,9 @@
 # Description: TensorFlow servables.
 
 load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_proto_library")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("//tensorflow_serving:serving.bzl", "if_google", "if_oss", "serving_proto_library", "serving_proto_library_py", "serving_tensorflow_proto_dep")
 
 package(

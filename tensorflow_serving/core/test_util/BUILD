@@ -1,5 +1,6 @@
 # Description: Tensorflow Serving core test utils.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 package(

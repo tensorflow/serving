@@ -1,5 +1,8 @@
 # Description: Tensorflow Serving batching.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 package(
     default_visibility = ["//tensorflow_serving:internal"],
     features = ["-layering_check"],

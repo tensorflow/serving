@@ -3,6 +3,9 @@
 # Placeholder: load py_binary
 # Placeholder: load py_test
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_google", "if_libtpu", "if_with_tpu_support")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 
