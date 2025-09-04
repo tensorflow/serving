@@ -17,6 +17,8 @@ limitations under the License.
 
 #include "google/protobuf/wrappers.pb.h"
 #include "google/protobuf/map.h"
+#include "absl/flags/declare.h"
+#include "absl/flags/flag.h"
 #include "absl/status/status.h"
 #include "absl/time/time.h"
 #include "tensorflow/core/framework/common_shape_fns.h"
@@ -33,6 +35,8 @@ limitations under the License.
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
+
+ABSL_DECLARE_FLAG(bool, remote_predict_op_use_tensor_content);
 
 namespace tensorflow {
 namespace serving {
@@ -94,7 +98,11 @@ class RemotePredictOp : public AsyncOpKernel {
     AliasTensorMap& inputs = *request->mutable_inputs();
     for (int i = 0; i < input_tensor_aliases.size(); ++i) {
       tensorflow::TensorProto proto;
-      input_tensors[i].AsProtoField(&proto);
+      if (absl::GetFlag(FLAGS_remote_predict_op_use_tensor_content)) {
+        input_tensors[i].AsProtoTensorContent(&proto);
+      } else {
+        input_tensors[i].AsProtoField(&proto);
+      }
       inputs[input_tensor_aliases(i)] = proto;
     }
 

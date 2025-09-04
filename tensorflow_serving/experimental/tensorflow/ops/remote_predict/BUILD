@@ -27,6 +27,7 @@ cc_library(
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/apis:prediction_service_cc_proto",
         "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
         "@com_google_protobuf//:protobuf_lite",
@@ -42,6 +43,7 @@ cc_library(
 tf_gen_op_libs(
     op_lib_names = ["remote_predict_op"],
     deps = [
+        "@com_google_absl//absl/flags:flag",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -88,6 +90,7 @@ tf_kernel_library(
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/apis:prediction_service_cc_proto",
         "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
         "@com_google_protobuf//:cc_wkt_protos",
@@ -141,6 +144,7 @@ cc_test(
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/apis:prediction_service_cc_proto",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
         "@com_google_protobuf//:cc_wkt_protos",
