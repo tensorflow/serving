@@ -2,10 +2,7 @@
 
 # Placeholder: load py_binary
 
-package(
-    default_visibility = ["//tensorflow_serving:internal"],
-    features = ["no_layering_check"],
-)
+package(features = ["no_layering_check"])
 
 licenses(["notice"])
 
