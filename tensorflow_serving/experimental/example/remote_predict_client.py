@@ -17,11 +17,12 @@ r"""Remote Predict Op client example.
 Example client code which calls the Remote Predict Op directly.
 """
 
-from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
 
-from tensorflow_serving.experimental.tensorflow.ops.remote_predict.python.ops import remote_predict_ops
+from tensorflow_serving.experimental.tensorflow.ops.remote_predict.python.ops import (
+  remote_predict_ops,
+)
 
 tf.app.flags.DEFINE_string("input_tensor_aliases", "x",
                            "Aliases of input tensors")
@@ -40,7 +41,7 @@ tf.app.flags.DEFINE_integer("rpc_deadline_millis", 30000,
 FLAGS = tf.app.flags.FLAGS
 
 
-def main(unused_argv):
+def main(unused_argv): # noqa: ARG001
   print("Call remote_predict_op")
   results = remote_predict_ops.run(
       [FLAGS.input_tensor_aliases],

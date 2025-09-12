@@ -25,19 +25,16 @@ Typical usage example:
     mnist_client.py --num_tests=100 --server=localhost:9000
 """
 
-from __future__ import print_function
 
 import sys
 import threading
 
 import grpc
+import mnist_input_data
 import numpy
 import tensorflow as tf
 
-from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_service_pb2_grpc
-import mnist_input_data
-
+from tensorflow_serving.apis import predict_pb2, prediction_service_pb2_grpc
 
 tf.compat.v1.app.flags.DEFINE_integer(
     'concurrency', 1, 'maximum number of concurrent inference requests')
@@ -48,7 +45,7 @@ tf.compat.v1.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory. ')
 FLAGS = tf.compat.v1.app.flags.FLAGS
 
 
-class _ResultCounter(object):
+class _ResultCounter:
   """Counter for the prediction results."""
 
   def __init__(self, num_tests, concurrency):
@@ -92,6 +89,7 @@ def _create_rpc_callback(label, result_counter):
   Args:
     label: The correct label for the predicted example.
     result_counter: Counter for the prediction result.
+
   Returns:
     The callback function.
   """
