@@ -96,8 +96,8 @@ absl::Status ConnectSourcesWithFastInitialLoad(
                        ServableState::ManagerState::kAvailable;
               });
           string message =
-              strings::StrCat(num_unavailable_servables,
-                              " servable(s) did not become available: {");
+              absl::StrCat(num_unavailable_servables,
+                           " servable(s) did not become available: {");
           for (const auto& id_and_state : states_reached) {
             if (id_and_state.second !=
                 ServableState::ManagerState::kAvailable) {
@@ -108,12 +108,11 @@ absl::Status ConnectSourcesWithFastInitialLoad(
                       ? " due to error: " +
                             maybe_state.value().health.ToString()
                       : "";
-              strings::StrAppend(&message, "{",
-                                 id_and_state.first.DebugString(), error_msg,
-                                 "}, ");
+              absl::StrAppend(&message, "{", id_and_state.first.DebugString(),
+                              error_msg, "}, ");
             }
           }
-          strings::StrAppend(&message, "}");
+          absl::StrAppend(&message, "}");
           return errors::Unknown(message);
         }
         return absl::OkStatus();

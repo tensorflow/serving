@@ -751,8 +751,8 @@ absl::Status BasicManager::ReserveResources(LoaderHarness* harness,
     // We retry reserving resources because it may involve transiently failing
     // operations like file-reads.
     const absl::Status reserve_resources_status = Retry(
-        strings::StrCat("Reserving resources for servable: ",
-                        harness->id().DebugString()),
+        absl::StrCat("Reserving resources for servable: ",
+                     harness->id().DebugString()),
         harness_options_.max_num_load_retries,
         harness_options_.load_retry_interval_micros,
         [&]() TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
@@ -763,7 +763,7 @@ absl::Status BasicManager::ReserveResources(LoaderHarness* harness,
     if (!reserve_resources_status.ok()) {
       return absl::Status(
           reserve_resources_status.code(),
-          strings::StrCat(
+          absl::StrCat(
               "Error while attempting to reserve resources to load servable ",
               harness->id().DebugString(), ": ",
               reserve_resources_status.message()));

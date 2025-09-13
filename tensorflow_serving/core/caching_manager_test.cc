@@ -64,7 +64,7 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
 
     auto servable_creator = [&](std::unique_ptr<string>* servable) {
       servable->reset(new string);
-      **servable = strings::StrCat(id.name, "-", id.version);
+      **servable = absl::StrCat(id.name, "-", id.version);
       return absl::OkStatus();
     };
     std::unique_ptr<Loader> loader;

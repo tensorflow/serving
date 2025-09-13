@@ -105,8 +105,8 @@ absl::optional<ServableId> HasAnyServableInStreamReachedState(
 }  // namespace
 
 string ServableStateMonitor::ServableStateAndTime::DebugString() const {
-  return strings::StrCat("state: {", state.DebugString(),
-                         "}, event_time_micros: ", event_time_micros);
+  return absl::StrCat("state: {", state.DebugString(),
+                      "}, event_time_micros: ", event_time_micros);
 }
 
 ServableStateMonitor::ServableStateMonitor(EventBus<ServableState>* bus,

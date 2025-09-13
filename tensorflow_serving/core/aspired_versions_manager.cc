@@ -97,7 +97,7 @@ absl::Status ValidateAspiredVersions(
     const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) {
   for (const auto& version : versions) {
     if (servable_name != version.id().name) {
-      return errors::InvalidArgument(strings::StrCat(
+      return errors::InvalidArgument(absl::StrCat(
           "Servable name: ", servable_name,
           " doesn't match name in servable version: ", version.id().name));
     }

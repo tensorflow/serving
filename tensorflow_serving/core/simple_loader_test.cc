@@ -263,7 +263,7 @@ TEST(SimpleLoaderSourceAdapterTest, Basic) {
   SimpleLoaderSourceAdapterImpl<string, string> adapter(
       [](const string& data, std::unique_ptr<string>* servable) {
         servable->reset(new string);
-        **servable = strings::StrCat(data, "_was_here");
+        **servable = absl::StrCat(data, "_was_here");
         return absl::OkStatus();
       },
       [](const string& data, ResourceAllocation* output) {
@@ -312,7 +312,7 @@ TEST(SimpleLoaderSourceAdapterTest, OkayToDeleteAdapter) {
         new SimpleLoaderSourceAdapterImpl<string, string>(
             [](const string& data, std::unique_ptr<string>* servable) {
               servable->reset(new string);
-              **servable = strings::StrCat(data, "_was_here");
+              **servable = absl::StrCat(data, "_was_here");
               return absl::OkStatus();
             },
             SimpleLoaderSourceAdapter<string, string>::EstimateNoResources()));
