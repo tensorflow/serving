@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         automake \
         build-essential \
         ca-certificates \
+        gnupg \
         curl \
         git \
         gcc-10 \
@@ -35,10 +36,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libtool \
         libzmq3-dev \
         mlocate \
-        openjdk-8-jdk\
-        openjdk-8-jre-headless \
+        openjdk-11-jdk\
+        openjdk-11-jre-headless \
         pkg-config \
-        python-dev \
+        python3-dev \
         software-properties-common \
         swig \
         unzip \
