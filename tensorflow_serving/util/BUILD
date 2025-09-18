@@ -368,6 +368,7 @@ cc_test(
         ":proto_util",
         "//tensorflow_serving/apis:status_cc_proto",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/status",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
