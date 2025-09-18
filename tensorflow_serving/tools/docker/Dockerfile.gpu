@@ -59,7 +59,8 @@ RUN apt-get install -y --no-install-recommends \
         libfreetype6-dev \
         pkg-config \
         software-properties-common \
-        unzip
+        unzip \
+        cuda-compiler-11-8
 
 # Install TF Serving GPU pkg
 COPY --from=build_image /usr/local/bin/tensorflow_model_server /usr/bin/tensorflow_model_server
