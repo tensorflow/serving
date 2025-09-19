@@ -45,7 +45,7 @@ ScopedThreadPools GetThreadPools(ThreadPoolFactory *thread_pool_factory) {
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
 
-  const ::tensorflow::Status tf_status =
+  const absl::Status tf_status =
       predictor_->Predict(run_options, core_, *request, response);
   const ::grpc::Status status = ToGRPCStatus(tf_status);
 
@@ -83,10 +83,9 @@ ScopedThreadPools GetThreadPools(ThreadPoolFactory *thread_pool_factory) {
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
 
-  const ::tensorflow::Status tf_status =
-      TensorflowClassificationServiceImpl::Classify(
-          run_options, core_, GetThreadPools(thread_pool_factory_).get(),
-          *request, response);
+  const absl::Status tf_status = TensorflowClassificationServiceImpl::Classify(
+      run_options, core_, GetThreadPools(thread_pool_factory_).get(), *request,
+      response);
   const ::grpc::Status status = ToGRPCStatus(tf_status);
 
   if (status.ok()) {
@@ -112,10 +111,9 @@ ScopedThreadPools GetThreadPools(ThreadPoolFactory *thread_pool_factory) {
         DeadlineToTimeoutMillis(context->raw_deadline()));
   }
 
-  const ::tensorflow::Status tf_status =
-      TensorflowRegressionServiceImpl::Regress(
-          run_options, core_, GetThreadPools(thread_pool_factory_).get(),
-          *request, response);
+  const absl::Status tf_status = TensorflowRegressionServiceImpl::Regress(
+      run_options, core_, GetThreadPools(thread_pool_factory_).get(), *request,
+      response);
   const ::grpc::Status status = ToGRPCStatus(tf_status);
 
   if (status.ok()) {

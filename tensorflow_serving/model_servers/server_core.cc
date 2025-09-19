@@ -49,12 +49,12 @@ namespace serving {
 namespace {
 
 // Gets the platform associated with a model.
-Status GetPlatform(const ModelConfig& model_config, string* platform) {
+absl::Status GetPlatform(const ModelConfig& model_config, string* platform) {
   if (model_config.model_type() != ModelType::MODEL_TYPE_UNSPECIFIED) {
     LOG(WARNING) << "Deprecated ModelServerConfig::model_type field used. "
                     "Prefer ModelServerConfig::model_platform.";
     if (!model_config.model_platform().empty()) {
-      return errors::InvalidArgument(strings::StrCat(
+      return errors::InvalidArgument(absl::StrCat(
           "Illegal setting both ModelServerConfig::model_type (deprecated) "
           "and ModelServerConfig::model_platform, model name is ",
           model_config.name()));
@@ -63,15 +63,15 @@ Status GetPlatform(const ModelConfig& model_config, string* platform) {
       *platform = kTensorFlowModelPlatform;
     } else {
       return errors::InvalidArgument(
-          strings::StrCat("ModelServerConfig::model_type choice ",
-                          model_config.model_type(), " not supported."));
+          absl::StrCat("ModelServerConfig::model_type choice ",
+                       model_config.model_type(), " not supported."));
     }
   } else {
     *platform = model_config.model_platform();
   }
 
   if (platform->empty()) {
-    return errors::InvalidArgument(strings::StrCat(
+    return errors::InvalidArgument(absl::StrCat(
         "Illegal setting neither ModelServerConfig::model_type (deprecated) "
         "nor ModelServerConfig::model_platform, model name is ",
         model_config.name()));
@@ -80,23 +80,23 @@ Status GetPlatform(const ModelConfig& model_config, string* platform) {
 }
 
 // Determines whether a URI is just a relative path.
-bool UriIsRelativePath(StringPiece uri) {
-  StringPiece scheme, host, path;
+bool UriIsRelativePath(absl::string_view uri) {
+  absl::string_view scheme, host, path;
   io::ParseURI(uri, &scheme, &host, &path);
   return scheme.empty() && host.empty() && !io::IsAbsolutePath(path);
 }
 
 // Returns an error if 'config_list' is invalid in some way, e.g. a model name
 // appearing multiple times.
-Status ValidateModelConfigList(const ModelConfigList& config_list,
-                               const ServerCore::Options& options) {
+absl::Status ValidateModelConfigList(const ModelConfigList& config_list,
+                                     const ServerCore::Options& options) {
   // Unique model-names.
   std::set<string> model_names;
   for (const ModelConfig& config : config_list.config()) {
     if (model_names.find(config.name()) != model_names.end()) {
       return errors::InvalidArgument(
-          strings::StrCat("Illegal to list model ", config.name(),
-                          " multiple times in config list"));
+          absl::StrCat("Illegal to list model ", config.name(),
+                       " multiple times in config list"));
     }
     model_names.insert(config.name());
   }
@@ -107,18 +107,18 @@ Status ValidateModelConfigList(const ModelConfigList& config_list,
     // All base-paths must be relative.
     if (UriIsRelativePath(*options.model_config_list_root_dir)) {
       return errors::InvalidArgument(
-          strings::StrCat("Expected non-empty absolute path or URI; got "
-                          "model_config_list_root_dir=",
-                          *options.model_config_list_root_dir));
+          absl::StrCat("Expected non-empty absolute path or URI; got "
+                       "model_config_list_root_dir=",
+                       *options.model_config_list_root_dir));
     }
   } else {
     // All base-paths must be absolute.
     for (const ModelConfig& config : config_list.config()) {
       if (UriIsRelativePath(config.base_path())) {
-        return errors::InvalidArgument(strings::StrCat(
-            "Expected model ", config.name(),
-            " to have an absolute path or URI; got base_path()=",
-            config.base_path()));
+        return errors::InvalidArgument(
+            absl::StrCat("Expected model ", config.name(),
+                         " to have an absolute path or URI; got base_path()=",
+                         config.base_path()));
       }
     }
   }
@@ -128,8 +128,9 @@ Status ValidateModelConfigList(const ModelConfigList& config_list,
 
 // Returns an error if a model exists in both configs, but with different
 // platforms.
-Status ValidateNoModelsChangePlatforms(const ModelConfigList& old_config_list,
-                                       const ModelConfigList& new_config_list) {
+absl::Status ValidateNoModelsChangePlatforms(
+    const ModelConfigList& old_config_list,
+    const ModelConfigList& new_config_list) {
   std::map<string, string> old_model_platforms;
   for (const ModelConfig& old_config : old_config_list.config()) {
     string platform;
@@ -156,9 +157,9 @@ Status ValidateNoModelsChangePlatforms(const ModelConfigList& old_config_list,
 
 // Unions two route maps. Gives an error if there is a key that is present in
 // both 'a' and 'b' but with different values.
-Status UnionRoutes(const DynamicSourceRouter<StoragePath>::Routes& a,
-                   const DynamicSourceRouter<StoragePath>::Routes& b,
-                   DynamicSourceRouter<StoragePath>::Routes* result) {
+absl::Status UnionRoutes(const DynamicSourceRouter<StoragePath>::Routes& a,
+                         const DynamicSourceRouter<StoragePath>::Routes& b,
+                         DynamicSourceRouter<StoragePath>::Routes* result) {
   *result = a;
   for (const auto& b_entry : b) {
     auto a_it = a.find(b_entry.first);
@@ -198,7 +199,7 @@ std::set<string> NewModelNamesInSourceConfig(
 // Updates the base_path fields in each ModelConfig, prepending an
 // absolute model_config_list_root_dir.
 // It is assumed that initially, all the base_path fields are relative.
-Status UpdateModelConfigListRelativePaths(
+absl::Status UpdateModelConfigListRelativePaths(
     const string& model_config_list_root_dir, ModelConfigList* config_list) {
   std::vector<string> updated_paths;
   updated_paths.reserve(config_list->config_size());
@@ -230,8 +231,8 @@ Status UpdateModelConfigListRelativePaths(
 // Public Methods.
 // ************************************************************************
 
-Status ServerCore::Create(Options options,
-                          std::unique_ptr<ServerCore>* server_core) {
+absl::Status ServerCore::Create(Options options,
+                                std::unique_ptr<ServerCore>* server_core) {
   if (options.servable_state_monitor_creator == nullptr) {
     options.servable_state_monitor_creator =
         [](EventBus<ServableState>* event_bus,
@@ -276,11 +277,11 @@ ServerCore::ServerCore(Options options)
   }
 }
 
-Status ServerCore::Initialize(
+absl::Status ServerCore::Initialize(
     std::unique_ptr<AspiredVersionPolicy> policy,
     AspiredVersionsManager::CustomSortActionsFn custom_sort_actions) {
   std::unique_ptr<ServableStateMonitor> servable_state_monitor;
-  const tensorflow::Status status = options_.servable_state_monitor_creator(
+  const absl::Status status = options_.servable_state_monitor_creator(
       servable_event_bus_.get(), &servable_state_monitor);
   if (!status.ok()) {
     VLOG(1) << "Servable state monitor creation failed: " << status;
@@ -298,8 +299,8 @@ Status ServerCore::Initialize(
   return absl::OkStatus();
 }
 
-Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
-                                            ServableStateMonitor* monitor) {
+absl::Status ServerCore::WaitUntilModelsAvailable(
+    const std::set<string>& models, ServableStateMonitor* monitor) {
   std::vector<ServableRequest> awaited_servables;
   awaited_servables.reserve(models.size());
   for (const string& model : models) {
@@ -317,8 +318,8 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
                id_and_state) {
           return id_and_state.second != ServableState::ManagerState::kAvailable;
         });
-    string message = strings::StrCat(num_unavailable_models,
-                                     " model(s) did not become available: {");
+    string message = absl::StrCat(num_unavailable_models,
+                                  " model(s) did not become available: {");
     for (const auto& id_and_state : states_reached) {
       if (id_and_state.second != ServableState::ManagerState::kAvailable) {
         absl::optional<ServableState> maybe_state =
@@ -327,17 +328,17 @@ Status ServerCore::WaitUntilModelsAvailable(const std::set<string>& models,
             maybe_state && !maybe_state.value().health.ok()
                 ? " due to error: " + maybe_state.value().health.ToString()
                 : "";
-        strings::StrAppend(&message, "{", id_and_state.first.DebugString(),
-                           error_msg, "}, ");
+        absl::StrAppend(&message, "{", id_and_state.first.DebugString(),
+                        error_msg, "}, ");
       }
     }
-    strings::StrAppend(&message, "}");
+    absl::StrAppend(&message, "}");
     return errors::Unknown(message);
   }
   return absl::OkStatus();
 }
 
-Status ServerCore::AddModelsViaModelConfigList() {
+absl::Status ServerCore::AddModelsViaModelConfigList() {
   const bool is_first_config = storage_path_source_and_router_ == absl::nullopt;
 
   // Create/reload the source, source router and source adapters.
@@ -391,7 +392,7 @@ Status ServerCore::AddModelsViaModelConfigList() {
 
     // First, add the new routes without removing the old ones.
     DynamicSourceRouter<StoragePath>::Routes old_and_new_routes;
-    const Status union_status =
+    const absl::Status union_status =
         UnionRoutes(storage_path_source_and_router_->router->GetRoutes(),
                     routes, &old_and_new_routes);
     if (!union_status.ok()) {
@@ -415,7 +416,7 @@ Status ServerCore::AddModelsViaModelConfigList() {
   return absl::OkStatus();
 }
 
-Status ServerCore::AddModelsViaCustomModelConfig() {
+absl::Status ServerCore::AddModelsViaCustomModelConfig() {
   if (options_.custom_model_config_loader == nullptr) {
     return errors::InvalidArgument(
         "Missing custom_model_config_loader in ServerCore Options");
@@ -425,7 +426,7 @@ Status ServerCore::AddModelsViaCustomModelConfig() {
       config_.custom_model_config(), servable_event_bus_.get(), &manager_);
 }
 
-Status ServerCore::MaybeUpdateServerRequestLogger(
+absl::Status ServerCore::MaybeUpdateServerRequestLogger(
     const ModelServerConfig::ConfigCase config_case) {
   if (options_.server_request_logger_updater) {
     return options_.server_request_logger_updater(
@@ -446,7 +447,7 @@ Status ServerCore::MaybeUpdateServerRequestLogger(
   return absl::OkStatus();
 }
 
-Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
+absl::Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   mutex_lock l(config_mu_);
 
   // Determine whether to accept this config transition.
@@ -518,7 +519,7 @@ Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   return absl::OkStatus();
 }
 
-Status ServerCore::UpdateModelVersionLabelMap() {
+absl::Status ServerCore::UpdateModelVersionLabelMap() {
   std::unique_ptr<std::map<string, std::map<string, int64_t>>> new_label_map(
       new std::map<string, std::map<string, int64_t>>);
   for (const ModelConfig& model_config : config_.model_config_list().config()) {
@@ -585,18 +586,18 @@ Status ServerCore::UpdateModelVersionLabelMap() {
   return absl::OkStatus();
 }
 
-Status ServerCore::CreateAdapter(
+absl::Status ServerCore::CreateAdapter(
     const string& model_platform,
     std::unique_ptr<StoragePathSourceAdapter>* adapter) const {
   auto config_it =
       options_.platform_config_map.platform_configs().find(model_platform);
   if (config_it == options_.platform_config_map.platform_configs().end()) {
-    return errors::FailedPrecondition(strings::StrCat(
+    return errors::FailedPrecondition(absl::StrCat(
         "PlatformConfigMap has no entry for platform ", model_platform));
   }
   const ::google::protobuf::Any& adapter_config =
       config_it->second.source_adapter_config();
-  const tensorflow::Status status =
+  const absl::Status status =
       StoragePathSourceAdapterRegistry::CreateFromAny(adapter_config, adapter);
   if (!status.ok()) {
     VLOG(1) << "Source adapter creation failed: " << status;
@@ -624,7 +625,7 @@ FileSystemStoragePathSourceConfig ServerCore::CreateStoragePathSourceConfig(
   return source_config;
 }
 
-Status ServerCore::CreateStoragePathRoutes(
+absl::Status ServerCore::CreateStoragePathRoutes(
     const ModelServerConfig& config,
     DynamicSourceRouter<StoragePath>::Routes* routes) const {
   for (const ModelConfig& model_config : config.model_config_list().config()) {
@@ -633,7 +634,7 @@ Status ServerCore::CreateStoragePathRoutes(
     TF_RETURN_IF_ERROR(GetPlatform(model_config, &platform));
     auto it = platform_to_router_port_.find(platform);
     if (it == platform_to_router_port_.end()) {
-      return errors::InvalidArgument(strings::StrCat(
+      return errors::InvalidArgument(absl::StrCat(
           "Model ", model_name, " requests unsupported platform ", platform));
     }
     const int port = it->second;
@@ -642,12 +643,13 @@ Status ServerCore::CreateStoragePathRoutes(
   return absl::OkStatus();
 }
 
-Status ServerCore::CreateStoragePathSource(
+absl::Status ServerCore::CreateStoragePathSource(
     const FileSystemStoragePathSourceConfig& config,
     Target<StoragePath>* target,
     std::unique_ptr<FileSystemStoragePathSource>* source,
     std::unique_ptr<PrefixStoragePathSourceAdapter>* prefix_source_adapter) {
-  const Status status = FileSystemStoragePathSource::Create(config, source);
+  const absl::Status status =
+      FileSystemStoragePathSource::Create(config, source);
   if (!status.ok()) {
     VLOG(1) << "Unable to create FileSystemStoragePathSource due to: "
             << status;
@@ -664,12 +666,12 @@ Status ServerCore::CreateStoragePathSource(
   return absl::OkStatus();
 }
 
-Status ServerCore::CreateRouter(
+absl::Status ServerCore::CreateRouter(
     const DynamicSourceRouter<StoragePath>::Routes& routes,
     SourceAdapters* targets,
     std::unique_ptr<DynamicSourceRouter<StoragePath>>* router) const {
   const int num_output_ports = targets->platform_adapters.size() + 1;
-  const Status status = DynamicSourceRouter<StoragePath>::Create(
+  const absl::Status status = DynamicSourceRouter<StoragePath>::Create(
       num_output_ports, routes, router);
   if (!status.ok()) {
     VLOG(1) << "Unable to create DynamicSourceRouter due to: " << status;
@@ -696,7 +698,7 @@ Status ServerCore::CreateRouter(
   return absl::OkStatus();
 }
 
-Status ServerCore::CreateAdapters(SourceAdapters* adapters) const {
+absl::Status ServerCore::CreateAdapters(SourceAdapters* adapters) const {
   for (const auto& entry : platform_to_router_port_) {
     const string& platform = entry.first;
     std::unique_ptr<StoragePathSourceAdapter> adapter;
@@ -709,7 +711,7 @@ Status ServerCore::CreateAdapters(SourceAdapters* adapters) const {
   return absl::OkStatus();
 }
 
-Status ServerCore::ConnectAdaptersToManagerAndAwaitModelLoads(
+absl::Status ServerCore::ConnectAdaptersToManagerAndAwaitModelLoads(
     SourceAdapters* adapters) {
   std::vector<ServableRequest> models_to_await;
   for (const ModelConfig& model_config : config_.model_config_list().config()) {
@@ -722,7 +724,7 @@ Status ServerCore::ConnectAdaptersToManagerAndAwaitModelLoads(
   }
   adapter_list.push_back(adapters->error_adapter.get());
 
-  const Status status = ConnectSourcesWithFastInitialLoad(
+  const absl::Status status = ConnectSourcesWithFastInitialLoad(
       manager_.get(), adapter_list, servable_state_monitor_.get(),
       models_to_await, options_.num_initial_load_threads);
   if (!status.ok()) {
@@ -733,9 +735,9 @@ Status ServerCore::ConnectAdaptersToManagerAndAwaitModelLoads(
   return absl::OkStatus();
 }
 
-Status ServerCore::ReloadStoragePathSourceConfig(
+absl::Status ServerCore::ReloadStoragePathSourceConfig(
     const FileSystemStoragePathSourceConfig& source_config) {
-  const Status status =
+  const absl::Status status =
       storage_path_source_and_router_->source->UpdateConfig(source_config);
   if (!status.ok()) {
     VLOG(1) << "Unable to ReloadStoragePathSourceConfig due to: " << status;
@@ -743,9 +745,9 @@ Status ServerCore::ReloadStoragePathSourceConfig(
   return status;
 }
 
-Status ServerCore::ReloadRoutes(
+absl::Status ServerCore::ReloadRoutes(
     const DynamicSourceRouter<StoragePath>::Routes& routes) {
-  const Status status =
+  const absl::Status status =
       storage_path_source_and_router_->router->UpdateRoutes(routes);
   if (!status.ok()) {
     VLOG(1) << "Unable to ReloadRoutes due to: " << status;
@@ -753,7 +755,7 @@ Status ServerCore::ReloadRoutes(
   return status;
 }
 
-Status ServerCore::CreateAspiredVersionsManager(
+absl::Status ServerCore::CreateAspiredVersionsManager(
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy,
     AspiredVersionsManager::CustomSortActionsFn custom_sort_actions,
     std::unique_ptr<AspiredVersionsManager>* const manager) {
@@ -778,7 +780,7 @@ Status ServerCore::CreateAspiredVersionsManager(
   if (options_.should_retry_model_load) {
     manager_options.should_retry_model_load = options_.should_retry_model_load;
   }
-  const tensorflow::Status status =
+  const absl::Status status =
       AspiredVersionsManager::Create(std::move(manager_options), manager);
   if (!status.ok()) {
     VLOG(1) << "Unable to CreateAspiredVersionsManager due to: " << status;
@@ -786,7 +788,7 @@ Status ServerCore::CreateAspiredVersionsManager(
   return status;
 }
 
-Status ServerCore::CreateResourceTracker(
+absl::Status ServerCore::CreateResourceTracker(
     std::unique_ptr<ResourceTracker>* resource_tracker) {
   ResourceUtil::Options resource_util_options;
   resource_util_options.devices[device_types::kMain] = 1;
@@ -797,7 +799,7 @@ Status ServerCore::CreateResourceTracker(
       resource_util->CreateBoundResource(device_types::kMain,
                                          resource_kinds::kRamBytes),
       options_.total_model_memory_limit_bytes, &total_resources);
-  const tensorflow::Status status = ResourceTracker::Create(
+  const absl::Status status = ResourceTracker::Create(
       total_resources, std::move(resource_util), resource_tracker);
   if (!status.ok()) {
     VLOG(1) << "Unable to CreateResourceTracker due to: " << status;
@@ -809,7 +811,7 @@ Status ServerCore::CreateResourceTracker(
 // Request Processing.
 // ************************************************************************
 
-Status ServerCore::ServableRequestFromModelSpec(
+absl::Status ServerCore::ServableRequestFromModelSpec(
     const ModelSpec& model_spec, ServableRequest* servable_request) const {
   if (model_spec.name().empty()) {
     return errors::InvalidArgument("ModelSpec has no name specified.");
@@ -841,13 +843,13 @@ Status ServerCore::ServableRequestFromModelSpec(
   return absl::OkStatus();
 }
 
-Status ServerCore::GetModelVersionForLabel(const string& model_name,
-                                           const string& label,
-                                           int64_t* version) const {
+absl::Status ServerCore::GetModelVersionForLabel(const string& model_name,
+                                                 const string& label,
+                                                 int64_t* version) const {
   mutex_lock l(model_labels_to_versions_mu_);
   if (model_labels_to_versions_ == nullptr) {
     return errors::Unavailable(
-        strings::StrCat("Model labels does not init yet.", label));
+        absl::StrCat("Model labels does not init yet.", label));
   }
   auto version_map_it = model_labels_to_versions_->find(model_name);
   if (version_map_it != model_labels_to_versions_->end()) {
@@ -859,7 +861,7 @@ Status ServerCore::GetModelVersionForLabel(const string& model_name,
     }
   }
   return errors::InvalidArgument(
-      strings::StrCat("Unrecognized servable version label: ", label));
+      absl::StrCat("Unrecognized servable version label: ", label));
 }
 
 }  //  namespace serving

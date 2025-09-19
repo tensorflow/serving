@@ -62,7 +62,7 @@ HttpRestApiHandler::HttpRestApiHandler(int timeout_in_ms, ServerCore* core)
 
 HttpRestApiHandler::~HttpRestApiHandler() {}
 
-Status HttpRestApiHandler::ProcessRequest(
+absl::Status HttpRestApiHandler::ProcessRequest(
     const absl::string_view http_method, const absl::string_view request_path,
     const absl::string_view request_body,
     std::vector<std::pair<string, string>>* headers, string* model_name,
@@ -71,8 +71,8 @@ Status HttpRestApiHandler::ProcessRequest(
   output->clear();
   AddHeaders(headers);
   string model_subresource;
-  Status status = errors::InvalidArgument("Malformed request: ", http_method,
-                                          " ", request_path);
+  absl::Status status = errors::InvalidArgument(
+      "Malformed request: ", http_method, " ", request_path);
   absl::optional<int64_t> model_version;
   absl::optional<string> model_version_label;
   bool parse_successful;
@@ -108,7 +108,7 @@ Status HttpRestApiHandler::ProcessRequest(
   return status;
 }
 
-Status HttpRestApiHandler::ProcessClassifyRequest(
+absl::Status HttpRestApiHandler::ProcessClassifyRequest(
     const absl::string_view model_name,
     const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
@@ -129,7 +129,7 @@ Status HttpRestApiHandler::ProcessClassifyRequest(
   return absl::OkStatus();
 }
 
-Status HttpRestApiHandler::ProcessRegressRequest(
+absl::Status HttpRestApiHandler::ProcessRegressRequest(
     const absl::string_view model_name,
     const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
@@ -149,7 +149,7 @@ Status HttpRestApiHandler::ProcessRegressRequest(
   return absl::OkStatus();
 }
 
-Status HttpRestApiHandler::ProcessPredictRequest(
+absl::Status HttpRestApiHandler::ProcessPredictRequest(
     const absl::string_view model_name,
     const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
@@ -177,7 +177,7 @@ Status HttpRestApiHandler::ProcessPredictRequest(
   return absl::OkStatus();
 }
 
-Status HttpRestApiHandler::ProcessModelStatusRequest(
+absl::Status HttpRestApiHandler::ProcessModelStatusRequest(
     const absl::string_view model_name,
     const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
@@ -201,7 +201,7 @@ Status HttpRestApiHandler::ProcessModelStatusRequest(
   return ToJsonString(*response, output);
 }
 
-Status HttpRestApiHandler::ProcessModelMetadataRequest(
+absl::Status HttpRestApiHandler::ProcessModelMetadataRequest(
     const absl::string_view model_name,
     const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view>& model_version_label,
@@ -225,7 +225,7 @@ Status HttpRestApiHandler::ProcessModelMetadataRequest(
   return ToJsonString(*response, output);
 }
 
-Status HttpRestApiHandler::GetInfoMap(
+absl::Status HttpRestApiHandler::GetInfoMap(
     const ModelSpec& model_spec, const string& signature_name,
     ::google::protobuf::Map<string, tensorflow::TensorInfo>* infomap) {
   ServableHandle<SavedModelBundle> bundle;
