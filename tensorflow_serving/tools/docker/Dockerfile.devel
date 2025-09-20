@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM ubuntu:20.04 as base_build
+FROM ubuntu:22.04 as base_build
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=HEAD
@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         automake \
         build-essential \
         ca-certificates \
+        gnupg \
         curl \
         git \
         gcc-10 \
@@ -35,10 +36,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libtool \
         libzmq3-dev \
         mlocate \
-        openjdk-8-jdk\
-        openjdk-8-jre-headless \
+        openjdk-11-jdk\
+        openjdk-11-jre-headless \
         pkg-config \
-        python-dev \
+        python3-dev \
         software-properties-common \
         swig \
         unzip \
