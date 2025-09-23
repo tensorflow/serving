@@ -70,11 +70,11 @@ absl::Status LoadSessionBundleOrSavedModelBundle(
   }
   return absl::Status(
       static_cast<absl::StatusCode>(absl::StatusCode::kNotFound),
-      strings::StrCat("Specified file path does not appear to contain a "
-                      "SavedModel bundle (should have a file called "
-                      "`saved_model.pb`)\n"
-                      "Specified file path: ",
-                      export_dir));
+      absl::StrCat("Specified file path does not appear to contain a "
+                   "SavedModel bundle (should have a file called "
+                   "`saved_model.pb`)\n"
+                   "Specified file path: ",
+                   export_dir));
 }
 
 absl::Status LoadSessionBundleFromPathUsingRunOptions(
