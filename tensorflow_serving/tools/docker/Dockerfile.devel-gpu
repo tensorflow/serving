@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM nvidia/cuda:11.8.0-base-ubuntu20.04 as base_build
+FROM nvidia/cuda:12.2.0-base-ubuntu20.04 as base_build
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=HEAD
@@ -21,33 +21,57 @@ LABEL maintainer=gvasudevan@google.com
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
-ENV CUDNN_VERSION=8.6.0.163
-ENV TF_TENSORRT_VERSION=8.4.3
-ENV CUDA=11.8
+ENV CUDNN_VERSION=8.9.4.25
+ENV TF_TENSORRT_VERSION=8.6.1
+ENV CUDA=12.2
 
-RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
-    apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl
+
+# Download TF Serving sources (optionally at specific commit).
+WORKDIR /tensorflow-serving
+RUN curl -sSL --retry 5 https://github.com/tensorflow/serving/tarball/${TF_SERVING_VERSION_GIT_COMMIT} | tar --strip-components=1 -xzf -
+
+RUN /tensorflow-serving/tensorflow_serving/tools/docker/setup.sources.sh
+
+RUN apt-get install -y --no-install-recommends \
+        cuda-command-line-tools-12-2 \
+        cuda-cudart-dev-12-2 \
+        cuda-nvcc-12-2 \
+        cuda-cupti-12-2 \
+        cuda-nvprune-12-2 \
+        cuda-libraries-12-2 \
+        cuda-libraries-dev-12-2 \
+        cuda-nvml-dev-12-2 \
+        libcufft-12-2 \
+        libcurand-12-2 \
+        libcusolver-dev-12-2 \
+        libcusparse-dev-12-2 \
+        libcublas-12-2 \
+        libcublas-dev-12-2 \
+        libnccl-dev=2.18.5-1+cuda12.2 \
+        libnccl2=2.18.5-1+cuda12.2 \
+        libcudnn8-dev=8.9.4.25-1+cuda12.2 \
+        libcudnn8=8.9.4.25-1+cuda12.2 \
+        libnvinfer-plugin8=8.6.1.6-1+cuda12.0 \
+        libnvinfer8=8.6.1.6-1+cuda12.0 \
+        libnvinfer-dev=8.6.1.6-1+cuda12.0 \
+        libnvinfer-headers-dev=8.6.1.6-1+cuda12.0 \
+        libnvinfer-plugin-dev=8.6.1.6-1+cuda12.0 \
+        libnvinfer-headers-plugin-dev=8.6.1.6-1+cuda12.0 \
         automake \
         build-essential \
         ca-certificates \
-        cuda-command-line-tools-11-8 \
-        libcublas-11-8 \
-        libcublas-dev-11-8 \
-        cuda-nvrtc-11-8 \
-        cuda-nvrtc-dev-11-8 \
-        cuda-nvprune-11-8 \
-        cuda-nvcc-11-8 \
-        cuda-cudart-dev-11-8 \
-        libcufft-dev-11-8 \
-        libcurand-dev-11-8 \
-        libcusolver-dev-11-8 \
-        libcusparse-dev-11-8 \
-        curl \
+        libcufft-dev-12-2 \
+        libcurand-dev-12-2 \
+        libcusolver-dev-12-2 \
+        libcusparse-dev-12-2 \
+        clang-17 \
+        llvm-17 \
+        lld-17 \
         git \
         libfreetype6-dev \
         libtool \
-        libcudnn8=${CUDNN_VERSION}-1+cuda${CUDA} \
-        libcudnn8-dev=${CUDNN_VERSION}-1+cuda${CUDA} \
         libcurl3-dev \
         libzmq3-dev \
         mlocate \
@@ -63,34 +87,20 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
         zlib1g-dev \
         python3-distutils \
         python-distutils-extra && \
-    find /usr/local/cuda-11.8/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete
+    find /usr/local/cuda-12.2/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete
 
-# NOTE: libnvinfer uses cuda11.6 versions
-RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64/7fa2af80.pub && \
-    echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64 /"  > /etc/apt/sources.list.d/tensorRT.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends libnvinfer8=${TF_TENSORRT_VERSION}-1+cuda11.6 \
-      libnvinfer-dev=${TF_TENSORRT_VERSION}-1+cuda11.6 \
-      libnvinfer-plugin-dev=${TF_TENSORRT_VERSION}-1+cuda11.6 \
-      libnvinfer-plugin8=${TF_TENSORRT_VERSION}-1+cuda11.6 \
-      # TODO: need to verify
-      libnvonnxparsers8=${TF_TENSORRT_VERSION}-1+cuda11.6 \
-      libnvparsers8=${TF_TENSORRT_VERSION}-1+cuda11.6\
-      libnvonnxparsers-dev=${TF_TENSORRT_VERSION}-1+cuda11.6 \
-      libnvparsers-dev=${TF_TENSORRT_VERSION}-1+cuda11.6 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*;
 
-# Install python 3.8.
+# Install python 3.9.
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && apt-get install -y \
-    python3.8 python3.8-dev python3-pip python3.8-venv && \
+    python3.9 python3.9-dev python3-pip python3.9-venv && \
     rm -rf /var/lib/apt/lists/* && \
-    python3.8 -m pip install pip --upgrade && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 0
+    python3.9 -m pip install pip --upgrade && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 0
 
-# Make python3.8 the default python version
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.8 0
+# Make python3.9 the default python version
+# If updating default python version, also update version in the WORKSPACE file.
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 0
 
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
     python3 get-pip.py && \
@@ -109,7 +119,7 @@ RUN pip3 --no-cache-dir install \
      --ignore-installed six>=1.12.0
 
 # Set up Bazel
-ENV BAZEL_VERSION 6.1.0
+ENV BAZEL_VERSION 7.4.1
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \
@@ -123,12 +133,6 @@ RUN mkdir /bazel && \
 # Build TensorFlow with the CUDA configuration
 ENV CI_BUILD_PYTHON python
 ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:/usr/include/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
-
-ENV TF_NEED_CUDA 1
-ENV TF_NEED_TENSORRT 1
-ENV TENSORRT_INSTALL_PATH=/usr/lib/x86_64-linux-gnu
-ENV TF_CUDA_VERSION=11.8
-ENV TF_CUDNN_VERSION=8
 
 # Fix paths so that CUDNN can be found: https://github.com/tensorflow/tensorflow/issues/8264
 WORKDIR /
@@ -144,9 +148,7 @@ ENV TF_NCCL_VERSION=
 # Set TMP for nvidia build environment
 ENV TMP="/tmp"
 
-# Download TF Serving sources (optionally at specific commit).
 WORKDIR /tensorflow-serving
-RUN curl -sSL --retry 5 https://github.com/tensorflow/serving/tarball/${TF_SERVING_VERSION_GIT_COMMIT} | tar --strip-components=1 -xzf -
 
 FROM base_build as binary_build
 # Build, and install TensorFlow Serving
@@ -157,7 +159,7 @@ RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
 
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
-    bazel build --color=yes --curses=yes --config=cuda --copt="-fPIC"\
+    bazel build --color=yes --curses=yes --config=cuda_clang --copt="-fPIC"\
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \

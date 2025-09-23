@@ -15,7 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/batching_util.h"
 
+#include <map>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/tensor.h"
@@ -68,9 +71,9 @@ Eigen::array<OneDimPadding, num_dims> CreatePadding(
 // functor produces padded_tensor of shape [1, 4, 7].
 template <typename T, int num_dims>
 struct PadTensor {
-  Status operator()(Tensor input,
-                    const Eigen::array<OneDimPadding, num_dims>& padding,
-                    Tensor* output) {
+  absl::Status operator()(Tensor input,
+                          const Eigen::array<OneDimPadding, num_dims>& padding,
+                          Tensor* output) {
     TensorShape output_shape;
     for (int d = 0; d < num_dims; ++d) {
       // Pad before existing elements.
@@ -84,7 +87,7 @@ struct PadTensor {
       if (!result) {
         return errors::Internal("Couldn't create output.");
       }
-      return OkStatus();
+      return absl::OkStatus();
     }
     if (input.NumElements() < 1) {
       return errors::InvalidArgument(
@@ -94,16 +97,16 @@ struct PadTensor {
     typename TTypes<T, num_dims>::Tensor inputs = input.tensor<T, num_dims>();
     T pad_value(input.flat<T>()(0));  // using existing values in padding
     output->tensor<T, num_dims>() = inputs.pad(padding, pad_value);
-    return OkStatus();
+    return absl::OkStatus();
   }
 };
 
 // Invokes padding procedure for specific tensor ranks.
 // Only ranks from 1 to 6 are supported (like in PadOp).
 template <typename T>
-Status PadTensorOfSpecificType(const Tensor& tensor,
-                               absl::Span<const int> max_dim_sizes,
-                               Tensor* output_tensor) {
+absl::Status PadTensorOfSpecificType(const Tensor& tensor,
+                                     absl::Span<const int> max_dim_sizes,
+                                     Tensor* output_tensor) {
   int num_dims = tensor.dims();
   switch (num_dims) {
     case 1: {
@@ -181,10 +184,11 @@ std::map<string, std::vector<int>> CalculateMaxDimSizes(
   return max_dim_sizes;
 }
 
-Status AddPadding(const Tensor& tensor, absl::Span<const int> max_dim_sizes,
-                  Tensor* padded_tensor) {
+absl::Status AddPadding(const Tensor& tensor,
+                        absl::Span<const int> max_dim_sizes,
+                        Tensor* padded_tensor) {
   const DataType input_dtype = tensor.dtype();
-  Status padding_status;
+  absl::Status padding_status;
 #define CASE(type)                                                           \
   case DataTypeToEnum<type>::value: {                                        \
     padding_status =                                                         \

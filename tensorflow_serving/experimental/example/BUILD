@@ -1,9 +1,8 @@
 # Description: Tensorflow Serving examples.
 
-package(
-    default_visibility = ["//tensorflow_serving:internal"],
-    features = ["no_layering_check"],
-)
+# Placeholder: load py_binary
+
+package(features = ["no_layering_check"])
 
 licenses(["notice"])
 

@@ -9,8 +9,17 @@ option cc_enable_arenas = true;
 
 message ReloadConfigRequest {
   ModelServerConfig config = 1;
+  repeated string metric_names = 2;
 }
 
 message ReloadConfigResponse {
   StatusProto status = 1;
+  repeated Metric metric = 2;
+}
+
+message Metric {
+  string name = 1;
+  oneof value_increase {
+    int64 int64_value_increase = 2;
+  }
 }

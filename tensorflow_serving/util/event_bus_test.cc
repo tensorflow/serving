@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/util/event_bus.h"
 
+#include <memory>
+
 #include <gtest/gtest.h>
 #include "tensorflow/core/kernels/batching_util/fake_clock_env.h"
 

@@ -16,33 +16,43 @@ ARG TF_SERVING_VERSION=latest
 ARG TF_SERVING_BUILD_IMAGE=tensorflow/serving:${TF_SERVING_VERSION}-devel-gpu
 
 FROM ${TF_SERVING_BUILD_IMAGE} as build_image
-FROM nvidia/cuda:11.8.0-base-ubuntu20.04
+FROM nvidia/cuda:12.2.0-base-ubuntu20.04 as base_build
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
-ARG TF_SERVING_VERSION_GIT_COMMIT=head
+ARG TF_SERVING_VERSION_GIT_COMMIT=HEAD
 ARG DEBIAN_FRONTEND=noninteractive
 
 LABEL maintainer="gvasudevan@google.com"
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
-ENV CUDNN_VERSION=8.6.0.163
-ENV TF_TENSORRT_VERSION=8.4.3
-ENV CUDA=11.8
+ENV CUDNN_VERSION=8.9.4.25
+ENV TF_TENSORRT_VERSION=8.6.1
+ENV CUDA=12.2
 ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
 
-RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
-    apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl
+
+RUN curl -sSL --retry 5 https://raw.githubusercontent.com/tensorflow/serving/${TF_SERVING_VERSION_GIT_COMMIT}/tensorflow_serving/tools/docker/setup.sources.sh | sh
+
+RUN apt-get install -y --no-install-recommends \
         ca-certificates \
-        cuda-command-line-tools-11-8 \
-        cuda-nvrtc-11-8 \
-        libcublas-11-8 \
-        libcublas-dev-11-8 \
-        libcufft-11-8 \
-        libcurand-11-8 \
-        libcusolver-11-8 \
-        libcusparse-11-8 \
-        libcudnn8=${CUDNN_VERSION}-1+cuda${CUDA} \
+        cuda-command-line-tools-12-2 \
+        cuda-cupti-12-2 \
+        cuda-libraries-12-2 \
+        cuda-nvcc-12-2 \
+        cuda-nvprune-12-2 \
+        cuda-nvrtc-12-2 \
+        libcublas-12-2 \
+        libcudnn8=8.9.4.25-1+cuda12.2 \
+        libcufft-12-2 \
+        libcurand-12-2 \
+        libcusolver-12-2 \
+        libcusparse-12-2 \
+        libnccl2=2.18.5-1+cuda12.2 \
+        libnvinfer8=8.6.1.6-1+cuda12.0 \
+        libnvinfer-plugin8=8.6.1.6-1+cuda12.0 \
         libgomp1 \
         build-essential \
         curl \
@@ -50,15 +60,6 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
         pkg-config \
         software-properties-common \
         unzip
-
-# We don't install libnvinfer-dev since we don't need to build against TensorRT
-RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64/7fa2af80.pub && \
-    echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64 /"  > /etc/apt/sources.list.d/tensorRT.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends libnvinfer8=${TF_TENSORRT_VERSION}-1+cuda11.6 \
-      libnvinfer-plugin8=${TF_TENSORRT_VERSION}-1+cuda11.6 \
-    && apt-get clean && \
-    rm -rf /var/lib/apt/lists/*;
 
 # Install TF Serving GPU pkg
 COPY --from=build_image /usr/local/bin/tensorflow_model_server /usr/bin/tensorflow_model_server

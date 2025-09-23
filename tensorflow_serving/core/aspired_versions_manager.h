@@ -87,6 +87,10 @@ class AspiredVersionsManager : public Manager,
  public:
   using PreLoadHook = BasicManager::PreLoadHook;
 
+  using CustomSortActionsFn =
+      std::function<bool(const AspiredVersionPolicy::ServableAction&,
+                         const AspiredVersionPolicy::ServableAction&)>;
+
   /// Config options and pluggable objects that will be used by the
   /// AspiredVersionsManager.
   struct Options {
@@ -105,6 +109,12 @@ class AspiredVersionsManager : public Manager,
 
     /// The AspiredVersionPolicy to use for the manager. Must be non-null.
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy;
+
+    /// Given a list of ServableAction, each ServableAction representing the
+    /// chosen version for that servable, this provides a custom sort order on
+    /// which action to take first. Useful when certain servable needs to be
+    /// loaded or unloaded before some other servable
+    CustomSortActionsFn custom_sort_actions;
 
     /// The number of threads in the thread-pool used to load servables.
     ///
@@ -127,6 +137,9 @@ class AspiredVersionsManager : public Manager,
     /// Default: 1 minute.
     int64_t load_retry_interval_micros = 1LL * 60 * 1000 * 1000;
 
+    // Defines how we want to retry when model loading fails.
+    std::function<bool(absl::Status)> should_retry_model_load;
+
     // If true, and there are not multiple load threads, filesystem caches will
     // be flushed after each servable is loaded. (Cache flush is skipped when
     // multiple load threads are active, in order to avoid setting back a
@@ -144,6 +157,10 @@ class AspiredVersionsManager : public Manager,
     // For servables which end with LoaderHarness::State::kError, enable
     // future attempts at reload to progress.
     bool enable_reload_servables_with_error = false;
+
+    // If true, the AspiredVersionsManager will propagate its current context to
+    // the newly created periodic functions.
+    bool with_current_context = false;
   };
   static Status Create(Options options,
                        std::unique_ptr<AspiredVersionsManager>* manager);
@@ -220,7 +237,8 @@ class AspiredVersionsManager : public Manager,
   AspiredVersionsManager(
       int64_t manage_state_interval_micros, Env* env,
       std::unique_ptr<AspiredVersionPolicy> aspired_version_policy,
-      std::unique_ptr<BasicManager> basic_manager);
+      CustomSortActionsFn custom_sort_actions,
+      std::unique_ptr<BasicManager> basic_manager, bool with_current_context);
 
   Status GetUntypedServableHandle(
       const ServableRequest& request,
@@ -280,12 +298,13 @@ class AspiredVersionsManager : public Manager,
 
   // Sets the number of load threads.
   //
-  // We immediately block all new load requests while the current executor is
-  // destructed, a new one is created and then swapped with the current one.
+  // This may block all new load requests, or temporarily allow more threads to
+  // start, before it returns. See BasicManager::SetNumLoadThreads for details
   void SetNumLoadThreads(uint32 num_load_threads);
   uint32 num_load_threads() const;
 
   std::unique_ptr<AspiredVersionPolicy> aspired_version_policy_;
+  CustomSortActionsFn custom_sort_actions_;
 
   // Aspired-versions requests pending to be processed, keyed by servable name.
   //

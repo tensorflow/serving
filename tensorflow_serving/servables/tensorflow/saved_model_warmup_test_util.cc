@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup_test_util.h"
 
+#include <memory>
+#include <vector>
+
 #include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/tensor.pb.h"
@@ -63,9 +66,9 @@ void PopulateRegressionRequest(RegressionRequest* request) {
   request->mutable_model_spec()->set_signature_name(kRegressMethodName);
 }
 
-Status PopulatePredictionLog(PredictionLog* prediction_log,
-                             PredictionLog::LogTypeCase log_type,
-                             int num_repeated_values) {
+absl::Status PopulatePredictionLog(PredictionLog* prediction_log,
+                                   PredictionLog::LogTypeCase log_type,
+                                   int num_repeated_values) {
   if ((num_repeated_values > 1) &&
       (log_type != PredictionLog::kPredictStreamedLog)) {
     return errors::InvalidArgument(
@@ -100,12 +103,12 @@ Status PopulatePredictionLog(PredictionLog* prediction_log,
     default:
       break;
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status WriteWarmupData(const string& fname,
-                       const std::vector<string>& warmup_records,
-                       int num_warmup_records) {
+absl::Status WriteWarmupData(const string& fname,
+                             const std::vector<string>& warmup_records,
+                             int num_warmup_records) {
   Env* env = Env::Default();
   std::unique_ptr<WritableFile> file;
   TF_RETURN_IF_ERROR(env->NewWritableFile(fname, &file));
@@ -118,10 +121,10 @@ Status WriteWarmupData(const string& fname,
     }
   }
   TF_RETURN_IF_ERROR(writer.Flush());
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status WriteWarmupDataAsSerializedProtos(
+absl::Status WriteWarmupDataAsSerializedProtos(
     const string& fname, const std::vector<string>& warmup_records,
     int num_warmup_records) {
   Env* env = Env::Default();
@@ -133,26 +136,26 @@ Status WriteWarmupDataAsSerializedProtos(
     }
   }
   TF_RETURN_IF_ERROR(file->Close());
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status AddMixedWarmupData(
+absl::Status AddMixedWarmupData(
     std::vector<string>* warmup_records,
     const std::vector<PredictionLog::LogTypeCase>& log_types) {
   for (auto& log_type : log_types) {
     TF_RETURN_IF_ERROR(AddToWarmupData(warmup_records, log_type, 1));
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status AddToWarmupData(std::vector<string>* warmup_records,
-                       PredictionLog::LogTypeCase log_type,
-                       int num_repeated_values) {
+absl::Status AddToWarmupData(std::vector<string>* warmup_records,
+                             PredictionLog::LogTypeCase log_type,
+                             int num_repeated_values) {
   PredictionLog prediction_log;
   TF_RETURN_IF_ERROR(
       PopulatePredictionLog(&prediction_log, log_type, num_repeated_values));
   warmup_records->push_back(prediction_log.SerializeAsString());
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Creates a test SignatureDef with the given parameters

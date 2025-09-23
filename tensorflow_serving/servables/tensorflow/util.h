@@ -135,6 +135,9 @@ std::set<string> GetMapKeys(const T& map) {
 // Returns a \ b, i.e. all items that are in `set_a` but not in `set_b`.
 std::set<string> SetDifference(std::set<string> set_a, std::set<string> set_b);
 
+// Returns true if errors should be exported to logging service.
+bool IsTfrtErrorLoggingEnabled();
+
 }  // namespace serving
 }  // namespace tensorflow
 

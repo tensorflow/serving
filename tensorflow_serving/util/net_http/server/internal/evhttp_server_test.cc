@@ -15,7 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/util/net_http/server/internal/evhttp_server.h"
 
+#include <functional>
 #include <memory>
+#include <utility>
 
 #include <gtest/gtest.h>
 #include "absl/memory/memory.h"
@@ -55,16 +57,18 @@ class EvHTTPServerTest : public ::testing::Test {
   }
 
  protected:
+  virtual std::unique_ptr<ServerOptions> GetOptions() {
+    auto options = absl::make_unique<ServerOptions>();
+    options->AddPort(0);
+    options->SetExecutor(absl::make_unique<MyExecutor>(4));
+    return options;
+  }
+
   std::unique_ptr<HTTPServerInterface> server;
 
  private:
   void InitServer() {
-    auto options = absl::make_unique<ServerOptions>();
-    options->AddPort(0);
-    options->SetExecutor(absl::make_unique<MyExecutor>(4));
-
-    server = CreateEvHTTPServer(std::move(options));
-
+    server = CreateEvHTTPServer(GetOptions());
     ASSERT_TRUE(server != nullptr);
   }
 };
@@ -337,7 +341,27 @@ TEST_F(EvHTTPServerTest, ActiveRequestCountInShutdown) {
   // response.status etc are undefined as the server is terminated
 }
 
+class EvHTTPServerTestWithAddress : public EvHTTPServerTest {
+ protected:
+  std::unique_ptr<ServerOptions> GetOptions() override {
+    auto options = EvHTTPServerTest::GetOptions();
+    options->AddIPAddress("::1");
+    return options;
+  }
+};
+
+TEST_F(EvHTTPServerTestWithAddress, BasicListen) {
+  server->StartAcceptingRequests();
+
+  EXPECT_TRUE(server->is_accepting_requests());
+  EXPECT_NE(server->listen_port(), 0);
+
+  server->Terminate();
+  server->WaitForTermination();
+}
+
 }  // namespace
+
 }  // namespace net_http
 }  // namespace serving
 }  // namespace tensorflow

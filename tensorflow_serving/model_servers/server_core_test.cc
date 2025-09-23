@@ -15,23 +15,35 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/server_core.h"
 
+#include <map>
+#include <memory>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include "google/protobuf/any.pb.h"
+#include "absl/status/status.h"
 #include "absl/strings/strip.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
+#include "xla/tsl/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/random/random.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/path.h"
+#include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
+#include "tensorflow_serving/core/request_logger.h"
 #include "tensorflow_serving/core/servable_handle.h"
+#include "tensorflow_serving/core/servable_id.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.pb.h"
 #include "tensorflow_serving/core/test_util/fake_log_collector.h"
+#include "tensorflow_serving/core/test_util/mock_prediction_stream_logger.h"
 #include "tensorflow_serving/core/test_util/mock_request_logger.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/test_util/server_core_test_util.h"
@@ -44,11 +56,14 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
+using test_util::MockPredictionStreamLogger;
 using test_util::ServerCoreTest;
 using ::testing::_;
 using ::testing::Invoke;
 using ::testing::MockFunction;
 using ::testing::NiceMock;
+using ::testing::Pair;
+using ::testing::UnorderedElementsAre;
 
 TEST_P(ServerCoreTest, PreLoadHook) {
   std::unique_ptr<ServerCore> server_core;
@@ -82,6 +97,19 @@ TEST_P(ServerCoreTest, CreateWaitsTillModelsAvailable) {
   TF_ASSERT_OK(
       server_core->GetServableHandle<string>(model_spec, &servable_handle));
   EXPECT_EQ(servable_handle.id(), expected_id);
+
+  // Validate monitoring states.
+  const auto servable_map =
+      server_core->servable_state_monitor()->GetAllServableStates();
+  auto it_servable = servable_map.find(test_util::kTestModelName);
+  ASSERT_NE(it_servable, servable_map.end());
+  ASSERT_THAT(it_servable->second,
+              UnorderedElementsAre(Pair(test_util::kTestModelVersion, _)));
+  const auto state_and_time =
+      it_servable->second.at(test_util::kTestModelVersion);
+  EXPECT_TRUE(state_and_time.state.health.ok());
+  EXPECT_EQ(state_and_time.state.manager_state,
+            ServableState::ManagerState::kAvailable);
 }
 
 TEST_P(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
@@ -118,6 +146,17 @@ TEST_P(ServerCoreTest, ReloadConfigUnloadsModels) {
   test_util::WaitUntilServableManagerStateIsOneOf(
       *server_core->servable_state_monitor(), servable_id,
       {ServableState::ManagerState::kEnd});
+  // Validate monitoring states.
+  const auto servable_map =
+      server_core->servable_state_monitor()->GetAllServableStates();
+  auto it_servable = servable_map.find(test_util::kTestModelName);
+  ASSERT_NE(it_servable, servable_map.end());
+  ASSERT_THAT(it_servable->second,
+              UnorderedElementsAre(Pair(test_util::kTestModelVersion, _)));
+  const auto state_and_time =
+      it_servable->second.at(test_util::kTestModelVersion);
+  ASSERT_EQ(state_and_time.state.manager_state,
+            ServableState::ManagerState::kEnd);
 }
 
 TEST_P(ServerCoreTest, ReloadConfigHandlesLoadingAPreviouslyUnloadedModel) {
@@ -202,7 +241,7 @@ class RelativePathsServerCoreTest : public ServerCoreTest {
 
     ModelConfig& relative =
         *result.mutable_model_config_list()->mutable_config(0);
-    relative.set_name(strings::StrCat(model_name, "_relative"));
+    relative.set_name(absl::StrCat(model_name, "_relative"));
     const string dirname(Dirname(relative.base_path()));
     const string basename(Basename(relative.base_path()));
     CHECK(!dirname.empty());
@@ -295,10 +334,25 @@ TEST_P(ServerCoreTest, ErroringModel) {
         .mutable_source_adapter_config()) = source_adapter_config_any;
   options.model_server_config = GetTestModelServerConfigForFakePlatform();
   std::unique_ptr<ServerCore> server_core;
-  Status status = ServerCore::Create(std::move(options), &server_core);
+  absl::Status status = ServerCore::Create(std::move(options), &server_core);
   EXPECT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("1 servable(s) did not become available"));
+
+  // Validate monitoring states.
+  const auto servable_map =
+      server_core->servable_state_monitor()->GetAllServableStates();
+  auto it_servable = servable_map.find(test_util::kTestModelName);
+  ASSERT_NE(it_servable, servable_map.end());
+  ASSERT_THAT(it_servable->second,
+              UnorderedElementsAre(Pair(test_util::kTestModelVersion, _)));
+  const auto state_and_time =
+      it_servable->second.at(test_util::kTestModelVersion);
+  EXPECT_EQ(state_and_time.state.health.code(), absl::StatusCode::kCancelled);
+  EXPECT_THAT(state_and_time.state.health.ToString(),
+              ::testing::HasSubstr("injected error"));
+  EXPECT_EQ(state_and_time.state.manager_state,
+            ServableState::ManagerState::kEnd);
 }
 
 TEST_P(ServerCoreTest, IllegalReconfigurationToCustomConfig) {
@@ -388,9 +442,8 @@ string ModelNameForPlatform(const string& platform) {
   if (it != platform_to_model_map->end()) {
     return it->second;
   }
-  const string random = strings::StrCat(random::New64());
-  const string model_name =
-      strings::StrCat("model_", random, "_for_", platform);
+  const string random = absl::StrCat(random::New64());
+  const string model_name = absl::StrCat("model_", random, "_for_", platform);
   (*platform_to_model_map)[platform] = model_name;
   return model_name;
 }
@@ -419,7 +472,7 @@ ModelConfig ModelConfigForPlatform(const string& root_path,
 // Creates a directory for the given version of the model.
 void CreateModelDir(const ModelConfig& model_config, int version) {
   TF_CHECK_OK(Env::Default()->CreateDir(model_config.base_path()));
-  const string version_str = strings::StrCat(version);
+  const string version_str = absl::StrCat(version);
   TF_CHECK_OK(Env::Default()->CreateDir(
       io::JoinPath(model_config.base_path(), version_str)));
 }
@@ -429,7 +482,7 @@ void CreateModelDir(const ModelConfig& model_config, int version) {
 void CreateFakePlatform(const string& platform,
                         PlatformConfigMap* platform_config_map) {
   test_util::FakeLoaderSourceAdapterConfig source_adapter_config;
-  source_adapter_config.set_suffix(strings::StrCat("suffix_for_", platform));
+  source_adapter_config.set_suffix(absl::StrCat("suffix_for_", platform));
   ::google::protobuf::Any source_adapter_config_any;
   source_adapter_config_any.PackFrom(source_adapter_config);
   (*(*platform_config_map->mutable_platform_configs())[platform]
@@ -439,15 +492,15 @@ void CreateFakePlatform(const string& platform,
 // Constructs the servable data that a platform's fake source adapter will emit.
 string ServableDataForPlatform(const string& root_path, const string& platform,
                                int version) {
-  const string version_str = strings::StrCat(version);
+  const string version_str = absl::StrCat(version);
   return io::JoinPath(root_path, ModelNameForPlatform(platform), version_str,
-                      strings::StrCat("suffix_for_", platform));
+                      absl::StrCat("suffix_for_", platform));
 }
 
 TEST_P(ServerCoreTest, MultiplePlatforms) {
   const string root_path =
       io::JoinPath(testing::TmpDir(),
-                   strings::StrCat("MultiplePlatforms_", GetNameForTestCase()));
+                   absl::StrCat("MultiplePlatforms_", GetNameForTestCase()));
   TF_ASSERT_OK(Env::Default()->CreateDir(root_path));
 
   // Create a ServerCore with two platforms, and one model for each platform.
@@ -480,8 +533,8 @@ TEST_P(ServerCoreTest, MultiplePlatforms) {
 
 TEST_P(ServerCoreTest, MultiplePlatformsWithConfigChange) {
   const string root_path = io::JoinPath(
-      testing::TmpDir(), strings::StrCat("MultiplePlatformsWithConfigChange_",
-                                         GetNameForTestCase()));
+      testing::TmpDir(),
+      absl::StrCat("MultiplePlatformsWithConfigChange_", GetNameForTestCase()));
   TF_ASSERT_OK(Env::Default()->CreateDir(root_path));
 
   // Create config for three platforms, and one model per platform.
@@ -543,7 +596,7 @@ TEST_P(ServerCoreTest, MultiplePlatformsWithConfigChange) {
 TEST_P(ServerCoreTest, IllegalToChangeModelPlatform) {
   const string root_path = io::JoinPath(
       testing::TmpDir(),
-      strings::StrCat("IllegalToChangeModelPlatform_", GetNameForTestCase()));
+      absl::StrCat("IllegalToChangeModelPlatform_", GetNameForTestCase()));
   TF_ASSERT_OK(Env::Default()->CreateDir(root_path));
 
   ServerCore::Options options = GetDefaultOptions();
@@ -568,7 +621,7 @@ TEST_P(ServerCoreTest, IllegalToChangeModelPlatform) {
   ModelServerConfig new_config = initial_config;
   new_config.mutable_model_config_list()->mutable_config(0)->set_model_platform(
       platforms[1]);
-  const Status reconfigure_status = server_core->ReloadConfig(new_config);
+  const absl::Status reconfigure_status = server_core->ReloadConfig(new_config);
   EXPECT_FALSE(reconfigure_status.ok());
   EXPECT_THAT(reconfigure_status.ToString(),
               ::testing::HasSubstr("Illegal to change a model's platform"));
@@ -583,6 +636,11 @@ TEST_P(ServerCoreTest, RequestLoggingOff) {
 
   TF_ASSERT_OK(
       server_core->Log(PredictRequest(), PredictResponse(), LogMetadata()));
+  auto logger =
+      server_core->StartLoggingStream<PredictRequest, PredictResponse>(
+          LogMetadata(),
+          []() { return std::make_unique<MockPredictionStreamLogger>(); });
+  EXPECT_EQ(logger, nullptr);
 }
 
 TEST_P(ServerCoreTest, RequestLoggingOn) {
@@ -590,12 +648,12 @@ TEST_P(ServerCoreTest, RequestLoggingOn) {
   ServerCore::Options options = GetDefaultOptions();
   TF_CHECK_OK(ServerRequestLogger::Create(
       [&](const LoggingConfig& logging_config,
-          std::unique_ptr<RequestLogger>* const request_logger) {
+          std::shared_ptr<RequestLogger>* const request_logger) {
         const string& filename_prefix =
             logging_config.log_collector_config().filename_prefix();
         log_collector_map[filename_prefix] = new FakeLogCollector();
         const std::vector<string>& tags = {kSavedModelTagServe};
-        auto mock_request_logger = std::unique_ptr<NiceMock<MockRequestLogger>>(
+        auto mock_request_logger = std::shared_ptr<NiceMock<MockRequestLogger>>(
             new NiceMock<MockRequestLogger>(
                 logging_config, tags, log_collector_map[filename_prefix]));
         ON_CALL(*mock_request_logger, CreateLogMessage(_, _, _, _))
@@ -605,10 +663,10 @@ TEST_P(ServerCoreTest, RequestLoggingOn) {
                                       std::unique_ptr<google::protobuf::Message>* log) {
               *log = std::unique_ptr<google::protobuf::Any>(
                   new google::protobuf::Any());
-              return OkStatus();
+              return absl::OkStatus();
             }));
         *request_logger = std::move(mock_request_logger);
-        return OkStatus();
+        return absl::OkStatus();
       },
       &options.server_request_logger));
 
@@ -631,6 +689,7 @@ TEST_P(ServerCoreTest, RequestLoggingOn) {
   std::unique_ptr<ServerCore> server_core;
   TF_ASSERT_OK(ServerCore::Create(std::move(options), &server_core));
 
+  // Logging for unary requests.
   LogMetadata log_metadata0;
   auto* const model_spec0 = log_metadata0.mutable_model_spec();
   model_spec0->set_name(test_util::kTestModelName);
@@ -638,6 +697,22 @@ TEST_P(ServerCoreTest, RequestLoggingOn) {
       server_core->Log(PredictRequest(), PredictResponse(), log_metadata0));
   ASSERT_EQ(1, log_collector_map.size());
   EXPECT_EQ(1, log_collector_map[test_util::kTestModelName]->collect_count());
+
+  // Logging for streaming requests.
+  auto* logger_ptr = new MockPredictionStreamLogger();
+  auto logger =
+      server_core->StartLoggingStream<PredictRequest, PredictResponse>(
+          log_metadata0,
+          [logger_ptr]() { return absl::WrapUnique(logger_ptr); });
+  EXPECT_CALL(*logger_ptr, CreateLogMessage(_, _))
+      .WillOnce(Invoke([](const LogMetadata& log_metadata,
+                          std::unique_ptr<google::protobuf::Message>* log) {
+        *log = std::make_unique<google::protobuf::Any>();
+        return absl::OkStatus();
+      }));
+  TF_ASSERT_OK(logger->LogMessage());
+  ASSERT_EQ(1, log_collector_map.size());
+  EXPECT_EQ(2, log_collector_map[test_util::kTestModelName]->collect_count());
 }
 
 TEST_P(ServerCoreTest, ModelSpecMultipleVersionsAvailable) {
@@ -719,7 +794,7 @@ TEST_P(ServerCoreTest, ModelSpecMultipleVersionsAvailable) {
     model_spec.set_name(test_util::kTestModelName);
     model_spec.set_version_label("nonexistent label");
     ServableHandle<string> servable_handle;
-    Status status =
+    absl::Status status =
         server_core->GetServableHandle<string>(model_spec, &servable_handle);
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.ToString(),
@@ -746,7 +821,7 @@ TEST_P(ServerCoreTest, AssignLabelToUnavailableVersion) {
   ASSERT_EQ(1, two_version_config.model_config_list().config().size());
   test_util::MutateModelConfig(&two_version_config)
       .SetLabelVersion("nice try", test_util::kTestModelBogusVersion);
-  Status status = server_core->ReloadConfig(two_version_config);
+  absl::Status status = server_core->ReloadConfig(two_version_config);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("not currently available for inference"));
@@ -771,7 +846,7 @@ TEST_P(ServerCoreTest, AssignLabelToUnavailableVersionAllowed) {
   ASSERT_EQ(1, two_version_config.model_config_list().config().size());
   test_util::MutateModelConfig(&two_version_config)
       .SetLabelVersion("nice try", test_util::kTestModelBogusVersion);
-  Status status = server_core->ReloadConfig(two_version_config);
+  absl::Status status = server_core->ReloadConfig(two_version_config);
   EXPECT_TRUE(status.ok());
 }
 
@@ -801,7 +876,7 @@ TEST_P(ServerCoreTest, AssignExistingLabelToUnavailableVersionDisallowed) {
   ASSERT_EQ(1, two_version_config.model_config_list().config().size());
   test_util::MutateModelConfig(&two_version_config)
       .SetLabelVersion("A", test_util::kTestModelBogusVersion);
-  Status status = server_core->ReloadConfig(two_version_config);
+  absl::Status status = server_core->ReloadConfig(two_version_config);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("not currently available for inference"));
@@ -852,7 +927,7 @@ TEST_P(ServerCoreTest, VersionLabelsNotAllowed) {
   ASSERT_EQ(1, config.model_config_list().config().size());
   test_util::MutateModelConfig(&config).SetLabelVersion(
       "A", test_util::kTestModelVersion);
-  Status status = server_core->ReloadConfig(config);
+  absl::Status status = server_core->ReloadConfig(config);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(
       status.ToString(),

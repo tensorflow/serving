@@ -14,6 +14,9 @@ limitations under the License.
 ==============================================================================*/
 #include "tensorflow_serving/experimental/tensorflow/ops/remote_predict/kernels/prediction_service_grpc.h"
 
+#include <functional>
+#include <string>
+
 #include "grpcpp/create_channel.h"
 #include "grpcpp/security/credentials.h"
 #include "absl/time/clock.h"
@@ -41,10 +44,10 @@ PredictionServiceGrpc::PredictionServiceGrpc(
   stub_ = tensorflow::serving::PredictionService::NewStub(channel);
 }
 
-StatusOr<::grpc::ClientContext*> PredictionServiceGrpc::CreateRpc(
+absl::StatusOr< ::grpc::ClientContext*> PredictionServiceGrpc::CreateRpc(
     absl::Duration max_rpc_deadline) {
   ::grpc::ClientContext* rpc = new ::grpc::ClientContext();
-  // TODO(b/159739577): Set deadline as the min value between
+  // TODO(b/300069508): Set deadline as the min value between
   // the incoming rpc deadline and max_rpc_deadline_millis.
   rpc->set_deadline(std::chrono::system_clock::now() +
                     absl::ToChronoSeconds(max_rpc_deadline));

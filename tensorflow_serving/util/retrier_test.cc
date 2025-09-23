@@ -17,9 +17,11 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/status/status.h"
+#include "xla/tsl/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
-#include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/platform/errors.h"
 
 namespace tensorflow {
 namespace serving {
@@ -28,31 +30,31 @@ namespace {
 using ::testing::HasSubstr;
 
 TEST(RetrierTest, RetryFinallySucceeds) {
-  auto retried_fn = []() {
-    static int count = 0;
-    ++count;
-    if (count == 1) {
-      return errors::Unknown("Error");
+  int call_count = 0;
+  auto retried_fn = [&]() {
+    ++call_count;
+    if (call_count == 7) {
+      return absl::OkStatus();
     }
-    return OkStatus();
+    return errors::Unknown("Error");
   };
 
-  TF_EXPECT_OK(Retry("RetryFinallySucceeds", 1 /* max_num_retries */,
+  TF_EXPECT_OK(Retry("RetryFinallySucceeds", 10 /* max_num_retries */,
                      1 /* retry_interval_micros */, retried_fn));
+  EXPECT_EQ(7, call_count);
 }
 
 TEST(RetrierTest, RetryFinallyFails) {
-  auto retried_fn = []() {
-    static int count = 0;
-    if (++count <= 2) {
-      return errors::Unknown("Error");
-    }
-    return OkStatus();
+  int call_count = 0;
+  auto retried_fn = [&]() {
+    ++call_count;
+    return errors::Unknown("Error");
   };
 
-  const auto status = Retry("RetryFinallyFails", 1 /* max_num_retries */,
+  const auto status = Retry("RetryFinallyFails", 10 /* max_num_retries */,
                             0 /* retry_interval_micros */, retried_fn);
   EXPECT_THAT(status.message(), HasSubstr("Error"));
+  EXPECT_EQ(11, call_count);
 }
 
 TEST(RetrierTest, RetryCancelled) {
@@ -61,11 +63,30 @@ TEST(RetrierTest, RetryCancelled) {
     ++call_count;
     return errors::Unknown("Error");
   };
-  const auto status = Retry("RetryCancelled", 10 /* max_num_retries */,
-                            0 /* retry_interval_micros */, retried_fn,
-                            []() { return true; } /* cancelled */);
+  const auto status = Retry(
+      "RetryCancelled", 10 /* max_num_retries */, 0 /* retry_interval_micros */,
+      retried_fn, [](absl::Status status) { return false; } /* should retry */);
   EXPECT_THAT(status.message(), HasSubstr("Error"));
   EXPECT_EQ(1, call_count);
+}
+
+TEST(RetrierTest, RetryCancelledOnUnimplementedError) {
+  int call_count = 0;
+  auto retried_fn = [&]() {
+    ++call_count;
+    if (call_count == 5) {
+      return errors::Unimplemented("Unimplemented");
+    }
+    return errors::DeadlineExceeded("DeadlineExceeded");
+  };
+
+  const auto status =
+      Retry("RetryCancelledOnUnimplementedError", 10 /* max_num_retries */,
+            0 /* retry_interval_micros */, retried_fn, [](absl::Status status) {
+              return status.code() != absl::StatusCode::kUnimplemented;
+            });
+  EXPECT_EQ(5, call_count);
+  EXPECT_THAT(status.message(), HasSubstr("Unimplemented"));
 }
 
 }  // namespace

@@ -1,5 +1,7 @@
 # Description: Example TensorFlow model export.
 
+# Placeholder: load py_binary
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",
@@ -157,6 +159,26 @@ filegroup(
     srcs = glob(
         ["parse_example_tflite/**"],
     ),
+)
+
+filegroup(
+    name = "saved_model_half_plus_two_cpu_with_saved_model_config",
+    srcs = glob(
+        ["saved_model_half_plus_two_cpu_with_saved_model_config/**"],
+    ),
+    visibility = [
+        "//visibility:public",
+    ],
+)
+
+filegroup(
+    name = "saved_model_half_plus_two_cpu_with_empty_saved_model_config",
+    srcs = glob(
+        ["saved_model_half_plus_two_cpu_with_empty_saved_model_config/**"],
+    ),
+    visibility = [
+        "//visibility:public",
+    ],
 )
 
 exports_files([

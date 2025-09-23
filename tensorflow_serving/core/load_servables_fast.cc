@@ -15,9 +15,13 @@ limitations under the License.
 
 #include "tensorflow_serving/core/load_servables_fast.h"
 
+#include <algorithm>
+#include <functional>
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -40,10 +44,10 @@ std::function<void(const uint32)> SetManagerNumLoadThreadsNotifier(
   return manager->set_num_load_threads_observer_->Notifier();
 }
 
-Status ConnectSourcesWithFastInitialLoad(
+absl::Status ConnectSourcesWithFastInitialLoad(
     AspiredVersionsManager* manager,
     std::vector<Source<std::unique_ptr<Loader>>*> sources,
-    const std::function<Status()>& wait_until_loaded_fn,
+    const std::function<absl::Status()>& wait_until_loaded_fn,
     const uint32 num_threads) {
   const uint32 prev_num_load_threads = GetManagerNumLoadThreads(manager);
   std::function<void(const uint32)> set_manager_num_load_threads =
@@ -52,14 +56,14 @@ Status ConnectSourcesWithFastInitialLoad(
   for (Source<std::unique_ptr<Loader>>* source : sources) {
     ConnectSourceToTarget(source, manager);
   }
-  const Status status = wait_until_loaded_fn();
+  const absl::Status status = wait_until_loaded_fn();
   set_manager_num_load_threads(prev_num_load_threads);
   return status;
 }
 
 }  // namespace internal
 
-Status ConnectSourceWithFastInitialLoad(
+absl::Status ConnectSourceWithFastInitialLoad(
     AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
     ServableStateMonitor* servable_state_monitor,
     const std::vector<ServableRequest>& initial_servables,
@@ -69,7 +73,7 @@ Status ConnectSourceWithFastInitialLoad(
                                            initial_servables, num_threads);
 }
 
-Status ConnectSourcesWithFastInitialLoad(
+absl::Status ConnectSourcesWithFastInitialLoad(
     AspiredVersionsManager* manager,
     std::vector<Source<std::unique_ptr<Loader>>*> sources,
     ServableStateMonitor* servable_state_monitor,
@@ -92,8 +96,8 @@ Status ConnectSourcesWithFastInitialLoad(
                        ServableState::ManagerState::kAvailable;
               });
           string message =
-              strings::StrCat(num_unavailable_servables,
-                              " servable(s) did not become available: {");
+              absl::StrCat(num_unavailable_servables,
+                           " servable(s) did not become available: {");
           for (const auto& id_and_state : states_reached) {
             if (id_and_state.second !=
                 ServableState::ManagerState::kAvailable) {
@@ -104,15 +108,14 @@ Status ConnectSourcesWithFastInitialLoad(
                       ? " due to error: " +
                             maybe_state.value().health.ToString()
                       : "";
-              strings::StrAppend(&message, "{",
-                                 id_and_state.first.DebugString(), error_msg,
-                                 "}, ");
+              absl::StrAppend(&message, "{", id_and_state.first.DebugString(),
+                              error_msg, "}, ");
             }
           }
-          strings::StrAppend(&message, "}");
+          absl::StrAppend(&message, "}");
           return errors::Unknown(message);
         }
-        return OkStatus();
+        return absl::OkStatus();
       },
       num_threads);
 }

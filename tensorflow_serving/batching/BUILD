@@ -1,5 +1,8 @@
 # Description: Tensorflow Serving batching.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 package(
     default_visibility = ["//tensorflow_serving:internal"],
     features = ["-layering_check"],
@@ -25,6 +28,7 @@ cc_library(
     visibility = ["//visibility:private"],
     deps = [
         ":batch_scheduler_retrier",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:batch_scheduler",
@@ -39,6 +43,7 @@ cc_test(
     deps = [
         ":streaming_batch_scheduler",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
@@ -77,6 +82,7 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/util:hash",
         "@com_google_absl//absl/container:fixed_array",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
@@ -118,6 +124,7 @@ cc_test(
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/test_util",
         "@com_google_absl//absl/synchronization",
+        "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:core_cpu",
@@ -147,6 +154,7 @@ cc_test(
     deps = [
         ":batch_scheduler_retrier",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
@@ -202,5 +210,42 @@ cc_test(
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
+    ],
+)
+
+cc_library(
+    name = "tfrt_saved_model_with_batching",
+    srcs = ["tfrt_saved_model_with_batching.cc"],
+    hdrs = ["tfrt_saved_model_with_batching.h"],
+    deps = [
+        ":batching_options",
+        ":batching_session",
+        ":batching_util",
+        ":incremental_barrier",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:inlined_vector",
+        "@com_google_absl//absl/synchronization",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core/kernels/batching_util:batch_scheduler",
+        "@org_tensorflow//tensorflow/core/tfrt/saved_model",
+    ],
+)
+
+cc_test(
+    name = "tfrt_saved_model_with_batching_test",
+    srcs = ["tfrt_saved_model_with_batching_test.cc"],
+    deps = [
+        ":batching_util",
+        ":tfrt_saved_model_with_batching",
+        "//tensorflow_serving/core/test_util:test_main",
+        "//tensorflow_serving/servables/tensorflow/test_util:mock_tfrt_saved_model",
+        "@com_google_absl//absl/functional:bind_front",
+        "@com_google_googletest//:gtest",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core:testlib",
+        "@org_tensorflow//tensorflow/core/kernels/batching_util:basic_batch_scheduler",
+        "@org_tensorflow//tensorflow/core/tfrt/utils:tensor_util",
     ],
 )

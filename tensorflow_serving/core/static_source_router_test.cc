@@ -16,6 +16,9 @@ limitations under the License.
 #include "tensorflow_serving/core/static_source_router.h"
 
 #include <algorithm>
+#include <memory>
+#include <utility>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

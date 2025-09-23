@@ -42,6 +42,9 @@ class AspiredVersionsManagerTestAccess {
 
   uint32 num_load_threads() const;
 
+  void SetCustomSortActions(
+      AspiredVersionsManager::CustomSortActionsFn custom_sort_actions);
+
  private:
   AspiredVersionsManager* const manager_;
 

@@ -15,10 +15,12 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/streaming_batch_scheduler.h"
 
+#include <memory>
 #include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/kernels/batching_util/fake_clock_env.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/macros.h"
@@ -48,9 +50,10 @@ class FakeTask : public BatchTask {
 
 // Creates a FakeTask of size 'task_size', and calls 'scheduler->Schedule()' on
 // that task. Returns the resulting status.
-Status ScheduleTask(size_t task_size, BatchScheduler<FakeTask>* scheduler) {
+absl::Status ScheduleTask(size_t task_size,
+                          BatchScheduler<FakeTask>* scheduler) {
   std::unique_ptr<FakeTask> task(new FakeTask(task_size));
-  Status status = scheduler->Schedule(&task);
+  absl::Status status = scheduler->Schedule(&task);
   // Schedule() should have consumed 'task' iff it returned Status::OK.
   CHECK_EQ(status.ok(), task == nullptr);
   return status;
@@ -128,7 +131,7 @@ TEST(StreamingBatchSchedulerTest, Timeout) {
   // Set up a fake clock, which only advances when we explicitly tell it to.
   test_util::FakeClockEnv env(Env::Default());
 
-  Notification first_batch_processed, second_batch_processed,
+  absl::Notification first_batch_processed, second_batch_processed,
       third_batch_processed;
   auto callback = [&first_batch_processed, &second_batch_processed,
                    &third_batch_processed](
@@ -186,7 +189,7 @@ TEST(StreamingBatchSchedulerTest, Timeout) {
 }
 
 TEST(StreamingBatchSchedulerTest, RealClockTimeout) {
-  Notification first_batch_processed, second_batch_processed;
+  absl::Notification first_batch_processed, second_batch_processed;
   auto callback = [&first_batch_processed, &second_batch_processed](
       std::unique_ptr<Batch<FakeTask>> batch) {
     batch->WaitUntilClosed();
@@ -239,7 +242,7 @@ TEST(StreamingBatchSchedulerTest, FinalUnderfullBatchProcessedUponDeletion) {
 }
 
 TEST(StreamingBatchSchedulerTest, BatchHandedToCallbackWhenFirstCreated) {
-  Notification stop_scheduler;
+  absl::Notification stop_scheduler;
   auto callback = [&stop_scheduler](std::unique_ptr<Batch<FakeTask>> batch) {
     EXPECT_LE(batch->num_tasks(), 1);
     EXPECT_FALSE(batch->IsClosed());
@@ -263,7 +266,7 @@ TEST(StreamingBatchSchedulerTest, BatchHandedToCallbackWhenFirstCreated) {
 
 TEST(StreamingBatchSchedulerTest, ConstMethods) {
   for (const int num_threads : {1, 2, 3}) {
-    Notification proceed;
+    absl::Notification proceed;
     auto callback = [&proceed](std::unique_ptr<Batch<FakeTask>> batch) {
       batch->WaitUntilClosed();
       proceed.WaitForNotification();
@@ -295,7 +298,7 @@ TEST(StreamingBatchSchedulerTest, ConstMethods) {
 
     // Make another Schedule() call while the threads are full, which should
     // yield an UNAVAILABLE error.
-    Status status = ScheduleTask(1, scheduler.get());
+    absl::Status status = ScheduleTask(1, scheduler.get());
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(error::UNAVAILABLE, status.code());
     EXPECT_EQ(0, scheduler->NumEnqueuedTasks());

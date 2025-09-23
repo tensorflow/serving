@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/batching_util.h"
 
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/framework/register_types.h"
@@ -64,7 +69,7 @@ TEST(BatchingUtilTest, AddPadding) {
       DT_UINT16,     DT_INT8,   DT_STRING, DT_BOOL,    DT_COMPLEX64,
       DT_COMPLEX128, DT_INT64,  DT_QINT8,  DT_QUINT8,  DT_QINT16,
       DT_QUINT16,    DT_QINT32, DT_HALF,   DT_RESOURCE};
-  Status padding_status;
+  absl::Status padding_status;
   for (DataType type : types) {
     Tensor tensor(type, {10, 20, 30});
 #define INIT_TYPE(T)                      \
@@ -79,7 +84,7 @@ TEST(BatchingUtilTest, AddPadding) {
 #undef INIT_TYPE
     Tensor padded_tensor;
     padding_status = AddPadding(tensor, max_dim_sizes, &padded_tensor);
-    ASSERT_EQ(OkStatus(), padding_status);
+    ASSERT_EQ(absl::OkStatus(), padding_status);
     EXPECT_EQ(TensorShape({10, 100, 200}), padded_tensor.shape());
   }
 }

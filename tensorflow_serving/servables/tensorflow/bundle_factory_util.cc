@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
 
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "google/protobuf/wrappers.pb.h"
 #include "tensorflow/core/kernels/batching_util/batch_scheduler.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -58,10 +63,9 @@ RunOptions GetRunOptions(const SessionBundleConfig& config) {
   return run_options;
 }
 
-Status GetPerModelBatchingParams(const string& path,
-                                 const BatchingParameters& common_params,
-                                 bool per_model_configured,
-                                 absl::optional<BatchingParameters>* params) {
+absl::Status GetPerModelBatchingParams(
+    const string& path, const BatchingParameters& common_params,
+    bool per_model_configured, absl::optional<BatchingParameters>* params) {
   if (per_model_configured) {
     if (BatchingParamsFound(path)) {
       *params = absl::make_optional(BatchingParameters());
@@ -77,25 +81,26 @@ Status GetPerModelBatchingParams(const string& path,
             << "using session config batching params: "
             << params->value().DebugString();
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status EstimateResourceFromValidationResult(const string& path,
-                                            ResourceAllocation* estimate) {
+absl::Status EstimateResourceFromValidationResult(
+    const string& path, ResourceAllocation* estimate) {
   return EstimateMainRamBytesFromValidationResult(path, estimate);
 }
 
-Status EstimateResourceFromPath(const string& path, bool use_validation_result,
-                                ResourceAllocation* estimate) {
+absl::Status EstimateResourceFromPath(const string& path,
+                                      bool use_validation_result,
+                                      ResourceAllocation* estimate) {
   TensorflowFileProbingEnv env(Env::Default());
   return EstimateMainRamBytesFromPath(path, use_validation_result, &env,
                                       estimate);
 }
 
-Status WrapSessionForBatching(const BatchingParameters& batching_config,
-                              std::shared_ptr<Batcher> batch_scheduler,
-                              const std::vector<SignatureDef>& signatures,
-                              std::unique_ptr<Session>* session) {
+absl::Status WrapSessionForBatching(const BatchingParameters& batching_config,
+                                    std::shared_ptr<Batcher> batch_scheduler,
+                                    const std::vector<SignatureDef>& signatures,
+                                    std::unique_ptr<Session>* session) {
   LOG(INFO) << "Wrapping session to perform batch processing";
 
   if (batch_scheduler == nullptr) {
@@ -126,7 +131,7 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
       [](std::unique_ptr<tensorflow::serving::BatchingSessionTask>* input_task,
          int open_batch_remaining_slot, int max_batch_size,
          std::vector<std::unique_ptr<tensorflow::serving::BatchingSessionTask>>*
-             output_tasks) -> tensorflow::Status {
+             output_tasks) -> absl::Status {
         return SplitInputTask(input_task, open_batch_remaining_slot,
                               max_batch_size, output_tasks);
       });
@@ -145,7 +150,7 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
       std::unique_ptr<BatchScheduler<BatchingSessionTask>>* queue) {
     TF_RETURN_IF_ERROR(batch_scheduler->AddQueue(
         queue_options, process_batch_callback, queue));
-    return OkStatus();
+    return absl::OkStatus();
   };
   std::vector<SignatureWithBatchingSessionSchedulerCreator>
       signatures_with_scheduler_creators;
@@ -161,15 +166,16 @@ Status WrapSessionForBatching(const BatchingParameters& batching_config,
                                std::move(*session), session);
 }
 
-Status WrapSession(std::unique_ptr<Session>* session) {
+absl::Status WrapSession(std::unique_ptr<Session>* session) {
   session->reset(new ServingSessionWrapper(std::move(*session)));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status WrapSessionIgnoreThreadPoolOptions(std::unique_ptr<Session>* session) {
+absl::Status WrapSessionIgnoreThreadPoolOptions(
+    std::unique_ptr<Session>* session) {
   session->reset(
       new SessionWrapperIgnoreThreadPoolOptions(std::move(*session)));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace serving

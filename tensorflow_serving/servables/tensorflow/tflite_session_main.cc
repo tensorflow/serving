@@ -18,6 +18,7 @@ limitations under the License.
 #include <iostream>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/init_main.h"

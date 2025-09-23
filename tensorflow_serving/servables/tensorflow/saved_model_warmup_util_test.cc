@@ -15,22 +15,29 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup_util.h"
 
+#include <cstdint>
+#include <string>
+#include <vector>
+
 #include "google/protobuf/wrappers.pb.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 #include "tensorflow/cc/saved_model/constants.h"
-#include "tensorflow/cc/saved_model/signature_constants.h"
+#include "tensorflow/cc/saved_model/loader.h"
+#include "xla/tsl/lib/core/status_test_util.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/example/feature.pb.h"
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/framework/tensor_shape.pb.h"
-#include "tensorflow/core/lib/core/status_test_util.h"
-#include "tensorflow/core/lib/io/path.h"
-#include "tensorflow/core/lib/io/record_writer.h"
+#include "tensorflow/core/kernels/batching_util/warmup.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/errors.h"
+#include "tensorflow/core/platform/mutex.h"
+#include "tensorflow/core/platform/path.h"
 #include "tensorflow/core/platform/test.h"
-#include "tensorflow/core/platform/threadpool_options.h"
+#include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/apis/classification.pb.h"
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/apis/input.pb.h"
@@ -46,37 +53,115 @@ namespace serving {
 namespace internal {
 namespace {
 
-class SavedModelBundleWarmupUtilTest : public ::testing::TestWithParam<bool> {
+constexpr absl::string_view kModelName = "/ml/owner/model";
+constexpr int64_t kModelVersion = 0;
+constexpr int32_t kNumWarmupThreads = 3;
+
+class RunSavedModelWarmupUntrackedTest : public ::testing::Test {
  protected:
-  SavedModelBundleWarmupUtilTest() : warmup_request_counter_(0) {}
-  bool ParallelWarmUp() { return GetParam(); }
-  ModelWarmupOptions CreateModelWarmupOptions() {
+  RunSavedModelWarmupUntrackedTest() = default;
+
+  virtual ModelWarmupOptions CreateModelWarmupOptions() {
+    return ModelWarmupOptions();
+  }
+
+  virtual void FakeRunWarmupRequest() {
+    tensorflow::mutex_lock lock(mu_);
+    warmup_request_counter_++;
+  }
+
+  int warmup_request_counter() {
+    tensorflow::mutex_lock lock(mu_);
+    return warmup_request_counter_;
+  }
+
+  tensorflow::mutex mu_;
+  int warmup_request_counter_ = 0;
+};
+
+class RunSavedModelWarmupTest
+    : public RunSavedModelWarmupUntrackedTest,
+      public ::testing::WithParamInterface<bool /* parallel_warmup */> {
+ protected:
+  RunSavedModelWarmupTest() = default;
+
+  bool parallel_warmup() const { return GetParam(); }
+
+  ModelWarmupOptions CreateModelWarmupOptions() override {
     ModelWarmupOptions options;
-    if (ParallelWarmUp()) {
-      options.mutable_num_model_warmup_threads()->set_value(3);
+    if (parallel_warmup()) {
+      options.set_model_name(std::string(kModelName));
+      options.set_model_version(kModelVersion);
+      options.mutable_num_model_warmup_threads()->set_value(kNumWarmupThreads);
     }
     return options;
   }
-  void FakeRunWarmupRequest() { warmup_request_counter_++; }
-  int warmup_request_counter_;
+
+  bool LookupWarmupState() const {
+    return GetGlobalWarmupStateRegistry().Lookup(
+        {std::string(kModelName), kModelVersion});
+  }
+
+  void FakeRunWarmupRequest() override {
+    tensorflow::mutex_lock lock(mu_);
+    is_model_in_warmup_state_registry_ = LookupWarmupState();
+    warmup_request_counter_++;
+  }
+
+  bool is_model_in_warmup_state_registry() {
+    tensorflow::mutex_lock lock(mu_);
+    return is_model_in_warmup_state_registry_;
+  }
+
+ private:
+  bool is_model_in_warmup_state_registry_ = false;
 };
 
-TEST_P(SavedModelBundleWarmupUtilTest, NoWarmupDataFile) {
+TEST_P(RunSavedModelWarmupTest, WarmupStateRegistration) {
+  string base_path = io::JoinPath(testing::TmpDir(), "WarmupStateRegistration");
+  TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
+      io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
+  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                              internal::WarmupConsts::kRequestsFileName);
+
+  const int num_warmup_records = parallel_warmup() ? kNumWarmupThreads : 1;
+  std::vector<string> warmup_records;
+  TF_ASSERT_OK(
+      AddMixedWarmupData(&warmup_records, {PredictionLog::kPredictLog}));
+  TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, num_warmup_records));
+
+  TF_ASSERT_OK(RunSavedModelWarmup(CreateModelWarmupOptions(), base_path,
+                                   [this](PredictionLog prediction_log) {
+                                     this->FakeRunWarmupRequest();
+                                     return absl::OkStatus();
+                                   }));
+  EXPECT_EQ(warmup_request_counter(), num_warmup_records);
+  EXPECT_EQ(is_model_in_warmup_state_registry(), parallel_warmup());
+  // The model should be unregistered from the WarmupStateRegistry after
+  // warm-up.
+  EXPECT_FALSE(LookupWarmupState());
+}
+
+INSTANTIATE_TEST_SUITE_P(RunSavedModelWarmupTests, RunSavedModelWarmupTest,
+                         ::testing::Bool());
+
+TEST_F(RunSavedModelWarmupUntrackedTest, NoWarmupDataFile) {
   string base_path = io::JoinPath(testing::TmpDir(), "NoWarmupDataFile");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
 
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);
-  TF_EXPECT_OK(RunSavedModelWarmup(CreateModelWarmupOptions(), base_path,
+  TF_EXPECT_OK(
+      RunSavedModelWarmupUntracked(CreateModelWarmupOptions(), base_path,
                                    [this](PredictionLog prediction_log) {
                                      this->FakeRunWarmupRequest();
-                                     return OkStatus();
+                                     return absl::OkStatus();
                                    }));
-  EXPECT_EQ(warmup_request_counter_, 0);
+  EXPECT_EQ(warmup_request_counter(), 0);
 }
 
-TEST_P(SavedModelBundleWarmupUtilTest, WarmupDataFileEmpty) {
+TEST_F(RunSavedModelWarmupUntrackedTest, WarmupDataFileEmpty) {
   string base_path = io::JoinPath(testing::TmpDir(), "WarmupDataFileEmpty");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
@@ -87,15 +172,16 @@ TEST_P(SavedModelBundleWarmupUtilTest, WarmupDataFileEmpty) {
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, 0));
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);
-  TF_EXPECT_OK(RunSavedModelWarmup(CreateModelWarmupOptions(), base_path,
+  TF_EXPECT_OK(
+      RunSavedModelWarmupUntracked(CreateModelWarmupOptions(), base_path,
                                    [this](PredictionLog prediction_log) {
                                      this->FakeRunWarmupRequest();
-                                     return OkStatus();
+                                     return absl::OkStatus();
                                    }));
-  EXPECT_EQ(warmup_request_counter_, 0);
+  EXPECT_EQ(warmup_request_counter(), 0);
 }
 
-TEST_P(SavedModelBundleWarmupUtilTest, UnsupportedFileFormat) {
+TEST_F(RunSavedModelWarmupUntrackedTest, UnsupportedFileFormat) {
   string base_path = io::JoinPath(testing::TmpDir(), "UnsupportedFileFormat");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
@@ -112,9 +198,9 @@ TEST_P(SavedModelBundleWarmupUtilTest, UnsupportedFileFormat) {
   TF_ASSERT_OK(WriteWarmupDataAsSerializedProtos(fname, warmup_records, 10));
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);
-  const Status status = RunSavedModelWarmup(
+  const absl::Status status = RunSavedModelWarmupUntracked(
       CreateModelWarmupOptions(), base_path,
-      [](PredictionLog prediction_log) { return OkStatus(); });
+      [](PredictionLog prediction_log) { return absl::OkStatus(); });
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::DATA_LOSS, status.code()) << status;
   EXPECT_THAT(status.ToString(),
@@ -122,7 +208,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, UnsupportedFileFormat) {
                   "Please verify your warmup data is in TFRecord format"));
 }
 
-TEST_P(SavedModelBundleWarmupUtilTest, TooManyWarmupRecords) {
+TEST_F(RunSavedModelWarmupUntrackedTest, TooManyWarmupRecords) {
   string base_path = io::JoinPath(testing::TmpDir(), "TooManyWarmupRecords");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
@@ -135,11 +221,11 @@ TEST_P(SavedModelBundleWarmupUtilTest, TooManyWarmupRecords) {
                                internal::WarmupConsts::kMaxNumRecords + 1));
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);
-  const Status status = RunSavedModelWarmup(
+  const absl::Status status = RunSavedModelWarmupUntracked(
       CreateModelWarmupOptions(), base_path,
-      [](PredictionLog prediction_log) { return OkStatus(); });
+      [](PredictionLog prediction_log) { return absl::OkStatus(); });
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
       << status;
   EXPECT_THAT(
@@ -147,7 +233,7 @@ TEST_P(SavedModelBundleWarmupUtilTest, TooManyWarmupRecords) {
       ::testing::HasSubstr("Number of warmup records exceeds the maximum"));
 }
 
-TEST_P(SavedModelBundleWarmupUtilTest, UnparsableRecord) {
+TEST_F(RunSavedModelWarmupUntrackedTest, UnparsableRecord) {
   string base_path = io::JoinPath(testing::TmpDir(), "UnparsableRecord");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
@@ -157,18 +243,18 @@ TEST_P(SavedModelBundleWarmupUtilTest, UnparsableRecord) {
   std::vector<string> warmup_records = {"malformed_record"};
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, 10));
   SavedModelBundle saved_model_bundle;
-  const Status status = RunSavedModelWarmup(
+  const absl::Status status = RunSavedModelWarmupUntracked(
       CreateModelWarmupOptions(), base_path,
-      [](PredictionLog prediction_log) { return OkStatus(); });
+      [](PredictionLog prediction_log) { return absl::OkStatus(); });
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
       << status;
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Failed to parse warmup record"));
 }
 
-TEST_P(SavedModelBundleWarmupUtilTest, RunFailure) {
+TEST_F(RunSavedModelWarmupUntrackedTest, RunFailure) {
   string base_path = io::JoinPath(testing::TmpDir(), "RunFailure");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
@@ -181,18 +267,17 @@ TEST_P(SavedModelBundleWarmupUtilTest, RunFailure) {
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, num_warmup_records));
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);
-  Status status = RunSavedModelWarmup(
+  absl::Status status = RunSavedModelWarmupUntracked(
       CreateModelWarmupOptions(), base_path, [](PredictionLog prediction_log) {
         return errors::InvalidArgument("Run failed");
       });
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
       << status;
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run failed"));
 }
-INSTANTIATE_TEST_SUITE_P(ParallelWarmUp, SavedModelBundleWarmupUtilTest,
-                         ::testing::Bool());
+
 }  // namespace
 }  // namespace internal
 }  // namespace serving

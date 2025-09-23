@@ -16,11 +16,13 @@ limitations under the License.
 #include "tensorflow_serving/batching/batch_scheduler_retrier.h"
 
 #include <limits>
+#include <memory>
+#include <utility>
 
 #include <gtest/gtest.h>
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/kernels/batching_util/fake_clock_env.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/macros.h"
@@ -47,7 +49,7 @@ class BrokenScheduler : public BatchScheduler<FakeTask> {
   BrokenScheduler() = default;
   ~BrokenScheduler() override = default;
 
-  Status Schedule(std::unique_ptr<FakeTask>* task) override {
+  absl::Status Schedule(std::unique_ptr<FakeTask>* task) override {
     ++num_submit_calls_;
     return errors::Unknown("BrokenScheduler faithfully failing");
   }
@@ -74,11 +76,11 @@ class StubbornScheduler : public BatchScheduler<FakeTask> {
       : num_attempts_to_succeed_(num_attempts_to_succeed) {}
   ~StubbornScheduler() override = default;
 
-  Status Schedule(std::unique_ptr<FakeTask>* task) override {
+  absl::Status Schedule(std::unique_ptr<FakeTask>* task) override {
     ++num_attempts_;
     if (num_attempts_ >= num_attempts_to_succeed_) {
       std::unique_ptr<FakeTask> consumed_task = std::move(*task);
-      return OkStatus();
+      return absl::OkStatus();
     } else {
       return errors::Unavailable(
           "StubbornScheduler faithfully being stubborn; this is attempt ",
@@ -122,7 +124,7 @@ TEST(BatchSchedulerRetrierTest, PermanentFailure) {
   TF_CHECK_OK(BatchSchedulerRetrier<FakeTask>::Create(
       options, std::move(broken_scheduler), &retrier));
   auto task = std::unique_ptr<FakeTask>(new FakeTask);
-  Status status = retrier->Schedule(&task);
+  absl::Status status = retrier->Schedule(&task);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(error::UNKNOWN, status.code());
   EXPECT_FALSE(task == nullptr);
@@ -147,12 +149,12 @@ TEST(BatchSchedulerRetrierTest, MaxTime) {
           options, std::move(stubborn_scheduler), &retrier));
 
       const bool expect_success = max_attempts >= num_attempts_to_succeed;
-      Notification done;
+      absl::Notification done;
       std::unique_ptr<Thread> run_retrier(Env::Default()->StartThread(
           {}, "RunRetrier",
           [&retrier, &expect_success, &done]() {
             auto task = std::unique_ptr<FakeTask>(new FakeTask);
-            Status status = retrier->Schedule(&task);
+            absl::Status status = retrier->Schedule(&task);
             EXPECT_EQ(expect_success, status.ok());
             if (!status.ok()) {
               EXPECT_EQ(error::UNAVAILABLE, status.code());
@@ -189,12 +191,12 @@ TEST(BatchSchedulerRetrierTest, RetryDelay) {
   TF_CHECK_OK(BatchSchedulerRetrier<FakeTask>::Create(
       options, std::move(stubborn_scheduler), &retrier));
 
-  Notification done;
+  absl::Notification done;
   std::unique_ptr<Thread> run_retrier(Env::Default()->StartThread(
       {}, "RunRetrier",
       [&retrier, &done]() {
         auto task = std::unique_ptr<FakeTask>(new FakeTask);
-        Status status = retrier->Schedule(&task);
+        absl::Status status = retrier->Schedule(&task);
         TF_EXPECT_OK(status);
         done.Notify();
       }));

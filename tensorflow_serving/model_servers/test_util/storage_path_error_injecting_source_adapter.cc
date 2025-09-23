@@ -14,6 +14,9 @@ limitations under the License.
 ==============================================================================*/
 
 #include "tensorflow_serving/model_servers/test_util/storage_path_error_injecting_source_adapter.h"
+
+#include <memory>
+
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/model_servers/test_util/storage_path_error_injecting_source_adapter.pb.h"
 
@@ -24,15 +27,16 @@ namespace test_util {
 // Register the source adapter.
 class StoragePathErrorInjectingSourceAdapterCreator {
  public:
-  static Status Create(
+  static absl::Status Create(
       const StoragePathErrorInjectingSourceAdapterConfig& config,
       std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
           adapter) {
     adapter->reset(
         new ErrorInjectingSourceAdapter<StoragePath, std::unique_ptr<Loader>>(
-            Status(static_cast<tsl::errors::Code>(absl::StatusCode::kCancelled),
-                   config.error_message())));
-    return Status();
+            absl::Status(
+                static_cast<absl::StatusCode>(absl::StatusCode::kCancelled),
+                config.error_message())));
+    return absl::Status();
   }
 };
 REGISTER_STORAGE_PATH_SOURCE_ADAPTER(

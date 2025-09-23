@@ -15,14 +15,24 @@ limitations under the License.
 
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 
+#include <algorithm>
 #include <functional>
+#include <map>
+#include <memory>
+#include <set>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
+#include "xla/tsl/platform/errors.h"
+#include "xla/tsl/platform/macros.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/strings/numbers.h"
+#include "tensorflow/core/platform/env.h"
 #include "tensorflow_serving/core/servable_data.h"
 #include "tensorflow_serving/core/servable_id.h"
 
@@ -75,7 +85,7 @@ void AspireVersion(
 // Converts the string version path to an integer.
 // Returns false if the input is invalid.
 bool ParseVersionNumber(const string& version_path, int64_t* version_number) {
-  return strings::safe_strto64(version_path.c_str(), version_number);
+  return absl::SimpleAtoi(version_path.c_str(), version_number);
 }
 
 // Update the servable data to include all the servable versions found in the
@@ -154,6 +164,49 @@ bool AspireLatestVersions(
   return !children_by_version.empty();
 }
 
+// Like `AspireSpecificVersions` but use `FileExists` instead of GetChildren to
+// remove unnecessary directory listings. Note that this function has to
+// fallback to the general case when there are directories that *parse as* the
+// version number via `strtod` but aren't equivalent (e.g., "base_dir/00001"
+// rather than "base_dir/1").
+//
+// Returns true if all the models are loaded.
+bool AspireSpecificVersionsFastPath(
+    const FileSystemStoragePathSourceConfig::ServableToMonitor& servable,
+    std::vector<ServableData<StoragePath>>* versions) {
+  if (servable.servable_version_policy().specific().versions().empty()) {
+    // There aren't any requested versions, WARN loudly and explicitly, since
+    // this is a likely configuration error. Return *true*, since we are done
+    // with processing this servable.
+    LOG(WARNING) << "No specific versions requested for servable "
+                 << servable.servable_name() << ".";
+    return true;
+  }
+
+  // First ensure that we find *all* the requested versions, so that we can use
+  // this fast path. If not, we'll call the general AspireSpecificVersions after
+  // a GetChildren call.
+  for (const int64_t version :
+       servable.servable_version_policy().specific().versions()) {
+    const string version_dir = absl::StrCat(version);
+    const string child_dir = io::JoinPath(servable.base_path(), version_dir);
+
+    const absl::Status status = Env::Default()->FileExists(child_dir);
+    if (!status.ok()) {
+      return false;
+    }
+  }
+
+  // We've found them all. Aspire them one by one.
+  for (const int64_t version :
+       servable.servable_version_policy().specific().versions()) {
+    const string version_dir = absl::StrCat(version);
+    AspireVersion(servable, version_dir, version, versions);
+  }
+
+  return true;
+}
+
 // Aspire versions for a servable configured with the "specific" version policy.
 //
 // 'children' represents a list of base-path children from the file system.
@@ -194,18 +247,28 @@ bool AspireSpecificVersions(
 }
 
 // Like PollFileSystemForConfig(), but for a single servable.
-Status PollFileSystemForServable(
+absl::Status PollFileSystemForServable(
     const FileSystemStoragePathSourceConfig::ServableToMonitor& servable,
     std::vector<ServableData<StoragePath>>* versions) {
   // First, determine whether the base path exists. This check guarantees that
   // we don't emit an empty aspired-versions list for a non-existent (or
   // transiently unavailable) base-path. (On some platforms, GetChildren()
   // returns an empty list instead of erring if the base path isn't found.)
-  Status status = Env::Default()->FileExists(servable.base_path());
+  absl::Status status = Env::Default()->FileExists(servable.base_path());
   if (!status.ok()) {
     return errors::InvalidArgument(
         "Could not find base path ", servable.base_path(), " for servable ",
         servable.servable_name(), " with error ", status.ToString());
+  }
+
+  if (servable.servable_version_policy().policy_choice_case() ==
+      FileSystemStoragePathSourceConfig::ServableVersionPolicy::kSpecific) {
+    // Special case the specific handler, to avoid GetChildren in the case where
+    // all of the directories match their version number.
+    if (AspireSpecificVersionsFastPath(servable, versions)) {
+      // We found them all, exit early.
+      return absl::OkStatus();
+    }
   }
 
   // Retrieve a list of base-path children from the file system.
@@ -238,11 +301,10 @@ Status PollFileSystemForServable(
       at_least_one_version_found =
           AspireAllVersions(servable, children, versions);
       break;
-    case FileSystemStoragePathSourceConfig::ServableVersionPolicy::kSpecific: {
+    case FileSystemStoragePathSourceConfig::ServableVersionPolicy::kSpecific:
       at_least_one_version_found =
           AspireSpecificVersions(servable, children_by_version, versions);
       break;
-    }
     default:
       return errors::Internal("Unhandled servable version_policy: ",
                               servable.servable_version_policy().DebugString());
@@ -255,13 +317,13 @@ Status PollFileSystemForServable(
                     "(eg. '/1/')?";
   }
 
-  return Status();
+  return absl::Status();
 }
 
 // Polls the file system, and populates 'versions_by_servable_name' with the
 // aspired-versions data FileSystemStoragePathSource should emit based on what
 // was found, indexed by servable name.
-Status PollFileSystemForConfig(
+absl::Status PollFileSystemForConfig(
     const FileSystemStoragePathSourceConfig& config,
     std::map<string, std::vector<ServableData<StoragePath>>>*
         versions_by_servable_name) {
@@ -272,12 +334,13 @@ Status PollFileSystemForConfig(
     versions_by_servable_name->insert(
         {servable.servable_name(), std::move(versions)});
   }
-  return Status();
+  return absl::Status();
 }
 
 // Determines if, for any servables in 'config', the file system doesn't
 // currently contain at least one version under its base path.
-Status FailIfZeroVersions(const FileSystemStoragePathSourceConfig& config) {
+absl::Status FailIfZeroVersions(
+    const FileSystemStoragePathSourceConfig& config) {
   std::map<string, std::vector<ServableData<StoragePath>>>
       versions_by_servable_name;
   TF_RETURN_IF_ERROR(
@@ -299,19 +362,19 @@ Status FailIfZeroVersions(const FileSystemStoragePathSourceConfig& config) {
           " at: ", servable_name_to_base_path_map[servable]);
     }
   }
-  return Status();
+  return absl::Status();
 }
 
 }  // namespace
 
-Status FileSystemStoragePathSource::Create(
+absl::Status FileSystemStoragePathSource::Create(
     const FileSystemStoragePathSourceConfig& config,
     std::unique_ptr<FileSystemStoragePathSource>* result) {
   result->reset(new FileSystemStoragePathSource());
   return (*result)->UpdateConfig(config);
 }
 
-Status FileSystemStoragePathSource::UpdateConfig(
+absl::Status FileSystemStoragePathSource::UpdateConfig(
     const FileSystemStoragePathSourceConfig& config) {
   mutex_lock l(mu_);
 
@@ -332,7 +395,7 @@ Status FileSystemStoragePathSource::UpdateConfig(
   }
   config_ = config;
 
-  return Status();
+  return absl::Status();
 }
 
 void FileSystemStoragePathSource::SetAspiredVersionsCallback(
@@ -348,7 +411,7 @@ void FileSystemStoragePathSource::SetAspiredVersionsCallback(
   aspired_versions_callback_ = callback;
 
   const auto thread_fn = [this](void) {
-    Status status = this->PollFileSystemAndInvokeCallback();
+    absl::Status status = this->PollFileSystemAndInvokeCallback();
     if (!status.ok()) {
       LOG(ERROR) << "FileSystemStoragePathSource encountered a "
                     "filesystem access error: "
@@ -375,7 +438,7 @@ void FileSystemStoragePathSource::SetAspiredVersionsCallback(
   }
 }
 
-Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
+absl::Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
   mutex_lock l(mu_);
   std::map<string, std::vector<ServableData<StoragePath>>>
       versions_by_servable_name;
@@ -399,16 +462,16 @@ Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
     }
     CallAspiredVersionsCallback(servable, versions);
   }
-  return Status();
+  return absl::Status();
 }
 
-Status FileSystemStoragePathSource::UnaspireServables(
+absl::Status FileSystemStoragePathSource::UnaspireServables(
     const std::set<string>& servable_names) {
   for (const string& servable_name : servable_names) {
     CallAspiredVersionsCallback(servable_name,
                                 std::vector<ServableData<StoragePath>>{});
   }
-  return Status();
+  return absl::Status();
 }
 
 }  // namespace serving

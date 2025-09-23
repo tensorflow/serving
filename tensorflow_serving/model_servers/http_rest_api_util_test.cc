@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/model_servers/http_rest_api_util.h"
 
+#include <limits>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -207,7 +209,7 @@ TEST_F(HttpRestApiUtilTest, TestParseModelInfoForPost) {
       &model_name, &model_version, &model_version_label, &method,
       &model_subresource, &parse_successful);
   EXPECT_TRUE(parse_successful);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Failed to convert version"));
   TF_EXPECT_OK(ParseModelInfo("POST", "/v1/models/foo/metadata", &model_name,
                               &model_version, &model_version_label, &method,

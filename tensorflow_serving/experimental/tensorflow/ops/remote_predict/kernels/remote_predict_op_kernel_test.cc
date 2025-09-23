@@ -14,6 +14,12 @@ limitations under the License.
 ==============================================================================*/
 #include "tensorflow_serving/experimental/tensorflow/ops/remote_predict/kernels/remote_predict_op_kernel.h"
 
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "absl/flags/flag.h"
 #include "absl/status/status.h"
 #include "absl/time/time.h"
 #include "tensorflow/cc/client/client_session.h"
@@ -40,7 +46,7 @@ class MockPredictionService {
     return ::absl::OkStatus();
   }
 
-  StatusOr<MockRpc*> CreateRpc(absl::Duration max_rpc_deadline) {
+  absl::StatusOr<MockRpc*> CreateRpc(absl::Duration max_rpc_deadline) {
     return new MockRpc;
   }
 
@@ -50,6 +56,10 @@ class MockPredictionService {
 
   static constexpr char kGoodModel[] = "good_model";
   static constexpr char kBadModel[] = "bad_model";
+  static constexpr char kGoodModelCheckTensorContent[] =
+      "good_model_check_tensor_content";
+  static constexpr char kGoodModelCheckProtoField[] =
+      "good_model_check_proto_field";
 
  private:
   MockPredictionService(const string& target_address);
@@ -57,6 +67,8 @@ class MockPredictionService {
 
 constexpr char MockPredictionService::kGoodModel[];
 constexpr char MockPredictionService::kBadModel[];
+constexpr char MockPredictionService::kGoodModelCheckTensorContent[];
+constexpr char MockPredictionService::kGoodModelCheckProtoField[];
 
 typedef google::protobuf::Map<tensorflow::string, tensorflow::TensorProto> AliasTensorMap;
 
@@ -74,10 +86,38 @@ void MockPredictionService::Predict(
     outputs["output0"] = inputs["input0"];
     outputs["output1"] = inputs["input1"];
     callback(::absl::OkStatus());
-  }
-
-  if (model_name == kBadModel) {
+  } else if (model_name == kBadModel) {
     callback(absl::Status(absl::StatusCode::kAborted, "Aborted"));
+  } else if (model_name == kGoodModelCheckTensorContent) {
+    *(response->mutable_model_spec()) = request->model_spec();
+    AliasTensorMap& inputs = *request->mutable_inputs();
+    AliasTensorMap& outputs = *response->mutable_outputs();
+    if (inputs["input0"].tensor_content().empty() ||
+        !inputs["input0"].int_val().empty() ||
+        inputs["input1"].tensor_content().empty() ||
+        !inputs["input1"].int_val().empty()) {
+      callback(absl::Status(absl::StatusCode::kFailedPrecondition,
+                            "Expected tensor_content but not present"));
+      return;
+    }
+    outputs["output0"] = inputs["input0"];
+    outputs["output1"] = inputs["input1"];
+    callback(::absl::OkStatus());
+  } else if (model_name == kGoodModelCheckProtoField) {
+    *(response->mutable_model_spec()) = request->model_spec();
+    AliasTensorMap& inputs = *request->mutable_inputs();
+    AliasTensorMap& outputs = *response->mutable_outputs();
+    if (!inputs["input0"].tensor_content().empty() ||
+        inputs["input0"].int_val().empty() ||
+        !inputs["input1"].tensor_content().empty() ||
+        inputs["input1"].int_val().empty()) {
+      callback(absl::Status(absl::StatusCode::kFailedPrecondition,
+                            "Expected int_val but not present"));
+      return;
+    }
+    outputs["output0"] = inputs["input0"];
+    outputs["output1"] = inputs["input1"];
+    callback(::absl::OkStatus());
   }
 }
 
@@ -87,7 +127,7 @@ REGISTER_KERNEL_BUILDER(Name("TfServingRemotePredict").Device(DEVICE_CPU),
 using RemotePredict = ops::TfServingRemotePredict;
 
 // Use model_name to specify the behavior of different tests.
-::tensorflow::Status RunRemotePredict(
+absl::Status RunRemotePredict(
     const string& model_name, std::vector<Tensor>* outputs,
     const DataTypeSlice& output_types = {DT_INT32, DT_INT32},
     const absl::optional<::absl::Duration> deadline = absl::nullopt,
@@ -165,6 +205,34 @@ TEST(RemotePredictTest, TestRpcErrorReturnStatus) {
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(static_cast<int>(error::Code::ABORTED), outputs[0].scalar<int>()());
   EXPECT_EQ("Aborted", outputs[1].scalar<tensorflow::tstring>()());
+}
+
+TEST(RemotePredictTest, TestTensorContent) {
+  absl::SetFlag(&FLAGS_remote_predict_op_use_tensor_content, true);
+  std::vector<Tensor> outputs;
+  TF_ASSERT_OK(RunRemotePredict(
+      /*model_name=*/MockPredictionService::kGoodModelCheckTensorContent,
+      &outputs));
+  ASSERT_EQ(4, outputs.size());
+  // Checks whether the status code is 0 and there is no error message.
+  EXPECT_EQ(0, outputs[0].scalar<int>()());
+  EXPECT_EQ("", outputs[1].scalar<tensorflow::tstring>()());
+  test::ExpectTensorEqual<int>(outputs[2], test::AsTensor<int>({1, 2}));
+  test::ExpectTensorEqual<int>(outputs[3], test::AsTensor<int>({3, 4}));
+}
+
+TEST(RemotePredictTest, TestProtoField) {
+  absl::SetFlag(&FLAGS_remote_predict_op_use_tensor_content, false);
+  std::vector<Tensor> outputs;
+  TF_ASSERT_OK(RunRemotePredict(
+      /*model_name=*/MockPredictionService::kGoodModelCheckProtoField,
+      &outputs));
+  ASSERT_EQ(4, outputs.size());
+  // Checks whether the status code is 0 and there is no error message.
+  EXPECT_EQ(0, outputs[0].scalar<int>()());
+  EXPECT_EQ("", outputs[1].scalar<tensorflow::tstring>()());
+  test::ExpectTensorEqual<int>(outputs[2], test::AsTensor<int>({1, 2}));
+  test::ExpectTensorEqual<int>(outputs[3], test::AsTensor<int>({3, 4}));
 }
 
 }  // namespace

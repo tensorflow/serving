@@ -20,6 +20,7 @@ limitations under the License.
 #include <memory>
 #include <vector>
 
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/source_adapter.h"
@@ -89,7 +90,7 @@ class SourceRouter : public TargetBase<T> {
 
   // Has 'output_ports_' been populated yet, so that the SourceAdapter is ready
   // to propagate aspired versions?
-  Notification output_ports_created_;
+  absl::Notification output_ports_created_;
 };
 
 //////////

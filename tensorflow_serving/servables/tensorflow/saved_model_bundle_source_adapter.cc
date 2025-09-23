@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/types.h"
@@ -24,6 +25,7 @@ limitations under the License.
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/servables/tensorflow/bundle_factory_util.h"
+#include "tensorflow_serving/servables/tensorflow/file_acl.h"
 #include "tensorflow_serving/servables/tensorflow/machine_learning_metadata.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_factory.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup.h"
@@ -31,14 +33,14 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status SavedModelBundleSourceAdapter::Create(
+absl::Status SavedModelBundleSourceAdapter::Create(
     const SavedModelBundleSourceAdapterConfig& config,
     std::unique_ptr<SavedModelBundleSourceAdapter>* adapter) {
   std::unique_ptr<SavedModelBundleFactory> bundle_factory;
   TF_RETURN_IF_ERROR(
       SavedModelBundleFactory::Create(config.legacy_config(), &bundle_factory));
   adapter->reset(new SavedModelBundleSourceAdapter(std::move(bundle_factory)));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 SavedModelBundleSourceAdapter::~SavedModelBundleSourceAdapter() { Detach(); }
@@ -54,16 +56,21 @@ SavedModelBundleSourceAdapter::GetServableCreator(
   if (bundle_factory->config().enable_session_metadata()) {
     return [bundle_factory, path](const Loader::Metadata& metadata,
                                   std::unique_ptr<SavedModelBundle>* bundle) {
+      TF_RETURN_IF_ERROR(RegisterModelRoot(metadata.servable_id, path));
       TF_RETURN_IF_ERROR(bundle_factory->CreateSavedModelBundleWithMetadata(
           metadata, path, bundle));
       MaybePublishMLMDStreamz(path, metadata.servable_id.name,
                               metadata.servable_id.version);
       if (bundle_factory->config().enable_model_warmup()) {
-        return RunSavedModelWarmup(
-            bundle_factory->config().model_warmup_options(),
-            GetRunOptions(bundle_factory->config()), path, bundle->get());
+        ModelWarmupOptions warmup_options =
+            bundle_factory->config().model_warmup_options();
+        warmup_options.set_model_name(metadata.servable_id.name);
+        warmup_options.set_model_version(metadata.servable_id.version);
+        return RunSavedModelWarmup(warmup_options,
+                                   GetRunOptions(bundle_factory->config()),
+                                   path, bundle->get());
       }
-      return OkStatus();
+      return absl::OkStatus();
     };
   }
   return [bundle_factory, path](std::unique_ptr<SavedModelBundle>* bundle) {
@@ -73,12 +80,12 @@ SavedModelBundleSourceAdapter::GetServableCreator(
           bundle_factory->config().model_warmup_options(),
           GetRunOptions(bundle_factory->config()), path, bundle->get());
     }
-    return OkStatus();
+    return absl::OkStatus();
   };
 }
 
-Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
-                                              std::unique_ptr<Loader>* loader) {
+absl::Status SavedModelBundleSourceAdapter::Convert(
+    const StoragePath& path, std::unique_ptr<Loader>* loader) {
   std::shared_ptr<SavedModelBundleFactory> bundle_factory = bundle_factory_;
   auto servable_creator = GetServableCreator(bundle_factory, path);
   auto resource_estimator = [bundle_factory,
@@ -102,7 +109,7 @@ Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
                 .experimental_transient_ram_bytes_during_load(),
         estimate);
 
-    return OkStatus();
+    return absl::OkStatus();
   };
   auto post_load_resource_estimator = [bundle_factory,
                                        path](ResourceAllocation* estimate) {
@@ -110,13 +117,13 @@ Status SavedModelBundleSourceAdapter::Convert(const StoragePath& path,
   };
   loader->reset(new SimpleLoader<SavedModelBundle>(
       servable_creator, resource_estimator, {post_load_resource_estimator}));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Register the source adapter.
 class SavedModelBundleSourceAdapterCreator {
  public:
-  static Status Create(
+  static absl::Status Create(
       const SavedModelBundleSourceAdapterConfig& config,
       std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
           adapter) {
@@ -125,7 +132,7 @@ class SavedModelBundleSourceAdapterCreator {
                                                        &bundle_factory));
     adapter->reset(
         new SavedModelBundleSourceAdapter(std::move(bundle_factory)));
-    return OkStatus();
+    return absl::OkStatus();
   }
 };
 REGISTER_STORAGE_PATH_SOURCE_ADAPTER(SavedModelBundleSourceAdapterCreator,

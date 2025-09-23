@@ -18,6 +18,7 @@ limitations under the License.
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -43,7 +44,7 @@ namespace {
 // directories. Upon finding these, it provides the target with the new version
 // (a directory). The servable_name param simply allows this source to create
 // all AspiredVersions for the target with the same servable_name.
-Status CreateStoragePathSource(
+absl::Status CreateStoragePathSource(
     const string& base_path, const string& servable_name,
     std::unique_ptr<Source<StoragePath>>* path_source) {
   FileSystemStoragePathSourceConfig config;
@@ -57,7 +58,7 @@ Status CreateStoragePathSource(
       FileSystemStoragePathSource::Create(config, &file_system_source));
 
   *path_source = std::move(file_system_source);
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Creates a SavedModelBundle Source by adapting the underlying
@@ -65,17 +66,17 @@ Status CreateStoragePathSource(
 // 'CreateSingleTFModelManagerFromBasePath' method, with the
 // FileSystemStoragePathSource as the Source and the SavedModelBundleSource as
 // the Target.
-Status CreateSavedModelBundleSource(
+absl::Status CreateSavedModelBundleSource(
     std::unique_ptr<SavedModelBundleSourceAdapter>* source) {
   SavedModelBundleSourceAdapterConfig config;
   TF_RETURN_IF_ERROR(SavedModelBundleSourceAdapter::Create(config, source));
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace
 
-Status CreateSingleTFModelManagerFromBasePath(
+absl::Status CreateSingleTFModelManagerFromBasePath(
     const string& base_path, std::unique_ptr<Manager>* const manager) {
   std::unique_ptr<SavedModelBundleSourceAdapter> bundle_source;
   TF_RETURN_IF_ERROR(CreateSavedModelBundleSource(&bundle_source));
@@ -92,7 +93,7 @@ Status CreateSingleTFModelManagerFromBasePath(
   builder->AddSourceChain(std::move(path_source), std::move(bundle_source));
   *manager = builder->Build();
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace simple_servers

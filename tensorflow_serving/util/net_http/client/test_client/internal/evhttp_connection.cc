@@ -17,6 +17,10 @@ limitations under the License.
 
 #include "tensorflow_serving/util/net_http/client/test_client/internal/evhttp_connection.h"
 
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "absl/strings/str_cat.h"
 #include "tensorflow_serving/util/net_http/internal/net_logging.h"
 #include "tensorflow_serving/util/net_http/public/response_code_enum.h"

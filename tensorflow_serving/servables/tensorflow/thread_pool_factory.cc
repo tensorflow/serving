@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/thread_pool_factory.h"
 
+#include <memory>
+#include <utility>
+
 namespace tensorflow {
 namespace serving {
 

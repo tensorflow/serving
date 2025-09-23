@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/core/test_util/session_test_util.h"
 
+#include <functional>
+#include <string>
+#include <utility>
+
 #include "absl/memory/memory.h"
 #include "absl/strings/strip.h"
 #include "tensorflow/core/common_runtime/session_factory.h"
@@ -25,7 +29,7 @@ namespace serving {
 namespace test_util {
 namespace {
 
-using NewSessionHook = std::function<Status(const SessionOptions&)>;
+using NewSessionHook = std::function<absl::Status(const SessionOptions&)>;
 NewSessionHook new_session_hook_;
 
 NewSessionHook GetNewSessionHook() { return new_session_hook_; }
@@ -44,8 +48,8 @@ class DelegatingSessionFactory : public SessionFactory {
     return absl::StartsWith(options.target, "new_session_hook/");
   }
 
-  Status NewSession(const SessionOptions& options,
-                    Session** out_session) override {
+  absl::Status NewSession(const SessionOptions& options,
+                          Session** out_session) override {
     auto actual_session_options = options;
     actual_session_options.target = std::string(
         absl::StripPrefix(options.target, kNewSessionHookSessionTargetPrefix));
@@ -57,7 +61,7 @@ class DelegatingSessionFactory : public SessionFactory {
     TF_RETURN_IF_ERROR(
         tensorflow::NewSession(actual_session_options, &actual_session));
     *out_session = actual_session;
-    return Status();
+    return absl::Status();
   }
 };
 

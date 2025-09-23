@@ -33,15 +33,17 @@ limitations under the License.
 // e.g.: --benchmark_min_time=60.0
 
 #include <limits.h>
+
 #include <algorithm>
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "tensorflow/core/kernels/batching_util/periodic_function.h"
-#include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/threadpool.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/init_main.h"
@@ -93,7 +95,7 @@ class BenchmarkState {
   // To avoid having the benchmark timing include time spent scheduling threads,
   // we use this notification to notify when the read threads should begin.
   // This is notified immediately after the benchmark timing is started.
-  Notification all_read_threads_scheduled_;
+  absl::Notification all_read_threads_scheduled_;
 
   // Store the update thread as it is only safe to complete teardown and
   // destruct state after it has exited.

@@ -15,8 +15,12 @@ limitations under the License.
 
 #include "tensorflow_serving/core/caching_manager.h"
 
+#include <map>
+#include <memory>
 #include <utility>
+#include <vector>
 
+#include "absl/synchronization/notification.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
@@ -29,7 +33,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status CachingManager::Create(
+absl::Status CachingManager::Create(
     Options options, std::unique_ptr<LoaderFactory> loader_factory,
     std::unique_ptr<CachingManager>* caching_manager) {
   // Set up basic manager options from the caching manager options.
@@ -50,7 +54,7 @@ Status CachingManager::Create(
 
   caching_manager->reset(
       new CachingManager(std::move(loader_factory), std::move(basic_manager)));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 CachingManager::CachingManager(std::unique_ptr<LoaderFactory> loader_factory,
@@ -60,7 +64,7 @@ CachingManager::CachingManager(std::unique_ptr<LoaderFactory> loader_factory,
 
 CachingManager::~CachingManager() {}
 
-Status CachingManager::GetUntypedServableHandle(
+absl::Status CachingManager::GetUntypedServableHandle(
     const ServableRequest& request,
     std::unique_ptr<UntypedServableHandle>* const handle) {
   if (request.version) {
@@ -75,11 +79,11 @@ Status CachingManager::GetUntypedServableHandle(
                                        handle);
 }
 
-Status CachingManager::GetUntypedServableHandleForId(
+absl::Status CachingManager::GetUntypedServableHandleForId(
     const ServableId& servable_id,
     std::unique_ptr<UntypedServableHandle>* handle) {
   // Check if the underlying basic manager can already serve this request.
-  const Status handle_status = basic_manager_->GetUntypedServableHandle(
+  const absl::Status handle_status = basic_manager_->GetUntypedServableHandle(
       ServableRequest::FromId(servable_id), handle);
 
   // If the servable is already managed and loaded by the basic manager, serve
@@ -103,7 +107,7 @@ Status CachingManager::GetUntypedServableHandleForId(
       ServableRequest::FromId(servable_id), handle);
 }
 
-Status CachingManager::LoadServable(
+absl::Status CachingManager::LoadServable(
     ServableData<std::unique_ptr<Loader>> loader_data) {
   const ServableId servable_id = loader_data.id();
 
@@ -131,7 +135,7 @@ Status CachingManager::LoadServable(
       // ought to be loaded, based on CachingManager's implementation invariant
       // of doing manage+load atomically.
       if (snapshot.value().state != LoaderHarness::State::kReady) {
-        const string error_msg = strings::StrCat(
+        const string error_msg = absl::StrCat(
             "Servable requested for load is already being managed, but is not "
             "loaded: ",
             servable_id.DebugString());
@@ -147,29 +151,30 @@ Status CachingManager::LoadServable(
       // the functionality of the event-bus and the servable state monitor are
       // automatically available in the caching-manager as well (via the basic
       // manager).
-      const Status manage_status =
+      const absl::Status manage_status =
           basic_manager_->ManageServable(std::move(loader_data));
       if (!manage_status.ok()) {
-        const string error_msg = strings::StrCat(
+        const string error_msg = absl::StrCat(
             "Internal error: unable to transfer servable to 'basic_manager_': ",
             manage_status.message());
         DCHECK(false) << error_msg;
         return errors::Internal(error_msg);
       }
 
-      Notification load_done;
-      Status load_status;
-      basic_manager_->LoadServable(servable_id, [&](const Status& status) {
-        load_status = status;
-        load_done.Notify();
-      });
+      absl::Notification load_done;
+      absl::Status load_status;
+      basic_manager_->LoadServable(servable_id,
+                                   [&](const absl::Status& status) {
+                                     load_status = status;
+                                     load_done.Notify();
+                                   });
       load_done.WaitForNotification();
       TF_RETURN_IF_ERROR(load_status);
     }
   }
   servable_id_mu.reset();
   MaybeEraseLoadMutexMapEntry(servable_id);
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 void CachingManager::MaybeEraseLoadMutexMapEntry(

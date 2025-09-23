@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package tensorflow.serving;
+
+import "tensorflow/core/grappler/optimizers/inference/batch_op_rewriter.proto";
+import "tensorflow/core/tfrt/graph_executor/config.proto";
+import "tensorflow_serving/servables/tensorflow/remote_op_config_rewriter.proto";
+
+option cc_enable_arenas = true;
+
+message SessionOverrides {
+  optional tools.RemoteOpRemapConfig remote_op_remap_config = 1;
+  optional BatchOpRewriteConfig batch_op_rewriter_config = 2;
+  // Disable the entire meta optimizer (off by default).
+  optional bool disable_meta_optimizer = 3;
+}
+
+message SavedModelConfig {
+  // A select set of fields from SessionOptions which, at the model level, can
+  // be used to override SessionOptions set for the entire processes.
+  optional SessionOverrides session_overrides = 1;
+
+  // Runtime specific configuration proto. They can be used to specify
+  // environments for runtime.
+  optional tensorflow.tfrt_stub.RuntimeConfigProto tfrt_runtime_config = 2;
+
+  // A boolean field that indicates whether the model is critical, i.e., whether
+  // the entire server cannot serve requests before this model has been loaded.
+  bool critical = 3;
+}

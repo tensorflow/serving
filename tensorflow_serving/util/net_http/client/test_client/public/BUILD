@@ -1,5 +1,7 @@
 # Description: APIs for experimental testing of net_http server instances
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 package(default_visibility = [
     ":http_client_users",
     "//tensorflow_serving/util/net_http:__subpackages__",

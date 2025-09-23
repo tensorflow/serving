@@ -51,30 +51,32 @@ using Batcher = SharedBatchScheduler<BatchingSessionTask>;
 
 class MockSession : public Session {
  public:
-  MOCK_METHOD(tensorflow::Status, Create, (const GraphDef& graph), (override));
-  MOCK_METHOD(tensorflow::Status, Extend, (const GraphDef& graph), (override));
-  MOCK_METHOD(tensorflow::Status, ListDevices,
+  MOCK_METHOD(absl::Status, Create, (const GraphDef& graph), (override));
+  MOCK_METHOD(absl::Status, Extend, (const GraphDef& graph), (override));
+  MOCK_METHOD(absl::Status, ListDevices,
               (std::vector<DeviceAttributes> * response), (override));
-  MOCK_METHOD(tensorflow::Status, Close, (), (override));
+  MOCK_METHOD(absl::Status, Close, (), (override));
 
-  Status Run(const RunOptions& run_options,
-             const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_tensor_names,
-             const std::vector<string>& target_node_names,
-             std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+  absl::Status Run(const RunOptions& run_options,
+                   const std::vector<std::pair<string, Tensor>>& inputs,
+                   const std::vector<string>& output_tensor_names,
+                   const std::vector<string>& target_node_names,
+                   std::vector<Tensor>* outputs,
+                   RunMetadata* run_metadata) override {
     // half plus two: output should be input / 2 + 2.
     const auto& input = inputs[0].second.flat<float>();
     Tensor output(DT_FLOAT, inputs[0].second.shape());
     test::FillFn<float>(&output,
                         [&](int i) -> float { return input(i) / 2 + 2; });
     outputs->push_back(output);
-    return tensorflow::OkStatus();
+    return absl::OkStatus();
   }
 
   // Unused, but we need to provide a definition (virtual = 0).
-  Status Run(const std::vector<std::pair<std::string, Tensor>>&,
-             const std::vector<std::string>&, const std::vector<std::string>&,
-             std::vector<Tensor>* outputs) override {
+  absl::Status Run(const std::vector<std::pair<std::string, Tensor>>&,
+                   const std::vector<std::string>&,
+                   const std::vector<std::string>&,
+                   std::vector<Tensor>* outputs) override {
     return errors::Unimplemented(
         "Run with threadpool is not supported for this session.");
   }
@@ -171,7 +173,7 @@ TEST_F(BundleFactoryUtilTest, WrapSessionForBatchingConfigError) {
   auto status = WrapSessionForBatching(batching_params, batch_scheduler,
                                        {test_util::GetTestSessionSignature()},
                                        &bundle.session);
-  ASSERT_TRUE(errors::IsInvalidArgument(status));
+  ASSERT_TRUE(absl::IsInvalidArgument(status));
 }
 
 TEST_F(BundleFactoryUtilTest, GetPerModelBatchingParams) {
@@ -219,7 +221,7 @@ TEST_F(BundleFactoryUtilTest, GetPerModelBatchingParams) {
 
 TEST_F(BundleFactoryUtilTest, EstimateResourceFromPathWithBadExport) {
   ResourceAllocation resource_requirement;
-  const Status status = EstimateResourceFromPath(
+  const absl::Status status = EstimateResourceFromPath(
       "/a/bogus/export/dir",
       /*use_validation_result=*/false, &resource_requirement);
   EXPECT_FALSE(status.ok());

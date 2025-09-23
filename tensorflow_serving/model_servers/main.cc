@@ -59,6 +59,15 @@ limitations under the License.
 #include "tensorflow/core/tpu/tpu_global_init.h"
 
 void InitializeTPU(tensorflow::serving::main::Server::Options& server_options) {
+  server_options.enforce_session_run_timeout = false;
+  if (server_options.saved_model_tags.empty()) {
+    server_options.saved_model_tags = "tpu,serve";
+  }
+
+  if (server_options.skip_initialize_tpu) {
+    std::cout << "Skipping model server level Initializing TPU system.";
+    return;
+  }
   std::cout << "Initializing TPU system.";
   tensorflow::tpu::TopologyProto tpu_topology;
   TF_QCHECK_OK(tensorflow::InitializeTPUSystemGlobally(
@@ -67,10 +76,6 @@ void InitializeTPU(tensorflow::serving::main::Server::Options& server_options) {
   std::cout << "Initialized TPU topology: " << tpu_topology.DebugString();
   server_options.num_request_iterations_for_warmup =
       tpu_topology.num_tpu_devices_per_task();
-  server_options.enforce_session_run_timeout = false;
-  if (server_options.saved_model_tags.empty()) {
-    server_options.saved_model_tags = "tpu,serve";
-  }
 }
 #endif
 
@@ -78,6 +83,7 @@ int main(int argc, char** argv) {
   tensorflow::serving::main::Server::Options options;
   bool display_version = false;
   bool xla_cpu_compilation_enabled = false;
+  bool xla_gpu_compilation_enabled = false;
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &options.grpc_port,
                        "TCP port to listen on for gRPC/HTTP API. Disabled if "
@@ -285,12 +291,27 @@ int main(int argc, char** argv) {
           "Enable XLA:CPU JIT (default is disabled). With XLA:CPU JIT "
           "disabled, models utilizing this feature will return bad Status "
           "on first compilation request."),
+      tensorflow::Flag(
+          "xla_gpu_compilation_enabled", &xla_gpu_compilation_enabled,
+          "EXPERIMENTAL; CAN BE REMOVED ANYTIME! "
+          "Enable both XLA:CPU JIT and XLA:GPU JIT (default is disabled)."),
       tensorflow::Flag("enable_profiler", &options.enable_profiler,
                        "Enable profiler service."),
       tensorflow::Flag("thread_pool_factory_config_file",
                        &options.thread_pool_factory_config_file,
                        "If non-empty, read an ascii ThreadPoolConfig protobuf "
-                       "from the supplied file name.")};
+                       "from the supplied file name."),
+      tensorflow::Flag("mixed_precision", &options.mixed_precision,
+                       "specify mixed_precision mode"),
+      tensorflow::Flag("skip_initialize_tpu", &options.skip_initialize_tpu,
+                       "Whether to skip auto initializing TPU."),
+      tensorflow::Flag("enable_grpc_healthcheck_service",
+                       &options.enable_grpc_healthcheck_service,
+                       "Enable the standard gRPC healthcheck service."),
+      tensorflow::Flag(
+          "enable_serialization_as_tensor_content",
+          &options.enable_serialization_as_tensor_content,
+          "Enable serialization of predict response as tensor content.")};
 
   const auto& usage = tensorflow::Flags::Usage(argv[0], flag_list);
   if (!tensorflow::Flags::Parse(&argc, argv, flag_list)) {
@@ -313,7 +334,7 @@ int main(int argc, char** argv) {
     std::cout << "unknown argument: " << argv[1] << "\n" << usage;
   }
 
-  if (!xla_cpu_compilation_enabled) {
+  if (!xla_cpu_compilation_enabled && !xla_gpu_compilation_enabled) {
     tensorflow::DisableXlaCompilation();
   }
 

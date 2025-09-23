@@ -15,12 +15,15 @@ limitations under the License.
 
 #include "tensorflow_serving/core/request_logger.h"
 
+#include <memory>
 #include <random>
+#include <utility>
 #include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/monitoring/counter.h"
 #include "tensorflow/core/lib/random/random.h"
+#include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 
@@ -43,9 +46,9 @@ RequestLogger::RequestLogger(const LoggingConfig& logging_config,
       log_collector_(std::move(log_collector)),
       uniform_sampler_() {}
 
-Status RequestLogger::Log(const google::protobuf::Message& request,
-                          const google::protobuf::Message& response,
-                          const LogMetadata& log_metadata) {
+absl::Status RequestLogger::Log(const google::protobuf::Message& request,
+                                const google::protobuf::Message& response,
+                                const LogMetadata& log_metadata) {
   const double sampling_rate =
       logging_config_.sampling_config().sampling_rate();
   LogMetadata log_metadata_with_config = log_metadata;
@@ -60,7 +63,7 @@ Status RequestLogger::Log(const google::protobuf::Message& request,
       std::unique_ptr<google::protobuf::Message> log;
       TF_RETURN_IF_ERROR(
           CreateLogMessage(request, response, log_metadata_with_config, &log));
-      return log_collector_->CollectMessage(*log);
+      return Log(*log);
     }();
     request_log_count
         ->GetCell(log_metadata.model_spec().name(),
@@ -68,7 +71,11 @@ Status RequestLogger::Log(const google::protobuf::Message& request,
         ->IncrementBy(1);
     return status;
   }
-  return OkStatus();
+  return absl::OkStatus();
+}
+
+absl::Status RequestLogger::Log(const google::protobuf::Message& log) {
+  return log_collector_->CollectMessage(log);
 }
 
 }  // namespace serving

@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/core/test_util/availability_test_util.h"
 
 #include <string>
+#include <vector>
 
 #include "absl/types/optional.h"
 #include "absl/types/span.h"

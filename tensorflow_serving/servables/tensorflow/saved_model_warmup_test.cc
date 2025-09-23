@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_warmup.h"
 
+#include <vector>
+
 #include "google/protobuf/wrappers.pb.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -95,19 +97,19 @@ TEST_P(SavedModelBundleWarmupOptionsTest, MixedWarmupData) {
   EXPECT_CALL(*mock, Run(_, _, SizeIs(1), _, _, _, _))
       .Times(num_warmup_records * 2 * GetNumRequestIterations())
       .WillRepeatedly(DoAll(SetArgPointee<4>(std::vector<Tensor>({scores})),
-                            Return(OkStatus())));
+                            Return(absl::OkStatus())));
   // Classify case
   EXPECT_CALL(*mock, Run(_, _, SizeIs(2), _, _, _, _))
       .Times(num_warmup_records * GetNumRequestIterations())
       .WillRepeatedly(
           DoAll(SetArgPointee<4>(std::vector<Tensor>({classes, scores})),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
   // MultiInference case
   EXPECT_CALL(*mock, Run(_, _, SizeIs(3), _, _, _, _))
       .Times(num_warmup_records * GetNumRequestIterations())
       .WillRepeatedly(DoAll(
           SetArgPointee<4>(std::vector<Tensor>({classes, scores, scores})),
-          Return(OkStatus())));
+          Return(absl::OkStatus())));
   TF_EXPECT_OK(RunSavedModelWarmup(GetModelWarmupOptions(), RunOptions(),
                                    base_path, &saved_model_bundle));
 }
@@ -130,9 +132,9 @@ TEST(SavedModelBundleWarmupTest, UnsupportedLogType_SessionRun) {
   MockSession* mock = new MockSession;
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
-      .WillRepeatedly(Return(OkStatus()));
-  const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
-                                            base_path, &saved_model_bundle);
+      .WillRepeatedly(Return(absl::OkStatus()));
+  const absl::Status status = RunSavedModelWarmup(
+      ModelWarmupOptions(), RunOptions(), base_path, &saved_model_bundle);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::UNIMPLEMENTED, status.code()) << status;
   EXPECT_THAT(status.ToString(),
@@ -156,9 +158,9 @@ TEST(SavedModelBundleWarmupTest, UnsupportedLogType_PredictStreamed) {
   MockSession* mock = new MockSession;
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
-      .WillRepeatedly(Return(OkStatus()));
-  const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
-                                            base_path, &saved_model_bundle);
+      .WillRepeatedly(Return(absl::OkStatus()));
+  const absl::Status status = RunSavedModelWarmup(
+      ModelWarmupOptions(), RunOptions(), base_path, &saved_model_bundle);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::UNIMPLEMENTED, status.code()) << status;
   EXPECT_THAT(status.ToString(),

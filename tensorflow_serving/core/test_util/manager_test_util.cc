@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/core/test_util/manager_test_util.h"
 
+#include <utility>
+
 namespace tensorflow {
 namespace serving {
 namespace test_util {
@@ -42,6 +44,11 @@ void AspiredVersionsManagerTestAccess::SetNumLoadThreads(
 
 uint32 AspiredVersionsManagerTestAccess::num_load_threads() const {
   return manager_->num_load_threads();
+}
+
+void AspiredVersionsManagerTestAccess::SetCustomSortActions(
+    AspiredVersionsManager::CustomSortActionsFn custom_sort_actions) {
+  manager_->custom_sort_actions_ = std::move(custom_sort_actions);
 }
 
 BasicManagerTestAccess::BasicManagerTestAccess(BasicManager* manager)

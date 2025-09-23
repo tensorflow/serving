@@ -26,9 +26,18 @@ const char* const kTpu = "tpu";
 
 namespace resource_kinds {
 const char* const kNumModelSlots = "num_model_slots";
+const char* const kNumLoraSlots = "num_lora_slots";
 const char* const kRamBytes = "ram_in_bytes";
+const char* const kPeakRamBytes = "peak_ram_in_bytes";
+const char* const kModelSteadyRamBytes = "model_steady_ram_in_bytes";
+const char* const kModelInitRamBytes = "model_init_ram_in_bytes";
 const char* const kHeapRamBytes = "heap_ram_in_bytes";
+const char* const kSteadyHeapRamBytes = "steady_heap_ram_in_bytes";
+const char* const kSharedHeapRamBytes = "shared_heap_ram_in_bytes";
 const char* const kStackRamBytes = "stack_ram_in_bytes";
+const char* const kReservedRamBytes = "reserved_ram_in_bytes";
+const char* const kSystemRamBytes = "system_ram_in_bytes";
+const char* const kModelBinaryRamBytes = "model_binary_ram_in_bytes";
 const char* const kProcessingMillis = "processing_in_millicores";
 }  // namespace resource_kinds
 

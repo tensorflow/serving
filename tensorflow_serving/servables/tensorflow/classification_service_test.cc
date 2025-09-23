@@ -83,7 +83,7 @@ TEST_F(ClassificationServiceTest, InvalidModelSpec) {
                 RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
                 request, &response)
                 .code(),
-            static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
+            static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument));
 
   // No model name specified.
   auto* model_spec = request.mutable_model_spec();
@@ -91,7 +91,7 @@ TEST_F(ClassificationServiceTest, InvalidModelSpec) {
                 RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
                 request, &response)
                 .code(),
-            static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
+            static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument));
 
   // No servable found for model name "foo".
   model_spec->set_name("foo");
@@ -115,7 +115,7 @@ TEST_F(ClassificationServiceTest, InvalidSignature) {
                 RunOptions(), server_core_.get(), thread::ThreadPoolOptions(),
                 request, &response)
                 .code(),
-            static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
+            static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument));
 }
 
 // Verifies that Classify() returns the correct score for a valid

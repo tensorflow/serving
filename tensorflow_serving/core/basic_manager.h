@@ -125,6 +125,9 @@ class BasicManager : public Manager {
     // If set as 0, we don't use a thread-pool, and UnloadServable() blocks.
     uint32 num_unload_threads = 0;
 
+    // Defines how we want to retry when model loading fails.
+    std::function<bool(absl::Status)> should_retry_model_load;
+
     // EventBus to publish servable state changes. This is optional, if unset,
     // we don't publish.
     EventBus<ServableState>* servable_event_bus = nullptr;
@@ -242,8 +245,9 @@ class BasicManager : public Manager {
   /// succeed and the rest will fail with an error status.
   void LoadServable(const ServableId& id, DoneCallback done_callback);
 
-  /// Cancels retrying the servable load during LoadServable(). Does nothing if
-  /// the servable isn't managed.
+  /// Cancels retrying the servable load during LoadServable() by replacing the
+  /// LoaderHarness::should_retry with a function that always returns false.
+  /// Does nothing if the servable isn't managed.
   ///
   /// If the retries are cancelled, the servable goes into a state dependent on
   /// the last Load() called on it. If the last Load() was successful, it will
@@ -269,8 +273,9 @@ class BasicManager : public Manager {
   friend class test_util::BasicManagerTestAccess;
 
   BasicManager(Env* env, uint32 num_load_threads, uint32 num_unload_threads,
-               uint32 max_num_load_retries, int64_t load_retry_interval_micros,
-               bool flush_filesystem_caches,
+               uint32 max_num_load_retries,
+               std::function<bool(absl::Status)> should_retry_model_load,
+               int64_t load_retry_interval_micros, bool flush_filesystem_caches,
                std::unique_ptr<ResourceTracker> resource_tracker,
                EventBus<ServableState>* servable_event_bus,
                PreLoadHook pre_load_hook);
@@ -383,10 +388,16 @@ class BasicManager : public Manager {
 
   // Sets the number of load threads.
   //
-  // We block all new load requests while the old thread pool is destructed, a
-  // new one is created and then swapped with the old one. Note that destructing
+  // When either existing or target num_load_threads means single thread, we
+  // block all new load requests while the old thread pool is destructed, a new
+  // one is created and then swapped with the old one. Note that destructing
   // the old thread pool blocks until all threads are done, so it could block
   // for a long time.
+  //
+  // When both existing and target num_load_threads are multi-threaded, this
+  // call still blocks until the old thread pool is destructed, but other loads
+  // can happen concurrently, potentially increasing the number of running load
+  // threads, up to the sum of existing and target num_load_threads.
   void SetNumLoadThreads(uint32 num_load_threads)
       TF_LOCKS_EXCLUDED(load_executor_mu_);
   uint32 num_load_threads() const;
@@ -411,6 +422,9 @@ class BasicManager : public Manager {
   // The event bus to which to publish servable state change events, or nullptr
   // if no bus has been configured.
   EventBus<ServableState>* servable_event_bus_;
+
+  // Defines how we want to retry when model loading fails.
+  std::function<bool(absl::Status)> should_retry_model_load_;
 
   // Used to protect access to 'managed_map_', 'resource_tracker_' and other
   // core state elements.

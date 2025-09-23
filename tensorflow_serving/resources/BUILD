@@ -1,4 +1,9 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
+# Placeholder: load py_proto_library
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
+# Placeholder: load go_proto_library
 
 package(
     default_visibility = [
@@ -24,7 +29,6 @@ filegroup(
 serving_proto_library(
     name = "resources_proto",
     srcs = ["resources.proto"],
-    cc_api_version = 2,
     visibility = ["//visibility:public"],
     deps = ["@com_google_protobuf//:cc_wkt_protos"],
 )
@@ -45,6 +49,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":resources_cc_proto",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

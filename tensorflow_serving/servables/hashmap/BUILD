@@ -1,5 +1,7 @@
 # Description: Tensorflow Serving hashmap servable.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 package(
@@ -25,9 +27,7 @@ cc_library(
     name = "hashmap_source_adapter",
     srcs = ["hashmap_source_adapter.cc"],
     hdrs = ["hashmap_source_adapter.h"],
-    visibility = [
-        "//visibility:public",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":hashmap_source_adapter_cc_proto",
         "//tensorflow_serving/core:simple_loader",
@@ -57,5 +57,4 @@ cc_test(
 serving_proto_library(
     name = "hashmap_source_adapter_proto",
     srcs = ["hashmap_source_adapter.proto"],
-    cc_api_version = 2,
 )

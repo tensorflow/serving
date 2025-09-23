@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/multi_inference_helper.h"
 
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/loader.h"
@@ -56,7 +61,8 @@ class MultiInferenceTest : public ::testing::Test {
   static void TearDownTestSuite() { server_core_.reset(); }
 
  protected:
-  static Status CreateServerCore(std::unique_ptr<ServerCore>* server_core) {
+  static absl::Status CreateServerCore(
+      std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);
@@ -122,8 +128,8 @@ void PopulateTask(const string& signature_name, const string& method_name,
   task->set_method_name(method_name);
 }
 
-void ExpectStatusError(const Status& status,
-                       const tensorflow::errors::Code expected_code,
+void ExpectStatusError(const absl::Status& status,
+                       const absl::StatusCode expected_code,
                        const string& message_substring) {
   ASSERT_EQ(expected_code, status.code());
   EXPECT_THAT(status.message(), ::testing::HasSubstr(message_substring));
@@ -141,7 +147,7 @@ TYPED_TEST_P(MultiInferenceTest, MissingInputTest) {
       RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
                                       thread::ThreadPoolOptions(), request,
                                       &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "Input is empty");
 }
 
@@ -156,7 +162,7 @@ TYPED_TEST_P(MultiInferenceTest, UndefinedSignatureTest) {
       RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
                                       thread::ThreadPoolOptions(), request,
                                       &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "signature not found");
 }
 
@@ -180,7 +186,7 @@ TYPED_TEST_P(MultiInferenceTest, InconsistentModelSpecsInRequestTest) {
       RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
                                       thread::ThreadPoolOptions(), request,
                                       &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "must access the same model name");
 }
 
@@ -196,7 +202,7 @@ TYPED_TEST_P(MultiInferenceTest, EvaluateDuplicateSignaturesTest) {
       RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
                                       thread::ThreadPoolOptions(), request,
                                       &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       "Duplicate evaluation of signature: regress_x_to_y");
 }
 
@@ -210,7 +216,7 @@ TYPED_TEST_P(MultiInferenceTest, UsupportedSignatureTypeTest) {
       RunMultiInferenceWithServerCore(RunOptions(), this->GetServerCore(),
                                       thread::ThreadPoolOptions(), request,
                                       &response),
-      static_cast<tsl::errors::Code>(absl::StatusCode::kUnimplemented),
+      static_cast<absl::StatusCode>(absl::StatusCode::kUnimplemented),
       "Unsupported signature");
 }
 

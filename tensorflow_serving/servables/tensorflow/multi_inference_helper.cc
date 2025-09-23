@@ -34,7 +34,7 @@ const ModelSpec& GetModelSpecFromRequest(const MultiInferenceRequest& request) {
 
 }  // namespace
 
-Status RunMultiInferenceWithServerCore(
+absl::Status RunMultiInferenceWithServerCore(
     const RunOptions& run_options, ServerCore* core,
     const tensorflow::thread::ThreadPoolOptions& thread_pool_options,
     const MultiInferenceRequest& request, MultiInferenceResponse* response) {
@@ -43,7 +43,7 @@ Status RunMultiInferenceWithServerCore(
       request, response);
 }
 
-Status RunMultiInferenceWithServerCoreWithModelSpec(
+absl::Status RunMultiInferenceWithServerCoreWithModelSpec(
     const RunOptions& run_options, ServerCore* core,
     const tensorflow::thread::ThreadPoolOptions& thread_pool_options,
     const ModelSpec& model_spec, const MultiInferenceRequest& request,

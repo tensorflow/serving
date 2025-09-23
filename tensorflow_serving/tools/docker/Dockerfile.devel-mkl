@@ -78,7 +78,7 @@ RUN python -m pip --no-cache-dir install \
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 
 # Set up Bazel
-ENV BAZEL_VERSION 6.1.0
+ENV BAZEL_VERSION 7.4.1
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \

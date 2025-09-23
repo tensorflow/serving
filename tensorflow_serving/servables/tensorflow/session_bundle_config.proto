@@ -12,6 +12,14 @@ message ModelWarmupOptions {
   google.protobuf.Int32Value num_request_iterations = 1;
   // The number of threads to parallel execute warm up queries. By default 1.
   google.protobuf.Int32Value num_model_warmup_threads = 2;
+  // Model name.
+  string model_name = 3;
+  // Model version.
+  int64 model_version = 4;
+  // If true, warmup queries initiate parallel (dummy) warmup queries for each
+  // `allowed_batch_sizes` of supported batch ops.
+  // The extra queries' outputs are not returned.
+  bool enable_all_batch_sizes_warmup = 5;
 }
 
 // Configuration parameters for a SessionBundle, with optional batching.
@@ -42,6 +50,10 @@ message SessionBundleConfig {
   // across multiple session servables emitted by this source adapter. A
   // BatchSchedulerRetrier is added on top of each batching session.
   BatchingParameters batching_parameters = 3;
+
+  // Batching parameters to be rewritten in the existing BatchFunction ops.
+  // Different from `batching_parameters`, which are used for session batching.
+  BatchingOptions in_graph_batching_parameters = 7;
 
   // If set, session run calls use a separate threadpool for restore and init
   // ops as part of loading the session-bundle. The value of this field should
@@ -126,6 +138,9 @@ message SessionBundleConfig {
   //
   // Enable overriding model configs via assets.extra/saved_model_config.pb.
   bool enable_saved_model_config = 790;
+
+  //Add bf16 mixed_precision option
+  string mixed_precision = 791;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

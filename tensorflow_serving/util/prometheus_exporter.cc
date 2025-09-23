@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/util/prometheus_exporter.h"
 
+#include <memory>
+#include <vector>
+
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
@@ -159,7 +162,7 @@ PrometheusExporter::PrometheusExporter()
 Status PrometheusExporter::GeneratePage(string* http_page) {
   if (http_page == nullptr) {
     return Status(
-        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+        static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
         "Http page pointer is null");
   }
   monitoring::CollectionRegistry::CollectMetricsOptions collect_options;
@@ -183,7 +186,7 @@ Status PrometheusExporter::GeneratePage(string* http_page) {
   }
   *http_page = absl::StrJoin(lines, "\n");
   absl::StrAppend(http_page, "\n");
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace serving

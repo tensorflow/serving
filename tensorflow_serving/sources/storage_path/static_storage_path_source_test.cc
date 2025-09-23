@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/sources/storage_path/static_storage_path_source.h"
 
+#include <memory>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status_test_util.h"

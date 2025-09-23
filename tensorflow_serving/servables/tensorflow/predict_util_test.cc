@@ -15,6 +15,10 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/predict_util.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "absl/strings/str_cat.h"
@@ -47,44 +51,46 @@ class FakeSession : public tensorflow::Session {
  public:
   FakeSession() {}
   ~FakeSession() override = default;
-  Status Create(const GraphDef& graph) override {
+  absl::Status Create(const GraphDef& graph) override {
     return errors::Unimplemented("not available in fake");
   }
-  Status Extend(const GraphDef& graph) override {
+  absl::Status Extend(const GraphDef& graph) override {
     return errors::Unimplemented("not available in fake");
   }
-  Status Close() override {
+  absl::Status Close() override {
     return errors::Unimplemented("not available in fake");
   }
-  Status ListDevices(std::vector<DeviceAttributes>* response) override {
+  absl::Status ListDevices(std::vector<DeviceAttributes>* response) override {
     return errors::Unimplemented("not available in fake");
   }
-  Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_names,
-             const std::vector<string>& target_nodes,
-             std::vector<Tensor>* outputs) override {
+  absl::Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
+                   const std::vector<string>& output_names,
+                   const std::vector<string>& target_nodes,
+                   std::vector<Tensor>* outputs) override {
     RunMetadata run_metadata;
     return Run(RunOptions(), inputs, output_names, target_nodes, outputs,
                &run_metadata);
   }
-  Status Run(const RunOptions& run_options,
-             const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_names,
-             const std::vector<string>& target_nodes,
-             std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+  absl::Status Run(const RunOptions& run_options,
+                   const std::vector<std::pair<string, Tensor>>& inputs,
+                   const std::vector<string>& output_names,
+                   const std::vector<string>& target_nodes,
+                   std::vector<Tensor>* outputs,
+                   RunMetadata* run_metadata) override {
     return Run(run_options, inputs, output_names, target_nodes, outputs,
                run_metadata, thread::ThreadPoolOptions());
   }
-  Status Run(const RunOptions& run_options,
-             const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_names,
-             const std::vector<string>& target_nodes,
-             std::vector<Tensor>* outputs, RunMetadata* run_metadata,
-             const thread::ThreadPoolOptions& thread_pool_options) override {
+  absl::Status Run(
+      const RunOptions& run_options,
+      const std::vector<std::pair<string, Tensor>>& inputs,
+      const std::vector<string>& output_names,
+      const std::vector<string>& target_nodes, std::vector<Tensor>* outputs,
+      RunMetadata* run_metadata,
+      const thread::ThreadPoolOptions& thread_pool_options) override {
     for (const auto& t : inputs) {
       outputs->push_back(t.second);
     }
-    return OkStatus();
+    return absl::OkStatus();
   }
 };
 
@@ -114,8 +120,8 @@ class PredictImplTest : public ::testing::Test {
   }
 
  protected:
-  static Status CreateServerCore(const string& model_path,
-                                 std::unique_ptr<ServerCore>* server_core) {
+  static absl::Status CreateServerCore(
+      const string& model_path, std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);
@@ -148,17 +154,18 @@ class PredictImplTest : public ::testing::Test {
     return saved_model_server_core_counter_model_.get();
   }
 
-  Status GetSavedModelServableHandle(ServerCore* server_core,
-                                     ServableHandle<SavedModelBundle>* bundle) {
+  absl::Status GetSavedModelServableHandle(
+      ServerCore* server_core, ServableHandle<SavedModelBundle>* bundle) {
     ModelSpec model_spec;
     model_spec.set_name(kTestModelName);
     return server_core->GetServableHandle(model_spec, bundle);
   }
 
-  Status CallPredict(ServerCore* server_core, const PredictRequest& request,
-                     PredictResponse* response,
-                     const thread::ThreadPoolOptions& thread_pool_options =
-                         thread::ThreadPoolOptions()) {
+  absl::Status CallPredict(
+      ServerCore* server_core, const PredictRequest& request,
+      PredictResponse* response,
+      const thread::ThreadPoolOptions& thread_pool_options =
+          thread::ThreadPoolOptions()) {
     ServableHandle<SavedModelBundle> bundle;
     TF_RETURN_IF_ERROR(GetSavedModelServableHandle(server_core, &bundle));
     return RunPredict(GetRunOptions(), bundle->meta_graph_def,
@@ -184,19 +191,19 @@ TEST_F(PredictImplTest, MissingOrEmptyModelSpec) {
   PredictResponse response;
 
   // Empty request is invalid.
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             CallPredict(GetServerCore(), request, &response).code());
 
   ModelSpec* model_spec = request.mutable_model_spec();
   model_spec->clear_name();
 
   // Model name is not specified.
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             CallPredict(GetServerCore(), request, &response).code());
 
   // Model name is wrong.
   model_spec->set_name("test");
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             CallPredict(GetServerCore(), request, &response).code());
 }
 
@@ -209,7 +216,7 @@ TEST_F(PredictImplTest, EmptyInputList) {
   model_spec->mutable_version()->set_value(kTestModelVersion);
 
   // The input is empty.
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             CallPredict(GetServerCore(), request, &response).code());
 }
 
@@ -234,9 +241,9 @@ TEST_F(PredictImplTest, InputTensorsDontMatchModelSpecInputs) {
   tensor_proto2.mutable_tensor_shape()->add_dim()->set_size(1);
   (*inputs)["unknown_key2"] = tensor_proto2;
 
-  Status status = CallPredict(GetServerCore(), request, &response);
+  absl::Status status = CallPredict(GetServerCore(), request, &response);
   EXPECT_EQ(status.code(),
-            static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
+            static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument));
   EXPECT_THAT(status.message(),
               ::testing::HasSubstr("Sent extra: {unknown_key1,unknown_key2}"));
   EXPECT_THAT(status.message(),
@@ -279,9 +286,9 @@ TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
   request.add_output_filter("output_filter");
 
   // Output filter like this doesn't exist.
-  Status status1 = CallPredict(GetServerCore(), request, &response);
+  absl::Status status1 = CallPredict(GetServerCore(), request, &response);
   EXPECT_EQ(status1.code(),
-            static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
+            static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument));
   EXPECT_THAT(status1.message(),
               ::testing::HasSubstr(
                   "output tensor alias not found in signature: output_filter"));
@@ -292,9 +299,9 @@ TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
   request.add_output_filter(kOutputTensorKey);
 
   // Duplicate output filter specified.
-  Status status2 = CallPredict(GetServerCore(), request, &response);
+  absl::Status status2 = CallPredict(GetServerCore(), request, &response);
   EXPECT_EQ(status2.code(),
-            static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
+            static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument));
   EXPECT_THAT(status2.message(),
               ::testing::HasSubstr("duplicate output tensor alias: y"));
 }
@@ -315,9 +322,9 @@ TEST_F(PredictImplTest, InputTensorsHaveWrongType) {
   request.add_output_filter(kOutputTensorKey);
 
   // Input tensors are all wrong.
-  Status status = CallPredict(GetServerCore(), request, &response);
+  absl::Status status = CallPredict(GetServerCore(), request, &response);
   EXPECT_EQ(status.code(),
-            static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument));
+            static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument));
   EXPECT_THAT(status.message(),
               ::testing::HasSubstr("to be float but string is provided"));
 }

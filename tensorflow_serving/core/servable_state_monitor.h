@@ -20,6 +20,7 @@ limitations under the License.
 #include <functional>
 #include <map>
 
+#include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/macros.h"
@@ -156,11 +157,19 @@ class ServableStateMonitor {
   ///
   /// To understand the return value and the return parameter 'states_reached',
   /// please read the documentation on NotifyWhenServablesReachState(...).
+  /// WaitUntilServablesReachStateWithTimeout and WaitUntilServablesReachState
+  /// perform the same function, but the former has a timeout while the latter
+  /// waits indefinitely.
+  bool WaitUntilServablesReachStateWithTimeout(
+      const std::vector<ServableRequest>& servables,
+      ServableState::ManagerState goal_state, absl::Duration timeout,
+      std::map<ServableId, ServableState::ManagerState>* states_reached =
+          nullptr) TF_LOCKS_EXCLUDED(mu_) TF_MUST_USE_RESULT;
   bool WaitUntilServablesReachState(
       const std::vector<ServableRequest>& servables,
       ServableState::ManagerState goal_state,
       std::map<ServableId, ServableState::ManagerState>* states_reached =
-          nullptr) TF_LOCKS_EXCLUDED(mu_) TF_MUST_USE_RESULT;
+          nullptr) TF_MUST_USE_RESULT;
 
   // Subscribes to all servable state changes hitting this monitor. This is
   // called after the monitor updates its own state based on the event.

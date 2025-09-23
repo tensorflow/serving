@@ -1,5 +1,8 @@
 # Description: Tensorflow Serving test utils.
 
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 package(default_visibility = [
     "//tensorflow_serving:internal",
 ])
@@ -28,6 +31,7 @@ cc_library(
     deps = [
         "@com_google_googletest//:gtest",
         "@com_google_protobuf//:protobuf",
+        "@local_tsl//tsl/platform:protobuf",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:session_options",
         "@org_tensorflow//tensorflow/core:test",

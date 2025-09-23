@@ -19,11 +19,12 @@ limitations under the License.
 
 #include <memory>
 #include <string>
+#include <utility>
 
-#include "base/logging.h"
 #include "google/protobuf/any.pb.h"
 #include "google/protobuf/map.h"
 #include <gmock/gmock.h>
+#include "absl/status/status.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow_serving/apis/logging.proto.h"
@@ -32,11 +33,14 @@ limitations under the License.
 #include "tensorflow_serving/config/platform_config.pb.h"
 #include "tensorflow_serving/core/aspired_versions_manager.h"
 #include "tensorflow_serving/core/servable_handle.h"
+#include "tensorflow_serving/core/servable_id.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
 #include "tensorflow_serving/core/server_request_logger.h"
 #include "tensorflow_serving/core/test_util/fake_loader_source_adapter.pb.h"
+#include "tensorflow_serving/core/test_util/servable_handle_test_util.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/util/event_bus.h"
 #include "tensorflow_serving/util/unique_ptr_with_deps.h"
 
@@ -56,7 +60,9 @@ class MockServerCore : public ServerCore {
     return platform_config_map;
   }
 
-  static Options GetOptions(const PlatformConfigMap& platform_config_map) {
+  static Options GetOptions(
+      const PlatformConfigMap& platform_config_map,
+      std::unique_ptr<ServerRequestLogger> server_request_logger) {
     Options options;
     options.platform_config_map = platform_config_map;
     options.servable_state_monitor_creator =
@@ -71,13 +77,22 @@ class MockServerCore : public ServerCore {
            UniquePtrWithDeps<AspiredVersionsManager>* manager) -> Status {
       return Status();
     };
-    TF_CHECK_OK(
-        ServerRequestLogger::Create(nullptr, &options.server_request_logger));
+    if (server_request_logger != nullptr) {
+      options.server_request_logger = std::move(server_request_logger);
+    } else {
+      TF_CHECK_OK(
+          ServerRequestLogger::Create(nullptr, &options.server_request_logger));
+    }
     return options;
   }
 
   explicit MockServerCore(const PlatformConfigMap& platform_config_map)
-      : ServerCore(GetOptions(platform_config_map)) {}
+      : MockServerCore(platform_config_map, nullptr) {}
+
+  MockServerCore(const PlatformConfigMap& platform_config_map,
+                 std::unique_ptr<ServerRequestLogger> server_request_logger)
+      : ServerCore(GetOptions(platform_config_map,
+                              std::move(server_request_logger))) {}
 
   MOCK_METHOD(ServableStateMonitor*, servable_state_monitor, (),
               (const, override));
@@ -87,11 +102,32 @@ class MockServerCore : public ServerCore {
                const LogMetadata& log_metadata),
               (override));
 
+  // Sets the Servable used by GetServableHandle
+  void SetServable(std::unique_ptr<Servable> servable) {
+    servable_ = std::move(servable);
+  }
+
   template <typename T>
   Status GetServableHandle(const ModelSpec& model_spec,
                            ServableHandle<T>* const handle) {
     LOG(FATAL) << "Not implemented.";
   }
+
+  // Implement GetServable for type Servable.  Will return the Servable
+  // set by SetServable, otherwise forwards to base class.
+  virtual Status GetServableHandle(
+      const ModelSpec& model_spec,
+      ServableHandle<Servable>* const handle) override {
+    if (servable_) {
+      const ServableId id = {"servable", 0};
+      *handle = WrapAsHandle<Servable>(id, servable_.get());
+      return absl::OkStatus();
+    } else {
+      return ServerCore::GetServableHandle<Servable>(model_spec, handle);
+    }
+  }
+
+  std::unique_ptr<Servable> servable_;
 };
 
 }  // namespace test_util

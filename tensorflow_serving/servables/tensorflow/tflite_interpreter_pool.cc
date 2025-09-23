@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <limits>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "tensorflow/core/framework/tensor.h"
@@ -57,7 +58,7 @@ TfLiteInterpreterWrapper::TfLiteInterpreterWrapper(
   }
 }
 
-tensorflow::Status TfLiteInterpreterWrapper::SetStringData(
+absl::Status TfLiteInterpreterWrapper::SetStringData(
     const std::vector<const Tensor*>& tensors, TfLiteTensor* tflite_tensor,
     int tensor_index, int batch_size) {
   // Format of the buffer for tflite:
@@ -113,7 +114,7 @@ tensorflow::Status TfLiteInterpreterWrapper::SetStringData(
   tflite_tensor->data.raw = tensor_buffer_[tensor_index].release();
   tflite_tensor->bytes = required_bytes;
   tflite_tensor->allocation_type = kTfLiteDynamic;
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 TfLiteStatus TfLiteInterpreterWrapper::Invoke() {
@@ -139,7 +140,7 @@ TfLiteStatus TfLiteInterpreterWrapper::Invoke() {
   return status;
 }
 
-tensorflow::Status TfLiteInterpreterWrapper::CreateTfLiteInterpreterWrapper(
+absl::Status TfLiteInterpreterWrapper::CreateTfLiteInterpreterWrapper(
     const tflite::FlatBufferModel& model,
     const tensorflow::SessionOptions& options,
     std::unique_ptr<TfLiteInterpreterWrapper>& wrapper) {
@@ -179,10 +180,10 @@ tensorflow::Status TfLiteInterpreterWrapper::CreateTfLiteInterpreterWrapper(
   }
   wrapper.reset(new TfLiteInterpreterWrapper(std::move(external_context),
                                              std::move(interpreter)));
-  return tensorflow::OkStatus();
+  return absl::OkStatus();
 }
 
-tensorflow::Status TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
+absl::Status TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
     const tflite::FlatBufferModel* model,
     const tensorflow::SessionOptions& options, int pool_size,
     std::unique_ptr<TfLiteInterpreterPool>& interpreter_pool) {
@@ -194,7 +195,7 @@ tensorflow::Status TfLiteInterpreterPool::CreateTfLiteInterpreterPool(
         *model, options, wrapper));
   }
   interpreter_pool.reset(new TfLiteInterpreterPool(std::move(interpreters)));
-  return tensorflow::OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace internal

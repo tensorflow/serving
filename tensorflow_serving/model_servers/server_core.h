@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_SERVER_CORE_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_SERVER_CORE_H_
 
+#include <functional>
 #include <limits>
 #include <map>
 #include <memory>
@@ -24,6 +25,8 @@ limitations under the License.
 
 #include "google/protobuf/any.pb.h"
 #include "absl/base/macros.h"
+#include "absl/status/status.h"
+#include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/cpu_info.h"
@@ -42,7 +45,9 @@ limitations under the License.
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/core/storage_path.h"
+#include "tensorflow_serving/core/stream_logger.h"
 #include "tensorflow_serving/servables/tensorflow/predict_util.h"
+#include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
 #include "tensorflow_serving/util/event_bus.h"
 #include "tensorflow_serving/util/unique_ptr_with_deps.h"
@@ -97,6 +102,9 @@ class ServerCore : public Manager {
 
     // The AspiredVersionPolicy to use for the manager. Must be non-null.
     std::unique_ptr<AspiredVersionPolicy> aspired_version_policy;
+
+    // See AspiredVersionsManager::Options::custom_sort_actions
+    AspiredVersionsManager::CustomSortActionsFn custom_sort_actions;
 
     // The number of threads used to load models. If set to 0, then no thread
     // pool is used and loads are performed serially in the manager thread.
@@ -201,6 +209,16 @@ class ServerCore : public Manager {
     std::string storage_path_prefix;
 
     bool enable_cors_support = false;
+
+    // If true, propagate current context to children threads (periodic
+    // functions) in AspiredVersionsManager.
+    bool with_current_context = false;
+
+    // How long to wait for servables to reach a given state.
+    absl::Duration servable_state_waiter_timeout = absl::InfiniteDuration();
+
+    // Defines how we want to retry when model loading fails.
+    std::function<bool(absl::Status)> should_retry_model_load;
   };
 
   virtual ~ServerCore() = default;
@@ -263,6 +281,18 @@ class ServerCore : public Manager {
     return Status();
   }
 
+  // This specialized version allows us to override GetServableHandle for
+  // Servables in sub-classes. Useful for testing.
+  virtual Status GetServableHandle(const ModelSpec& model_spec,
+                                   ServableHandle<Servable>* const handle) {
+    return GetServableHandle<Servable>(model_spec, handle);
+  }
+
+  template <typename T>
+  std::map<ServableId, ServableHandle<T>> GetAvailableServableHandles() const {
+    return manager_->GetAvailableServableHandles<T>();
+  }
+
   /// Writes the log for the particular request, response and metadata, if we
   /// decide to sample it and if request-logging was configured for the
   /// particular model.
@@ -270,6 +300,17 @@ class ServerCore : public Manager {
                      const google::protobuf::Message& response,
                      const LogMetadata& log_metadata) {
     return options_.server_request_logger->Log(request, response, log_metadata);
+  }
+
+  // Starts logging a stream through returning a StreamLogger created through
+  // `create_stream_logger_fn`. Returns NULL if the stream should not be logged.
+  template <typename Request, typename Response>
+  std::unique_ptr<StreamLogger<Request, Response>> StartLoggingStream(
+      const LogMetadata& log_metadata,
+      ServerRequestLogger::CreateStreamLoggerFn<Request, Response>
+          create_stream_logger_fn) {
+    return options_.server_request_logger->StartLoggingStream(
+        log_metadata, std::move(create_stream_logger_fn));
   }
 
   internal::PredictResponseTensorSerializationOption
@@ -292,11 +333,13 @@ class ServerCore : public Manager {
   // Initializes server core.
   // Must be run once and only once per ServerCore instance.
   Status Initialize(
-      std::unique_ptr<AspiredVersionPolicy> aspired_version_policy);
+      std::unique_ptr<AspiredVersionPolicy> aspired_version_policy,
+      AspiredVersionsManager::CustomSortActionsFn custom_sort_actions);
 
   // Creates a AspiredVersionsManager with the specified policy.
   Status CreateAspiredVersionsManager(
       std::unique_ptr<AspiredVersionPolicy> policy,
+      AspiredVersionsManager::CustomSortActionsFn custom_sort_actions,
       std::unique_ptr<AspiredVersionsManager>* manager);
 
   // Creates a ResourceTracker.

@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/core/manager_wrapper.h"
 
+#include <map>
+#include <memory>
+#include <utility>
+#include <vector>
+
 namespace tensorflow {
 namespace serving {
 
@@ -25,7 +30,7 @@ std::vector<ServableId> ManagerWrapper::ListAvailableServableIds() const {
   return wrapped_->ListAvailableServableIds();
 }
 
-Status ManagerWrapper::GetUntypedServableHandle(
+absl::Status ManagerWrapper::GetUntypedServableHandle(
     const ServableRequest& request,
     std::unique_ptr<UntypedServableHandle>* const untyped_handle) {
   return wrapped_->GetUntypedServableHandle(request, untyped_handle);

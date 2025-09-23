@@ -22,7 +22,10 @@ limitations under the License.
 #include <sys/socket.h>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
+#include <tuple>
 #include <utility>
 
 #include "absl/base/call_once.h"
@@ -220,14 +223,25 @@ bool EvHTTPServer::StartAcceptingRequests() {
 
   const int port = server_options_->ports().front();
 
-  // "::"  =>  in6addr_any
-  ev_uint16_t ev_port = static_cast<ev_uint16_t>(port);
-  ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, "::", ev_port);
-  if (ev_listener_ == nullptr) {
-    // in case ipv6 is not supported, fallback to inaddr_any
-    ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, nullptr, ev_port);
+  if (server_options_->ip_addresses().empty()) {
+    // "::"  =>  in6addr_any
+    ev_uint16_t ev_port = static_cast<ev_uint16_t>(port);
+    ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, "::", ev_port);
     if (ev_listener_ == nullptr) {
-      NET_LOG(ERROR, "Couldn't bind to port %d", port);
+      // in case ipv6 is not supported, fallback to inaddr_any
+      ev_listener_ = evhttp_bind_socket_with_handle(ev_http_, nullptr, ev_port);
+      if (ev_listener_ == nullptr) {
+        NET_LOG(ERROR, "Couldn't bind to port %d", port);
+        return false;
+      }
+    }
+  } else {
+    const std::string& ip_address = server_options_->ip_addresses().front();
+    ev_listener_ =
+        evhttp_bind_socket_with_handle(ev_http_, ip_address.c_str(), port);
+    if (ev_listener_ == nullptr) {
+      NET_LOG(ERROR, "Couldn't bind address %s to port %d", ip_address.c_str(),
+              port);
       return false;
     }
   }
@@ -240,16 +254,16 @@ bool EvHTTPServer::StartAcceptingRequests() {
     ResolveEphemeralPort(ev_listener_, &port_);
   }
 
+  accepting_requests_.Notify();
+
   IncOps();
   server_options_->executor()->Schedule([this]() {
     NET_LOG(INFO, "Entering the event loop ...");
-    int result = event_base_dispatch(ev_base_);
-    NET_LOG(INFO, "event_base_dispatch() exits with value %d", result);
+    int result = event_base_loop(ev_base_, EVLOOP_NO_EXIT_ON_EMPTY);
+    NET_LOG(INFO, "event_base_loop() exits with value %d", result);
 
     DecOps();
   });
-
-  accepting_requests_.Notify();
 
   return true;
 }

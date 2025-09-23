@@ -15,19 +15,22 @@ limitations under the License.
 
 #include "tensorflow_serving/core/aspired_versions_manager_builder.h"
 
+#include <memory>
+#include <utility>
+
 #include "tensorflow_serving/core/manager_wrapper.h"
 
 namespace tensorflow {
 namespace serving {
 
-Status AspiredVersionsManagerBuilder::Create(
+absl::Status AspiredVersionsManagerBuilder::Create(
     Options options, std::unique_ptr<AspiredVersionsManagerBuilder>* builder) {
   std::unique_ptr<AspiredVersionsManager> aspired_versions_manager;
   TF_RETURN_IF_ERROR(AspiredVersionsManager::Create(std::move(options),
                                                     &aspired_versions_manager));
   builder->reset(
       new AspiredVersionsManagerBuilder(std::move(aspired_versions_manager)));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 AspiredVersionsManagerBuilder::AspiredVersionsManagerBuilder(

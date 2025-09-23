@@ -17,6 +17,8 @@ limitations under the License.
 
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <vector>
 
 #include "grpcpp/create_channel.h"
 #include "grpcpp/security/credentials.h"
@@ -117,6 +119,7 @@ class ServingClient {
 
   tensorflow::string callPredict(const tensorflow::string& model_name,
                                  const tensorflow::string& model_signature_name,
+                                 const tensorflow::string& input_name,
                                  const tensorflow::string& file_path) {
     PredictRequest predictRequest;
     PredictResponse response;
@@ -138,7 +141,7 @@ class ServingClient {
       return "execution failed";
     }
 
-    inputs["input_1"] = proto;
+    inputs[input_name] = proto;
 
     Status status = stub_->Predict(&context, predictRequest, &response);
 
@@ -180,13 +183,15 @@ int main(int argc, char** argv) {
   tensorflow::string image_file = "";
   tensorflow::string model_name = "resnet";
   tensorflow::string model_signature_name = "serving_default";
+  tensorflow::string input_name = "input_1";
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("server_port", &server_port,
                        "the IP and port of the server"),
       tensorflow::Flag("image_file", &image_file, "the path to the image"),
       tensorflow::Flag("model_name", &model_name, "name of model"),
       tensorflow::Flag("model_signature_name", &model_signature_name,
-                       "name of model signature")};
+                       "name of model signature"),
+      tensorflow::Flag("input_name", &input_name, "name of input tensor")};
 
   tensorflow::string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
@@ -199,7 +204,8 @@ int main(int argc, char** argv) {
       grpc::CreateChannel(server_port, grpc::InsecureChannelCredentials()));
   std::cout << "calling predict using file: " << image_file << "  ..."
             << std::endl;
-  std::cout << guide.callPredict(model_name, model_signature_name, image_file)
+  std::cout << guide.callPredict(model_name, model_signature_name, input_name,
+                                 image_file)
             << std::endl;
   return 0;
 }

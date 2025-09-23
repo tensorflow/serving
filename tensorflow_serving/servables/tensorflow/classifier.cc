@@ -21,6 +21,7 @@ limitations under the License.
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "tensorflow/cc/saved_model/signature_constants.h"
@@ -58,8 +59,8 @@ class SavedModelTensorFlowClassifier : public ClassifierInterface {
 
   ~SavedModelTensorFlowClassifier() override = default;
 
-  Status Classify(const ClassificationRequest& request,
-                  ClassificationResult* result) override {
+  absl::Status Classify(const ClassificationRequest& request,
+                        ClassificationResult* result) override {
     TRACELITERAL("TensorFlowClassifier::Classify");
 
     string input_tensor_name;
@@ -99,8 +100,8 @@ class SavedModelClassifier : public ClassifierInterface {
 
   ~SavedModelClassifier() override = default;
 
-  Status Classify(const ClassificationRequest& request,
-                  ClassificationResult* result) override {
+  absl::Status Classify(const ClassificationRequest& request,
+                        ClassificationResult* result) override {
     // Get the default signature of the graph.  Expected to be a
     // classification signature.
     // TODO(b/26220896): Move TensorFlowClassifier creation to construction
@@ -122,14 +123,14 @@ class SavedModelClassifier : public ClassifierInterface {
 
 }  // namespace
 
-Status CreateClassifierFromSavedModelBundle(
+absl::Status CreateClassifierFromSavedModelBundle(
     const RunOptions& run_options, std::unique_ptr<SavedModelBundle> bundle,
     std::unique_ptr<ClassifierInterface>* service) {
   service->reset(new SavedModelClassifier(run_options, std::move(bundle)));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status CreateFlyweightTensorFlowClassifier(
+absl::Status CreateFlyweightTensorFlowClassifier(
     const RunOptions& run_options, Session* session,
     const SignatureDef* signature,
     std::unique_ptr<ClassifierInterface>* service) {
@@ -137,30 +138,30 @@ Status CreateFlyweightTensorFlowClassifier(
       run_options, session, signature, thread::ThreadPoolOptions(), service);
 }
 
-Status CreateFlyweightTensorFlowClassifier(
+absl::Status CreateFlyweightTensorFlowClassifier(
     const RunOptions& run_options, Session* session,
     const SignatureDef* signature,
     const thread::ThreadPoolOptions& thread_pool_options,
     std::unique_ptr<ClassifierInterface>* service) {
   service->reset(new SavedModelTensorFlowClassifier(
       run_options, session, signature, thread_pool_options));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status GetClassificationSignatureDef(const ModelSpec& model_spec,
-                                     const MetaGraphDef& meta_graph_def,
-                                     SignatureDef* signature) {
+absl::Status GetClassificationSignatureDef(const ModelSpec& model_spec,
+                                           const MetaGraphDef& meta_graph_def,
+                                           SignatureDef* signature) {
   const string signature_name = model_spec.signature_name().empty()
                                     ? kDefaultServingSignatureDefKey
                                     : model_spec.signature_name();
   auto iter = meta_graph_def.signature_def().find(signature_name);
   if (iter == meta_graph_def.signature_def().end()) {
-    return errors::InvalidArgument(strings::StrCat(
-        "No signature was found with the name: ", signature_name));
+    return errors::InvalidArgument(
+        absl::StrCat("No signature was found with the name: ", signature_name));
   }
   if (GetSignatureMethodNameCheckFeature()) {
     if (iter->second.method_name() != kClassifyMethodName) {
-      return errors::InvalidArgument(strings::StrCat(
+      return errors::InvalidArgument(absl::StrCat(
           "Expected classification signature method_name to be ",
           kClassifyMethodName, ". Was: ", iter->second.method_name()));
     }
@@ -169,26 +170,25 @@ Status GetClassificationSignatureDef(const ModelSpec& model_spec,
         PreProcessClassification(iter->second, nullptr, nullptr));
   }
   *signature = iter->second;
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status PreProcessClassification(const SignatureDef& signature,
-                                string* input_tensor_name,
-                                std::vector<string>* output_tensor_names) {
+absl::Status PreProcessClassification(
+    const SignatureDef& signature, string* input_tensor_name,
+    std::vector<string>* output_tensor_names) {
   if (GetSignatureMethodNameCheckFeature() &&
       signature.method_name() != kClassifyMethodName) {
-    return errors::InvalidArgument(strings::StrCat(
-        "Expected classification signature method_name to be ",
-        kClassifyMethodName, ". Was: ", signature.method_name()));
+    return errors::InvalidArgument(
+        absl::StrCat("Expected classification signature method_name to be ",
+                     kClassifyMethodName, ". Was: ", signature.method_name()));
   }
   if (signature.inputs().size() != 1) {
-    return errors::InvalidArgument(
-        strings::StrCat("Expected one input Tensor."));
+    return errors::InvalidArgument(absl::StrCat("Expected one input Tensor."));
   }
   if (signature.outputs().size() != 1 && signature.outputs().size() != 2) {
     return errors::InvalidArgument(
-        strings::StrCat("Expected one or two output Tensors, found ",
-                        signature.outputs().size()));
+        absl::StrCat("Expected one or two output Tensors, found ",
+                     signature.outputs().size()));
   }
 
   auto input_iter = signature.inputs().find(kClassifyInputs);
@@ -218,17 +218,17 @@ Status PreProcessClassification(const SignatureDef& signature,
       output_tensor_names->push_back(scores_iter->second.name());
     }
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status PostProcessClassificationResult(
+absl::Status PostProcessClassificationResult(
     const SignatureDef& signature, int num_examples,
     const std::vector<string>& output_tensor_names,
     const std::vector<Tensor>& output_tensors, ClassificationResult* result) {
   if (output_tensors.size() != output_tensor_names.size()) {
     return errors::InvalidArgument(
-        strings::StrCat("Expected ", output_tensor_names.size(),
-                        " output tensor(s).  Got: ", output_tensors.size()));
+        absl::StrCat("Expected ", output_tensor_names.size(),
+                     " output tensor(s).  Got: ", output_tensors.size()));
   }
 
   auto classes_iter = signature.outputs().find(kClassifyOutputClasses);
@@ -319,15 +319,15 @@ Status PostProcessClassificationResult(
       }
     }
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status RunClassify(const RunOptions& run_options,
-                   const MetaGraphDef& meta_graph_def,
-                   const absl::optional<int64_t>& servable_version,
-                   Session* session, const ClassificationRequest& request,
-                   ClassificationResponse* response,
-                   const thread::ThreadPoolOptions& thread_pool_options) {
+absl::Status RunClassify(const RunOptions& run_options,
+                         const MetaGraphDef& meta_graph_def,
+                         const absl::optional<int64_t>& servable_version,
+                         Session* session, const ClassificationRequest& request,
+                         ClassificationResponse* response,
+                         const thread::ThreadPoolOptions& thread_pool_options) {
   SignatureDef signature;
   TF_RETURN_IF_ERROR(GetClassificationSignatureDef(request.model_spec(),
                                                    meta_graph_def, &signature));

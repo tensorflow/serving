@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/core/log_collector.h"
 
+#include <memory>
 #include <unordered_map>
 
 #include "tensorflow/core/lib/core/errors.h"
@@ -29,7 +30,8 @@ namespace {
 // This class is thread-safe.
 class Registry {
  public:
-  Status Register(const string& type, const LogCollector::Factory& factory)
+  absl::Status Register(const string& type,
+                        const LogCollector::Factory& factory)
       TF_LOCKS_EXCLUDED(mu_) {
     mutex_lock l(mu_);
     const auto found_it = factory_map_.find(type);
@@ -37,7 +39,7 @@ class Registry {
       return errors::AlreadyExists("Type ", type, " already registered.");
     }
     factory_map_.insert({type, factory});
-    return OkStatus();
+    return absl::OkStatus();
   }
 
   const LogCollector::Factory* Lookup(const string& type) const
@@ -63,12 +65,12 @@ Registry* GetRegistry() {
 
 }  // namespace
 
-Status LogCollector::RegisterFactory(const string& type,
-                                     const Factory& factory) {
+absl::Status LogCollector::RegisterFactory(const string& type,
+                                           const Factory& factory) {
   return GetRegistry()->Register(type, factory);
 }
 
-Status LogCollector::Create(
+absl::Status LogCollector::Create(
     const LogCollectorConfig& config, const uint32 id,
     std::unique_ptr<LogCollector>* const log_collector) {
   auto* factory = GetRegistry()->Lookup(config.type());

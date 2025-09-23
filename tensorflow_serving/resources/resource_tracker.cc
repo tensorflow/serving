@@ -16,7 +16,10 @@ limitations under the License.
 #include "tensorflow_serving/resources/resource_tracker.h"
 
 #include <algorithm>
+#include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -25,9 +28,10 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status ResourceTracker::Create(const ResourceAllocation& total_resources,
-                               std::unique_ptr<ResourceUtil> util,
-                               std::unique_ptr<ResourceTracker>* tracker) {
+absl::Status ResourceTracker::Create(
+    const ResourceAllocation& total_resources,
+    std::unique_ptr<ResourceUtil> util,
+    std::unique_ptr<ResourceTracker>* tracker) {
   TF_RETURN_IF_ERROR(util->VerifyValidity(total_resources));
   const ResourceAllocation normalized_total_resources =
       util->Normalize(total_resources);
@@ -37,11 +41,11 @@ Status ResourceTracker::Create(const ResourceAllocation& total_resources,
   }
   tracker->reset(
       new ResourceTracker(normalized_total_resources, std::move(util)));
-  return Status();
+  return absl::Status();
 }
 
-Status ResourceTracker::ReserveResources(const Loader& servable,
-                                         bool* success) {
+absl::Status ResourceTracker::ReserveResources(const Loader& servable,
+                                               bool* success) {
   ResourceAllocation servable_resources;
   TF_RETURN_IF_ERROR(servable.EstimateResources(&servable_resources));
   TF_RETURN_IF_ERROR(util_->VerifyValidity(servable_resources));
@@ -65,10 +69,10 @@ Status ResourceTracker::ReserveResources(const Loader& servable,
     *success = false;
   }
 
-  return Status();
+  return absl::Status();
 }
 
-Status ResourceTracker::RecomputeUsedResources(
+absl::Status ResourceTracker::RecomputeUsedResources(
     const std::vector<const Loader*>& servables) {
   used_resources_.Clear();
   for (const Loader* servable : servables) {
@@ -77,7 +81,7 @@ Status ResourceTracker::RecomputeUsedResources(
     TF_RETURN_IF_ERROR(util_->VerifyValidity(servable_resources));
     util_->Add(servable_resources, &used_resources_);
   }
-  return Status();
+  return absl::Status();
 }
 
 ResourceTracker::ResourceTracker(const ResourceAllocation& total_resources,

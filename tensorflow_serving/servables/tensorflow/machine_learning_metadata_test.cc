@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/machine_learning_metadata.h"
 
+#include <memory>
+#include <string>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -64,8 +67,8 @@ TEST(MachineLearningMetaDataTest, BasicTest_MLMD_present) {
   std::string mlmd_uuid;
   ASSERT_FALSE(GetMlmdUuid("test_model", "9696", &mlmd_uuid));
   const string test_data_path = test_util::TestSrcDirPath(
-      strings::StrCat("/servables/tensorflow/testdata/",
-                      "saved_model_half_plus_two_mlmd/00000123"));
+      absl::StrCat("/servables/tensorflow/testdata/",
+                   "saved_model_half_plus_two_mlmd/00000123"));
   MaybePublishMLMDStreamz(test_data_path, "test_model", 9696);
   EXPECT_TRUE(GetMlmdUuid("test_model", "9696", &mlmd_uuid));
   EXPECT_EQ("test_mlmd_uuid", mlmd_uuid);

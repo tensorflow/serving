@@ -14,7 +14,10 @@ limitations under the License.
 ==============================================================================*/
 #include "tensorflow_serving/util/proto_util.h"
 
+#include <memory>
+
 #include <gtest/gtest.h>
+#include "absl/status/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/test.h"
@@ -27,7 +30,7 @@ namespace {
 TEST(ProtoUtilTest, ParseProtoTextFile_Errors) {
   StatusProto status_proto;
   auto status = ParseProtoTextFile<StatusProto>("missing.txt", &status_proto);
-  ASSERT_TRUE(errors::IsNotFound(status));
+  ASSERT_TRUE(absl::IsNotFound(status));
 
   const string kProtoFile = io::JoinPath(testing::TmpDir(), "corrupt.txt");
   std::unique_ptr<WritableFile> file;
@@ -35,7 +38,7 @@ TEST(ProtoUtilTest, ParseProtoTextFile_Errors) {
   TF_ASSERT_OK(file->Append("corrupt proto content"));
   TF_ASSERT_OK(file->Close());
   status = ParseProtoTextFile<StatusProto>(kProtoFile, &status_proto);
-  ASSERT_TRUE(errors::IsInvalidArgument(status));
+  ASSERT_TRUE(absl::IsInvalidArgument(status));
 }
 
 TEST(ProtoUtilTest, ParseProtoTextFile_EmptyFile_Success) {

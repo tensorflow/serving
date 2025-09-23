@@ -49,6 +49,12 @@ class ResourceUtil {
   // have undefined behavior otherwise), and guarantee to produce valid outputs.
   virtual Status VerifyValidity(const ResourceAllocation& allocation) const;
 
+  // Determine if the override_allocation's device set is a subset of
+  // base_allocation. Only used by controller
+  Status VerifyOverrideDeviceValidity(
+      const ResourceAllocation& base_allocation,
+      const ResourceAllocation& override_allocation) const;
+
   // Verifies whether 'resource' is valid, i.e. it only refers to valid devices,
   // i.e. those supplied via Options.
   Status VerifyResourceValidity(const Resource& resource) const;

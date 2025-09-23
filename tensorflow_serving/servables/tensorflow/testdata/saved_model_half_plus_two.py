@@ -53,7 +53,6 @@ import argparse
 import os
 import sys
 
-# This is a placeholder for a Google-internal import.
 import tensorflow.compat.v1 as tf
 
 from tensorflow.lite.tools.signature import signature_def_utils
@@ -200,55 +199,73 @@ class HalfPlusTwoModel(tf.Module):
     }
 
   @tf.function(input_signature=[tf.TensorSpec(shape=[1], dtype=tf.float32)])
-  def predict(self, x):
+  def predict(self, x=tf.constant([0], shape=[1], dtype=tf.float32)):
     return {"y": self.compute(x, self.b)}
 
-  @tf.function(input_signature=[
-      tf.TensorSpec([None], dtype=tf.string, name=tf.saved_model.REGRESS_INPUTS)
-  ])
+  @tf.function(
+      input_signature=[
+          tf.TensorSpec(
+              [None], dtype=tf.string, name=tf.saved_model.REGRESS_INPUTS
+          )
+      ]
+  )
   def regress_xy(self, serialized_proto):
     x = tf.parse_example(serialized_proto, _get_feature_spec())["x"]
     return {tf.saved_model.REGRESS_OUTPUTS: self.compute(x, self.b)}
 
-  @tf.function(input_signature=[
-      tf.TensorSpec([None], dtype=tf.string, name=tf.saved_model.REGRESS_INPUTS)
-  ])
+  @tf.function(
+      input_signature=[
+          tf.TensorSpec(
+              [None], dtype=tf.string, name=tf.saved_model.REGRESS_INPUTS
+          )
+      ]
+  )
   def regress_xy2(self, serialized_proto):
     x = tf.parse_example(serialized_proto, _get_feature_spec())["x"]
     return {tf.saved_model.REGRESS_OUTPUTS: self.compute(x, self.c)}
 
-  @tf.function(input_signature=[
-      tf.TensorSpec(
-          shape=[1], dtype=tf.float32, name=tf.saved_model.REGRESS_INPUTS)
-  ])
+  @tf.function(
+      input_signature=[
+          tf.TensorSpec(
+              shape=[1], dtype=tf.float32, name=tf.saved_model.REGRESS_INPUTS
+          )
+      ]
+  )
   def regress_x2y3(self, x2):
     return {tf.saved_model.REGRESS_OUTPUTS: self.compute(x2, self.c)}
 
-  @tf.function(input_signature=[
-      tf.TensorSpec([None],
-                    dtype=tf.string,
-                    name=tf.saved_model.CLASSIFY_INPUTS)
-  ])
+  @tf.function(
+      input_signature=[
+          tf.TensorSpec(
+              [None], dtype=tf.string, name=tf.saved_model.CLASSIFY_INPUTS
+          )
+      ]
+  )
   def classify_xy(self, serialized_proto):
     x = tf.parse_example(serialized_proto, _get_feature_spec())["x"]
     return {tf.saved_model.CLASSIFY_OUTPUT_SCORES: self.compute(x, self.b)}
 
-  @tf.function(input_signature=[
-      tf.TensorSpec(
-          shape=[1], dtype=tf.float32, name=tf.saved_model.CLASSIFY_INPUTS)
-  ])
+  @tf.function(
+      input_signature=[
+          tf.TensorSpec(
+              shape=[1], dtype=tf.float32, name=tf.saved_model.CLASSIFY_INPUTS
+          )
+      ]
+  )
   def classify_x2y3(self, x2):
     return {tf.saved_model.CLASSIFY_OUTPUT_SCORES: self.compute(x2, self.c)}
 
 
-def _generate_saved_model_for_half_plus_two(export_dir,
-                                            tf2=False,
-                                            as_text=False,
-                                            as_tflite=False,
-                                            as_tflite_with_sigdef=False,
-                                            use_main_op=False,
-                                            include_mlmd=False,
-                                            device_type="cpu"):
+def _generate_saved_model_for_half_plus_two(
+    export_dir,
+    tf2=False,
+    as_text=False,
+    as_tflite=False,
+    as_tflite_with_sigdef=False,
+    use_main_op=False,
+    include_mlmd=False,
+    device_type="cpu",
+):
   """Generates SavedModel for half plus two.
 
   Args:

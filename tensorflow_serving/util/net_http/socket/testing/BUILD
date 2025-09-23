@@ -1,5 +1,7 @@
 # Description: net_http/socket testing utils
 
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+
 package(default_visibility = ["//visibility:private"])
 
 licenses(["notice"])

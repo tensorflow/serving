@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "tensorflow_serving/core/aspired_versions_manager_builder.h"
 
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/strings/strcat.h"
@@ -86,7 +91,7 @@ TEST_F(AspiredVersionsManagerBuilderTest, AddSourceChainConnection) {
       servable_state_monitor_, id, {ServableState::ManagerState::kAvailable});
 
   ServableHandle<StoragePath> handle;
-  const Status status =
+  const absl::Status status =
       manager->GetServableHandle(ServableRequest::FromId(id), &handle);
   EXPECT_EQ(StoragePath("/storage/path/adapter0/adapter1/adapter2"), *handle);
 }

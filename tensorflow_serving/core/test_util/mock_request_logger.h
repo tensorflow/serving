@@ -54,6 +54,8 @@ class MockRequestLogger : public RequestLogger {
                std::unique_ptr<google::protobuf::Message>* log),
               (override));
 
+  MOCK_METHOD(LogMetadata, FillLogMetadata, (const LogMetadata&), (override));
+
  private:
   std::function<void(void)> notify_destruction_;
 };

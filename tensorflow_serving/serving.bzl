@@ -1,5 +1,6 @@
 load("@com_google_protobuf//:protobuf.bzl", "cc_proto_library")
-load("@org_tensorflow//tensorflow/tsl/platform/default:build_config.bzl", "py_proto_library")
+load("@local_xla//xla/tsl/platform/default:build_config.bzl", "py_proto_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 def if_oss(oss_value):
     """Returns oss_value if in OSS build env.
@@ -25,8 +26,7 @@ def serving_proto_library(
         deps = [],
         visibility = None,
         testonly = 0,
-        cc_grpc_version = None,
-        cc_api_version = 2):  # pylint: disable=unused-argument
+        cc_grpc_version = None):
     native.filegroup(
         name = name + "_proto_srcs",
         srcs = srcs,
@@ -80,7 +80,7 @@ def serving_tensorflow_proto_dep(dep):
 
 def oss_only_cc_test(name, srcs = [], deps = [], data = [], size = "medium", linkstatic = 0):
     """cc_test that is only run in open source environment."""
-    return native.cc_test(
+    return cc_test(
         name = name,
         deps = deps,
         srcs = srcs,

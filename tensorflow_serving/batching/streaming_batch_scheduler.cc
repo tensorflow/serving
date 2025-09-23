@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/streaming_batch_scheduler.h"
 
+#include <functional>
 #include <utility>
 
 #include "absl/types/optional.h"

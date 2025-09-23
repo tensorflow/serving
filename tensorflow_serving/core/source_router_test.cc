@@ -15,10 +15,14 @@ limitations under the License.
 
 #include "tensorflow_serving/core/source_router.h"
 
+#include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/platform/env.h"
@@ -47,7 +51,7 @@ class TestSourceRouter final : public SourceRouter<StoragePath> {
   const int num_output_ports_;
   int num_output_ports() const override { return num_output_ports_; }
 
-  int Route(const StringPiece servable_name,
+  int Route(const absl::string_view servable_name,
             const std::vector<ServableData<StoragePath>>& versions) override {
     if (servable_name == "zero") {
       return 0;
@@ -111,7 +115,7 @@ TEST(SourceRouterTest, SetAspiredVersionsBlocksUntilAllTargetsConnected_1) {
   // have been emitted and all of them have been connected to targets.
 
   TestSourceRouter router;
-  Notification done;
+  absl::Notification done;
 
   // Connect the output ports to targets asynchronously, after a long delay.
   std::unique_ptr<Thread> connect_targets(Env::Default()->StartThread(

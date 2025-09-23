@@ -17,6 +17,8 @@ limitations under the License.
 #include <chrono>  // NOLINT(build/c++11)
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <sstream>
 #include <string>
 
 #include "grpcpp/create_channel.h"
@@ -24,10 +26,10 @@ limitations under the License.
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/strings/match.h"
+#include "xla/tsl/lib/histogram/histogram.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/env_time.h"
 #include "tensorflow/core/platform/protobuf.h"
-#include "tensorflow/tsl/lib/histogram/histogram.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 
 using grpc::ClientAsyncResponseReader;
@@ -94,7 +96,6 @@ class ServingClient {
     void* sp;
     bool ok = false;
     while (cq_.Next(&sp, &ok)) {
-      GPR_ASSERT(ok);
       done_count_++;
       std::unique_ptr<RpcState> state((RpcState*)sp);
       if (state->status.ok()) {
@@ -148,7 +149,6 @@ class ServingClient {
 };
 
 int main(int argc, char** argv) {
-  gpr_set_log_verbosity(GPR_LOG_SEVERITY_ERROR);
   absl::ParseCommandLine(argc, argv);
 
   if (absl::GetFlag(FLAGS_server_port).empty() ||

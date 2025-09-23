@@ -22,6 +22,7 @@ limitations under the License.
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/kernels/batching_util/basic_batch_scheduler.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -48,7 +49,7 @@ class TfLiteBatchTask : public BatchTask {
   // Creates a batch task.
   static void CreateTfLiteBatchTask(
       const std::vector<string>* output_tensor_names,
-      std::vector<Tensor>* outputs, Notification* done, Status* status,
+      std::vector<Tensor>* outputs, absl::Notification* done, Status* status,
       std::unique_ptr<TfLiteBatchTask>* batch_task) {
     TfLiteBatchTask* task = new TfLiteBatchTask();
     task->is_partial = false;
@@ -89,7 +90,7 @@ class TfLiteBatchTask : public BatchTask {
 
   uint64_t start_time_micros() const { return enqueue_time_micros; }
 
-  Notification* done;
+  absl::Notification* done;
 
   Status* status;
 

@@ -1,5 +1,8 @@
 # Description: compression support libraries
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 package(default_visibility = [
     "//tensorflow_serving:internal",
     "//tensorflow_serving/util/net_http:__subpackages__",
@@ -34,6 +37,5 @@ cc_test(
         ":gzip_zlib",
         "//tensorflow_serving/core/test_util:test_main",
         "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest",
     ],
 )

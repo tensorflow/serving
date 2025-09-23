@@ -34,7 +34,7 @@ import time
 sys.path = ([i for i in sys.path if 'bazel-out' not in i] +
             [i for i in sys.path if 'bazel-out' in i])
 
-# This is a placeholder for a Google-internal import.  # pylint: disable=g-import-not-at-top
+
 
 import grpc
 from six.moves import range

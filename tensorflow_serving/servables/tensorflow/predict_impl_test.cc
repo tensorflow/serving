@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/predict_impl.h"
 
+#include <memory>
+#include <utility>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/signature_constants.h"
@@ -60,8 +63,8 @@ class PredictImplTest : public ::testing::Test {
   }
 
  protected:
-  static Status CreateServerCore(const string& model_path,
-                                 std::unique_ptr<ServerCore>* server_core) {
+  static absl::Status CreateServerCore(
+      const string& model_path, std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);
@@ -110,7 +113,7 @@ TEST_F(PredictImplTest, MissingOrEmptyModelSpec) {
   // Empty request is invalid.
   TensorflowPredictor predictor;
   EXPECT_EQ(
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
           .code());
 
@@ -119,7 +122,7 @@ TEST_F(PredictImplTest, MissingOrEmptyModelSpec) {
 
   // Model name is not specified.
   EXPECT_EQ(
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
           .code());
 
@@ -142,7 +145,7 @@ TEST_F(PredictImplTest, EmptyInputList) {
   TensorflowPredictor predictor;
   // The input is empty.
   EXPECT_EQ(
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
           .code());
 }
@@ -164,7 +167,7 @@ TEST_F(PredictImplTest, InputTensorsDontMatchModelSpecInputs) {
   auto inputs = request.mutable_inputs();
   (*inputs)["key"] = tensor_proto;
   EXPECT_EQ(
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
           .code());
 }
@@ -186,7 +189,7 @@ TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
   TensorflowPredictor predictor;
   // Output filter like this doesn't exist.
   EXPECT_EQ(
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
           .code());
 
@@ -198,7 +201,7 @@ TEST_F(PredictImplTest, OutputFiltersDontMatchModelSpecOutputs) {
 
   // Duplicate output filter specified.
   EXPECT_EQ(
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
           .code());
 }
@@ -221,7 +224,7 @@ TEST_F(PredictImplTest, InputTensorsHaveWrongType) {
   TensorflowPredictor predictor;
   // Input tensors are all wrong.
   EXPECT_EQ(
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       predictor.Predict(GetRunOptions(), GetServerCore(), request, &response)
           .code());
 }

@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/util/inline_executor.h"
 
+#include <functional>
+
 namespace tensorflow {
 namespace serving {
 

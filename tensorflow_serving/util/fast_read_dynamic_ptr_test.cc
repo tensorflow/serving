@@ -15,9 +15,12 @@ limitations under the License.
 
 #include "tensorflow_serving/util/fast_read_dynamic_ptr.h"
 
+#include <memory>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/platform/env.h"
 
 namespace tensorflow {
@@ -96,7 +99,7 @@ TYPED_TEST(FastReadDynamicPtrTest, WaitsForReadPtrsBeforeDestruction) {
   const int expected = 12;
   std::unique_ptr<TypeParam> fast_read_int(new TypeParam);
   fast_read_int->Update(std::unique_ptr<int>(new int(expected)));
-  Notification got;
+  absl::Notification got;
   std::unique_ptr<Thread> thread(Env::Default()->StartThread({}, "Holder", [&] {
     auto p = fast_read_int->get();
     ASSERT_NE(p, nullptr);

@@ -19,6 +19,7 @@ limitations under the License.
 #include <algorithm>
 #include <vector>
 
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/path.h"
@@ -87,7 +88,7 @@ class SourceAdapter : public TargetBase<InputType>, public Source<OutputType> {
 
   // Has 'outgoing_callback_' been set yet, so that the SourceAdapter is ready
   // to propagate aspired versions?
-  Notification outgoing_callback_set_;
+  absl::Notification outgoing_callback_set_;
 };
 
 // START_SKIP_DOXYGEN

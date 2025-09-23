@@ -30,8 +30,6 @@ from __future__ import print_function
 import os
 import sys
 
-# This is a placeholder for a Google-internal import.
-
 import tensorflow as tf
 
 from tensorflow.python.ops import lookup_ops

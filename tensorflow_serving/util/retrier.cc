@@ -15,17 +15,20 @@ limitations under the License.
 
 #include "tensorflow_serving/util/retrier.h"
 
+#include <functional>
+
+#include "absl/status/status.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/logging.h"
 
 namespace tensorflow {
 namespace serving {
 
-Status Retry(const string& description, const uint32 max_num_retries,
-             const int64_t retry_interval_micros,
-             const std::function<Status()>& retried_fn,
-             const std::function<bool()>& is_cancelled) {
-  Status status;
+absl::Status Retry(const string& description, uint32 max_num_retries,
+                   int64_t retry_interval_micros,
+                   const std::function<absl::Status()>& retried_fn,
+                   const std::function<bool(absl::Status)>& should_retry) {
+  absl::Status status;
   int num_tries = 0;
   do {
     if (num_tries > 0) {
@@ -37,9 +40,10 @@ Status Retry(const string& description, const uint32 max_num_retries,
       LOG(ERROR) << description << " failed: " << status;
     }
     ++num_tries;
-  } while (!is_cancelled() && !status.ok() && num_tries < max_num_retries + 1);
+  } while (!status.ok() && num_tries < max_num_retries + 1 &&
+           should_retry(status));
 
-  if (is_cancelled()) {
+  if (!should_retry(status)) {
     LOG(INFO) << "Retrying of " << description << " was cancelled.";
   }
   if (num_tries == max_num_retries + 1) {

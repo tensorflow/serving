@@ -63,9 +63,9 @@ void AddModelVersionStatusToResponse(GetModelStatusResponse* response,
 
 }  // namespace
 
-Status GetModelStatusImpl::GetModelStatus(ServerCore* core,
-                                          const GetModelStatusRequest& request,
-                                          GetModelStatusResponse* response) {
+absl::Status GetModelStatusImpl::GetModelStatus(
+    ServerCore* core, const GetModelStatusRequest& request,
+    GetModelStatusResponse* response) {
   if (!request.has_model_spec()) {
     return tensorflow::errors::InvalidArgument("Missing ModelSpec");
   }
@@ -73,7 +73,7 @@ Status GetModelStatusImpl::GetModelStatus(ServerCore* core,
                                      response);
 }
 
-Status GetModelStatusImpl::GetModelStatusWithModelSpec(
+absl::Status GetModelStatusImpl::GetModelStatusWithModelSpec(
     ServerCore* core, const ModelSpec& model_spec,
     const GetModelStatusRequest& request, GetModelStatusResponse* response) {
   const string& model_name = model_spec.name();
@@ -105,7 +105,7 @@ Status GetModelStatusImpl::GetModelStatusWithModelSpec(
       AddModelVersionStatusToResponse(response, version, servable_state);
     }
   }
-  return tensorflow::OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace serving

@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "tensorflow_serving/core/log_collector.h"
 
+#include <memory>
+
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
@@ -26,8 +28,10 @@ namespace {
 
 class FakeLogCollector : public LogCollector {
  public:
-  Status CollectMessage(const google::protobuf::Message& message) { return OkStatus(); }
-  Status Flush() override { return OkStatus(); }
+  absl::Status CollectMessage(const google::protobuf::Message& message) {
+    return absl::OkStatus();
+  }
+  absl::Status Flush() override { return absl::OkStatus(); }
 };
 
 LogCollectorConfig CreateConfig(const string& type,
@@ -50,7 +54,7 @@ TEST(LogCollectorTest, Registration) {
       "registered", [](const LogCollectorConfig& config, const uint32 id,
                        std::unique_ptr<LogCollector>* log_collector) {
         *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
-        return OkStatus();
+        return absl::OkStatus();
       }));
   std::unique_ptr<LogCollector> log_collector;
   TF_ASSERT_OK(LogCollector::Create(
@@ -60,7 +64,7 @@ TEST(LogCollectorTest, Registration) {
 auto duplicate_factory = [](const LogCollectorConfig& config, const uint32 id,
                             std::unique_ptr<LogCollector>* log_collector) {
   *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
-  return OkStatus();
+  return absl::OkStatus();
 };
 REGISTER_LOG_COLLECTOR("duplicate", duplicate_factory);
 
@@ -69,7 +73,7 @@ TEST(LogCollectorTest, DuplicateRegistration) {
       "duplicate", [](const LogCollectorConfig& config, const uint32 id,
                       std::unique_ptr<LogCollector>* log_collector) {
         *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
-        return OkStatus();
+        return absl::OkStatus();
       });
   EXPECT_EQ(status.code(), error::ALREADY_EXISTS);
 }
@@ -77,7 +81,7 @@ TEST(LogCollectorTest, DuplicateRegistration) {
 auto creation_factory = [](const LogCollectorConfig& config, const uint32 id,
                            std::unique_ptr<LogCollector>* log_collector) {
   *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
-  return OkStatus();
+  return absl::OkStatus();
 };
 REGISTER_LOG_COLLECTOR("creation", creation_factory);
 

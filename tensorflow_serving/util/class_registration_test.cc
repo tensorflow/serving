@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/util/class_registration.h"
 
 #include <map>
+#include <memory>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

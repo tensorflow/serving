@@ -27,8 +27,6 @@ import socket
 import subprocess
 import time
 
-# This is a placeholder for a Google-internal import.
-
 import grpc
 from six.moves import range
 from six.moves import urllib
@@ -129,32 +127,36 @@ def SortedObject(obj):
     return obj
 
 
+def GetArgsKey(*args, **kwargs):
+  return args + tuple(sorted(kwargs.items()))
+
+
 class TensorflowModelServerTestBase(tf.test.TestCase):
   """This class defines integration test cases for tensorflow_model_server."""
 
-  @staticmethod
-  def __TestSrcDirPath(relative_path=''):
+  @classmethod
+  def TestSrcDirPath(cls, relative_path=''):
     return os.path.join(os.environ['TEST_SRCDIR'],
                         'tf_serving/tensorflow_serving', relative_path)
-
-  @staticmethod
-  def GetArgsKey(*args, **kwargs):
-    return args + tuple(sorted(kwargs.items()))
 
   # Maps string key -> 2-tuple of 'host:port' string.
   model_servers_dict = {}
 
-  @staticmethod
-  def RunServer(model_name,
-                model_path,
-                model_type='tf',
-                model_config_file=None,
-                monitoring_config_file=None,
-                batching_parameters_file=None,
-                grpc_channel_arguments='',
-                wait_for_server_ready=True,
-                pipe=None,
-                model_config_file_poll_period=None):
+  @classmethod
+  def RunServer(
+      cls,
+      model_name,
+      model_path,
+      model_server_path='model_servers',
+      model_type='tf',
+      model_config_file=None,
+      monitoring_config_file=None,
+      batching_parameters_file=None,
+      grpc_channel_arguments='',
+      wait_for_server_ready=True,
+      pipe=None,
+      model_config_file_poll_period=None,
+  ):
     """Run tensorflow_model_server using test config.
 
     A unique instance of server is started for each set of arguments.
@@ -164,6 +166,7 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
     Args:
       model_name: Name of model.
       model_path: Path to model.
+      model_server_path: The additional model server path dir.
       model_type: Type of model TensorFlow ('tf') or TF Lite ('tflite').
       model_config_file: Path to model config file.
       monitoring_config_file: Path to the monitoring config file.
@@ -171,8 +174,8 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
       grpc_channel_arguments: Custom gRPC args for server.
       wait_for_server_ready: Wait for gRPC port to be ready.
       pipe: subpipe.PIPE object to read stderr from server.
-      model_config_file_poll_period: Period for polling the
-      filesystem to discover new model configs.
+      model_config_file_poll_period: Period for polling the filesystem to
+        discover new model configs.
 
     Returns:
       3-tuple (<Popen object>, <grpc host:port>, <rest host:port>).
@@ -180,7 +183,7 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
     Raises:
       ValueError: when both model_path and config_file is empty.
     """
-    args_key = TensorflowModelServerTestBase.GetArgsKey(**locals())
+    args_key = GetArgsKey(**locals())
     if args_key in TensorflowModelServerTestBase.model_servers_dict:
       return TensorflowModelServerTestBase.model_servers_dict[args_key]
     port = PickUnusedPort()
@@ -188,9 +191,11 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
     print(('Starting test server on port: {} for model_name: '
            '{}/model_config_file: {}'.format(port, model_name,
                                              model_config_file)))
+
     command = os.path.join(
-        TensorflowModelServerTestBase.__TestSrcDirPath('model_servers'),
-        'tensorflow_model_server')
+        TensorflowModelServerTestBase.TestSrcDirPath(model_server_path),
+        'tensorflow_model_server',
+    )
     command += ' --port=' + str(port)
     command += ' --rest_api_port=' + str(rest_api_port)
     command += ' --rest_api_timeout_in_ms=' + str(HTTP_REST_TIMEOUT_MS)
@@ -357,19 +362,24 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
       self,
       model_path,
       batching_parameters_file=None,
-      signature_name=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY):
+      signature_name=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY,
+      model_server_path='model_servers',
+  ):
     """Helper method to test prediction.
 
     Args:
       model_path:      Path to the model on disk.
       batching_parameters_file: Batching parameters file to use (if None
-                                batching is not enabled).
+        batching is not enabled).
       signature_name: Signature name to expect in the PredictResponse.
+      model_server_path: The model server path dir.
     """
     model_server_address = TensorflowModelServerTestBase.RunServer(
         'default',
         model_path,
-        batching_parameters_file=batching_parameters_file)[1]
+        batching_parameters_file=batching_parameters_file,
+        model_server_path=model_server_path,
+    )[1]
     expected_version = self._GetModelVersion(model_path)
     self.VerifyPredictRequest(model_server_address, expected_output=3.0,
                               expected_version=expected_version,

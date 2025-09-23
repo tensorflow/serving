@@ -15,15 +15,22 @@ limitations under the License.
 
 #include "tensorflow_serving/util/json_tensor.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <cstdlib>
+#include <functional>
 #include <limits>
+#include <set>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
 
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
+#include "rapidjson/memorystream.h"
 #include "rapidjson/prettywriter.h"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/reader.h"
 #include "rapidjson/stringbuffer.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/match.h"
@@ -162,20 +169,69 @@ bool WriteDecimal(RapidJsonWriter* writer, dtype val) {
                           rapidjson::kNumberType);
 }
 
+// Write JSON string to a bounded string buffer of `max_bytes` size.
+// NOTE: Output may contain truncated (and hence invalid) JSON.
+//
+// This class implements rapidjson::Handler concept, for use with
+// rapidjson::Value::Accept() API.
+class JsonWriterWithLimit {
+ public:
+  JsonWriterWithLimit(rapidjson::StringBuffer* buffer, RapidJsonWriter* writer,
+                      int max_bytes)
+      : buffer_(buffer), writer_(writer), max_bytes_(max_bytes) {};
+
+  bool Null() { return InLimit() ? writer_->Null() : false; }
+  bool Bool(bool b) { return InLimit() ? writer_->Bool(b) : false; }
+  bool Int(int i) { return InLimit() ? writer_->Int(i) : false; }
+  bool Uint(unsigned u) { return InLimit() ? writer_->Uint(u) : false; }
+  bool Int64(int64_t i64) { return InLimit() ? writer_->Int64(i64) : false; }
+  bool Uint64(uint64_t u64) { return InLimit() ? writer_->Uint64(u64) : false; }
+  bool Double(double d) { return InLimit() ? writer_->Double(d) : false; }
+
+  bool RawNumber(const rapidjson::MemoryStream::Ch* str,
+                 rapidjson::SizeType length, bool copy = false) {
+    return InLimit() ? writer_->RawNumber(str, length, copy) : false;
+  }
+
+  bool String(const rapidjson::MemoryStream::Ch* str,
+              rapidjson::SizeType length, bool copy = false) {
+    return InLimit() ? writer_->String(str, length, copy) : false;
+  }
+
+  bool StartObject() { return InLimit() ? writer_->StartObject() : false; }
+
+  bool Key(const rapidjson::MemoryStream::Ch* str, rapidjson::SizeType length,
+           bool copy = false) {
+    return InLimit() ? writer_->Key(str, length, copy) : false;
+  }
+
+  bool EndObject(rapidjson::SizeType memberCount = 0) {
+    return InLimit() ? writer_->EndObject(memberCount) : false;
+  }
+
+  bool StartArray() { return InLimit() ? writer_->StartArray() : false; }
+
+  bool EndArray(rapidjson::SizeType memberCount = 0) {
+    return InLimit() ? writer_->EndArray(memberCount) : false;
+  }
+
+ private:
+  bool InLimit() { return buffer_->GetSize() < max_bytes_; }
+  const rapidjson::StringBuffer* const buffer_;
+  RapidJsonWriter* const writer_;
+  const int max_bytes_;
+};
+
+constexpr int kMaxJsonDebugStringBytes = 256;
+
 // Stringify JSON value (only for use in error reporting or debugging).
-string JsonValueToString(const rapidjson::Value& val) {
-  // TODO(b/67042542): Truncate large values.
+// Large JSON objects are truncated to kMaxJsonDebugStringBytes.
+string JsonValueToDebugString(const rapidjson::Value& val) {
   rapidjson::StringBuffer buffer;
   RapidJsonWriter writer(buffer);
-  // Write decimal numbers explicitly so inf/nan's get printed
-  // correctly. RapidJsonWriter() does not write these correctly.
-  if (val.IsFloat()) {
-    WriteDecimal(&writer, val.GetFloat());
-  } else if (val.IsDouble()) {
-    WriteDecimal(&writer, val.GetDouble());
-  } else {
-    val.Accept(writer);
-  }
+  writer.SetFormatOptions(rapidjson::kFormatSingleLineArray);
+  JsonWriterWithLimit j(&buffer, &writer, kMaxJsonDebugStringBytes);
+  val.Accept(j);
   return buffer.GetString();
 }
 
@@ -205,24 +261,25 @@ bool IsShapeEqual(const TensorShapeProto& lhs, const TensorShapeProto& rhs) {
 
 Status TypeError(const rapidjson::Value& val, DataType dtype) {
   return errors::InvalidArgument(
-      "JSON Value: ", JsonValueToString(val), " Type: ", JsonTypeString(val),
+      "JSON Value: ", JsonValueToDebugString(val),
+      " Type: ", JsonTypeString(val),
       " is not of expected type: ", DataTypeString(dtype));
 }
 
 Status Base64FormatError(const rapidjson::Value& val) {
-  return errors::InvalidArgument("JSON Value: ", JsonValueToString(val),
+  return errors::InvalidArgument("JSON Value: ", JsonValueToDebugString(val),
                                  " not formatted correctly for base64 data");
 }
 
 template <typename... Args>
 Status FormatError(const rapidjson::Value& val, Args&&... args) {
-  return errors::InvalidArgument("JSON Value: ",
-    JsonValueToString(val), " ", std::forward<Args>(args)...);
+  return errors::InvalidArgument("JSON Value: ", JsonValueToDebugString(val),
+                                 " ", std::forward<Args>(args)...);
 }
 
 Status FormatSignatureError(const rapidjson::Value& val) {
   return errors::InvalidArgument(
-      "JSON Value: ", JsonValueToString(val),
+      "JSON Value: ", JsonValueToDebugString(val),
       " not formatted correctly. 'signature_name' key must be a string value.");
 }
 
@@ -278,7 +335,7 @@ Status AddValueToTensor(const rapidjson::Value& val, DataType dtype,
 
     default:
       return errors::Unimplemented(
-          "Conversion of JSON Value: ", JsonValueToString(val),
+          "Conversion of JSON Value: ", JsonValueToDebugString(val),
           " to type: ", DataTypeString(dtype));
   }
   return OkStatus();
@@ -340,7 +397,7 @@ Status FillTensorProto(const rapidjson::Value& val, int level, DataType dtype,
     // at same (leaf) level equal to the rank of the tensor.
     if (level != rank) {
       return errors::InvalidArgument(
-          "JSON Value: ", JsonValueToString(val),
+          "JSON Value: ", JsonValueToDebugString(val),
           " found at incorrect level: ", level + 1,
           " in the JSON DOM. Expected at level: ", rank);
     }
@@ -423,10 +480,10 @@ Status ParseJson(const absl::string_view json, rapidjson::Document* doc) {
   rapidjson::MemoryStream ms(json.data(), json.size());
   rapidjson::EncodedInputStream<rapidjson::UTF8<>, rapidjson::MemoryStream>
       jsonstream(ms);
-  // TODO(b/67042542): Switch to using custom stack for parsing to protect
-  // against deep nested structures causing excessive recursion/SO.
-  if (doc->ParseStream<rapidjson::kParseNanAndInfFlag>(jsonstream)
-          .HasParseError()) {
+  constexpr auto parse_flags = rapidjson::kParseIterativeFlag |
+                               rapidjson::kParseNanAndInfFlag |
+                               rapidjson::kParseStopWhenDoneFlag;
+  if (doc->ParseStream<parse_flags>(jsonstream).HasParseError()) {
     return errors::InvalidArgument(
         "JSON Parse error: ", rapidjson::GetParseError_En(doc->GetParseError()),
         " at offset: ", doc->GetErrorOffset());
@@ -511,7 +568,7 @@ Status FillTensorMapFromInstancesList(
       if (input_names != object_keys) {
         return errors::InvalidArgument(
             "Failed to process element: ", tensor_count,
-            " of 'instances' list. JSON object: ", JsonValueToString(elem),
+            " of 'instances' list. JSON object: ", JsonValueToDebugString(elem),
             " keys must be equal to: ", absl::StrJoin(input_names, ","));
       }
     } else {

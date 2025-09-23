@@ -15,9 +15,13 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/tflite_session.h"
 
+#include <map>
 #include <memory>
+#include <random>
+#include <set>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include "absl/flags/flag.h"
@@ -634,9 +638,9 @@ TEST(TfLiteSession, SimpleSignatureDefAndRun) {
       test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({2, 2})));
 }
 
-Status BuildSessionInBatch(std::unique_ptr<TfLiteSession>* sess,
-                           bool use_model_batch_size,
-                           const string& model_path) {
+absl::Status BuildSessionInBatch(std::unique_ptr<TfLiteSession>* sess,
+                                 bool use_model_batch_size,
+                                 const string& model_path) {
   std::string model_bytes;
   TF_RETURN_IF_ERROR(ReadFileToString(
       Env::Default(), test_util::TestSrcDirPath(model_path), &model_bytes));
@@ -649,24 +653,24 @@ Status BuildSessionInBatch(std::unique_ptr<TfLiteSession>* sess,
     tflite_model->UnPackTo(mutable_model.get(), nullptr);
 
     if (mutable_model->subgraphs.size() != 1) {
-      return Status(
-          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
-          strings::StrCat("Model subgraph size ",
-                          mutable_model->subgraphs.size(), " not equal to 1"));
+      return absl::Status(
+          static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
+          absl::StrCat("Model subgraph size ", mutable_model->subgraphs.size(),
+                       " not equal to 1"));
     }
     auto* subgraph = mutable_model->subgraphs[0].get();
     if (subgraph->inputs.size() != 1) {
-      return Status(
-          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
-          strings::StrCat("Model subgraph input size ",
-                          mutable_model->subgraphs.size(), " not equal to 1"));
+      return absl::Status(
+          static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
+          absl::StrCat("Model subgraph input size ",
+                       mutable_model->subgraphs.size(), " not equal to 1"));
     }
     auto* tensor = subgraph->tensors[subgraph->inputs[0]].get();
     if (tensor->shape[0] != 1) {
-      return Status(
-          static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
-          strings::StrCat("Model subgraph input shape[0] ",
-                          mutable_model->subgraphs.size(), " not equal to 1"));
+      return absl::Status(
+          static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
+          absl::StrCat("Model subgraph input shape[0] ",
+                       mutable_model->subgraphs.size(), " not equal to 1"));
     }
     tensor->shape[0] = model_batch_size;
     flatbuffers::FlatBufferBuilder builder;
@@ -689,13 +693,13 @@ Status BuildSessionInBatch(std::unique_ptr<TfLiteSession>* sess,
                                       ? model_batch_size
                                       : kBatchSize / num_tflite_interpreters;
   if (scheduler_options.max_execution_batch_size != expected_batch_size) {
-    return Status(
-        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
-        strings::StrCat("Scheulder max_execution_batch_size ",
-                        scheduler_options.max_execution_batch_size,
-                        " not equal to expected ", expected_batch_size));
+    return absl::Status(
+        static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
+        absl::StrCat("Scheulder max_execution_batch_size ",
+                     scheduler_options.max_execution_batch_size,
+                     " not equal to expected ", expected_batch_size));
   }
-  return Status();
+  return absl::Status();
 }
 
 using TfLiteSessionBatchSizeTest = ::testing::TestWithParam<bool>;
