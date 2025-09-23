@@ -151,12 +151,12 @@ absl::Status GetRegressionSignatureDef(const ModelSpec& model_spec,
                                     : model_spec.signature_name();
   auto iter = meta_graph_def.signature_def().find(signature_name);
   if (iter == meta_graph_def.signature_def().end()) {
-    return errors::InvalidArgument(strings::StrCat(
-        "No signature was found with the name: ", signature_name));
+    return errors::InvalidArgument(
+        absl::StrCat("No signature was found with the name: ", signature_name));
   }
   if (GetSignatureMethodNameCheckFeature()) {
     if (iter->second.method_name() != kRegressMethodName) {
-      return errors::InvalidArgument(strings::StrCat(
+      return errors::InvalidArgument(absl::StrCat(
           "Expected regression signature method_name to be ",
           kRegressMethodName, ". Was: ", iter->second.method_name()));
     }
@@ -172,17 +172,15 @@ absl::Status PreProcessRegression(const SignatureDef& signature,
                                   std::vector<string>* output_tensor_names) {
   if (GetSignatureMethodNameCheckFeature() &&
       signature.method_name() != kRegressMethodName) {
-    return errors::InvalidArgument(strings::StrCat(
-        "Expected regression signature method_name to be ", kRegressMethodName,
-        ". Was: ", signature.method_name()));
+    return errors::InvalidArgument(
+        absl::StrCat("Expected regression signature method_name to be ",
+                     kRegressMethodName, ". Was: ", signature.method_name()));
   }
   if (signature.inputs().size() != 1) {
-    return errors::InvalidArgument(
-        strings::StrCat("Expected one input Tensor."));
+    return errors::InvalidArgument(absl::StrCat("Expected one input Tensor."));
   }
   if (signature.outputs().size() != 1) {
-    return errors::InvalidArgument(
-        strings::StrCat("Expected one output Tensor."));
+    return errors::InvalidArgument(absl::StrCat("Expected one output Tensor."));
   }
 
   auto input_iter = signature.inputs().find(kRegressInputs);
@@ -234,7 +232,7 @@ absl::Status PostProcessRegressionResult(
 
   // Ensure the regression score output is shaped how we expect.
   if (output_tensor == nullptr) {
-    return errors::InvalidArgument(strings::StrCat(
+    return errors::InvalidArgument(absl::StrCat(
         "Could not find output tensor '", output_tensor_name, "'"));
   }
   if (!(output_tensor->dims() == 1 ||
@@ -244,7 +242,7 @@ absl::Status PostProcessRegressionResult(
         "[batch_size, 1] but got ", output_tensor->shape().DebugString());
   }
   if (num_examples != output_tensor->dim_size(0)) {
-    return errors::InvalidArgument(strings::StrCat(
+    return errors::InvalidArgument(absl::StrCat(
         "Input batch size did not match output batch size: ", num_examples,
         " vs. ", output_tensor->dim_size(0)));
   }

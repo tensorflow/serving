@@ -175,7 +175,7 @@ absl::Status RunPredict(
       saved_model->GetFunctionMetadata(function_name);
   if (!function_metadata.has_value()) {
     return errors::FailedPrecondition(
-        strings::StrCat("Function \"", function_name, "\" not found."));
+        absl::StrCat("Function \"", function_name, "\" not found."));
   }
 
   MakeModelSpec(request.model_spec().name(), function_name, servable_version,
@@ -229,7 +229,7 @@ absl::Status RunPredict(
     const auto& metagraph_def = saved_model->GetMetaGraphDef();
     auto iter = metagraph_def.signature_def().find(function_name);
     if (iter == metagraph_def.signature_def().end()) {
-      return errors::FailedPrecondition(strings::StrCat(
+      return errors::FailedPrecondition(absl::StrCat(
           "Serving signature key \"", function_name, "\" not found."));
     }
     const SignatureDef& signature = iter->second;

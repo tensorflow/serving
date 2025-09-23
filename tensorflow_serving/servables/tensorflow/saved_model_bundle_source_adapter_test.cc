@@ -163,8 +163,8 @@ TEST_P(SavedModelBundleSourceAdapterTest, BackwardCompatibility) {
 TEST_P(SavedModelBundleSourceAdapterTest, MLMetadata) {
   if (!EnableSessionMetadata()) return;
   TestSavedModelBundleSourceAdapter(test_util::TestSrcDirPath(
-      strings::StrCat("/servables/tensorflow/testdata/",
-                      "saved_model_half_plus_two_mlmd/00000123")));
+      absl::StrCat("/servables/tensorflow/testdata/",
+                   "saved_model_half_plus_two_mlmd/00000123")));
   auto* collection_registry = monitoring::CollectionRegistry::Default();
   monitoring::CollectionRegistry::CollectMetricsOptions options;
   const std::unique_ptr<monitoring::CollectedMetrics> collected_metrics =

@@ -655,22 +655,22 @@ absl::Status BuildSessionInBatch(std::unique_ptr<TfLiteSession>* sess,
     if (mutable_model->subgraphs.size() != 1) {
       return absl::Status(
           static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
-          strings::StrCat("Model subgraph size ",
-                          mutable_model->subgraphs.size(), " not equal to 1"));
+          absl::StrCat("Model subgraph size ", mutable_model->subgraphs.size(),
+                       " not equal to 1"));
     }
     auto* subgraph = mutable_model->subgraphs[0].get();
     if (subgraph->inputs.size() != 1) {
       return absl::Status(
           static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
-          strings::StrCat("Model subgraph input size ",
-                          mutable_model->subgraphs.size(), " not equal to 1"));
+          absl::StrCat("Model subgraph input size ",
+                       mutable_model->subgraphs.size(), " not equal to 1"));
     }
     auto* tensor = subgraph->tensors[subgraph->inputs[0]].get();
     if (tensor->shape[0] != 1) {
       return absl::Status(
           static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
-          strings::StrCat("Model subgraph input shape[0] ",
-                          mutable_model->subgraphs.size(), " not equal to 1"));
+          absl::StrCat("Model subgraph input shape[0] ",
+                       mutable_model->subgraphs.size(), " not equal to 1"));
     }
     tensor->shape[0] = model_batch_size;
     flatbuffers::FlatBufferBuilder builder;
@@ -695,9 +695,9 @@ absl::Status BuildSessionInBatch(std::unique_ptr<TfLiteSession>* sess,
   if (scheduler_options.max_execution_batch_size != expected_batch_size) {
     return absl::Status(
         static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
-        strings::StrCat("Scheulder max_execution_batch_size ",
-                        scheduler_options.max_execution_batch_size,
-                        " not equal to expected ", expected_batch_size));
+        absl::StrCat("Scheulder max_execution_batch_size ",
+                     scheduler_options.max_execution_batch_size,
+                     " not equal to expected ", expected_batch_size));
   }
   return absl::Status();
 }

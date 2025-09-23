@@ -39,14 +39,13 @@ namespace serving {
 absl::Status PreProcessClassification(
     const tfrt::FunctionMetadata& function_metadata) {
   if (function_metadata.GetInputNames().size() != 1) {
-    return errors::InvalidArgument(
-        strings::StrCat("Expected one input Tensor."));
+    return errors::InvalidArgument(absl::StrCat("Expected one input Tensor."));
   }
   if (function_metadata.GetOutputNames().size() != 1 &&
       function_metadata.GetOutputNames().size() != 2) {
     return errors::InvalidArgument(
-        strings::StrCat("Expected one or two output Tensors, found ",
-                        function_metadata.GetOutputNames().size()));
+        absl::StrCat("Expected one or two output Tensors, found ",
+                     function_metadata.GetOutputNames().size()));
   }
 
   if (function_metadata.GetInputNames()[0] != kClassifyInputs) {
@@ -82,7 +81,7 @@ absl::Status PostProcessClassificationResult(
     int num_examples, const std::vector<string>& output_names,
     const std::vector<Tensor>& output_tensors, ClassificationResult* result) {
   if (output_tensors.size() != output_names.size()) {
-    return errors::InvalidArgument(strings::StrCat(
+    return errors::InvalidArgument(absl::StrCat(
         "Unexpected output tensors size. Expected ", output_names.size(),
         " output tensor(s).  Got: ", output_tensors.size()));
   }
@@ -180,7 +179,7 @@ absl::Status RunClassify(const tfrt::SavedModel::RunOptions& run_options,
       saved_model->GetFunctionMetadata(function_name);
   if (!function_metadata.has_value()) {
     return errors::FailedPrecondition(
-        strings::StrCat("Function \"", function_name, "\" not found."));
+        absl::StrCat("Function \"", function_name, "\" not found."));
   }
 
   MakeModelSpec(request.model_spec().name(), function_name, servable_version,

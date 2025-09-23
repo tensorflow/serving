@@ -44,7 +44,7 @@ void MaybePublishMLMDStreamz(const string& export_dir, const string& model_name,
     if (!status.ok()) {
       LOG(WARNING) << "ML Metadata Key Found But couldn't be read.";
     } else {
-      mlmd_map->GetCell(model_name, strings::StrCat(version))->Set(mlmd_key);
+      mlmd_map->GetCell(model_name, absl::StrCat(version))->Set(mlmd_key);
     }
   }
 }

@@ -87,7 +87,7 @@ absl::Status RunPredict(
                                     : request.model_spec().signature_name();
   auto iter = meta_graph_def.signature_def().find(signature_name);
   if (iter == meta_graph_def.signature_def().end()) {
-    return errors::FailedPrecondition(strings::StrCat(
+    return errors::FailedPrecondition(absl::StrCat(
         "Serving signature key \"", signature_name, "\" not found."));
   }
   const SignatureDef& signature = iter->second;

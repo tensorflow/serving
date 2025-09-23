@@ -197,14 +197,14 @@ TEST_F(TfrtSavedModelFactoryTest, Batch) {
     request_threads.reserve(2);
     request_threads.push_back(
         std::unique_ptr<Thread>(Env::Default()->StartThread(
-            ThreadOptions(), strings::StrCat("thread_", 0),
+            ThreadOptions(), absl::StrCat("thread_", 0),
             [&saved_model, &run_options, &input_tensors, &output_tensors1]() {
               TF_ASSERT_OK(saved_model->Run(run_options, "serving_default",
                                             input_tensors, &output_tensors1));
             })));
     request_threads.push_back(
         std::unique_ptr<Thread>(Env::Default()->StartThread(
-            ThreadOptions(), strings::StrCat("thread_", 1),
+            ThreadOptions(), absl::StrCat("thread_", 1),
             [&saved_model, &run_options, &input_tensors, &output_tensors2]() {
               TF_ASSERT_OK(saved_model->Run(run_options, "serving_default",
                                             input_tensors, &output_tensors2));
