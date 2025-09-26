@@ -54,7 +54,7 @@ absl::Status WriteHashmapToFile(const HashmapSourceAdapterConfig::Format format,
       for (const auto& entry : hashmap) {
         const string& key = entry.first;
         const string& value = entry.second;
-        const string line = strings::StrCat(key, ",", value, "\n");
+        const string line = absl::StrCat(key, ",", value, "\n");
         TF_RETURN_IF_ERROR(file->Append(line));
       }
       break;
