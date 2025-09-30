@@ -78,22 +78,19 @@ RUN apt-get install -y --no-install-recommends \
         openjdk-11-jdk\
         openjdk-11-jre-headless \
         pkg-config \
-        python3-dev \
         software-properties-common \
         swig \
         unzip \
         wget \
         zip \
-        zlib1g-dev \
-        python3-distutils \
-        python3-distutils-extra && \
+        zlib1g-dev && \
     find /usr/local/cuda-12.2/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete
 
 
 # Install python 3.9.
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && apt-get install -y \
-    python3.9 python3.9-dev python3-pip python3.9-venv && \
+    python3.9 python3.9-dev python3-pip python3.9-venv python3-distutils python3-distutils-extra python3-dev && \
     rm -rf /var/lib/apt/lists/* && \
     python3.9 -m pip install pip --upgrade && \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 0
