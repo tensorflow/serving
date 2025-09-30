@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/model_servers/server_core.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <set>
@@ -25,19 +26,44 @@ limitations under the License.
 #include "google/protobuf/any.pb.h"
 #include "google/protobuf/wrappers.pb.h"
 #include "google/protobuf/util/message_differencer.h"
+#include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "absl/memory/memory.h"
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
+#include "absl/types/optional.h"
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/strings/strcat.h"
+#include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/errors.h"
 #include "tensorflow/core/platform/logging.h"
+#include "tensorflow/core/platform/mutex.h"
+#include "tensorflow/core/platform/path.h"
 #include "tensorflow_serving/config/file_system_storage_path_source.pb.h"
+#include "tensorflow_serving/core/aspired_version_policy.h"
 #include "tensorflow_serving/core/aspired_versions_manager.h"
+#include "tensorflow_serving/core/dynamic_source_router.h"
 #include "tensorflow_serving/core/load_servables_fast.h"
+#include "tensorflow_serving/core/loader.h"
+#include "tensorflow_serving/core/manager.h"
+#include "tensorflow_serving/core/prefix_storage_path_source_adapter.h"
+#include "tensorflow_serving/core/servable_id.h"
+#include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/servable_state_monitor.h"
+#include "tensorflow_serving/core/server_request_logger.h"
+#include "tensorflow_serving/core/source.h"
+#include "tensorflow_serving/core/source_adapter.h"
+#include "tensorflow_serving/core/storage_path.h"
+#include "tensorflow_serving/core/target.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
+#include "tensorflow_serving/resources/resource_tracker.h"
+#include "tensorflow_serving/resources/resource_util.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.h"
 #include "tensorflow_serving/sources/storage_path/file_system_storage_path_source.h"
+#include "tensorflow_serving/util/event_bus.h"
 
 namespace tensorflow {
 namespace serving {
@@ -453,11 +479,12 @@ absl::Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
   // Determine whether to accept this config transition.
   const bool is_first_config =
       config_.config_case() == ModelServerConfig::CONFIG_NOT_SET;
-  const bool accept_transition =
-      is_first_config ||
-      (config_.config_case() == ModelServerConfig::kModelConfigList &&
-       new_config.config_case() == ModelServerConfig::kModelConfigList) ||
+  const bool is_same_config =
       protobuf::util::MessageDifferencer::Equals(config_, new_config);
+  const bool accept_transition =
+      is_first_config || is_same_config ||
+      (config_.config_case() == ModelServerConfig::kModelConfigList &&
+       new_config.config_case() == ModelServerConfig::kModelConfigList);
   if (!accept_transition) {
     LOG(ERROR) << "Cannot transition to requested config. It is only legal to "
                   "transition from one ModelConfigList to another.";
@@ -500,7 +527,7 @@ absl::Status ServerCore::ReloadConfig(const ModelServerConfig& new_config) {
     case ModelServerConfig::kCustomModelConfig: {
       // We've already verified this invariant above, so this check should
       // always pass.
-      CHECK(is_first_config);  // Crash ok.
+      CHECK(is_first_config || is_same_config);  // Crash ok.
       TF_RETURN_IF_ERROR(AddModelsViaCustomModelConfig());
       break;
     }
