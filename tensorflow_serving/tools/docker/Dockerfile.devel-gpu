@@ -86,7 +86,7 @@ RUN apt-get install -y --no-install-recommends \
         zip \
         zlib1g-dev \
         python3-distutils \
-        python-distutils-extra && \
+        python3-distutils-extra && \
     find /usr/local/cuda-12.2/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete
 
 
