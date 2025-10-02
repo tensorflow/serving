@@ -86,20 +86,16 @@ RUN apt-get install -y --no-install-recommends \
     find /usr/local/cuda-12.2/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete
 
 
-# Install python 3.9.
-RUN sed -i 's/$/ universe/' /etc/apt/sources.list && \
-    apt-get update && apt-get install -y --no-install-recommends gpg-agent dirmngr && \
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F23C5A6CF475977595C89F51BA6932366A755776 && \
-    echo "deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu jammy main" > /etc/apt/sources.list.d/deadsnakes-ppa.list && \
-    apt-get update && apt-get install -y \
-    python3.9 python3.9-dev python3-pip python3.9-venv python3-distutils python3-distutils-extra && \
+# Install python 3.10.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 python3-dev python3-pip python3-venv && \
     rm -rf /var/lib/apt/lists/* && \
-    python3.9 -m pip install pip --upgrade && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 0
+    python3 -m pip install --upgrade pip && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
-# Make python3.9 the default python version
+# Make python3.10 the default python version
 # If updating default python version, also update version in the WORKSPACE file.
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 0
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1
 
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
     python3 get-pip.py && \
