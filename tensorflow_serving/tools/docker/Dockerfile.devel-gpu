@@ -78,7 +78,6 @@ RUN apt-get install -y --no-install-recommends \
         openjdk-11-jdk\
         openjdk-11-jre-headless \
         pkg-config \
-        software-properties-common \
         swig \
         unzip \
         wget \
@@ -88,8 +87,7 @@ RUN apt-get install -y --no-install-recommends \
 
 
 # Install python 3.9.
-RUN add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y \
     python3.9 python3.9-dev python3-pip python3.9-venv python3-distutils python3-distutils-extra python3-dev && \
     rm -rf /var/lib/apt/lists/* && \
     python3.9 -m pip install pip --upgrade && \
