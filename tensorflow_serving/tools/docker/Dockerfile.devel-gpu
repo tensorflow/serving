@@ -87,7 +87,10 @@ RUN apt-get install -y --no-install-recommends \
 
 
 # Install python 3.9.
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends gpg-agent dirmngr && \
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F23C5A6CF475977595C89F51BA6932366A755776 && \
+    echo "deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu focal main" > /etc/apt/sources.list.d/deadsnakes-ppa.list && \
+    apt-get update && apt-get install -y \
     python3.9 python3.9-dev python3-pip python3.9-venv python3-distutils python3-distutils-extra python3-dev && \
     rm -rf /var/lib/apt/lists/* && \
     python3.9 -m pip install pip --upgrade && \
