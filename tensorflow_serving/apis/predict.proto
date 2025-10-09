@@ -71,10 +71,6 @@ message PredictRequest {
     // response if the model stops at them. The model may stop at other tokens,
     // but will not return them in the response.
     repeated int64 return_stoptokens = 4;
-
-    // When set and supported by servable, the model server will cache the
-    // prefix of request up to this length.
-    optional int64 max_cache_length = 6;
   }
 
   optional RequestOptions request_options = 7;
