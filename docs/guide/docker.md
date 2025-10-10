@@ -3,26 +3,26 @@
 One of the easiest ways to get started using TensorFlow Serving is with
 [Docker](http://www.docker.com/).
 
-<pre class="prettyprint lang-bsh">
+```shell
 # Download the TensorFlow Serving Docker image and repo
-<code class="devsite-terminal">docker pull tensorflow/serving</code><br/>
-<code class="devsite-terminal">git clone https://github.com/tensorflow/serving</code>
+docker pull tensorflow/serving
+git clone https://github.com/tensorflow/serving
 # Location of demo models
-<code class="devsite-terminal">TESTDATA="$(pwd)/serving/tensorflow_serving/servables/tensorflow/testdata"</code>
+TESTDATA="$(pwd)/serving/tensorflow_serving/servables/tensorflow/testdata"
 
 # Start TensorFlow Serving container and open the REST API port
-<code class="devsite-terminal">docker run -t --rm -p 8501:8501 \
+docker run -t --rm -p 8501:8501 \
     -v "$TESTDATA/saved_model_half_plus_two_cpu:/models/half_plus_two" \
     -e MODEL_NAME=half_plus_two \
-    tensorflow/serving &</code>
+    tensorflow/serving &
 
 # Query the model using the predict API
-<code class="devsite-terminal">curl -d '{"instances": [1.0, 2.0, 5.0]}' \
-    -X POST http://localhost:8501/v1/models/half_plus_two:predict</code><br/>
+curl -d '{"instances": [1.0, 2.0, 5.0]}' \
+    -X POST http://localhost:8501/v1/models/half_plus_two:predict
 # Returns => { "predictions": [2.5, 3.0, 4.5] }
-</pre>
+```
 
-For additional serving endpoints, see the <a href="./api_rest.md">Client REST API</a>.
+For additional serving endpoints, see the [Client REST API](../api/api_rest.md).
 
 ## Install Docker
 
@@ -140,7 +140,7 @@ docker cp models/<my model> serving_base:/models/<my model>
 ```
 
 Finally, commit the container that's serving your model by changing `MODEL_NAME`
-to match your model's name `<my model>':
+to match your model's name `<my model>`:
 
 ```shell
 docker commit --change "ENV MODEL_NAME <my model>" serving_base <my container>
@@ -200,8 +200,9 @@ curl -d '{"instances": [1.0, 2.0, 5.0]}' \
   -X POST http://localhost:8501/v1/models/half_plus_two:predict
 ```
 
-NOTE: Older versions of Windows and other systems without curl can download it
-[here](https://curl.haxx.se/download.html).
+!!! NOTE
+	Older versions of Windows and other systems without curl can download it
+	[here](https://curl.haxx.se/download.html).
 
 This should return a set of values:
 
@@ -209,14 +210,14 @@ This should return a set of values:
 { "predictions": [2.5, 3.0, 4.5] }
 ```
 
-More information on using the RESTful API can be found [here](api_rest.md).
+More information on using the RESTful API can be found [here](../api/api_rest.md).
 
 ## Serving with Docker using your GPU
 
 ### Install nvidia-docker
 
 Before serving with a GPU, in addition to
-[installing Docker](#installing_docker), you will need:
+[installing Docker](#install-docker), you will need:
 
 *   Up-to-date [NVIDIA drivers](http://www.nvidia.com/drivers) for your system
 *   `nvidia-docker`: You can follow the
@@ -271,13 +272,14 @@ desired model from our host to where models are expected in the container. We
 also pass the name of the model as an environment variable, which will be
 important when we query the model.
 
-TIP: Before querying the model, be sure to wait till you see a message like the
-following, indicating that the server is ready to receive requests:
+!!! TIP
+	Before querying the model, be sure to wait till you see a message like the
+	following, indicating that the server is ready to receive requests:
 
-```shell
-2018-07-27 00:07:20.773693: I tensorflow_serving/model_servers/main.cc:333]
-Exporting HTTP/REST API at:localhost:8501 ...
-```
+	```shell
+	2018-07-27 00:07:20.773693: I tensorflow_serving/model_servers/main.cc:333]
+	Exporting HTTP/REST API at:localhost:8501 ...
+	```
 
 To query the model using the predict API, you can run
 
@@ -286,8 +288,9 @@ curl -d '{"instances": [1.0, 2.0, 5.0]}' \
   -X POST http://localhost:8501/v1/models/half_plus_two:predict
 ```
 
-NOTE: Older versions of Windows and other systems without curl can download it
-[here](https://curl.haxx.se/download.html).
+!!! NOTE
+	Older versions of Windows and other systems without curl can download it
+	[here](https://curl.haxx.se/download.html).
 
 This should return a set of values:
 
@@ -295,16 +298,17 @@ This should return a set of values:
 { "predictions": [2.5, 3.0, 4.5] }
 ```
 
-TIP: Trying to run the GPU model on a machine without a GPU or without a working
-GPU build of TensorFlow Model Server will result in an error that looks like:
+!!! TIP
+	Trying to run the GPU model on a machine without a GPU or without a working
+	GPU build of TensorFlow Model Server will result in an error that looks like:
 
-```shell
-Cannot assign a device for operation 'a': Operation was explicitly assigned to /device:GPU:0
-```
+	```shell
+	Cannot assign a device for operation 'a': Operation was explicitly assigned to /device:GPU:0
+	```
 
-More information on using the RESTful API can be found [here](api_rest.md).
+More information on using the RESTful API can be found [here](../api/api_rest.md).
 
 ## Developing with Docker
 
 For instructions on how to build and develop Tensorflow Serving, please refer to
-[Developing with Docker guide](building_with_docker.md).
+[Developing with Docker guide](../tutorials/building_with_docker.md).
