@@ -146,6 +146,7 @@ ENV TMP="/tmp"
 WORKDIR /tensorflow-serving
 
 FROM base_build as binary_build
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Build, and install TensorFlow Serving
 ARG TF_SERVING_BUILD_OPTIONS="--config=release"
 RUN echo "Building with build options: ${TF_SERVING_BUILD_OPTIONS}"
