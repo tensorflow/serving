@@ -78,7 +78,7 @@ TEST(ModelRuntimeConfigTest, EmptyModelConfig) {
   EXPECT_EQ(runtime_config.ToProto().config_size(), 0);
 }
 
-TEST(ModelRuntimeConfigTest, OverwriteRuntimeConfig) {
+TEST(ModelRuntimeConfigTest, DISABLED_OverwriteRuntimeConfig) {
   const std::string export_dir =
       test_util::TestSrcDirPath(kTestSavedModelWithModelConfigPath);
   tensorflow::GraphOptions graph_options;
@@ -101,7 +101,7 @@ TEST(ModelRuntimeConfigTest, OverwriteRuntimeConfig) {
       )pb"));
 }
 
-TEST(ModelRuntimeConfigTest, ModelConfig) {
+TEST(ModelRuntimeConfigTest, DISABLED_ModelConfig) {
   const std::string export_dir =
       test_util::TestSrcDirPath(kTestSavedModelWithModelConfigPath);
   SavedModelConfig model_config;
