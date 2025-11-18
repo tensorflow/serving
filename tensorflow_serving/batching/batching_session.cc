@@ -231,7 +231,7 @@ class BatchingSession : public ServingSession {
   explicit BatchingSession(const BatchingSessionOptions& options,
                            const std::string& thread_pool_name);
 
-  // Helper fucntion to run the session.
+  // Helper function to run the session.
   absl::Status InternalRun(
       const RunOptions& run_options,
       const std::vector<std::pair<string, Tensor>>& inputs,
