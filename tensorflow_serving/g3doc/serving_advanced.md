@@ -9,7 +9,7 @@ server to serve your models, see
 This tutorial uses the simple Softmax Regression model introduced in the
 TensorFlow tutorial for handwritten image (MNIST data) classification. If you
 don't know what TensorFlow or MNIST is, see the
-[MNIST For ML Beginners](http://www.tensorflow.org/tutorials/mnist/beginners/index.html#mnist-for-ml-beginners)
+[MNIST For ML Beginners](https://www.tensorflow.org/tutorials/keras/classification)
 tutorial.
 
 The code for this tutorial consists of two parts:
