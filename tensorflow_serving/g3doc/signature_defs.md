@@ -20,7 +20,7 @@ function and can be specified when building a
 and
 [SessionBundle](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/contrib/session_bundle/session_bundle.h)
 used
-[Signatures](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/contrib/session_bundle/manifest.proto)
+[Signatures](https://github.com/tensorflow/serving/blob/master/tensorflow_serving/session_bundle/oss/manifest.proto)
 which are similar in concept but required users to distinguish between named and
 default signatures in order for them to be retrieved correctly upon a load. For
 those who previously used TF-Exporter/SessionBundle, `Signatures` in TF-Exporter
