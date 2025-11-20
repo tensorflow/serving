@@ -75,8 +75,10 @@ class SavedModelTensorFlowClassifier : public ClassifierInterface {
         run_options_, request.input(), input_tensor_name, output_tensor_names,
         session_, &outputs, &num_examples, thread_pool_options_,
         &runtime_latency));
-    RecordRuntimeLatency(request.model_spec().name(), /*api=*/"Classify",
-                         /*runtime=*/"TF1", runtime_latency);
+    RecordRuntimeLatency(request.model_spec().name(),
+                         /*signature_name=*/"tensorflow/serving/classify",
+                         /*api=*/"Classify", /*runtime=*/"TF1",
+                         runtime_latency);
 
     TRACELITERAL("ConvertToClassificationResult");
     return PostProcessClassificationResult(

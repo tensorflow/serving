@@ -115,7 +115,8 @@ Status EstimateResourceFromPathUsingDiskState(const string& path,
                                               ResourceAllocation* estimate);
 
 // Update metrics for runtime latency.
-void RecordRuntimeLatency(const string& model_name, const string& api,
+void RecordRuntimeLatency(const string& model_name,
+                          const string& signature_name, const string& api,
                           const string& runtime, int64_t latency_usec);
 
 // Update metrics for request latency.
