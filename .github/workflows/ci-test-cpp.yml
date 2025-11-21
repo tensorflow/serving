@@ -1,0 +1,30 @@
+# Github action definitions for C++ unit-tests with PRs.
+
+name: tf-serving-cpp-unit-tests
+on:
+  pull_request:
+    branches: [ master ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+  # Remove `push` trigger before merge
+  push:
+  
+    
+env:
+  USE_BAZEL_VERSION: "6.5.0"
+  # Changed to match tensorflow
+  # https://github.com/tensorflow/tensorflow/blob/master/.bazelversion
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run unit tests
+      shell: bash
+      run: |        
+        bazel test //tensorflow_serving/... --test_output=errors 

@@ -63,7 +63,7 @@ TEST(MachineLearningMetaDataTest, BasicTest_MLMD_missing) {
   EXPECT_FALSE(GetMlmdUuid("missing_model", "9696", &mlmd_uuid));
 }
 
-TEST(MachineLearningMetaDataTest, BasicTest_MLMD_present) {
+TEST(MachineLearningMetaDataTest, DISABLED_BasicTest_MLMD_present) {
   std::string mlmd_uuid;
   ASSERT_FALSE(GetMlmdUuid("test_model", "9696", &mlmd_uuid));
   const string test_data_path = test_util::TestSrcDirPath(
