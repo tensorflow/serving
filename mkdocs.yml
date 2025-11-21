@@ -1,0 +1,134 @@
+site_name: "Serving"
+repo_name: "Serving Models"
+repo_url: https://github.com/tensorflow/serving
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      primary: custom
+      accent: custom
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      primary: custom
+      accent: custom
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  favicon: images/favicon.png
+
+  features:
+    - content.code.copy
+    - content.code.select
+plugins:
+  - search
+  - autorefs
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            unwrap_annotated: true
+            show_symbol_type_toc: true
+            show_symbol_type_heading: true
+            merge_init_into_class: true
+            show_signature_annotations: true
+            separate_signature: true
+            signature_crossrefs: true
+            group_by_category: true
+            show_category_heading: true
+            inherited_members: true
+            show_submodules: true
+            show_object_full_path: false
+            show_root_full_path: true
+            docstring_section_style: "spacy"
+            summary: true
+            filters:
+              - "!^_"
+              - "^__init__$"
+              - "^__call__$"
+              - "!^logger"
+              - "!_test$"
+            extensions:
+              - griffe_inherited_docstrings
+          import:
+            - https://docs.python.org/3/objects.inv
+  - caption:
+      figure:
+        ignore_alt: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      linenums: false
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+watch:
+  - tensorflow_serving
+nav:
+  - Overview:
+      - index.md
+
+  - Guide:
+      - guide/docker.md
+      - guide/setup.md
+      - guide/serving_basic.md
+      - guide/architecture.md
+      - guide/serving_config.md
+      - guide/serving_advanced.md
+      - guide/serving_kubernetes.md
+      - guide/custom_servable.md
+      - guide/custom_source.md
+      - guide/custom_op.md
+      - guide/signature_defs.md
+
+  - Tutorials:
+      - tutorials/building_with_docker.md
+      - tutorials/saved_model_warmup.md
+      - tutorials/performance.md
+      - tutorials/tensorboard.md
+  - API:
+      - Client API (REST): api/api_rest.md
+      - Client API (gRPC): https://github.com/tensorflow/serving/tree/master/tensorflow_serving/apis
+      - Server API (C++): api/cpp/index.html
+        
+hooks:
+  - docs/hooks/build_cpp_api_docs.py

@@ -31,7 +31,7 @@ This tutorial steps through the following tasks:
 4.  Serve request with TensorFlow Serving `ServerCore`.
 5.  Run and test the service.
 
-Before getting started, first [install Docker](docker.md#installing-docker)
+Before getting started, first [install Docker](docker.md#install-docker)
 
 ## Train and export TensorFlow Model
 

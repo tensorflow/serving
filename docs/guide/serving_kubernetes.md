@@ -11,14 +11,14 @@ To learn more about TensorFlow Serving, we recommend
 To learn more about TensorFlow ResNet model, we recommend reading
 [ResNet in TensorFlow](https://www.tensorflow.org/api_docs/python/tf/keras/applications/resnet).
 
--   [Part 1](#part_1_setup) gets your environment setup
--   [Part 2](#part_2_running_in_docker) shows how to run the local Docker
+-   [Part 1](#part-1-setup) gets your environment setup
+-   [Part 2](#part-2-running-in-docker) shows how to run the local Docker
     serving image
--   [Part 3](#part_3_deploy_in_kubernetes) shows how to deploy in Kubernetes.
+-   [Part 3](#part-3-deploy-in-kubernetes) shows how to deploy in Kubernetes.
 
 ## Part 1: Setup
 
-Before getting started, first [install Docker](docker.md#installing-docker).
+Before getting started, first [install Docker](docker.md#install-docker).
 
 ### Download the ResNet SavedModel
 

@@ -12,16 +12,17 @@ Please use the [Profile Inference Requests with TensorBoard](tensorboard.md)
 guide to understand the underlying behavior of your model's computation on
 inference requests, and use this guide to iteratively improve its performance.
 
-Note: If the following quick tips do not solve your problem, please read the
-longer discussion to develop a deep understanding of what affects TensorFlow
-Serving's performance.
+!!! Note
+	If the following quick tips do not solve your problem, please read the
+	longer discussion to develop a deep understanding of what affects TensorFlow
+	Serving's performance.
 
 ## Quick Tips
 
 *   Latency of first request is too high? Enable
-    [model warmup](saved_model_warmup).
+    [model warmup](saved_model_warmup.md).
 *   Interested in higher resource utilization or throughput? Configure
-    [batching](serving_config.md#batching-configuration)
+    [batching](../guide/serving_config.md#batching-configuration)
 
 ## Performance Tuning: Objectives and Parameters
 
@@ -99,7 +100,7 @@ predetermined period of time, and perform inference on all requests that arrive
 in that period in one batch. Configuring the latter kind of batching allows you
 to hit TensorFlow Serving at extremely high QPS, while allowing it to
 sub-linearly scale the compute resources needed to keep up. This is further
-discussed in the [configuration guide](serving_config.md#batching-configuration)
+discussed in the [configuration guide](../guide/serving_config.md#batching-configuration)
 and the
 [batching README](https://github.com/tensorflow/serving/blob/r2.0/tensorflow_serving/batching/README.md).
 
@@ -197,7 +198,7 @@ PS-|->C: PredictResponse
 
 -->
 
-![Predict Sequence Diagram](images/predict_sequence_diagram.png)
+![Predict Sequence Diagram](../images/predict_sequence_diagram.png)
 
 Note that Client is a component owned by the user, Prediction Service, Servables
 and Server Core are owned by TensorFlow Serving and TensorFlow Runtime is owned

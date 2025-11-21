@@ -1,0 +1,8 @@
+mkdocs
+mkdocs-material
+mkdocstrings[python]
+griffe-inherited-docstrings
+mkdocs-autorefs
+black
+mkdocs-jupyter
+mkdocs-caption
