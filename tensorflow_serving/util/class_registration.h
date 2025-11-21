@@ -105,7 +105,7 @@ limitations under the License.
 //     ...
 //   };
 //   DEFINE_CLASS_REGISTRY(MyParameterizedBaseClassRegistry,
-//                            MyParameterizedBaseClass, int, const string&
+//                            MyParameterizedBaseClass, int, const string&,
 //                            const std::map<int TFS_COMMA string>&);
 //   #define REGISTER_MY_BASE_CLASS(ClassCreator, ConfigProto)
 //     REGISTER_CLASS(MyBaseClassRegistry, MyBaseClass, ClassCreator,
