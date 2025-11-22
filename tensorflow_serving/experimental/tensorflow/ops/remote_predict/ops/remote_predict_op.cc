@@ -92,7 +92,7 @@ fail_op_on_rpc_error: If set true, the Op fails if the rpc fails, and returns
   Set true by default.
 max_rpc_deadline_millis: The rpc deadline for remote predict. The actual
 deadline is min(incoming_rpc_deadline, max_rpc_deadline_millis).
-signature_name: the signature def for remote graph inference, defaulting to 
+signature_name: the signature def for remote graph inference, defaulting to
 "serving_default".
 target_address: Address of the server hosting the remote graph.
 model_name: Model name of the remote TF graph.
@@ -107,7 +107,7 @@ output_tensor_aliases: Tensor of strings for the output tensor alias names to
 status_code: Returns the status code of the rpc call; basically converting
   tensorflow::error::Code to it's int value, so 0 means OK.
 status_error_message: Returns the error message in the rpc status.
-output_tensors: Tensors returned by the Predict call on the remote graph, which 
+output_tensors: Tensors returned by the Predict call on the remote graph, which
   are in the same order as output_tensor_aliases.
 output_types: A list of types of the output tensors. Length of this list should
   be equal to the length of 'output_tensor_aliases'.

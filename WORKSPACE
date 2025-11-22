@@ -159,4 +159,3 @@ load(
 )
 
 nccl_configure(name = "local_config_nccl")
-

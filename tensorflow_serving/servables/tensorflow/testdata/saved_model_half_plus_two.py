@@ -45,16 +45,12 @@ To create GPU model:
   --device=gpu
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import argparse
 import os
 import sys
 
 import tensorflow.compat.v1 as tf
-
 from tensorflow.lite.tools.signature import signature_def_utils
 from tensorflow.python.lib.io import file_io
 
@@ -199,7 +195,8 @@ class HalfPlusTwoModel(tf.Module):
     }
 
   @tf.function(input_signature=[tf.TensorSpec(shape=[1], dtype=tf.float32)])
-  def predict(self, x=tf.constant([0], shape=[1], dtype=tf.float32)):
+  def predict(self, x=None):
+    x = tf.constant([0], shape=[1], dtype=tf.float32) if x is None else x
     return {"y": self.compute(x, self.b)}
 
   @tf.function(
@@ -386,7 +383,8 @@ def _generate_saved_model_for_half_plus_two(
         k = tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
         tflite_model = signature_def_utils.set_signature_defs(
             tflite_model, {k: predict_signature_def})
-      open(export_dir + "/model.tflite", "wb").write(tflite_model)
+      with open(export_dir + "/model.tflite", "wb") as fp:
+        fp.write(tflite_model)
     else:
       if use_main_op:
         builder.add_meta_graph_and_variables(
@@ -412,57 +410,39 @@ def _generate_saved_model_for_half_plus_two(
 def main(_):
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir, device_type=FLAGS.device)
-  print("SavedModel generated for %(device)s at: %(dir)s" % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir
-  })
+  print(f"SavedModel generated for {FLAGS.device} at: {FLAGS.output_dir}")
 
   _generate_saved_model_for_half_plus_two(
-      "%s_%s" % (FLAGS.output_dir_tf2, FLAGS.device),
+      f"{FLAGS.output_dir_tf2}_{FLAGS.device}",
       tf2=True,
       device_type=FLAGS.device)
   print(
-      "SavedModel TF2 generated for %(device)s at: %(dir)s" % {
-          "device": FLAGS.device,
-          "dir": "%s_%s" % (FLAGS.output_dir_tf2, FLAGS.device),
-      })
+      "SavedModel TF2 generated for {device} at: {dir}".format(
+          device=FLAGS.device,
+          dir=f"{FLAGS.output_dir_tf2}_{FLAGS.device}",
+        ))
 
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir_pbtxt, as_text=True, device_type=FLAGS.device)
-  print("SavedModel generated for %(device)s at: %(dir)s" % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir_pbtxt
-  })
+  print(f"SavedModel generated for {FLAGS.device} at: {FLAGS.output_dir_pbtxt}")
 
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir_main_op, use_main_op=True, device_type=FLAGS.device)
-  print("SavedModel generated for %(device)s at: %(dir)s " % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir_main_op
-  })
+  print(f"SavedModel generated for {FLAGS.device} at: {FLAGS.output_dir_main_op} ")
 
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir_tflite, as_tflite=True, device_type=FLAGS.device)
-  print("SavedModel in TFLite format generated for %(device)s at: %(dir)s " % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir_tflite,
-  })
+  print(f"SavedModel in TFLite format generated for {FLAGS.device} at: {FLAGS.output_dir_tflite} ")
 
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir_mlmd, include_mlmd=True, device_type=FLAGS.device)
-  print("SavedModel with MLMD generated for %(device)s at: %(dir)s " % {
-      "device": FLAGS.device,
-      "dir": FLAGS.output_dir_mlmd,
-  })
+  print(f"SavedModel with MLMD generated for {FLAGS.device} at: {FLAGS.output_dir_mlmd} ")
 
   _generate_saved_model_for_half_plus_two(
       FLAGS.output_dir_tflite_with_sigdef, device_type=FLAGS.device,
       as_tflite_with_sigdef=True)
   print("SavedModel in TFLite format with SignatureDef generated for "
-        "%(device)s at: %(dir)s " % {
-            "device": FLAGS.device,
-            "dir": FLAGS.output_dir_tflite_with_sigdef,
-        })
+        f"{FLAGS.device} at: {FLAGS.output_dir_tflite_with_sigdef} ")
 
 
 if __name__ == "__main__":

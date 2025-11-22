@@ -12,22 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Send JPEG image to tensorflow_model_server loaded with ResNet model.
+"""Send JPEG image to tensorflow_model_server loaded with ResNet model."""
 
-"""
-
-from __future__ import print_function
 
 import io
 
 import grpc
 import numpy as np
-from PIL import Image
 import requests
 import tensorflow as tf
+from PIL import Image
 
-from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_service_pb2_grpc
+from tensorflow_serving.apis import predict_pb2, prediction_service_pb2_grpc
 
 # The image URL is the location of the image we should send to the server
 IMAGE_URL = 'https://tensorflow.org/images/blogs/serving/cat.jpg'
@@ -71,7 +67,7 @@ def main(_):
       tf.make_tensor_proto(data))
   result = stub.Predict(request, 10.0)  # 10 secs timeout
   result = result.outputs['activation_49'].float_val
-  print('Prediction class: {}'.format(np.argmax(result)))
+  print(f'Prediction class: {np.argmax(result)}')
 
 
 if __name__ == '__main__':

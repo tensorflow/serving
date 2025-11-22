@@ -18,19 +18,25 @@
 # python -m grpc.tools.protoc --python_out=. --grpc_python_out=. -I. tensorflow_serving/apis/model_service.proto
 
 import sys
+
 _b=sys.version_info[0]<3 and (lambda x:x) or (lambda x:x.encode('latin1'))
 from google.protobuf import descriptor as _descriptor
+from google.protobuf import descriptor_pb2
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
-from google.protobuf import descriptor_pb2
+
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-from tensorflow_serving.apis import get_model_status_pb2 as tensorflow__serving_dot_apis_dot_get__model__status__pb2
-from tensorflow_serving.apis import model_management_pb2 as tensorflow__serving_dot_apis_dot_model__management__pb2
+from tensorflow_serving.apis import (
+    get_model_status_pb2 as tensorflow__serving_dot_apis_dot_get__model__status__pb2,
+)
+from tensorflow_serving.apis import (
+    model_management_pb2 as tensorflow__serving_dot_apis_dot_model__management__pb2,
+)
 
 DESCRIPTOR = _descriptor.FileDescriptor(
     name='tensorflow_serving/apis/model_service.proto',

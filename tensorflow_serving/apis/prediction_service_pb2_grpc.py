@@ -18,17 +18,27 @@
 # python -m grpc.tools.protoc --python_out=. --grpc_python_out=. -I. tensorflow_serving/apis/prediction_service.proto
 import grpc
 
-from tensorflow_serving.apis import classification_pb2 as tensorflow__serving_dot_apis_dot_classification__pb2
-from tensorflow_serving.apis import get_model_metadata_pb2 as tensorflow__serving_dot_apis_dot_get__model__metadata__pb2
-from tensorflow_serving.apis import inference_pb2 as tensorflow__serving_dot_apis_dot_inference__pb2
-from tensorflow_serving.apis import predict_pb2 as tensorflow__serving_dot_apis_dot_predict__pb2
-from tensorflow_serving.apis import regression_pb2 as tensorflow__serving_dot_apis_dot_regression__pb2
+from tensorflow_serving.apis import (
+  classification_pb2 as tensorflow__serving_dot_apis_dot_classification__pb2,
+)
+from tensorflow_serving.apis import (
+  get_model_metadata_pb2 as tensorflow__serving_dot_apis_dot_get__model__metadata__pb2,
+)
+from tensorflow_serving.apis import (
+  inference_pb2 as tensorflow__serving_dot_apis_dot_inference__pb2,
+)
+from tensorflow_serving.apis import (
+  predict_pb2 as tensorflow__serving_dot_apis_dot_predict__pb2,
+)
+from tensorflow_serving.apis import (
+  regression_pb2 as tensorflow__serving_dot_apis_dot_regression__pb2,
+)
 
 
-class PredictionServiceStub(object):
-  """open source marker; do not remove
-  PredictionService provides access to machine-learned models loaded by
-  model_servers.
+class PredictionServiceStub:
+  """PredictionService provides access to machine-learned models loaded by model_servers.
+
+  open source marker; do not remove
   """
 
   def __init__(self, channel):
@@ -64,43 +74,38 @@ class PredictionServiceStub(object):
         )
 
 
-class PredictionServiceServicer(object):
-  """open source marker; do not remove
-  PredictionService provides access to machine-learned models loaded by
-  model_servers.
+class PredictionServiceServicer:
+  """PredictionService provides access to machine-learned models loaded by model_servers.
+
+  open source marker; do not remove
   """
 
-  def Classify(self, request, context):
-    """Classify.
-    """
+  def Classify(self, request, context): # noqa: ARG002
+    """Classify."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def Regress(self, request, context):
-    """Regress.
-    """
+  def Regress(self, request, context): # noqa: ARG002
+    """Regress."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def Predict(self, request, context):
-    """Predict -- provides access to loaded TensorFlow model.
-    """
+  def Predict(self, request, context): # noqa: ARG002
+    """Predict -- provides access to loaded TensorFlow model."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def MultiInference(self, request, context):
-    """MultiInference API for multi-headed models.
-    """
+  def MultiInference(self, request, context): # noqa: ARG002
+    """MultiInference API for multi-headed models."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetModelMetadata(self, request, context):
-    """GetModelMetadata - provides access to metadata for loaded models.
-    """
+  def GetModelMetadata(self, request, context): # noqa: ARG002
+    """GetModelMetadata - provides access to metadata for loaded models."""
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')

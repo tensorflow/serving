@@ -34,7 +34,6 @@ import argparse
 import sys
 
 import tensorflow.compat.v1 as tf
-
 from tensorflow.lite.tools.signature import signature_def_utils
 
 FLAGS = None
@@ -87,14 +86,13 @@ def _generate_tflite_for_parse_example_with_string(export_dir):
     k = tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
     tflite_model = signature_def_utils.set_signature_defs(
         tflite_model, {k: predict_signature_def})
-    open(export_dir + "/model.tflite", "wb").write(tflite_model)
+    with open(export_dir + "/model.tflite", "wb") as fp:
+      fp.write(tflite_model)
 
 
 def main(_):
   _generate_tflite_for_parse_example_with_string(FLAGS.output_dir)
-  print("TFLite model generated at: %(dir)s" % {
-      "dir": FLAGS.output_dir
-  })
+  print(f"TFLite model generated at: {FLAGS.output_dir}")
 
 
 if __name__ == "__main__":

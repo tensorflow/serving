@@ -29,7 +29,9 @@ RemotePredictOp.
 
 import tensorflow.compat.v1 as tf
 
-from tensorflow_serving.experimental.tensorflow.ops.remote_predict.python.ops import remote_predict_ops
+from tensorflow_serving.experimental.tensorflow.ops.remote_predict.python.ops import (
+  remote_predict_ops,
+)
 
 tf.app.flags.DEFINE_string("output_dir", "/tmp/half_plus_two_with_rpop/1/",
                            "Savedmodel export path")
@@ -127,12 +129,8 @@ def main(_):
                                           FLAGS.target_address,
                                           FLAGS.remote_model_name)
   print(
-      "SavedModel generated at: %(dir)s with target_address: %(target_address)s"
-      ", remote_model_name: %(remote_model_name)s. " % {
-          "dir": FLAGS.output_dir,
-          "target_address": FLAGS.target_address,
-          "remote_model_name": FLAGS.remote_model_name
-      })
+      f"SavedModel generated at: {FLAGS.output_dir} with target_address: {FLAGS.target_address}"
+      f", remote_model_name: {FLAGS.remote_model_name}. ")
 
 
 if __name__ == "__main__":

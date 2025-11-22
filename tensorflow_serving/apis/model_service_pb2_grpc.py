@@ -19,14 +19,16 @@
 
 import grpc
 
-from tensorflow_serving.apis import get_model_status_pb2 as tensorflow__serving_dot_apis_dot_get__model__status__pb2
-from tensorflow_serving.apis import model_management_pb2 as tensorflow__serving_dot_apis_dot_model__management__pb2
+from tensorflow_serving.apis import (
+  get_model_status_pb2 as tensorflow__serving_dot_apis_dot_get__model__status__pb2,
+)
+from tensorflow_serving.apis import (
+  model_management_pb2 as tensorflow__serving_dot_apis_dot_model__management__pb2,
+)
 
 
-class ModelServiceStub(object):
-  """ModelService provides methods to query and update the state of the server,
-  e.g. which models/versions are being served.
-  """
+class ModelServiceStub:
+  """ModelService provides methods to query and update the state of the server, e.g. which models/versions are being served."""
 
   def __init__(self, channel):
     """Constructor.
@@ -50,25 +52,22 @@ class ModelServiceStub(object):
     )
 
 
-class ModelServiceServicer(object):
-  """ModelService provides methods to query and update the state of the server,
-  e.g. which models/versions are being served.
-  """
+class ModelServiceServicer:
+  """ModelService provides methods to query and update the state of the server e.g. which models/versions are being served."""
 
-  def GetModelStatus(self, request, context):
-    """Gets status of model. If the ModelSpec in the request does not specify
-    version, information about all versions of the model will be returned. If
-    the ModelSpec in the request does specify a version, the status of only
-    that version will be returned.
+  def GetModelStatus(self, request, context): # noqa: ARG002
+    """Gets status of model.
+
+    If the ModelSpec in the request does not specify version, information about all versions of the model will be returned. If the ModelSpec in the request does specify a version, the status of only that version will be returned.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def HandleReloadConfigRequest(self, request, context):
-    """Reloads the set of served models. The new config supersedes the old one,
-    so if a model is omitted from the new config it will be unloaded and no
-    longer served.
+  def HandleReloadConfigRequest(self, request, context): # noqa: ARG002
+    """Reloads the set of served models.
+
+    The new config supersedes the old one, so if a model is omitted from the new config it will be unloaded and no longer served.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')

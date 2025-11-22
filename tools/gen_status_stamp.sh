@@ -35,5 +35,3 @@ if [ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1; then
 else
   echo "BUILD_SCM_REVISION no_git"
 fi;
-
-

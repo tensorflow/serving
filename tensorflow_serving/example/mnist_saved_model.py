@@ -25,16 +25,13 @@ Usage: mnist_saved_model.py [--training_iteration=x] [--model_version=y] \
     export_dir
 """
 
-from __future__ import print_function
 
 import os
 import sys
 
-import tensorflow as tf
-
-from tensorflow.python.ops import lookup_ops
-
 import mnist_input_data
+import tensorflow as tf
+from tensorflow.python.ops import lookup_ops
 
 tf.compat.v1.app.flags.DEFINE_integer('training_iteration', 1000,
                                       'number of training iterations.')
@@ -85,11 +82,12 @@ def main(_):
     train_step.run(feed_dict={x: batch[0], y_: batch[1]})
   correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
   accuracy = tf.math.reduce_mean(tf.cast(correct_prediction, 'float'))
-  print('training accuracy %g' % sess.run(
+  print(f'training accuracy {sess.run(
       accuracy, feed_dict={
           x: mnist.test.images,
           y_: mnist.test.labels
-      }))
+      }):g}'
+  )
   print('Done training!')
 
   # Export model
