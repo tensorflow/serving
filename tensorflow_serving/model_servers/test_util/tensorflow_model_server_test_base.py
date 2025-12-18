@@ -15,9 +15,9 @@
 
 """Tests for tensorflow_model_server."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import  # noqa: I001, UP010
+from __future__ import division  # noqa: UP010
+from __future__ import print_function  # noqa: UP010
 
 import atexit
 import json
@@ -50,7 +50,7 @@ GRPC_SOCKET_PATH = '/tmp/tf-serving.sock'
 def SetVirtualCpus(num_virtual_cpus):
   """Create virtual CPU devices if they haven't yet been created."""
   if num_virtual_cpus < 1:
-    raise ValueError('`num_virtual_cpus` must be at least 1 not %r' %
+    raise ValueError('`num_virtual_cpus` must be at least 1 not %r' %  # noqa: UP031
                      (num_virtual_cpus,))
   physical_devices = tf.config.experimental.list_physical_devices('CPU')
   if not physical_devices:
@@ -64,7 +64,7 @@ def SetVirtualCpus(num_virtual_cpus):
         physical_devices[0], virtual_devices)
   else:
     if len(configs) < num_virtual_cpus:
-      raise RuntimeError('Already configured with %d < %d virtual CPUs' %
+      raise RuntimeError('Already configured with %d < %d virtual CPUs' %  # noqa: UP031
                          (len(configs), num_virtual_cpus))
 
 
@@ -85,7 +85,7 @@ def WaitForServerReady(port):
 
     try:
       # Send empty request to missing model
-      channel = grpc.insecure_channel('localhost:{}'.format(port))
+      channel = grpc.insecure_channel('localhost:{}'.format(port))  # noqa: UP032
       stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
       stub.Predict(request, RPC_TIMEOUT)
     except grpc.RpcError as error:
@@ -99,16 +99,16 @@ def CallREST(url, req, max_attempts=60):
   """Returns HTTP response body from a REST API call."""
   for attempt in range(max_attempts):
     try:
-      print('Attempt {}: Sending request to {} with data:\n{}'.format(
+      print('Attempt {}: Sending request to {} with data:\n{}'.format(  # noqa: UP032
           attempt, url, req))
       json_data = json.dumps(req).encode('utf-8') if req is not None else None
       resp = urllib.request.urlopen(urllib.request.Request(url, data=json_data))
       resp_data = resp.read()
-      print('Received response:\n{}'.format(resp_data))
+      print('Received response:\n{}'.format(resp_data))  # noqa: UP032
       resp.close()
       return resp_data
     except Exception as e:  # pylint: disable=broad-except
-      print('Failed attempt {}. Error: {}'.format(attempt, e))
+      print('Failed attempt {}. Error: {}'.format(attempt, e))  # noqa: UP032
       if attempt == max_attempts - 1:
         raise
       print('Retrying...')
@@ -123,7 +123,7 @@ def SortedObject(obj):
     return sorted(SortedObject(x) for x in obj)
   if isinstance(obj, tuple):
     return list(sorted(SortedObject(x) for x in obj))
-  else:
+  else:  # noqa: RET505
     return obj
 
 
@@ -188,7 +188,7 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
       return TensorflowModelServerTestBase.model_servers_dict[args_key]
     port = PickUnusedPort()
     rest_api_port = PickUnusedPort()
-    print(('Starting test server on port: {} for model_name: '
+    print(('Starting test server on port: {} for model_name: '  # noqa: UP032, UP034
            '{}/model_config_file: {}'.format(port, model_name,
                                              model_config_file)))
 

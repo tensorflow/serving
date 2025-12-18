@@ -36,7 +36,7 @@ And then run
 tensorflow_model_server --port=8500 --model_config_file=/tmp/config_file.txt
 
 """
-from __future__ import print_function
+from __future__ import print_function  # noqa: I001, UP010
 
 import grpc
 import tensorflow.compat.v1 as tf

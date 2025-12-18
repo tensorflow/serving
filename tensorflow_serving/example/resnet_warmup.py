@@ -29,9 +29,9 @@
 
    Usage example:
      python resnet_warmup.py saved_model_dir
-"""
+"""  # noqa: D208
 
-from __future__ import print_function
+from __future__ import print_function  # noqa: I001, UP010
 
 import io
 import os
@@ -64,7 +64,7 @@ def main():
 
   model_dir = sys.argv[-1]
   if not os.path.isdir(model_dir):
-    print('The saved model directory: %s does not exist. '
+    print('The saved model directory: %s does not exist. '  # noqa: UP031
           'Specify the path of an existing model.' % model_dir)
     sys.exit(-1)
 
@@ -100,7 +100,7 @@ def main():
           predict_log=prediction_log_pb2.PredictLog(request=request))
       writer.write(log.SerializeToString())
 
-  print('Created the file \'%s\', restart tensorflow_model_server to warmup '
+  print('Created the file \'%s\', restart tensorflow_model_server to warmup '  # noqa: UP031
         'the ResNet SavedModel.' % warmup_file)
 
 if __name__ == '__main__':

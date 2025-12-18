@@ -16,7 +16,7 @@
 # source: tensorflow_serving/apis/prediction_service.proto
 # To regenerate run
 # python -m grpc.tools.protoc --python_out=. --grpc_python_out=. -I. tensorflow_serving/apis/prediction_service.proto
-import grpc
+import grpc  # noqa: I001
 
 from tensorflow_serving.apis import classification_pb2 as tensorflow__serving_dot_apis_dot_classification__pb2
 from tensorflow_serving.apis import get_model_metadata_pb2 as tensorflow__serving_dot_apis_dot_get__model__metadata__pb2
@@ -25,11 +25,11 @@ from tensorflow_serving.apis import predict_pb2 as tensorflow__serving_dot_apis_
 from tensorflow_serving.apis import regression_pb2 as tensorflow__serving_dot_apis_dot_regression__pb2
 
 
-class PredictionServiceStub(object):
+class PredictionServiceStub(object):  # noqa: UP004
   """open source marker; do not remove
   PredictionService provides access to machine-learned models loaded by
   model_servers.
-  """
+  """  # noqa: D205
 
   def __init__(self, channel):
     """Constructor.
@@ -64,43 +64,43 @@ class PredictionServiceStub(object):
         )
 
 
-class PredictionServiceServicer(object):
+class PredictionServiceServicer(object):  # noqa: UP004
   """open source marker; do not remove
   PredictionService provides access to machine-learned models loaded by
   model_servers.
-  """
+  """  # noqa: D205
 
-  def Classify(self, request, context):
+  def Classify(self, request, context):  # noqa: ARG002
     """Classify.
-    """
+    """  # noqa: D200
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def Regress(self, request, context):
+  def Regress(self, request, context):  # noqa: ARG002
     """Regress.
-    """
+    """  # noqa: D200
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def Predict(self, request, context):
+  def Predict(self, request, context):  # noqa: ARG002
     """Predict -- provides access to loaded TensorFlow model.
-    """
+    """  # noqa: D200
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def MultiInference(self, request, context):
+  def MultiInference(self, request, context):  # noqa: ARG002
     """MultiInference API for multi-headed models.
-    """
+    """  # noqa: D200
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetModelMetadata(self, request, context):
+  def GetModelMetadata(self, request, context):  # noqa: ARG002
     """GetModelMetadata - provides access to metadata for loaded models.
-    """
+    """  # noqa: D200
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')

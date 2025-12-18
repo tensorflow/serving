@@ -78,6 +78,7 @@ ignore = [
     "PT027",  # Use `pytest.raises` instead of unittest-style `assertRaisesRegex`
     "UP028",  # Replace `yield` over `for` loop with `yield from`
     "UP029",  # Unnecessary builtin import
+    "RET503", # Missing explicit `return` at the end of function able to return non-`None` value
 ]
 
 [lint.pyupgrade]
