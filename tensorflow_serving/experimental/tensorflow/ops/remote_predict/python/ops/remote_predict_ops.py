@@ -14,16 +14,16 @@
 # ==============================================================================
 """Operations for RemotePredict."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import  # noqa: I001, UP010
+from __future__ import division  # noqa: UP010
+from __future__ import print_function  # noqa: UP010
 
 import os.path
 import tensorflow.compat.v1 as tf
 
 from tensorflow_serving.experimental.tensorflow.ops.remote_predict.ops import gen_remote_predict_op
 # pylint: disable=wildcard-import
-from tensorflow_serving.experimental.tensorflow.ops.remote_predict.ops.gen_remote_predict_op import *
+from tensorflow_serving.experimental.tensorflow.ops.remote_predict.ops.gen_remote_predict_op import *  # noqa: F403
 # pylint: enable=wildcard-import
 
 _remote_predict_op_module = tf.load_op_library(

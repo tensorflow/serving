@@ -30,7 +30,7 @@ execution.
 To create a model:
   bazel run -c opt parse_example_tflite_with_string
 """
-import argparse
+import argparse  # noqa: I001
 import sys
 
 import tensorflow.compat.v1 as tf
@@ -87,12 +87,12 @@ def _generate_tflite_for_parse_example_with_string(export_dir):
     k = tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
     tflite_model = signature_def_utils.set_signature_defs(
         tflite_model, {k: predict_signature_def})
-    open(export_dir + "/model.tflite", "wb").write(tflite_model)
+    open(export_dir + "/model.tflite", "wb").write(tflite_model)  # noqa: SIM115
 
 
 def main(_):
   _generate_tflite_for_parse_example_with_string(FLAGS.output_dir)
-  print("TFLite model generated at: %(dir)s" % {
+  print("TFLite model generated at: %(dir)s" % {  # noqa: UP031
       "dir": FLAGS.output_dir
   })
 

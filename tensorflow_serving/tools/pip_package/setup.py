@@ -23,7 +23,7 @@ models and data.
 This package contains the TensorFlow Serving Python APIs.
 """
 
-import sys
+import sys  # noqa: I001
 
 from setuptools import find_packages
 from setuptools import setup
@@ -98,4 +98,7 @@ setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
+    extras_require={
+        'lint': ['pre-commit'],
+    },
 )

@@ -17,16 +17,16 @@
 # To regenerate run
 # python -m grpc.tools.protoc --python_out=. --grpc_python_out=. -I. tensorflow_serving/apis/model_service.proto
 
-import grpc
+import grpc  # noqa: I001
 
 from tensorflow_serving.apis import get_model_status_pb2 as tensorflow__serving_dot_apis_dot_get__model__status__pb2
 from tensorflow_serving.apis import model_management_pb2 as tensorflow__serving_dot_apis_dot_model__management__pb2
 
 
-class ModelServiceStub(object):
+class ModelServiceStub(object):  # noqa: UP004
   """ModelService provides methods to query and update the state of the server,
   e.g. which models/versions are being served.
-  """
+  """  # noqa: D205
 
   def __init__(self, channel):
     """Constructor.
@@ -50,26 +50,26 @@ class ModelServiceStub(object):
     )
 
 
-class ModelServiceServicer(object):
+class ModelServiceServicer(object):  # noqa: UP004
   """ModelService provides methods to query and update the state of the server,
   e.g. which models/versions are being served.
-  """
+  """  # noqa: D205
 
-  def GetModelStatus(self, request, context):
+  def GetModelStatus(self, request, context):  # noqa: ARG002
     """Gets status of model. If the ModelSpec in the request does not specify
     version, information about all versions of the model will be returned. If
     the ModelSpec in the request does specify a version, the status of only
     that version will be returned.
-    """
+    """  # noqa: D205
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def HandleReloadConfigRequest(self, request, context):
+  def HandleReloadConfigRequest(self, request, context):  # noqa: ARG002
     """Reloads the set of served models. The new config supersedes the old one,
     so if a model is omitted from the new config it will be unloaded and no
     longer served.
-    """
+    """  # noqa: D205
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')

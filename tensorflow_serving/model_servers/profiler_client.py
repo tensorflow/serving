@@ -14,9 +14,9 @@
 # ==============================================================================
 """Simple client to send profiling request to ModelServer."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import  # noqa: I001, UP010
+from __future__ import division  # noqa: UP010
+from __future__ import print_function  # noqa: UP010
 
 import tensorflow as tf
 

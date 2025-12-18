@@ -15,9 +15,9 @@
 
 """Tests for tensorflow_model_server."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import  # noqa: I001, UP010
+from __future__ import division  # noqa: UP010
+from __future__ import print_function  # noqa: UP010
 
 import json
 import os
@@ -36,7 +36,7 @@ sys.path = ([i for i in sys.path if 'bazel-out' not in i] +
 
 
 
-import grpc
+import grpc  # noqa: I001
 from six.moves import range
 import tensorflow.compat.v1 as tf
 
@@ -74,7 +74,7 @@ class TensorflowModelServerTest(
     in the configuration template file and writes it out to another file
     used by the test.
     """
-    with open(self._GetGoodModelConfigTemplate(), 'r') as template_file:
+    with open(self._GetGoodModelConfigTemplate(), 'r') as template_file:  # noqa: UP015
       config = template_file.read().replace('${TEST_HALF_PLUS_TWO_DIR}',
                                             self._GetSavedModelBundlePath())
       config = config.replace('${TEST_HALF_PLUS_THREE_DIR}',
@@ -313,7 +313,7 @@ class TensorflowModelServerTest(
     self.assertGreater(proc.stderr.read().find(error_message), -1)
 
   def testModelConfigReload(self):
-    """Test model server polls filesystem for model configuration."""
+    """Test model server polls filesystem for model configuration."""  # noqa: D202
 
     base_config_proto = """
     model_config_list: {{
@@ -367,7 +367,7 @@ class TensorflowModelServerTest(
             self._GetSavedModelHalfPlusThreePath()))
 
   def testModelConfigReloadWithZeroPollPeriod(self):
-    """Test model server does not poll filesystem for model config."""
+    """Test model server does not poll filesystem for model config."""  # noqa: D202
 
     base_config_proto = """
     model_config_list: {{
@@ -442,7 +442,7 @@ class TensorflowModelServerTest(
                                                      model_path)[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/v1/models/default:classify'.format(host, port)
+    url = 'http://{}:{}/v1/models/default:classify'.format(host, port)  # noqa: UP032
     json_req = {'signature_name': 'classify_x_to_y', 'examples': [{'x': 2.0}]}
 
     # Send request
@@ -450,7 +450,7 @@ class TensorflowModelServerTest(
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail('Request failed with error: {}'.format(e))  # noqa: UP032
 
     # Verify response
     self.assertEqual(json.loads(resp_data.decode()), {'results': [[['', 3.0]]]})
@@ -462,7 +462,7 @@ class TensorflowModelServerTest(
                                                      model_path)[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/v1/models/default:regress'.format(host, port)
+    url = 'http://{}:{}/v1/models/default:regress'.format(host, port)  # noqa: UP032
     json_req = {'signature_name': 'regress_x_to_y', 'examples': [{'x': 2.0}]}
 
     # Send request
@@ -470,7 +470,7 @@ class TensorflowModelServerTest(
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail('Request failed with error: {}'.format(e))  # noqa: UP032
 
     # Verify response
     self.assertEqual(json.loads(resp_data.decode()), {'results': [3.0]})
@@ -482,7 +482,7 @@ class TensorflowModelServerTest(
                                                      model_path)[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/v1/models/default:predict'.format(host, port)
+    url = 'http://{}:{}/v1/models/default:predict'.format(host, port)  # noqa: UP032
     json_req = {'instances': [2.0, 3.0, 4.0]}
 
     # Send request
@@ -490,7 +490,7 @@ class TensorflowModelServerTest(
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail('Request failed with error: {}'.format(e))  # noqa: UP032
 
     # Verify response
     self.assertEqual(
@@ -503,7 +503,7 @@ class TensorflowModelServerTest(
                                                      model_path)[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/v1/models/default:predict'.format(host, port)
+    url = 'http://{}:{}/v1/models/default:predict'.format(host, port)  # noqa: UP032
     json_req = {'inputs': [2.0, 3.0, 4.0]}
 
     # Send request
@@ -511,7 +511,7 @@ class TensorflowModelServerTest(
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, json_req)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail('Request failed with error: {}'.format(e))  # noqa: UP032
 
     # Verify response
     self.assertEqual(
@@ -524,14 +524,14 @@ class TensorflowModelServerTest(
                                                      model_path)[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/v1/models/default'.format(host, port)
+    url = 'http://{}:{}/v1/models/default'.format(host, port)  # noqa: UP032
 
     # Send request
     resp_data = None
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, None)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail('Request failed with error: {}'.format(e))  # noqa: UP032
 
     # Verify response
     self.assertEqual(
@@ -553,14 +553,14 @@ class TensorflowModelServerTest(
                                                      model_path)[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/v1/models/default/metadata'.format(host, port)
+    url = 'http://{}:{}/v1/models/default/metadata'.format(host, port)  # noqa: UP032
 
     # Send request
     resp_data = None
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, None)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail('Request failed with error: {}'.format(e))  # noqa: UP032
 
     try:
       model_metadata_file = self._GetModelMetadataFile()
@@ -576,7 +576,7 @@ class TensorflowModelServerTest(
                 json.loads(resp_data.decode())),
             tensorflow_model_server_test_base.SortedObject(expected_metadata))
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail('Request failed with error: {}'.format(e))  # noqa: UP032
 
   def testPrometheusEndpoint(self):
     """Test ModelStatus implementation over REST API with columnar inputs."""
@@ -587,14 +587,14 @@ class TensorflowModelServerTest(
         monitoring_config_file=self._GetMonitoringConfigFile())[2].split(':')
 
     # Prepare request
-    url = 'http://{}:{}/monitoring/prometheus/metrics'.format(host, port)
+    url = 'http://{}:{}/monitoring/prometheus/metrics'.format(host, port)  # noqa: UP032
 
     # Send request
     resp_data = None
     try:
       resp_data = tensorflow_model_server_test_base.CallREST(url, None)
     except Exception as e:  # pylint: disable=broad-except
-      self.fail('Request failed with error: {}'.format(e))
+      self.fail('Request failed with error: {}'.format(e))  # noqa: UP032
 
     # Verify that there should be some metric type information.
     self.assertIn('# TYPE',
@@ -604,7 +604,7 @@ class TensorflowModelServerTest(
     """Test saved model prediction over a Unix domain socket."""
     _ = TensorflowModelServerTest.RunServer('default',
                                             self._GetSavedModelBundlePath())
-    model_server_address = 'unix:%s' % GRPC_SOCKET_PATH
+    model_server_address = 'unix:%s' % GRPC_SOCKET_PATH  # noqa: UP031
     self.VerifyPredictRequest(
         model_server_address,
         expected_output=3.0,
@@ -655,9 +655,9 @@ class TensorflowModelServerTest(
     base_path = os.path.join(self.get_temp_dir(), 'tf_saved_model_save')
     export_path = os.path.join(base_path, '00000123')
     root = tf.train.Checkpoint()
-    root.f = tf.function(lambda x: {'y': 1.},
+    root.f = tf.function(lambda x: {'y': 1.},  # noqa: ARG005
                          input_signature=[tf.TensorSpec(None, tf.float32)])
-    root.g = tf.function(lambda x: {'y': 2.},
+    root.g = tf.function(lambda x: {'y': 2.},  # noqa: ARG005
                          input_signature=[tf.TensorSpec(None, tf.float32)])
     tf.saved_model.experimental.save(
         root, export_path,
@@ -734,7 +734,7 @@ class TensorflowModelServerTest(
         expected_version=expected_version)
 
   def test_profiler_service_with_valid_trace_request(self):
-    """Test integration with profiler service by sending tracing requests."""
+    """Test integration with profiler service by sending tracing requests."""  # noqa: D202
 
     # Start model server
     model_path = self._GetSavedModelBundlePath()
@@ -742,14 +742,14 @@ class TensorflowModelServerTest(
         'default', model_path)
 
     # Prepare predict request
-    url = 'http://{}/v1/models/default:predict'.format(rest_addr)
+    url = 'http://{}/v1/models/default:predict'.format(rest_addr)  # noqa: UP032
     json_req = '{"instances": [2.0, 3.0, 4.0]}'
 
     # In a subprocess, send a REST predict request every second for 3 seconds
-    exec_command = ("wget {} --content-on-error=on -O- --post-data  '{}' "
+    exec_command = ("wget {} --content-on-error=on -O- --post-data  '{}' "  # noqa: UP032
                     "--header='Content-Type:application/json'").format(
                         url, json_req)
-    repeat_command = 'for n in {{1..3}}; do {} & sleep 1; done;'.format(
+    repeat_command = 'for n in {{1..3}}; do {} & sleep 1; done;'.format(  # noqa: UP032
         exec_command)
     proc = subprocess.Popen(
         repeat_command,
@@ -770,7 +770,7 @@ class TensorflowModelServerTest(
 
     #  Log stdout & stderr of subprocess issuing predict requests for debugging
     out, err = proc.communicate()
-    print("stdout: '{}' | stderr: '{}'".format(out, err))
+    print("stdout: '{}' | stderr: '{}'".format(out, err))  # noqa: UP032
 
   def test_tf_text(self):
     """Test TF Text."""

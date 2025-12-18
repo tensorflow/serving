@@ -25,7 +25,7 @@ Typical usage example:
     mnist_client.py --num_tests=100 --server=localhost:9000
 """
 
-from __future__ import print_function
+from __future__ import print_function  # noqa: I001, UP010
 
 import sys
 import threading
@@ -48,7 +48,7 @@ tf.compat.v1.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory. ')
 FLAGS = tf.compat.v1.app.flags.FLAGS
 
 
-class _ResultCounter(object):
+class _ResultCounter(object):  # noqa: UP004
   """Counter for the prediction results."""
 
   def __init__(self, num_tests, concurrency):
@@ -94,7 +94,7 @@ def _create_rpc_callback(label, result_counter):
     result_counter: Counter for the prediction result.
   Returns:
     The callback function.
-  """
+  """  # noqa: D410, D411
   def _callback(result_future):
     """Callback function.
 

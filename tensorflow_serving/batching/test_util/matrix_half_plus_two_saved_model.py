@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v1 as tf  # noqa: I001
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string("output_dir", "/tmp/matrix_half_plus_two/1",
@@ -28,7 +28,7 @@ def _generate_saved_model_for_matrix_half_plus_two(export_dir):
        the result will be [[2.5, 3, 3.5], [4, 4.5, 5], [5.5, 6, 6.5]].
     Args:
       export_dir: The directory where to write SavedModel files.
-    """
+    """  # noqa: D205, D208, D214, D411
   builder = tf.saved_model.builder.SavedModelBuilder(export_dir)
   with tf.Session() as session:
     x = tf.placeholder(tf.float32, shape=[None, 3, 3], name="x")

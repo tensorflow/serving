@@ -18,9 +18,9 @@ It contains 4 signatures: get_counter incr_counter, incr_counter_by, and
 reset_counter, to test Predict service.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import  # noqa: I001, UP010
+from __future__ import division  # noqa: UP010
+from __future__ import print_function  # noqa: UP010
 
 import tensorflow as tf
 
@@ -97,7 +97,7 @@ def export_model(output_dir):
     save_model(sess, signature_def_map, output_dir)
 
 
-def main(unused_argv):
+def main(unused_argv):  # noqa: ARG001
   export_model("/tmp/saved_model_counter/00000123")
 
 

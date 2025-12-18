@@ -27,7 +27,7 @@ where `a` is variable with `a=0.5`, and `b` is the first output tensors from
 RemotePredictOp.
 """
 
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v1 as tf  # noqa: I001
 
 from tensorflow_serving.experimental.tensorflow.ops.remote_predict.python.ops import remote_predict_ops
 
@@ -127,7 +127,7 @@ def main(_):
                                           FLAGS.target_address,
                                           FLAGS.remote_model_name)
   print(
-      "SavedModel generated at: %(dir)s with target_address: %(target_address)s"
+      "SavedModel generated at: %(dir)s with target_address: %(target_address)s"  # noqa: UP031
       ", remote_model_name: %(remote_model_name)s. " % {
           "dir": FLAGS.output_dir,
           "target_address": FLAGS.target_address,

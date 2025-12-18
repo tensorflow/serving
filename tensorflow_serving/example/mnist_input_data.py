@@ -17,7 +17,7 @@
 
 """Functions for downloading and reading MNIST data."""
 
-from __future__ import print_function
+from __future__ import print_function  # noqa: UP010
 
 import gzip
 import os
@@ -42,7 +42,7 @@ def maybe_download(filename, work_directory):
   if not os.path.exists(filepath):
     filepath, _ = urllib.request.urlretrieve(SOURCE_URL + filename, filepath)
     statinfo = os.stat(filepath)
-    print('Successfully downloaded %s %d bytes.' % (filename, statinfo.st_size))
+    print('Successfully downloaded %s %d bytes.' % (filename, statinfo.st_size))  # noqa: UP031
   return filepath
 
 
@@ -53,12 +53,12 @@ def _read32(bytestream):
 
 def extract_images(filename):
   """Extract the images into a 4D uint8 numpy array [index, y, x, depth]."""
-  print('Extracting %s' % filename)
+  print('Extracting %s' % filename)  # noqa: UP031
   with gzip.open(filename) as bytestream:
     magic = _read32(bytestream)
     if magic != 2051:
       raise ValueError(
-          'Invalid magic number %d in MNIST image file: %s' %
+          'Invalid magic number %d in MNIST image file: %s' %  # noqa: UP031
           (magic, filename))
     num_images = _read32(bytestream)
     rows = _read32(bytestream)
@@ -66,7 +66,7 @@ def extract_images(filename):
     buf = bytestream.read(rows * cols * num_images)
     data = numpy.frombuffer(buf, dtype=numpy.uint8)
     data = data.reshape(num_images, rows, cols, 1)
-    return data
+    return data  # noqa: RET504
 
 
 def dense_to_one_hot(labels_dense, num_classes=10):
@@ -80,12 +80,12 @@ def dense_to_one_hot(labels_dense, num_classes=10):
 
 def extract_labels(filename, one_hot=False):
   """Extract the labels into a 1D uint8 numpy array [index]."""
-  print('Extracting %s' % filename)
+  print('Extracting %s' % filename)  # noqa: UP031
   with gzip.open(filename) as bytestream:
     magic = _read32(bytestream)
     if magic != 2049:
       raise ValueError(
-          'Invalid magic number %d in MNIST label file: %s' %
+          'Invalid magic number %d in MNIST label file: %s' %  # noqa: UP031
           (magic, filename))
     num_items = _read32(bytestream)
     buf = bytestream.read(num_items)
@@ -95,18 +95,18 @@ def extract_labels(filename, one_hot=False):
     return labels
 
 
-class DataSet(object):
+class DataSet(object):  # noqa: UP004
   """Class encompassing test, validation and training MNIST data set."""
 
   def __init__(self, images, labels, fake_data=False, one_hot=False):
-    """Construct a DataSet. one_hot arg is used only if fake_data is true."""
+    """Construct a DataSet. one_hot arg is used only if fake_data is true."""  # noqa: D202
 
     if fake_data:
       self._num_examples = 10000
       self.one_hot = one_hot
     else:
       assert images.shape[0] == labels.shape[0], (
-          'images.shape: %s labels.shape: %s' % (images.shape,
+          'images.shape: %s labels.shape: %s' % (images.shape,  # noqa: UP031
                                                  labels.shape))
       self._num_examples = images.shape[0]
 
@@ -157,7 +157,7 @@ class DataSet(object):
       self._epochs_completed += 1
       # Shuffle the data
       perm = numpy.arange(self._num_examples)
-      numpy.random.shuffle(perm)
+      numpy.random.shuffle(perm)  # noqa: NPY002
       self._images = self._images[perm]
       self._labels = self._labels[perm]
       # Start next epoch
@@ -171,7 +171,7 @@ class DataSet(object):
 def read_data_sets(train_dir, fake_data=False, one_hot=False):
   """Return training, validation and testing data sets."""
 
-  class DataSets(object):
+  class DataSets(object):  # noqa: UP004
     pass
 
   data_sets = DataSets()

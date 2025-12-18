@@ -25,7 +25,7 @@ Usage: mnist_saved_model.py [--training_iteration=x] [--model_version=y] \
     export_dir
 """
 
-from __future__ import print_function
+from __future__ import print_function  # noqa: I001, UP010
 
 import os
 import sys
@@ -85,7 +85,7 @@ def main(_):
     train_step.run(feed_dict={x: batch[0], y_: batch[1]})
   correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
   accuracy = tf.math.reduce_mean(tf.cast(correct_prediction, 'float'))
-  print('training accuracy %g' % sess.run(
+  print('training accuracy %g' % sess.run(  # noqa: UP031
       accuracy, feed_dict={
           x: mnist.test.images,
           y_: mnist.test.labels
