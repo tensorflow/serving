@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/kernels/batching_util/fake_clock_env.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/macros.h"
@@ -130,7 +131,7 @@ TEST(StreamingBatchSchedulerTest, Timeout) {
   // Set up a fake clock, which only advances when we explicitly tell it to.
   test_util::FakeClockEnv env(Env::Default());
 
-  Notification first_batch_processed, second_batch_processed,
+  absl::Notification first_batch_processed, second_batch_processed,
       third_batch_processed;
   auto callback = [&first_batch_processed, &second_batch_processed,
                    &third_batch_processed](
@@ -188,7 +189,7 @@ TEST(StreamingBatchSchedulerTest, Timeout) {
 }
 
 TEST(StreamingBatchSchedulerTest, RealClockTimeout) {
-  Notification first_batch_processed, second_batch_processed;
+  absl::Notification first_batch_processed, second_batch_processed;
   auto callback = [&first_batch_processed, &second_batch_processed](
       std::unique_ptr<Batch<FakeTask>> batch) {
     batch->WaitUntilClosed();
@@ -241,7 +242,7 @@ TEST(StreamingBatchSchedulerTest, FinalUnderfullBatchProcessedUponDeletion) {
 }
 
 TEST(StreamingBatchSchedulerTest, BatchHandedToCallbackWhenFirstCreated) {
-  Notification stop_scheduler;
+  absl::Notification stop_scheduler;
   auto callback = [&stop_scheduler](std::unique_ptr<Batch<FakeTask>> batch) {
     EXPECT_LE(batch->num_tasks(), 1);
     EXPECT_FALSE(batch->IsClosed());
@@ -265,7 +266,7 @@ TEST(StreamingBatchSchedulerTest, BatchHandedToCallbackWhenFirstCreated) {
 
 TEST(StreamingBatchSchedulerTest, ConstMethods) {
   for (const int num_threads : {1, 2, 3}) {
-    Notification proceed;
+    absl::Notification proceed;
     auto callback = [&proceed](std::unique_ptr<Batch<FakeTask>> batch) {
       batch->WaitUntilClosed();
       proceed.WaitForNotification();

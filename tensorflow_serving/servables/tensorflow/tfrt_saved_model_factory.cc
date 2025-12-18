@@ -306,6 +306,7 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
     std::unique_ptr<Servable>* servable) {
   TF_ASSIGN_OR_RETURN(auto override_servable, OverrideServable(metadata, path));
   if (override_servable) {
+    LOG(INFO) << "Overriding TFRT servable with remote servable.";
     *servable = std::move(override_servable);
     return absl::OkStatus();
   }

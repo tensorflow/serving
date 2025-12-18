@@ -109,7 +109,7 @@ absl::Status RunSavedModelWarmupUntracked(
     tensorflow::serving::PredictionLog prediction_log;
     while (status.ok()) {
       if (!prediction_log.ParseFromArray(record.data(), record.size())) {
-        return errors::InvalidArgument(strings::StrCat(
+        return errors::InvalidArgument(absl::StrCat(
             "Failed to parse warmup record: ", record, " from ", warmup_path));
       }
 
@@ -174,8 +174,8 @@ absl::Status RunSavedModelWarmupUntracked(
             }
             if (!prediction_log.ParseFromArray(record.data(), record.size())) {
               state->warm_up_status = errors::InvalidArgument(
-                  strings::StrCat("Failed to parse warmup record: ", record,
-                                  " from ", warmup_path));
+                  absl::StrCat("Failed to parse warmup record: ", record,
+                               " from ", warmup_path));
               break;
             }
           }

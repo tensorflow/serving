@@ -20,6 +20,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/synchronization/notification.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
@@ -134,7 +135,7 @@ absl::Status CachingManager::LoadServable(
       // ought to be loaded, based on CachingManager's implementation invariant
       // of doing manage+load atomically.
       if (snapshot.value().state != LoaderHarness::State::kReady) {
-        const string error_msg = strings::StrCat(
+        const string error_msg = absl::StrCat(
             "Servable requested for load is already being managed, but is not "
             "loaded: ",
             servable_id.DebugString());
@@ -153,14 +154,14 @@ absl::Status CachingManager::LoadServable(
       const absl::Status manage_status =
           basic_manager_->ManageServable(std::move(loader_data));
       if (!manage_status.ok()) {
-        const string error_msg = strings::StrCat(
+        const string error_msg = absl::StrCat(
             "Internal error: unable to transfer servable to 'basic_manager_': ",
             manage_status.message());
         DCHECK(false) << error_msg;
         return errors::Internal(error_msg);
       }
 
-      Notification load_done;
+      absl::Notification load_done;
       absl::Status load_status;
       basic_manager_->LoadServable(servable_id,
                                    [&](const absl::Status& status) {

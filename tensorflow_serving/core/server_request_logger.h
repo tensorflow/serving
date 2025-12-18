@@ -61,9 +61,9 @@ class ServerRequestLogger {
   using StringToUniqueRequestLoggerMap =
       std::unordered_map<string, std::shared_ptr<RequestLogger>>;
   struct UpdateRequest {
-    /*absl_nonnull - not yet supported*/ std::unique_ptr<StringToRequestLoggersMap>
+    absl_nonnull std::unique_ptr<StringToRequestLoggersMap>
         model_to_loggers_map;
-    /*absl_nonnull - not yet supported*/ std::unique_ptr<StringToUniqueRequestLoggerMap>
+    absl_nonnull std::unique_ptr<StringToUniqueRequestLoggerMap>
         config_to_logger_map;
   };
 

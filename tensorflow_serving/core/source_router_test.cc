@@ -22,6 +22,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/platform/env.h"
@@ -114,7 +115,7 @@ TEST(SourceRouterTest, SetAspiredVersionsBlocksUntilAllTargetsConnected_1) {
   // have been emitted and all of them have been connected to targets.
 
   TestSourceRouter router;
-  Notification done;
+  absl::Notification done;
 
   // Connect the output ports to targets asynchronously, after a long delay.
   std::unique_ptr<Thread> connect_targets(Env::Default()->StartThread(

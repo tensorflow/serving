@@ -108,7 +108,7 @@ absl::Status RunWarmupRequest(const PredictionLog& warmup_record,
       break;
     }
     default:
-      return errors::Unimplemented(strings::StrCat(
+      return errors::Unimplemented(absl::StrCat(
           "Unsupported log_type for warmup: ", warmup_record.log_type_case()));
       break;
   }

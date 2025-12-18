@@ -17,7 +17,9 @@ limitations under the License.
 
 #include <unistd.h>
 
+#include <cstdint>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
@@ -392,7 +394,7 @@ absl::Status Server::BuildAndStart(const Options& server_options) {
     builder.RegisterService(profiler_service_.get());
     LOG(INFO) << "Profiler service is enabled";
   }
-  builder.SetMaxMessageSize(tensorflow::kint32max);
+  builder.SetMaxMessageSize(std::numeric_limits<int32_t>::max());
   const std::vector<GrpcChannelArgument> channel_arguments =
       parseGrpcChannelArgs(server_options.grpc_channel_arguments);
   for (const GrpcChannelArgument& channel_argument : channel_arguments) {

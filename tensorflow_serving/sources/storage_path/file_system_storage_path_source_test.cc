@@ -75,8 +75,8 @@ TEST(FileSystemStoragePathSourceTest, NoVersionsAtStartup) {
   for (bool base_path_exists : {false, true}) {
     const string base_path = io::JoinPath(
         testing::TmpDir(),
-        strings::StrCat("NoVersionsAtStartup",
-                        base_path_exists ? "" : "_nonexistent_base_path"));
+        absl::StrCat("NoVersionsAtStartup",
+                     base_path_exists ? "" : "_nonexistent_base_path"));
     if (base_path_exists) {
       TF_ASSERT_OK(Env::Default()->CreateDir(base_path));
       TF_ASSERT_OK(Env::Default()->CreateDir(
@@ -533,7 +533,7 @@ TEST(FileSystemStoragePathSourceTest, ChangeSetOfServables) {
   const string base_path_prefix =
       io::JoinPath(testing::TmpDir(), "ChangeSetOfServables_");
   for (int i = 0; i <= 2; ++i) {
-    const string base_path = strings::StrCat(base_path_prefix, i);
+    const string base_path = absl::StrCat(base_path_prefix, i);
     TF_ASSERT_OK(Env::Default()->CreateDir(base_path));
     TF_ASSERT_OK(Env::Default()->CreateDir(io::JoinPath(base_path, "0")));
   }
@@ -541,8 +541,8 @@ TEST(FileSystemStoragePathSourceTest, ChangeSetOfServables) {
   // Configure a source initially with servables 0 and 1.
   for (int i : {0, 1}) {
     auto* servable = config.add_servables();
-    servable->set_servable_name(strings::StrCat("servable_", i));
-    servable->set_base_path(strings::StrCat(base_path_prefix, i));
+    servable->set_servable_name(absl::StrCat("servable_", i));
+    servable->set_base_path(absl::StrCat(base_path_prefix, i));
   }
   std::unique_ptr<FileSystemStoragePathSource> source;
   TF_ASSERT_OK(FileSystemStoragePathSource::Create(config, &source));
@@ -553,10 +553,10 @@ TEST(FileSystemStoragePathSourceTest, ChangeSetOfServables) {
     EXPECT_CALL(
         *target,
         SetAspiredVersions(
-            Eq(strings::StrCat("servable_", i)),
+            Eq(absl::StrCat("servable_", i)),
             ElementsAre(ServableData<StoragePath>(
-                {strings::StrCat("servable_", i), 0},
-                io::JoinPath(strings::StrCat(base_path_prefix, i), "0")))));
+                {absl::StrCat("servable_", i), 0},
+                io::JoinPath(absl::StrCat(base_path_prefix, i), "0")))));
   }
   TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())
                    .PollFileSystemAndInvokeCallback());
@@ -565,8 +565,8 @@ TEST(FileSystemStoragePathSourceTest, ChangeSetOfServables) {
   config.clear_servables();
   for (int i : {1, 2}) {
     auto* servable = config.add_servables();
-    servable->set_servable_name(strings::StrCat("servable_", i));
-    servable->set_base_path(strings::StrCat(base_path_prefix, i));
+    servable->set_servable_name(absl::StrCat("servable_", i));
+    servable->set_base_path(absl::StrCat(base_path_prefix, i));
   }
   // Servable 0 should get a zero-versions callback, causing the manager to
   // unload it.
@@ -579,10 +579,10 @@ TEST(FileSystemStoragePathSourceTest, ChangeSetOfServables) {
     EXPECT_CALL(
         *target,
         SetAspiredVersions(
-            Eq(strings::StrCat("servable_", i)),
+            Eq(absl::StrCat("servable_", i)),
             ElementsAre(ServableData<StoragePath>(
-                {strings::StrCat("servable_", i), 0},
-                io::JoinPath(strings::StrCat(base_path_prefix, i), "0")))));
+                {absl::StrCat("servable_", i), 0},
+                io::JoinPath(absl::StrCat(base_path_prefix, i), "0")))));
   }
   TF_ASSERT_OK(source->UpdateConfig(config));
   TF_ASSERT_OK(internal::FileSystemStoragePathSourceTestAccess(source.get())

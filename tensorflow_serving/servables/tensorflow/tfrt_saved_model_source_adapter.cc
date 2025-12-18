@@ -45,18 +45,14 @@ namespace serving {
 
 // copybara:strip_begin (Do not leak in tensorflow serving OSS.)
 namespace {
-// Orbax manifest file name.
-inline constexpr char kOrbaxModelManifestPb[] = "manifest.pb";
 // Orbax manifest version file name.
-inline constexpr char kOrbaxModelManifestVersionTxt[] = "manifest_version.txt";
+inline constexpr char kOrbaxModelManifestVersionTxt[] =
+    "orbax_model_version.txt";
 
 absl::Status IsOrbaxModelDirectory(absl::string_view path) {
-  const std::string orbax_model_manifest_pb_path =
-      tensorflow::io::JoinPath(path, kOrbaxModelManifestPb);
   const std::string orbax_model_manifest_version_path =
       tensorflow::io::JoinPath(path, kOrbaxModelManifestVersionTxt);
   tsl::Env* env = tsl::Env::Default();
-  TF_RETURN_IF_ERROR(env->FileExists(orbax_model_manifest_pb_path));
   TF_RETURN_IF_ERROR(env->FileExists(orbax_model_manifest_version_path));
   return absl::OkStatus();
 }

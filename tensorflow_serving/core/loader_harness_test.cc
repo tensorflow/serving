@@ -21,8 +21,8 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "absl/status/status.h"
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
@@ -205,7 +205,7 @@ TEST(LoaderHarnessTest, ExternallySignalledErrorWithCallback) {
   const absl::Status error =
       absl::Status(static_cast<absl::StatusCode>(absl::StatusCode::kUnknown),
                    "Some unknown error");
-  Notification callback_called;
+  absl::Notification callback_called;
   LoaderHarness::Options options;
   options.error_callback = [&](const ServableId& callback_id,
                                const absl::Status& callback_error) {
