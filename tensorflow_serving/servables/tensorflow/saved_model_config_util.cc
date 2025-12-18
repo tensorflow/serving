@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_config_util.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -96,7 +97,7 @@ absl::StatusOr<SavedModelConfig> LoadSavedModelConfigOrDefault(
 
   LOG(INFO) << "Loading model config from " << saved_model_config_path;
   std::string content;
-  tsl::uint64 file_size = 0;
+  uint64_t file_size = 0;
   TF_RETURN_IF_ERROR(
       tsl::Env::Default()->GetFileSize(saved_model_config_path, &file_size));
   content.resize(file_size);

@@ -156,12 +156,12 @@ absl::Status GetClassificationSignatureDef(const ModelSpec& model_spec,
                                     : model_spec.signature_name();
   auto iter = meta_graph_def.signature_def().find(signature_name);
   if (iter == meta_graph_def.signature_def().end()) {
-    return errors::InvalidArgument(strings::StrCat(
-        "No signature was found with the name: ", signature_name));
+    return errors::InvalidArgument(
+        absl::StrCat("No signature was found with the name: ", signature_name));
   }
   if (GetSignatureMethodNameCheckFeature()) {
     if (iter->second.method_name() != kClassifyMethodName) {
-      return errors::InvalidArgument(strings::StrCat(
+      return errors::InvalidArgument(absl::StrCat(
           "Expected classification signature method_name to be ",
           kClassifyMethodName, ". Was: ", iter->second.method_name()));
     }
@@ -178,18 +178,17 @@ absl::Status PreProcessClassification(
     std::vector<string>* output_tensor_names) {
   if (GetSignatureMethodNameCheckFeature() &&
       signature.method_name() != kClassifyMethodName) {
-    return errors::InvalidArgument(strings::StrCat(
-        "Expected classification signature method_name to be ",
-        kClassifyMethodName, ". Was: ", signature.method_name()));
+    return errors::InvalidArgument(
+        absl::StrCat("Expected classification signature method_name to be ",
+                     kClassifyMethodName, ". Was: ", signature.method_name()));
   }
   if (signature.inputs().size() != 1) {
-    return errors::InvalidArgument(
-        strings::StrCat("Expected one input Tensor."));
+    return errors::InvalidArgument(absl::StrCat("Expected one input Tensor."));
   }
   if (signature.outputs().size() != 1 && signature.outputs().size() != 2) {
     return errors::InvalidArgument(
-        strings::StrCat("Expected one or two output Tensors, found ",
-                        signature.outputs().size()));
+        absl::StrCat("Expected one or two output Tensors, found ",
+                     signature.outputs().size()));
   }
 
   auto input_iter = signature.inputs().find(kClassifyInputs);
@@ -228,8 +227,8 @@ absl::Status PostProcessClassificationResult(
     const std::vector<Tensor>& output_tensors, ClassificationResult* result) {
   if (output_tensors.size() != output_tensor_names.size()) {
     return errors::InvalidArgument(
-        strings::StrCat("Expected ", output_tensor_names.size(),
-                        " output tensor(s).  Got: ", output_tensors.size()));
+        absl::StrCat("Expected ", output_tensor_names.size(),
+                     " output tensor(s).  Got: ", output_tensors.size()));
   }
 
   auto classes_iter = signature.outputs().find(kClassifyOutputClasses);

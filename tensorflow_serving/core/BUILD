@@ -1,5 +1,8 @@
 # Description: Tensorflow Serving core.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",
@@ -134,6 +137,7 @@ cc_library(
         ":servable_data",
         ":source",
         "//tensorflow_serving/util:observer",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -151,6 +155,7 @@ cc_library(
         ":storage_path",
         ":target",
         "//tensorflow_serving/util:class_registration",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -179,6 +184,7 @@ cc_library(
         ":source",
         ":source_adapter",
         ":target",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -193,6 +199,7 @@ cc_test(
         ":target",
         "//tensorflow_serving/core/test_util:mock_storage_path_target",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
     ],
@@ -417,6 +424,7 @@ cc_library(
         ":servable_id",
         ":servable_state",
         "//tensorflow_serving/util:event_bus",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
@@ -434,6 +442,7 @@ cc_test(
         ":servable_state_monitor",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:event_bus",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/kernels/batching_util:fake_clock_env",
     ],
@@ -462,6 +471,7 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
         "//tensorflow_serving/util:any_ptr",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
@@ -562,6 +572,7 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/util:any_ptr",
         "//tensorflow_serving/util:event_bus",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -582,6 +593,7 @@ cc_test(
         ":servable_handle",
         ":simple_loader",
         "//tensorflow_serving/core/test_util:manager_test_util",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "@org_tensorflow//tensorflow/core:test",
@@ -601,6 +613,7 @@ cc_library(
         ":servable_handle",
         ":servable_id",
         ":simple_loader",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -629,6 +642,7 @@ cc_library(
         ":servable_handle",
         ":servable_id",
         ":source_adapter",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:optional",
         "@org_tensorflow//tensorflow/core:lib",
     ],

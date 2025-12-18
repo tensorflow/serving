@@ -1,3 +1,6 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 # Placeholder: load py_proto_library
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 # Placeholder: load go_proto_library

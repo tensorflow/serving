@@ -66,10 +66,10 @@ absl::Status RunWarmupRequest(const PredictionLog& warmup_record,
           warmup_record.multi_inference_log().request(), &response));
     } break;
     case PredictionLog::kPredictStreamedLog:
-      return errors::Unimplemented(strings::StrCat(
+      return errors::Unimplemented(absl::StrCat(
           "Unsupported log_type for warmup: ", warmup_record.log_type_case()));
     case PredictionLog::kSessionRunLog:
-      return errors::Unimplemented(strings::StrCat(
+      return errors::Unimplemented(absl::StrCat(
           "Unsupported log_type for warmup: ", warmup_record.log_type_case()));
     default:
       break;

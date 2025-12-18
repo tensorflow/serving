@@ -244,6 +244,10 @@ message TfrtSavedModelConfig {
   bool allow_orbax = 2030;
   // copybara:strip_end
   bool allow_xla_cpu = 2031;
+
+  // The number of background threads to use for loading checkpoints, or 0 to
+  // disable asynchronous checkpoint loading.
+  int64 async_checkpoint_loading_num_threads = 2032;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.

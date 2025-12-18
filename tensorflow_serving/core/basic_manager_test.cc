@@ -144,8 +144,7 @@ INSTANTIATE_TEST_CASE_P(
 TEST_P(BasicManagerTest, ServableHandleNotFoundMissingLoaderName) {
   ServableHandle<int64_t> handle;
   const absl::Status status = basic_manager_->GetServableHandle(
-      ServableRequest::Latest(strings::StrCat(kServableName, "missing")),
-      &handle);
+      ServableRequest::Latest(absl::StrCat(kServableName, "missing")), &handle);
   ASSERT_FALSE(status.ok()) << status;
   EXPECT_EQ(error::NOT_FOUND, status.code());
 }
@@ -1625,7 +1624,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, EventBusErrorOnEstimateResources) {
                                        {ServableState::ManagerState::kEnd});
   const ServableState error_state = {
       id, ServableState::ManagerState::kEnd,
-      errors::Internal(strings::StrCat(
+      errors::Internal(absl::StrCat(
           "Error while attempting to reserve resources to load servable ",
           id.DebugString(), ": Error on estimate resources."))};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),

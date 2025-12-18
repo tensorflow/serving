@@ -101,6 +101,7 @@ TfrtSavedModelServable::GetTFRTSavedModelRunOptions(
   if (run_options.disable_host_compilation) {
     options.disable_compilation = true;
   }
+  options.priority = run_options.priority;
   return options;
 }
 

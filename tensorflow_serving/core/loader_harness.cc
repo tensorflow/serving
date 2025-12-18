@@ -79,7 +79,7 @@ absl::Status LoaderHarness::Load() {
   }
 
   const absl::Status status = Retry(
-      strings::StrCat("Loading servable: ", id_.DebugString()),
+      absl::StrCat("Loading servable: ", id_.DebugString()),
       options_.max_num_load_retries, options_.load_retry_interval_micros,
       [&]() { return loader_->LoadWithMetadata({id_}); },
       [&](absl::Status status) { return should_retry(status); });
@@ -91,7 +91,7 @@ absl::Status LoaderHarness::Load() {
       // that we do not accidentally report that the servable is available.
       TF_RETURN_IF_ERROR(UnloadDueToCancelledLoad());
       absl::Status s =
-          errors::Cancelled(strings::StrCat("Loading of servable cancelled"));
+          errors::Cancelled(absl::StrCat("Loading of servable cancelled"));
       if (options_.error_callback) {
         // Invokes BasicManager::PublishOnEventBus(kEnd).
         options_.error_callback(id_, s);

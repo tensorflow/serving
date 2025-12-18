@@ -27,8 +27,8 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/kernels/batching_util/periodic_function.h"
-#include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/threadpool.h"
 #include "tensorflow/core/lib/random/philox_random.h"
@@ -102,7 +102,7 @@ class BenchmarkState {
   // To avoid having the benchmark timing include time spent scheduling threads,
   // we use this notification to notify when the read threads should begin.
   // This is notified immediately after the benchmark timing is started.
-  Notification all_read_threads_scheduled_;
+  absl::Notification all_read_threads_scheduled_;
 
   // Store the update thread as it is only safe to complete teardown and
   // destruct state after it has exited.
@@ -328,7 +328,7 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
     TF_CHECK_OK(AspiredVersionsManager::Create(std::move(options), &manager));
     auto aspired_versions_callback = manager->GetAspiredVersionsCallback();
     for (int i = 0; i < kNumServableStreams; ++i) {
-      const string servable_name = strings::StrCat(kServableName, i);
+      const string servable_name = absl::StrCat(kServableName, i);
       std::vector<ServableData<std::unique_ptr<Loader>>> versions;
       for (int j = 0; j < kNumServableVersions; ++j) {
         std::unique_ptr<Loader> loader(new SimpleLoader<int64_t>(
@@ -364,7 +364,7 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
     random::SimplePhilox random(&philox);
     for (int i = 0; i < kNumRequests; ++i) {
       const string name =
-          strings::StrCat(kServableName, random.Uniform(kNumServableStreams));
+          absl::StrCat(kServableName, random.Uniform(kNumServableStreams));
       if (random.RandFloat() > kLatestRatio) {
         const int64_t version = random.Uniform(kNumServableVersions);
         requests->push_back(ServableRequest::Specific(name, version));

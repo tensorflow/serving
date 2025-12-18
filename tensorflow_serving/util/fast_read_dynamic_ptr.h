@@ -22,7 +22,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 
-#include "tensorflow/core/lib/core/notification.h"
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/mutex.h"
@@ -172,7 +172,7 @@ class FastReadDynamicPtr<T, ReadPtrHolder>::ShareableOwnedPtr {
   // decrements this before waiting for a notification.
   std::atomic<uint32> shares_ = {1};
   // When shares_ goes to zero, this will be notified.
-  Notification no_longer_shared_;
+  absl::Notification no_longer_shared_;
   TF_DISALLOW_COPY_AND_ASSIGN(ShareableOwnedPtr);
 };
 

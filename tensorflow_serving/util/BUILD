@@ -1,5 +1,7 @@
 # Description: Tensorflow Serving utils.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 package(
@@ -129,6 +131,7 @@ cc_library(
     hdrs = ["fast_read_dynamic_ptr.h"],
     visibility = ["//visibility:public"],
     deps = [
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -139,6 +142,7 @@ cc_test(
     deps = [
         ":fast_read_dynamic_ptr",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
     ],
@@ -150,6 +154,7 @@ cc_test(
     srcs = ["fast_read_dynamic_ptr_benchmark.cc"],
     deps = [
         ":fast_read_dynamic_ptr",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:tensorflow",
@@ -363,6 +368,7 @@ cc_test(
         ":proto_util",
         "//tensorflow_serving/apis:status_cc_proto",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/status",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

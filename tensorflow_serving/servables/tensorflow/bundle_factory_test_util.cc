@@ -135,12 +135,12 @@ void TestMultipleRequests(Session* session, int num_requests,
   std::vector<std::unique_ptr<Thread>> request_threads;
   request_threads.reserve(num_requests);
   for (int i = 0; i < num_requests; ++i) {
-    request_threads.push_back(
-        std::unique_ptr<Thread>(Env::Default()->StartThread(
-            ThreadOptions(), strings::StrCat("thread_", i),
-            [session, input_batch_size] {
-              TestSingleRequest(session, input_batch_size);
-            })));
+    request_threads.push_back(std::unique_ptr<Thread>(
+        Env::Default()->StartThread(ThreadOptions(), absl::StrCat("thread_", i),
+                                    [session, input_batch_size] {
+                                      TestSingleRequest(session,
+                                                        input_batch_size);
+                                    })));
   }
 }
 

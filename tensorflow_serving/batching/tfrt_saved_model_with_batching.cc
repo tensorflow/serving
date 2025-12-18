@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/inlined_vector.h"
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/framework/tensor_util.h"
 #include "tensorflow/core/kernels/batching_util/batch_scheduler.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
@@ -202,7 +203,7 @@ absl::Status SavedModelWithBatching::Run(
   }
   outputs->clear();
 
-  Notification done;
+  absl::Notification done;
   absl::Status status;
   auto task = absl::make_unique<SavedModelBatchingTask>();
   TF_RETURN_IF_ERROR(ComputeTensorBatchSize(

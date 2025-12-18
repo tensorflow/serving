@@ -1,5 +1,7 @@
 # Description: a lightweight http client
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 package(default_visibility = [
     "//tensorflow_serving/util/net_http:__subpackages__",
 ])
