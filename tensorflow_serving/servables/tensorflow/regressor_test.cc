@@ -65,25 +65,25 @@ class FakeSession : public tensorflow::Session {
   explicit FakeSession(absl::optional<int64_t> expected_timeout)
       : expected_timeout_(expected_timeout) {}
   ~FakeSession() override = default;
-  Status Create(const GraphDef& graph) override {
+  absl::Status Create(const GraphDef& graph) override {
     return errors::Unimplemented("not available in fake");
   }
-  Status Extend(const GraphDef& graph) override {
-    return errors::Unimplemented("not available in fake");
-  }
-
-  Status Close() override {
+  absl::Status Extend(const GraphDef& graph) override {
     return errors::Unimplemented("not available in fake");
   }
 
-  Status ListDevices(std::vector<DeviceAttributes>* response) override {
+  absl::Status Close() override {
     return errors::Unimplemented("not available in fake");
   }
 
-  Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_names,
-             const std::vector<string>& target_nodes,
-             std::vector<Tensor>* outputs) override {
+  absl::Status ListDevices(std::vector<DeviceAttributes>* response) override {
+    return errors::Unimplemented("not available in fake");
+  }
+
+  absl::Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
+                   const std::vector<string>& output_names,
+                   const std::vector<string>& target_nodes,
+                   std::vector<Tensor>* outputs) override {
     if (expected_timeout_) {
       LOG(FATAL) << "Run() without RunOptions not expected to be called";
     }
@@ -92,21 +92,23 @@ class FakeSession : public tensorflow::Session {
                &run_metadata);
   }
 
-  Status Run(const RunOptions& run_options,
-             const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_names,
-             const std::vector<string>& target_nodes,
-             std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+  absl::Status Run(const RunOptions& run_options,
+                   const std::vector<std::pair<string, Tensor>>& inputs,
+                   const std::vector<string>& output_names,
+                   const std::vector<string>& target_nodes,
+                   std::vector<Tensor>* outputs,
+                   RunMetadata* run_metadata) override {
     return Run(run_options, inputs, output_names, target_nodes, outputs,
                run_metadata, thread::ThreadPoolOptions());
   }
 
-  Status Run(const RunOptions& run_options,
-             const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_names,
-             const std::vector<string>& target_nodes,
-             std::vector<Tensor>* outputs, RunMetadata* run_metadata,
-             const thread::ThreadPoolOptions& thread_pool_options) override {
+  absl::Status Run(
+      const RunOptions& run_options,
+      const std::vector<std::pair<string, Tensor>>& inputs,
+      const std::vector<string>& output_names,
+      const std::vector<string>& target_nodes, std::vector<Tensor>* outputs,
+      RunMetadata* run_metadata,
+      const thread::ThreadPoolOptions& thread_pool_options) override {
     if (expected_timeout_) {
       CHECK_EQ(*expected_timeout_, run_options.timeout_in_ms());
     }
@@ -123,8 +125,8 @@ class FakeSession : public tensorflow::Session {
   }
 
   // Parses TensorFlow Examples from a string Tensor.
-  static Status GetExamples(const Tensor& input,
-                            std::vector<Example>* examples) {
+  static absl::Status GetExamples(const Tensor& input,
+                                  std::vector<Example>* examples) {
     examples->clear();
     const int batch_size = input.dim_size(0);
     const auto& flat_input = input.flat<tstring>();
@@ -151,9 +153,9 @@ class FakeSession : public tensorflow::Session {
   // Creates a Tensor by copying the "output" feature from each Example.
   // Requires each Example have an bytes feature called "class" which is of the
   // same non-zero length.
-  static Status GetOutputTensor(const std::vector<Example>& examples,
-                                const string& output_tensor_name,
-                                Tensor* tensor) {
+  static absl::Status GetOutputTensor(const std::vector<Example>& examples,
+                                      const string& output_tensor_name,
+                                      Tensor* tensor) {
     if (examples.empty()) {
       return errors::Internal("empty example list");
     }
@@ -232,7 +234,7 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
     return example;
   }
 
-  Status Create() {
+  absl::Status Create() {
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
     saved_model->meta_graph_def = saved_model_bundle_->meta_graph_def;
     saved_model->session = std::move(saved_model_bundle_->session);
@@ -374,7 +376,7 @@ TEST_P(RegressorTest, InvalidNamedSignature) {
       request_.mutable_input()->mutable_example_list()->mutable_examples();
   *examples->Add() = example_with_output(2.0);
   *examples->Add() = example_with_output(3.0);
-  Status status = regressor_->Regress(request_, &result_);
+  absl::Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
@@ -397,7 +399,7 @@ TEST_P(RegressorTest, MalformedOutputs) {
       request_.mutable_input()->mutable_example_list()->mutable_examples();
   *examples->Add() = example_with_output(2.0);
   *examples->Add() = example_with_output(3.0);
-  Status status = regressor_->Regress(request_, &result_);
+  absl::Status status = regressor_->Regress(request_, &result_);
 
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
@@ -417,7 +419,7 @@ TEST_P(RegressorTest, EmptyInput) {
   TF_ASSERT_OK(Create());
   // Touch input.
   request_.mutable_input();
-  Status status = regressor_->Regress(request_, &result_);
+  absl::Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
   EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
@@ -432,7 +434,7 @@ TEST_P(RegressorTest, EmptyInput) {
 TEST_P(RegressorTest, EmptyExampleList) {
   TF_ASSERT_OK(Create());
   request_.mutable_input()->mutable_example_list();
-  Status status = regressor_->Regress(request_, &result_);
+  absl::Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
   EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
@@ -450,7 +452,7 @@ TEST_P(RegressorTest, EmptyExampleListWithContext) {
   *request_.mutable_input()
        ->mutable_example_list_with_context()
        ->mutable_context() = example_with_output(3);
-  Status status = regressor_->Regress(request_, &result_);
+  absl::Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
   EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
@@ -471,7 +473,7 @@ TEST_P(RegressorTest, RunsFails) {
   TF_ASSERT_OK(Create());
   *request_.mutable_input()->mutable_example_list()->mutable_examples()->Add() =
       example_with_output(2.0);
-  Status status = regressor_->Regress(request_, &result_);
+  absl::Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
   RegressionResponse response;
@@ -491,7 +493,7 @@ TEST_P(RegressorTest, UnexpectedOutputTensorSize) {
   TF_ASSERT_OK(Create());
   *request_.mutable_input()->mutable_example_list()->mutable_examples()->Add() =
       example_with_output(2.0);
-  Status status = regressor_->Regress(request_, &result_);
+  absl::Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("output batch size"));
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
@@ -515,7 +517,7 @@ TEST_P(RegressorTest, UnexpectedOutputTensorType) {
   TF_ASSERT_OK(Create());
   *request_.mutable_input()->mutable_example_list()->mutable_examples()->Add() =
       example_with_output(2.0);
-  Status status = regressor_->Regress(request_, &result_);
+  absl::Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Expected output Tensor of DT_FLOAT"));
@@ -542,7 +544,7 @@ TEST_P(RegressorTest, MissingRegressionSignature) {
   *request_.mutable_input()->mutable_example_list()->mutable_examples()->Add() =
       example;
   // TODO(b/26220896): This error should move to construction time.
-  Status status = regressor_->Regress(request_, &result_);
+  absl::Status status = regressor_->Regress(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())

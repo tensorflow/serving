@@ -21,8 +21,8 @@ limitations under the License.
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
-#include "tsl/lib/monitoring/collected_metrics.h"
-#include "tsl/lib/monitoring/collection_registry.h"
+#include "xla/tsl/lib/monitoring/collected_metrics.h"
+#include "xla/tsl/lib/monitoring/collection_registry.h"
 #include "tensorflow_serving/model_servers/get_model_status_impl.h"
 #include "tensorflow_serving/model_servers/grpc_status_util.h"
 #include "tensorflow_serving/util/status_util.h"
@@ -45,7 +45,7 @@ namespace serving {
     ::grpc::ServerContext *context, const ReloadConfigRequest *request,
     ReloadConfigResponse *response) {
   ModelServerConfig server_config = request->config();
-  Status status;
+  absl::Status status;
   const absl::flat_hash_map<std::string, int64_t> old_metric_values =
       GetMetrics(request);
   switch (server_config.config_case()) {

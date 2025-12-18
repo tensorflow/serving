@@ -11,6 +11,8 @@ option cc_enable_arenas = true;
 message SessionOverrides {
   optional tools.RemoteOpRemapConfig remote_op_remap_config = 1;
   optional BatchOpRewriteConfig batch_op_rewriter_config = 2;
+  // Disable the entire meta optimizer (off by default).
+  optional bool disable_meta_optimizer = 3;
 }
 
 message SavedModelConfig {

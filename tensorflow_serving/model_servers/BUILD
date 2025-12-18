@@ -3,6 +3,9 @@
 # Placeholder: load py_binary
 # Placeholder: load py_test
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_google", "if_libtpu", "if_with_tpu_support")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 
@@ -78,16 +81,24 @@ cc_library(
         "//tensorflow_serving/config:logging_config_cc_proto",
         "//tensorflow_serving/config:model_server_config_cc_proto",
         "//tensorflow_serving/config:platform_config_cc_proto",
+        "//tensorflow_serving/core:aspired_version_policy",
         "//tensorflow_serving/core:aspired_versions_manager",
         "//tensorflow_serving/core:dynamic_source_router",
         "//tensorflow_serving/core:load_servables_fast",
+        "//tensorflow_serving/core:loader",
+        "//tensorflow_serving/core:manager",
         "//tensorflow_serving/core:prefix_storage_path_source_adapter",
+        "//tensorflow_serving/core:servable_id",
+        "//tensorflow_serving/core:servable_state",
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/core:server_request_logger",
         "//tensorflow_serving/core:source",
         "//tensorflow_serving/core:source_adapter",
         "//tensorflow_serving/core:storage_path",
         "//tensorflow_serving/core:stream_logger",
+        "//tensorflow_serving/core:target",
+        "//tensorflow_serving/resources:resource_tracker",
+        "//tensorflow_serving/resources:resource_util",
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/servables/tensorflow:predict_util",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
@@ -96,7 +107,11 @@ cc_library(
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:unique_ptr_with_deps",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
         "@com_google_protobuf//:cc_wkt_protos",
@@ -200,7 +215,7 @@ cc_test(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_googlesource_code_re2//:re2",
-        "@local_tsl//tsl/platform:errors",
+        "@local_xla//xla/tsl/platform:errors",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:lib",
@@ -220,8 +235,8 @@ cc_library(
         "//tensorflow_serving/apis:model_service_cc_proto",
         "//tensorflow_serving/util:status_util",
         "@com_google_absl//absl/container:flat_hash_map",
-        "@local_tsl//tsl/lib/monitoring:collected_metrics",
-        "@local_tsl//tsl/lib/monitoring:collection_registry",
+        "@local_xla//xla/tsl/lib/monitoring:collected_metrics",
+        "@local_xla//xla/tsl/lib/monitoring:collection_registry",
     ],
 )
 
@@ -460,13 +475,12 @@ cc_library(
         ":http_rest_api_handler_base",
         ":platform_config_util",
         ":prediction_service_impl",
+        ":prediction_service_util",
         ":server_core",
         "//tensorflow_serving/apis:prediction_service_cc_proto",
-        "//tensorflow_serving/model_servers:prediction_service_util",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
         "@com_github_grpc_grpc//:grpc++",
-        "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
@@ -497,6 +511,7 @@ cc_library(
         "//tensorflow_serving/servables/tensorflow:get_model_metadata_impl",
         "//tensorflow_serving/servables/tensorflow:multi_inference",
         "//tensorflow_serving/servables/tensorflow:predict_impl",
+        "//tensorflow_serving/servables/tensorflow:predict_response_tensor_serialization_option",
         "//tensorflow_serving/servables/tensorflow:regression_service",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
@@ -508,7 +523,7 @@ cc_library(
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/memory",
         "@com_google_protobuf//:cc_wkt_protos",
-        "@local_tsl//tsl/platform:errors",
+        "@local_xla//xla/tsl/platform:errors",
         "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
@@ -537,6 +552,7 @@ cc_library(
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/compiler/jit:xla_cpu_jit",
+        "@org_tensorflow//tensorflow/compiler/jit:xla_gpu_jit",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core/platform/cloud:gcs_file_system",
     ] + if_google(
@@ -640,7 +656,7 @@ cc_library(
         "@com_github_grpc_grpc//:grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/time",
-        "@local_tsl//tsl/platform:errors",
+        "@local_xla//xla/tsl/platform:errors",
     ] + if_google(["//third_party/grpc:grpc++"]),
 )
 

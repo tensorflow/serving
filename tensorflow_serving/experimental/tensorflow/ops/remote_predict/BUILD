@@ -7,6 +7,9 @@ load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_custom_op_library", "tf_g
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_custom_op_py_library")
 # buildifier: enable=same-origin-load
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 licenses(["notice"])
 
 cc_library(
@@ -24,12 +27,14 @@ cc_library(
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/apis:prediction_service_cc_proto",
         "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
         "@com_google_protobuf//:protobuf_lite",
         "@org_tensorflow//tensorflow/core:framework_headers_lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core/kernels:ops_util_hdrs",
+        "@org_tensorflow//tensorflow/core/platform:status",
         "@org_tensorflow//tensorflow/core/platform:statusor",
     ],
     alwayslink = 1,
@@ -38,6 +43,7 @@ cc_library(
 tf_gen_op_libs(
     op_lib_names = ["remote_predict_op"],
     deps = [
+        "@com_google_absl//absl/flags:flag",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )
@@ -84,6 +90,7 @@ tf_kernel_library(
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/apis:prediction_service_cc_proto",
         "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
         "@com_google_protobuf//:cc_wkt_protos",
@@ -137,6 +144,7 @@ cc_test(
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/apis:prediction_service_cc_proto",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
         "@com_google_protobuf//:cc_wkt_protos",

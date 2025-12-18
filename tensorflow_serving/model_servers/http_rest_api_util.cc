@@ -43,7 +43,7 @@ void AddCORSHeaders(std::vector<std::pair<string, string>>* headers) {
   headers->push_back({"Access-Control-Allow-Headers", "Content-Type"});
 }
 
-Status FillModelSpecWithNameVersionAndLabel(
+absl::Status FillModelSpecWithNameVersionAndLabel(
     const absl::string_view model_name,
     const absl::optional<int64_t>& model_version,
     const absl::optional<absl::string_view> model_version_label,
@@ -87,12 +87,13 @@ bool DecodeArg(string* arg) {
   return false;
 }
 
-Status ParseModelInfo(const absl::string_view http_method,
-                      const absl::string_view request_path, string* model_name,
-                      absl::optional<int64_t>* model_version,
-                      absl::optional<string>* model_version_label,
-                      string* method, string* model_subresource,
-                      bool* parse_successful) {
+absl::Status ParseModelInfo(const absl::string_view http_method,
+                            const absl::string_view request_path,
+                            string* model_name,
+                            absl::optional<int64_t>* model_version,
+                            absl::optional<string>* model_version_label,
+                            string* method, string* model_subresource,
+                            bool* parse_successful) {
   string model_version_str;
   string model_version_label_str;
   // Parse request parameters
@@ -129,7 +130,8 @@ Status ParseModelInfo(const absl::string_view http_method,
   return absl::OkStatus();
 }
 
-Status ToJsonString(const GetModelStatusResponse& response, string* output) {
+absl::Status ToJsonString(const GetModelStatusResponse& response,
+                          string* output) {
   google::protobuf::util::JsonPrintOptions opts;
   opts.add_whitespace = true;
   opts.always_print_primitive_fields = true;
@@ -142,7 +144,8 @@ Status ToJsonString(const GetModelStatusResponse& response, string* output) {
   return absl::OkStatus();
 }
 
-Status ToJsonString(const GetModelMetadataResponse& response, string* output) {
+absl::Status ToJsonString(const GetModelMetadataResponse& response,
+                          string* output) {
   google::protobuf::util::JsonPrintOptions opts;
   opts.add_whitespace = true;
   opts.always_print_primitive_fields = true;

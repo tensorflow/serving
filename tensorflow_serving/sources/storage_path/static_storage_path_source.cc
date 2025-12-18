@@ -25,13 +25,13 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status StaticStoragePathSource::Create(
+absl::Status StaticStoragePathSource::Create(
     const StaticStoragePathSourceConfig& config,
     std::unique_ptr<StaticStoragePathSource>* result) {
   auto raw_result = new StaticStoragePathSource;
   raw_result->config_ = config;
   result->reset(raw_result);
-  return Status();
+  return absl::Status();
 }
 
 void StaticStoragePathSource::SetAspiredVersionsCallback(

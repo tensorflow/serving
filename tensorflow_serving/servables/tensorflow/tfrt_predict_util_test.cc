@@ -96,8 +96,8 @@ class PredictImplTest : public ::testing::Test {
   static void TearDownTestSuite() { saved_model_server_core_.reset(); }
 
  protected:
-  Status GetSavedModelServableHandle(ServerCore* server_core,
-                                     ServableHandle<Servable>* servable) {
+  absl::Status GetSavedModelServableHandle(ServerCore* server_core,
+                                           ServableHandle<Servable>* servable) {
     ModelSpec model_spec;
     model_spec.set_name(kTestModelName);
     return server_core->GetServableHandle(model_spec, servable);
@@ -105,9 +105,10 @@ class PredictImplTest : public ::testing::Test {
 
   ServerCore* GetServerCore() { return saved_model_server_core_.get(); }
 
-  Status CallPredict(ServerCore* server_core, const PredictRequest& request,
-                     PredictResponse* response,
-                     absl::Duration timeout = absl::ZeroDuration()) {
+  absl::Status CallPredict(ServerCore* server_core,
+                           const PredictRequest& request,
+                           PredictResponse* response,
+                           absl::Duration timeout = absl::ZeroDuration()) {
     ServableHandle<Servable> servable;
     TF_RETURN_IF_ERROR(GetSavedModelServableHandle(server_core, &servable));
 

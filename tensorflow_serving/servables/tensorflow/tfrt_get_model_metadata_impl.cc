@@ -21,26 +21,26 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tsl/platform/errors.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
 
 namespace tensorflow {
 namespace serving {
 
-Status TFRTGetModelMetadataImpl::GetModelMetadata(
+absl::Status TFRTGetModelMetadataImpl::GetModelMetadata(
     ServerCore* core, const GetModelMetadataRequest& request,
     GetModelMetadataResponse* response) {
   if (!request.has_model_spec()) {
-    return tensorflow::Status(absl::StatusCode::kInvalidArgument,
-                              "Missing ModelSpec");
+    return absl::Status(absl::StatusCode::kInvalidArgument,
+                        "Missing ModelSpec");
   }
   return GetModelMetadataWithModelSpec(core, request.model_spec(), request,
                                        response);
 }
 
-Status TFRTGetModelMetadataImpl::GetModelMetadataWithModelSpec(
+absl::Status TFRTGetModelMetadataImpl::GetModelMetadataWithModelSpec(
     ServerCore* core, const ModelSpec& model_spec,
     const GetModelMetadataRequest& request,
     GetModelMetadataResponse* response) {

@@ -24,11 +24,11 @@ limitations under the License.
 
 #include "google/protobuf/wrappers.pb.h"
 #include "absl/container/flat_hash_set.h"
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/platform/types.h"
-#include "tsl/platform/errors.h"
 
 namespace tensorflow {
 namespace serving {
@@ -96,9 +96,9 @@ ResourceAllocation::Entry* FindOrInsertMutableEntry(
 ResourceUtil::ResourceUtil(const Options& options)
     : devices_(StripDevicesWithZeroInstances(options.devices)) {}
 
-Status ResourceUtil::VerifyValidity(
+absl::Status ResourceUtil::VerifyValidity(
     const ResourceAllocation& allocation) const {
-  const Status result = [this, &allocation]() -> Status {
+  const absl::Status result = [this, &allocation]() -> absl::Status {
     // We use 'validated_entries' to look for duplicates.
     ResourceAllocation validated_entries;
     for (const auto& entry : allocation.resource_quantities()) {
@@ -115,7 +115,7 @@ Status ResourceUtil::VerifyValidity(
 
       *validated_entries.add_resource_quantities() = entry;
     }
-    return Status();
+    return absl::Status();
   }();
   if (!result.ok()) {
     LOG(ERROR) << result;
@@ -124,8 +124,9 @@ Status ResourceUtil::VerifyValidity(
   return result;
 }
 
-Status ResourceUtil::VerifyResourceValidity(const Resource& resource) const {
-  const Status result = [this, &resource]() -> Status {
+absl::Status ResourceUtil::VerifyResourceValidity(
+    const Resource& resource) const {
+  const absl::Status result = [this, &resource]() -> absl::Status {
     auto it = devices_.find(resource.device());
     if (it == devices_.end()) {
       return errors::InvalidArgument(
@@ -138,7 +139,7 @@ Status ResourceUtil::VerifyResourceValidity(const Resource& resource) const {
           "Invalid resource allocation: Invalid device instance ",
           resource.device(), ":", resource.device_instance().value());
     }
-    return Status();
+    return absl::Status();
   }();
   if (!result.ok()) {
     LOG(ERROR) << result;
@@ -147,7 +148,7 @@ Status ResourceUtil::VerifyResourceValidity(const Resource& resource) const {
   return result;
 }
 
-Status ResourceUtil::VerifyOverrideDeviceValidity(
+absl::Status ResourceUtil::VerifyOverrideDeviceValidity(
     const ResourceAllocation& base_allocation,
     const ResourceAllocation& override_allocation) const {
   absl::flat_hash_set<std::pair<std::string, std::string>>
@@ -166,7 +167,7 @@ Status ResourceUtil::VerifyOverrideDeviceValidity(
           entry.resource().DebugString());
     }
   }
-  return Status();
+  return absl::Status();
 }
 
 ResourceAllocation ResourceUtil::Normalize(
@@ -323,9 +324,10 @@ bool ResourceUtil::IsBoundNormalized(
   return true;
 }
 
-Status ResourceUtil::VerifyFunctionInternal(
-    std::function<Status()> fn, DCHECKFailOption dcheck_fail_option) const {
-  const Status result = fn();
+absl::Status ResourceUtil::VerifyFunctionInternal(
+    std::function<absl::Status()> fn,
+    DCHECKFailOption dcheck_fail_option) const {
+  const absl::Status result = fn();
 
   if (dcheck_fail_option == DCHECKFailOption::kDoDCHECKFail) {
     TF_DCHECK_OK(result);

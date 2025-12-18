@@ -44,8 +44,9 @@ namespace {
 using Hashmap = std::unordered_map<string, string>;
 
 // Writes the given hashmap to a file.
-Status WriteHashmapToFile(const HashmapSourceAdapterConfig::Format format,
-                          const string& file_name, const Hashmap& hashmap) {
+absl::Status WriteHashmapToFile(const HashmapSourceAdapterConfig::Format format,
+                                const string& file_name,
+                                const Hashmap& hashmap) {
   std::unique_ptr<WritableFile> file;
   TF_RETURN_IF_ERROR(Env::Default()->NewWritableFile(file_name, &file));
   switch (format) {
@@ -53,7 +54,7 @@ Status WriteHashmapToFile(const HashmapSourceAdapterConfig::Format format,
       for (const auto& entry : hashmap) {
         const string& key = entry.first;
         const string& value = entry.second;
-        const string line = strings::StrCat(key, ",", value, "\n");
+        const string line = absl::StrCat(key, ",", value, "\n");
         TF_RETURN_IF_ERROR(file->Append(line));
       }
       break;
@@ -63,7 +64,7 @@ Status WriteHashmapToFile(const HashmapSourceAdapterConfig::Format format,
                                      format);
   }
   TF_RETURN_IF_ERROR(file->Close());
-  return Status();
+  return absl::Status();
 }
 
 TEST(HashmapSourceAdapter, Basic) {

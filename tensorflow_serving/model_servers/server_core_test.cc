@@ -241,7 +241,7 @@ class RelativePathsServerCoreTest : public ServerCoreTest {
 
     ModelConfig& relative =
         *result.mutable_model_config_list()->mutable_config(0);
-    relative.set_name(strings::StrCat(model_name, "_relative"));
+    relative.set_name(absl::StrCat(model_name, "_relative"));
     const string dirname(Dirname(relative.base_path()));
     const string basename(Basename(relative.base_path()));
     CHECK(!dirname.empty());
@@ -334,7 +334,7 @@ TEST_P(ServerCoreTest, ErroringModel) {
         .mutable_source_adapter_config()) = source_adapter_config_any;
   options.model_server_config = GetTestModelServerConfigForFakePlatform();
   std::unique_ptr<ServerCore> server_core;
-  Status status = ServerCore::Create(std::move(options), &server_core);
+  absl::Status status = ServerCore::Create(std::move(options), &server_core);
   EXPECT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("1 servable(s) did not become available"));
@@ -442,9 +442,8 @@ string ModelNameForPlatform(const string& platform) {
   if (it != platform_to_model_map->end()) {
     return it->second;
   }
-  const string random = strings::StrCat(random::New64());
-  const string model_name =
-      strings::StrCat("model_", random, "_for_", platform);
+  const string random = absl::StrCat(random::New64());
+  const string model_name = absl::StrCat("model_", random, "_for_", platform);
   (*platform_to_model_map)[platform] = model_name;
   return model_name;
 }
@@ -473,7 +472,7 @@ ModelConfig ModelConfigForPlatform(const string& root_path,
 // Creates a directory for the given version of the model.
 void CreateModelDir(const ModelConfig& model_config, int version) {
   TF_CHECK_OK(Env::Default()->CreateDir(model_config.base_path()));
-  const string version_str = strings::StrCat(version);
+  const string version_str = absl::StrCat(version);
   TF_CHECK_OK(Env::Default()->CreateDir(
       io::JoinPath(model_config.base_path(), version_str)));
 }
@@ -483,7 +482,7 @@ void CreateModelDir(const ModelConfig& model_config, int version) {
 void CreateFakePlatform(const string& platform,
                         PlatformConfigMap* platform_config_map) {
   test_util::FakeLoaderSourceAdapterConfig source_adapter_config;
-  source_adapter_config.set_suffix(strings::StrCat("suffix_for_", platform));
+  source_adapter_config.set_suffix(absl::StrCat("suffix_for_", platform));
   ::google::protobuf::Any source_adapter_config_any;
   source_adapter_config_any.PackFrom(source_adapter_config);
   (*(*platform_config_map->mutable_platform_configs())[platform]
@@ -493,15 +492,15 @@ void CreateFakePlatform(const string& platform,
 // Constructs the servable data that a platform's fake source adapter will emit.
 string ServableDataForPlatform(const string& root_path, const string& platform,
                                int version) {
-  const string version_str = strings::StrCat(version);
+  const string version_str = absl::StrCat(version);
   return io::JoinPath(root_path, ModelNameForPlatform(platform), version_str,
-                      strings::StrCat("suffix_for_", platform));
+                      absl::StrCat("suffix_for_", platform));
 }
 
 TEST_P(ServerCoreTest, MultiplePlatforms) {
   const string root_path =
       io::JoinPath(testing::TmpDir(),
-                   strings::StrCat("MultiplePlatforms_", GetNameForTestCase()));
+                   absl::StrCat("MultiplePlatforms_", GetNameForTestCase()));
   TF_ASSERT_OK(Env::Default()->CreateDir(root_path));
 
   // Create a ServerCore with two platforms, and one model for each platform.
@@ -534,8 +533,8 @@ TEST_P(ServerCoreTest, MultiplePlatforms) {
 
 TEST_P(ServerCoreTest, MultiplePlatformsWithConfigChange) {
   const string root_path = io::JoinPath(
-      testing::TmpDir(), strings::StrCat("MultiplePlatformsWithConfigChange_",
-                                         GetNameForTestCase()));
+      testing::TmpDir(),
+      absl::StrCat("MultiplePlatformsWithConfigChange_", GetNameForTestCase()));
   TF_ASSERT_OK(Env::Default()->CreateDir(root_path));
 
   // Create config for three platforms, and one model per platform.
@@ -597,7 +596,7 @@ TEST_P(ServerCoreTest, MultiplePlatformsWithConfigChange) {
 TEST_P(ServerCoreTest, IllegalToChangeModelPlatform) {
   const string root_path = io::JoinPath(
       testing::TmpDir(),
-      strings::StrCat("IllegalToChangeModelPlatform_", GetNameForTestCase()));
+      absl::StrCat("IllegalToChangeModelPlatform_", GetNameForTestCase()));
   TF_ASSERT_OK(Env::Default()->CreateDir(root_path));
 
   ServerCore::Options options = GetDefaultOptions();
@@ -622,7 +621,7 @@ TEST_P(ServerCoreTest, IllegalToChangeModelPlatform) {
   ModelServerConfig new_config = initial_config;
   new_config.mutable_model_config_list()->mutable_config(0)->set_model_platform(
       platforms[1]);
-  const Status reconfigure_status = server_core->ReloadConfig(new_config);
+  const absl::Status reconfigure_status = server_core->ReloadConfig(new_config);
   EXPECT_FALSE(reconfigure_status.ok());
   EXPECT_THAT(reconfigure_status.ToString(),
               ::testing::HasSubstr("Illegal to change a model's platform"));
@@ -795,7 +794,7 @@ TEST_P(ServerCoreTest, ModelSpecMultipleVersionsAvailable) {
     model_spec.set_name(test_util::kTestModelName);
     model_spec.set_version_label("nonexistent label");
     ServableHandle<string> servable_handle;
-    Status status =
+    absl::Status status =
         server_core->GetServableHandle<string>(model_spec, &servable_handle);
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.ToString(),
@@ -822,7 +821,7 @@ TEST_P(ServerCoreTest, AssignLabelToUnavailableVersion) {
   ASSERT_EQ(1, two_version_config.model_config_list().config().size());
   test_util::MutateModelConfig(&two_version_config)
       .SetLabelVersion("nice try", test_util::kTestModelBogusVersion);
-  Status status = server_core->ReloadConfig(two_version_config);
+  absl::Status status = server_core->ReloadConfig(two_version_config);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("not currently available for inference"));
@@ -847,7 +846,7 @@ TEST_P(ServerCoreTest, AssignLabelToUnavailableVersionAllowed) {
   ASSERT_EQ(1, two_version_config.model_config_list().config().size());
   test_util::MutateModelConfig(&two_version_config)
       .SetLabelVersion("nice try", test_util::kTestModelBogusVersion);
-  Status status = server_core->ReloadConfig(two_version_config);
+  absl::Status status = server_core->ReloadConfig(two_version_config);
   EXPECT_TRUE(status.ok());
 }
 
@@ -877,7 +876,7 @@ TEST_P(ServerCoreTest, AssignExistingLabelToUnavailableVersionDisallowed) {
   ASSERT_EQ(1, two_version_config.model_config_list().config().size());
   test_util::MutateModelConfig(&two_version_config)
       .SetLabelVersion("A", test_util::kTestModelBogusVersion);
-  Status status = server_core->ReloadConfig(two_version_config);
+  absl::Status status = server_core->ReloadConfig(two_version_config);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("not currently available for inference"));
@@ -928,7 +927,7 @@ TEST_P(ServerCoreTest, VersionLabelsNotAllowed) {
   ASSERT_EQ(1, config.model_config_list().config().size());
   test_util::MutateModelConfig(&config).SetLabelVersion(
       "A", test_util::kTestModelVersion);
-  Status status = server_core->ReloadConfig(config);
+  absl::Status status = server_core->ReloadConfig(config);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(
       status.ToString(),

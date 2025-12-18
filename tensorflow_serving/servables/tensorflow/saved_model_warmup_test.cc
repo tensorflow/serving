@@ -133,8 +133,8 @@ TEST(SavedModelBundleWarmupTest, UnsupportedLogType_SessionRun) {
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(Return(absl::OkStatus()));
-  const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
-                                            base_path, &saved_model_bundle);
+  const absl::Status status = RunSavedModelWarmup(
+      ModelWarmupOptions(), RunOptions(), base_path, &saved_model_bundle);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::UNIMPLEMENTED, status.code()) << status;
   EXPECT_THAT(status.ToString(),
@@ -159,8 +159,8 @@ TEST(SavedModelBundleWarmupTest, UnsupportedLogType_PredictStreamed) {
   saved_model_bundle.session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(Return(absl::OkStatus()));
-  const Status status = RunSavedModelWarmup(ModelWarmupOptions(), RunOptions(),
-                                            base_path, &saved_model_bundle);
+  const absl::Status status = RunSavedModelWarmup(
+      ModelWarmupOptions(), RunOptions(), base_path, &saved_model_bundle);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(::tensorflow::error::UNIMPLEMENTED, status.code()) << status;
   EXPECT_THAT(status.ToString(),

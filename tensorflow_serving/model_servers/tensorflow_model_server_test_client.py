@@ -18,8 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# This is a placeholder for a Google-internal import.
-
 import grpc
 import tensorflow as tf
 

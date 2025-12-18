@@ -229,6 +229,25 @@ message TfrtSavedModelConfig {
   // See the description of the batch_padding_policy attribute of
   // BatchFunction in core/ops/batch_ops.cc.
   string batch_padding_policy = 2026;
+
+  bool disable_output_filter = 2027;
+
+  // Batching parameters to be rewritten in the existing BatchFunction ops.
+  BatchingOptions in_graph_batching_parameters = 2028;
+
+  // If non-zero, all models on this server are switched to use a prioritized
+  // batching function using this number of global threads.
+  int64 tfrt_batch_queue_global_prioritization_num_threads = 2029;
+
+  // copybara:strip_begin (Do not leak in tesorflow serving OSS.)
+  // If true, allow Orbax as an additional format for loading models.
+  bool allow_orbax = 2030;
+  // copybara:strip_end
+  bool allow_xla_cpu = 2031;
+
+  // The number of background threads to use for loading checkpoints, or 0 to
+  // disable asynchronous checkpoint loading.
+  int64 async_checkpoint_loading_num_threads = 2032;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.

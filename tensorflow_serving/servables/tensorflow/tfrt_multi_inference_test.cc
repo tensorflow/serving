@@ -86,7 +86,7 @@ class TfrtMultiInferenceTest : public ::testing::Test {
 
   ServerCore* GetServerCore() { return server_core_.get(); }
 
-  Status GetServableHandle(ServableHandle<Servable>* servable) {
+  absl::Status GetServableHandle(ServableHandle<Servable>* servable) {
     ModelSpec model_spec;
     model_spec.set_name(kTestModelName);
     return GetServerCore()->GetServableHandle(model_spec, servable);
@@ -125,7 +125,7 @@ void PopulateTask(const string& signature_name, const string& method_name,
   task->set_method_name(method_name);
 }
 
-void ExpectStatusError(const Status& status,
+void ExpectStatusError(const absl::Status& status,
                        const absl::StatusCode expected_code,
                        const string& message_substring) {
   ASSERT_EQ(expected_code, status.code());

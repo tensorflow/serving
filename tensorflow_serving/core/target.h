@@ -20,7 +20,7 @@ limitations under the License.
 #include <memory>
 #include <vector>
 
-#include "tensorflow/core/lib/core/notification.h"
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/strings/strcat.h"
@@ -94,7 +94,7 @@ class TargetBase : public Target<T> {
 
   // Notified when Detach() has been called. The shared pointer permits use in
   // an observer lambda while being impervious to this class's destruction.
-  std::shared_ptr<Notification> detached_;
+  std::shared_ptr<absl::Notification> detached_;
 
   // An observer object that forwards to SetAspiredVersions(), if not detached.
   std::unique_ptr<Observer<const StringPiece, std::vector<ServableData<T>>>>
@@ -110,9 +110,10 @@ void ConnectSourceToTarget(Source<T>* source, Target<T>* target);
 // Implementation details follow. API users need not read.
 
 template <typename T>
-TargetBase<T>::TargetBase() : mu_(new mutex), detached_(new Notification) {
+TargetBase<T>::TargetBase()
+    : mu_(new mutex), detached_(new absl::Notification) {
   std::shared_ptr<mutex> mu = mu_;
-  std::shared_ptr<Notification> detached = detached_;
+  std::shared_ptr<absl::Notification> detached = detached_;
   observer_.reset(new Observer<const StringPiece, std::vector<ServableData<T>>>(
       [mu, detached, this](const StringPiece servable_name,
                            std::vector<ServableData<T>> versions) {
