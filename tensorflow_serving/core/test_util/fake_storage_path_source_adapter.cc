@@ -34,7 +34,7 @@ FakeStoragePathSourceAdapter::~FakeStoragePathSourceAdapter() {
   }
 }
 
-Status FakeStoragePathSourceAdapter::Convert(
+absl::Status FakeStoragePathSourceAdapter::Convert(
     const StoragePath& data, StoragePath* const converted_data) {
   if (data == "invalid") {
     return errors::InvalidArgument(
@@ -44,7 +44,7 @@ Status FakeStoragePathSourceAdapter::Convert(
   }
   *converted_data =
       suffix_.empty() ? data : strings::StrCat(data, "/", suffix_);
-  return Status();
+  return absl::Status();
 }
 
 }  // namespace test_util

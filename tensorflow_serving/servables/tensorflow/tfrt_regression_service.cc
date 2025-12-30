@@ -15,9 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/tfrt_regression_service.h"
 
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/tracing.h"
-#include "tsl/platform/errors.h"
 #include "tensorflow_serving/apis/regressor.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/model_servers/server_core.h"
@@ -27,20 +27,20 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status TFRTRegressionServiceImpl::Regress(
+absl::Status TFRTRegressionServiceImpl::Regress(
     const Servable::RunOptions& run_options, ServerCore* core,
     const RegressionRequest& request, RegressionResponse* response) {
   // Verify Request Metadata and create a ServableRequest
   if (!request.has_model_spec()) {
-    return tensorflow::Status(absl::StatusCode::kInvalidArgument,
-                              "Missing ModelSpec");
+    return absl::Status(absl::StatusCode::kInvalidArgument,
+                        "Missing ModelSpec");
   }
 
   return RegressWithModelSpec(run_options, core, request.model_spec(), request,
                               response);
 }
 
-Status TFRTRegressionServiceImpl::RegressWithModelSpec(
+absl::Status TFRTRegressionServiceImpl::RegressWithModelSpec(
     const Servable::RunOptions& run_options, ServerCore* core,
     const ModelSpec& model_spec, const RegressionRequest& request,
     RegressionResponse* response) {

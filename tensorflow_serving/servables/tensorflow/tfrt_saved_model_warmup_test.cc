@@ -119,7 +119,7 @@ TEST_P(TFRTSavedModelWarmupOptionsTest, MixedWarmupData) {
           DoAll(WithArgs<3>([&](std::vector<Tensor>* output_tensors) {
                   output_tensors->push_back(scores);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
 
   EXPECT_CALL(*saved_model, Run(_, ::testing::Eq(kRegressMethodName),
                                 ::testing::An<absl::Span<const Tensor>>(), _))
@@ -128,7 +128,7 @@ TEST_P(TFRTSavedModelWarmupOptionsTest, MixedWarmupData) {
           DoAll(WithArgs<3>([&](std::vector<Tensor>* output_tensors) {
                   output_tensors->push_back(scores);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
 
   EXPECT_CALL(*saved_model, Run(_, ::testing::Eq(kClassifyMethodName),
                                 ::testing::An<absl::Span<const Tensor>>(), _))
@@ -138,7 +138,7 @@ TEST_P(TFRTSavedModelWarmupOptionsTest, MixedWarmupData) {
                   output_tensors->push_back(classes);
                   output_tensors->push_back(scores);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
 
   EXPECT_CALL(*saved_model, RunMultipleSignatures(_, _, _, _))
       .Times(num_warmup_records * GetNumRequestIterations())
@@ -149,7 +149,7 @@ TEST_P(TFRTSavedModelWarmupOptionsTest, MixedWarmupData) {
             (*output_tensors)[1].push_back(classes);
             (*output_tensors)[1].push_back(scores);
           }),
-          Return(OkStatus())));
+          Return(absl::OkStatus())));
 
   TF_EXPECT_OK(RunSavedModelWarmup(GetModelWarmupOptions(), base_path,
                                    /*lazy_init_threshold=*/0,
@@ -228,7 +228,7 @@ TEST(TFRTSavedModelWarmupTest, UnsupportedLogType) {
   AddSignatures(&meta_graph_def);
   EXPECT_CALL(*saved_model, GetMetaGraphDef())
       .WillRepeatedly(ReturnRef(meta_graph_def));
-  const Status status = RunSavedModelWarmup(
+  const absl::Status status = RunSavedModelWarmup(
       ModelWarmupOptions(), base_path,
       /*lazy_init_threshold=*/0,
       /*skip_warmup_requests_if_initialized=*/true, saved_model.get());

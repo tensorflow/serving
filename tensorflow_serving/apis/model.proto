@@ -1,9 +1,10 @@
 syntax = "proto3";
 
 package tensorflow.serving;
-option cc_enable_arenas = true;
 
 import "google/protobuf/wrappers.proto";
+
+option cc_enable_arenas = true;
 
 // Metadata for an inference request such as the model name and version.
 message ModelSpec {
@@ -12,8 +13,10 @@ message ModelSpec {
 
   // Optional choice of which version of the model to use.
   //
-  // Recommended to be left unset in the common case. Should be specified only
-  // when there is a strong version consistency requirement.
+  // Expected to be left unset in the common case. Should be specified when
+  // there is a strong version consistency requirement (e.g. when the model
+  // signature changes across versions and requests need to be
+  // version-specific).
   //
   // When left unspecified, the system will serve the best available version.
   // This is typically the latest version, though during version transitions,

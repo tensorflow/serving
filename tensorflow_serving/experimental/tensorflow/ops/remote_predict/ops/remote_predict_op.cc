@@ -14,9 +14,14 @@ limitations under the License.
 ==============================================================================*/
 #include <vector>
 
+#include "absl/flags/flag.h"
 #include "tensorflow/core/framework/common_shape_fns.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
+
+ABSL_FLAG(bool, remote_predict_op_use_tensor_content, false,
+          "If true, use AsProtoTensorContent for serializing tensors in "
+          "RemotePredictOp. Otherwise, use AsProtoField.");
 
 namespace tensorflow {
 
@@ -75,7 +80,7 @@ REGISTER_OP("TfServingRemotePredict")
         c->set_output(i, c->UnknownShape());
       }
 
-      return Status();
+      return absl::Status();
     })
     .SetIsStateful()
     .SetIsDistributedCommunication()

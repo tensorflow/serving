@@ -1,5 +1,7 @@
 # Description: testing utils for Tensorflow Serving utils.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 package(
     default_visibility = [
         "//tensorflow_serving:internal",

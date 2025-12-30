@@ -33,7 +33,6 @@ To create a model:
 import argparse
 import sys
 
-# This is a placeholder for a Google-internal import.
 import tensorflow.compat.v1 as tf
 
 from tensorflow.lite.tools.signature import signature_def_utils

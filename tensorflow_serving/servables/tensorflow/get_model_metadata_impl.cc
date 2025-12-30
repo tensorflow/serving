@@ -30,10 +30,11 @@ namespace serving {
 
 namespace {
 
-Status ValidateGetModelMetadataRequest(const GetModelMetadataRequest& request) {
+absl::Status ValidateGetModelMetadataRequest(
+    const GetModelMetadataRequest& request) {
   if (request.metadata_field_size() == 0) {
-    return tensorflow::Status(
-        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+    return absl::Status(
+        static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
         "GetModelMetadataRequest must specify at least one metadata_field");
   }
   for (const auto& metadata_field : request.metadata_field()) {
@@ -42,12 +43,13 @@ Status ValidateGetModelMetadataRequest(const GetModelMetadataRequest& request) {
           "Metadata field ", metadata_field, " is not supported");
     }
   }
-  return tensorflow::OkStatus();
+  return absl::OkStatus();
 }
 
-Status SavedModelGetSignatureDef(ServerCore* core, const ModelSpec& model_spec,
-                                 const GetModelMetadataRequest& request,
-                                 GetModelMetadataResponse* response) {
+absl::Status SavedModelGetSignatureDef(ServerCore* core,
+                                       const ModelSpec& model_spec,
+                                       const GetModelMetadataRequest& request,
+                                       GetModelMetadataResponse* response) {
   ServableHandle<SavedModelBundle> bundle;
   TF_RETURN_IF_ERROR(core->GetServableHandle(model_spec, &bundle));
   SignatureDefMap signature_def_map;
@@ -61,26 +63,26 @@ Status SavedModelGetSignatureDef(ServerCore* core, const ModelSpec& model_spec,
 
   (*response->mutable_metadata())[GetModelMetadataImpl::kSignatureDef].PackFrom(
       signature_def_map);
-  return tensorflow::OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace
 
 constexpr const char GetModelMetadataImpl::kSignatureDef[];
 
-Status GetModelMetadataImpl::GetModelMetadata(
+absl::Status GetModelMetadataImpl::GetModelMetadata(
     ServerCore* core, const GetModelMetadataRequest& request,
     GetModelMetadataResponse* response) {
   if (!request.has_model_spec()) {
-    return tensorflow::Status(
-        static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+    return absl::Status(
+        static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
         "Missing ModelSpec");
   }
   return GetModelMetadataWithModelSpec(core, request.model_spec(), request,
                                        response);
 }
 
-Status GetModelMetadataImpl::GetModelMetadataWithModelSpec(
+absl::Status GetModelMetadataImpl::GetModelMetadataWithModelSpec(
     ServerCore* core, const ModelSpec& model_spec,
     const GetModelMetadataRequest& request,
     GetModelMetadataResponse* response) {
@@ -94,7 +96,7 @@ Status GetModelMetadataImpl::GetModelMetadataWithModelSpec(
           "MetadataField ", metadata_field, " is not supported");
     }
   }
-  return tensorflow::OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace serving

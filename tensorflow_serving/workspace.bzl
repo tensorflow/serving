@@ -4,8 +4,8 @@ Some of the external dependencies need to be initialized. To do this, duplicate
 the initialization code from TensorFlow Serving's WORKSPACE file.
 """
 
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 def tf_serving_workspace():
     """All TensorFlow Serving external dependencies."""
@@ -36,9 +36,9 @@ def tf_serving_workspace():
     # ===== libevent (libevent.org) dependency =====
     http_archive(
         name = "com_github_libevent_libevent",
-        url = "https://github.com/libevent/libevent/archive/release-2.1.8-stable.zip",
-        sha256 = "70158101eab7ed44fd9cc34e7f247b3cae91a8e4490745d9d6eb7edc184e4d96",
-        strip_prefix = "libevent-release-2.1.8-stable",
+        url = "https://github.com/libevent/libevent/archive/release-2.1.12-stable.zip",
+        sha256 = "8836ad722ab211de41cb82fe098911986604f6286f67d10dfb2b6787bf418f49",
+        strip_prefix = "libevent-release-2.1.12-stable",
         build_file = "@//third_party/libevent:BUILD",
     )
 

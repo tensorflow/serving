@@ -18,11 +18,11 @@ limitations under the License.
 #include "absl/status/status.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
+#include "xla/tsl/lib/core/status_test_util.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/example/feature.pb.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/tfrt/saved_model/saved_model.h"
-#include "tsl/lib/core/status_test_util.h"
 #include "tensorflow_serving/apis/classification.pb.h"
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
@@ -86,7 +86,7 @@ class TfrtMultiInferenceTest : public ::testing::Test {
 
   ServerCore* GetServerCore() { return server_core_.get(); }
 
-  Status GetServableHandle(ServableHandle<Servable>* servable) {
+  absl::Status GetServableHandle(ServableHandle<Servable>* servable) {
     ModelSpec model_spec;
     model_spec.set_name(kTestModelName);
     return GetServerCore()->GetServableHandle(model_spec, servable);
@@ -125,7 +125,7 @@ void PopulateTask(const string& signature_name, const string& method_name,
   task->set_method_name(method_name);
 }
 
-void ExpectStatusError(const Status& status,
+void ExpectStatusError(const absl::Status& status,
                        const absl::StatusCode expected_code,
                        const string& message_substring) {
   ASSERT_EQ(expected_code, status.code());

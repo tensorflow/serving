@@ -16,8 +16,12 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_MODEL_SERVERS_MODEL_SERVICE_IMPL_H_
 #define TENSORFLOW_SERVING_MODEL_SERVERS_MODEL_SERVICE_IMPL_H_
 
+#include <cstdint>
+#include <string>
+
 #include "grpcpp/server_context.h"
 #include "grpcpp/support/status.h"
+#include "absl/container/flat_hash_map.h"
 #include "tensorflow_serving/apis/model_management.pb.h"
 #include "tensorflow_serving/apis/model_service.grpc.pb.h"
 #include "tensorflow_serving/apis/model_service.pb.h"
@@ -40,6 +44,17 @@ class ModelServiceImpl final : public ModelService::Service {
 
  private:
   ServerCore *core_;
+
+  // Obtains values for metrics provided in request.
+  absl::flat_hash_map<std::string, int64_t> GetMetrics(
+      const ReloadConfigRequest *request);
+
+  // Compares old_metric_values and new_metric_values, storing the increases in
+  // response
+  void RecordMetricsIncrease(
+      const absl::flat_hash_map<std::string, int64_t> &old_metric_values,
+      const absl::flat_hash_map<std::string, int64_t> &new_metric_values,
+      ReloadConfigResponse *response);
 };
 
 }  // namespace serving

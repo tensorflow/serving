@@ -114,7 +114,8 @@ monitoring::Counter<1>* GetExampleCountTotal() { return example_count_total; }
 }  // namespace internal
 
 // Metrics by model
-void RecordModelRequestCount(const string& model_name, const Status& status) {
+void RecordModelRequestCount(const string& model_name,
+                             const absl::Status& status) {
   model_request_status_count_total
       ->GetCell(model_name,
                 error::Code_Name(static_cast<error::Code>(status.code())))
@@ -130,7 +131,8 @@ void RecordRequestExampleCount(const string& model_name, size_t count) {
   example_count_total->GetCell(model_name)->IncrementBy(count);
 }
 
-Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
+absl::Status InputToSerializedExampleTensor(const Input& input,
+                                            Tensor* examples) {
   internal::SerializedInput serialized_input;
   // There's a reason we serialize and then parse 'input' in this way:
   // 'example_list' and 'example_list_with_context' are lazily parsed
@@ -146,11 +148,11 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
     // Benchmark ('BM_InputToSerializedExample') can help measure the effect of
     // changes in the future.
     absl::Cord tmp;
-    if (!input.SerializeToCord(&tmp)) {
+    if (!input.SerializeToString(&tmp)) {
       return errors::InvalidArgument("Input failed to serialize. Size = ",
                                      input.ByteSizeLong());
     }
-    parse_serialized_input_ok = serialized_input.ParseFromCord(tmp);
+    parse_serialized_input_ok = serialized_input.ParseFromString(tmp);
   }
 #else
   parse_serialized_input_ok =
@@ -205,10 +207,10 @@ Status InputToSerializedExampleTensor(const Input& input, Tensor* examples) {
       return errors::Unimplemented(
           "Input with kind ", serialized_input.kind_case(), " not supported.");
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status PerformOneShotTensorComputation(
+absl::Status PerformOneShotTensorComputation(
     const RunOptions& run_options, const Input& input,
     const string& input_tensor_name,
     const std::vector<string>& output_tensor_names, Session* session,
@@ -230,10 +232,10 @@ Status PerformOneShotTensorComputation(
   if (runtime_latency != nullptr) {
     *runtime_latency = end_microseconds - start_microseconds;
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status PerformOneShotTensorComputation(
+absl::Status PerformOneShotTensorComputation(
     const RunOptions& run_options, const Input& input,
     const std::set<string>& input_tensor_names,
     const std::vector<string>& output_tensor_names, Session* session,
@@ -272,8 +274,8 @@ void MakeModelSpec(const string& model_name,
   }
 }
 
-Status GetModelDiskSize(const string& path, FileProbingEnv* env,
-                        uint64_t* total_file_size) {
+absl::Status GetModelDiskSize(const string& path, FileProbingEnv* env,
+                              uint64_t* total_file_size) {
   if (env == nullptr) {
     return errors::Internal("FileProbingEnv not set");
   }
@@ -293,7 +295,7 @@ Status GetModelDiskSize(const string& path, FileProbingEnv* env,
     TF_RETURN_IF_ERROR(env->GetChildren(dir, &children));
     // Multi-threaded writes are safe for int but not bool, so we use int below.
     std::vector<int> child_is_dir(children.size());
-    std::vector<StatusOr<uint64_t>> children_sizes(children.size());
+    std::vector<absl::StatusOr<uint64_t>> children_sizes(children.size());
 
     {
       // Filesystem operations may block for a long time so this process is
@@ -310,9 +312,9 @@ Status GetModelDiskSize(const string& path, FileProbingEnv* env,
               } else {
                 // Otherwise, add its file size to total_file_size.
                 uint64_t file_size;
-                Status status = env->GetFileSize(child_path, &file_size);
+                absl::Status status = env->GetFileSize(child_path, &file_size);
                 children_sizes[i] =
-                    status.ok() ? StatusOr<uint64_t>(file_size) : status;
+                    status.ok() ? absl::StatusOr<uint64_t>(file_size) : status;
               }
             });
       }
@@ -326,12 +328,11 @@ Status GetModelDiskSize(const string& path, FileProbingEnv* env,
       }
     }
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status EstimateResourceFromPathUsingDiskState(const string& path,
-                                              FileProbingEnv* env,
-                                              ResourceAllocation* estimate) {
+absl::Status EstimateResourceFromPathUsingDiskState(
+    const string& path, FileProbingEnv* env, ResourceAllocation* estimate) {
   uint64_t total_file_size = 0;
   TF_RETURN_IF_ERROR(GetModelDiskSize(path, env, &total_file_size));
 
@@ -345,7 +346,7 @@ Status EstimateResourceFromPathUsingDiskState(const string& path,
   ram_resource->set_kind(resource_kinds::kRamBytes);
   ram_entry->set_quantity(ram_requirement);
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 void RecordRuntimeLatency(const string& model_name, const string& api,

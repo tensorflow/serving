@@ -69,25 +69,25 @@ class FakeSession : public tensorflow::Session {
   explicit FakeSession(absl::optional<int64_t> expected_timeout)
       : expected_timeout_(expected_timeout) {}
   ~FakeSession() override = default;
-  Status Create(const GraphDef& graph) override {
+  absl::Status Create(const GraphDef& graph) override {
     return errors::Unimplemented("not available in fake");
   }
-  Status Extend(const GraphDef& graph) override {
-    return errors::Unimplemented("not available in fake");
-  }
-
-  Status Close() override {
+  absl::Status Extend(const GraphDef& graph) override {
     return errors::Unimplemented("not available in fake");
   }
 
-  Status ListDevices(std::vector<DeviceAttributes>* response) override {
+  absl::Status Close() override {
     return errors::Unimplemented("not available in fake");
   }
 
-  Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_names,
-             const std::vector<string>& target_nodes,
-             std::vector<Tensor>* outputs) override {
+  absl::Status ListDevices(std::vector<DeviceAttributes>* response) override {
+    return errors::Unimplemented("not available in fake");
+  }
+
+  absl::Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
+                   const std::vector<string>& output_names,
+                   const std::vector<string>& target_nodes,
+                   std::vector<Tensor>* outputs) override {
     if (expected_timeout_) {
       LOG(FATAL) << "Run() without RunOptions not expected to be called";
     }
@@ -96,21 +96,23 @@ class FakeSession : public tensorflow::Session {
                &run_metadata);
   }
 
-  Status Run(const RunOptions& run_options,
-             const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_names,
-             const std::vector<string>& target_nodes,
-             std::vector<Tensor>* outputs, RunMetadata* run_metadata) override {
+  absl::Status Run(const RunOptions& run_options,
+                   const std::vector<std::pair<string, Tensor>>& inputs,
+                   const std::vector<string>& output_names,
+                   const std::vector<string>& target_nodes,
+                   std::vector<Tensor>* outputs,
+                   RunMetadata* run_metadata) override {
     return Run(run_options, inputs, output_names, target_nodes, outputs,
                run_metadata, thread::ThreadPoolOptions());
   }
 
-  Status Run(const RunOptions& run_options,
-             const std::vector<std::pair<string, Tensor>>& inputs,
-             const std::vector<string>& output_names,
-             const std::vector<string>& target_nodes,
-             std::vector<Tensor>* outputs, RunMetadata* run_metadata,
-             const thread::ThreadPoolOptions& thread_pool_options) override {
+  absl::Status Run(
+      const RunOptions& run_options,
+      const std::vector<std::pair<string, Tensor>>& inputs,
+      const std::vector<string>& output_names,
+      const std::vector<string>& target_nodes, std::vector<Tensor>* outputs,
+      RunMetadata* run_metadata,
+      const thread::ThreadPoolOptions& thread_pool_options) override {
     if (expected_timeout_) {
       CHECK_EQ(*expected_timeout_, run_options.timeout_in_ms());
     }
@@ -139,12 +141,12 @@ class FakeSession : public tensorflow::Session {
       }
     }
 
-    return OkStatus();
+    return absl::OkStatus();
   }
 
   // Parses TensorFlow Examples from a string Tensor.
-  static Status GetExamples(const Tensor& input,
-                            std::vector<Example>* examples) {
+  static absl::Status GetExamples(const Tensor& input,
+                                  std::vector<Example>* examples) {
     examples->clear();
     const int batch_size = input.dim_size(0);
     const auto& flat_input = input.flat<tstring>();
@@ -155,7 +157,7 @@ class FakeSession : public tensorflow::Session {
       }
       examples->push_back(example);
     }
-    return OkStatus();
+    return absl::OkStatus();
   }
 
   // Gets the Feature from an Example with the given name.  Returns empty
@@ -183,9 +185,9 @@ class FakeSession : public tensorflow::Session {
   // Creates a Tensor by copying the "class" feature from each Example.
   // Requires each Example have an bytes feature called "class" which is of the
   // same non-zero length.
-  static Status GetClassTensor(const std::vector<Example>& examples,
-                               const std::vector<string>& output_names,
-                               Tensor* classes, Tensor* scores) {
+  static absl::Status GetClassTensor(const std::vector<Example>& examples,
+                                     const std::vector<string>& output_names,
+                                     Tensor* classes, Tensor* scores) {
     if (examples.empty()) {
       return errors::Internal("empty example list");
     }
@@ -217,7 +219,7 @@ class FakeSession : public tensorflow::Session {
         scores_matrix(i, c) = scores_feature.float_list().value(c) + offset;
       }
     }
-    return OkStatus();
+    return absl::OkStatus();
   }
 
  private:
@@ -281,7 +283,7 @@ class ClassifierTest : public ::testing::TestWithParam<bool> {
     return example;
   }
 
-  Status Create() {
+  absl::Status Create() {
     std::unique_ptr<SavedModelBundle> saved_model(new SavedModelBundle);
     saved_model->meta_graph_def = saved_model_bundle_->meta_graph_def;
     saved_model->session = std::move(saved_model_bundle_->session);
@@ -699,10 +701,10 @@ TEST_P(ClassifierTest, InvalidNamedSignature) {
       request_.mutable_input()->mutable_example_list()->mutable_examples();
   *examples->Add() = example({{"dos", 2}, {"uno", 1}});
   *examples->Add() = example({{"cuatro", 4}, {"tres", 3}});
-  Status status = classifier_->Classify(request_, &result_);
+  absl::Status status = classifier_->Classify(request_, &result_);
 
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
       << status;
 
@@ -710,7 +712,7 @@ TEST_P(ClassifierTest, InvalidNamedSignature) {
   status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                        fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
       << status;
 }
@@ -723,10 +725,10 @@ TEST_P(ClassifierTest, MalformedScores) {
       request_.mutable_input()->mutable_example_list()->mutable_examples();
   *examples->Add() = example({{"dos", 2}, {"uno", 1}});
   *examples->Add() = example({{"cuatro", 4}, {"tres", 3}});
-  Status status = classifier_->Classify(request_, &result_);
+  absl::Status status = classifier_->Classify(request_, &result_);
 
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
       << status;
 
@@ -734,7 +736,7 @@ TEST_P(ClassifierTest, MalformedScores) {
   status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                        fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
       << status;
 }
@@ -748,9 +750,9 @@ TEST_P(ClassifierTest, MissingClassificationSignature) {
       request_.mutable_input()->mutable_example_list()->mutable_examples();
   *examples->Add() = example({{"dos", 2}});
   // TODO(b/26220896): This error should move to construction time.
-  Status status = classifier_->Classify(request_, &result_);
+  absl::Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
       << status;
 
@@ -758,7 +760,7 @@ TEST_P(ClassifierTest, MissingClassificationSignature) {
   status = RunClassify(GetRunOptions(), saved_model_bundle_->meta_graph_def, {},
                        fake_session_, request_, &response);
   ASSERT_FALSE(status.ok());
-  EXPECT_EQ(static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+  EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
             status.code())
       << status;
 }
@@ -767,7 +769,7 @@ TEST_P(ClassifierTest, EmptyInput) {
   TF_ASSERT_OK(Create());
   // Touch input.
   request_.mutable_input();
-  Status status = classifier_->Classify(request_, &result_);
+  absl::Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
   EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
@@ -784,7 +786,7 @@ TEST_P(ClassifierTest, EmptyExampleList) {
   TF_ASSERT_OK(Create());
   // Touch ExampleList.
   request_.mutable_input()->mutable_example_list();
-  Status status = classifier_->Classify(request_, &result_);
+  absl::Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
   EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
@@ -803,7 +805,7 @@ TEST_P(ClassifierTest, EmptyExampleListWithContext) {
   *request_.mutable_input()
        ->mutable_example_list_with_context()
        ->mutable_context() = example({{"dos", 2}});
-  Status status = classifier_->Classify(request_, &result_);
+  absl::Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(status.code(), error::Code::INVALID_ARGUMENT);
   EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
@@ -826,7 +828,7 @@ TEST_P(ClassifierTest, RunsFails) {
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
   *examples->Add() = example({{"dos", 2}});
-  Status status = classifier_->Classify(request_, &result_);
+  absl::Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Run totally failed"));
 
@@ -846,14 +848,14 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorBatchSize) {
   std::vector<Tensor> outputs = {classes, scores};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                       ::testing::Return(OkStatus())));
+                                       ::testing::Return(absl::OkStatus())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
   *examples->Add() = example({{"dos", 2}, {"uno", 1}});
   *examples->Add() = example({{"cuatro", 4}, {"tres", 3}});
 
-  Status status = classifier_->Classify(request_, &result_);
+  absl::Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
 
@@ -874,14 +876,14 @@ TEST_P(ClassifierTest, ClassesIncorrectTensorType) {
   std::vector<Tensor> outputs = {classes, scores};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                       ::testing::Return(OkStatus())));
+                                       ::testing::Return(absl::OkStatus())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
   *examples->Add() = example({{"dos", 2}, {"uno", 1}});
   *examples->Add() = example({{"cuatro", 4}, {"tres", 3}});
 
-  Status status = classifier_->Classify(request_, &result_);
+  absl::Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Expected classes Tensor of DT_STRING"));
@@ -902,14 +904,14 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorBatchSize) {
   std::vector<Tensor> outputs = {classes, scores};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                       ::testing::Return(OkStatus())));
+                                       ::testing::Return(absl::OkStatus())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
   *examples->Add() = example({{"dos", 2}, {"uno", 1}});
   *examples->Add() = example({{"cuatro", 4}, {"tres", 3}});
 
-  Status status = classifier_->Classify(request_, &result_);
+  absl::Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(), ::testing::HasSubstr("batch size"));
 
@@ -929,14 +931,14 @@ TEST_P(ClassifierTest, ScoresIncorrectTensorType) {
   std::vector<Tensor> outputs = {classes, scores};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                       ::testing::Return(OkStatus())));
+                                       ::testing::Return(absl::OkStatus())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
   *examples->Add() = example({{"dos", 2}, {"uno", 1}});
   *examples->Add() = example({{"cuatro", 4}, {"tres", 3}});
 
-  Status status = classifier_->Classify(request_, &result_);
+  absl::Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(status.ToString(),
               ::testing::HasSubstr("Expected scores Tensor of DT_FLOAT"));
@@ -958,14 +960,14 @@ TEST_P(ClassifierTest, MismatchedNumberOfTensorClasses) {
   std::vector<Tensor> outputs = {classes, scores};
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(::testing::DoAll(::testing::SetArgPointee<4>(outputs),
-                                       ::testing::Return(OkStatus())));
+                                       ::testing::Return(absl::OkStatus())));
   TF_ASSERT_OK(Create());
   auto* examples =
       request_.mutable_input()->mutable_example_list()->mutable_examples();
   *examples->Add() = example({{"dos", 2}, {"uno", 1}});
   *examples->Add() = example({{"cuatro", 4}, {"tres", 3}});
 
-  Status status = classifier_->Classify(request_, &result_);
+  absl::Status status = classifier_->Classify(request_, &result_);
   ASSERT_FALSE(status.ok());
   EXPECT_THAT(
       status.ToString(),

@@ -27,13 +27,13 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status LoadSavedModelConfig(
+absl::Status LoadSavedModelConfig(
     const std::string& export_dir, tensorflow::GraphOptions& graph_options,
     tensorflow::tfrt_stub::RuntimeConfig& runtime_config) {
   absl::StatusOr<SavedModelConfig> model_config =
       LoadSavedModelConfigOrDefault(export_dir);
   if (!model_config.ok()) {
-    return tensorflow::FromAbslStatus(model_config.status());
+    return model_config.status();
   }
 
   if (model_config->has_session_overrides()) {
@@ -48,11 +48,11 @@ Status LoadSavedModelConfig(
     if (created_runtime_config.ok()) {
       runtime_config = std::move(*created_runtime_config);
     } else {
-      return tensorflow::FromAbslStatus(created_runtime_config.status());
+      return created_runtime_config.status();
     }
   }
 
-  return Status();
+  return absl::Status();
 }
 
 }  // namespace serving

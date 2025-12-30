@@ -1,4 +1,5 @@
 load("@org_tensorflow//tensorflow/core/platform:build_config.bzl", "tf_proto_library")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("//tensorflow_serving:serving.bzl", "oss_only_cc_test")
 
 licenses(["notice"])
@@ -13,7 +14,6 @@ package(
 tf_proto_library(
     name = "manifest_proto",
     srcs = ["manifest.proto"],
-    cc_api_version = 2,
 )
 
 cc_library(

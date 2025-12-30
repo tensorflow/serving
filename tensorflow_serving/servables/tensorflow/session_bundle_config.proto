@@ -51,6 +51,10 @@ message SessionBundleConfig {
   // BatchSchedulerRetrier is added on top of each batching session.
   BatchingParameters batching_parameters = 3;
 
+  // Batching parameters to be rewritten in the existing BatchFunction ops.
+  // Different from `batching_parameters`, which are used for session batching.
+  BatchingOptions in_graph_batching_parameters = 7;
+
   // If set, session run calls use a separate threadpool for restore and init
   // ops as part of loading the session-bundle. The value of this field should
   // correspond to the index of the tensorflow::ThreadPoolOptionProto defined as
@@ -134,6 +138,9 @@ message SessionBundleConfig {
   //
   // Enable overriding model configs via assets.extra/saved_model_config.pb.
   bool enable_saved_model_config = 790;
+
+  //Add bf16 mixed_precision option
+  string mixed_precision = 791;
 }
 
 // Batching parameters. Each individual parameter is optional. If omitted, the

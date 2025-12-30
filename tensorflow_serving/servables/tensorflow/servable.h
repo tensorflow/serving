@@ -54,6 +54,9 @@ class PredictStreamedContext {
 
   // Closes the `PredictStreamed` session.
   virtual absl::Status Close() = 0;
+
+  // Waits for all of the responses to be generated
+  virtual absl::Status WaitResponses() = 0;
 };
 
 // A convenience wrapper for cases where the implementation allows exactly one
@@ -69,6 +72,7 @@ class SingleRequestPredictStreamedContext final
 
   absl::Status ProcessRequest(const PredictRequest& request) final;
   absl::Status Close() final;
+  absl::Status WaitResponses() final;
 
  private:
   absl::AnyInvocable<absl::Status(const PredictRequest&)> f_;
@@ -79,8 +83,10 @@ class SingleRequestPredictStreamedContext final
 // are expected to be thread-safe.
 class Servable {
  public:
-  Servable(absl::string_view name, int64_t version)
-      : name_(std::string(name)), version_(version) {}
+  Servable(absl::string_view name, int64_t version, bool is_critical = false)
+      : name_(std::string(name)),
+        version_(version),
+        is_critical_(is_critical) {}
 
   virtual ~Servable() = default;
 
@@ -89,6 +95,8 @@ class Servable {
 
   // Returns the version associated with this servable.
   int64_t version() const { return version_; }
+
+  bool IsCritical() const { return is_critical_; }
 
   using RunOptions = tensorflow::serving::servables::RunOptions;
 
@@ -109,15 +117,17 @@ class Servable {
   // alive until the context object is deleted.
   //
   // `response_callback` is called for each streamed output, zero or more times,
-  // when the streamed output becomes available. The callback invocation must be
-  // serialized by the implementation, so that `response_callback` does not have
-  // to be thread-safe, but blocking inside the callback may cause the next
-  // callback invocation to be delayed. The implementation must guarantee that
-  // the callback is never called after the `PredictStreamed` method returns.
+  // when the streamed output becomes available. If an error is returned for any
+  // response, subsequent responses and requests will be ignored and the error
+  // will be returned. The callback invocation must be serialized by the
+  // implementation, so that `response_callback` does not have to be
+  // thread-safe, but blocking inside the callback may cause the next callback
+  // invocation to be delayed. The implementation must guarantee that the
+  // callback is never called after the `PredictStreamed` method returns.
   virtual absl::StatusOr<std::unique_ptr<PredictStreamedContext>>
-  PredictStreamed(
-      const RunOptions& run_options,
-      absl::AnyInvocable<void(PredictResponse)> response_callback) = 0;
+  PredictStreamed(const RunOptions& run_options,
+                  absl::AnyInvocable<void(absl::StatusOr<PredictResponse>)>
+                      response_callback) = 0;
 
   virtual absl::Status MultiInference(const RunOptions& run_options,
                                       const MultiInferenceRequest& request,
@@ -126,11 +136,45 @@ class Servable {
   virtual absl::Status GetModelMetadata(const GetModelMetadataRequest& request,
                                         GetModelMetadataResponse* response) = 0;
 
+  // Returns true iff this servable supports paging.
+  //
+  // Paging is a process of moving model data (i.e., variables and executables)
+  // between devices' HBM and host RAM. Servables that support paging can
+  // time-share the available HBM and be paged in and out of the HBM according
+  // to a paging policy.
+  //
+  // Note that even if a Servable supports paging, it is up to a Server
+  // implementation to make active (or any!) use of the paging functionality.
+  virtual bool SupportsPaging() const;
+
+  // Pages out all variables and executables owned by this servable from
+  // devices' HBM to host RAM.
+  //
+  // After this method returns, all requests return an error until `Resume()` is
+  // called to bring the states back to device memory.
+  //
+  // If the suspension fails, the model is in an unspecified state and must be
+  // unloaded and loaded again for it to be useful.
+  //
+  // This method may only be invoked if SupportsPaging() returns true.
+  virtual absl::Status Suspend();
+
+  // Inverse of `Suspend()`. Synchronously pages in all variables and
+  // executables owned by this servable back to devices' HBM.
+  //
+  // Returns an error if the servable is not in a suspended state or resumption
+  // failed. If the resumption fails, the model is in an unspecified state and
+  // must be unloaded and loaded again for it to be useful.
+  //
+  // This method may only be invoked if SupportsPaging() returns true.
+  virtual absl::Status Resume();
+
  private:
   // Metadata of this servable. Currently matches the fields in
   // `ServableId`.
   const std::string name_;
   const int64_t version_;
+  const bool is_critical_;
 };
 
 // An "empty" servable where there's no model associated with the servable. All
@@ -165,7 +209,8 @@ class EmptyServable : public Servable {
 
   absl::StatusOr<std::unique_ptr<PredictStreamedContext>> PredictStreamed(
       const RunOptions& run_options,
-      absl::AnyInvocable<void(PredictResponse)> response_callback) {
+      absl::AnyInvocable<void(absl::StatusOr<PredictResponse>)>
+          response_callback) {
     return error_;
   }
 

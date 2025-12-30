@@ -21,6 +21,7 @@ limitations under the License.
 #include "absl/time/time.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
+#include "xla/tsl/lib/core/status_test_util.h"
 #include "tensorflow/core/framework/types.pb.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/threadpool_options.h"
@@ -28,7 +29,6 @@ limitations under the License.
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/tfrt/saved_model/saved_model.h"
 #include "tensorflow/core/tfrt/utils/tensor_util.h"
-#include "tsl/lib/core/status_test_util.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
@@ -96,8 +96,8 @@ class PredictImplTest : public ::testing::Test {
   static void TearDownTestSuite() { saved_model_server_core_.reset(); }
 
  protected:
-  Status GetSavedModelServableHandle(ServerCore* server_core,
-                                     ServableHandle<Servable>* servable) {
+  absl::Status GetSavedModelServableHandle(ServerCore* server_core,
+                                           ServableHandle<Servable>* servable) {
     ModelSpec model_spec;
     model_spec.set_name(kTestModelName);
     return server_core->GetServableHandle(model_spec, servable);
@@ -105,9 +105,10 @@ class PredictImplTest : public ::testing::Test {
 
   ServerCore* GetServerCore() { return saved_model_server_core_.get(); }
 
-  Status CallPredict(ServerCore* server_core, const PredictRequest& request,
-                     PredictResponse* response,
-                     absl::Duration timeout = absl::ZeroDuration()) {
+  absl::Status CallPredict(ServerCore* server_core,
+                           const PredictRequest& request,
+                           PredictResponse* response,
+                           absl::Duration timeout = absl::ZeroDuration()) {
     ServableHandle<Servable> servable;
     TF_RETURN_IF_ERROR(GetSavedModelServableHandle(server_core, &servable));
 
@@ -301,7 +302,7 @@ TEST_F(PredictImplTest, PredictionUnmatchedOutputNumber) {
                   output_tensors->push_back(output);
                   output_tensors->push_back(output);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
   auto status =
       RunPredict(tfrt_stub::SavedModel::RunOptions(), kTestModelVersion,
                  saved_model.get(), request, &response);
@@ -364,7 +365,7 @@ TEST_F(PredictImplTest, OutputFilters) {
                   CHECK(output_tensor.FromProto(output_tensor_proto1));
                   output_tensors->push_back(output_tensor);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
   TF_EXPECT_OK(RunPredict(tfrt_stub::SavedModel::RunOptions(),
                           kTestModelVersion, saved_model.get(), request,
                           &response));
@@ -424,7 +425,7 @@ TEST_F(PredictImplTest, OutputFiltersFullSet) {
                   CHECK(output_tensor2.FromProto(output_tensor_proto2));
                   output_tensors->push_back(output_tensor2);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
 
   TF_EXPECT_OK(RunPredict(tfrt_stub::SavedModel::RunOptions(),
                           kTestModelVersion, saved_model.get(), request,
@@ -494,7 +495,7 @@ TEST_F(PredictImplTest, OutputFiltersWithDefaultInputs) {
                   CHECK(output_tensor.FromProto(output_tensor_proto1));
                   output_tensors->push_back(output_tensor);
                 }),
-                Return(OkStatus())));
+                Return(absl::OkStatus())));
   TF_EXPECT_OK(RunPredict(tfrt::SavedModel::RunOptions(), kTestModelVersion,
                           saved_model.get(), request, &response));
   EXPECT_EQ(response.outputs_size(), 1);

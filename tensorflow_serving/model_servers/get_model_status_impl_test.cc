@@ -55,7 +55,8 @@ class GetModelStatusImplTest : public ::testing::Test {
   static void TearDownTestSuite() { server_core_.reset(); }
 
  protected:
-  static Status CreateServerCore(std::unique_ptr<ServerCore>* server_core) {
+  static absl::Status CreateServerCore(
+      std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto* model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);
@@ -96,7 +97,7 @@ TEST_F(GetModelStatusImplTest, MissingOrEmptyModelSpecFailure) {
 
   // Empty request is invalid.
   EXPECT_EQ(
-      static_cast<tsl::errors::Code>(absl::StatusCode::kInvalidArgument),
+      static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
       GetModelStatusImpl::GetModelStatus(GetServerCore(), request, &response)
           .code());
 }

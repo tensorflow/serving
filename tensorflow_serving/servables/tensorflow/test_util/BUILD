@@ -1,5 +1,6 @@
 # Description: Tensorflow servables test_utils.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 licenses(["notice"])
@@ -8,7 +9,6 @@ serving_proto_library(
     name = "fake_thread_pool_factory_proto",
     testonly = 1,
     srcs = ["fake_thread_pool_factory.proto"],
-    cc_api_version = 2,
     visibility = [
         "//visibility:public",
     ],

@@ -43,7 +43,8 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status PreProcessRegression(const tfrt::FunctionMetadata& function_metadata) {
+absl::Status PreProcessRegression(
+    const tfrt::FunctionMetadata& function_metadata) {
   if (function_metadata.GetInputNames().size() != 1) {
     return errors::InvalidArgument(
         strings::StrCat("Expected one input Tensor."));
@@ -65,10 +66,10 @@ Status PreProcessRegression(const tfrt::FunctionMetadata& function_metadata) {
         function_metadata.GetOutputNames()[0]);
   }
 
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status PostProcessRegressionResult(
+absl::Status PostProcessRegressionResult(
     int num_examples, const std::vector<string>& output_tensor_names,
     const std::vector<Tensor>& output_tensors, RegressionResult* result) {
   if (output_tensors.size() != output_tensor_names.size()) {
@@ -105,14 +106,14 @@ Status PostProcessRegressionResult(
   for (int i = 0; i < num_examples; ++i) {
     result->add_regressions()->set_value(output_tensor_flat(i));
   }
-  return OkStatus();
+  return absl::OkStatus();
 }
 
-Status RunRegress(const tfrt::SavedModel::RunOptions& run_options,
-                  const absl::optional<int64_t>& servable_version,
-                  tfrt::SavedModel* saved_model,
-                  const RegressionRequest& request,
-                  RegressionResponse* response) {
+absl::Status RunRegress(const tfrt::SavedModel::RunOptions& run_options,
+                        const absl::optional<int64_t>& servable_version,
+                        tfrt::SavedModel* saved_model,
+                        const RegressionRequest& request,
+                        RegressionResponse* response) {
   const string function_name = request.model_spec().signature_name().empty()
                                    ? kDefaultServingSignatureDefKey
                                    : request.model_spec().signature_name();

@@ -20,8 +20,12 @@ limitations under the License.
 
 namespace tensorflow::serving {
 
+struct DeviceRunnerOptions {
+  bool warmup_all_devices = true;
+};
+
 using InitializeDeviceRunnerAndTopologyFuncType =
-    Status (*)(tfrt_stub::Runtime&, int*, int*);
+    Status (*)(tfrt_stub::Runtime&, int*, int*, const DeviceRunnerOptions&);
 
 // Initializes a `TpuSystem` instance, and provide `num_local_devices` and
 // `cores_per_chip` topology info. This is a function pointer because some
@@ -29,7 +33,12 @@ using InitializeDeviceRunnerAndTopologyFuncType =
 // TPU, the function pointer allows us to provide a dummy implementation so it
 // doesn't have to link TPU dependencies that increases binary size.
 extern InitializeDeviceRunnerAndTopologyFuncType
-    InitializeDeviceRunnerAndTopology;
+    InitializeDeviceRunnerAndTopologyFunc;
+
+// This enables default values for `InitializeDeviceRunnerAndTopology`.
+Status InitializeDeviceRunnerAndTopology(
+    tfrt_stub::Runtime& runtime, int* num_local_devices = nullptr,
+    int* cores_per_chip = nullptr, const DeviceRunnerOptions& options = {});
 
 }  // namespace tensorflow::serving
 

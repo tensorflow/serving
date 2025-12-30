@@ -1,5 +1,6 @@
 # Description: Tensorflow Serving core test utils.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
 
 package(
@@ -86,7 +87,6 @@ serving_proto_library(
     name = "fake_loader_source_adapter_proto",
     testonly = 1,
     srcs = ["fake_loader_source_adapter.proto"],
-    cc_api_version = 2,
     visibility = ["//visibility:public"],
 )
 

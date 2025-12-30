@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <memory>
 
+#include <gmock/gmock.h>
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -27,7 +28,6 @@ limitations under the License.
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
-#include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
 namespace serving {
@@ -37,6 +37,7 @@ class MockPredictStreamedContext : public PredictStreamedContext {
   MOCK_METHOD(absl::Status, ProcessRequest, (const PredictRequest& request),
               (final));
   MOCK_METHOD(absl::Status, Close, (), (final));
+  MOCK_METHOD(absl::Status, WaitResponses, (), (final));
 };
 
 // A mock of tensorflow::serving::Servable.
@@ -63,7 +64,8 @@ class MockServable : public Servable {
   MOCK_METHOD(absl::StatusOr<std::unique_ptr<PredictStreamedContext>>,
               PredictStreamed,
               (const tensorflow::serving::Servable::RunOptions& run_options,
-               absl::AnyInvocable<void(tensorflow::serving::PredictResponse)>
+               absl::AnyInvocable<
+                   void(absl::StatusOr<tensorflow::serving::PredictResponse>)>
                    response_callback),
               (final));
   MOCK_METHOD(absl::Status, MultiInference,
@@ -75,6 +77,9 @@ class MockServable : public Servable {
               (const tensorflow::serving::GetModelMetadataRequest& request,
                tensorflow::serving::GetModelMetadataResponse* response),
               (final));
+  MOCK_METHOD(bool, SupportsPaging, (), (const, final));
+  MOCK_METHOD(absl::Status, Suspend, (), (final));
+  MOCK_METHOD(absl::Status, Resume, (), (final));
 };
 
 }  // namespace serving

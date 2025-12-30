@@ -1,5 +1,7 @@
 # Description: Model Server test utility
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 # Placeholder: load py_library
 load("//tensorflow_serving:serving.bzl", "if_google", "serving_proto_library")
 
@@ -37,14 +39,19 @@ cc_library(
         "//tensorflow_serving/config:platform_config_cc_proto",
         "//tensorflow_serving/core:aspired_versions_manager",
         "//tensorflow_serving/core:servable_handle",
+        "//tensorflow_serving/core:servable_id",
         "//tensorflow_serving/core:servable_state",
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/core:server_request_logger",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter",
         "//tensorflow_serving/core/test_util:fake_loader_source_adapter_cc_proto",
+        "//tensorflow_serving/core/test_util:servable_handle_test_util",
         "//tensorflow_serving/model_servers:server_core",
+        "//tensorflow_serving/servables/tensorflow:mock_servable",
+        "//tensorflow_serving/servables/tensorflow:servable",
         "//tensorflow_serving/util:event_bus",
         "//tensorflow_serving/util:unique_ptr_with_deps",
+        "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest",
         "@com_google_protobuf//:cc_wkt_protos",
         "@com_google_protobuf//:protobuf_lite",
@@ -108,7 +115,6 @@ serving_proto_library(
     name = "storage_path_error_injecting_source_adapter_proto",
     testonly = 1,
     srcs = ["storage_path_error_injecting_source_adapter.proto"],
-    cc_api_version = 2,
     visibility = [
         "//visibility:public",
     ],

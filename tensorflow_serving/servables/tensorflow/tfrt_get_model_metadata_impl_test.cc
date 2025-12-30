@@ -24,11 +24,11 @@ limitations under the License.
 #include "absl/strings/string_view.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
+#include "xla/tsl/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
-#include "tsl/lib/core/status_test_util.h"
 #include "tsl/platform/casts.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
@@ -66,9 +66,9 @@ class TFRTGetModelMetadataImplTest : public ::testing::Test {
   static void TearDownTestSuite() { saved_model_server_core_.reset(); }
 
  protected:
-  static Status CreateServerCore(const string& model_path,
-                                 bool saved_model_on_disk,
-                                 std::unique_ptr<ServerCore>* server_core) {
+  static absl::Status CreateServerCore(
+      const string& model_path, bool saved_model_on_disk,
+      std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);

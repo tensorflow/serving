@@ -15,9 +15,12 @@ limitations under the License.
 
 #include "tensorflow_serving/test_util/test_util.h"
 
+#include <string>
+
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/test.h"
+#include "tsl/platform/protobuf.h"
 
 namespace tensorflow {
 namespace serving {
@@ -39,7 +42,11 @@ string TestSrcDirPath(const string& relative_path) {
 ProtoStringMatcher::ProtoStringMatcher(const string& expected)
     : expected_(expected) {}
 ProtoStringMatcher::ProtoStringMatcher(const google::protobuf::Message& expected)
-    : expected_(expected.DebugString()) {}
+    : expected_([&]() -> std::string {
+        std::string result;
+        tsl::protobuf::TextFormat::PrintToString(expected, &result);
+        return result;
+      }()) {}
 
 }  // namespace test_util
 }  // namespace serving

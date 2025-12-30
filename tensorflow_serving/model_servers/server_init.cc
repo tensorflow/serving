@@ -17,7 +17,6 @@ limitations under the License.
 
 #include <memory>
 
-#include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 #include "tensorflow_serving/model_servers/http_rest_api_handler.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
@@ -28,17 +27,17 @@ namespace tensorflow {
 namespace serving {
 namespace init {
 
-Status SetupPlatformConfigMapForTensorFlowImpl(
+absl::Status SetupPlatformConfigMapForTensorFlowImpl(
     const SessionBundleConfig& session_bundle_config,
     PlatformConfigMap& platform_config_map) {
   platform_config_map =
       CreateTensorFlowPlatformConfigMap(session_bundle_config);
-  return tensorflow::OkStatus();
+  return absl::OkStatus();
 }
 
-Status UpdatePlatformConfigMapForTensorFlowImpl(
+absl::Status UpdatePlatformConfigMapForTensorFlowImpl(
     PlatformConfigMap& platform_config_map) {
-  return tensorflow::OkStatus();
+  return absl::OkStatus();
 }
 
 std::unique_ptr<HttpRestApiHandlerBase> CreateHttpRestApiHandlerImpl(

@@ -1,5 +1,8 @@
 # Description: Tensorflow Serving configs.
 
+load("//tensorflow_serving:serving.bzl", "serving_proto_library", "serving_proto_library_py")
+# Placeholder: load go_proto_library
+
 package(
     default_visibility = ["//visibility:public"],
     features = ["-layering_check"],
@@ -18,13 +21,9 @@ filegroup(
     ),
 )
 
-load("//tensorflow_serving:serving.bzl", "serving_proto_library")
-load("//tensorflow_serving:serving.bzl", "serving_proto_library_py")
-
 serving_proto_library(
     name = "file_system_storage_path_source_proto",
     srcs = ["file_system_storage_path_source.proto"],
-    cc_api_version = 2,
 )
 
 serving_proto_library_py(
@@ -36,7 +35,6 @@ serving_proto_library_py(
 serving_proto_library(
     name = "model_server_config_proto",
     srcs = ["model_server_config.proto"],
-    cc_api_version = 2,
     deps = [
         ":file_system_storage_path_source_proto",
         ":logging_config_proto",
@@ -57,7 +55,6 @@ serving_proto_library_py(
 serving_proto_library(
     name = "platform_config_proto",
     srcs = ["platform_config.proto"],
-    cc_api_version = 2,
     deps = [
         "@com_google_protobuf//:cc_wkt_protos",
     ],
@@ -71,7 +68,6 @@ serving_proto_library_py(
 serving_proto_library(
     name = "log_collector_config_proto",
     srcs = ["log_collector_config.proto"],
-    cc_api_version = 2,
     deps = [
     ],
 )
@@ -87,9 +83,9 @@ serving_proto_library_py(
 serving_proto_library(
     name = "logging_config_proto",
     srcs = ["logging_config.proto"],
-    cc_api_version = 2,
     deps = [
         ":log_collector_config_proto",
+        "@com_google_protobuf//:cc_wkt_protos",
     ],
 )
 
@@ -105,7 +101,6 @@ serving_proto_library_py(
 serving_proto_library(
     name = "monitoring_config_proto",
     srcs = ["monitoring_config.proto"],
-    cc_api_version = 2,
     deps = [
     ],
 )
@@ -113,7 +108,6 @@ serving_proto_library(
 serving_proto_library(
     name = "ssl_config_proto",
     srcs = ["ssl_config.proto"],
-    cc_api_version = 2,
     deps = [
     ],
 )

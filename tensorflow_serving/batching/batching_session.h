@@ -26,6 +26,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/synchronization/notification.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/kernels/batching_util/basic_batch_scheduler.h"
 #include "tensorflow/core/kernels/batching_util/batch_scheduler.h"
@@ -33,7 +34,6 @@ limitations under the License.
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session.h"
-#include "tsl/platform/criticality.h"
 #include "tensorflow_serving/batching/batching_options.h"
 #include "tensorflow_serving/batching/threadsafe_status.h"
 
@@ -181,7 +181,7 @@ struct BatchingSessionTask : public BatchTask {
 
   // Fields populated when a task is processed (as part of a batch), and
   // returned by BatchingSession when a task is complete.
-  Notification* done;
+  absl::Notification* done;
   Status* status;
   std::vector<Tensor>* outputs;
   RunMetadata* run_metadata;
@@ -211,8 +211,6 @@ struct BatchingSessionTask : public BatchTask {
   std::shared_ptr<ThreadSafeStatus> thread_safe_status;
   // 'split_run_metadatas' records `run_metadata` of each split.
   std::shared_ptr<std::vector<RunMetadata>> split_run_metadatas;
-
-  tsl::criticality::Criticality criticality;
 };
 
 }  // namespace serving

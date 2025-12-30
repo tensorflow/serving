@@ -16,11 +16,21 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_source_adapter.h"
 
 #include <memory>
+#include <string>
+#include <utility>
 
-#include "tensorflow/core/lib/core/errors.h"
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
+#include "tensorflow/cc/saved_model/loader.h"
+#include "xla/tsl/platform/env.h"
+#include "xla/tsl/platform/errors.h"
+#include "tensorflow/core/platform/path.h"
 #include "tensorflow/core/platform/types.h"
-#include "tsl/platform/errors.h"
+#include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/simple_loader.h"
+#include "tensorflow_serving/core/source_adapter.h"
+#include "tensorflow_serving/core/storage_path.h"
 #include "tensorflow_serving/resources/resource_util.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/resources/resources.pb.h"
@@ -29,19 +39,35 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/machine_learning_metadata.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_factory.h"
-#include "tensorflow_serving/servables/tensorflow/tfrt_servable.h"
 
 namespace tensorflow {
 namespace serving {
 
-Status TfrtSavedModelSourceAdapter::Create(
+// copybara:strip_begin (Do not leak in tensorflow serving OSS.)
+namespace {
+// Orbax manifest version file name.
+inline constexpr char kOrbaxModelManifestVersionTxt[] =
+    "orbax_model_version.txt";
+
+absl::Status IsOrbaxModelDirectory(absl::string_view path) {
+  const std::string orbax_model_manifest_version_path =
+      tensorflow::io::JoinPath(path, kOrbaxModelManifestVersionTxt);
+  tsl::Env* env = tsl::Env::Default();
+  TF_RETURN_IF_ERROR(env->FileExists(orbax_model_manifest_version_path));
+  return absl::OkStatus();
+}
+
+}  // namespace
+// copybara:strip_end
+
+absl::Status TfrtSavedModelSourceAdapter::Create(
     const TfrtSavedModelSourceAdapterConfig& config,
     std::unique_ptr<TfrtSavedModelSourceAdapter>* adapter) {
   std::unique_ptr<TfrtSavedModelFactory> factory;
   TF_RETURN_IF_ERROR(
       TfrtSavedModelFactory::Create(config.saved_model_config(), &factory));
   adapter->reset(new TfrtSavedModelSourceAdapter(std::move(factory)));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 TfrtSavedModelSourceAdapter::~TfrtSavedModelSourceAdapter() { Detach(); }
@@ -57,14 +83,25 @@ TfrtSavedModelSourceAdapter::GetServableCreator(
   return [factory, path](const Loader::Metadata& metadata,
                          std::unique_ptr<Servable>* servable) {
     TF_RETURN_IF_ERROR(RegisterModelRoot(metadata.servable_id, path));
-    TF_RETURN_IF_ERROR(
-        factory->CreateTfrtSavedModelWithMetadata(metadata, path, servable));
-    return OkStatus();
+    if (MaybeSavedModelDirectory(path)) {
+      return factory->CreateTfrtSavedModelWithMetadata(metadata, path,
+                                                       servable);
+    }
+
+    // copybara:strip_begin (Do not leak in tesorflow serving OSS.)
+    if (IsOrbaxModelDirectory(path).ok()) {
+      return factory->CreateOrbaxServable(metadata, path, servable);
+    }
+    // copybara:strip_end
+
+    return absl::InvalidArgumentError(
+        absl::StrCat("Unsupported model directory: ", path,
+                     ". Only SavedModel and Orbax Model are supported."));
   };
 }
 
-Status TfrtSavedModelSourceAdapter::Convert(const StoragePath& path,
-                                            std::unique_ptr<Loader>* loader) {
+absl::Status TfrtSavedModelSourceAdapter::Convert(
+    const StoragePath& path, std::unique_ptr<Loader>* loader) {
   std::shared_ptr<TfrtSavedModelFactory> factory = factory_;
   auto servable_creator = GetServableCreator(factory, path);
   auto resource_estimator = [factory, path](ResourceAllocation* estimate) {
@@ -80,7 +117,7 @@ Status TfrtSavedModelSourceAdapter::Convert(const StoragePath& path,
         ram_resource, resource_util->GetQuantity(ram_resource, *estimate),
         estimate);
 
-    return OkStatus();
+    return absl::OkStatus();
   };
   auto post_load_resource_estimator = [factory,
                                        path](ResourceAllocation* estimate) {
@@ -88,13 +125,13 @@ Status TfrtSavedModelSourceAdapter::Convert(const StoragePath& path,
   };
   loader->reset(new SimpleLoader<Servable>(servable_creator, resource_estimator,
                                            {post_load_resource_estimator}));
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 // Register the source adapter.
 class TfrtSavedModelSourceAdapterCreator {
  public:
-  static Status Create(
+  static absl::Status Create(
       const TfrtSavedModelSourceAdapterConfig& config,
       std::unique_ptr<SourceAdapter<StoragePath, std::unique_ptr<Loader>>>*
           adapter) {
@@ -102,7 +139,7 @@ class TfrtSavedModelSourceAdapterCreator {
     TF_RETURN_IF_ERROR(
         TfrtSavedModelFactory::Create(config.saved_model_config(), &factory));
     adapter->reset(new TfrtSavedModelSourceAdapter(std::move(factory)));
-    return OkStatus();
+    return absl::OkStatus();
   }
 };
 REGISTER_STORAGE_PATH_SOURCE_ADAPTER(TfrtSavedModelSourceAdapterCreator,

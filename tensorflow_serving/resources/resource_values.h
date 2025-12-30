@@ -45,6 +45,9 @@ namespace resource_kinds {
 // "model slots", this is the number of slots needed or allocated.
 extern const char* const kNumModelSlots;
 
+// If a server can accommodate at most N LoRA adapter models.
+extern const char* const kNumLoraSlots;
+
 // RAM in bytes.
 // NOTES:
 // - For TPU or GPU device, The kHeapRamBytes and kStackRamBytes are aggregated
@@ -57,8 +60,25 @@ extern const char* const kRamBytes;
 // Peak RAM in bytes, collected from Tcmalloc peak metric.
 extern const char* const kPeakRamBytes;
 
+// Model steady RAM in bytes, including model variables, graphs, etc.
+extern const char* const kModelSteadyRamBytes;
+
+// Model initialization RAM in bytes, including compilation, model loading,
+// warmup, etc.
+extern const char* const kModelInitRamBytes;
+
 // RAM allocated on the heap.
 extern const char* const kHeapRamBytes;
+
+// RAM allocated on the heap when model in steady state.
+// NOTE: This is only used for TPU device as of May12, 2025.
+extern const char* const kSteadyHeapRamBytes;
+
+// Extra RAM allocated on the heap during model loading, warmup or inference
+// traffic processing. This is the peak_heap_ram_in_bytes -
+// steady_heap_ram_in_bytes.
+// NOTE: This is only used for TPU device as of May12, 2025.
+extern const char* const kSharedHeapRamBytes;
 
 // RAM reserved on the stack.
 extern const char* const kStackRamBytes;

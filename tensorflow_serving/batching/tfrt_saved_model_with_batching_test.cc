@@ -59,7 +59,7 @@ MATCHER_P2(TFStatusIs, error_code, partial_error_message, "") {
          absl::StrContains(arg.message(), partial_error_message);
 }
 
-Status CreateDefaultBasicBatchScheduler(
+absl::Status CreateDefaultBasicBatchScheduler(
     const BasicBatchScheduler<SavedModelBatchingTask>::Options &options,
     std::function<void(std::unique_ptr<Batch<SavedModelBatchingTask>>)>
         process_batch_callback,
@@ -69,7 +69,7 @@ Status CreateDefaultBasicBatchScheduler(
   TF_RETURN_IF_ERROR(BasicBatchScheduler<SavedModelBatchingTask>::Create(
       options, process_batch_callback, &basic_batch_scheduler));
   *batch_scheduler = std::move(basic_batch_scheduler);
-  return Status();
+  return absl::Status();
 }
 
 class SavedModelWithBatchingTest : public ::testing::Test {
@@ -196,7 +196,7 @@ TEST_F(SavedModelWithBatchingTest, FailedCreatingBatchScheduler) {
       [](std::function<void(std::unique_ptr<Batch<SavedModelBatchingTask>>)>
              process_batch_callback,
          std::unique_ptr<BatchScheduler<SavedModelBatchingTask>>
-             *batch_scheduler) { return Status(); };
+             *batch_scheduler) { return absl::Status(); };
 
   const string error = "Failed to create batch scheduler";
   std::vector<FuncNameWithBatchingSchedulerCreator> creators = {
@@ -231,7 +231,7 @@ TEST_F(SavedModelWithBatchingTest, FunctionNameNotFound) {
                            absl::Span<const Tensor> inputs,
                            std::vector<Tensor> *outputs) {
         outputs->push_back(MakeTensor(output_tensor_vec, output_shape));
-        return Status();
+        return absl::Status();
       }));
   tfrt::SavedModel::RunOptions run_options;
   // If a corresponding scheduler is found, Run should block forever since
@@ -287,7 +287,7 @@ TEST_F(SavedModelWithBatchingTest, BatchingWithoutPadding) {
         // `output_tensor2_vec`, in one of the two orders.
         outputs->push_back(MakeTensor(ExpandTensor(output_tensor1_vec, 3),
                                       /*shape=*/{3, 4}));
-        return Status();
+        return absl::Status();
       }));
 
   tfrt::SavedModel::RunOptions run_options;
@@ -360,7 +360,7 @@ TEST_F(SavedModelWithBatchingTest, BatchingWithPadding) {
         // `output_tensor2_vec`, in one of the two orders.
         outputs->push_back(MakeTensor(ExpandTensor({1, 5, 5}, batch_size),
                                       /*shape=*/{batch_size, 3}));
-        return Status();
+        return absl::Status();
       }));
 
   tfrt::SavedModel::RunOptions run_options;
@@ -509,7 +509,7 @@ TEST_F(SavedModelWithBatchingTest, MultipleFunctions) {
         // `output_tensor2_vec`, in one of the two orders.
         outputs->push_back(
             MakeTensor(ExpandTensor(output_tensor1_vec, 3), {3, 4}));
-        return Status();
+        return absl::Status();
       }));
 
   EXPECT_CALL(
@@ -526,7 +526,7 @@ TEST_F(SavedModelWithBatchingTest, MultipleFunctions) {
         // `output_tensor4_vec`, in one of the two orders.
         outputs->push_back(
             MakeTensor(ExpandTensor(output_tensor2_vec, 3), {3, 4}));
-        return Status();
+        return absl::Status();
       }));
 
   std::vector<std::unique_ptr<Thread>> threads;
@@ -602,7 +602,7 @@ TEST_F(SavedModelWithBatchingTest, SplitInputBasic) {
             // `output_tensor2_vec`, in one of the two orders.
             outputs->push_back(MakeTensor(ExpandTensor({1, 5, 5}, batch_size),
                                           /*shape=*/{batch_size, 3}));
-            return Status();
+            return absl::Status();
           }));
 
   tfrt::SavedModel::RunOptions run_options;
@@ -669,7 +669,7 @@ TEST_F(SavedModelWithBatchingTest, PartialTaskFails) {
         // `output_tensor2_vec`, in one of the two orders.
         outputs->push_back(MakeTensor(ExpandTensor({1, 5, 5}, batch_size),
                                       /*shape=*/{batch_size, 3}));
-        return Status();
+        return absl::Status();
       }));
 
   tfrt::SavedModel::RunOptions run_options;
@@ -678,7 +678,7 @@ TEST_F(SavedModelWithBatchingTest, PartialTaskFails) {
         std::vector<Tensor> outputs;
         // First input may or may not succeed, because it is only in one of the
         // two batches and only one batch fails.
-        const Status ignore_result = saved_model_with_batching_->Run(
+        const absl::Status ignore_result = saved_model_with_batching_->Run(
             run_options, kFunctionOne, inputs[0], &outputs);
       }));
   std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
