@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <memory>
 
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow_serving/core/basic_manager.h"
 #include "tensorflow_serving/core/manager.h"
@@ -74,7 +75,7 @@ Status StaticManagerBuilder::AddServable(const ServableId& id,
               },
               SimpleLoader<T>::EstimateNoResources())))));
   Status load_status;
-  Notification load_done;
+  absl::Notification load_done;
   basic_manager_->LoadServable(id, [&](const Status& status) {
     load_status = status;
     load_done.Notify();

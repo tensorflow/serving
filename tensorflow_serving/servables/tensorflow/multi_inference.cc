@@ -57,14 +57,14 @@ absl::Status TensorFlowMultiInferenceRunner::Infer(
                                       : task.model_spec().signature_name();
 
     if (signature_names.find(signature_name) != signature_names.end()) {
-      return errors::InvalidArgument(strings::StrCat(
-          "Duplicate evaluation of signature: ", signature_name));
+      return errors::InvalidArgument(
+          absl::StrCat("Duplicate evaluation of signature: ", signature_name));
     }
     signature_names.insert(signature_name);
 
     auto iter = meta_graph_def_->signature_def().find(signature_name);
     if (iter == meta_graph_def_->signature_def().end()) {
-      return errors::InvalidArgument(strings::StrCat(
+      return errors::InvalidArgument(absl::StrCat(
           "Requested signature not found in model graph: ", signature_name));
     }
     string input_name;
@@ -103,7 +103,7 @@ absl::Status TensorFlowMultiInferenceRunner::Infer(
                                       : task.model_spec().signature_name();
     auto iter = meta_graph_def_->signature_def().find(signature_name);
     if (iter == meta_graph_def_->signature_def().end()) {
-      return errors::InvalidArgument(strings::StrCat(
+      return errors::InvalidArgument(absl::StrCat(
           "Requested signature not found in model graph: ", signature_name));
     }
     if (task.method_name() == kClassifyMethodName) {

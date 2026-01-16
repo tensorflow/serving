@@ -182,47 +182,47 @@ TEST_F(HttpRestApiHandlerTest, UnsupportedApiCalls) {
   absl::Status status;
   status = handler_.ProcessRequest("GET", "/v1/foo", "", &headers, &model_name,
                                    &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Malformed request"));
 
   status = handler_.ProcessRequest("POST", "/v1/foo", "", &headers, &model_name,
                                    &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Malformed request"));
 
   status = handler_.ProcessRequest("GET", "/v1/models", "", &headers,
                                    &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Missing model name"));
   status = handler_.ProcessRequest("GET", "/v1/models/debug/model_name", "",
                                    &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Malformed request"));
 
   status = handler_.ProcessRequest("POST", "/v1/models", "", &headers,
                                    &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Malformed request"));
 
   status = handler_.ProcessRequest("GET", "/v1/models/foo:predict", "",
                                    &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Malformed request"));
 
   status = handler_.ProcessRequest("GET", "/v1/models/foo/version/50:predict",
                                    "", &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Malformed request"));
 
   status = handler_.ProcessRequest("POST", "/v1/models/foo/version/50:regress",
                                    "", &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Malformed request"));
 
   status =
       handler_.ProcessRequest("POST", "/v1/models/foo/versions/HELLO:regress",
                               "", &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Malformed request"));
 
   status = handler_.ProcessRequest(
@@ -230,30 +230,30 @@ TEST_F(HttpRestApiHandlerTest, UnsupportedApiCalls) {
       absl::StrCat("/v1/models/foo/versions/",
                    std::numeric_limits<uint64_t>::max(), ":regress"),
       "", &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Failed to convert version"));
 
   status = handler_.ProcessRequest("POST", "/v1/models/foo/metadata", "",
                                    &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Malformed request"));
 
   status =
       handler_.ProcessRequest("POST", "/v1/models/foo/label/some_label:regress",
                               "", &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Malformed request"));
 
   status = handler_.ProcessRequest(
       "POST", "/v1/models/foo/versions/50/labels/some_label:regress", "",
       &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Malformed request"));
 
   status = handler_.ProcessRequest("POST",
                                    "/v1/models/foo/versions/some_label:regress",
                                    "", &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("Malformed request"));
 }
 
@@ -265,19 +265,19 @@ TEST_F(HttpRestApiHandlerTest, PredictModelNameVersionErrors) {
   status = handler_.ProcessRequest("POST", "/v1/models/foo:predict",
                                    R"({ "instances": [1] })", &headers,
                                    &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsNotFound(status));
+  EXPECT_TRUE(absl::IsNotFound(status));
 
   // 'foo' is not a valid model name.
   status = handler_.ProcessRequest("POST", "/v1/models/foo/versions/50:predict",
                                    R"({ "instances": [1] })", &headers,
                                    &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsNotFound(status));
+  EXPECT_TRUE(absl::IsNotFound(status));
 
   // Valid model name, but invalid version number (99).
   status = handler_.ProcessRequest(
       "POST", absl::StrCat("/v1/models/", kTestModelName, "99:predict"),
       R"({ "instances": [1] })", &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsNotFound(status));
+  EXPECT_TRUE(absl::IsNotFound(status));
 }
 
 TEST_F(HttpRestApiHandlerTest, PredictRequestErrors) {
@@ -290,21 +290,21 @@ TEST_F(HttpRestApiHandlerTest, PredictRequestErrors) {
   // Empty document.
   status = handler_.ProcessRequest("POST", req_path, "", &headers, &model_name,
                                    &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(),
               HasSubstr("JSON Parse error: The document is empty"));
 
   // Badly formatted JSON.
   status = handler_.ProcessRequest("POST", req_path, "instances = [1, 2]",
                                    &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("JSON Parse error: Invalid value"));
 
   // Incorrect type.
   status = handler_.ProcessRequest("POST", req_path,
                                    R"({ "instances": ["x", "y"] })", &headers,
                                    &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("not of expected type: float"));
 
   // Nonexistent version label.
@@ -314,7 +314,7 @@ TEST_F(HttpRestApiHandlerTest, PredictRequestErrors) {
                    kNonexistentModelVersionLabel, ":predict"),
       R"({ "instances": ["x", "y"] })", &headers, &model_name, &method,
       &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(),
               HasSubstr("Unrecognized servable version label"));
 
@@ -322,7 +322,7 @@ TEST_F(HttpRestApiHandlerTest, PredictRequestErrors) {
   status =
       handler_.ProcessRequest("POST", req_path, R"({ "signature_name": 100 })",
                               &headers, &model_name, &method, &output);
-  EXPECT_TRUE(errors::IsInvalidArgument(status));
+  EXPECT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(GetJsonErrorMsg(output),
               HasSubstr("'signature_name' key must be a string value."));
 }

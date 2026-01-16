@@ -3,6 +3,9 @@
 # Placeholder: load py_binary
 # Placeholder: load py_test
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_google", "if_libtpu", "if_with_tpu_support")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
 load("//tensorflow_serving:tensorflow_version.bzl", "if_not_v2", "if_v2")
 
@@ -78,16 +81,24 @@ cc_library(
         "//tensorflow_serving/config:logging_config_cc_proto",
         "//tensorflow_serving/config:model_server_config_cc_proto",
         "//tensorflow_serving/config:platform_config_cc_proto",
+        "//tensorflow_serving/core:aspired_version_policy",
         "//tensorflow_serving/core:aspired_versions_manager",
         "//tensorflow_serving/core:dynamic_source_router",
         "//tensorflow_serving/core:load_servables_fast",
+        "//tensorflow_serving/core:loader",
+        "//tensorflow_serving/core:manager",
         "//tensorflow_serving/core:prefix_storage_path_source_adapter",
+        "//tensorflow_serving/core:servable_id",
+        "//tensorflow_serving/core:servable_state",
         "//tensorflow_serving/core:servable_state_monitor",
         "//tensorflow_serving/core:server_request_logger",
         "//tensorflow_serving/core:source",
         "//tensorflow_serving/core:source_adapter",
         "//tensorflow_serving/core:storage_path",
         "//tensorflow_serving/core:stream_logger",
+        "//tensorflow_serving/core:target",
+        "//tensorflow_serving/resources:resource_tracker",
+        "//tensorflow_serving/resources:resource_util",
         "//tensorflow_serving/resources:resource_values",
         "//tensorflow_serving/servables/tensorflow:predict_util",
         "//tensorflow_serving/servables/tensorflow:saved_model_bundle_source_adapter",
@@ -97,7 +108,10 @@ cc_library(
         "//tensorflow_serving/util:unique_ptr_with_deps",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
         "@com_google_protobuf//:cc_wkt_protos",

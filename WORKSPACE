@@ -38,7 +38,7 @@ tf_serving_workspace()
 
 # Check bazel version requirement, which is stricter than TensorFlow's.
 load("@bazel_skylib//lib:versions.bzl", "versions")
-versions.check("6.5.0")
+versions.check("7.4.1")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
@@ -49,6 +49,13 @@ http_archive(
         "https://storage.googleapis.com/mirror.tensorflow.org/github.com/bazelbuild/bazel-skylib/releases/download/1.3.0/bazel-skylib-1.3.0.tar.gz",
         "https://github.com/bazelbuild/bazel-skylib/releases/download/1.3.0/bazel-skylib-1.3.0.tar.gz",
     ],
+)
+
+http_archive(
+    name = "rules_cc",
+    sha256 = "b8b918a85f9144c01f6cfe0f45e4f2838c7413961a8ff23bc0c6cdf8bb07a3b6",
+    strip_prefix = "rules_cc-0.1.5",
+    url = "https://github.com/bazelbuild/rules_cc/releases/download/0.1.5/rules_cc-0.1.5.tar.gz",
 )
 
 http_archive(

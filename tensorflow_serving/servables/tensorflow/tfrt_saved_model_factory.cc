@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -24,6 +25,7 @@ limitations under the License.
 #include <vector>
 
 #include "google/protobuf/wrappers.pb.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -33,8 +35,11 @@ limitations under the License.
 #include "tensorflow/compiler/mlir/tfrt/translate/tfrt_compile_options.h"
 #include "xla/tsl/platform/env.h"
 #include "xla/tsl/platform/errors.h"
+#include "xla/tsl/platform/statusor.h"
+#include "tensorflow/core/kernels/batching_util/batch_scheduler.h"
 #include "tensorflow/core/kernels/batching_util/shared_batch_scheduler.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/public/session_options.h"
@@ -222,6 +227,11 @@ absl::StatusOr<tfrt::SavedModel::Options> CreateCommonSavedModelOptions(
   compile_options.min_num_batch_threads = config.tfrt_min_num_batch_threads();
   compile_options.min_max_enqueued_batches =
       config.tfrt_min_max_enqueued_batches();
+#ifdef PLATFORM_GOOGLE
+  // TODO(shtatnov): Remove the IFDEF after TF 2.20 is released.
+  compile_options.batch_queue_global_prioritization_num_threads =
+      config.tfrt_batch_queue_global_prioritization_num_threads();
+#endif  // PLATFORM_GOOGLE
   compile_options.batch_padding_policy = config.batch_padding_policy();
   compile_options.batch_options = config.in_graph_batching_parameters();
 
@@ -296,6 +306,7 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
     std::unique_ptr<Servable>* servable) {
   TF_ASSIGN_OR_RETURN(auto override_servable, OverrideServable(metadata, path));
   if (override_servable) {
+    LOG(INFO) << "Overriding TFRT servable with remote servable.";
     *servable = std::move(override_servable);
     return absl::OkStatus();
   }
@@ -395,6 +406,15 @@ CreateThreadPoolFactoryFromConfig(const TfrtSavedModelConfig& config) {
   }
   return thread_pool_factory;
 }
+
+// copybara:strip_begin (Do not leak in tesorflow serving OSS.)
+absl::Status TfrtSavedModelFactory::CreateOrbaxServable(
+    const Loader::Metadata& metadata, const string& path,
+    std::unique_ptr<Servable>* servable) {
+  return absl::UnimplementedError(
+      "CreateOrbaxServable is not implemented yet.");
+}
+// copybara:strip_end
 
 }  // namespace serving
 }  // namespace tensorflow

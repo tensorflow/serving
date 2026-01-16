@@ -26,13 +26,13 @@ limitations under the License.
 #include <vector>
 
 #include "absl/container/fixed_array.h"
+#include "absl/synchronization/notification.h"
 #include "tensorflow/core/framework/cost_graph.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_util.h"
 #include "tensorflow/core/kernels/batching_util/input_split_metadata.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
 #include "tensorflow/core/lib/monitoring/counter.h"
@@ -435,7 +435,7 @@ absl::Status BatchingSession::InternalRun(
 
   outputs->clear();
 
-  Notification done;
+  absl::Notification done;
   absl::Status status;
   auto task = std::unique_ptr<BatchingSessionTask>(new BatchingSessionTask);
   task->enqueue_time_micros = EnvTime::NowMicros();
