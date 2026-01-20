@@ -1,0 +1,19 @@
+name: tf-serving-build
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - automake
+  - autoconf
+  - libtool
+  - make
+  - cmake
+  - git
+  - pkg-config
+  - wget
+  - curl
+  - patch
+  - unzip
+  - zip
+  - clang=18.1.1
