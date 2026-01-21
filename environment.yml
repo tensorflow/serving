@@ -1,4 +1,15 @@
 name: tf-serving-build
+
+# Bazelisk is the recommended way to manage Bazel versions (automatically downloads and uses the right version).
+# To install Bazelisk:
+# 1. Create directory: mkdir -p ~/.local/bin
+# 2. Download: curl -L https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-darwin-arm64 -o ~/.local/bin/bazel
+#    (use bazelisk-darwin-amd64 for Intel Macs)
+# 3. Make executable: chmod +x ~/.local/bin/bazel
+# 4. Add to PATH: export PATH="$HOME/.local/bin:$PATH" (add to ~/.zshrc or ~/.bash_profile)
+# 5. Optional: Set specific Bazel version with export USE_BAZEL_VERSION=x.y.z
+# 6. Verify: bazel --version
+
 channels:
   - conda-forge
   - defaults
