@@ -63,8 +63,8 @@ class PredictImplTest : public ::testing::Test {
   }
 
  protected:
-  static Status CreateServerCore(const string& model_path,
-                                 std::unique_ptr<ServerCore>* server_core) {
+  static absl::Status CreateServerCore(
+      const string& model_path, std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);

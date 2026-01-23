@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package tensorflow.serving;
 
+import "google/protobuf/any.proto";
 import "tensorflow_serving/config/log_collector_config.proto";
 
 option cc_enable_arenas = true;
@@ -26,4 +27,6 @@ message SamplingConfig {
 message LoggingConfig {
   LogCollectorConfig log_collector_config = 1;
   SamplingConfig sampling_config = 2;
+  // Additional logging config that can be processed by the logger.
+  google.protobuf.Any custom_logging_config = 3;
 }

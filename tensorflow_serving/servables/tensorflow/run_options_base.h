@@ -28,8 +28,19 @@ struct RunOptionsBase {
   // ops based on the priority number. Larger number means higher
   // priority.
   int64_t priority = 1;
+
   // The deadline for this request.
   absl::Time deadline = absl::InfiniteFuture();
+
+  // Controls the latency prioritization of a request within a priority.
+  // Requests with higher priority always get prioritized for latency over
+  // requests with lower priority. 0 is the lowest latency priority.
+  int32_t latency_priority = 0;
+
+  // If true, just-in-time host compilation is disabled, and then if the
+  // specified graph is not compiled, request execution will return an error.
+  // Supported only in TFRT servable. Ignored in non-TFRT servable.
+  bool disable_host_compilation = false;
 };
 
 }  // namespace servables

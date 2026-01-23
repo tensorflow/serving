@@ -22,15 +22,15 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status ServingSession::Create(const GraphDef& graph) {
+absl::Status ServingSession::Create(const GraphDef& graph) {
   return errors::PermissionDenied("State changes denied via ServingSession");
 }
 
-Status ServingSession::Extend(const GraphDef& graph) {
+absl::Status ServingSession::Extend(const GraphDef& graph) {
   return errors::PermissionDenied("State changes denied via ServingSession");
 }
 
-Status ServingSession::Close() {
+absl::Status ServingSession::Close() {
   return errors::PermissionDenied("State changes denied via ServingSession");
 }
 

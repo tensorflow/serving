@@ -47,8 +47,9 @@ class TfrtSavedModelFactoryTest : public ::testing::Test {
             "servables/tensorflow/"
             "testdata/saved_model_half_plus_two_cpu/00000123")) {}
 
-  Status CreateTfrtSavedModel(const TfrtSavedModelConfig& config,
-                              std::unique_ptr<tfrt::SavedModel>* saved_model) {
+  absl::Status CreateTfrtSavedModel(
+      const TfrtSavedModelConfig& config,
+      std::unique_ptr<tfrt::SavedModel>* saved_model) {
     std::unique_ptr<TfrtSavedModelFactory> factory;
     TF_RETURN_IF_ERROR(TfrtSavedModelFactory::Create(config, &factory));
     TF_RETURN_IF_ERROR(factory->CreateTfrtSavedModelWithMetadata(
@@ -196,14 +197,14 @@ TEST_F(TfrtSavedModelFactoryTest, Batch) {
     request_threads.reserve(2);
     request_threads.push_back(
         std::unique_ptr<Thread>(Env::Default()->StartThread(
-            ThreadOptions(), strings::StrCat("thread_", 0),
+            ThreadOptions(), absl::StrCat("thread_", 0),
             [&saved_model, &run_options, &input_tensors, &output_tensors1]() {
               TF_ASSERT_OK(saved_model->Run(run_options, "serving_default",
                                             input_tensors, &output_tensors1));
             })));
     request_threads.push_back(
         std::unique_ptr<Thread>(Env::Default()->StartThread(
-            ThreadOptions(), strings::StrCat("thread_", 1),
+            ThreadOptions(), absl::StrCat("thread_", 1),
             [&saved_model, &run_options, &input_tensors, &output_tensors2]() {
               TF_ASSERT_OK(saved_model->Run(run_options, "serving_default",
                                             input_tensors, &output_tensors2));

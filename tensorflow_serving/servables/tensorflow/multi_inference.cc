@@ -30,7 +30,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status TensorFlowMultiInferenceRunner::Infer(
+absl::Status TensorFlowMultiInferenceRunner::Infer(
     const RunOptions& run_options, const MultiInferenceRequest& request,
     MultiInferenceResponse* response) {
   TRACELITERAL("TensorFlowMultiInferenceRunner::Infer");
@@ -57,14 +57,14 @@ Status TensorFlowMultiInferenceRunner::Infer(
                                       : task.model_spec().signature_name();
 
     if (signature_names.find(signature_name) != signature_names.end()) {
-      return errors::InvalidArgument(strings::StrCat(
-          "Duplicate evaluation of signature: ", signature_name));
+      return errors::InvalidArgument(
+          absl::StrCat("Duplicate evaluation of signature: ", signature_name));
     }
     signature_names.insert(signature_name);
 
     auto iter = meta_graph_def_->signature_def().find(signature_name);
     if (iter == meta_graph_def_->signature_def().end()) {
-      return errors::InvalidArgument(strings::StrCat(
+      return errors::InvalidArgument(absl::StrCat(
           "Requested signature not found in model graph: ", signature_name));
     }
     string input_name;
@@ -103,7 +103,7 @@ Status TensorFlowMultiInferenceRunner::Infer(
                                       : task.model_spec().signature_name();
     auto iter = meta_graph_def_->signature_def().find(signature_name);
     if (iter == meta_graph_def_->signature_def().end()) {
-      return errors::InvalidArgument(strings::StrCat(
+      return errors::InvalidArgument(absl::StrCat(
           "Requested signature not found in model graph: ", signature_name));
     }
     if (task.method_name() == kClassifyMethodName) {
@@ -126,7 +126,7 @@ Status TensorFlowMultiInferenceRunner::Infer(
   return absl::OkStatus();
 }
 
-Status RunMultiInference(
+absl::Status RunMultiInference(
     const RunOptions& run_options, const MetaGraphDef& meta_graph_def,
     const absl::optional<int64_t>& servable_version, Session* session,
     const MultiInferenceRequest& request, MultiInferenceResponse* response,

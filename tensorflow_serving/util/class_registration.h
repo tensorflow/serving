@@ -229,8 +229,7 @@ class ClassRegistry {
   static Status Create(const protobuf::Message& config,
                        AdditionalFactoryArgs... args,
                        std::unique_ptr<BaseClass>* result) {
-    const string& config_proto_message_type =
-        config.GetDescriptor()->full_name();
+    std::string config_proto_message_type(config.GetDescriptor()->full_name());
     auto* factory = LookupFromMap(config_proto_message_type);
     if (factory == nullptr) {
       return errors::InvalidArgument(
@@ -352,13 +351,14 @@ class ClassRegistry {
   REGISTER_CLASS_UNIQ(cnt, RegistryName, BaseClass, ClassCreator,              \
                       config_proto, ##__VA_ARGS__)
 
-#define REGISTER_CLASS_UNIQ(cnt, RegistryName, BaseClass, ClassCreator,    \
-                            config_proto, ...)                             \
-  static ::tensorflow::serving::internal::ClassRegistry<                   \
-      RegistryName, BaseClass, ##__VA_ARGS__>::MapInserter                 \
-      register_class_##cnt(                                                \
-          (config_proto::default_instance().GetDescriptor()->full_name()), \
-          (new ::tensorflow::serving::internal::ClassRegistrationFactory<  \
+#define REGISTER_CLASS_UNIQ(cnt, RegistryName, BaseClass, ClassCreator,       \
+                            config_proto, ...)                                \
+  static ::tensorflow::serving::internal::ClassRegistry<                      \
+      RegistryName, BaseClass, ##__VA_ARGS__>::MapInserter                    \
+      register_class_##cnt(                                                   \
+          std::string(                                                        \
+              config_proto::default_instance().GetDescriptor()->full_name()), \
+          (new ::tensorflow::serving::internal::ClassRegistrationFactory<     \
               BaseClass, ClassCreator, config_proto, ##__VA_ARGS__>));
 
 }  // namespace serving

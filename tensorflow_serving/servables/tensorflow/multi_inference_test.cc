@@ -60,7 +60,8 @@ class MultiInferenceTest : public ::testing::Test {
   static void TearDownTestSuite() { server_core_.reset(); }
 
  protected:
-  static Status CreateServerCore(std::unique_ptr<ServerCore>* server_core) {
+  static absl::Status CreateServerCore(
+      std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);
@@ -90,7 +91,7 @@ class MultiInferenceTest : public ::testing::Test {
 
   ServerCore* GetServerCore() { return this->server_core_.get(); }
 
-  Status GetInferenceRunner(
+  absl::Status GetInferenceRunner(
       std::unique_ptr<TensorFlowMultiInferenceRunner>* inference_runner) {
     ServableHandle<SavedModelBundle> bundle;
     ModelSpec model_spec;
@@ -103,7 +104,7 @@ class MultiInferenceTest : public ::testing::Test {
     return absl::OkStatus();
   }
 
-  Status GetServableHandle(ServableHandle<SavedModelBundle>* bundle) {
+  absl::Status GetServableHandle(ServableHandle<SavedModelBundle>* bundle) {
     ModelSpec model_spec;
     model_spec.set_name(kTestModelName);
     return GetServerCore()->GetServableHandle(model_spec, bundle);
@@ -142,8 +143,8 @@ void PopulateTask(const string& signature_name, const string& method_name,
   task->set_method_name(method_name);
 }
 
-void ExpectStatusError(const Status& status,
-                       const tensorflow::errors::Code expected_code,
+void ExpectStatusError(const absl::Status& status,
+                       const absl::StatusCode expected_code,
                        const string& message_substring) {
   EXPECT_EQ(expected_code, status.code());
   EXPECT_THAT(status.message(), ::testing::HasSubstr(message_substring));

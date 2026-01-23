@@ -30,7 +30,7 @@ std::vector<ServableId> ManagerWrapper::ListAvailableServableIds() const {
   return wrapped_->ListAvailableServableIds();
 }
 
-Status ManagerWrapper::GetUntypedServableHandle(
+absl::Status ManagerWrapper::GetUntypedServableHandle(
     const ServableRequest& request,
     std::unique_ptr<UntypedServableHandle>* const untyped_handle) {
   return wrapped_->GetUntypedServableHandle(request, untyped_handle);

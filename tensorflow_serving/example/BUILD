@@ -1,5 +1,7 @@
 # Description: Tensorflow Serving examples.
 
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+
 package(
     default_visibility = ["//tensorflow_serving:internal"],
     features = ["no_layering_check"],

@@ -45,7 +45,7 @@ namespace serving {
     ::grpc::ServerContext *context, const ReloadConfigRequest *request,
     ReloadConfigResponse *response) {
   ModelServerConfig server_config = request->config();
-  Status status;
+  absl::Status status;
   const absl::flat_hash_map<std::string, int64_t> old_metric_values =
       GetMetrics(request);
   switch (server_config.config_case()) {

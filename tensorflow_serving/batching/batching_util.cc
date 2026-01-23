@@ -71,9 +71,9 @@ Eigen::array<OneDimPadding, num_dims> CreatePadding(
 // functor produces padded_tensor of shape [1, 4, 7].
 template <typename T, int num_dims>
 struct PadTensor {
-  Status operator()(Tensor input,
-                    const Eigen::array<OneDimPadding, num_dims>& padding,
-                    Tensor* output) {
+  absl::Status operator()(Tensor input,
+                          const Eigen::array<OneDimPadding, num_dims>& padding,
+                          Tensor* output) {
     TensorShape output_shape;
     for (int d = 0; d < num_dims; ++d) {
       // Pad before existing elements.
@@ -104,9 +104,9 @@ struct PadTensor {
 // Invokes padding procedure for specific tensor ranks.
 // Only ranks from 1 to 6 are supported (like in PadOp).
 template <typename T>
-Status PadTensorOfSpecificType(const Tensor& tensor,
-                               absl::Span<const int> max_dim_sizes,
-                               Tensor* output_tensor) {
+absl::Status PadTensorOfSpecificType(const Tensor& tensor,
+                                     absl::Span<const int> max_dim_sizes,
+                                     Tensor* output_tensor) {
   int num_dims = tensor.dims();
   switch (num_dims) {
     case 1: {
@@ -184,10 +184,11 @@ std::map<string, std::vector<int>> CalculateMaxDimSizes(
   return max_dim_sizes;
 }
 
-Status AddPadding(const Tensor& tensor, absl::Span<const int> max_dim_sizes,
-                  Tensor* padded_tensor) {
+absl::Status AddPadding(const Tensor& tensor,
+                        absl::Span<const int> max_dim_sizes,
+                        Tensor* padded_tensor) {
   const DataType input_dtype = tensor.dtype();
-  Status padding_status;
+  absl::Status padding_status;
 #define CASE(type)                                                           \
   case DataTypeToEnum<type>::value: {                                        \
     padding_status =                                                         \

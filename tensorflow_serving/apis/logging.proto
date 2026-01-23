@@ -17,4 +17,6 @@ message LogMetadata {
   string dc = 5;                   // Datacenter where the request was logged.
   string request_origin = 6;       // Request origin identifier.
   string request_criticality = 7;  // Request QoS.
+  // An aggregation key that can be used for anonymization.
+  int64 safe_aggregation_privacy_key = 8;
 }

@@ -25,7 +25,7 @@ thread_local bool FakeLoader::was_deleted_in_this_thread_;
 int FakeLoader::num_fake_loaders_ = 0;
 mutex FakeLoader::num_fake_loaders_mu_(LINKER_INITIALIZED);
 
-FakeLoader::FakeLoader(int64_t servable, const Status load_status)
+FakeLoader::FakeLoader(int64_t servable, const absl::Status load_status)
     : servable_(servable), load_status_(load_status) {
   was_deleted_in_this_thread_ = false;
   {
@@ -42,9 +42,9 @@ FakeLoader::~FakeLoader() {
   was_deleted_in_this_thread_ = true;
 }
 
-Status FakeLoader::load_status() { return load_status_; }
+absl::Status FakeLoader::load_status() { return load_status_; }
 
-Status FakeLoader::Load() { return load_status_; }
+absl::Status FakeLoader::Load() { return load_status_; }
 
 void FakeLoader::Unload() {}
 

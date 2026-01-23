@@ -23,6 +23,7 @@ limitations under the License.
 
 #include "google/protobuf/map.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
+#include "xla/tsl/platform/env.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/example/feature.pb.h"
 #include "tensorflow/core/framework/types.pb.h"
@@ -33,7 +34,6 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/tfrt/utils/tensor_util.h"
-#include "tsl/platform/env.h"
 #include "tensorflow_serving/apis/classification.pb.h"
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
@@ -124,16 +124,16 @@ class TfrtClassifierTest : public ::testing::Test {
   static void TearDownTestSuite() { server_core_ = nullptr; }
 
  protected:
-  Status GetSavedModelServableHandle(ServerCore* server_core,
-                                     ServableHandle<Servable>* servable) {
+  absl::Status GetSavedModelServableHandle(ServerCore* server_core,
+                                           ServableHandle<Servable>* servable) {
     ModelSpec model_spec;
     model_spec.set_name(kTestModelName);
     return server_core->GetServableHandle(model_spec, servable);
   }
 
-  Status CallClassify(ServerCore* server_core,
-                      const ClassificationRequest& request,
-                      ClassificationResponse* response) {
+  absl::Status CallClassify(ServerCore* server_core,
+                            const ClassificationRequest& request,
+                            ClassificationResponse* response) {
     ServableHandle<Servable> servable;
     TF_RETURN_IF_ERROR(GetSavedModelServableHandle(server_core, &servable));
     return servable->Classify({}, request, response);
@@ -298,7 +298,7 @@ TEST_F(TfrtClassifierTest, EmptyExampleList) {
       "}");
   ClassificationResponse response;
 
-  Status status = CallClassify(server_core_.get(), request, &response);
+  absl::Status status = CallClassify(server_core_.get(), request, &response);
   EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
   EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
@@ -327,7 +327,7 @@ TEST_F(TfrtClassifierTest, EmptyExampleListWithContext) {
       "}");
   ClassificationResponse response;
 
-  Status status = CallClassify(server_core_.get(), request, &response);
+  absl::Status status = CallClassify(server_core_.get(), request, &response);
   EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
   EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }
@@ -342,7 +342,7 @@ TEST_F(TfrtClassifierTest, EmptyInput) {
       "}");
   ClassificationResponse response;
 
-  Status status = CallClassify(server_core_.get(), request, &response);
+  absl::Status status = CallClassify(server_core_.get(), request, &response);
   EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
   EXPECT_THAT(status.message(), ::testing::HasSubstr("Input is empty"));
 }

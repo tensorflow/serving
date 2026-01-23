@@ -228,7 +228,7 @@ TEST(TFRTSavedModelWarmupTest, UnsupportedLogType) {
   AddSignatures(&meta_graph_def);
   EXPECT_CALL(*saved_model, GetMetaGraphDef())
       .WillRepeatedly(ReturnRef(meta_graph_def));
-  const Status status = RunSavedModelWarmup(
+  const absl::Status status = RunSavedModelWarmup(
       ModelWarmupOptions(), base_path,
       /*lazy_init_threshold=*/0,
       /*skip_warmup_requests_if_initialized=*/true, saved_model.get());

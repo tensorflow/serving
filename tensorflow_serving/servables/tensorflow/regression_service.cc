@@ -25,13 +25,13 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status TensorflowRegressionServiceImpl::Regress(
+absl::Status TensorflowRegressionServiceImpl::Regress(
     const RunOptions& run_options, ServerCore* core,
     const thread::ThreadPoolOptions& thread_pool_options,
     const RegressionRequest& request, RegressionResponse* response) {
   // Verify Request Metadata and create a ServableRequest
   if (!request.has_model_spec()) {
-    return tensorflow::Status(
+    return absl::Status(
         static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
         "Missing ModelSpec");
   }
@@ -40,7 +40,7 @@ Status TensorflowRegressionServiceImpl::Regress(
                               request.model_spec(), request, response);
 }
 
-Status TensorflowRegressionServiceImpl::RegressWithModelSpec(
+absl::Status TensorflowRegressionServiceImpl::RegressWithModelSpec(
     const RunOptions& run_options, ServerCore* core,
     const thread::ThreadPoolOptions& thread_pool_options,
     const ModelSpec& model_spec, const RegressionRequest& request,

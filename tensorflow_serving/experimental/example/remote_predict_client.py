@@ -19,8 +19,6 @@ Example client code which calls the Remote Predict Op directly.
 
 from __future__ import print_function
 
-# This is a placeholder for a Google-internal import.
-
 import tensorflow.compat.v1 as tf
 
 from tensorflow_serving.experimental.tensorflow.ops.remote_predict.python.ops import remote_predict_ops

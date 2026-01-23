@@ -61,7 +61,8 @@ class MultiInferenceTest : public ::testing::Test {
   static void TearDownTestSuite() { server_core_.reset(); }
 
  protected:
-  static Status CreateServerCore(std::unique_ptr<ServerCore>* server_core) {
+  static absl::Status CreateServerCore(
+      std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);
@@ -127,8 +128,8 @@ void PopulateTask(const string& signature_name, const string& method_name,
   task->set_method_name(method_name);
 }
 
-void ExpectStatusError(const Status& status,
-                       const tensorflow::errors::Code expected_code,
+void ExpectStatusError(const absl::Status& status,
+                       const absl::StatusCode expected_code,
                        const string& message_substring) {
   ASSERT_EQ(expected_code, status.code());
   EXPECT_THAT(status.message(), ::testing::HasSubstr(message_substring));

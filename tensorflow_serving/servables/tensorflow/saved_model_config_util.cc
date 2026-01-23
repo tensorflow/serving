@@ -15,22 +15,22 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/saved_model_config_util.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
-#include "absl/log/log.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "tensorflow/cc/saved_model/constants.h"
+#include "xla/tsl/platform/env.h"
+#include "xla/tsl/platform/errors.h"
+#include "xla/tsl/platform/file_system.h"
+#include "xla/tsl/platform/types.h"
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/grappler/optimizers/inference/batch_op_rewriter.pb.h"
 #include "tensorflow/core/protobuf/rewriter_config.pb.h"
-#include "tsl/platform/env.h"
-#include "tsl/platform/errors.h"
-#include "tsl/platform/file_system.h"
 #include "tsl/platform/path.h"
 #include "tsl/platform/stringpiece.h"
-#include "tsl/platform/types.h"
 #include "tensorflow_serving/servables/tensorflow/remote_op_config_rewriter.pb.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_config.pb.h"
 
@@ -97,7 +97,7 @@ absl::StatusOr<SavedModelConfig> LoadSavedModelConfigOrDefault(
 
   LOG(INFO) << "Loading model config from " << saved_model_config_path;
   std::string content;
-  tsl::uint64 file_size = 0;
+  uint64_t file_size = 0;
   TF_RETURN_IF_ERROR(
       tsl::Env::Default()->GetFileSize(saved_model_config_path, &file_size));
   content.resize(file_size);
@@ -107,7 +107,8 @@ absl::StatusOr<SavedModelConfig> LoadSavedModelConfigOrDefault(
       tsl::Env::Default()->NewRandomAccessFile(saved_model_config_path, &file));
 
   absl::string_view result;
-  TF_RETURN_IF_ERROR(file->Read(0, file_size, &result, &(content)[0]));
+  TF_RETURN_IF_ERROR(
+      file->Read(0, result, absl::MakeSpan(&content[0], file_size)));
 
   if (!saved_model_config.ParseFromString(content)) {
     return tsl::errors::Internal("Unable to parse SavedModelConfig: ",

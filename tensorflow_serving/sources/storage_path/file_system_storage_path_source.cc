@@ -27,12 +27,12 @@ limitations under the License.
 
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
+#include "xla/tsl/platform/errors.h"
+#include "xla/tsl/platform/macros.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/strings/numbers.h"
 #include "tensorflow/core/platform/env.h"
-#include "tsl/platform/errors.h"
-#include "tsl/platform/macros.h"
 #include "tensorflow_serving/core/servable_data.h"
 #include "tensorflow_serving/core/servable_id.h"
 
@@ -85,7 +85,7 @@ void AspireVersion(
 // Converts the string version path to an integer.
 // Returns false if the input is invalid.
 bool ParseVersionNumber(const string& version_path, int64_t* version_number) {
-  return strings::safe_strto64(version_path.c_str(), version_number);
+  return absl::SimpleAtoi(version_path.c_str(), version_number);
 }
 
 // Update the servable data to include all the servable versions found in the

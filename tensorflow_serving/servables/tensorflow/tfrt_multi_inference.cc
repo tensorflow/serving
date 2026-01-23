@@ -28,11 +28,11 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status RunMultiInference(const tfrt::SavedModel::RunOptions& run_options,
-                         const absl::optional<int64_t>& servable_version,
-                         tfrt::SavedModel* saved_model,
-                         const MultiInferenceRequest& request,
-                         MultiInferenceResponse* response) {
+absl::Status RunMultiInference(const tfrt::SavedModel::RunOptions& run_options,
+                               const absl::optional<int64_t>& servable_version,
+                               tfrt::SavedModel* saved_model,
+                               const MultiInferenceRequest& request,
+                               MultiInferenceResponse* response) {
   Tensor input_tensor;
   TF_RETURN_IF_ERROR(
       InputToSerializedExampleTensor(request.input(), &input_tensor));
@@ -68,8 +68,8 @@ Status RunMultiInference(const tfrt::SavedModel::RunOptions& run_options,
     // TODO(b/183949363): Remove the constrain here. We could allow duplicated
     // function names and simply return result for each of them.
     if (function_names_set.find(function_name) != function_names_set.end()) {
-      return errors::InvalidArgument(strings::StrCat(
-          "Duplicate evaluation of signature: ", function_name));
+      return errors::InvalidArgument(
+          absl::StrCat("Duplicate evaluation of signature: ", function_name));
     }
     function_names_set.insert(function_name);
     function_names.push_back(function_name);
@@ -78,7 +78,7 @@ Status RunMultiInference(const tfrt::SavedModel::RunOptions& run_options,
         saved_model->GetFunctionMetadata(function_name);
     if (!function_metadata.has_value()) {
       return errors::InvalidArgument(
-          strings::StrCat("Function \"", function_name, "\" not found."));
+          absl::StrCat("Function \"", function_name, "\" not found."));
     }
 
     if (task.method_name() == kClassifyMethodName) {

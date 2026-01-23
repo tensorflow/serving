@@ -92,7 +92,7 @@ class ResourceTrackerTest : public ::testing::Test {
               "  } "
               "  quantity: 3 "
               "} ");
-          return Status();
+          return absl::Status();
         }));
 
     loader_1_.reset(new NiceMock<test_util::MockLoader>);
@@ -114,7 +114,7 @@ class ResourceTrackerTest : public ::testing::Test {
               "  } "
               "  quantity: 7 "
               "} ");
-          return Status();
+          return absl::Status();
         }));
 
     loader_2_.reset(new NiceMock<test_util::MockLoader>);
@@ -128,7 +128,7 @@ class ResourceTrackerTest : public ::testing::Test {
               "  } "
               "  quantity: 15 "
               "} ");
-          return Status();
+          return absl::Status();
         }));
 
     loader_3_.reset(new NiceMock<test_util::MockLoader>);
@@ -142,7 +142,7 @@ class ResourceTrackerTest : public ::testing::Test {
               "  } "
               "  quantity: 12 "
               "} ");
-          return Status();
+          return absl::Status();
         }));
 
     invalid_resources_loader_.reset(new NiceMock<test_util::MockLoader>);
@@ -157,7 +157,7 @@ class ResourceTrackerTest : public ::testing::Test {
               "  } "
               "  quantity: 4 "
               "} ");
-          return Status();
+          return absl::Status();
         }));
 
     // Disallow calls to Load()/Unload().

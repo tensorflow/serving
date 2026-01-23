@@ -36,17 +36,16 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status PreProcessClassification(
+absl::Status PreProcessClassification(
     const tfrt::FunctionMetadata& function_metadata) {
   if (function_metadata.GetInputNames().size() != 1) {
-    return errors::InvalidArgument(
-        strings::StrCat("Expected one input Tensor."));
+    return errors::InvalidArgument(absl::StrCat("Expected one input Tensor."));
   }
   if (function_metadata.GetOutputNames().size() != 1 &&
       function_metadata.GetOutputNames().size() != 2) {
     return errors::InvalidArgument(
-        strings::StrCat("Expected one or two output Tensors, found ",
-                        function_metadata.GetOutputNames().size()));
+        absl::StrCat("Expected one or two output Tensors, found ",
+                     function_metadata.GetOutputNames().size()));
   }
 
   if (function_metadata.GetInputNames()[0] != kClassifyInputs) {
@@ -78,11 +77,11 @@ Status PreProcessClassification(
   return absl::OkStatus();
 }
 
-Status PostProcessClassificationResult(
+absl::Status PostProcessClassificationResult(
     int num_examples, const std::vector<string>& output_names,
     const std::vector<Tensor>& output_tensors, ClassificationResult* result) {
   if (output_tensors.size() != output_names.size()) {
-    return errors::InvalidArgument(strings::StrCat(
+    return errors::InvalidArgument(absl::StrCat(
         "Unexpected output tensors size. Expected ", output_names.size(),
         " output tensor(s).  Got: ", output_tensors.size()));
   }
@@ -167,11 +166,11 @@ Status PostProcessClassificationResult(
   return absl::OkStatus();
 }
 
-Status RunClassify(const tfrt::SavedModel::RunOptions& run_options,
-                   const absl::optional<int64_t>& servable_version,
-                   tfrt::SavedModel* saved_model,
-                   const ClassificationRequest& request,
-                   ClassificationResponse* response) {
+absl::Status RunClassify(const tfrt::SavedModel::RunOptions& run_options,
+                         const absl::optional<int64_t>& servable_version,
+                         tfrt::SavedModel* saved_model,
+                         const ClassificationRequest& request,
+                         ClassificationResponse* response) {
   const string function_name = request.model_spec().signature_name().empty()
                                    ? kDefaultServingSignatureDefKey
                                    : request.model_spec().signature_name();
@@ -180,7 +179,7 @@ Status RunClassify(const tfrt::SavedModel::RunOptions& run_options,
       saved_model->GetFunctionMetadata(function_name);
   if (!function_metadata.has_value()) {
     return errors::FailedPrecondition(
-        strings::StrCat("Function \"", function_name, "\" not found."));
+        absl::StrCat("Function \"", function_name, "\" not found."));
   }
 
   MakeModelSpec(request.model_spec().name(), function_name, servable_version,

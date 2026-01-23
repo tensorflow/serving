@@ -66,9 +66,9 @@ class TFRTGetModelMetadataImplTest : public ::testing::Test {
   static void TearDownTestSuite() { saved_model_server_core_.reset(); }
 
  protected:
-  static Status CreateServerCore(const string& model_path,
-                                 bool saved_model_on_disk,
-                                 std::unique_ptr<ServerCore>* server_core) {
+  static absl::Status CreateServerCore(
+      const string& model_path, bool saved_model_on_disk,
+      std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);
