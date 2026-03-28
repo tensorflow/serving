@@ -84,7 +84,9 @@ TEST(JsontensorTest, SingleUnnamedTensor) {
     )"));
 }
 
-TEST(JsontensorTest, DeeplyNestedWellFormed) {
+// This test validates that deeply nested JSON arrays are rejected
+// to prevent stack overflow (CVE-2025-0649).
+TEST(JsontensorTest, DeeplyNestedExceedsLimit) {
   TensorInfoMap infomap;
   ASSERT_TRUE(
       TextFormat::ParseFromString("dtype: DT_INT32", &infomap["default"]));
@@ -92,9 +94,27 @@ TEST(JsontensorTest, DeeplyNestedWellFormed) {
   PredictRequest req;
   JsonPredictRequestFormat format;
   std::string json_req = R"({"instances":[1], "nested":)";
+  // Exceeds kMaxTensorNestingDepth (100)
   json_req.append(500000, '[');
   json_req.append(500000, ']');
   json_req.append("}");
+  auto status =
+      FillPredictRequestFromJson(json_req, getmap(infomap), &req, &format);
+  ASSERT_TRUE(absl::IsInvalidArgument(status));
+  EXPECT_THAT(status.message(), HasSubstr("exceeds maximum allowed depth"));
+}
+
+// Test that nesting exactly at the limit is still allowed
+TEST(JsontensorTest, DeeplyNestedAtLimit) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_INT32", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  // Create JSON with exactly kMaxTensorNestingDepth (100) levels of nesting
+  // This should succeed
+  std::string json_req = R"({"instances":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[1]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}})";
   TF_EXPECT_OK(
       FillPredictRequestFromJson(json_req, getmap(infomap), &req, &format));
   auto tmap = req.inputs();

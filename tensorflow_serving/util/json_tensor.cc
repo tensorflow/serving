@@ -90,6 +90,10 @@ constexpr char kBase64Key[] = "b64";
 // Suffix for name of tensors that represent bytes (as opposed to strings).
 constexpr char kBytesTensorNameSuffix[] = "_bytes";
 
+// Maximum nesting depth for JSON tensor shapes to prevent stack overflow.
+// This limit prevents CVE-2025-0649 - memory corruption from deeply nested arrays.
+constexpr int kMaxTensorNestingDepth = 100;
+
 using RapidJsonWriter = rapidjson::PrettyWriter<rapidjson::StringBuffer>;
 
 string JsonTypeString(const rapidjson::Value& val) {
@@ -342,17 +346,29 @@ Status AddValueToTensor(const rapidjson::Value& val, DataType dtype,
 }
 
 // Computes and fills TensorShape corresponding to a JSON value.
-//
-// `val` can be scalar or list or list of lists with arbitrary nesting. If a
+//// `val` can be scalar or list or list of lists with arbitrary nesting. If a
 // scalar (non array) is passed, we do not add dimension info to shape (as
 // scalars do not have a dimension).
-void GetDenseTensorShape(const rapidjson::Value& val, TensorShapeProto* shape) {
-  if (!val.IsArray()) return;
+//
+// Returns error if nesting depth exceeds kMaxTensorNestingDepth to prevent
+// stack overflow (CVE-2025-0649).
+absl::Status GetDenseTensorShape(const rapidjson::Value& val, TensorShapeProto* shape,
+                               int depth = 0) {
+  if (!val.IsArray()) return absl::OkStatus();
+  
+  // Check depth limit to prevent stack overflow
+  if (depth >= kMaxTensorNestingDepth) {
+    return errors::InvalidArgument(
+        "Tensor nesting depth ", depth,
+        " exceeds maximum allowed depth ", kMaxTensorNestingDepth);
+  }
+  
   const auto size = val.Size();
   shape->add_dim()->set_size(size);
   if (size > 0) {
-    GetDenseTensorShape(val[0], shape);
+    TF_RETURN_IF_ERROR(GetDenseTensorShape(val[0], shape, depth + 1));
   }
+  return absl::OkStatus();
 }
 
 bool IsValBase64Object(const rapidjson::Value& val) {
@@ -392,6 +408,13 @@ Status JsonDecodeBase64Object(const rapidjson::Value& val,
 Status FillTensorProto(const rapidjson::Value& val, int level, DataType dtype,
                        int* val_count, TensorProto* tensor) {
   const auto rank = tensor->tensor_shape().dim_size();
+  
+  // Defense-in-depth: ensure rank never exceeds maximum allowed depth
+  if (rank > kMaxTensorNestingDepth) {
+    return errors::InvalidArgument(
+        "Tensor rank ", rank, " exceeds maximum allowed depth ",
+        kMaxTensorNestingDepth);
+  }
   if (!val.IsArray()) {
     // DOM tree for a (dense) tensor will always have all values
     // at same (leaf) level equal to the rank of the tensor.
@@ -453,7 +476,7 @@ Status AddInstanceItem(const rapidjson::Value& item, const string& name,
   const auto dtype = tensorinfo_map.at(name).dtype();
   auto* tensor = &(*tensor_map)[name];
   tensor->mutable_tensor_shape()->Clear();
-  GetDenseTensorShape(item, tensor->mutable_tensor_shape());
+  TF_RETURN_IF_ERROR(GetDenseTensorShape(item, tensor->mutable_tensor_shape()));
   TF_RETURN_IF_ERROR(
       FillTensorProto(item, 0 /* level */, dtype, &size, tensor));
   if (!size_map->count(name)) {
@@ -623,7 +646,7 @@ Status FillTensorMapFromInputsMap(
 
     auto* tensor = &(*tensor_map)[tensorinfo_map.begin()->first];
     tensor->set_dtype(tensorinfo_map.begin()->second.dtype());
-    GetDenseTensorShape(val, tensor->mutable_tensor_shape());
+    TF_RETURN_IF_ERROR(GetDenseTensorShape(val, tensor->mutable_tensor_shape()));
     int unused_size = 0;
     TF_RETURN_IF_ERROR(FillTensorProto(val, 0 /* level */, tensor->dtype(),
                                        &unused_size, tensor));
@@ -639,7 +662,7 @@ Status FillTensorMapFromInputsMap(
       auto* tensor = &(*tensor_map)[name];
       tensor->set_dtype(dtype);
       tensor->mutable_tensor_shape()->Clear();
-      GetDenseTensorShape(item->value, tensor->mutable_tensor_shape());
+      TF_RETURN_IF_ERROR(GetDenseTensorShape(item->value, tensor->mutable_tensor_shape()));
       int unused_size = 0;
       TF_RETURN_IF_ERROR(FillTensorProto(item->value, 0 /* level */, dtype,
                                          &unused_size, tensor));
