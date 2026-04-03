@@ -29,7 +29,10 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/macros.h"
+#include "tensorflow_serving/core/loader_harness.h"
 #include "tensorflow_serving/core/servable_handle.h"
+#include "tensorflow_serving/core/servable_id.h"
+#include "tensorflow_serving/core/servable_model_type.h"
 #include "tensorflow_serving/core/servable_state.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/resources/resource_tracker.h"
@@ -253,8 +256,10 @@ BasicManager::BasicManager(
   harness_options_.max_num_load_retries = max_num_load_retries;
   harness_options_.load_retry_interval_micros = load_retry_interval_micros;
   harness_options_.error_callback = [this](const ServableId& id,
+                                           ServableModelType model_type,
                                            const absl::Status& error) {
-    PublishOnEventBus({id, ServableState::ManagerState::kEnd, error});
+    PublishOnEventBus(
+        {id, ServableState::ManagerState::kEnd, error, model_type});
   };
 
   {
@@ -370,7 +375,7 @@ absl::Status BasicManager::ManageServableInternal(
     harness->Error(servable.status());
   } else {
     PublishOnEventBus({harness->id(), ServableState::ManagerState::kStart,
-                       harness->status()});
+                       harness->status(), harness->model_type()});
   }
   managed_map_.emplace(servable.id().name, harness);
 
@@ -487,12 +492,12 @@ std::vector<string> BasicManager::GetManagedServableNames() const {
 
 absl::Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
   PublishOnEventBus({harness->id(), ServableState::ManagerState::kLoading,
-                     harness->status()});
+                     harness->status(), harness->model_type()});
   // We save the id of the harness so that we can publish it after Load(). (We
   // can't query harness again after Load() as it may be deleted by another
   // thread that called StopManagingServable().)
   const ServableId id = harness->id();
-
+  ServableModelType model_type = harness->model_type();
   if (pre_load_hook_) {
     pre_load_hook_(id);
   }
@@ -514,10 +519,16 @@ absl::Status BasicManager::ExecuteLoad(LoaderHarness* harness) {
   {
     mutex_lock l(mu_);
     UpdateServingMap();
+    const auto it = FindHarnessInMap(id);
+    if (it != managed_map_.end()) {
+      // Re-capture the model type: for any model that implements `Servable`, it
+      // is only known after the model is loaded.
+      model_type = it->second->model_type();
+    }
   }
 
-  PublishOnEventBus(
-      {id, ServableState::ManagerState::kAvailable, absl::OkStatus()});
+  PublishOnEventBus({id, ServableState::ManagerState::kAvailable,
+                     absl::OkStatus(), model_type});
   return absl::OkStatus();
 }
 
@@ -545,19 +556,21 @@ absl::Status BasicManager::ExecuteUnload(LoaderHarness* harness) {
   // can't query harness again after Unload() as it may be deleted by another
   // thread that called StopManagingServable().)
   const ServableId id = harness->id();
+  const ServableModelType model_type = harness->model_type();
 
   {
     // StartQuiescing() would have been already called.
     mutex_lock l(mu_);
-    PublishOnEventBus(
-        {id, ServableState::ManagerState::kUnloading, harness->status()});
+    PublishOnEventBus({id, ServableState::ManagerState::kUnloading,
+                       harness->status(), model_type});
     UpdateServingMap();
     TF_RETURN_IF_ERROR(harness->DoneQuiescing());
   }
 
   // We don't hold the lock while calling Unload() as it may block.
   TF_RETURN_IF_ERROR(harness->Unload());
-  PublishOnEventBus({id, ServableState::ManagerState::kEnd, absl::OkStatus()});
+  PublishOnEventBus(
+      {id, ServableState::ManagerState::kEnd, absl::OkStatus(), model_type});
   return absl::OkStatus();
 }
 
@@ -721,7 +734,7 @@ absl::Status BasicManager::ApproveLoad(LoaderHarness* harness,
       LOG(WARNING) << resource_reservation_status;
       harness->Error(resource_reservation_status);
       PublishOnEventBus({harness->id(), ServableState::ManagerState::kEnd,
-                         resource_reservation_status});
+                         resource_reservation_status, harness->model_type()});
       return resource_reservation_status;
     }
   }

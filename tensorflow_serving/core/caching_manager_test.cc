@@ -22,8 +22,8 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/log/check.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/env.h"
@@ -178,7 +178,7 @@ class CachingManagerTest : public ::testing::TestWithParam<ThreadPoolSizes> {
     string_loader_factory.reset(new StringLoaderFactory(0));
     string_loader_factory_ = string_loader_factory.get();
 
-    TF_CHECK_OK(CachingManager::Create(
+    CHECK_OK(CachingManager::Create(
         std::move(options), std::move(string_loader_factory), &manager_));
   }
 
@@ -198,7 +198,7 @@ class CachingManagerTest : public ::testing::TestWithParam<ThreadPoolSizes> {
     error_loader_factory.reset(new ErrorLoaderFactory);
 
     std::unique_ptr<CachingManager> error_manager;
-    TF_CHECK_OK(CachingManager::Create(
+    CHECK_OK(CachingManager::Create(
         std::move(options), std::move(error_loader_factory), &error_manager));
     return error_manager;
   }

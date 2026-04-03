@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include "absl/functional/bind_front.h"
+#include "absl/log/check.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/kernels/batching_util/basic_batch_scheduler.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -96,9 +97,9 @@ class SavedModelWithBatchingTest : public ::testing::Test {
 
     std::vector<FuncNameWithBatchingSchedulerCreator> creators = {
         {kFunctionOne, scheduler_creator}, {kFunctionTwo, scheduler_creator}};
-    TF_CHECK_OK(CreateSavedModelWithBatching(options, creators,
-                                             std::move(wrapped_saved_model),
-                                             &saved_model_with_batching_));
+    CHECK_OK(CreateSavedModelWithBatching(options, creators,
+                                          std::move(wrapped_saved_model),
+                                          &saved_model_with_batching_));
   }
 
   Tensor MakeTensor(const std::vector<float> &tensor_vec,

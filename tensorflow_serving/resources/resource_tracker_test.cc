@@ -21,6 +21,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/log/check.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/types.h"
@@ -69,7 +70,7 @@ class ResourceTrackerTest : public ::testing::Test {
                                             "} ")) {
     std::unique_ptr<ResourceUtil> util(
         new ResourceUtil({{{"main", 1}, {"gpu", 2}}}));
-    TF_CHECK_OK(ResourceTracker::Create(
+    CHECK_OK(ResourceTracker::Create(
         total_resources_, std::unique_ptr<ResourceUtil>(std::move(util)),
         &tracker_));
 

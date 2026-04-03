@@ -123,7 +123,6 @@ serving_proto_library(
 py_library(
     name = "tensorflow_model_server_test_base",
     srcs = ["tensorflow_model_server_test_base.py"],
-    srcs_version = "PY2AND3",
     tags = [
         "noasan",  # b/136281879
         "notsan",

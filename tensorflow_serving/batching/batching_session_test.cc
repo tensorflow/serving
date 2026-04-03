@@ -22,6 +22,7 @@ limitations under the License.
 #include <vector>
 
 #include <gtest/gtest.h>
+#include "absl/log/check.h"
 #include "absl/synchronization/notification.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
@@ -29,7 +30,6 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
-#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
@@ -125,8 +125,8 @@ std::unique_ptr<Session> CreateHalfPlusTwoSession() {
   const string export_dir = test_util::TensorflowTestSrcDirPath(
       "cc/saved_model/testdata/half_plus_two/00000123");
   SavedModelBundle bundle;
-  TF_CHECK_OK(LoadSavedModel(session_options, run_options, export_dir,
-                             {kSavedModelTagServe}, &bundle));
+  CHECK_OK(LoadSavedModel(session_options, run_options, export_dir,
+                          {kSavedModelTagServe}, &bundle));
   return std::move(bundle.session);
 }
 
@@ -136,8 +136,8 @@ std::unique_ptr<Session> CreateMatrixHalfPlusTwoSession() {
   const string export_dir =
       test_util::TestSrcDirPath("batching/testdata/matrix_half_plus_two/1");
   SavedModelBundle bundle;
-  TF_CHECK_OK(LoadSavedModel(session_options, run_options, export_dir,
-                             {kSavedModelTagServe}, &bundle));
+  CHECK_OK(LoadSavedModel(session_options, run_options, export_dir,
+                          {kSavedModelTagServe}, &bundle));
   return std::move(bundle.session);
 }
 
@@ -917,11 +917,11 @@ TEST_P(BatchingSessionTest, MultipleSignatures) {
       };
   BatchingSessionOptions batching_session_options;
   std::unique_ptr<Session> batching_session;
-  TF_CHECK_OK(CreateBatchingSession(batching_session_options,
-                                    {{{{"x"}, {"y"}}, create_scheduler},
-                                     {{{"x2"}, {"y3"}}, create_scheduler}},
-                                    CreateHalfPlusTwoSession(),
-                                    &batching_session));
+  CHECK_OK(CreateBatchingSession(batching_session_options,
+                                 {{{{"x"}, {"y"}}, create_scheduler},
+                                  {{{"x2"}, {"y3"}}, create_scheduler}},
+                                 CreateHalfPlusTwoSession(),
+                                 &batching_session));
   ASSERT_EQ(2, schedulers.size());
 
   // Create lambdas for 2-unit inference requests to each signature.
@@ -985,7 +985,7 @@ TEST_P(BatchingSessionTest, EnqueuedLongerThanTimeout) {
       };
   BatchingSessionOptions batching_session_options;
   std::unique_ptr<Session> batching_session;
-  TF_CHECK_OK(CreateBatchingSession(
+  CHECK_OK(CreateBatchingSession(
       batching_session_options, {{{{"x"}, {"y"}}, create_scheduler}},
       CreateHalfPlusTwoSession(), &batching_session));
   ASSERT_FALSE(scheduler == nullptr);

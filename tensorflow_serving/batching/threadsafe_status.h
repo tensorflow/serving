@@ -16,8 +16,8 @@ limitations under the License.
 #ifndef TENSORFLOW_CORE_KERNELS_BATCHING_UTIL_THREADSAFE_STATUS_H_
 #define TENSORFLOW_CORE_KERNELS_BATCHING_UTIL_THREADSAFE_STATUS_H_
 
+#include "absl/status/status.h"
 #include "tensorflow/core/platform/mutex.h"
-#include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/platform/thread_annotations.h"
 
 namespace tensorflow {
@@ -44,17 +44,17 @@ namespace serving {
 //   When updated in a multi-threading setup, only the first error is retained.
 class ThreadSafeStatus {
  public:
-  const Status& status() const& TF_LOCKS_EXCLUDED(mutex_);
-  Status status() && TF_LOCKS_EXCLUDED(mutex_);
+  absl::Status status() const& TF_LOCKS_EXCLUDED(mutex_);
+  absl::Status status() && TF_LOCKS_EXCLUDED(mutex_);
 
   // Retains the first error status: replaces the current status with
   // `new_status` if `new_status` is not OK and the previous status is OK.
-  void Update(const Status& new_status) TF_LOCKS_EXCLUDED(mutex_);
-  void Update(Status&& new_status) TF_LOCKS_EXCLUDED(mutex_);
+  void Update(const absl::Status& new_status) TF_LOCKS_EXCLUDED(mutex_);
+  void Update(absl::Status&& new_status) TF_LOCKS_EXCLUDED(mutex_);
 
  private:
   mutable mutex mutex_;
-  Status status_ TF_GUARDED_BY(mutex_);
+  absl::Status status_ TF_GUARDED_BY(mutex_);
 };
 }  // namespace serving
 }  // namespace tensorflow

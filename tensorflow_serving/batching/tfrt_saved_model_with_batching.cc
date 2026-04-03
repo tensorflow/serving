@@ -15,9 +15,18 @@ limitations under the License.
 
 #include "tensorflow_serving/batching/tfrt_saved_model_with_batching.h"
 
+#include <algorithm>
+#include <chrono>  // NOLINT
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/synchronization/notification.h"
+#include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_util.h"
 #include "tensorflow/core/kernels/batching_util/batch_scheduler.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
@@ -33,7 +42,7 @@ using tfrt::SavedModel;
 
 namespace {
 
-auto *queuing_latency = monitoring::Sampler<0>::New(
+auto* queuing_latency = monitoring::Sampler<0>::New(
     {"/tensorflow/serving/saved_model_with_batching/queuing_latency",
      "Distribution of wall time spent (in microseconds) in queuing"},
     // Scale of 100, power of 1.2 with bucket count 52 (~1 second).
@@ -43,18 +52,18 @@ auto *queuing_latency = monitoring::Sampler<0>::New(
 class SavedModelWithBatching : public tfrt::SavedModel {
  public:
   static absl::Status Create(
-      const SavedModelBatchingOptions &options,
-      const std::vector<FuncNameWithBatchingSchedulerCreator>
-          &func_name_with_batching_scheduler_creator,
+      const SavedModelBatchingOptions& options,
+      const std::vector<FuncNameWithBatchingSchedulerCreator>&
+          func_name_with_batching_scheduler_creator,
       std::unique_ptr<SavedModel> saved_model,
-      std::unique_ptr<SavedModel> *result);
+      std::unique_ptr<SavedModel>* result);
 
   // Public ctor because of absl::make_unique. It's okay given the class is
   // not publicly visible.
-  SavedModelWithBatching(const SavedModelBatchingOptions &options,
+  SavedModelWithBatching(const SavedModelBatchingOptions& options,
                          std::unique_ptr<SavedModel> saved_model);
 
-  const tensorflow::MetaGraphDef &GetMetaGraphDef() const override {
+  const tensorflow::MetaGraphDef& GetMetaGraphDef() const override {
     return wrapped_->GetMetaGraphDef();
   }
 
@@ -70,14 +79,14 @@ class SavedModelWithBatching : public tfrt::SavedModel {
   // The semantics of Run() is identical to its parent, it internally blocks,
   // batches multiple Run() and splits the result once the batch finishes and
   // unblocks.
-  absl::Status Run(const tfrt::SavedModel::RunOptions &run_options,
+  absl::Status Run(const tfrt::SavedModel::RunOptions& run_options,
                    absl::string_view func_name, absl::Span<const Tensor> inputs,
-                   std::vector<Tensor> *outputs) override;
+                   std::vector<Tensor>* outputs) override;
 
   absl::Status RunMultipleSignatures(
-      const RunOptions &run_options, absl::Span<const std::string> names,
+      const RunOptions& run_options, absl::Span<const std::string> names,
       absl::Span<const std::vector<tensorflow::Tensor>> multi_inputs,
-      std::vector<std::vector<tensorflow::Tensor>> *multi_outputs) override {
+      std::vector<std::vector<tensorflow::Tensor>>* multi_outputs) override {
     // TODO(b/191149783): Implement batching support for
     // RunMultipleSignatures().
     return wrapped_->RunMultipleSignatures(run_options, names, multi_inputs,
@@ -85,11 +94,11 @@ class SavedModelWithBatching : public tfrt::SavedModel {
   }
 
   absl::Status RunByTensorNames(
-      const RunOptions &run_options,
+      const RunOptions& run_options,
       absl::Span<const std::pair<std::string, tensorflow::Tensor>> inputs,
       absl::Span<const std::string> output_tensor_names,
       absl::Span<const std::string> target_node_names,
-      std::vector<tensorflow::Tensor> *outputs) {
+      std::vector<tensorflow::Tensor>* outputs) override {
     // TODO(b/191149783): Implement batching support for RunByTensorNames().
     return wrapped_->RunByTensorNames(run_options, inputs, output_tensor_names,
                                       target_node_names, outputs);
@@ -102,13 +111,13 @@ class SavedModelWithBatching : public tfrt::SavedModel {
 
   // Batches tensors in `batch` and stores the result in `batch_inputs`.
   absl::Status BatchInputTensors(absl::string_view func_name,
-                                 const Batch<SavedModelBatchingTask> &batch,
-                                 std::vector<Tensor> *batch_inputs);
+                                 const Batch<SavedModelBatchingTask>& batch,
+                                 std::vector<Tensor>* batch_inputs);
 
   // For each tensor in `combined_outputs`, splits it according to `batch` and
   // stores the result in corresponding BatchingTask.
   absl::Status SplitOutputTensors(std::vector<Tensor> combined_outputs,
-                                  Batch<SavedModelBatchingTask> *batch);
+                                  Batch<SavedModelBatchingTask>* batch);
 
   const SavedModelBatchingOptions options_;
 
@@ -122,30 +131,30 @@ class SavedModelWithBatching : public tfrt::SavedModel {
 };
 
 SavedModelWithBatching::SavedModelWithBatching(
-    const SavedModelBatchingOptions &options,
+    const SavedModelBatchingOptions& options,
     std::unique_ptr<SavedModel> saved_model)
     : tfrt::SavedModel(&saved_model->runtime()),
       options_(options),
       wrapped_(std::move(saved_model)) {}
 
 absl::Status SavedModelWithBatching::Create(
-    const SavedModelBatchingOptions &options,
-    const std::vector<FuncNameWithBatchingSchedulerCreator>
-        &func_name_with_batching_scheduler_creators,
+    const SavedModelBatchingOptions& options,
+    const std::vector<FuncNameWithBatchingSchedulerCreator>&
+        func_name_with_batching_scheduler_creators,
     std::unique_ptr<SavedModel> saved_model,
-    std::unique_ptr<SavedModel> *result) {
+    std::unique_ptr<SavedModel>* result) {
   if (saved_model == nullptr) {
     return errors::FailedPrecondition("saved_model must not be null.");
   }
 
-  SavedModel *raw_saved_model = saved_model.get();
+  SavedModel* raw_saved_model = saved_model.get();
   std::unique_ptr<SavedModelWithBatching> saved_model_with_batching =
       absl::make_unique<SavedModelWithBatching>(options,
                                                 std::move(saved_model));
-  SavedModelWithBatching *raw_saved_model_with_batching =
+  SavedModelWithBatching* raw_saved_model_with_batching =
       saved_model_with_batching.get();
 
-  for (const auto &entry : func_name_with_batching_scheduler_creators) {
+  for (const auto& entry : func_name_with_batching_scheduler_creators) {
     if (!raw_saved_model->GetFunctionMetadata(entry.func_name)) {
       LOG(WARNING) << "Function " << entry.func_name
                    << " is not found in the model. ";
@@ -160,7 +169,7 @@ absl::Status SavedModelWithBatching::Create(
                        entry.func_name));
     }
 
-    const std::string &func_name = insert_result.first->first;
+    const std::string& func_name = insert_result.first->first;
     TF_RETURN_IF_ERROR(entry.scheduler_creator(
         [func_name, raw_saved_model_with_batching](
             std::unique_ptr<Batch<SavedModelBatchingTask>> batch) {
@@ -178,9 +187,9 @@ absl::Status SavedModelWithBatching::Create(
 }
 
 absl::Status SavedModelWithBatching::Run(
-    const tfrt::SavedModel::RunOptions &run_options,
+    const tfrt::SavedModel::RunOptions& run_options,
     absl::string_view func_name, absl::Span<const Tensor> inputs,
-    std::vector<Tensor> *outputs) {
+    std::vector<Tensor>* outputs) {
   if (outputs == nullptr) {
     return errors::FailedPrecondition("outputs must not be null");
   }
@@ -208,8 +217,8 @@ absl::Status SavedModelWithBatching::Run(
   auto task = absl::make_unique<SavedModelBatchingTask>();
   TF_RETURN_IF_ERROR(ComputeTensorBatchSize(
       inputs, &task->zeroth_dim_size,
-      [](const Tensor &tensor) { return tensor.dims(); },
-      [](const Tensor &tensor, size_t dim) { return tensor.dim_size(dim); }));
+      [](const Tensor& tensor) { return tensor.dims(); },
+      [](const Tensor& tensor, size_t dim) { return tensor.dim_size(dim); }));
   RecordInputBatchSize<SavedModelBatchingTask>(task->zeroth_dim_size);
 
   task->host_context = GetHostContext();
@@ -229,13 +238,13 @@ absl::Status SavedModelWithBatching::Run(
 // removes llvm dependency, refactors this function accordingly (return type may
 // change).
 std::vector<absl::InlinedVector<int, 4>> CalculateMaxDimSizes(
-    const Batch<SavedModelBatchingTask> &batch) {
+    const Batch<SavedModelBatchingTask>& batch) {
   std::vector<absl::InlinedVector<int, 4>> max_dim_sizes;
   for (int batch_idx = 0; batch_idx < batch.num_tasks(); ++batch_idx) {
     const auto inputs = batch.task(batch_idx).tfrt_inputs;
     for (int tensor_idx = 0; tensor_idx < inputs.size(); ++tensor_idx) {
-      const Tensor &tensor = inputs[tensor_idx];
-      const TensorShape &shape = tensor.shape();
+      const Tensor& tensor = inputs[tensor_idx];
+      const TensorShape& shape = tensor.shape();
       const int rank = shape.dims();
 
       absl::InlinedVector<int, 4> dims;
@@ -248,7 +257,7 @@ std::vector<absl::InlinedVector<int, 4>> CalculateMaxDimSizes(
         max_dim_sizes.push_back(std::move(dims));
       } else {
         for (int rank_idx = 0; rank_idx < rank; ++rank_idx) {
-          int &cur_max_size = max_dim_sizes[tensor_idx][rank_idx];
+          int& cur_max_size = max_dim_sizes[tensor_idx][rank_idx];
           cur_max_size = std::max(cur_max_size, dims[rank_idx]);
         }
       }
@@ -258,8 +267,8 @@ std::vector<absl::InlinedVector<int, 4>> CalculateMaxDimSizes(
 }
 
 absl::Status SavedModelWithBatching::BatchInputTensors(
-    absl::string_view func_name, const Batch<SavedModelBatchingTask> &batch,
-    std::vector<Tensor> *batch_inputs) {
+    absl::string_view func_name, const Batch<SavedModelBatchingTask>& batch,
+    std::vector<Tensor>* batch_inputs) {
   if (batch.num_tasks() < 1) {
     return errors::Internal("Batch size expected to be positive; was ",
                             batch.num_tasks());
@@ -286,7 +295,7 @@ absl::Status SavedModelWithBatching::BatchInputTensors(
 
     for (int tensor_idx = 0; tensor_idx < inputs.size(); ++tensor_idx) {
       Tensor tensor = inputs[tensor_idx];
-      std::vector<Tensor> &tensor_vec = tensors_to_merge[tensor_idx];
+      std::vector<Tensor>& tensor_vec = tensors_to_merge[tensor_idx];
 
       Tensor optionally_padded_tensor;
       if (options_.pad_variable_length_inputs) {
@@ -315,7 +324,7 @@ absl::Status SavedModelWithBatching::BatchInputTensors(
     }
   }
 
-  for (const auto &tensors : tensors_to_merge) {
+  for (const auto& tensors : tensors_to_merge) {
     Tensor concated;
     TF_RETURN_IF_ERROR(tensor::Concat(tensors, &concated));
     batch_inputs->push_back(concated);
@@ -333,7 +342,7 @@ void SavedModelWithBatching::ProcessBatch(
   absl::Status status = absl::Status();
   auto cleanup = gtl::MakeCleanup([&status, &batch] {
     for (int batch_idx = 0; batch_idx < batch->num_tasks(); ++batch_idx) {
-      SavedModelBatchingTask *task = batch->mutable_task(batch_idx);
+      SavedModelBatchingTask* task = batch->mutable_task(batch_idx);
       if (task->partial_status != nullptr) {
         task->partial_status->Update(status);
         task->done_callback();
@@ -349,7 +358,7 @@ void SavedModelWithBatching::ProcessBatch(
   bool all_tasks_timeout_exceeded = true;
   absl::optional<std::chrono::system_clock::time_point> batch_deadline;
   for (int batch_idx = 0; batch_idx < batch->num_tasks(); ++batch_idx) {
-    const SavedModelBatchingTask &task = batch->task(batch_idx);
+    const SavedModelBatchingTask& task = batch->task(batch_idx);
     if (!task.run_options.deadline.has_value() ||
         absl::ToChronoTime(absl::Now()) < task.run_options.deadline.value()) {
       all_tasks_timeout_exceeded = false;
@@ -385,7 +394,7 @@ void SavedModelWithBatching::ProcessBatch(
 
 absl::Status SavedModelWithBatching::SplitOutputTensors(
     std::vector<Tensor> combined_outputs,
-    Batch<SavedModelBatchingTask> *batch) {
+    Batch<SavedModelBatchingTask>* batch) {
   std::vector<int64_t> split_batch_sizes;
   split_batch_sizes.reserve(batch->num_tasks());
   for (int batch_idx = 0; batch_idx < batch->num_tasks(); ++batch_idx) {
@@ -400,13 +409,13 @@ absl::Status SavedModelWithBatching::SplitOutputTensors(
     split_batch_sizes.push_back(padding_size);
   }
 
-  for (const auto &combined_tensor : combined_outputs) {
+  for (const auto& combined_tensor : combined_outputs) {
     std::vector<Tensor> split_tensors;
     TF_RETURN_IF_ERROR(
         tensor::Split(combined_tensor, split_batch_sizes, &split_tensors));
 
     for (int batch_idx = 0; batch_idx < batch->num_tasks(); ++batch_idx) {
-      SavedModelBatchingTask *task = batch->mutable_task(batch_idx);
+      SavedModelBatchingTask* task = batch->mutable_task(batch_idx);
       task->tfrt_outputs->push_back(split_tensors.at(batch_idx));
     }
   }
@@ -416,21 +425,21 @@ absl::Status SavedModelWithBatching::SplitOutputTensors(
 }  // namespace
 
 absl::Status CreateSavedModelWithBatching(
-    const SavedModelBatchingOptions &options,
-    const std::vector<FuncNameWithBatchingSchedulerCreator>
-        &func_name_with_batching_scheduler_creator,
+    const SavedModelBatchingOptions& options,
+    const std::vector<FuncNameWithBatchingSchedulerCreator>&
+        func_name_with_batching_scheduler_creator,
     std::unique_ptr<tfrt::SavedModel> saved_model,
-    std::unique_ptr<tfrt::SavedModel> *saved_model_with_batching) {
+    std::unique_ptr<tfrt::SavedModel>* saved_model_with_batching) {
   return SavedModelWithBatching::Create(
       options, func_name_with_batching_scheduler_creator,
       std::move(saved_model), saved_model_with_batching);
 }
 
 absl::Status SplitSavedModelInputTask(
-    std::unique_ptr<SavedModelBatchingTask> *input_task_ptr,
+    std::unique_ptr<SavedModelBatchingTask>* input_task_ptr,
     int open_batch_remaining_slot, int max_batch_size,
-    std::vector<std::unique_ptr<SavedModelBatchingTask>> *output_tasks) {
-  SavedModelBatchingTask *input_task = input_task_ptr->get();
+    std::vector<std::unique_ptr<SavedModelBatchingTask>>* output_tasks) {
+  SavedModelBatchingTask* input_task = input_task_ptr->get();
 
   // TODO(b/168220822): Also split RunMetadata once TFRT supports it.
 
@@ -504,16 +513,16 @@ absl::Status SplitSavedModelInputTask(
     output_tasks->push_back(std::move(task));
   }
 
-  for (const Tensor &input : input_task->tfrt_inputs) {
+  for (const Tensor& input : input_task->tfrt_inputs) {
     std::vector<Tensor> split_tensors;
     TF_RETURN_IF_ERROR(tensor::Split(input, output_task_sizes, &split_tensors));
     for (int output_idx = 0; output_idx < output_task_num; ++output_idx) {
-      auto &output_task = (*output_tasks)[output_idx];
+      auto& output_task = (*output_tasks)[output_idx];
       output_task->tfrt_partial_inputs.push_back(split_tensors[output_idx]);
     }
   }
 
-  for (auto &task : *output_tasks) {
+  for (auto& task : *output_tasks) {
     task->tfrt_inputs = task->tfrt_partial_inputs;
   }
 

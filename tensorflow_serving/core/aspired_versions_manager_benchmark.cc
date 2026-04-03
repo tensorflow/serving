@@ -27,6 +27,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "absl/synchronization/notification.h"
 #include "tensorflow/core/kernels/batching_util/periodic_function.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -76,7 +77,7 @@ class BenchmarkState {
     // Do policy thread won't be run automatically.
     options.manage_state_interval_micros = -1;
     options.aspired_version_policy.reset(new AvailabilityPreservingPolicy());
-    TF_CHECK_OK(AspiredVersionsManager::Create(std::move(options), &manager_));
+    CHECK_OK(AspiredVersionsManager::Create(std::move(options), &manager_));
   }
 
   // Actually perform iters reads on the fast read ptr.
@@ -149,7 +150,7 @@ int64_t BenchmarkState::GetLatestVersion(const bool do_work) {
   ServableHandle<int64_t> handle;
   const absl::Status status = manager_->GetServableHandle(
       ServableRequest::Latest(kServableName), &handle);
-  TF_CHECK_OK(status) << status;
+  CHECK_OK(status) << status;
   if (do_work) {
     // Let's do some work, so that we are not just measuring contention in the
     // mutex.
@@ -325,7 +326,7 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
     options.manage_state_interval_micros = -1;
     options.aspired_version_policy.reset(new AvailabilityPreservingPolicy());
     std::unique_ptr<AspiredVersionsManager> manager;
-    TF_CHECK_OK(AspiredVersionsManager::Create(std::move(options), &manager));
+    CHECK_OK(AspiredVersionsManager::Create(std::move(options), &manager));
     auto aspired_versions_callback = manager->GetAspiredVersionsCallback();
     for (int i = 0; i < kNumServableStreams; ++i) {
       const string servable_name = absl::StrCat(kServableName, i);
@@ -380,7 +381,7 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
   for (auto s : state) {
     const absl::Status status =
         manager->GetServableHandle(requests->at(i % kNumRequests), &handle);
-    TF_CHECK_OK(status) << status;
+    CHECK_OK(status) << status;
     ++i;
   }
   state.SetItemsProcessed(state.iterations());

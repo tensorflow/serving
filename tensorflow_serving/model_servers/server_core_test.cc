@@ -471,9 +471,9 @@ ModelConfig ModelConfigForPlatform(const string& root_path,
 
 // Creates a directory for the given version of the model.
 void CreateModelDir(const ModelConfig& model_config, int version) {
-  TF_CHECK_OK(Env::Default()->CreateDir(model_config.base_path()));
+  CHECK_OK(Env::Default()->CreateDir(model_config.base_path()));
   const string version_str = absl::StrCat(version);
-  TF_CHECK_OK(Env::Default()->CreateDir(
+  CHECK_OK(Env::Default()->CreateDir(
       io::JoinPath(model_config.base_path(), version_str)));
 }
 
@@ -646,7 +646,7 @@ TEST_P(ServerCoreTest, RequestLoggingOff) {
 TEST_P(ServerCoreTest, RequestLoggingOn) {
   std::unordered_map<string, FakeLogCollector*> log_collector_map;
   ServerCore::Options options = GetDefaultOptions();
-  TF_CHECK_OK(ServerRequestLogger::Create(
+  CHECK_OK(ServerRequestLogger::Create(
       [&](const LoggingConfig& logging_config,
           std::shared_ptr<RequestLogger>* const request_logger) {
         const string& filename_prefix =

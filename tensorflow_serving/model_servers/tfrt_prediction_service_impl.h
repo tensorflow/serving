@@ -27,8 +27,7 @@ class TfrtPredictionServiceImpl final
  public:
   explicit TfrtPredictionServiceImpl(const PredictionServiceOptions& options)
       : core_(options.server_core),
-        enforce_session_run_timeout_(options.enforce_session_run_timeout),
-        thread_pool_factory_(options.thread_pool_factory) {}
+        enforce_session_run_timeout_(options.enforce_session_run_timeout) {}
 
   ::grpc::Status Predict(::grpc::ServerContext* context,
                          const PredictRequest* request,
@@ -55,7 +54,6 @@ class TfrtPredictionServiceImpl final
 
   ServerCore* core_;
   const bool enforce_session_run_timeout_;
-  ThreadPoolFactory* thread_pool_factory_;
 };
 
 }  // namespace serving

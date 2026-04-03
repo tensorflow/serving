@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_CORE_LOADER_HARNESS_H_
 #define TENSORFLOW_SERVING_CORE_LOADER_HARNESS_H_
 
+#include <functional>
 #include <memory>
 
 #include "absl/status/status.h"
@@ -27,6 +28,8 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/servable_id.h"
+#include "tensorflow_serving/core/servable_model_type.h"
+#include "tensorflow_serving/servables/tensorflow/servable.h"
 
 namespace tensorflow {
 namespace serving {
@@ -105,7 +108,8 @@ class LoaderHarness final {
     uint64_t load_retry_interval_micros = 0;
 
     /// An (optional) function to call upon transitioning to state kError.
-    std::function<void(const ServableId& id, const Status& error)>
+    std::function<void(const ServableId& id, ServableModelType model_type,
+                       const Status& error)>
         error_callback;
   };
 
@@ -130,6 +134,15 @@ class LoaderHarness final {
 
   /// Returns the identifier of underlying Servable.
   ServableId id() const { return id_; }
+
+  /// Returns the model type of underlying Servable, or kUnspecified if the
+  /// underlying model type cannot be determined.
+  ServableModelType model_type() const {
+    if (loader_ == nullptr) {
+      return ServableModelType::kUnspecified;
+    }
+    return loader_->model_type();
+  }
 
   /// Returns the current state of underlying Servable.
   State state() const TF_LOCKS_EXCLUDED(mu_);

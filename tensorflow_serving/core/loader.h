@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow_serving/core/servable_model_type.h"
 #include "tensorflow_serving/core/source.h"
 #include "tensorflow_serving/resources/resources.pb.h"
 #include "tensorflow_serving/util/any_ptr.h"
@@ -128,7 +129,7 @@ class Loader {
   ///
   /// Serving user request:
   ///
-  ///     ServableHandle&lt;CustomServable> handle = ...
+  ///     ServableHandle<CustomServable> handle = ...
   ///     CustomServable* servable = handle.get();
   ///     servable->...
   ///
@@ -136,6 +137,13 @@ class Loader {
   /// returns a valid, non-null AnyPtr object. If called before a successful
   /// Load() call or after Unload(), it returns null AnyPtr.
   virtual AnyPtr servable() = 0;
+
+  /// Returns the model type of underlying Servable. Concrete loader
+  /// implementations should override this method to return the appropriate
+  /// model type.
+  virtual ServableModelType model_type() const {
+    return ServableModelType::kUnspecified;
+  }
 };
 
 inline bool operator==(const Loader::Metadata& a, const Loader::Metadata& b) {

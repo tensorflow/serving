@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM nvidia/cuda:12.2.0-base-ubuntu20.04 as base_build
+FROM nvidia/cuda:12.5.1-base-ubuntu22.04 as base_build
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=HEAD
@@ -21,9 +21,9 @@ LABEL maintainer=gvasudevan@google.com
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
-ENV CUDNN_VERSION=8.9.4.25
+ENV CUDNN_VERSION=9.3.0.75
 ENV TF_TENSORRT_VERSION=8.6.1
-ENV CUDA=12.2
+ENV CUDA=12.5
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl
@@ -35,24 +35,24 @@ RUN curl -sSL --retry 5 https://github.com/tensorflow/serving/tarball/${TF_SERVI
 RUN /tensorflow-serving/tensorflow_serving/tools/docker/setup.sources.sh
 
 RUN apt-get install -y --no-install-recommends \
-        cuda-command-line-tools-12-2 \
-        cuda-cudart-dev-12-2 \
-        cuda-nvcc-12-2 \
-        cuda-cupti-12-2 \
-        cuda-nvprune-12-2 \
-        cuda-libraries-12-2 \
-        cuda-libraries-dev-12-2 \
-        cuda-nvml-dev-12-2 \
-        libcufft-12-2 \
-        libcurand-12-2 \
-        libcusolver-dev-12-2 \
-        libcusparse-dev-12-2 \
-        libcublas-12-2 \
-        libcublas-dev-12-2 \
-        libnccl-dev=2.18.5-1+cuda12.2 \
-        libnccl2=2.18.5-1+cuda12.2 \
-        libcudnn8-dev=8.9.4.25-1+cuda12.2 \
-        libcudnn8=8.9.4.25-1+cuda12.2 \
+        cuda-command-line-tools-12-5 \
+        cuda-cudart-dev-12-5 \
+        cuda-nvcc-12-5 \
+        cuda-cupti-12-5 \
+        cuda-nvprune-12-5 \
+        cuda-libraries-12-5 \
+        cuda-libraries-dev-12-5 \
+        cuda-nvml-dev-12-5 \
+        libcufft-12-5 \
+        libcurand-12-5 \
+        libcusolver-dev-12-5 \
+        libcusparse-dev-12-5 \
+        libcublas-12-5 \
+        libcublas-dev-12-5 \
+        libnccl-dev=2.25.1-1+cuda12.8 \
+        libnccl2=2.25.1-1+cuda12.8 \
+        libcudnn9-dev-cuda-12=9.3.0.75-1 \
+        libcudnn9-cuda-12=9.3.0.75-1 \
         libnvinfer-plugin8=8.6.1.6-1+cuda12.0 \
         libnvinfer8=8.6.1.6-1+cuda12.0 \
         libnvinfer-dev=8.6.1.6-1+cuda12.0 \
@@ -62,10 +62,10 @@ RUN apt-get install -y --no-install-recommends \
         automake \
         build-essential \
         ca-certificates \
-        libcufft-dev-12-2 \
-        libcurand-dev-12-2 \
-        libcusolver-dev-12-2 \
-        libcusparse-dev-12-2 \
+        libcufft-dev-12-5 \
+        libcurand-dev-12-5 \
+        libcusolver-dev-12-5 \
+        libcusparse-dev-12-5 \
         clang-17 \
         llvm-17 \
         lld-17 \
@@ -78,29 +78,27 @@ RUN apt-get install -y --no-install-recommends \
         openjdk-8-jdk\
         openjdk-8-jre-headless \
         pkg-config \
-        python-dev \
+        python3-dev \
         software-properties-common \
         swig \
         unzip \
         wget \
         zip \
         zlib1g-dev \
-        python3-distutils \
-        python-distutils-extra && \
-    find /usr/local/cuda-12.2/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete
+        python3-setuptools && \
+    find /usr/local/cuda-12.5/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete
 
 
-# Install python 3.9.
-RUN add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && apt-get install -y \
-    python3.9 python3.9-dev python3-pip python3.9-venv && \
+# Install python 3.10 (Native on Ubuntu 22.04).
+RUN apt-get update && apt-get install -y \
+    python3.10 python3.10-dev python3-pip python3.10-venv && \
     rm -rf /var/lib/apt/lists/* && \
-    python3.9 -m pip install pip --upgrade && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 0
+    python3.10 -m pip install pip --upgrade && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 0
 
-# Make python3.9 the default python version
+# Make python3.10 the default python version
 # If updating default python version, also update version in the WORKSPACE file.
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 0
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 0
 
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
     python3 get-pip.py && \

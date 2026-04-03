@@ -52,6 +52,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/synchronization",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core/platform:errors",

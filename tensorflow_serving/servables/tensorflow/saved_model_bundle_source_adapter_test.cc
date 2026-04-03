@@ -25,8 +25,8 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/loader.h"
+#include "xla/tsl/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/core/status.h"
-#include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/monitoring/gauge.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/servable_data.h"
@@ -92,7 +92,7 @@ class SavedModelBundleSourceAdapterTest
     std::unique_ptr<Loader> loader;
     {
       std::unique_ptr<SavedModelBundleSourceAdapter> adapter;
-      TF_CHECK_OK(SavedModelBundleSourceAdapter::Create(config_, &adapter));
+      TF_ASSERT_OK(SavedModelBundleSourceAdapter::Create(config_, &adapter));
       ServableData<std::unique_ptr<Loader>> loader_data =
           adapter->AdaptOneVersion(
               ServableData<StoragePath>({"", 0}, export_dir));

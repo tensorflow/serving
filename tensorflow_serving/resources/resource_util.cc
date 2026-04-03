@@ -24,10 +24,10 @@ limitations under the License.
 
 #include "google/protobuf/wrappers.pb.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/log/check.h"
 #include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/logging.h"
-#include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/platform/types.h"
 
 namespace tensorflow {
@@ -54,9 +54,9 @@ bool RawResourcesEqual(const Resource& lhs, const Resource& rhs) {
 }
 
 // Returns a copy of 'devices', stripped of any entries whose value is 0.
-std::map<string, uint32> StripDevicesWithZeroInstances(
-    const std::map<string, uint32>& devices) {
-  std::map<string, uint32> result;
+std::map<std::string, uint32_t> StripDevicesWithZeroInstances(
+    const std::map<std::string, uint32_t>& devices) {
+  std::map<std::string, uint32_t> result;
   for (const auto& entry : devices) {
     if (entry.second > 0) {
       result.insert(entry);
@@ -107,10 +107,10 @@ absl::Status ResourceUtil::VerifyValidity(
           DCHECKFailOption::kDoNotDCHECKFail));
 
       if (FindMutableEntry(entry.resource(), &validated_entries) != nullptr) {
-        return errors::InvalidArgument(
-            "Invalid resource allocation: Repeated resource\n",
-            entry.resource().DebugString(), "in allocation\n",
-            allocation.DebugString());
+        return absl::InvalidArgumentError(
+            absl::StrCat("Invalid resource allocation: Repeated resource\n",
+                         entry.resource().DebugString(), "in allocation\n",
+                         allocation.DebugString()));
       }
 
       *validated_entries.add_resource_quantities() = entry;
@@ -129,15 +129,15 @@ absl::Status ResourceUtil::VerifyResourceValidity(
   const absl::Status result = [this, &resource]() -> absl::Status {
     auto it = devices_.find(resource.device());
     if (it == devices_.end()) {
-      return errors::InvalidArgument(
-          "Invalid resource allocation: Invalid device ", resource.device());
+      return absl::InvalidArgumentError(absl::StrCat(
+          "Invalid resource allocation: Invalid device ", resource.device()));
     }
-    const uint32 num_instances = it->second;
+    const uint32_t num_instances = it->second;
     if (resource.has_device_instance() &&
         resource.device_instance().value() >= num_instances) {
-      return errors::InvalidArgument(
+      return absl::InvalidArgumentError(absl::StrCat(
           "Invalid resource allocation: Invalid device instance ",
-          resource.device(), ":", resource.device_instance().value());
+          resource.device(), ":", resource.device_instance().value()));
     }
     return absl::Status();
   }();
@@ -161,10 +161,10 @@ absl::Status ResourceUtil::VerifyOverrideDeviceValidity(
     if (base_device_kind_pairs.find(
             {entry.resource().device(), entry.resource().kind()}) ==
         base_device_kind_pairs.end()) {
-      return errors::InvalidArgument(
-          "Invalid resource allocation: device-kind from override "
-          "resource was not found in base resource: ",
-          entry.resource().DebugString());
+      return absl::InvalidArgumentError(
+          absl::StrCat("Invalid resource allocation: device-kind from override "
+                       "resource was not found in base resource: ",
+                       entry.resource().DebugString()));
     }
   }
   return absl::Status();
@@ -183,9 +183,9 @@ bool ResourceUtil::IsBound(const ResourceAllocation& allocation) const {
   return IsBoundNormalized(Normalize(allocation));
 }
 
-Resource ResourceUtil::CreateBoundResource(const string& device,
-                                           const string& kind,
-                                           uint32 device_instance) const {
+Resource ResourceUtil::CreateBoundResource(const std::string& device,
+                                           const std::string& kind,
+                                           uint32_t device_instance) const {
   DCHECK(devices_.find(device) != devices_.end());
   Resource resource;
   resource.set_device(device);
@@ -330,7 +330,7 @@ absl::Status ResourceUtil::VerifyFunctionInternal(
   const absl::Status result = fn();
 
   if (dcheck_fail_option == DCHECKFailOption::kDoDCHECKFail) {
-    TF_DCHECK_OK(result);
+    DCHECK_OK(result);
   }
 
   return result;
@@ -339,7 +339,7 @@ absl::Status ResourceUtil::VerifyFunctionInternal(
 Resource ResourceUtil::NormalizeResource(const Resource& resource) const {
   Resource normalized = resource;
   if (!normalized.has_device_instance()) {
-    const uint32 num_instances = devices_.find(normalized.device())->second;
+    const uint32_t num_instances = devices_.find(normalized.device())->second;
     if (num_instances == 1) {
       normalized.mutable_device_instance()->set_value(0);
     }
@@ -492,7 +492,7 @@ bool ResourceUtil::LessThanOrEqualNormalized(
   // via some device instance.
   for (const ResourceAllocation::Entry& lhs_entry : lhs.resource_quantities()) {
     if (!lhs_entry.resource().has_device_instance()) {
-      const uint32 num_instances =
+      const uint32_t num_instances =
           devices_.find(lhs_entry.resource().device())->second;
       Resource bound_resource = lhs_entry.resource();
       bool found_room = false;
@@ -531,10 +531,10 @@ ResourceAllocation ResourceUtil::OverbindNormalized(
       continue;
     }
 
-    const uint32 num_instances =
+    const uint32_t num_instances =
         devices_.find(entry.resource().device())->second;
     Resource bound_resource = entry.resource();
-    for (uint32 instance = 0; instance < num_instances; ++instance) {
+    for (uint32_t instance = 0; instance < num_instances; ++instance) {
       bound_resource.mutable_device_instance()->set_value(instance);
       ResourceAllocation::Entry* result_entry =
           FindOrInsertMutableEntry(bound_resource, &result);

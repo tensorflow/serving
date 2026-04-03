@@ -92,17 +92,17 @@ class BasicManagerTestAccess;
 ///     std::unique_ptr&lt;Loader> loader = ...;
 ///     ...
 ///     BasicManager manager;
-///     TF_CHECK_OK(manager.ManageServable(
+///     CHECK_OK(manager.ManageServable(
 ///       CreateServableData(id, std::move(loader))));
-///     TF_CHECK_OK(manager.LoadServable(id));
+///     CHECK_OK(manager.LoadServable(id));
 ///
 ///     ...
-///     TF_CHECK_OK(manager.GetServableHandle(
+///     CHECK_OK(manager.GetServableHandle(
 ///         ServableRequest::Latest(kServableName), &handle));
 ///     ...
 ///
-///     TF_CHECK_OK(manager.UnloadServable(id));
-///     TF_CHECK_OK(manager.StopManagingServable(id));
+///     CHECK_OK(manager.UnloadServable(id));
+///     CHECK_OK(manager.StopManagingServable(id));
 class BasicManager : public Manager {
  public:
   // Type of the callback to be called just before a servable is to be loaded.

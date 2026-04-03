@@ -21,6 +21,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/base/attributes.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/example/feature.pb.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -38,7 +39,7 @@ constexpr char kParseExampleModel[] =
     "/servables/tensorflow/testdata/parse_example_tflite/00000123/"
     "model.tflite";
 
-constexpr char kMobileNetModel[] =
+ABSL_ATTRIBUTE_UNUSED constexpr char kMobileNetModel[] =
     "/servables/tensorflow/testdata/mobilenet_v1_quant_tflite/00000123/"
     "model.tflite";
 

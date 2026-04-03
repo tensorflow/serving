@@ -19,6 +19,7 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/core/loader.h"
+#include "tensorflow_serving/core/servable_model_type.h"
 #include "tensorflow_serving/util/any_ptr.h"
 
 namespace tensorflow {
@@ -33,6 +34,7 @@ class MockLoader : public Loader {
   MOCK_METHOD(Status, LoadWithMetadata, (const Metadata&), (override));
   MOCK_METHOD(void, Unload, (), (override));
   MOCK_METHOD(AnyPtr, servable, (), (override));
+  MOCK_METHOD(ServableModelType, model_type, (), (const, override));
 };
 
 }  // namespace test_util

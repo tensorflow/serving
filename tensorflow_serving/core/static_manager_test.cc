@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/log/check.h"
 
 namespace tensorflow {
 namespace serving {
@@ -24,19 +25,19 @@ namespace {
 
 TEST(StaticManagerTest, StoresServables) {
   StaticManagerBuilder builder;
-  TF_CHECK_OK(builder.AddServable(ServableId{"name", 22},
-                                  std::unique_ptr<int>{new int{22}}));
+  CHECK_OK(builder.AddServable(ServableId{"name", 22},
+                               std::unique_ptr<int>{new int{22}}));
   auto manager = builder.Build();
   ServableHandle<int> handle;
-  TF_CHECK_OK(manager->GetServableHandle(ServableRequest::Specific("name", 22),
-                                         &handle));
+  CHECK_OK(manager->GetServableHandle(ServableRequest::Specific("name", 22),
+                                      &handle));
   EXPECT_EQ(22, *handle);
 }
 
 TEST(StaticManagerTest, UseAfterBuild) {
   StaticManagerBuilder builder;
-  TF_CHECK_OK(builder.AddServable(ServableId{"name", 22},
-                                  std::unique_ptr<int>{new int{22}}));
+  CHECK_OK(builder.AddServable(ServableId{"name", 22},
+                               std::unique_ptr<int>{new int{22}}));
   auto manager = builder.Build();
   EXPECT_EQ(nullptr, builder.Build());
   EXPECT_FALSE(builder
@@ -52,8 +53,8 @@ TEST(StaticManagerTest, Errors) {
       builder.AddServable(ServableId{"name", 22}, std::unique_ptr<int>{nullptr})
           .ok());
   // Double add.
-  TF_CHECK_OK(builder.AddServable(ServableId{"name", 22},
-                                  std::unique_ptr<int>{new int{22}}));
+  CHECK_OK(builder.AddServable(ServableId{"name", 22},
+                               std::unique_ptr<int>{new int{22}}));
   EXPECT_FALSE(builder
                    .AddServable(ServableId{"name", 22},
                                 std::unique_ptr<int>{new int{22}})
@@ -62,14 +63,14 @@ TEST(StaticManagerTest, Errors) {
 
 TEST(StaticManagerTest, GetLatestVersion) {
   StaticManagerBuilder builder;
-  TF_CHECK_OK(builder.AddServable(ServableId{"name", 22},
-                                  std::unique_ptr<int>{new int{22}}));
+  CHECK_OK(builder.AddServable(ServableId{"name", 22},
+                               std::unique_ptr<int>{new int{22}}));
   const ServableId id = {"name", 24};
-  TF_CHECK_OK(builder.AddServable(id, std::unique_ptr<int>{new int{24}}));
+  CHECK_OK(builder.AddServable(id, std::unique_ptr<int>{new int{24}}));
   auto manager = builder.Build();
 
   ServableHandle<int> handle;
-  TF_CHECK_OK(
+  CHECK_OK(
       manager->GetServableHandle(ServableRequest::Latest("name"), &handle));
   EXPECT_EQ(24, *handle);
   EXPECT_EQ(id, handle.id());
@@ -78,13 +79,13 @@ TEST(StaticManagerTest, GetLatestVersion) {
 TEST(StaticManagerTest, GetSpecificVersion) {
   StaticManagerBuilder builder;
   const ServableId id = {"name", 22};
-  TF_CHECK_OK(builder.AddServable(id, std::unique_ptr<int>{new int{22}}));
-  TF_CHECK_OK(builder.AddServable(ServableId{"name", 24},
-                                  std::unique_ptr<int>{new int{24}}));
+  CHECK_OK(builder.AddServable(id, std::unique_ptr<int>{new int{22}}));
+  CHECK_OK(builder.AddServable(ServableId{"name", 24},
+                               std::unique_ptr<int>{new int{24}}));
   auto manager = builder.Build();
 
   ServableHandle<int> handle;
-  TF_CHECK_OK(manager->GetServableHandle(ServableRequest::FromId(id), &handle));
+  CHECK_OK(manager->GetServableHandle(ServableRequest::FromId(id), &handle));
   EXPECT_EQ(22, *handle);
   EXPECT_EQ(id, handle.id());
 }
@@ -101,8 +102,8 @@ TEST(StaticManagerTest, ServableNotFound) {
 
 TEST(StaticManagerTest, VersionNotFound) {
   StaticManagerBuilder builder;
-  TF_CHECK_OK(builder.AddServable(ServableId{"name", 22},
-                                  std::unique_ptr<int>{new int{22}}));
+  CHECK_OK(builder.AddServable(ServableId{"name", 22},
+                               std::unique_ptr<int>{new int{22}}));
   auto manager = builder.Build();
   ServableHandle<int> handle;
   EXPECT_EQ(

@@ -10,3 +10,32 @@ index 47fe64d7b7b..a01a1f19c8b 100644
  """
  
  def _python_repository_impl(repository_ctx):
+diff --git a/tensorflow/core/framework/tensor_testutil.cc b/tensorflow/core/framework/tensor_testutil.cc
+--- a/tensorflow/core/framework/tensor_testutil.cc
++++ b/tensorflow/core/framework/tensor_testutil.cc
+@@ -16,6 +16,7 @@
+ #include "tensorflow/core/framework/tensor_testutil.h"
+ 
+ #include <cmath>
++#include <iomanip>
+ 
+ #include "tensorflow/core/framework/tensor.h"
+ #include "tensorflow/core/platform/types.h"
+diff --git a/BUILD b/BUILD
+--- a/BUILD
++++ b/BUILD
+@@ -3,3 +3,14 @@
+     "AUTHORS",
+     "LICENSE",
+ ])
++alias(
++    name = "tensorflow_libtensorflow_framework",
++    actual = "//tensorflow:libtensorflow_framework_import_lib",
++    visibility = ["//visibility:public"],
++)
++
++alias(
++    name = "tensorflow_tf_header_lib",
++    actual = "//tensorflow/core:framework_headers_lib",
++    visibility = ["//visibility:public"],
++)

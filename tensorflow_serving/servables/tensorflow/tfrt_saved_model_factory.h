@@ -44,14 +44,17 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_source_adapter.pb.h"
 #include "tensorflow_serving/servables/tensorflow/tfrt_servable.h"
 #include "tensorflow_serving/servables/tensorflow/thread_pool_factory.h"
+#include "tensorflow_serving/util/oss_or_google.h"
 
 namespace tensorflow {
 namespace serving {
 
 // Create common saved model options for TFRT saved model.
+// NOTE: `export_dir` is the root directory of the model (no matter the model is
+// a SavedModel or Orbax Model).
 absl::StatusOr<tfrt::SavedModel::Options> CreateCommonSavedModelOptions(
     const TfrtSavedModelConfig& config, tfrt_stub::Runtime* runtime,
-    const std::string& path,
+    const std::string& export_dir,
     const std::unordered_set<std::string>& saved_model_tags,
     const tensorflow::MetaGraphDef& meta_graph_def,
     const std::string& model_name, int64_t model_version);
@@ -114,12 +117,6 @@ class TfrtSavedModelFactory {
   /// resources (e.g. CPU, RAM, etc.) may get populated.
   absl::Status EstimateResourceRequirement(const string& path,
                                            ResourceAllocation* estimate) const;
-
-  // copybara:strip_begin (Do not leak in tesorflow serving OSS.)
-  virtual absl::Status CreateOrbaxServable(const Loader::Metadata& metadata,
-                                           const string& path,
-                                           std::unique_ptr<Servable>* servable);
-  // copybara:strip_end
 
   const TfrtSavedModelConfig& config() const { return config_; }
   TfrtSavedModelConfig& mutable_config() { return config_; }

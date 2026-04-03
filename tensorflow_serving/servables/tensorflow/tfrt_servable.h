@@ -34,6 +34,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
+#include "tensorflow_serving/core/servable_model_type.h"
 #include "tensorflow_serving/servables/tensorflow/predict_response_tensor_serialization_option.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
@@ -72,6 +73,10 @@ class TfrtSavedModelServable : public Servable {
       ThreadPoolFactory* thread_pool_factory,
       std::function<std::unique_ptr<RequestRecorder>(TfrtSavedModelServable&)>
           recorder_creator);
+
+  ServableModelType model_type() const override {
+    return ServableModelType::kTensorflow;
+  }
 
   absl::Status Classify(const RunOptions& run_options,
                         const ClassificationRequest& request,

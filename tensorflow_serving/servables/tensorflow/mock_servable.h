@@ -16,17 +16,20 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_MOCK_SERVABLE_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_MOCK_SERVABLE_H_
 
+#include <cstdint>
 #include <memory>
 
 #include <gmock/gmock.h>
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "tensorflow_serving/apis/classification.pb.h"
 #include "tensorflow_serving/apis/get_model_metadata.pb.h"
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
+#include "tensorflow_serving/core/servable_model_type.h"
 #include "tensorflow_serving/servables/tensorflow/servable.h"
 
 namespace tensorflow {
@@ -44,8 +47,11 @@ class MockPredictStreamedContext : public PredictStreamedContext {
 class MockServable : public Servable {
  public:
   MockServable() : Servable("", 0) {}
+  MockServable(absl::string_view name, int64_t version, bool is_critical)
+      : Servable(name, version, is_critical) {}
   ~MockServable() override = default;
 
+  MOCK_METHOD(ServableModelType, model_type, (), (const, final));
   MOCK_METHOD(absl::Status, Classify,
               (const tensorflow::serving::Servable::RunOptions& run_options,
                const tensorflow::serving::ClassificationRequest& request,

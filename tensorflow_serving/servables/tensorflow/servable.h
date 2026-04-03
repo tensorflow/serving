@@ -31,6 +31,7 @@ limitations under the License.
 #include "tensorflow_serving/apis/inference.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 #include "tensorflow_serving/apis/regression.pb.h"
+#include "tensorflow_serving/core/servable_model_type.h"
 #include "tensorflow_serving/servables/tensorflow/run_options.h"
 
 namespace tensorflow {
@@ -92,6 +93,9 @@ class Servable {
 
   // Returns the name associated with this servable.
   absl::string_view name() const { return name_; }
+
+  // Returns the model type associated with this servable.
+  virtual ServableModelType model_type() const = 0;
 
   // Returns the version associated with this servable.
   int64_t version() const { return version_; }
@@ -189,6 +193,10 @@ class EmptyServable : public Servable {
  public:
   EmptyServable();
 
+  ServableModelType model_type() const override {
+    return ServableModelType::kUnspecified;
+  }
+
   absl::Status Classify(const RunOptions& run_options,
                         const ClassificationRequest& request,
                         ClassificationResponse* response) override {
@@ -210,7 +218,7 @@ class EmptyServable : public Servable {
   absl::StatusOr<std::unique_ptr<PredictStreamedContext>> PredictStreamed(
       const RunOptions& run_options,
       absl::AnyInvocable<void(absl::StatusOr<PredictResponse>)>
-          response_callback) {
+          response_callback) override {
     return error_;
   }
 

@@ -91,9 +91,9 @@ auto* request_latency = monitoring::Sampler<3>::New(
 // Returns the number of examples in the Input.
 int NumInputExamples(const internal::SerializedInput& input) {
   switch (input.kind_case()) {
-    case Input::KindCase::kExampleList:
+    case internal::SerializedInput::KindCase::kExampleList:
       return input.example_list().examples_size();
-    case Input::KindCase::kExampleListWithContext:
+    case internal::SerializedInput::KindCase::kExampleListWithContext:
       return input.example_list_with_context().examples_size();
     default:
       break;
@@ -168,10 +168,10 @@ absl::Status InputToSerializedExampleTensor(const Input& input,
   }
   *examples = Tensor(DT_STRING, TensorShape({num_examples}));
   switch (serialized_input.kind_case()) {
-    case Input::KindCase::KIND_NOT_SET:
+    case internal::SerializedInput::KindCase::KIND_NOT_SET:
       break;
 
-    case Input::KindCase::kExampleList: {
+    case internal::SerializedInput::KindCase::kExampleList: {
       auto input_vec = examples->vec<tstring>();
       int input_vec_index = 0;
       for (const auto& entry : serialized_input.example_list().examples()) {
@@ -180,7 +180,7 @@ absl::Status InputToSerializedExampleTensor(const Input& input,
       break;
     }
 
-    case Input::KindCase::kExampleListWithContext: {
+    case internal::SerializedInput::KindCase::kExampleListWithContext: {
       const auto& context =
           serialized_input.example_list_with_context().context();
       auto input_vec = examples->vec<tstring>();

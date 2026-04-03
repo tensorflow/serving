@@ -20,6 +20,7 @@ limitations under the License.
 #include <string>
 #include <utility>
 
+#include "absl/log/check.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/config/file_system_storage_path_source.pb.h"
@@ -88,8 +89,8 @@ absl::Status CreateSingleTFModelManagerFromBasePath(
   manager_options.aspired_version_policy.reset(
       new AvailabilityPreservingPolicy);
   std::unique_ptr<AspiredVersionsManagerBuilder> builder;
-  TF_CHECK_OK(AspiredVersionsManagerBuilder::Create(std::move(manager_options),
-                                                    &builder));
+  CHECK_OK(AspiredVersionsManagerBuilder::Create(std::move(manager_options),
+                                                 &builder));
   builder->AddSourceChain(std::move(path_source), std::move(bundle_source));
   *manager = builder->Build();
 

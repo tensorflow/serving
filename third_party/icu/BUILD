@@ -53,6 +53,7 @@ cc_library(
     ),
     hdrs = glob([
         "icu4c/source/common/*.h",
+        "icu4c/source/stubdata/*.h",
     ]),
     copts = [
         "-DU_COMMON_IMPLEMENTATION",

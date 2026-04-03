@@ -17,6 +17,7 @@ cc_library(
     hdrs = ["mock_file_probing_env.h"],
     deps = [
         "//tensorflow_serving/util:file_probing_env",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:lib",
     ],

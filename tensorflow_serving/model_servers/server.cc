@@ -126,7 +126,7 @@ std::shared_ptr<::grpc::ServerCredentials> BuildServerCredentials(
   }
 
   SSLConfig ssl_config;
-  TF_CHECK_OK(ParseProtoTextFile<SSLConfig>(ssl_config_file, &ssl_config));
+  CHECK_OK(ParseProtoTextFile<SSLConfig>(ssl_config_file, &ssl_config));
   LOG(INFO) << "Using SSL credentials";
 
   ::grpc::SslServerCredentialsOptions ssl_ops(

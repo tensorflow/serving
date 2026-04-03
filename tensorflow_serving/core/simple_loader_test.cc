@@ -21,6 +21,8 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include "absl/memory/memory.h"
+#include "absl/status/status.h"
+#include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
@@ -28,6 +30,8 @@ limitations under the License.
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow_serving/core/servable_data.h"
 #include "tensorflow_serving/core/servable_id.h"
+#include "tensorflow_serving/core/servable_model_type.h"
+#include "tensorflow_serving/servables/tensorflow/servable.h"
 #include "tensorflow_serving/test_util/test_util.h"
 
 namespace tensorflow {
@@ -336,6 +340,49 @@ TEST(SimpleLoaderSourceAdapterTest, OkayToDeleteAdapter) {
   ResourceAllocation estimate_given;
   TF_ASSERT_OK(loader->EstimateResources(&estimate_given));
   TF_ASSERT_OK(loader->Load());
+}
+
+TEST(SimpleLoaderTest, LoaderModelType) {
+  auto loader = absl::make_unique<SimpleLoader<int>>(
+      [](std::unique_ptr<int>* servable) {
+        servable->reset(new int);
+        return absl::OkStatus();
+      },
+      SimpleLoader<int>::EstimateNoResources());
+  TF_ASSERT_OK(loader->Load());
+  EXPECT_EQ(loader->model_type(), ServableModelType::kUnspecified);
+}
+
+TEST(SimpleLoaderTest, LoaderModelTypeSavedModelBundle) {
+  auto loader = absl::make_unique<SimpleLoader<SavedModelBundle>>(
+      [](std::unique_ptr<SavedModelBundle>* servable) {
+        servable->reset(new SavedModelBundle());
+        return absl::OkStatus();
+      },
+      SimpleLoader<SavedModelBundle>::EstimateNoResources());
+  TF_ASSERT_OK(loader->Load());
+  EXPECT_EQ(loader->model_type(), ServableModelType::kTensorflow);
+}
+
+class MyServable : public EmptyServable {
+ public:
+  MyServable() {}
+  ~MyServable() override = default;
+
+  ServableModelType model_type() const override {
+    return ServableModelType::kTensorflow;
+  }
+};
+
+TEST(SimpleLoaderTest, LoaderModelTypeServable) {
+  auto loader = absl::make_unique<SimpleLoader<MyServable>>(
+      [](std::unique_ptr<MyServable>* servable) {
+        servable->reset(new MyServable());
+        return absl::OkStatus();
+      },
+      SimpleLoader<MyServable>::EstimateNoResources());
+  TF_ASSERT_OK(loader->Load());
+  EXPECT_EQ(loader->model_type(), ServableModelType::kTensorflow);
 }
 
 }  // namespace

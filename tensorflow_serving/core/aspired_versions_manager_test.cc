@@ -26,6 +26,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/log/check.h"
 #include "absl/synchronization/notification.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -97,7 +98,7 @@ class AspiredVersionsManagerTest
     manager_options.load_retry_interval_micros = 0;
     manager_options.enable_reload_servables_with_error =
         enable_reload_servables_with_error_;
-    TF_CHECK_OK(
+    CHECK_OK(
         AspiredVersionsManager::Create(std::move(manager_options), &manager_));
   }
 
@@ -1355,7 +1356,7 @@ TEST(AspiredVersionsManagerTest, CallPolicyWithAllVersions) {
   manager_options.manage_state_interval_micros = -1;
   manager_options.aspired_version_policy =
       std::unique_ptr<AspiredVersionPolicy>(policy);
-  TF_CHECK_OK(
+  CHECK_OK(
       AspiredVersionsManager::Create(std::move(manager_options), &manager));
   std::set<ServableId> servables;
   std::vector<ServableData<std::unique_ptr<Loader>>> aspired_versions;

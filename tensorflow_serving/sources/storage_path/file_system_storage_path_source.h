@@ -95,7 +95,8 @@ class FileSystemStoragePathSource : public Source<StoragePath> {
       TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   template <typename... Args>
-  void CallAspiredVersionsCallback(Args&&... args) {
+  void CallAspiredVersionsCallback(Args&&... args)
+      TF_SHARED_LOCKS_REQUIRED(mu_) {
     if (aspired_versions_callback_) {
       aspired_versions_callback_(std::forward<Args>(args)...);
       if (aspired_versions_callback_notifier_) {

@@ -16,6 +16,7 @@ package_group(
         "//...",
         "//net/floo/flooefi/...",
         "//platforms/accel_ssw/common/lib/...",
+        "//platforms/deepsea/software/superpod/...",
         "//platforms/gsys/...",
         "//platforms/redfish/...",
         "//platforms/storage/flash/warthog/firmware/...",

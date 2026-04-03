@@ -134,7 +134,7 @@ absl::Status ToJsonString(const GetModelStatusResponse& response,
                           string* output) {
   google::protobuf::util::JsonPrintOptions opts;
   opts.add_whitespace = true;
-  opts.always_print_primitive_fields = true;
+  opts.always_print_fields_with_no_presence = true;
   // Note this is protobuf::util::Status (not TF Status) object.
   const auto& status = MessageToJsonString(response, output, opts);
   if (!status.ok()) {
@@ -148,7 +148,7 @@ absl::Status ToJsonString(const GetModelMetadataResponse& response,
                           string* output) {
   google::protobuf::util::JsonPrintOptions opts;
   opts.add_whitespace = true;
-  opts.always_print_primitive_fields = true;
+  opts.always_print_fields_with_no_presence = true;
   // TODO(b/118381513): preserving proto field names on 'Any' fields has been
   // fixed in the master branch of OSS protobuf but the TF ecosystem is
   // currently using v3.6.0 where the fix is not present. To resolve the issue

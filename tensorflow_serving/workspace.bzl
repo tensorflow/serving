@@ -10,6 +10,13 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 def tf_serving_workspace():
     """All TensorFlow Serving external dependencies."""
 
+    http_archive(
+        name = "rules_proto",
+        sha256 = "a88d018bdcb8df1ce8185470eb4b4899d778f9ac3a66cb36d514beb81e345282",
+        strip_prefix = "rules_proto-6.0.0-rc3",
+        url = "https://github.com/bazelbuild/rules_proto/archive/refs/tags/6.0.0-rc3.tar.gz",
+    )
+
     # ===== Bazel skylib dependency =====
     http_archive(
         name = "bazel_skylib",
@@ -47,15 +54,19 @@ def tf_serving_workspace():
     # that contains all data.
     http_archive(
         name = "icu",
-        strip_prefix = "icu-release-64-2",
-        sha256 = "dfc62618aa4bd3ca14a3df548cd65fe393155edd213e49c39f3a30ccd618fc27",
+        strip_prefix = "icu-release-77-1",
+        sha256 = "e424ba5282d95ad38b52639a08fb82164f0b0cbd7f17b53ae16bf14f8541855f",
         urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/unicode-org/icu/archive/release-64-2.zip",
-            "https://github.com/unicode-org/icu/archive/release-64-2.zip",
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/unicode-org/icu/archive/release-77-1.zip",
+            "https://github.com/unicode-org/icu/archive/release-77-1.zip",
         ],
         build_file = "//third_party/icu:BUILD",
         patches = ["//third_party/icu:data.patch"],
         patch_args = ["-p1", "-s"],
+        patch_cmds = [
+            "rm -f icu4c/source/common/BUILD.bazel",
+            "rm -f icu4c/source/stubdata/BUILD.bazel",
+        ],
     )
 
     # ===== TF.Text dependencies
@@ -64,12 +75,13 @@ def tf_serving_workspace():
     # https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/save_models.py
     http_archive(
         name = "org_tensorflow_text",
-        sha256 = "4e6ec543a1d70a50f0105e0ea69ea8a1edd0b17a38d0244aa3b14f889b2cf74d",
-        strip_prefix = "text-2.12.1",
-        url = "https://github.com/tensorflow/text/archive/v2.12.1.zip",
-        patches = ["@//third_party/tf_text:tftext.patch"],
-        patch_args = ["-p1"],
-        repo_mapping = {"@com_google_re2": "@com_googlesource_code_re2"},
+        sha256 = "e08834bed6f544be9cc0315895898bf48d94b8090bca993ab45526329df291c8",
+        strip_prefix = "text-2.20.0",
+        url = "https://github.com/tensorflow/text/archive/v2.20.0.zip",
+        repo_mapping = {
+            "@com_google_re2": "@com_googlesource_code_re2",
+            "@release_or_nightly": "@org_tensorflow",
+        },
     )
 
     http_archive(

@@ -20,7 +20,6 @@ filegroup(
 py_binary(
     name = "remote_predict_client",
     srcs = ["remote_predict_client.py"],
-    python_version = "PY3",
     tags = [
         "manual",
     ],
@@ -32,7 +31,6 @@ py_binary(
     srcs = [
         "half_plus_two_with_rpop.py",
     ],
-    python_version = "PY3",
     srcs_version = "PY3",
     tags = [
         "manual",
@@ -43,7 +41,6 @@ py_binary(
 py_binary(
     name = "half_plus_two_with_rpop_client",
     srcs = ["half_plus_two_with_rpop_client.py"],
-    python_version = "PY3",
     tags = [
         "manual",
     ],

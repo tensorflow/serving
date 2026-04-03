@@ -22,6 +22,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/log/check.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
 #include "tensorflow_serving/core/servable_data.h"
@@ -52,8 +53,8 @@ class AspiredVersionsManagerBuilderTest : public ::testing::Test {
     manager_options.servable_event_bus = servable_event_bus_.get();
     manager_options.aspired_version_policy.reset(
         new AvailabilityPreservingPolicy());
-    TF_CHECK_OK(AspiredVersionsManagerBuilder::Create(
-        std::move(manager_options), &builder_));
+    CHECK_OK(AspiredVersionsManagerBuilder::Create(std::move(manager_options),
+                                                   &builder_));
   }
 
   std::unique_ptr<AspiredVersionsManagerBuilder> builder_;

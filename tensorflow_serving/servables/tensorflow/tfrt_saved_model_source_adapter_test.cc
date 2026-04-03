@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/tfrt_saved_model_source_adapter.h"
 
 #include "google/protobuf/wrappers.pb.h"
+#include "absl/log/check.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/monitoring/collection_registry.h"
@@ -74,7 +75,7 @@ class TfrtSavedModelSourceAdapterTest
     std::unique_ptr<Loader> loader;
     {
       std::unique_ptr<TfrtSavedModelSourceAdapter> adapter;
-      TF_CHECK_OK(TfrtSavedModelSourceAdapter::Create(config_, &adapter));
+      CHECK_OK(TfrtSavedModelSourceAdapter::Create(config_, &adapter));
       ServableData<std::unique_ptr<Loader>> loader_data =
           adapter->AdaptOneVersion(
               ServableData<StoragePath>({"", 0}, export_dir));

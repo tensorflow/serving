@@ -25,6 +25,7 @@ limitations under the License.
 #include "google/protobuf/any.pb.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/log/check.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
@@ -96,7 +97,7 @@ std::map<string, std::vector<LoggingConfig>> CreateLoggingConfigMap(
 class ServerRequestLoggerTest : public ::testing::Test {
  protected:
   ServerRequestLoggerTest() {
-    TF_CHECK_OK(ServerRequestLogger::Create(
+    CHECK_OK(ServerRequestLogger::Create(
         [&](const LoggingConfig& logging_config,
             std::shared_ptr<RequestLogger>* const request_logger) {
           if (logging_config.has_sampling_config() &&

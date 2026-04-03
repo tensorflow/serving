@@ -16,9 +16,9 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_UTIL_NET_HTTP_COMPRESSION_GZIP_ZLIB_H_
 #define TENSORFLOW_SERVING_UTIL_NET_HTTP_COMPRESSION_GZIP_ZLIB_H_
 
-#include <zlib.h>
-
 #include <cstdint>
+
+#include <zlib.h>
 
 namespace tensorflow {
 namespace serving {
