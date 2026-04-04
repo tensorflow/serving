@@ -16,16 +16,16 @@ limitations under the License.
 #include "tensorflow_serving/core/request_logger.h"
 
 #include <memory>
-#include <random>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/monitoring/counter.h"
-#include "tensorflow/core/lib/random/random.h"
 #include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
+#include "tensorflow_serving/core/log_collector.h"
 
 namespace tensorflow {
 namespace serving {
@@ -40,11 +40,24 @@ auto* request_log_count = monitoring::Counter<2>::New(
 
 RequestLogger::RequestLogger(const LoggingConfig& logging_config,
                              const std::vector<string>& saved_model_tags,
-                             std::unique_ptr<LogCollector> log_collector)
+                             std::unique_ptr<LogCollector> log_collector,
+                             const std::string& dc, int task_index)
     : logging_config_(logging_config),
       saved_model_tags_(saved_model_tags),
       log_collector_(std::move(log_collector)),
-      uniform_sampler_() {}
+      uniform_sampler_() {
+  for (const auto& config :
+       logging_config_.sampling_config().per_task_sampling_configs()) {
+    bool dc_match = config.dc().empty() || config.dc() == dc;
+    bool task_match =
+        !config.has_task_index() || config.task_index() == task_index;
+    if (dc_match && task_match) {
+      logging_config_.mutable_sampling_config()->set_sampling_rate(
+          config.sampling_rate());
+      break;
+    }
+  }
+}
 
 absl::Status RequestLogger::Log(const google::protobuf::Message& request,
                                 const google::protobuf::Message& response,

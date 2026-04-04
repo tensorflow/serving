@@ -860,9 +860,11 @@ cc_test(
         "//tensorflow_serving/core/test_util:mock_request_logger",
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/test_util",
-        "@com_google_protobuf//:protobuf",
+        "@com_google_protobuf//:cc_wkt_protos",
+        "@com_google_protobuf//:wrappers_cc_proto",
         "@org_tensorflow//tensorflow/cc/saved_model:tag_constants",
         "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
     ],
 )

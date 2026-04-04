@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_SERVING_CORE_REQUEST_LOGGER_H_
 
 #include <random>
+#include <string>
 #include <vector>
 
 #include "google/protobuf/message.h"
@@ -37,7 +38,8 @@ class RequestLogger : public std::enable_shared_from_this<RequestLogger> {
  public:
   RequestLogger(const LoggingConfig& logging_config,
                 const std::vector<string>& saved_model_tags,
-                std::unique_ptr<LogCollector> log_collector);
+                std::unique_ptr<LogCollector> log_collector,
+                const std::string& dc, int task_index);
 
   virtual ~RequestLogger() = default;
 
@@ -88,7 +90,7 @@ class RequestLogger : public std::enable_shared_from_this<RequestLogger> {
     std::uniform_real_distribution<double> dist_;
   };
 
-  const LoggingConfig logging_config_;
+  LoggingConfig logging_config_;
   const std::vector<string> saved_model_tags_;
   std::unique_ptr<LogCollector> log_collector_;
   UniformSampler uniform_sampler_;

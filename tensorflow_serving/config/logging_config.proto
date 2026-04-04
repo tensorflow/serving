@@ -7,10 +7,65 @@ import "tensorflow_serving/config/log_collector_config.proto";
 
 option cc_enable_arenas = true;
 
+// Configuration for per-task sampling. This allows users to specify sampling
+// rates for each task in a cell, and can be used to implement sampling
+// policies like
+// - Sample all requests to task 0 in cell aa and
+// - Sample 0% for other tasks in aa. and
+// - Sample 10% of requests in all tasks in all other cells.
+//
+// Policies like the one above can be used to get representative data for single
+// task use cases like prefix caching.
+message PerTaskSamplingConfig {
+  // If set, the sampling config will match all tasks running in the given DC.
+  // If not set, the sampling config will match all tasks regardless of DC.
+  string dc = 1;
+
+  // If set, the sampling config will match the given task index.
+  // If not set, the sampling config will match all tasks regardless of task
+  // index.
+  optional int32 task_index = 2;
+
+  // The sampling rate to use, if dc and task_index match.
+  double sampling_rate = 3;
+}
+
 message SamplingConfig {
   // Requests will be logged uniformly at random with this probability.
   // Valid range: [0, 1.0].
   double sampling_rate = 1;
+
+  // For a given task, the first matching PerTaskSamplingConfig will be
+  // used.
+  //
+  // If no PerTaskSamplingConfig matches, the sampling_rate will be used.
+  //
+  // This allows us to implement sampling policies like
+  // - Sample all requests to task 0 in cell aa and
+  // - Sample 0% for other tasks in aa. and
+  // - Sample 10% of requests in all tasks in all other cells.
+  //
+  //
+  // For the above policy, the sampling config would be:
+  // per_task_sampling_configs = [
+  //   {
+  //     // Rule matches task 0 in cell aa.
+  //     dc: "aa"
+  //     task_index: 0
+  //     sampling_rate: 1.0
+  //   },
+  //   {
+  //     // Rule matches all other tasks in cell aa.
+  //     dc: "aa"
+  //     sampling_rate: 0.0
+  //   },
+  // ]
+  //
+  // sample_rate will be used for any task that does not match any
+  // PerTaskSamplingConfig.
+  // sampling_rate: 0.1
+
+  repeated PerTaskSamplingConfig per_task_sampling_configs = 3;
 
   // Attributes of requests that can be optionally sampled.
   // Note: Enabling more attributes will increase logging storage requirements.

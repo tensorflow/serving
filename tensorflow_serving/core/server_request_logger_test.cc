@@ -118,6 +118,7 @@ class ServerRequestLoggerTest : public ::testing::Test {
               std::shared_ptr<NiceMock<MockRequestLogger>>(
                   new NiceMock<MockRequestLogger>(
                       logging_config, tags, log_collector_map_[filename_prefix],
+                      /*dc=*/"", /*task_index=*/-1,
                       logger_destruction_notifier));
           ON_CALL(*mock_request_logger, CreateLogMessage(_, _, _, _))
               .WillByDefault(Invoke([&](const google::protobuf::Message& actual_request,
