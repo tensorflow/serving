@@ -23,11 +23,12 @@ namespace tensorflow {
 namespace serving {
 
 absl::Status EstimateMainRamBytesFromValidationResult(
-    const string& path, ResourceAllocation* estimate) {
-  return errors::Unimplemented("Reading validation results is not supported");
+    const std::string& path, ResourceAllocation* estimate) {
+  return absl::UnimplementedError(
+      "Reading validation results is not supported");
 }
 
-absl::Status EstimateMainRamBytesFromPath(const string& path,
+absl::Status EstimateMainRamBytesFromPath(const std::string& path,
                                           bool use_validation_result,
                                           FileProbingEnv* env,
                                           ResourceAllocation* estimate) {
