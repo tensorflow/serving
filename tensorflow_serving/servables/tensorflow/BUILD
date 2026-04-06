@@ -971,6 +971,7 @@ cc_library(
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/apis:prediction_log_cc_proto",
         "//tensorflow_serving/apis:regression_cc_proto",
+        "@com_google_protobuf//:protobuf",
         "@org_tensorflow//tensorflow/cc/saved_model:constants",
         "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
         "@org_tensorflow//tensorflow/core:lib",

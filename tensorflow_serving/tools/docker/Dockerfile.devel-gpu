@@ -49,6 +49,7 @@ RUN apt-get install -y --no-install-recommends \
         libcusparse-dev-12-5 \
         libcublas-12-5 \
         libcublas-dev-12-5 \
+        cuda-compat-12-5 \
         libnccl-dev=2.25.1-1+cuda12.8 \
         libnccl2=2.25.1-1+cuda12.8 \
         libcudnn9-dev-cuda-12=9.3.0.75-1 \
@@ -66,17 +67,14 @@ RUN apt-get install -y --no-install-recommends \
         libcurand-dev-12-5 \
         libcusolver-dev-12-5 \
         libcusparse-dev-12-5 \
-        clang-17 \
-        llvm-17 \
-        lld-17 \
         git \
         libfreetype6-dev \
         libtool \
         libcurl3-dev \
         libzmq3-dev \
         mlocate \
-        openjdk-8-jdk\
-        openjdk-8-jre-headless \
+        openjdk-11-jdk \
+        openjdk-11-jre-headless \
         pkg-config \
         python3-dev \
         software-properties-common \

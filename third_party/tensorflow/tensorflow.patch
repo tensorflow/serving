@@ -2,7 +2,8 @@ diff --git a/tensorflow/tools/toolchains/python/python_repo.bzl b/tensorflow/too
 index 47fe64d7b7b..a01a1f19c8b 100644
 --- a/tensorflow/tools/toolchains/python/python_repo.bzl
 +++ b/tensorflow/tools/toolchains/python/python_repo.bzl
-@@ -21,6 +21,7 @@ TF_PYTHON_VERSION = "{}"
+@@ -21,5 +21,6 @@
+ TF_PYTHON_VERSION = "{}"
  HERMETIC_PYTHON_VERSION = "{}"
  WHEEL_NAME = "{}"
  WHEEL_COLLAB = "{}"
@@ -24,16 +25,20 @@ diff --git a/tensorflow/core/framework/tensor_testutil.cc b/tensorflow/core/fram
 diff --git a/BUILD b/BUILD
 --- a/BUILD
 +++ b/BUILD
-@@ -3,3 +3,14 @@
+@@ -3,3 +3,18 @@
      "AUTHORS",
      "LICENSE",
  ])
++
++cc_import(
++    name = "libtensorflow_framework_import",
++    shared_library = "//tensorflow:libtensorflow_framework.so",
++)
 +alias(
 +    name = "tensorflow_libtensorflow_framework",
-+    actual = "//tensorflow:libtensorflow_framework_import_lib",
++    actual = ":libtensorflow_framework_import",
 +    visibility = ["//visibility:public"],
 +)
-+
 +alias(
 +    name = "tensorflow_tf_header_lib",
 +    actual = "//tensorflow/core:framework_headers_lib",

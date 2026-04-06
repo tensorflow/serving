@@ -82,6 +82,9 @@ def tf_serving_workspace():
             "@com_google_re2": "@com_googlesource_code_re2",
             "@release_or_nightly": "@org_tensorflow",
         },
+        patch_cmds = [
+            "find . -name \"tftext.bzl\" -exec sed -i 's|deps = deps,|deps = deps + [\"@com_google_protobuf\" + \"//:protobuf\"],|g' {} +",
+        ],
     )
 
     http_archive(

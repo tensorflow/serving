@@ -47,7 +47,8 @@ cc_binary(
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/strings",
+        "@local_xla//xla/tsl/lib/histogram",
+        "@local_xla//xla/tsl/platform:env",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core/platform:env",
     ],
 )

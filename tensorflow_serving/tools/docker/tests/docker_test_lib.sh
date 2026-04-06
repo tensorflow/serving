@@ -142,7 +142,7 @@ function test_docker_image {
   fi
 
   if [[ "$IS_MKL_IMAGE" = true ]]; then
-      docker_opts+=" -e MKLDNN_VERBOSE=1"
+      docker_opts+=" -e MKLDNN_VERBOSE=1 -e DNNL_VERBOSE=1"
   fi
 
   if [ -z $(docker images -q ${IMAGE}) ]; then
@@ -169,7 +169,7 @@ function test_docker_image {
 
   if [[ "$IS_MKL_IMAGE" = true ]]; then
     echo "Checking for mkldnn_verbose in logs of container: ${CONTAINER_ID}"
-    if [[ -z $(docker logs --tail 1 ${CONTAINER_ID} | grep "mkldnn_verbose") ]]; then
+    if [[ -z $(docker logs ${CONTAINER_ID} | grep -E "mkldnn_verbose|dnnl_verbose|onednn_verbose") ]]; then
         echo "${IMAGE}: does not use MKL optimizations"
         exit 1
     fi

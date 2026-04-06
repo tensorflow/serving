@@ -109,6 +109,7 @@ cc_library(
         ":storage_path_error_injecting_source_adapter_cc_proto",
         "//tensorflow_serving/core:source_adapter",
     ],
+    alwayslink = 1,
 )
 
 serving_proto_library(
