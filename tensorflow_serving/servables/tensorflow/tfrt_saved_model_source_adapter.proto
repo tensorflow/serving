@@ -257,6 +257,10 @@ message TfrtSavedModelConfig {
   // Requests with higher priority will be scheduled into batches before
   // lower priority requests.
   bool enable_priority_aware_batch_scheduler = 2033;
+
+  // If true, the priority aware batch scheduler will resplit tasks into
+  // smaller batches if needed.
+  bool enable_priority_aware_batch_scheduler_resplit = 2034;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.

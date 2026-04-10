@@ -245,6 +245,8 @@ absl::StatusOr<tfrt::SavedModel::Options> CreateCommonSavedModelOptions(
   // Open Source TensorFlow r2.20 release.
   compile_options.enable_priority_aware_batch_scheduler =
       config.enable_priority_aware_batch_scheduler();
+  compile_options.enable_priority_aware_batch_scheduler_resplit =
+      config.enable_priority_aware_batch_scheduler_resplit();
 #endif
 
   compile_options.batch_padding_policy = config.batch_padding_policy();
