@@ -51,7 +51,7 @@ class BrokenScheduler : public BatchScheduler<FakeTask> {
 
   absl::Status Schedule(std::unique_ptr<FakeTask>* task) override {
     ++num_submit_calls_;
-    return errors::Unknown("BrokenScheduler faithfully failing");
+    return absl::UnknownError("BrokenScheduler faithfully failing");
   }
 
   size_t NumEnqueuedTasks() const override { return 7; }
@@ -82,9 +82,9 @@ class StubbornScheduler : public BatchScheduler<FakeTask> {
       std::unique_ptr<FakeTask> consumed_task = std::move(*task);
       return absl::OkStatus();
     } else {
-      return errors::Unavailable(
+      return absl::UnavailableError(absl::StrCat(
           "StubbornScheduler faithfully being stubborn; this is attempt ",
-          num_attempts_);
+          num_attempts_));
     }
   }
 

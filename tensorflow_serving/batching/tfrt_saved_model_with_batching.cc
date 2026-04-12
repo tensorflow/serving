@@ -144,7 +144,7 @@ absl::Status SavedModelWithBatching::Create(
     std::unique_ptr<SavedModel> saved_model,
     std::unique_ptr<SavedModel>* result) {
   if (saved_model == nullptr) {
-    return errors::FailedPrecondition("saved_model must not be null.");
+    return absl::FailedPreconditionError("saved_model must not be null.");
   }
 
   SavedModel* raw_saved_model = saved_model.get();
@@ -164,7 +164,7 @@ absl::Status SavedModelWithBatching::Create(
     auto insert_result = saved_model_with_batching->batch_schedulers_.emplace(
         std::string(entry.func_name), /*scheduler=*/nullptr);
     if (!insert_result.second) {
-      return errors::FailedPrecondition(
+      return absl::FailedPreconditionError(
           absl::StrCat("Specified multiple batch schedulers for function ",
                        entry.func_name));
     }
@@ -178,7 +178,7 @@ absl::Status SavedModelWithBatching::Create(
         },
         &insert_result.first->second));
     if (insert_result.first->second == nullptr) {
-      return errors::FailedPrecondition(absl::StrCat(
+      return absl::FailedPreconditionError(absl::StrCat(
           "Failed to create batch scheduler for function ", entry.func_name));
     }
   }
@@ -191,7 +191,7 @@ absl::Status SavedModelWithBatching::Run(
     absl::string_view func_name, absl::Span<const Tensor> inputs,
     std::vector<Tensor>* outputs) {
   if (outputs == nullptr) {
-    return errors::FailedPrecondition("outputs must not be null");
+    return absl::FailedPreconditionError("outputs must not be null");
   }
   auto it = batch_schedulers_.find(func_name);
   if (it == batch_schedulers_.end()) {
@@ -270,8 +270,8 @@ absl::Status SavedModelWithBatching::BatchInputTensors(
     absl::string_view func_name, const Batch<SavedModelBatchingTask>& batch,
     std::vector<Tensor>* batch_inputs) {
   if (batch.num_tasks() < 1) {
-    return errors::Internal("Batch size expected to be positive; was ",
-                            batch.num_tasks());
+    return absl::InternalError(absl::StrCat(
+        "Batch size expected to be positive; was ", batch.num_tasks()));
   }
   const int original_batch_size = batch.size();
   const int target_batch_size = RoundToLowestAllowedBatchSize(
@@ -307,7 +307,7 @@ absl::Status SavedModelWithBatching::BatchInputTensors(
           TensorShape reference_shape = tensors_to_merge[tensor_idx][0].shape();
 
           if (!AreShapesEqualExceptZeroDim(tensor.shape(), reference_shape)) {
-            return errors::FailedPrecondition(
+            return absl::FailedPreconditionError(
                 " Tensors in a single batch have different shapes other than"
                 " first dimension and padding is turned off.");
           }

@@ -38,9 +38,9 @@ using ::testing::UnorderedElementsAre;
 // Creates vector of pairs (tensor_name, tensor_value), where tensors
 // have shapes as specified in shapes.
 // Tensor with shape shapes[i] has tensor_name "x" + std::to_string(i).
-std::vector<std::pair<string, Tensor>> CreateInputsWithTensorShapes(
+std::vector<std::pair<std::string, Tensor>> CreateInputsWithTensorShapes(
     const std::vector<TensorShape>& shapes) {
-  std::vector<std::pair<string, Tensor>> inputs;
+  std::vector<std::pair<std::string, Tensor>> inputs;
   for (int i = 0; i < shapes.size(); ++i) {
     inputs.push_back({"x" + std::to_string(i), Tensor(DT_FLOAT, shapes[i])});
   }
@@ -49,13 +49,14 @@ std::vector<std::pair<string, Tensor>> CreateInputsWithTensorShapes(
 
 TEST(BatchingUtilTest, CalculateMaxDimSizes) {
   const std::vector<TensorShape> shapes1{{10, 20, 30}, {10, 100}};
-  std::vector<std::pair<string, Tensor>> inputs1 =
+  std::vector<std::pair<std::string, Tensor>> inputs1 =
       CreateInputsWithTensorShapes(shapes1);
   const std::vector<TensorShape> shapes2{{20, 50, 15}, {20, 101}};
-  std::vector<std::pair<string, Tensor>> inputs2 =
+  std::vector<std::pair<std::string, Tensor>> inputs2 =
       CreateInputsWithTensorShapes(shapes2);
-  std::vector<std::vector<std::pair<string, Tensor>>> batch{inputs1, inputs2};
-  std::map<string, std::vector<int>> max_dim_sizes =
+  std::vector<std::vector<std::pair<std::string, Tensor>>> batch{inputs1,
+                                                                 inputs2};
+  std::map<std::string, std::vector<int>> max_dim_sizes =
       CalculateMaxDimSizes(batch);
   EXPECT_THAT(max_dim_sizes,
               UnorderedElementsAre(Pair("x0", ElementsAre(20, 50, 30)),
@@ -93,7 +94,7 @@ TEST(BatchingUtilTest, AddPaddingTensorWithUnsupportedRank) {
   const std::vector<int> max_dim_sizes{1, 1, 1, 1, 1, 1, 1};
   const Tensor tensor(DT_FLOAT, {1, 1, 1, 1, 1, 1, 1});
   Tensor padded_tensor;
-  ASSERT_EQ(errors::InvalidArgument(
+  ASSERT_EQ(absl::InvalidArgumentError(
                 "Only tensors with rank from 1 to 6 can be padded."),
             AddPadding(tensor, max_dim_sizes, &padded_tensor));
 }
