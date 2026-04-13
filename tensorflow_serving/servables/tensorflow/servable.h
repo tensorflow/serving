@@ -52,6 +52,9 @@ class PredictStreamedContext {
   // Consumes one incoming request. Blocking here may delay the consumption of
   // subsequent requests.
   virtual absl::Status ProcessRequest(const PredictRequest& request) = 0;
+  virtual absl::Status ProcessRequest(PredictRequest* request) {
+    return ProcessRequest(*request);
+  }
 
   // Closes the `PredictStreamed` session.
   virtual absl::Status Close() = 0;
