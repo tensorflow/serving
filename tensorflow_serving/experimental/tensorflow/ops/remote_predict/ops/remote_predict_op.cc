@@ -51,11 +51,11 @@ REGISTER_OP("TfServingRemotePredict")
       TF_RETURN_IF_ERROR(c->input("input_tensors", &inputs_handle));
       if (c->Value(c->NumElements(input_aliases_handle[0])) !=
           inputs_handle.size()) {
-        return errors::InvalidArgument(
+        return absl::InvalidArgumentError(absl::StrCat(
             "'input_tensors' should be equal in length to "
             "'input_tensor_aliases'. Length of 'input_tensors': ",
             inputs_handle.size(), ", length of 'input_tensor_aliases': ",
-            c->Value(c->NumElements(input_aliases_handle[0])));
+            c->Value(c->NumElements(input_aliases_handle[0]))));
       }
 
       // Checks the length of output_tensor_aliases with that of output_types.
@@ -66,11 +66,11 @@ REGISTER_OP("TfServingRemotePredict")
           c->input("output_tensor_aliases", &output_aliases_handle));
       if (c->Value(c->NumElements(output_aliases_handle[0])) !=
           output_types.size()) {
-        return errors::InvalidArgument(
+        return absl::InvalidArgumentError(absl::StrCat(
             "'output_types' should be equal in length to "
             "'output_tensor_aliases'. Length of 'output_types': ",
             output_types.size(), ", length of 'output_tensor_aliases': ",
-            c->Value(c->NumElements(output_aliases_handle[0])));
+            c->Value(c->NumElements(output_aliases_handle[0]))));
       }
 
       // We know the shape of the first 2 outputs, but not the rest.
