@@ -30,7 +30,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Download TF Serving sources (optionally at specific commit).
 WORKDIR /tensorflow-serving
-RUN curl -sSL --retry 5 https://github.com/tensorflow/serving/tarball/${TF_SERVING_VERSION_GIT_COMMIT} | tar --strip-components=1 -xzf -
+RUN git clone --single-branch --branch=${TF_SERVING_VERSION_GIT_BRANCH} https://github.com/tensorflow/serving /tensorflow-serving && \
+    cd /tensorflow-serving && \
+    git reset --hard ${TF_SERVING_VERSION_GIT_COMMIT}
 
 RUN /tensorflow-serving/tensorflow_serving/tools/docker/setup.sources.sh
 
