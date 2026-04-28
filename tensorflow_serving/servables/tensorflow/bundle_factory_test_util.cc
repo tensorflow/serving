@@ -21,6 +21,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "tensorflow/cc/saved_model/constants.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
@@ -86,7 +87,7 @@ uint64_t GetTotalFileSize(const std::vector<string>& files) {
     if (!(Env::Default()->IsDirectory(file).ok()) &&
         Env::Default()->FileExists(file).ok()) {
       uint64_t file_size;
-      TF_CHECK_OK(Env::Default()->GetFileSize(file, &file_size));
+      CHECK_OK(Env::Default()->GetFileSize(file, &file_size));
       total_file_size += file_size;
     }
   }

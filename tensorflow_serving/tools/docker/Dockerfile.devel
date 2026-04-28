@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM ubuntu:20.04 as base_build
+FROM ubuntu:22.04@sha256:eb29ed27b0821dca09c2e28b39135e185fc1302036427d5f4d70a41ce8fd7659 as base_build
+
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=HEAD
@@ -27,40 +28,38 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
         git \
-        gcc-10 \
-        g++-10 \
         libcurl3-dev \
         libfreetype6-dev \
         libpng-dev \
         libtool \
         libzmq3-dev \
         mlocate \
-        openjdk-8-jdk\
-        openjdk-8-jre-headless \
+        openjdk-11-jdk \
+        openjdk-11-jre-headless \
         pkg-config \
-        python-dev \
+        python3-dev \
         software-properties-common \
         swig \
         unzip \
         wget \
         zip \
         zlib1g-dev \
-        python3-distutils \
+        python3-setuptools \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install python 3.9.
-RUN add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && apt-get install -y \
-    python3.9 python3.9-dev python3-pip python3.9-venv && \
+# Install python 3.10 (Native on Ubuntu 22.04).
+RUN apt-get update && apt-get install -y \
+    python3.10 python3.10-dev python3-pip python3.10-venv && \
     rm -rf /var/lib/apt/lists/* && \
-    python3.9 -m pip install pip --upgrade && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 0
+    python3.10 -m pip install pip --upgrade && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 0
 
-# Make python3.9 the default python version
+
+# Make python3.10 the default python version
 # If updating default python version, also update version in the WORKSPACE file.
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 0
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 0
 
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
     python3 get-pip.py && \
@@ -107,7 +106,6 @@ RUN bazel build --color=yes --curses=yes \
     --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \
     ${TF_SERVING_BUILD_OPTIONS} \
-    --config=kokoro \
     tensorflow_serving/model_servers:tensorflow_model_server && \
     cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server \
     /usr/local/bin/
@@ -118,7 +116,6 @@ RUN bazel build --color=yes --curses=yes \
     --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \
     ${TF_SERVING_BUILD_OPTIONS} \
-    --config=kokoro \
     tensorflow_serving/tools/pip_package:build_pip_package && \
     bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package \
     /tmp/pip && \

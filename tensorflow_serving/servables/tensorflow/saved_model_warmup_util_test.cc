@@ -254,6 +254,25 @@ TEST_F(RunSavedModelWarmupUntrackedTest, UnparsableRecord) {
               ::testing::HasSubstr("Failed to parse warmup record"));
 }
 
+TEST_F(RunSavedModelWarmupUntrackedTest, RunSuccess) {
+  string base_path = io::JoinPath(testing::TmpDir(), "RunSuccess");
+  TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
+      io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
+  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                              internal::WarmupConsts::kRequestsFileName);
+
+  int num_warmup_records = 5;
+  std::vector<string> warmup_records;
+  TF_ASSERT_OK(AddMixedWarmupData(&warmup_records));
+  TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, num_warmup_records));
+  SavedModelBundle saved_model_bundle;
+  AddSignatures(&saved_model_bundle.meta_graph_def);
+  absl::Status status = RunSavedModelWarmupUntracked(
+      CreateModelWarmupOptions(), base_path,
+      [](PredictionLog prediction_log) { return absl::OkStatus(); });
+  TF_ASSERT_OK(status);
+}
+
 TEST_F(RunSavedModelWarmupUntrackedTest, RunFailure) {
   string base_path = io::JoinPath(testing::TmpDir(), "RunFailure");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(

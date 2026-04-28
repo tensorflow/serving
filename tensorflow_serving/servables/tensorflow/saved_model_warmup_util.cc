@@ -30,6 +30,7 @@ limitations under the License.
 #include "tensorflow/core/kernels/batching_util/warmup.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/io/record_reader.h"
+#include "tensorflow/core/lib/monitoring/counter.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/env_time.h"
@@ -55,6 +56,11 @@ auto* model_warm_up_latency = monitoring::Sampler<2>::New(
         "status",
     },  // Scale of 10, power of 1.8 with bucket count 33 (~20 minutes).
     monitoring::Buckets::Exponential(10, 1.8, 33));
+
+auto* model_warmup_records_read = monitoring::Counter<2>::New(
+    "/tensorflow/serving/model_warmup_records_read",
+    "Total number of warmup records read during model warmup.", "model_path",
+    "status");
 
 uint64_t GetLatencyMicroseconds(const uint64_t start_microseconds) {
   const uint64_t end_microseconds = EnvTime::NowMicros();
@@ -219,6 +225,8 @@ absl::Status RunSavedModelWarmupUntracked(
   const auto warmup_latency = GetLatencyMicroseconds(start_microseconds);
   model_warm_up_latency->GetCell(export_dir, status.ToString())
       ->Add(warmup_latency);
+  model_warmup_records_read->GetCell(export_dir, status.ToString())
+      ->IncrementBy(num_warmup_records);
 
   if (absl::IsDataLoss(status)) {
     return errors::DataLoss(

@@ -43,23 +43,6 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-// copybara:strip_begin (Do not leak in tensorflow serving OSS.)
-namespace {
-// Orbax manifest version file name.
-inline constexpr char kOrbaxModelManifestVersionTxt[] =
-    "orbax_model_version.txt";
-
-absl::Status IsOrbaxModelDirectory(absl::string_view path) {
-  const std::string orbax_model_manifest_version_path =
-      tensorflow::io::JoinPath(path, kOrbaxModelManifestVersionTxt);
-  tsl::Env* env = tsl::Env::Default();
-  TF_RETURN_IF_ERROR(env->FileExists(orbax_model_manifest_version_path));
-  return absl::OkStatus();
-}
-
-}  // namespace
-// copybara:strip_end
-
 absl::Status TfrtSavedModelSourceAdapter::Create(
     const TfrtSavedModelSourceAdapterConfig& config,
     std::unique_ptr<TfrtSavedModelSourceAdapter>* adapter) {
@@ -87,12 +70,6 @@ TfrtSavedModelSourceAdapter::GetServableCreator(
       return factory->CreateTfrtSavedModelWithMetadata(metadata, path,
                                                        servable);
     }
-
-    // copybara:strip_begin (Do not leak in tesorflow serving OSS.)
-    if (IsOrbaxModelDirectory(path).ok()) {
-      return factory->CreateOrbaxServable(metadata, path, servable);
-    }
-    // copybara:strip_end
 
     return absl::InvalidArgumentError(
         absl::StrCat("Unsupported model directory: ", path,

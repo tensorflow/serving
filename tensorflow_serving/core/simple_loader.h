@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <functional>
 #include <memory>
+#include <type_traits>
 
 #include "absl/types/optional.h"
 #include "absl/types/variant.h"
@@ -28,13 +29,21 @@ limitations under the License.
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow_serving/core/loader.h"
+#include "tensorflow_serving/core/servable_model_type.h"
 #include "tensorflow_serving/core/source_adapter.h"
 #include "tensorflow_serving/resources/resource_util.h"
 #include "tensorflow_serving/resources/resource_values.h"
 #include "tensorflow_serving/util/any_ptr.h"
 
 namespace tensorflow {
+
+// Forward declarations to avoid including the headers, as not everyone may want
+// to take a dependency on SavedModelBundle and Servable.
+struct SavedModelBundle;
+
 namespace serving {
+
+class Servable;
 
 // SimpleLoader is a wrapper that simplifies Loader creation for common, simple
 // use-cases that conform to the following restrictions:
@@ -131,6 +140,23 @@ class SimpleLoader : public Loader {
   void Unload() override;
 
   AnyPtr servable() override { return AnyPtr{servable_.get()}; }
+
+  ServableModelType model_type() const override {
+    if constexpr (std::is_same_v<SavedModelBundle, ServableType>) {
+      // SavedModelBundle doesn't implement Servable, so it needs special
+      // handling. On the other hand, we know that SavedModelBundle is TF, so we
+      // can return kTensorflow here without waiting for it to load.
+      return ServableModelType::kTensorflow;
+    }
+    if constexpr (std::is_base_of_v<Servable, ServableType>) {
+      if (servable_ == nullptr) {
+        // Servable may not be initialized until Load() returns.
+        return ServableModelType::kUnspecified;
+      }
+      return servable_->model_type();
+    }
+    return ServableModelType::kUnspecified;
+  }
 
  private:
   Status EstimateResourcesPostLoad();

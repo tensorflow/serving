@@ -16,7 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_CORE_TEST_UTIL_SERVABLE_HANDLE_TEST_UTIL_H_
 #define TENSORFLOW_SERVING_CORE_TEST_UTIL_SERVABLE_HANDLE_TEST_UTIL_H_
 
-#include "tensorflow/core/lib/core/status.h"
+#include "absl/log/check.h"
 #include "tensorflow_serving/core/manager.h"
 #include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/core/servable_id.h"
@@ -88,7 +88,7 @@ static ServableHandle<T> WrapAsHandle(const ServableId& id, T* t) {
 
   DummyManager manager{id, t};
   ServableHandle<T> handle;
-  TF_CHECK_OK(manager.GetServableHandle({"Dummy", 0}, &handle));
+  CHECK_OK(manager.GetServableHandle({"Dummy", 0}, &handle));
   return handle;
 }
 

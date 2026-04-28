@@ -16,6 +16,8 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_CORE_TEST_UTIL_MOCK_REQUEST_LOGGER_H_
 #define TENSORFLOW_SERVING_CORE_TEST_UTIL_MOCK_REQUEST_LOGGER_H_
 
+#include <memory>
+#include <string>
 #include <vector>
 
 #include "google/protobuf/message.h"
@@ -35,11 +37,13 @@ class MockRequestLogger : public RequestLogger {
   // have to do this workaround.
   MockRequestLogger(const LoggingConfig& logging_config,
                     const std::vector<string>& saved_model_tags,
-                    LogCollector* log_collector,
+                    LogCollector* log_collector, const std::string& dc = "",
+                    int task_index = -1,
                     std::function<void(void)> notify_destruction =
                         std::function<void(void)>())
       : RequestLogger(logging_config, saved_model_tags,
-                      std::unique_ptr<LogCollector>(log_collector)),
+                      std::unique_ptr<LogCollector>(log_collector), dc,
+                      task_index),
         notify_destruction_(std::move(notify_destruction)) {}
 
   virtual ~MockRequestLogger() {

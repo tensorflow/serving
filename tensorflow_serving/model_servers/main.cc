@@ -46,9 +46,9 @@ limitations under the License.
 #include <iostream>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/compiler/jit/flags.h"
-#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/util/command_line_flags.h"
 #include "tensorflow_serving/model_servers/server.h"
@@ -70,8 +70,8 @@ void InitializeTPU(tensorflow::serving::main::Server::Options& server_options) {
   }
   std::cout << "Initializing TPU system.";
   tensorflow::tpu::TopologyProto tpu_topology;
-  TF_QCHECK_OK(tensorflow::InitializeTPUSystemGlobally(
-      tensorflow::Env::Default(), &tpu_topology))
+  QCHECK_OK(tensorflow::InitializeTPUSystemGlobally(tensorflow::Env::Default(),
+                                                    &tpu_topology))
       << "Failed to initialize TPU system.";
   std::cout << "Initialized TPU topology: " << tpu_topology.DebugString();
   server_options.num_request_iterations_for_warmup =

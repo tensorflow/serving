@@ -234,6 +234,7 @@ cc_library(
         "//tensorflow_serving/apis:model_management_cc_proto",
         "//tensorflow_serving/apis:model_service_cc_proto",
         "//tensorflow_serving/util:status_util",
+        "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/container:flat_hash_map",
         "@local_xla//xla/tsl/lib/monitoring:collected_metrics",
         "@local_xla//xla/tsl/lib/monitoring:collection_registry",
@@ -411,12 +412,12 @@ cc_test(
         "@org_tensorflow//tensorflow/cc/saved_model:saved_model_half_plus_two",
     ],
     deps = [
+        ":model_platform_types",
+        ":platform_config_util",
+        ":server_core",
         ":tfrt_http_rest_api_handler",
         "//tensorflow_serving/core:availability_preserving_policy",
         "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/model_servers:model_platform_types",
-        "//tensorflow_serving/model_servers:platform_config_util",
-        "//tensorflow_serving/model_servers:server_core",
         "//tensorflow_serving/servables/tensorflow:session_bundle_config_cc_proto",
         "//tensorflow_serving/servables/tensorflow:tfrt_saved_model_source_adapter",
         "//tensorflow_serving/servables/tensorflow:tfrt_saved_model_source_adapter_cc_proto",
@@ -502,6 +503,8 @@ cc_library(
         ":prediction_service_impl",
         ":server_core",
         ":server_init",
+        "//tensorflow_serving/apis:model_service_cc_grpc_proto",
+        "//tensorflow_serving/apis:model_service_cc_proto",
         "//tensorflow_serving/config:model_server_config_cc_proto",
         "//tensorflow_serving/config:monitoring_config_cc_proto",
         "//tensorflow_serving/config:platform_config_cc_proto",
@@ -543,12 +546,17 @@ cc_library(
         "version.h",
     ],
     linkstamp = "version.cc",
+    # build_cleaner incorrectly adds deps //third_party/tensorflow/core:framework_internal which
+    # breaks OSS builds with private visibility errors.
+    tags = ["nofixdeps"],
     visibility = [
         ":tensorflow_model_server_custom_op_clients",
         "//tensorflow_serving:internal",
     ],
     deps = [
         ":server_lib",
+        "//tensorflow_serving/apis:model_service_cc_grpc_proto",
+        "//tensorflow_serving/apis:model_service_cc_proto",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@org_tensorflow//tensorflow/c:c_api",
         "@org_tensorflow//tensorflow/compiler/jit:xla_cpu_jit",
@@ -609,7 +617,6 @@ py_test(
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.index",
         "//tensorflow_serving/servables/tensorflow/google/testdata:half_plus_two/00000123/export.meta",
     ]),
-    python_version = "PY3",
     srcs_version = "PY2AND3",
     tags = [
         "manual",  # Missing grpc dependency.
@@ -627,7 +634,6 @@ py_test(
 py_binary(
     name = "tensorflow_model_server_test_client",
     srcs = ["tensorflow_model_server_test_client.py"],
-    python_version = "PY3",
     srcs_version = "PY2AND3",
     deps = ["//tensorflow_serving/apis:prediction_service_proto_py_pb2"],
 )
@@ -635,7 +641,6 @@ py_binary(
 py_binary(
     name = "profiler_client",
     srcs = ["profiler_client.py"],
-    python_version = "PY3",
     srcs_version = "PY2AND3",
 )
 

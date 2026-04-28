@@ -217,8 +217,12 @@ message TfrtSavedModelConfig {
     IFRT_CLIENT_UNSPECIFIED = 0;
     // PJRT IFRT client.
     IFRT_CLIENT_PJRT = 1;
+    // copybara:strip_begin
     // Pathways IFRT client.
     IFRT_CLIENT_PATHWAYS = 2;
+    // Stairways IFRT client.
+    IFRT_CLIENT_STAIRWAYS = 3;
+    // copybara:strip_end
   }
   IfrtClientType ifrt_client_type = 2024;
 
@@ -248,6 +252,15 @@ message TfrtSavedModelConfig {
   // The number of background threads to use for loading checkpoints, or 0 to
   // disable asynchronous checkpoint loading.
   int64 async_checkpoint_loading_num_threads = 2032;
+
+  // If true, the shared batch scheduler will use priority aware scheduling.
+  // Requests with higher priority will be scheduled into batches before
+  // lower priority requests.
+  bool enable_priority_aware_batch_scheduler = 2033;
+
+  // If true, the priority aware batch scheduler will resplit tasks into
+  // smaller batches if needed.
+  bool enable_priority_aware_batch_scheduler_resplit = 2034;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.

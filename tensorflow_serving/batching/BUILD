@@ -5,7 +5,7 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 package(
     default_visibility = ["//tensorflow_serving:internal"],
-    features = ["-layering_check"],
+    features = ["layering_check"],
 )
 
 licenses(["notice"])
@@ -44,6 +44,7 @@ cc_test(
         ":streaming_batch_scheduler",
         "//tensorflow_serving/core/test_util:test_main",
         "@com_google_absl//absl/synchronization",
+        "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
@@ -123,6 +124,7 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/servables/tensorflow:serving_session",
         "//tensorflow_serving/test_util",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/synchronization",
         "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/cc/saved_model:loader",
@@ -155,6 +157,7 @@ cc_test(
         ":batch_scheduler_retrier",
         "//tensorflow_serving/core/test_util:test_main",
         "@com_google_absl//absl/synchronization",
+        "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:test",
@@ -182,9 +185,9 @@ cc_test(
     deps = [
         ":batching_util",
         "//tensorflow_serving/core/test_util:test_main",
+        "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
     ],
 )
 
@@ -198,6 +201,7 @@ cc_test(
         "@com_google_absl//absl/time",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
+        "@org_tensorflow//tensorflow/core/platform",
     ],
 )
 
@@ -241,6 +245,7 @@ cc_test(
         "//tensorflow_serving/core/test_util:test_main",
         "//tensorflow_serving/servables/tensorflow/test_util:mock_tfrt_saved_model",
         "@com_google_absl//absl/functional:bind_front",
+        "@com_google_absl//absl/log:check",
         "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",

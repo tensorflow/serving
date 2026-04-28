@@ -44,7 +44,7 @@ namespace serving {
 ///     ...
 ///     AspiredVersionsManagerBuilder::Options options = ManagerOptions();
 ///     std::unique_ptr&lt;AspiredVersionsManagerBuilder> builder;
-///     TF_CHECK_OK(AspiredVersionsManagerBuilder::Create(
+///     CHECK_OK(AspiredVersionsManagerBuilder::Create(
 ///         std::move(options), &builder));
 ///     builder->AddSource(std::move(some_source));
 ///     builder->AddSourceChain(

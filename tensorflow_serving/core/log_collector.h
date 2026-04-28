@@ -21,6 +21,7 @@ limitations under the License.
 #include <string>
 
 #include "google/protobuf/message.h"
+#include "absl/log/check.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow_serving/config/log_collector_config.pb.h"
 
@@ -68,7 +69,7 @@ struct RegisterFactory {
   RegisterFactory(const string& type, const LogCollector::Factory& factory) {
     // This check happens during global object construction time, even before
     // control reaches main(), so we are ok with the crash.
-    TF_CHECK_OK(LogCollector::RegisterFactory(type, factory));  // Crash ok.
+    CHECK_OK(LogCollector::RegisterFactory(type, factory));  // Crash ok.
   }
 };
 

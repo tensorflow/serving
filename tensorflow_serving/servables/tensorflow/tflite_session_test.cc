@@ -23,11 +23,14 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/base/attributes.h"
 #include "absl/flags/flag.h"
 #include "absl/functional/bind_front.h"
 #include "flatbuffers/flexbuffers.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
+#include "xla/tsl/platform/status.h"
 #include "tensorflow/core/example/example.pb.h"
 #include "tensorflow/core/example/feature.pb.h"
 #include "tensorflow/core/framework/attr_value.pb.h"
@@ -72,7 +75,7 @@ constexpr char kTestModelWithSigdef[] =
     "/servables/tensorflow/testdata/"
     "saved_model_half_plus_two_tflite_with_sigdef/00000123/model.tflite";
 
-constexpr char kMobileNetModel[] =
+ABSL_ATTRIBUTE_UNUSED constexpr char kMobileNetModel[] =
     "/servables/tensorflow/testdata/mobilenet_v1_quant_tflite/00000123/"
     "model.tflite";
 
@@ -97,7 +100,7 @@ TEST(TfLiteSession, BasicTest) {
       absl::GetFlag(FLAGS_num_tflite_interpreters), &session, &signatures));
   EXPECT_EQ(signatures.size(), 1);
   EXPECT_EQ(signatures.begin()->first, "serving_default");
-  EXPECT_THAT(signatures.begin()->second, test_util::EqualsProto(R"(
+  EXPECT_THAT(signatures.begin()->second, test_util::EqualsProto(R"pb(
                 inputs {
                   key: "x"
                   value {
@@ -121,7 +124,7 @@ TEST(TfLiteSession, BasicTest) {
                   }
                 }
                 method_name: "tensorflow/serving/predict"
-              )"));
+              )pb"));
   Tensor input = test::AsTensor<float>({1.0, 2.0, 3.0}, TensorShape({3}));
   {
     // Use TF Lite tensor names.
@@ -216,7 +219,7 @@ TEST(TfLiteSession, ModelFromLegacyConverterWithSigdef) {
   EXPECT_EQ(signatures.begin()->first, "serving_default");
   // While, in the model, the tensor name of input "x" is "tflite_input:0". in
   // the output signature the name must have falled back to "tflite_input".
-  EXPECT_THAT(signatures.begin()->second, test_util::EqualsProto(R"(
+  EXPECT_THAT(signatures.begin()->second, test_util::EqualsProto(R"pb(
                 inputs {
                   key: "x"
                   value {
@@ -240,7 +243,7 @@ TEST(TfLiteSession, ModelFromLegacyConverterWithSigdef) {
                   }
                 }
                 method_name: "tensorflow/serving/predict"
-              )"));
+              )pb"));
 
   Tensor input = test::AsTensor<float>({1.0, 2.0, 3.0}, TensorShape({3}));
   {

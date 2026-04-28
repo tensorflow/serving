@@ -16,11 +16,11 @@ limitations under the License.
 #include "tensorflow_serving/core/request_logger.h"
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "google/protobuf/any.pb.h"
 #include "google/protobuf/wrappers.pb.h"
-#include "google/protobuf/message.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "tensorflow/cc/saved_model/tag_constants.h"
@@ -59,7 +59,7 @@ class RequestLoggerTest : public ::testing::Test {
     log_collector_ = new NiceMock<MockLogCollector>();
     request_logger_ = std::shared_ptr<NiceMock<MockRequestLogger>>(
         new NiceMock<MockRequestLogger>(logging_config, model_tags_,
-                                        log_collector_));
+                                        log_collector_, "", -1));
   }
 
   const std::vector<string> model_tags_ = {kSavedModelTagServe,
@@ -180,6 +180,152 @@ TEST_F(RequestLoggerTest, LoggingStreamRequestLoggerDiesBeforeStreamCloses) {
 
   request_logger_.reset();
   TF_ASSERT_OK(logger->LogMessage());
+}
+
+class PerTaskSamplingTest : public ::testing::Test {
+ protected:
+  std::shared_ptr<NiceMock<MockRequestLogger>> CreateLogger(
+      const LoggingConfig& logging_config, const std::string& dc = "",
+      int task_index = -1) {
+    auto* collector = new NiceMock<MockLogCollector>();
+    log_collector_ = collector;
+
+    return std::shared_ptr<NiceMock<MockRequestLogger>>(
+        new NiceMock<MockRequestLogger>(logging_config,
+                                        std::vector<std::string>{}, collector,
+                                        dc, task_index));
+  }
+
+  NiceMock<MockLogCollector>* log_collector_ = nullptr;
+};
+
+TEST_F(PerTaskSamplingTest, DcEnforcedWhenSet) {
+  LoggingConfig config;
+  config.mutable_sampling_config()->set_sampling_rate(0.0);
+  auto* per_task =
+      config.mutable_sampling_config()->add_per_task_sampling_configs();
+  per_task->set_dc("aa");
+  per_task->set_sampling_rate(1.0);
+
+  auto logger = CreateLogger(config, "aa", 0);
+  EXPECT_CALL(*logger, CreateLogMessage(_, _, _, _))
+      .WillRepeatedly(
+          Invoke([](const google::protobuf::Message&, const google::protobuf::Message&,
+                    const LogMetadata&, std::unique_ptr<google::protobuf::Message>* log) {
+            *log = std::make_unique<google::protobuf::Any>();
+            return absl::OkStatus();
+          }));
+
+  EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(100);
+
+  LogMetadata log_metadata;
+  log_metadata.mutable_model_spec()->set_name("model");
+  for (int i = 0; i < 100; ++i) {
+    TF_ASSERT_OK(
+        logger->Log(PredictRequest(), PredictResponse(), log_metadata));
+  }
+
+  auto logger_bb = CreateLogger(config, "bb", 0);
+  EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(0);
+  for (int i = 0; i < 100; ++i) {
+    TF_ASSERT_OK(
+        logger_bb->Log(PredictRequest(), PredictResponse(), log_metadata));
+  }
+}
+
+TEST_F(PerTaskSamplingTest, TaskIndexEnforcedWhenSet) {
+  LoggingConfig config;
+  config.mutable_sampling_config()->set_sampling_rate(0.0);
+  auto* per_task =
+      config.mutable_sampling_config()->add_per_task_sampling_configs();
+  per_task->set_task_index(0);
+  per_task->set_sampling_rate(1.0);
+
+  auto logger = CreateLogger(config, "aa", 0);
+  EXPECT_CALL(*logger, CreateLogMessage(_, _, _, _))
+      .WillRepeatedly(
+          Invoke([](const google::protobuf::Message&, const google::protobuf::Message&,
+                    const LogMetadata&, std::unique_ptr<google::protobuf::Message>* log) {
+            *log = std::make_unique<google::protobuf::Any>();
+            return absl::OkStatus();
+          }));
+
+  EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(100);
+
+  LogMetadata log_metadata;
+  log_metadata.mutable_model_spec()->set_name("model");
+  for (int i = 0; i < 100; ++i) {
+    TF_ASSERT_OK(
+        logger->Log(PredictRequest(), PredictResponse(), log_metadata));
+  }
+
+  auto logger_task1 = CreateLogger(config, "aa", 1);
+  EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(0);
+  for (int i = 0; i < 100; ++i) {
+    TF_ASSERT_OK(
+        logger_task1->Log(PredictRequest(), PredictResponse(), log_metadata));
+  }
+}
+
+TEST_F(PerTaskSamplingTest, FirstMatchingConfigIsPicked) {
+  LoggingConfig config;
+  config.mutable_sampling_config()->set_sampling_rate(0.0);
+
+  auto* per_task1 =
+      config.mutable_sampling_config()->add_per_task_sampling_configs();
+  per_task1->set_dc("aa");
+  per_task1->set_sampling_rate(1.0);
+
+  auto* per_task2 =
+      config.mutable_sampling_config()->add_per_task_sampling_configs();
+  per_task2->set_dc("aa");
+  per_task2->set_task_index(0);
+  per_task2->set_sampling_rate(0.0);
+
+  auto logger = CreateLogger(config, "aa", 0);
+  EXPECT_CALL(*logger, CreateLogMessage(_, _, _, _))
+      .WillRepeatedly(
+          Invoke([](const google::protobuf::Message&, const google::protobuf::Message&,
+                    const LogMetadata&, std::unique_ptr<google::protobuf::Message>* log) {
+            *log = std::make_unique<google::protobuf::Any>();
+            return absl::OkStatus();
+          }));
+
+  EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(100);
+
+  LogMetadata log_metadata;
+  log_metadata.mutable_model_spec()->set_name("model");
+  for (int i = 0; i < 100; ++i) {
+    TF_ASSERT_OK(
+        logger->Log(PredictRequest(), PredictResponse(), log_metadata));
+  }
+}
+
+TEST_F(PerTaskSamplingTest, FallsBackToTopLevelSamplingRate) {
+  LoggingConfig config;
+  config.mutable_sampling_config()->set_sampling_rate(1.0);
+  auto* per_task =
+      config.mutable_sampling_config()->add_per_task_sampling_configs();
+  per_task->set_dc("aa");
+  per_task->set_sampling_rate(0.0);
+
+  auto logger = CreateLogger(config, "bb", 0);
+  EXPECT_CALL(*logger, CreateLogMessage(_, _, _, _))
+      .WillRepeatedly(
+          Invoke([](const google::protobuf::Message&, const google::protobuf::Message&,
+                    const LogMetadata&, std::unique_ptr<google::protobuf::Message>* log) {
+            *log = std::make_unique<google::protobuf::Any>();
+            return absl::OkStatus();
+          }));
+
+  EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(100);
+
+  LogMetadata log_metadata;
+  log_metadata.mutable_model_spec()->set_name("model");
+  for (int i = 0; i < 100; ++i) {
+    TF_ASSERT_OK(
+        logger->Log(PredictRequest(), PredictResponse(), log_metadata));
+  }
 }
 
 }  // namespace

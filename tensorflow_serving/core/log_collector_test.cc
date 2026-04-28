@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <memory>
 
+#include "google/protobuf/message.h"  // IWYU pragma: keep
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"

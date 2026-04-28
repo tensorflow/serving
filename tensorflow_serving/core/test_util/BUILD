@@ -33,6 +33,7 @@ cc_library(
     deps = [
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:test",
         "@org_tensorflow//tensorflow/core:testlib",
@@ -48,6 +49,7 @@ cc_library(
     hdrs = ["mock_loader.h"],
     deps = [
         "//tensorflow_serving/core:loader",
+        "//tensorflow_serving/core:servable_model_type",
         "//tensorflow_serving/util:any_ptr",
         "@com_google_googletest//:gtest",
         "@org_tensorflow//tensorflow/core:lib",
@@ -148,7 +150,7 @@ cc_library(
         "//tensorflow_serving/core:manager",
         "//tensorflow_serving/core:servable_handle",
         "//tensorflow_serving/core:servable_id",
-        "@org_tensorflow//tensorflow/core:lib",
+        "@com_google_absl//absl/log:check",
     ],
 )
 

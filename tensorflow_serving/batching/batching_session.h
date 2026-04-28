@@ -124,7 +124,7 @@ using BatchingSessionOptions = BatchingOptions;
 //   return Status::OK();
 // };
 // std::unique_ptr<Session> batching_session;
-// TF_CHECK_OK(CreateBatchingSession(options, {{signature, scheduler_creator}},
+// CHECK_OK(CreateBatchingSession(options, {{signature, scheduler_creator}},
 //     std::move(session), &batching_session));
 //
 Status CreateBatchingSession(

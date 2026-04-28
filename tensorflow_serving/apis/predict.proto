@@ -72,6 +72,11 @@ message PredictRequest {
     // but will not return them in the response.
     repeated int64 return_stoptokens = 4;
 
+    // Only supported in disaggregated serving. When set, returns all stop
+    // tokens in response if the model stops at them. Overrides
+    // return_stoptokens.
+    optional bool return_all_stoptokens = 9;
+
     // When set and supported by servable, the model server will cache the
     // prefix of request up to this length.
     optional int64 max_cache_length = 6;
@@ -91,7 +96,6 @@ message PredictStreamedOptions {
   //
   // CANCEL is used for early termination of a stream. It can be sent anytime to
   // cancel the stream.
-  //
   //
   // SPLIT is used when multiple streamed requests are used to generate a
   // logical request. END_SPLIT should be called for the last split of the

@@ -20,6 +20,7 @@ limitations under the License.
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
 #include "tensorflow/core/platform/errors.h"
 #include "tensorflow/core/platform/status.h"
@@ -36,24 +37,25 @@ class GraphRewriter {
     return *singleton;
   }
 
-  Status Set(std::function<Status(tensorflow::MetaGraphDef*)>&& rewriter) {
+  absl::Status Set(
+      std::function<absl::Status(tensorflow::MetaGraphDef*)>&& rewriter) {
     absl::MutexLock l(&m_);
     if (rewriter_ != nullptr)
       return errors::AlreadyExists("Graph rewriter already set.");
 
     rewriter_ = std::move(rewriter);
 
-    return Status();
+    return absl::OkStatus();
   }
 
   // For testing only. Resets the rewriter to nullptr
-  Status ResetForTesting() {
+  absl::Status ResetForTesting() {
     absl::MutexLock l(&m_);
     rewriter_ = nullptr;
-    return Status();
+    return absl::OkStatus();
   }
 
-  std::function<Status(tensorflow::MetaGraphDef*)>& Get() {
+  std::function<absl::Status(tensorflow::MetaGraphDef*)> Get() {
     absl::MutexLock l(&m_);
     return rewriter_;
   }
@@ -67,7 +69,7 @@ class GraphRewriter {
   GraphRewriter() = default;
 
   absl::Mutex m_;
-  std::function<Status(tensorflow::MetaGraphDef*)> rewriter_
+  std::function<absl::Status(tensorflow::MetaGraphDef*)> rewriter_
       ABSL_GUARDED_BY(m_);
 };
 
@@ -75,13 +77,13 @@ class GraphRewriter {
 // Sets a global graph rewrite function that is called on all saved models
 // immediately after metagraph load, but before session creation.  This function
 // can only be called once.
-inline Status SetGraphRewriter(
-    std::function<Status(tensorflow::MetaGraphDef*)>&& rewriter) {
+inline absl::Status SetGraphRewriter(
+    std::function<absl::Status(tensorflow::MetaGraphDef*)>&& rewriter) {
   return GraphRewriter::GetGlobal().Set(std::move(rewriter));
 }
 
 // For testing only. Resets the experimental graph rewriter above.
-inline Status ResetGraphRewriterForTesting() {
+inline absl::Status ResetGraphRewriterForTesting() {
   return GraphRewriter::GetGlobal().ResetForTesting();
 }
 

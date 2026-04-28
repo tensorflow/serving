@@ -40,13 +40,9 @@ cat >/etc/apt/sources.list.d/custom.list <<SOURCES
 # Nvidia CUDA packages: 18.04 has more available than 20.04, and we use those
 deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /
 
-# More Python versions: Deadsnakes
-deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu focal main
-deb-src http://ppa.launchpad.net/deadsnakes/ppa/ubuntu focal main
-
-# LLVM/Clang repository
-deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main
-deb-src http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main
+# LLVM/Clang repository for Ubuntu 22.04 (jammy)
+deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main
+deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main
 SOURCES
 
 apt-get update

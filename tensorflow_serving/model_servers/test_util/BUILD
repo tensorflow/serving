@@ -109,6 +109,7 @@ cc_library(
         ":storage_path_error_injecting_source_adapter_cc_proto",
         "//tensorflow_serving/core:source_adapter",
     ],
+    alwayslink = 1,
 )
 
 serving_proto_library(
@@ -123,7 +124,6 @@ serving_proto_library(
 py_library(
     name = "tensorflow_model_server_test_base",
     srcs = ["tensorflow_model_server_test_base.py"],
-    srcs_version = "PY2AND3",
     tags = [
         "noasan",  # b/136281879
         "notsan",

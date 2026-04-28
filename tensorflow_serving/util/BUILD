@@ -248,6 +248,7 @@ cc_library(
     hdrs = ["file_probing_env.h"],
     visibility = ["//visibility:public"],
     deps = [
+        "@com_google_absl//absl/strings:string_view",
         "@org_tensorflow//tensorflow/core:lib",
     ],
 )

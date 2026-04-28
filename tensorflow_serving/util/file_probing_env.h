@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_UTIL_FILE_PROBING_ENV_H_
 #define TENSORFLOW_SERVING_UTIL_FILE_PROBING_ENV_H_
 
+#include "absl/strings/string_view.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/env.h"
 
@@ -29,7 +30,7 @@ class FileProbingEnv {
   virtual ~FileProbingEnv() = default;
 
   // Returns OK if the named path exists and NOT_FOUND otherwise.
-  virtual Status FileExists(const string& fname) = 0;
+  virtual Status FileExists(absl::string_view fname) = 0;
 
   // Stores in *children the names of the children of the specified
   // directory. The names are relative to "dir".
@@ -54,7 +55,7 @@ class TensorflowFileProbingEnv : public FileProbingEnv {
 
   ~TensorflowFileProbingEnv() override = default;
 
-  Status FileExists(const string& fname) override;
+  Status FileExists(absl::string_view fname) override;
 
   Status GetChildren(const string& dir, std::vector<string>* children) override;
 

@@ -87,7 +87,7 @@ FileSystemStoragePathSourceConfig config;
 config.set_servable_name("default");
 config.set_base_path(FLAGS::base_path /* base path for our servable files */);
 config.set_file_system_poll_wait_seconds(1);
-TF_CHECK_OK(FileSystemStoragePathSource::Create(config, &path_source));
+CHECK_OK(FileSystemStoragePathSource::Create(config, &path_source));
 ConnectSourceToTarget(path_source.get(), your_adapter.get());
 ```
 

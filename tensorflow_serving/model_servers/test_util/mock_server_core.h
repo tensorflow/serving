@@ -80,7 +80,7 @@ class MockServerCore : public ServerCore {
     if (server_request_logger != nullptr) {
       options.server_request_logger = std::move(server_request_logger);
     } else {
-      TF_CHECK_OK(
+      CHECK_OK(
           ServerRequestLogger::Create(nullptr, &options.server_request_logger));
     }
     return options;

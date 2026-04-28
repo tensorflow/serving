@@ -24,7 +24,7 @@ limitations under the License.
 
 namespace tensorflow {
 namespace serving {
-const absl::Status& ThreadSafeStatus::status() const& {
+absl::Status ThreadSafeStatus::status() const& {
   tf_shared_lock lock(mutex_);
   return status_;
 }

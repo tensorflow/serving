@@ -94,7 +94,7 @@ absl::Status LoaderHarness::Load() {
           errors::Cancelled(absl::StrCat("Loading of servable cancelled"));
       if (options_.error_callback) {
         // Invokes BasicManager::PublishOnEventBus(kEnd).
-        options_.error_callback(id_, s);
+        options_.error_callback(id_, model_type(), s);
       }
       return s;
     }
@@ -176,7 +176,7 @@ void LoaderHarness::ErrorInternal(const absl::Status& status) {
   state_ = State::kError;
   status_ = status;
   if (options_.error_callback) {
-    options_.error_callback(id(), status);
+    options_.error_callback(id(), model_type(), status);
   }
   LOG(INFO) << "Encountered an error for servable version " << id_ << ": "
             << status_;

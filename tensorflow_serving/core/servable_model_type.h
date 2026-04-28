@@ -13,33 +13,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow_serving/util/file_probing_env.h"
+#ifndef TENSORFLOW_SERVING_CORE_SERVABLE_MODEL_TYPE_H_
+#define TENSORFLOW_SERVING_CORE_SERVABLE_MODEL_TYPE_H_
 
+#include <ostream>
 #include <string>
-#include <vector>
-
-#include "absl/strings/string_view.h"
 
 namespace tensorflow {
 namespace serving {
 
-Status TensorflowFileProbingEnv::FileExists(absl::string_view fname) {
-  return env_->FileExists(std::string(fname));
+enum class ServableModelType : int {
+  kUnspecified,
+  kTensorflow,
+};
+
+inline static std::string ServableModelTypeString(ServableModelType type) {
+  switch (type) {
+    case ServableModelType::kTensorflow:
+      return "tf";
+    case ServableModelType::kUnspecified:
+    default:
+      return "unspecified";
+  }
 }
 
-Status TensorflowFileProbingEnv::GetChildren(const string& dir,
-                                             std::vector<string>* children) {
-  return env_->GetChildren(dir, children);
-}
-
-Status TensorflowFileProbingEnv::IsDirectory(const string& fname) {
-  return env_->IsDirectory(fname);
-}
-
-Status TensorflowFileProbingEnv::GetFileSize(const string& fname,
-                                             uint64_t* file_size) {
-  return env_->GetFileSize(fname, file_size);
+inline std::ostream& operator<<(std::ostream& out, ServableModelType type) {
+  return out << ServableModelTypeString(type);
 }
 
 }  // namespace serving
 }  // namespace tensorflow
+
+#endif  // TENSORFLOW_SERVING_CORE_SERVABLE_MODEL_TYPE_H_

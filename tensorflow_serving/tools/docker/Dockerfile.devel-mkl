@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM ubuntu:20.04 as base_build
+FROM ubuntu:22.04@sha256:eb29ed27b0821dca09c2e28b39135e185fc1302036427d5f4d70a41ce8fd7659 as base_build
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=HEAD
@@ -42,8 +42,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libtool \
     libzmq3-dev \
     mlocate \
-    openjdk-8-jdk\
-    openjdk-8-jre-headless \
+    openjdk-11-jdk \
+    openjdk-11-jre-headless \
     pkg-config \
     software-properties-common \
     swig \
@@ -97,7 +97,7 @@ RUN git clone --single-branch --branch=${TF_SERVING_VERSION_GIT_BRANCH} https://
 
 FROM base_build as binary_build
 # Build, and install TensorFlow Serving
-ARG TF_SERVING_BUILD_OPTIONS="--config=mkl --config=release"
+ARG TF_SERVING_BUILD_OPTIONS="--config=mkl --config=release --config=clang_local"
 
 RUN echo "Building with build options: ${TF_SERVING_BUILD_OPTIONS}"
 ARG TF_SERVING_BAZEL_OPTIONS=""
@@ -126,7 +126,7 @@ RUN bazel build --color=yes --curses=yes \
     rm -rf /tmp/pip
 
 # Copy openmp libraries
-RUN cp -rp /root/.cache/bazel/_bazel_root/*/execroot/tf_serving/bazel-out/host/bin/external/llvm_openmp/libiomp5.so /usr/local/lib/
+RUN cp -rp /tensorflow-serving/bazel-bin/external/llvm_openmp/libiomp5.so /usr/local/lib/
 
 ENV LIBRARY_PATH '/usr/local/lib:$LIBRARY_PATH'
 ENV LD_LIBRARY_PATH '/usr/local/lib:$LD_LIBRARY_PATH'

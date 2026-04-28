@@ -21,10 +21,10 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include "absl/synchronization/notification.h"
+#include "xla/tsl/lib/core/status_test_util.h"
 #include "tensorflow/core/kernels/batching_util/fake_clock_env.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
-#include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 
@@ -51,7 +51,7 @@ class BrokenScheduler : public BatchScheduler<FakeTask> {
 
   absl::Status Schedule(std::unique_ptr<FakeTask>* task) override {
     ++num_submit_calls_;
-    return errors::Unknown("BrokenScheduler faithfully failing");
+    return absl::UnknownError("BrokenScheduler faithfully failing");
   }
 
   size_t NumEnqueuedTasks() const override { return 7; }
@@ -82,9 +82,9 @@ class StubbornScheduler : public BatchScheduler<FakeTask> {
       std::unique_ptr<FakeTask> consumed_task = std::move(*task);
       return absl::OkStatus();
     } else {
-      return errors::Unavailable(
+      return absl::UnavailableError(absl::StrCat(
           "StubbornScheduler faithfully being stubborn; this is attempt ",
-          num_attempts_);
+          num_attempts_));
     }
   }
 
@@ -109,7 +109,7 @@ TEST(BatchSchedulerRetrierTest, ConstMethodsForwardToWrappedScheduler) {
   auto broken_scheduler = std::unique_ptr<BrokenScheduler>(new BrokenScheduler);
   BatchSchedulerRetrier<FakeTask>::Options options;
   std::unique_ptr<BatchSchedulerRetrier<FakeTask>> retrier;
-  TF_CHECK_OK(BatchSchedulerRetrier<FakeTask>::Create(
+  TF_ASSERT_OK(BatchSchedulerRetrier<FakeTask>::Create(
       options, std::move(broken_scheduler), &retrier));
   EXPECT_EQ(1000, retrier->max_task_size());
   EXPECT_EQ(7, retrier->NumEnqueuedTasks());
@@ -121,7 +121,7 @@ TEST(BatchSchedulerRetrierTest, PermanentFailure) {
   auto broken_scheduler_ptr = broken_scheduler.get();
   BatchSchedulerRetrier<FakeTask>::Options options;
   std::unique_ptr<BatchSchedulerRetrier<FakeTask>> retrier;
-  TF_CHECK_OK(BatchSchedulerRetrier<FakeTask>::Create(
+  TF_ASSERT_OK(BatchSchedulerRetrier<FakeTask>::Create(
       options, std::move(broken_scheduler), &retrier));
   auto task = std::unique_ptr<FakeTask>(new FakeTask);
   absl::Status status = retrier->Schedule(&task);
@@ -145,14 +145,13 @@ TEST(BatchSchedulerRetrierTest, MaxTime) {
       options.max_time_micros = max_attempts;
       options.env = &env;
       std::unique_ptr<BatchSchedulerRetrier<FakeTask>> retrier;
-      TF_CHECK_OK(BatchSchedulerRetrier<FakeTask>::Create(
+      TF_ASSERT_OK(BatchSchedulerRetrier<FakeTask>::Create(
           options, std::move(stubborn_scheduler), &retrier));
 
       const bool expect_success = max_attempts >= num_attempts_to_succeed;
       absl::Notification done;
       std::unique_ptr<Thread> run_retrier(Env::Default()->StartThread(
-          {}, "RunRetrier",
-          [&retrier, &expect_success, &done]() {
+          {}, "RunRetrier", [&retrier, &expect_success, &done]() {
             auto task = std::unique_ptr<FakeTask>(new FakeTask);
             absl::Status status = retrier->Schedule(&task);
             EXPECT_EQ(expect_success, status.ok());
@@ -188,13 +187,12 @@ TEST(BatchSchedulerRetrierTest, RetryDelay) {
   options.max_time_micros = 100;
   options.env = &env;
   std::unique_ptr<BatchSchedulerRetrier<FakeTask>> retrier;
-  TF_CHECK_OK(BatchSchedulerRetrier<FakeTask>::Create(
+  TF_ASSERT_OK(BatchSchedulerRetrier<FakeTask>::Create(
       options, std::move(stubborn_scheduler), &retrier));
 
   absl::Notification done;
-  std::unique_ptr<Thread> run_retrier(Env::Default()->StartThread(
-      {}, "RunRetrier",
-      [&retrier, &done]() {
+  std::unique_ptr<Thread> run_retrier(
+      Env::Default()->StartThread({}, "RunRetrier", [&retrier, &done]() {
         auto task = std::unique_ptr<FakeTask>(new FakeTask);
         absl::Status status = retrier->Schedule(&task);
         TF_EXPECT_OK(status);

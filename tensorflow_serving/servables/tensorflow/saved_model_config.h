@@ -31,6 +31,8 @@ namespace serving {
 // adds or replaces some optimization options in
 // `tensorflow::serving::RewriterConfig` of `tensorflow::GraphOptions` and
 // replaces the `runtime_config`.
+// NOTE: `export_dir` is the root directory of the model (no matter the model is
+// a SavedModel or Orbax Model).
 Status LoadSavedModelConfig(
     const std::string& export_dir, tensorflow::GraphOptions& graph_options,
     tensorflow::tfrt_stub::RuntimeConfig& runtime_config);

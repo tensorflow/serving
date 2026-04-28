@@ -1,0 +1,40 @@
+--- a/tensorflow_text/core/kernels/whitespace_tokenizer_config_builder.cc
++++ b/tensorflow_text/core/kernels/whitespace_tokenizer_config_builder.cc
+@@ -28,10 +28,15 @@
+ std::string BuildWhitespaceString() {
+   std::string str;
+   char buf[U8_MAX_LENGTH];
+-  for (auto cp : WhiteSpaceSet().codePoints()) {
+-    int len = 0;
+-    U8_APPEND_UNSAFE(buf, len, cp);
+-    str.append(buf, len);
++  const icu::UnicodeSet& set = WhiteSpaceSet();
++  int range_count = set.getRangeCount();
++  for (int i = 0; i < range_count; ++i) {
++    UChar32 start = set.getRangeStart(i);
++    UChar32 end = set.getRangeEnd(i);
++    for (UChar32 cp = start; cp <= end; ++cp) {
++      int len = 0;
++      U8_APPEND_UNSAFE(buf, len, cp);
++      str.append(buf, len);
++    }
+   }
+   return str;
+ }
+@@ -43,9 +48,13 @@
+   UChar32 largest_whitespace = set.getRangeEnd(range_count - 1);
+   // The string will hold our bit array
+   std::string bitset((largest_whitespace >> 3) + 1, 0);
+-  for (auto cp : set.codePoints()) {
+-    int index = cp >> 3;
+-    bitset[index] |= 1 << (cp & 7);
++  for (int i = 0; i < range_count; ++i) {
++    UChar32 start = set.getRangeStart(i);
++    UChar32 end = set.getRangeEnd(i);
++    for (UChar32 cp = start; cp <= end; ++cp) {
++      int index = cp >> 3;
++      bitset[index] |= 1 << (cp & 7);
++    }
+   }
+   return bitset;
+ }

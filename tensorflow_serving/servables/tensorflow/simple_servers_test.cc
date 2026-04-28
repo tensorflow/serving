@@ -21,6 +21,7 @@ limitations under the License.
 #include <vector>
 
 #include <gtest/gtest.h>
+#include "absl/log/check.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
@@ -76,7 +77,7 @@ TEST_F(SimpleServersTest, Basic) {
   const absl::Status status =
       simple_servers::CreateSingleTFModelManagerFromBasePath(test_data_path_,
                                                              &manager);
-  TF_CHECK_OK(status);
+  CHECK_OK(status);
   // We wait until the manager starts serving the servable.
   while (manager->ListAvailableServableIds().empty()) {
     Env::Default()->SleepForMicroseconds(1000);
@@ -84,7 +85,7 @@ TEST_F(SimpleServersTest, Basic) {
   ServableHandle<SavedModelBundle> bundle;
   const absl::Status handle_status =
       manager->GetServableHandle(ServableRequest::Latest("default"), &bundle);
-  TF_CHECK_OK(handle_status);
+  CHECK_OK(handle_status);
   TestSingleRequest(*bundle);
 }
 

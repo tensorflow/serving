@@ -16,10 +16,13 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_CORE_SERVABLE_STATE_H_
 #define TENSORFLOW_SERVING_CORE_SERVABLE_STATE_H_
 
+#include <ostream>
 #include <string>
 
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/strcat.h"
 #include "tensorflow_serving/core/servable_id.h"
+#include "tensorflow_serving/core/servable_model_type.h"
 
 namespace tensorflow {
 namespace serving {
@@ -86,17 +89,21 @@ struct ServableState {
   // the servable are reported here, regardless of origin.
   Status health;
 
+  ServableModelType model_type = ServableModelType::kUnspecified;
+
   // Returns a string representation of this object. Useful in logging.
-  string DebugString() const {
-    return strings::StrCat("id: ", id.DebugString(), " manager_state: ",
-                           ManagerStateString(manager_state),
-                           " health: ", health.ToString());
+  std::string DebugString() const {
+    return strings::StrCat(
+        "id: ", id.DebugString(),
+        " model_type: ", ServableModelTypeString(model_type),
+        " manager_state: ", ManagerStateString(manager_state),
+        " health: ", health.ToString());
   }
 };
 
 inline bool operator==(const ServableState& a, const ServableState& b) {
-  return a.id == b.id && a.manager_state == b.manager_state &&
-         a.health == b.health;
+  return a.id == b.id && a.model_type == b.model_type &&
+         a.manager_state == b.manager_state && a.health == b.health;
 }
 
 inline bool operator!=(const ServableState& a, const ServableState& b) {

@@ -27,7 +27,7 @@ namespace internal {
 
 // SingleTaskScheduler
 
-SingleTaskScheduler::SingleTaskScheduler(Env* env, string thread_name,
+SingleTaskScheduler::SingleTaskScheduler(Env* env, std::string thread_name,
                                          uint64_t no_tasks_wait_time_micros)
     : env_(env),
       thread_name_(std::move(thread_name)),

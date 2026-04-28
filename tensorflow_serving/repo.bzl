@@ -18,6 +18,7 @@ def _tensorflow_http_archive(ctx):
     git_commit = ctx.attr.git_commit
     sha256 = ctx.attr.sha256
     patch = getattr(ctx.attr, "patch", None)
+    patch_cmds = getattr(ctx.attr, "patch_cmds", [])
 
     override_git_commit = ctx.os.environ.get(_TF_REVISION)
     if override_git_commit:
@@ -37,6 +38,10 @@ def _tensorflow_http_archive(ctx):
     )
     if patch:
         ctx.patch(patch, strip = 1)
+    for cmd in patch_cmds:
+        res = ctx.execute(["bash", "-c", cmd])
+        if res.return_code != 0:
+            fail("Failed to execute patch_cmd %s: %s" % (cmd, res.stderr))
 
 tensorflow_http_archive = repository_rule(
     implementation = _tensorflow_http_archive,
@@ -44,5 +49,6 @@ tensorflow_http_archive = repository_rule(
         "git_commit": attr.string(mandatory = True),
         "sha256": attr.string(mandatory = True),
         "patch": attr.label(),
+        "patch_cmds": attr.string_list(),
     },
 )

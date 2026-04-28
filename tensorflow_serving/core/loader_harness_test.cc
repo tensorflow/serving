@@ -28,6 +28,7 @@ limitations under the License.
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/core/servable_id.h"
+#include "tensorflow_serving/core/servable_model_type.h"
 #include "tensorflow_serving/core/test_util/mock_loader.h"
 #include "tensorflow_serving/test_util/test_util.h"
 #include "tensorflow_serving/util/any_ptr.h"
@@ -208,11 +209,14 @@ TEST(LoaderHarnessTest, ExternallySignalledErrorWithCallback) {
   absl::Notification callback_called;
   LoaderHarness::Options options;
   options.error_callback = [&](const ServableId& callback_id,
+                               ServableModelType callback_model_type,
                                const absl::Status& callback_error) {
     EXPECT_EQ(id, callback_id);
+    EXPECT_EQ(callback_model_type, ServableModelType::kUnspecified);
     EXPECT_EQ(callback_error, error);
     callback_called.Notify();
   };
+
   LoaderHarness harness(id, nullptr /* no loader */, options);
   harness.Error(error);
   callback_called.WaitForNotification();
@@ -379,6 +383,22 @@ TEST(LoaderHarnessTest, UnloadDueToNonRetriableError) {
         const absl::Status status = harness.Load();
         EXPECT_THAT(status.message(), HasSubstr("Non-retriable error."));
       }));
+}
+
+TEST(LoaderHarnessTest, ModelTypeWithoutServable) {
+  auto loader = std::make_unique<NiceMock<test_util::MockLoader>>();
+  LoaderHarness harness(ServableId{"test", 0}, std::move(loader));
+  EXPECT_EQ(harness.model_type(), ServableModelType::kUnspecified);
+}
+
+TEST(LoaderHarnessTest, ModelTypeWithServable) {
+  auto loader = std::make_unique<NiceMock<test_util::MockLoader>>();
+
+  EXPECT_CALL(*loader, model_type())
+      .WillRepeatedly(Return(ServableModelType::kTensorflow));
+  LoaderHarness harness(ServableId{"test", 0}, std::move(loader));
+
+  EXPECT_EQ(harness.model_type(), ServableModelType::kTensorflow);
 }
 
 }  // namespace

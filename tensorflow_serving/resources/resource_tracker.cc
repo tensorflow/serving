@@ -36,8 +36,8 @@ absl::Status ResourceTracker::Create(
   const ResourceAllocation normalized_total_resources =
       util->Normalize(total_resources);
   if (!util->IsBound(normalized_total_resources)) {
-    return errors::InvalidArgument("total_resources must be bound: ",
-                                   total_resources.DebugString());
+    return absl::InvalidArgumentError(absl::StrCat(
+        "total_resources must be bound: ", total_resources.DebugString()));
   }
   tracker->reset(
       new ResourceTracker(normalized_total_resources, std::move(util)));

@@ -39,8 +39,8 @@ class ResourceEstimatorTest : public ::testing::Test {
  protected:
   void SetUp() {
     export_dir_ = "/foo/bar";
-    const string child = "child";
-    const string child_path = io::JoinPath(export_dir_, child);
+    const std::string child = "child";
+    const std::string child_path = io::JoinPath(export_dir_, child);
     file_size_ = 100;
 
     // Set up the expectation that the directory contains exactly one child with
@@ -48,16 +48,17 @@ class ResourceEstimatorTest : public ::testing::Test {
     EXPECT_CALL(env_, FileExists(export_dir_))
         .WillRepeatedly(Return(absl::Status()));
     EXPECT_CALL(env_, GetChildren(export_dir_, _))
-        .WillRepeatedly(DoAll(SetArgPointee<1>(std::vector<string>({child})),
-                              Return(absl::Status())));
+        .WillRepeatedly(
+            DoAll(SetArgPointee<1>(std::vector<std::string>({child})),
+                  Return(absl::Status())));
     EXPECT_CALL(env_, IsDirectory(child_path))
-        .WillRepeatedly(Return(errors::FailedPrecondition("")));
+        .WillRepeatedly(Return(absl::FailedPreconditionError("")));
     EXPECT_CALL(env_, GetFileSize(child_path, _))
         .WillRepeatedly(
             DoAll(SetArgPointee<1>(file_size_), Return(absl::Status())));
   }
 
-  string export_dir_;
+  std::string export_dir_;
   double file_size_;
   test_util::MockFileProbingEnv env_;
 };

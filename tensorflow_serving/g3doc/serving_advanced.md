@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
       source_adapter_config;
 
   std::unique_ptr<ServerCore> core;
-  TF_CHECK_OK(ServerCore::Create(options, &core));
+  CHECK_OK(ServerCore::Create(options, &core));
   RunServer(port, std::move(core));
 
   return 0;

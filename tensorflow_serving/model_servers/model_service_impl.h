@@ -32,29 +32,29 @@ namespace serving {
 
 class ModelServiceImpl final : public ModelService::Service {
  public:
-  explicit ModelServiceImpl(ServerCore *core) : core_(core) {}
+  explicit ModelServiceImpl(ServerCore* core) : core_(core) {}
 
-  ::grpc::Status GetModelStatus(::grpc::ServerContext *context,
-                                const GetModelStatusRequest *request,
-                                GetModelStatusResponse *response) override;
+  ::grpc::Status GetModelStatus(::grpc::ServerContext* context,
+                                const GetModelStatusRequest* request,
+                                GetModelStatusResponse* response) override;
 
-  ::grpc::Status HandleReloadConfigRequest(::grpc::ServerContext *context,
-                                           const ReloadConfigRequest *request,
-                                           ReloadConfigResponse *response);
+  ::grpc::Status HandleReloadConfigRequest(
+      ::grpc::ServerContext* context, const ReloadConfigRequest* request,
+      ReloadConfigResponse* response) override;
 
  private:
-  ServerCore *core_;
+  ServerCore* core_;
 
   // Obtains values for metrics provided in request.
   absl::flat_hash_map<std::string, int64_t> GetMetrics(
-      const ReloadConfigRequest *request);
+      const ReloadConfigRequest* request);
 
   // Compares old_metric_values and new_metric_values, storing the increases in
   // response
   void RecordMetricsIncrease(
-      const absl::flat_hash_map<std::string, int64_t> &old_metric_values,
-      const absl::flat_hash_map<std::string, int64_t> &new_metric_values,
-      ReloadConfigResponse *response);
+      const absl::flat_hash_map<std::string, int64_t>& old_metric_values,
+      const absl::flat_hash_map<std::string, int64_t>& new_metric_values,
+      ReloadConfigResponse* response);
 };
 
 }  // namespace serving

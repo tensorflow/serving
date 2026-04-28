@@ -355,7 +355,8 @@ class TensorflowModelServerTest(
               model_path=self._GetSavedModelHalfPlusThreePath()))
 
     # Give modelserver time to poll and load the new config
-    time.sleep(poll_period + 1)
+    wait_seconds = 10
+    time.sleep(wait_seconds)
 
     # Verify new model config was realized in model server
     self.VerifyPredictRequest(

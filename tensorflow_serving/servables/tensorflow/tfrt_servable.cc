@@ -229,7 +229,7 @@ absl::Status TfrtSavedModelServable::Resume() {
     return absl::OkStatus();
   }
   absl::Status status = resume_fn_(this);
-  if (!status.ok()) {
+  if (status.ok()) {
     suspended_ = false;
   }
   return status;

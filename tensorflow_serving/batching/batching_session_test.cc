@@ -22,6 +22,7 @@ limitations under the License.
 #include <vector>
 
 #include <gtest/gtest.h>
+#include "absl/log/check.h"
 #include "absl/synchronization/notification.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
@@ -29,7 +30,6 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
-#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
@@ -57,9 +57,9 @@ class BatchSizeCapturingSession : public ServingSession {
       : wrapped_(std::move(wrapped)) {}
   ~BatchSizeCapturingSession() override = default;
 
-  absl::Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
-                   const std::vector<string>& output_tensor_names,
-                   const std::vector<string>& target_node_names,
+  absl::Status Run(const std::vector<std::pair<std::string, Tensor>>& inputs,
+                   const std::vector<std::string>& output_tensor_names,
+                   const std::vector<std::string>& target_node_names,
                    std::vector<Tensor>* outputs) override {
     RunMetadata run_metadata;
     return Run(RunOptions(), inputs, output_tensor_names, target_node_names,
@@ -67,9 +67,9 @@ class BatchSizeCapturingSession : public ServingSession {
   }
 
   absl::Status Run(const RunOptions& run_options,
-                   const std::vector<std::pair<string, Tensor>>& inputs,
-                   const std::vector<string>& output_tensor_names,
-                   const std::vector<string>& target_node_names,
+                   const std::vector<std::pair<std::string, Tensor>>& inputs,
+                   const std::vector<std::string>& output_tensor_names,
+                   const std::vector<std::string>& target_node_names,
                    std::vector<Tensor>* outputs,
                    RunMetadata* run_metadata) override {
     return Run(run_options, inputs, output_tensor_names, target_node_names,
@@ -77,9 +77,9 @@ class BatchSizeCapturingSession : public ServingSession {
   }
 
   absl::Status Run(const RunOptions& run_options,
-                   const std::vector<std::pair<string, Tensor>>& inputs,
-                   const std::vector<string>& output_tensor_names,
-                   const std::vector<string>& target_node_names,
+                   const std::vector<std::pair<std::string, Tensor>>& inputs,
+                   const std::vector<std::string>& output_tensor_names,
+                   const std::vector<std::string>& target_node_names,
                    std::vector<Tensor>* outputs, RunMetadata* run_metadata,
                    const thread::ThreadPoolOptions& thread_pool_options)
       override TF_LOCKS_EXCLUDED(latest_batch_size_mu_) {
@@ -122,22 +122,22 @@ class BatchSizeCapturingSession : public ServingSession {
 std::unique_ptr<Session> CreateHalfPlusTwoSession() {
   tensorflow::SessionOptions session_options;
   tensorflow::RunOptions run_options;
-  const string export_dir = test_util::TensorflowTestSrcDirPath(
+  const std::string export_dir = test_util::TensorflowTestSrcDirPath(
       "cc/saved_model/testdata/half_plus_two/00000123");
   SavedModelBundle bundle;
-  TF_CHECK_OK(LoadSavedModel(session_options, run_options, export_dir,
-                             {kSavedModelTagServe}, &bundle));
+  CHECK_OK(LoadSavedModel(session_options, run_options, export_dir,
+                          {kSavedModelTagServe}, &bundle));
   return std::move(bundle.session);
 }
 
 std::unique_ptr<Session> CreateMatrixHalfPlusTwoSession() {
   tensorflow::SessionOptions session_options;
   tensorflow::RunOptions run_options;
-  const string export_dir =
+  const std::string export_dir =
       test_util::TestSrcDirPath("batching/testdata/matrix_half_plus_two/1");
   SavedModelBundle bundle;
-  TF_CHECK_OK(LoadSavedModel(session_options, run_options, export_dir,
-                             {kSavedModelTagServe}, &bundle));
+  CHECK_OK(LoadSavedModel(session_options, run_options, export_dir,
+                          {kSavedModelTagServe}, &bundle));
   return std::move(bundle.session);
 }
 
@@ -167,9 +167,9 @@ void TestRequest(const std::vector<float>& x_values, TensorShape x_shape,
 }
 
 // Invoke Run() with the supplied arguments, and expect a particular error.
-void ExpectError(const string& error_message,
-                 const std::vector<std::pair<string, Tensor>>& inputs,
-                 const std::vector<string>& output_tensor_names,
+void ExpectError(const std::string& error_message,
+                 const std::vector<std::pair<std::string, Tensor>>& inputs,
+                 const std::vector<std::string>& output_tensor_names,
                  Session* session) {
   std::vector<Tensor> outputs;
   absl::Status status = session->Run(inputs, output_tensor_names,
@@ -181,12 +181,12 @@ void ExpectError(const string& error_message,
 // Creates a SignatureDef from a TensorSignature.
 SignatureDef CreateSignatureDef(const TensorSignature& tensor_signature) {
   SignatureDef signature_def;
-  for (const string& input_tensor : tensor_signature.input_tensors) {
+  for (const std::string& input_tensor : tensor_signature.input_tensors) {
     TensorInfo input;
     input.set_name(input_tensor);
     (*signature_def.mutable_inputs())[input_tensor] = input;
   }
-  for (const string& output_tensor : tensor_signature.output_tensors) {
+  for (const std::string& output_tensor : tensor_signature.output_tensors) {
     TensorInfo output;
     output.set_name(output_tensor);
     (*signature_def.mutable_outputs())[output_tensor] = output;
@@ -194,7 +194,7 @@ SignatureDef CreateSignatureDef(const TensorSignature& tensor_signature) {
   return signature_def;
 }
 
-int GetPercentileTotal(string label) {
+int GetPercentileTotal(std::string label) {
   auto* collection_registry = monitoring::CollectionRegistry::Default();
   monitoring::CollectionRegistry::CollectMetricsOptions options;
   const std::unique_ptr<monitoring::CollectedMetrics> collected_metrics =
@@ -209,8 +209,8 @@ int GetPercentileTotal(string label) {
   return static_cast<int>(total_samples);
 }
 
-bool CheckDescriptor(string label, const string& description,
-                     const std::vector<string>& labels) {
+bool CheckDescriptor(std::string label, const std::string& description,
+                     const std::vector<std::string>& labels) {
   auto* collection_registry = monitoring::CollectionRegistry::Default();
   monitoring::CollectionRegistry::CollectMetricsOptions options;
   const std::unique_ptr<monitoring::CollectedMetrics> collected_metrics =
@@ -417,7 +417,7 @@ TEST_P(BatchingSessionTest, BatchHandlesSplitError) {
       schedule_options, batching_session_options, {{"x"}, {"y"}},
       CreateHalfPlusTwoSession(), &batching_session));
 
-  string expected_error_msg =
+  std::string expected_error_msg =
       "Tensors with name 'x' from different tasks have different shapes and "
       "padding is turned off. Set pad_variable_length_inputs to true, or "
       "ensure that all tensors with the same name have equal dimensions "
@@ -635,7 +635,7 @@ TEST_P(BatchingSessionTest, UnequalTensorShapesWithPaddingTurnedOff) {
   TF_ASSERT_OK(CreateBasicBatchingSession(
       schedule_options, batching_session_options, {{"x"}, {"y"}},
       CreateMatrixHalfPlusTwoSession(), &batching_session));
-  string expected_error_msg =
+  std::string expected_error_msg =
       "Tensors with name 'x' from different tasks have different shapes and "
       "padding is turned off. Set pad_variable_length_inputs to true, or "
       "ensure that all tensors with the same name have equal dimensions "
@@ -695,11 +695,11 @@ TEST_P(BatchingSessionTest, RequestWithIncompatibleInputTensorSizes) {
   std::unique_ptr<Session> batching_session;
   BatchingSessionOptions batching_session_options;
 
-  int32 start_input_value = GetPercentileTotal(
+  int32_t start_input_value = GetPercentileTotal(
       "/tensorflow/serving/batching_session/input_batch_size");
-  int32 start_process_value = GetPercentileTotal(
+  int32_t start_process_value = GetPercentileTotal(
       "/tensorflow/serving/batching_session/processed_batch_size");
-  int32 start_pad_value =
+  int32_t start_pad_value =
       GetPercentileTotal("/tensorflow/serving/batching_session/padding_size");
   TF_ASSERT_OK(CreateBasicBatchingSession(
       schedule_options, batching_session_options,
@@ -724,11 +724,11 @@ TEST_P(BatchingSessionTest, RequestWithIncompatibleInputTensorSizes) {
 }
 
 TEST_P(BatchingSessionTest, AllowedBatchSizesNoPaddingNeeded) {
-  int32 start_input_value = GetPercentileTotal(
+  int32_t start_input_value = GetPercentileTotal(
       "/tensorflow/serving/batching_session/input_batch_size");
-  int32 start_process_value = GetPercentileTotal(
+  int32_t start_process_value = GetPercentileTotal(
       "/tensorflow/serving/batching_session/processed_batch_size");
-  int32 start_pad_value =
+  int32_t start_pad_value =
       GetPercentileTotal("/tensorflow/serving/batching_session/padding_size");
   // Arrange to capture the batch size.
   std::unique_ptr<BatchSizeCapturingSession> batch_size_capturing_session(
@@ -765,11 +765,11 @@ TEST_P(BatchingSessionTest, AllowedBatchSizesNoPaddingNeeded) {
 }
 
 TEST_P(BatchingSessionTest, AllowedBatchSizesRequirePadding) {
-  int32 start_input_value = GetPercentileTotal(
+  int32_t start_input_value = GetPercentileTotal(
       "/tensorflow/serving/batching_session/input_batch_size");
-  int32 start_process_value = GetPercentileTotal(
+  int32_t start_process_value = GetPercentileTotal(
       "/tensorflow/serving/batching_session/processed_batch_size");
-  int32 start_pad_value =
+  int32_t start_pad_value =
       GetPercentileTotal("/tensorflow/serving/batching_session/padding_size");
 
   // Arrange to capture the batch size.
@@ -917,11 +917,11 @@ TEST_P(BatchingSessionTest, MultipleSignatures) {
       };
   BatchingSessionOptions batching_session_options;
   std::unique_ptr<Session> batching_session;
-  TF_CHECK_OK(CreateBatchingSession(batching_session_options,
-                                    {{{{"x"}, {"y"}}, create_scheduler},
-                                     {{{"x2"}, {"y3"}}, create_scheduler}},
-                                    CreateHalfPlusTwoSession(),
-                                    &batching_session));
+  CHECK_OK(CreateBatchingSession(batching_session_options,
+                                 {{{{"x"}, {"y"}}, create_scheduler},
+                                  {{{"x2"}, {"y3"}}, create_scheduler}},
+                                 CreateHalfPlusTwoSession(),
+                                 &batching_session));
   ASSERT_EQ(2, schedulers.size());
 
   // Create lambdas for 2-unit inference requests to each signature.
@@ -985,7 +985,7 @@ TEST_P(BatchingSessionTest, EnqueuedLongerThanTimeout) {
       };
   BatchingSessionOptions batching_session_options;
   std::unique_ptr<Session> batching_session;
-  TF_CHECK_OK(CreateBatchingSession(
+  CHECK_OK(CreateBatchingSession(
       batching_session_options, {{{{"x"}, {"y"}}, create_scheduler}},
       CreateHalfPlusTwoSession(), &batching_session));
   ASSERT_FALSE(scheduler == nullptr);

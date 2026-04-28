@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include "absl/functional/bind_front.h"
+#include "absl/log/check.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/kernels/batching_util/basic_batch_scheduler.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
@@ -96,9 +97,9 @@ class SavedModelWithBatchingTest : public ::testing::Test {
 
     std::vector<FuncNameWithBatchingSchedulerCreator> creators = {
         {kFunctionOne, scheduler_creator}, {kFunctionTwo, scheduler_creator}};
-    TF_CHECK_OK(CreateSavedModelWithBatching(options, creators,
-                                             std::move(wrapped_saved_model),
-                                             &saved_model_with_batching_));
+    CHECK_OK(CreateSavedModelWithBatching(options, creators,
+                                          std::move(wrapped_saved_model),
+                                          &saved_model_with_batching_));
   }
 
   Tensor MakeTensor(const std::vector<float> &tensor_vec,
@@ -162,7 +163,7 @@ std::vector<float> ExpandTensor(const std::vector<float> &tensor_vec,
 // Tests that creation of SavedModelWithBatching returns an appropriate error if
 // the passed underlying SavedMode is NULL.
 TEST_F(SavedModelWithBatchingTest, NullWrappedSavedModel) {
-  const string error = "must not be null";
+  const std::string error = "must not be null";
   EXPECT_THAT(
       CreateSavedModelWithBatching(SavedModelBatchingOptions(), {}, nullptr,
                                    &saved_model_with_batching_),
@@ -178,7 +179,7 @@ TEST_F(SavedModelWithBatchingTest, MultipleBatchSchedulersForOneFunction) {
       absl::bind_front(&CreateDefaultBasicBatchScheduler,
                        BasicBatchScheduler<SavedModelBatchingTask>::Options());
 
-  const string error = "multiple batch schedulers";
+  const std::string error = "multiple batch schedulers";
   std::vector<FuncNameWithBatchingSchedulerCreator> creators = {
       {kFunctionOne, scheduler_creator}, {kFunctionOne, scheduler_creator}};
   EXPECT_THAT(CreateSavedModelWithBatching(
@@ -198,7 +199,7 @@ TEST_F(SavedModelWithBatchingTest, FailedCreatingBatchScheduler) {
          std::unique_ptr<BatchScheduler<SavedModelBatchingTask>>
              *batch_scheduler) { return absl::Status(); };
 
-  const string error = "Failed to create batch scheduler";
+  const std::string error = "Failed to create batch scheduler";
   std::vector<FuncNameWithBatchingSchedulerCreator> creators = {
       {kFunctionOne, scheduler_creator}};
   EXPECT_THAT(CreateSavedModelWithBatching(
@@ -402,7 +403,7 @@ TEST_F(SavedModelWithBatchingTest, UnequalShapesWhenPaddingIsTurnedOff) {
       .Times(0);
 
   tfrt::SavedModel::RunOptions run_options;
-  const string error = "different shapes other than first dimension";
+  const std::string error = "different shapes other than first dimension";
   std::unique_ptr<Thread> first_request_thread(
       Env::Default()->StartThread(ThreadOptions(), "first_request_thread", [&] {
         std::vector<Tensor> outputs;
@@ -439,7 +440,7 @@ TEST_F(SavedModelWithBatchingTest, AllTasksExceededDeadline) {
 
   tfrt::SavedModel::RunOptions run_options;
   run_options.deadline = absl::ToChronoTime(absl::Now());
-  const string error = "timeout exceeded";
+  const std::string error = "timeout exceeded";
   std::unique_ptr<Thread> first_request_thread(
       Env::Default()->StartThread(ThreadOptions(), "first_request_thread", [&] {
         std::vector<Tensor> outputs;

@@ -26,6 +26,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/synchronization/barrier.h"
 #include "absl/synchronization/notification.h"
@@ -104,7 +105,7 @@ class BasicManagerTest : public ::testing::TestWithParam<ThreadPoolSizes> {
     options.servable_event_bus = servable_event_bus_.get();
     options.max_num_load_retries = 10;
     options.load_retry_interval_micros = 0;
-    TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
+    CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
   }
 
   void SetUp() override {
@@ -483,9 +484,9 @@ TEST_P(BasicManagerTest, GetManagedServableStateSnapshot) {
 }
 
 TEST_P(BasicManagerTest, GetManagedServableStateSnapshotsWithAdditionalState) {
-  TF_CHECK_OK(basic_manager_->ManageServableWithAdditionalState(
+  CHECK_OK(basic_manager_->ManageServableWithAdditionalState(
       CreateServable({kServableName3, 0}), std::unique_ptr<int>(new int(0))));
-  TF_CHECK_OK(basic_manager_->ManageServableWithAdditionalState(
+  CHECK_OK(basic_manager_->ManageServableWithAdditionalState(
       CreateServable({kServableName3, 1}), std::unique_ptr<int>(new int(1))));
   const std::vector<ServableStateSnapshot<int>> expected = {
       {{kServableName3, 0}, LoaderHarness::State::kNew, {0}},
@@ -586,8 +587,8 @@ TEST_P(BasicManagerTest, DestructOnNonServingThread) {
 TEST_P(BasicManagerTest, AdditionalState) {
   const ServableId id = {kServableName, 3};
   std::unique_ptr<int> state(new int(1));
-  TF_CHECK_OK(basic_manager_->ManageServableWithAdditionalState(
-      CreateServable(id), std::move(state)));
+  CHECK_OK(basic_manager_->ManageServableWithAdditionalState(CreateServable(id),
+                                                             std::move(state)));
 
   EXPECT_EQ(1, *basic_manager_->GetAdditionalServableState<int>(id));
   EXPECT_EQ(nullptr, basic_manager_->GetAdditionalServableState<float>(id));
@@ -849,7 +850,7 @@ class SetNumLoadThreadsBasicManagerTest : public ::testing::Test {
     options.num_load_threads = 0;
     options.max_num_load_retries = 10;
     options.load_retry_interval_micros = 0;
-    TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
+    CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
   }
 
   std::unique_ptr<BasicManager> basic_manager_;
@@ -990,7 +991,7 @@ class FlushFileSystemCachesTest : public ::testing::TestWithParam<bool> {
   FlushFileSystemCachesTest() : flush_filesystem_caches_(GetParam()) {
     BasicManager::Options options;
     options.flush_filesystem_caches = flush_filesystem_caches_;
-    TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
+    CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
   }
 
   std::unique_ptr<BasicManager> basic_manager_;
@@ -1254,8 +1255,8 @@ std::unique_ptr<ResourceTracker> CreateSimpleResourceTracker(
     const int resource_quantity) {
   std::unique_ptr<ResourceUtil> util(new ResourceUtil({{{"main", 1}}}));
   std::unique_ptr<ResourceTracker> tracker;
-  TF_CHECK_OK(ResourceTracker::Create(CreateResourceQuantity(resource_quantity),
-                                      std::move(util), &tracker));
+  CHECK_OK(ResourceTracker::Create(CreateResourceQuantity(resource_quantity),
+                                   std::move(util), &tracker));
   return tracker;
 }
 
@@ -1273,7 +1274,7 @@ class ResourceConstrainedBasicManagerTest : public ::testing::Test {
     options.num_unload_threads = 2;
     // We don't want retries.
     options.max_num_load_retries = 0;
-    TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
+    CHECK_OK(BasicManager::Create(std::move(options), &basic_manager_));
   }
 
   std::shared_ptr<EventBus<ServableState>> servable_event_bus_;
@@ -1647,7 +1648,7 @@ TEST(EstimateResourcesRetriedTest, Succeeds) {
   options.load_retry_interval_micros = 0;
 
   std::unique_ptr<BasicManager> basic_manager;
-  TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager));
+  CHECK_OK(BasicManager::Create(std::move(options), &basic_manager));
 
   const ServableId id = {kServableName, 7};
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
@@ -1684,7 +1685,7 @@ TEST(EstimateResourcesRetriedTest, Fails) {
   options.load_retry_interval_micros = 0;
 
   std::unique_ptr<BasicManager> basic_manager;
-  TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager));
+  CHECK_OK(BasicManager::Create(std::move(options), &basic_manager));
 
   const ServableId id = {kServableName, 7};
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
@@ -1719,7 +1720,7 @@ TEST(EstimateResourcesRetriedTest, NonRetriableError) {
   options.load_retry_interval_micros = 100000000;
 
   std::unique_ptr<BasicManager> basic_manager;
-  TF_CHECK_OK(BasicManager::Create(std::move(options), &basic_manager));
+  CHECK_OK(BasicManager::Create(std::move(options), &basic_manager));
 
   const ServableId id = {kServableName, 7};
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;

@@ -61,6 +61,7 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/thread_pool_factory.h"
 #include "tensorflow_serving/servables/tensorflow/thread_pool_factory_config.pb.h"
 #include "tensorflow_serving/session_bundle/graph_rewriter.h"
+#include "tensorflow_serving/util/oss_or_google.h"
 
 namespace tensorflow {
 namespace serving {
@@ -175,7 +176,7 @@ absl::Status TfrtSavedModelFactory::EstimateResourceRequirement(
 
 absl::StatusOr<tfrt::SavedModel::Options> CreateCommonSavedModelOptions(
     const TfrtSavedModelConfig& config, tfrt_stub::Runtime* runtime,
-    const std::string& path,
+    const std::string& export_dir,
     const std::unordered_set<std::string>& saved_model_tags,
     const tensorflow::MetaGraphDef& meta_graph_def,
     const std::string& model_name, int64_t model_version) {
@@ -192,11 +193,17 @@ absl::StatusOr<tfrt::SavedModel::Options> CreateCommonSavedModelOptions(
   options.lazy_loading_use_graph_executor =
       config.lazy_loading_use_graph_executor();
   auto& compile_options = options.graph_execution_options.compile_options;
+#ifdef TENSORFLOW_SERVING_GOOGLE
+  // TODO(b/477174301): Remove the IFDEF after TF is upgraded to newer
+  // than 2.20.
+  compile_options.allow_xla_cpu = config.allow_xla_cpu();
+#endif
   compile_options.enable_grappler = config.enable_grappler();
   compile_options.graph_options = config.graph_options();
   if (config.enable_saved_model_config()) {
     TF_RETURN_IF_ERROR(LoadSavedModelConfig(
-        path, options.graph_execution_options.compile_options.graph_options,
+        export_dir,
+        options.graph_execution_options.compile_options.graph_options,
         options.graph_execution_options.runtime_config));
   }
   if (config.target_tpu()) {
@@ -227,11 +234,21 @@ absl::StatusOr<tfrt::SavedModel::Options> CreateCommonSavedModelOptions(
   compile_options.min_num_batch_threads = config.tfrt_min_num_batch_threads();
   compile_options.min_max_enqueued_batches =
       config.tfrt_min_max_enqueued_batches();
-#ifdef PLATFORM_GOOGLE
-  // TODO(shtatnov): Remove the IFDEF after TF 2.20 is released.
+
   compile_options.batch_queue_global_prioritization_num_threads =
       config.tfrt_batch_queue_global_prioritization_num_threads();
-#endif  // PLATFORM_GOOGLE
+
+#ifdef TENSORFLOW_SERVING_GOOGLE
+  // TODO(b/463384291): Remove the IFDEF after TF is upgraded to newer
+  // than 2.20. Verified that enable_priority_aware_batch_scheduler and
+  // allow_xla_cpu are indeed missing from the TfrtCompileOptions struct in the
+  // Open Source TensorFlow r2.20 release.
+  compile_options.enable_priority_aware_batch_scheduler =
+      config.enable_priority_aware_batch_scheduler();
+  compile_options.enable_priority_aware_batch_scheduler_resplit =
+      config.enable_priority_aware_batch_scheduler_resplit();
+#endif
+
   compile_options.batch_padding_policy = config.batch_padding_policy();
   compile_options.batch_options = config.in_graph_batching_parameters();
 
@@ -406,15 +423,6 @@ CreateThreadPoolFactoryFromConfig(const TfrtSavedModelConfig& config) {
   }
   return thread_pool_factory;
 }
-
-// copybara:strip_begin (Do not leak in tesorflow serving OSS.)
-absl::Status TfrtSavedModelFactory::CreateOrbaxServable(
-    const Loader::Metadata& metadata, const string& path,
-    std::unique_ptr<Servable>* servable) {
-  return absl::UnimplementedError(
-      "CreateOrbaxServable is not implemented yet.");
-}
-// copybara:strip_end
 
 }  // namespace serving
 }  // namespace tensorflow

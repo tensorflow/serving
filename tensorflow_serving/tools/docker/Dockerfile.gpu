@@ -16,7 +16,7 @@ ARG TF_SERVING_VERSION=latest
 ARG TF_SERVING_BUILD_IMAGE=tensorflow/serving:${TF_SERVING_VERSION}-devel-gpu
 
 FROM ${TF_SERVING_BUILD_IMAGE} as build_image
-FROM nvidia/cuda:12.2.0-base-ubuntu20.04 as base_build
+FROM nvidia/cuda:12.5.1-base-ubuntu22.04 as base_build
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
 ARG TF_SERVING_VERSION_GIT_COMMIT=HEAD
@@ -26,9 +26,9 @@ LABEL maintainer="gvasudevan@google.com"
 LABEL tensorflow_serving_github_branchtag=${TF_SERVING_VERSION_GIT_BRANCH}
 LABEL tensorflow_serving_github_commit=${TF_SERVING_VERSION_GIT_COMMIT}
 
-ENV CUDNN_VERSION=8.9.4.25
+ENV CUDNN_VERSION=9.3.0.75
 ENV TF_TENSORRT_VERSION=8.6.1
-ENV CUDA=12.2
+ENV CUDA=12.5
 ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -38,21 +38,22 @@ RUN curl -sSL --retry 5 https://raw.githubusercontent.com/tensorflow/serving/${T
 
 RUN apt-get install -y --no-install-recommends \
         ca-certificates \
-        cuda-command-line-tools-12-2 \
-        cuda-cupti-12-2 \
-        cuda-libraries-12-2 \
-        cuda-nvcc-12-2 \
-        cuda-nvprune-12-2 \
-        cuda-nvrtc-12-2 \
-        libcublas-12-2 \
-        libcudnn8=8.9.4.25-1+cuda12.2 \
-        libcufft-12-2 \
-        libcurand-12-2 \
-        libcusolver-12-2 \
-        libcusparse-12-2 \
-        libnccl2=2.18.5-1+cuda12.2 \
-        libnvinfer8=8.6.1.6-1+cuda12.0 \
-        libnvinfer-plugin8=8.6.1.6-1+cuda12.0 \
+        cuda-command-line-tools-12-5 \
+        cuda-cupti-12-5 \
+        cuda-libraries-12-5 \
+        cuda-nvcc-12-5 \
+        cuda-nvprune-12-5 \
+        cuda-nvrtc-12-5 \
+        libcublas-12-5 \
+        libcudnn9-cuda-12 \
+        libcufft-12-5 \
+        libcurand-12-5 \
+        libcusolver-12-5 \
+        libcusparse-12-5 \
+        libnccl2 \
+        libnvinfer8 \
+        libnvinfer-plugin8 \
+        cuda-compat-12-5 \
         libgomp1 \
         build-essential \
         curl \

@@ -1,12 +1,20 @@
 diff --git a/tensorflow/tools/toolchains/python/python_repo.bzl b/tensorflow/tools/toolchains/python/python_repo.bzl
-index 47fe64d7b7b..a01a1f19c8b 100644
 --- a/tensorflow/tools/toolchains/python/python_repo.bzl
 +++ b/tensorflow/tools/toolchains/python/python_repo.bzl
-@@ -21,6 +21,7 @@ TF_PYTHON_VERSION = "{}"
+@@ -21,5 +21,6 @@
+ TF_PYTHON_VERSION = "{}"
  HERMETIC_PYTHON_VERSION = "{}"
  WHEEL_NAME = "{}"
  WHEEL_COLLAB = "{}"
 +USE_PYWRAP_RULES = "False"
  """
+diff --git a/tensorflow/core/framework/tensor_testutil.cc b/tensorflow/core/framework/tensor_testutil.cc
+--- a/tensorflow/core/framework/tensor_testutil.cc
++++ b/tensorflow/core/framework/tensor_testutil.cc
+@@ -16,5 +16,6 @@
+ #include "tensorflow/core/framework/tensor_testutil.h"
  
- def _python_repository_impl(repository_ctx):
+ #include <cmath>
++#include <iomanip>
+ 
+ #include "tensorflow/core/framework/tensor.h"
