@@ -641,6 +641,10 @@ py_binary(
 py_binary(
     name = "profiler_client",
     srcs = ["profiler_client.py"],
+    exec_properties = select({
+        "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
+        "//conditions:default": None,
+    }),
     srcs_version = "PY2AND3",
 )
 

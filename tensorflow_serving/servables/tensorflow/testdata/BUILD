@@ -50,6 +50,10 @@ py_binary(
     srcs = [
         "export_bad_half_plus_two.py",
     ],
+    exec_properties = select({
+        "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
+        "//conditions:default": None,
+    }),
     srcs_version = "PY3",
 )
 
@@ -58,6 +62,10 @@ py_binary(
     srcs = [
         "export_counter.py",
     ],
+    exec_properties = select({
+        "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
+        "//conditions:default": None,
+    }),
     srcs_version = "PY3",
 )
 
@@ -66,6 +74,10 @@ py_binary(
     srcs = [
         "saved_model_half_plus_two.py",
     ],
+    exec_properties = select({
+        "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
+        "//conditions:default": None,
+    }),
     srcs_version = "PY3",
     deps = ["@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils"],
 )
@@ -75,6 +87,10 @@ py_binary(
     srcs = [
         "parse_example_tflite.py",
     ],
+    exec_properties = select({
+        "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
+        "//conditions:default": None,
+    }),
     main = "parse_example_tflite.py",
     srcs_version = "PY3",
     deps = ["@org_tensorflow//tensorflow/lite/tools/signature:signature_def_utils"],
