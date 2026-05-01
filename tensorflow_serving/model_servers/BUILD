@@ -2,7 +2,7 @@
 
 # Placeholder: load py_binary
 # Placeholder: load py_test
-load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_google", "if_libtpu", "if_with_tpu_support")
+load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_google", "if_libtpu", "if_oss", "if_with_tpu_support")
 load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
@@ -641,10 +641,13 @@ py_binary(
 py_binary(
     name = "profiler_client",
     srcs = ["profiler_client.py"],
-    exec_properties = select({
-        "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
-        "//conditions:default": None,
-    }),
+    exec_properties = if_oss(
+        None,
+        select({
+            "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
+            "//conditions:default": None,
+        }),
+    ),
     srcs_version = "PY2AND3",
 )
 

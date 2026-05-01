@@ -1,6 +1,7 @@
 # Description: Tensorflow Serving examples.
 
 # Placeholder: load py_binary
+load("@org_tensorflow//tensorflow:tensorflow.bzl", "if_oss")
 
 package(features = ["no_layering_check"])
 
@@ -20,10 +21,13 @@ filegroup(
 py_binary(
     name = "remote_predict_client",
     srcs = ["remote_predict_client.py"],
-    exec_properties = select({
-        "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
-        "//conditions:default": None,
-    }),
+    exec_properties = if_oss(
+        None,
+        select({
+            "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
+            "//conditions:default": None,
+        }),
+    ),
     tags = [
         "manual",
     ],
@@ -35,10 +39,13 @@ py_binary(
     srcs = [
         "half_plus_two_with_rpop.py",
     ],
-    exec_properties = select({
-        "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
-        "//conditions:default": None,
-    }),
+    exec_properties = if_oss(
+        None,
+        select({
+            "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
+            "//conditions:default": None,
+        }),
+    ),
     srcs_version = "PY3",
     tags = [
         "manual",
@@ -49,10 +56,13 @@ py_binary(
 py_binary(
     name = "half_plus_two_with_rpop_client",
     srcs = ["half_plus_two_with_rpop_client.py"],
-    exec_properties = select({
-        "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
-        "//conditions:default": None,
-    }),
+    exec_properties = if_oss(
+        None,
+        select({
+            "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
+            "//conditions:default": None,
+        }),
+    ),
     tags = [
         "manual",
     ],
