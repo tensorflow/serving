@@ -126,7 +126,7 @@ class ReturnErrorManager : public TestManager {
       const ServableRequest& request,
       std::unique_ptr<UntypedServableHandle>* result) override {
     result->reset(new TestHandle);
-    return errors::Internal("Something bad happened.");
+    return absl::InternalError("Something bad happened.");
   }
 };
 

@@ -44,18 +44,19 @@ TEST(DynamicSourceRouterTest, InvalidRouteMap) {
   std::unique_ptr<DynamicSourceRouter<StoragePath>> router;
   // Negative output port.
   EXPECT_FALSE(
-      DynamicSourceRouter<string>::Create(2, {{"foo", -1}}, &router).ok());
+      DynamicSourceRouter<std::string>::Create(2, {{"foo", -1}}, &router).ok());
   // Out of range output port.
   EXPECT_FALSE(
-      DynamicSourceRouter<string>::Create(2, {{"foo", 2}}, &router).ok());
+      DynamicSourceRouter<std::string>::Create(2, {{"foo", 2}}, &router).ok());
   // Using reserved (last) output port.
   EXPECT_FALSE(
-      DynamicSourceRouter<string>::Create(2, {{"foo", 1}}, &router).ok());
+      DynamicSourceRouter<std::string>::Create(2, {{"foo", 1}}, &router).ok());
 }
 
 TEST(DynamicSourceRouterTest, ReconfigureToInvalidRouteMap) {
   std::unique_ptr<DynamicSourceRouter<StoragePath>> router;
-  TF_ASSERT_OK(DynamicSourceRouter<string>::Create(2, {{"foo", 0}}, &router));
+  TF_ASSERT_OK(
+      DynamicSourceRouter<std::string>::Create(2, {{"foo", 0}}, &router));
   // Negative output port.
   EXPECT_FALSE(router->UpdateRoutes({{"foo", -1}}).ok());
   // Out of range output port.
@@ -67,7 +68,7 @@ TEST(DynamicSourceRouterTest, ReconfigureToInvalidRouteMap) {
 TEST(DynamicSourceRouterTest, Basic) {
   std::unique_ptr<DynamicSourceRouter<StoragePath>> router;
   DynamicSourceRouter<StoragePath>::Routes routes = {{"foo", 0}, {"bar", 1}};
-  TF_ASSERT_OK(DynamicSourceRouter<string>::Create(4, routes, &router));
+  TF_ASSERT_OK(DynamicSourceRouter<std::string>::Create(4, routes, &router));
   EXPECT_EQ(routes, router->GetRoutes());
   std::vector<Source<StoragePath>*> output_ports = router->GetOutputPorts();
   ASSERT_EQ(4, output_ports.size());
@@ -105,7 +106,8 @@ TEST(DynamicSourceRouterTest, Basic) {
 
 TEST(DynamicSourceRouterTest, Reconfigure) {
   std::unique_ptr<DynamicSourceRouter<StoragePath>> router;
-  TF_ASSERT_OK(DynamicSourceRouter<string>::Create(2, {{"foo", 0}}, &router));
+  TF_ASSERT_OK(
+      DynamicSourceRouter<std::string>::Create(2, {{"foo", 0}}, &router));
   std::vector<Source<StoragePath>*> output_ports = router->GetOutputPorts();
   ASSERT_EQ(2, output_ports.size());
   std::vector<std::unique_ptr<test_util::MockStoragePathTarget>> targets;

@@ -34,7 +34,7 @@ TEST(StoragePathTest, ServableDataEquality) {
 
   ServableData<StoragePath> b(id0, "y");
   ServableData<StoragePath> c(id1, "x");
-  ServableData<StoragePath> d(id0, errors::Unknown("error"));
+  ServableData<StoragePath> d(id0, absl::UnknownError("error"));
   for (const ServableData<StoragePath>& other : {b, c, d}) {
     EXPECT_TRUE(other == other);
     EXPECT_FALSE(a == other);

@@ -55,7 +55,7 @@ absl::Status LoaderHarness::LoadRequested() {
   mutex_lock l(mu_);
 
   if (state_ != State::kNew) {
-    return errors::FailedPrecondition("Duplicate load request");
+    return absl::FailedPreconditionError("Duplicate load request");
   }
   state_ = State::kLoadRequested;
   VLOG(1) << "Load requested for servable version " << id_;
@@ -90,8 +90,7 @@ absl::Status LoaderHarness::Load() {
       // Servable is going to be unloaded very soon, we report a failure here so
       // that we do not accidentally report that the servable is available.
       TF_RETURN_IF_ERROR(UnloadDueToCancelledLoad());
-      absl::Status s =
-          errors::Cancelled(absl::StrCat("Loading of servable cancelled"));
+      absl::Status s = absl::CancelledError("Loading of servable cancelled");
       if (options_.error_callback) {
         // Invokes BasicManager::PublishOnEventBus(kEnd).
         options_.error_callback(id_, model_type(), s);
@@ -114,7 +113,7 @@ absl::Status LoaderHarness::Load() {
 absl::Status LoaderHarness::UnloadRequested() {
   mutex_lock l(mu_);
   if (state_ != State::kReady) {
-    return errors::FailedPrecondition(
+    return absl::FailedPreconditionError(
         "Servable not loaded, or unload already requested/ongoing");
   }
   state_ = State::kUnloadRequested;
@@ -189,9 +188,9 @@ void LoaderHarness::Error(const absl::Status& status) {
 
 absl::Status LoaderHarness::TransitionState(const State from, const State to) {
   if (state_ != from) {
-    const absl::Status error = errors::Internal(
-        "Illegal request to transition from state ", StateDebugString(state_),
-        " to ", StateDebugString(to));
+    const absl::Status error = absl::InternalError(
+        absl::StrCat("Illegal request to transition from state ",
+                     StateDebugString(state_), " to ", StateDebugString(to)));
 #ifndef NDEBUG
     LOG(FATAL) << error;  // Crash OK
 #else
@@ -208,7 +207,7 @@ absl::Status LoaderHarness::status() const {
   return status_;
 }
 
-string LoaderHarness::StateDebugString(const State state) {
+std::string LoaderHarness::StateDebugString(const State state) {
   switch (state) {
     case State::kNew:
       return "new";

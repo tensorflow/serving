@@ -100,9 +100,9 @@ TEST_F(AspiredVersionsManagerBuilderTest, AddSourceChainConnection) {
 TEST_F(AspiredVersionsManagerBuilderTest, AddSourceChainDestructionOrder) {
   // The destructor of each adapter pushes its own name into this vector, and we
   // use it to verify the destruction order.
-  std::vector<string> destruct_order;
-  std::function<void(const string&)> call_on_destruct =
-      [&](const string& suffix) { destruct_order.push_back(suffix); };
+  std::vector<std::string> destruct_order;
+  std::function<void(const std::string&)> call_on_destruct =
+      [&](const std::string& suffix) { destruct_order.push_back(suffix); };
   auto* const adapter0 =
       new FakeStoragePathSourceAdapter("adapter0", call_on_destruct);
   auto adapter1 = std::unique_ptr<FakeStoragePathSourceAdapter>(

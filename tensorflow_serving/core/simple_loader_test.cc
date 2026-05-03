@@ -210,7 +210,7 @@ TYPED_TEST(SimpleLoaderTest, ResourceEstimationWithPostLoadRelease) {
 TYPED_TEST(SimpleLoaderTest, LoadError) {
   auto loader = TypeParam::template CreateSimpleLoader<Caller>(
       [](std::unique_ptr<Caller>* caller) {
-        return errors::InvalidArgument("No way!");
+        return absl::InvalidArgumentError("No way!");
       },
       SimpleLoader<Caller>::EstimateNoResources());
   const absl::Status status = TypeParam::Load(loader.get());
@@ -264,20 +264,20 @@ class SimpleLoaderSourceAdapterImpl final
 };
 
 TEST(SimpleLoaderSourceAdapterTest, Basic) {
-  SimpleLoaderSourceAdapterImpl<string, string> adapter(
-      [](const string& data, std::unique_ptr<string>* servable) {
-        servable->reset(new string);
+  SimpleLoaderSourceAdapterImpl<std::string, std::string> adapter(
+      [](const std::string& data, std::unique_ptr<std::string>* servable) {
+        servable->reset(new std::string);
         **servable = absl::StrCat(data, "_was_here");
         return absl::OkStatus();
       },
-      [](const string& data, ResourceAllocation* output) {
+      [](const std::string& data, ResourceAllocation* output) {
         ResourceAllocation::Entry* entry = output->add_resource_quantities();
         entry->mutable_resource()->set_device(data);
         entry->set_quantity(42);
         return absl::OkStatus();
       });
 
-  const string kServableName = "test_servable_name";
+  const std::string kServableName = "test_servable_name";
   bool callback_called;
   adapter.SetAspiredVersionsCallback(
       [&](const absl::string_view servable_name,
@@ -298,11 +298,12 @@ TEST(SimpleLoaderSourceAdapterTest, Basic) {
                                         "} ")));
         TF_ASSERT_OK(loader->Load());
         AnyPtr servable = loader->servable();
-        ASSERT_TRUE(servable.get<string>() != nullptr);
-        EXPECT_EQ("test_data_was_here", *servable.get<string>());
+        ASSERT_TRUE(servable.get<std::string>() != nullptr);
+        EXPECT_EQ("test_data_was_here", *servable.get<std::string>());
       });
   adapter.SetAspiredVersions(
-      kServableName, {ServableData<string>({kServableName, 0}, "test_data")});
+      kServableName,
+      {ServableData<std::string>({kServableName, 0}, "test_data")});
   EXPECT_TRUE(callback_called);
 }
 
@@ -312,16 +313,19 @@ TEST(SimpleLoaderSourceAdapterTest, OkayToDeleteAdapter) {
   std::unique_ptr<Loader> loader;
   {
     // Allocate 'adapter' on the heap so ASAN will catch a use-after-free.
-    auto adapter = std::unique_ptr<SimpleLoaderSourceAdapter<string, string>>(
-        new SimpleLoaderSourceAdapterImpl<string, string>(
-            [](const string& data, std::unique_ptr<string>* servable) {
-              servable->reset(new string);
-              **servable = absl::StrCat(data, "_was_here");
-              return absl::OkStatus();
-            },
-            SimpleLoaderSourceAdapter<string, string>::EstimateNoResources()));
+    auto adapter =
+        std::unique_ptr<SimpleLoaderSourceAdapter<std::string, std::string>>(
+            new SimpleLoaderSourceAdapterImpl<std::string, std::string>(
+                [](const std::string& data,
+                   std::unique_ptr<std::string>* servable) {
+                  servable->reset(new std::string);
+                  **servable = absl::StrCat(data, "_was_here");
+                  return absl::OkStatus();
+                },
+                SimpleLoaderSourceAdapter<std::string,
+                                          std::string>::EstimateNoResources()));
 
-    const string kServableName = "test_servable_name";
+    const std::string kServableName = "test_servable_name";
     adapter->SetAspiredVersionsCallback(
         [&](const absl::string_view servable_name,
             std::vector<ServableData<std::unique_ptr<Loader>>> versions) {
@@ -330,7 +334,8 @@ TEST(SimpleLoaderSourceAdapterTest, OkayToDeleteAdapter) {
           loader = versions[0].ConsumeDataOrDie();
         });
     adapter->SetAspiredVersions(
-        kServableName, {ServableData<string>({kServableName, 0}, "test_data")});
+        kServableName,
+        {ServableData<std::string>({kServableName, 0}, "test_data")});
 
     // Let 'adapter' fall out of scope and be deleted.
   }

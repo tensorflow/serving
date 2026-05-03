@@ -35,11 +35,11 @@ namespace serving {
 
 namespace internal {
 
-uint32 GetManagerNumLoadThreads(AspiredVersionsManager* manager) {
+uint32_t GetManagerNumLoadThreads(AspiredVersionsManager* manager) {
   return manager->num_load_threads();
 }
 
-std::function<void(const uint32)> SetManagerNumLoadThreadsNotifier(
+std::function<void(const uint32_t)> SetManagerNumLoadThreadsNotifier(
     AspiredVersionsManager* manager) {
   return manager->set_num_load_threads_observer_->Notifier();
 }
@@ -48,9 +48,9 @@ absl::Status ConnectSourcesWithFastInitialLoad(
     AspiredVersionsManager* manager,
     std::vector<Source<std::unique_ptr<Loader>>*> sources,
     const std::function<absl::Status()>& wait_until_loaded_fn,
-    const uint32 num_threads) {
-  const uint32 prev_num_load_threads = GetManagerNumLoadThreads(manager);
-  std::function<void(const uint32)> set_manager_num_load_threads =
+    const uint32_t num_threads) {
+  const uint32_t prev_num_load_threads = GetManagerNumLoadThreads(manager);
+  std::function<void(const uint32_t)> set_manager_num_load_threads =
       SetManagerNumLoadThreadsNotifier(manager);
   set_manager_num_load_threads(num_threads);
   for (Source<std::unique_ptr<Loader>>* source : sources) {
@@ -67,7 +67,7 @@ absl::Status ConnectSourceWithFastInitialLoad(
     AspiredVersionsManager* manager, Source<std::unique_ptr<Loader>>* source,
     ServableStateMonitor* servable_state_monitor,
     const std::vector<ServableRequest>& initial_servables,
-    const uint32 num_threads) {
+    const uint32_t num_threads) {
   return ConnectSourcesWithFastInitialLoad(manager, {source},
                                            servable_state_monitor,
                                            initial_servables, num_threads);
@@ -78,7 +78,7 @@ absl::Status ConnectSourcesWithFastInitialLoad(
     std::vector<Source<std::unique_ptr<Loader>>*> sources,
     ServableStateMonitor* servable_state_monitor,
     const std::vector<ServableRequest>& initial_servables,
-    const uint32 num_threads) {
+    const uint32_t num_threads) {
   return internal::ConnectSourcesWithFastInitialLoad(
       manager, sources,
       [&]() {
@@ -95,7 +95,7 @@ absl::Status ConnectSourcesWithFastInitialLoad(
                 return id_and_state.second !=
                        ServableState::ManagerState::kAvailable;
               });
-          string message =
+          std::string message =
               absl::StrCat(num_unavailable_servables,
                            " servable(s) did not become available: {");
           for (const auto& id_and_state : states_reached) {
@@ -103,7 +103,7 @@ absl::Status ConnectSourcesWithFastInitialLoad(
                 ServableState::ManagerState::kAvailable) {
               absl::optional<ServableState> maybe_state =
                   servable_state_monitor->GetState(id_and_state.first);
-              const string error_msg =
+              const std::string error_msg =
                   maybe_state && !maybe_state.value().health.ok()
                       ? " due to error: " +
                             maybe_state.value().health.ToString()
@@ -113,7 +113,7 @@ absl::Status ConnectSourcesWithFastInitialLoad(
             }
           }
           absl::StrAppend(&message, "}");
-          return errors::Unknown(message);
+          return absl::UnknownError(message);
         }
         return absl::OkStatus();
       },

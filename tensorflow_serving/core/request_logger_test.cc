@@ -62,8 +62,8 @@ class RequestLoggerTest : public ::testing::Test {
                                         log_collector_, "", -1));
   }
 
-  const std::vector<string> model_tags_ = {kSavedModelTagServe,
-                                           kSavedModelTagTpu};
+  const std::vector<std::string> model_tags_ = {kSavedModelTagServe,
+                                                kSavedModelTagTpu};
   NiceMock<MockLogCollector>* log_collector_;
   std::shared_ptr<NiceMock<MockRequestLogger>> request_logger_;
 };
@@ -107,7 +107,7 @@ TEST_F(RequestLoggerTest, Simple) {
 
 TEST_F(RequestLoggerTest, ErroringCreateLogMessage) {
   EXPECT_CALL(*request_logger_, CreateLogMessage(_, _, _, _))
-      .WillRepeatedly(Return(errors::Internal("Error")));
+      .WillRepeatedly(Return(absl::InternalError("Error")));
   EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(0);
   const auto error_status =
       request_logger_->Log(PredictRequest(), PredictResponse(), LogMetadata());
@@ -126,7 +126,7 @@ TEST_F(RequestLoggerTest, ErroringCollectMessage) {
         return absl::OkStatus();
       }));
   EXPECT_CALL(*log_collector_, CollectMessage(_))
-      .WillRepeatedly(Return(errors::Internal("Error")));
+      .WillRepeatedly(Return(absl::InternalError("Error")));
   const auto error_status =
       request_logger_->Log(PredictRequest(), PredictResponse(), LogMetadata());
   ASSERT_FALSE(error_status.ok());

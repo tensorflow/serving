@@ -97,7 +97,7 @@ absl::Status ValidateAspiredVersions(
     const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) {
   for (const auto& version : versions) {
     if (servable_name != version.id().name) {
-      return errors::InvalidArgument(absl::StrCat(
+      return absl::InvalidArgumentError(absl::StrCat(
           "Servable name: ", servable_name,
           " doesn't match name in servable version: ", version.id().name));
     }
@@ -116,9 +116,9 @@ std::set<int64_t> GetVersionNumbers(
 }
 
 // Creates a debug string for a given vector of servable versions.
-string ServableVersionsDebugString(
+std::string ServableVersionsDebugString(
     const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) {
-  std::vector<string> version_strings;
+  std::vector<std::string> version_strings;
   version_strings.reserve(versions.size());
   for (const ServableData<std::unique_ptr<Loader>>& version : versions) {
     version_strings.push_back(version.id().DebugString());
@@ -158,7 +158,7 @@ class AspiredVersionsManagerTargetImpl final
 absl::Status AspiredVersionsManager::Create(
     Options options, std::unique_ptr<AspiredVersionsManager>* manager) {
   if (options.aspired_version_policy == nullptr) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(
         "AspiredVersionsManager::Options aspired_version_policy must be "
         "non-null");
   }
@@ -202,7 +202,7 @@ AspiredVersionsManager::AspiredVersionsManager(
       target_impl_(new internal::AspiredVersionsManagerTargetImpl(this)),
       basic_manager_(std::move(basic_manager)) {
   set_num_load_threads_observer_.reset(
-      new Observer<const uint32>([this](const uint32 num_load_threads) {
+      new Observer<const uint32_t>([this](const uint32_t num_load_threads) {
         this->SetNumLoadThreads(num_load_threads);
       }));
   if (manage_state_interval_micros > 0) {
@@ -276,7 +276,7 @@ void AspiredVersionsManager::EnqueueAspiredVersionsRequest(
     mutex_lock l(pending_aspired_versions_requests_mu_);
     VLOG(2) << "Enqueueing aspired versions request: " << servable_name << ": "
             << ServableVersionsDebugString(versions);
-    pending_aspired_versions_requests_[string(servable_name)] =
+    pending_aspired_versions_requests_[std::string(servable_name)] =
         std::move(versions);
   }
 }
@@ -297,7 +297,7 @@ void AspiredVersionsManager::ProcessAspiredVersionsRequest(
   std::set<int64_t> current_aspired_versions_with_error;
   const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
       basic_manager_->GetManagedServableStateSnapshots<Aspired>(
-          string(servable_name));
+          std::string(servable_name));
   for (const ServableStateSnapshot<Aspired>& state_snapshot : state_snapshots) {
     if (state_snapshot.additional_state->is_aspired) {
       current_aspired_versions.insert(state_snapshot.id.version);
@@ -369,7 +369,7 @@ bool AspiredVersionsManager::ContainsAnyReaspiredVersions(
     const std::vector<ServableData<std::unique_ptr<Loader>>>& versions) const {
   const std::vector<ServableStateSnapshot<Aspired>> state_snapshots =
       basic_manager_->GetManagedServableStateSnapshots<Aspired>(
-          string(servable_name));
+          std::string(servable_name));
   const std::set<int64_t> version_numbers = GetVersionNumbers(versions);
   for (const ServableStateSnapshot<Aspired>& state_snapshot : state_snapshots) {
     if (!state_snapshot.additional_state->is_aspired &&
@@ -386,7 +386,7 @@ bool AspiredVersionsManager::ContainsAnyReaspiredVersions(
 absl::optional<AspiredVersionPolicy::ServableAction>
 AspiredVersionsManager::GetNextAction() {
   std::vector<absl::optional<AspiredVersionPolicy::ServableAction>> actions;
-  for (const string& servable_name :
+  for (const std::string& servable_name :
        basic_manager_->GetManagedServableNames()) {
     std::vector<AspiredServableStateSnapshot> aspired_state_snapshots;
     for (const ServableStateSnapshot<Aspired>& state_snapshot :
@@ -436,7 +436,7 @@ void AspiredVersionsManager::PerformAction(
 
 void AspiredVersionsManager::FlushServables() {
   mutex_lock l(basic_manager_read_modify_write_mu_);
-  for (const string& servable_name :
+  for (const std::string& servable_name :
        basic_manager_->GetManagedServableNames()) {
     for (const ServableStateSnapshot<Aspired>& state_snapshot :
          basic_manager_->GetManagedServableStateSnapshots<Aspired>(
@@ -473,7 +473,7 @@ void AspiredVersionsManager::HandlePendingAspiredVersionsRequests() {
   // simply leave it in the queue for now.
   for (auto it = pending_aspired_versions_requests_.begin();
        it != pending_aspired_versions_requests_.end();) {
-    const string& servable_name = it->first;
+    const std::string& servable_name = it->first;
     std::vector<ServableData<std::unique_ptr<Loader>>>& versions = it->second;
 
     if (ContainsAnyReaspiredVersions(servable_name, versions)) {
@@ -502,11 +502,12 @@ void AspiredVersionsManager::InvokePolicyAndExecuteAction() {
   PerformAction(*next_action);
 }
 
-void AspiredVersionsManager::SetNumLoadThreads(const uint32 num_load_threads) {
+void AspiredVersionsManager::SetNumLoadThreads(
+    const uint32_t num_load_threads) {
   basic_manager_->SetNumLoadThreads(num_load_threads);
 }
 
-uint32 AspiredVersionsManager::num_load_threads() const {
+uint32_t AspiredVersionsManager::num_load_threads() const {
   return basic_manager_->num_load_threads();
 }
 

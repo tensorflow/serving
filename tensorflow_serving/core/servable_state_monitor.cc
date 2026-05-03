@@ -32,7 +32,7 @@ namespace {
 void EraseLiveStatesEntry(
     const ServableStateMonitor::ServableStateAndTime& state_and_time,
     ServableStateMonitor::ServableMap* const live_states) {
-  const string& servable_name = state_and_time.state.id.name;
+  const std::string& servable_name = state_and_time.state.id.name;
   const int64_t version = state_and_time.state.id.version;
   auto servable_map_it = live_states->find(servable_name);
   if (servable_map_it == live_states->end()) {
@@ -53,7 +53,7 @@ void EraseLiveStatesEntry(
 void UpdateLiveStates(
     const ServableStateMonitor::ServableStateAndTime& state_and_time,
     ServableStateMonitor::ServableMap* const live_states) {
-  const string& servable_name = state_and_time.state.id.name;
+  const std::string& servable_name = state_and_time.state.id.name;
   const int64_t version = state_and_time.state.id.version;
   if (state_and_time.state.manager_state != ServableState::ManagerState::kEnd) {
     (*live_states)[servable_name][version] = state_and_time;
@@ -82,7 +82,8 @@ absl::optional<ServableState::ManagerState> HasSpecificServableReachedState(
 // Returns the id of the servable in the stream which has reached 'goal_state'
 // or kEnd. If no servable has done so, returns nullopt.
 absl::optional<ServableId> HasAnyServableInStreamReachedState(
-    const string& stream_name, const ServableState::ManagerState goal_state,
+    const std::string& stream_name,
+    const ServableState::ManagerState goal_state,
     const ServableStateMonitor::ServableMap& states) {
   absl::optional<ServableId> opt_servable_id;
   const auto found_it = states.find(stream_name);
@@ -104,7 +105,7 @@ absl::optional<ServableId> HasAnyServableInStreamReachedState(
 
 }  // namespace
 
-string ServableStateMonitor::ServableStateAndTime::DebugString() const {
+std::string ServableStateMonitor::ServableStateAndTime::DebugString() const {
   return absl::StrCat("state: {", state.DebugString(),
                       "}, event_time_micros: ", event_time_micros);
 }
@@ -159,7 +160,7 @@ absl::optional<ServableState> ServableStateMonitor::GetState(
 }
 
 ServableStateMonitor::VersionMap ServableStateMonitor::GetVersionStates(
-    const string& servable_name) const {
+    const std::string& servable_name) const {
   mutex_lock l(mu_);
   auto it = states_.find(servable_name);
   if (it == states_.end()) {
@@ -203,7 +204,7 @@ ServableStateMonitor::GetAvailableServableStates() const {
   ServableSet available_servable_set;
   mutex_lock l(mu_);
   for (const auto& live_state : live_states_) {
-    const string& servable_name = live_state.first;
+    const std::string& servable_name = live_state.first;
     const auto& version_map = live_state.second;
     for (const auto& version : version_map) {
       const ServableStateAndTime state_and_time = version.second;

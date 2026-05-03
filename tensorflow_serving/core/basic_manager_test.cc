@@ -247,7 +247,7 @@ TEST_P(BasicManagerTest, StopManagingDisabledServable) {
 
 TEST_P(BasicManagerTest, DontStopManagingOnError) {
   const ServableId id = {kServableName, 7};
-  const absl::Status error_status = errors::Internal("An error.");
+  const absl::Status error_status = absl::InternalError("An error.");
   std::unique_ptr<Loader> loader(new FakeLoader(7, error_status));
   TF_ASSERT_OK(basic_manager_->ManageServable({id, std::move(loader)}));
   basic_manager_->LoadServable(id, [error_status](const absl::Status& status) {
@@ -361,11 +361,11 @@ TEST_P(BasicManagerTest, ListAvailableServableIds) {
   // on load, so never moves to a loaded state.
   const ServableId id = {kServableName, 7};
   std::unique_ptr<Loader> loader(
-      new FakeLoader(7, errors::Internal("An error.")));
+      new FakeLoader(7, absl::InternalError("An error.")));
   TF_ASSERT_OK(basic_manager_->ManageServable(
       CreateServableData(id, std::move(loader))));
   basic_manager_->LoadServable(id, [](const absl::Status& status) {
-    EXPECT_EQ(errors::Internal("An error."), status);
+    EXPECT_EQ(absl::InternalError("An error."), status);
   });
   basic_manager_->UnloadServable(
       {kServableName, 1},
@@ -410,11 +410,11 @@ TEST_P(BasicManagerTest, GetAvailableServableHandles) {
   // on load, so never moves to a loaded state.
   const ServableId id = {kServableName, 7};
   std::unique_ptr<Loader> loader(
-      new FakeLoader(7, errors::Internal("An error.")));
+      new FakeLoader(7, absl::InternalError("An error.")));
   TF_ASSERT_OK(basic_manager_->ManageServable(
       CreateServableData(id, std::move(loader))));
   basic_manager_->LoadServable(id, [](const absl::Status& status) {
-    EXPECT_EQ(errors::Internal("An error."), status);
+    EXPECT_EQ(absl::InternalError("An error."), status);
   });
   basic_manager_->UnloadServable(
       {kServableName, 1},
@@ -502,7 +502,7 @@ TEST_P(BasicManagerTest, MultipleManageCallsUsesFirstServable) {
   // Servable 'id' is already managed, so further ManageServable() calls should
   // fail (and not affect the status of the already-managed servable).
   std::unique_ptr<Loader> first_ignored_loader(
-      new FakeLoader(1, errors::Internal("An error.")));
+      new FakeLoader(1, absl::InternalError("An error.")));
   EXPECT_FALSE(basic_manager_
                    ->ManageServable(
                        CreateServableData(id, std::move(first_ignored_loader)))
@@ -510,7 +510,7 @@ TEST_P(BasicManagerTest, MultipleManageCallsUsesFirstServable) {
 
   // Same thing, but this time using a loader for a different servable version.
   std::unique_ptr<Loader> second_ignored_loader(
-      new FakeLoader(2, errors::Internal("An error.")));
+      new FakeLoader(2, absl::InternalError("An error.")));
   EXPECT_FALSE(basic_manager_
                    ->ManageServable(
                        CreateServableData(id, std::move(second_ignored_loader)))
@@ -527,7 +527,7 @@ TEST_P(BasicManagerTest, MultipleManageCallsUsesFirstServable) {
 TEST_P(BasicManagerTest, ErroneousServable) {
   const ServableId id = {kServableName, 3};
   TF_ASSERT_OK(basic_manager_->ManageServable(
-      ServableData<std::unique_ptr<Loader>>(id, errors::Unknown("error"))));
+      ServableData<std::unique_ptr<Loader>>(id, absl::UnknownError("error"))));
 
   ServableHandle<int64_t> handle;
   absl::Status status = basic_manager_->GetServableHandle(
@@ -667,10 +667,10 @@ TEST_P(BasicManagerTest, UnloadWithoutLoad) {
 TEST_P(BasicManagerTest, EventBusErroneousVersion) {
   const ServableId id = {kServableName, 3};
   TF_ASSERT_OK(basic_manager_->ManageServable(
-      ServableData<std::unique_ptr<Loader>>(id, errors::Unknown("error"))));
+      ServableData<std::unique_ptr<Loader>>(id, absl::UnknownError("error"))));
 
   const ServableState expected_published_state = {
-      id, ServableState::ManagerState::kEnd, errors::Unknown("error")};
+      id, ServableState::ManagerState::kEnd, absl::UnknownError("error")};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(expected_published_state));
 }
@@ -678,7 +678,7 @@ TEST_P(BasicManagerTest, EventBusErroneousVersion) {
 TEST_P(BasicManagerTest, EventBusErrorOnLoad) {
   const ServableId id = {kServableName, 7};
   std::unique_ptr<Loader> loader(
-      new FakeLoader(7, errors::Internal("Error on load.")));
+      new FakeLoader(7, absl::InternalError("Error on load.")));
   TF_ASSERT_OK(basic_manager_->ManageServable({id, std::move(loader)}));
 
   const ServableState start_state = {id, ServableState::ManagerState::kStart,
@@ -691,7 +691,7 @@ TEST_P(BasicManagerTest, EventBusErrorOnLoad) {
                                        {ServableState::ManagerState::kEnd});
 
   const ServableState error_state = {id, ServableState::ManagerState::kEnd,
-                                     errors::Internal("Error on load.")};
+                                     absl::InternalError("Error on load.")};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(error_state));
 }
@@ -890,7 +890,7 @@ TEST_F(SetNumLoadThreadsBasicManagerTest, ThreadPoolsNotAliveSimultaneously) {
   manager_test_access.SetNumLoadThreads(1);
   EXPECT_EQ(1, manager_test_access.num_load_threads());
 
-  std::set<string> data_race_set;
+  std::set<std::string> data_race_set;
   const auto data_race_fn = [&](const absl::Status& status) {
     // This line will cause a data race if both the loads happen simultaneously
     // on different threads. This will be caught by the ThreadSanitizer, causing
@@ -934,7 +934,7 @@ TEST_F(SetNumLoadThreadsBasicManagerTest, ThreadPoolsNotAliveSimultaneously) {
 // to load a bunch of servables as fast as possible using a lot of threads.
 TEST_F(SetNumLoadThreadsBasicManagerTest, FastLoad) {
   test_util::BasicManagerTestAccess manager_test_access(basic_manager_.get());
-  const uint32 prev_num_load_threads = manager_test_access.num_load_threads();
+  const uint32_t prev_num_load_threads = manager_test_access.num_load_threads();
   manager_test_access.SetNumLoadThreads(32);
   EXPECT_EQ(32, manager_test_access.num_load_threads());
 
@@ -1129,7 +1129,7 @@ TEST_P(BasicManagerTest, RetryOnLoadErrorFinallySucceeds) {
   TF_ASSERT_OK(
       basic_manager_->ManageServable({id, std::unique_ptr<Loader>(loader)}));
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
-      .WillOnce(Return(errors::Internal("Load error.")))
+      .WillOnce(Return(absl::InternalError("Load error.")))
       .WillRepeatedly(Return(absl::OkStatus()));
   basic_manager_->LoadServable(
       id, [](const absl::Status& status) { TF_ASSERT_OK(status); });
@@ -1141,9 +1141,9 @@ TEST_P(BasicManagerTest, RetryOnLoadErrorFinallyFails) {
   TF_ASSERT_OK(
       basic_manager_->ManageServable({id, std::unique_ptr<Loader>(loader)}));
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
-      .WillRepeatedly(Return(errors::Internal("Load error.")));
+      .WillRepeatedly(Return(absl::InternalError("Load error.")));
   basic_manager_->LoadServable(id, [](const absl::Status& status) {
-    EXPECT_EQ(errors::Internal("Load error."), status);
+    EXPECT_EQ(absl::InternalError("Load error."), status);
   });
 }
 
@@ -1160,13 +1160,13 @@ TEST_P(BasicManagerTest, RetryOnLoadErrorCancelledLoad) {
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
         load_called.Notify();
         load_should_return.WaitForNotification();
-        return errors::Internal("Load error.");
+        return absl::InternalError("Load error.");
       }))
       .WillRepeatedly(Return(absl::OkStatus()));
   std::unique_ptr<Thread> load_thread(
       Env::Default()->StartThread(ThreadOptions(), "LoadServable", [&]() {
         basic_manager_->LoadServable(id, [](const absl::Status& status) {
-          EXPECT_EQ(errors::Internal("Load error."), status);
+          EXPECT_EQ(absl::InternalError("Load error."), status);
         });
       }));
   load_called.WaitForNotification();
@@ -1188,14 +1188,14 @@ TEST_P(BasicManagerTest, LoadAfterCancelledLoad) {
       .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
         load_called.Notify();
         load_should_return.WaitForNotification();
-        return errors::Internal("Load error.");
+        return absl::InternalError("Load error.");
       }))
       .WillRepeatedly(Return(absl::OkStatus()));
 
   std::unique_ptr<Thread> load_thread(
       Env::Default()->StartThread(ThreadOptions(), "LoadServable", [&]() {
         basic_manager_->LoadServable(id, [](const absl::Status& status) {
-          EXPECT_EQ(errors::Internal("Load error."), status);
+          EXPECT_EQ(absl::InternalError("Load error."), status);
         });
       }));
   load_called.WaitForNotification();
@@ -1391,7 +1391,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedIfLoadFails) {
         return absl::OkStatus();
       }));
   EXPECT_CALL(*failing_loader, LoadWithMetadata(Loader::Metadata{failing_id}))
-      .WillOnce(Return(errors::Unknown("Load failure")));
+      .WillOnce(Return(absl::UnknownError("Load failure")));
   TF_ASSERT_OK(basic_manager_->ManageServable(
       CreateServableData(failing_id, std::unique_ptr<Loader>(failing_loader))));
   absl::Notification failing_failed;
@@ -1616,7 +1616,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, EventBusErrorOnEstimateResources) {
   const ServableId id = {kServableName, 7};
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
   EXPECT_CALL(*loader, EstimateResources(_))
-      .WillOnce(Return(errors::Internal("Error on estimate resources.")));
+      .WillOnce(Return(absl::InternalError("Error on estimate resources.")));
   TF_ASSERT_OK(basic_manager_->ManageServable(
       CreateServableData(id, std::unique_ptr<Loader>(loader))));
   basic_manager_->LoadServable(
@@ -1625,7 +1625,7 @@ TEST_F(ResourceConstrainedBasicManagerTest, EventBusErrorOnEstimateResources) {
                                        {ServableState::ManagerState::kEnd});
   const ServableState error_state = {
       id, ServableState::ManagerState::kEnd,
-      errors::Internal(absl::StrCat(
+      absl::InternalError(absl::StrCat(
           "Error while attempting to reserve resources to load servable ",
           id.DebugString(), ": Error on estimate resources."))};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
@@ -1653,7 +1653,7 @@ TEST(EstimateResourcesRetriedTest, Succeeds) {
   const ServableId id = {kServableName, 7};
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
   EXPECT_CALL(*loader, EstimateResources(_))
-      .WillOnce(Return(errors::Internal("Error on estimate resources.")))
+      .WillOnce(Return(absl::InternalError("Error on estimate resources.")))
       .WillOnce(Return(absl::OkStatus()));
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
       .WillRepeatedly(Return(absl::OkStatus()));
@@ -1690,8 +1690,8 @@ TEST(EstimateResourcesRetriedTest, Fails) {
   const ServableId id = {kServableName, 7};
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
   EXPECT_CALL(*loader, EstimateResources(_))
-      .WillOnce(Return(errors::Internal("Error on estimate resources.")))
-      .WillOnce(Return(errors::Internal("Error on estimate resources.")))
+      .WillOnce(Return(absl::InternalError("Error on estimate resources.")))
+      .WillOnce(Return(absl::InternalError("Error on estimate resources.")))
       .WillRepeatedly(Return(absl::OkStatus()));
   TF_ASSERT_OK(basic_manager->ManageServable(
       CreateServableData(id, std::unique_ptr<Loader>(loader))));
@@ -1725,7 +1725,7 @@ TEST(EstimateResourcesRetriedTest, NonRetriableError) {
   const ServableId id = {kServableName, 7};
   test_util::MockLoader* loader = new NiceMock<test_util::MockLoader>;
   EXPECT_CALL(*loader, LoadWithMetadata(_))
-      .WillOnce(Return(errors::InvalidArgument("Non-retriable error.")))
+      .WillOnce(Return(absl::InvalidArgumentError("Non-retriable error.")))
       .WillRepeatedly(Return(absl::OkStatus()));
   TF_ASSERT_OK(basic_manager->ManageServable(
       CreateServableData(id, std::unique_ptr<Loader>(loader))));

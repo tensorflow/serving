@@ -329,7 +329,7 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
     CHECK_OK(AspiredVersionsManager::Create(std::move(options), &manager));
     auto aspired_versions_callback = manager->GetAspiredVersionsCallback();
     for (int i = 0; i < kNumServableStreams; ++i) {
-      const string servable_name = absl::StrCat(kServableName, i);
+      const std::string servable_name = absl::StrCat(kServableName, i);
       std::vector<ServableData<std::unique_ptr<Loader>>> versions;
       for (int j = 0; j < kNumServableVersions; ++j) {
         std::unique_ptr<Loader> loader(new SimpleLoader<int64_t>(
@@ -364,7 +364,7 @@ void BM_GetServableHandle(::testing::benchmark::State& state) {
     random::PhiloxRandom philox(testing::RandomSeed());
     random::SimplePhilox random(&philox);
     for (int i = 0; i < kNumRequests; ++i) {
-      const string name =
+      const std::string name =
           absl::StrCat(kServableName, random.Uniform(kNumServableStreams));
       if (random.RandFloat() > kLatestRatio) {
         const int64_t version = random.Uniform(kNumServableVersions);

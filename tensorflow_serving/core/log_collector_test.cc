@@ -35,8 +35,8 @@ class FakeLogCollector : public LogCollector {
   absl::Status Flush() override { return absl::OkStatus(); }
 };
 
-LogCollectorConfig CreateConfig(const string& type,
-                                const string& filename_prefix) {
+LogCollectorConfig CreateConfig(const std::string& type,
+                                const std::string& filename_prefix) {
   LogCollectorConfig config;
   config.set_type(type);
   config.set_filename_prefix(filename_prefix);
@@ -52,7 +52,7 @@ TEST(LogCollectorTest, NotRegistered) {
 
 TEST(LogCollectorTest, Registration) {
   TF_ASSERT_OK(LogCollector::RegisterFactory(
-      "registered", [](const LogCollectorConfig& config, const uint32 id,
+      "registered", [](const LogCollectorConfig& config, const uint32_t id,
                        std::unique_ptr<LogCollector>* log_collector) {
         *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
         return absl::OkStatus();
@@ -62,7 +62,7 @@ TEST(LogCollectorTest, Registration) {
       CreateConfig("registered", "filename_prefix"), 0, &log_collector));
 }
 
-auto duplicate_factory = [](const LogCollectorConfig& config, const uint32 id,
+auto duplicate_factory = [](const LogCollectorConfig& config, const uint32_t id,
                             std::unique_ptr<LogCollector>* log_collector) {
   *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
   return absl::OkStatus();
@@ -71,7 +71,7 @@ REGISTER_LOG_COLLECTOR("duplicate", duplicate_factory);
 
 TEST(LogCollectorTest, DuplicateRegistration) {
   const auto status = LogCollector::RegisterFactory(
-      "duplicate", [](const LogCollectorConfig& config, const uint32 id,
+      "duplicate", [](const LogCollectorConfig& config, const uint32_t id,
                       std::unique_ptr<LogCollector>* log_collector) {
         *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
         return absl::OkStatus();
@@ -79,7 +79,7 @@ TEST(LogCollectorTest, DuplicateRegistration) {
   EXPECT_EQ(status.code(), error::ALREADY_EXISTS);
 }
 
-auto creation_factory = [](const LogCollectorConfig& config, const uint32 id,
+auto creation_factory = [](const LogCollectorConfig& config, const uint32_t id,
                            std::unique_ptr<LogCollector>* log_collector) {
   *log_collector = std::unique_ptr<LogCollector>(new FakeLogCollector());
   return absl::OkStatus();

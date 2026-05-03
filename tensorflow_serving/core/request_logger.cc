@@ -39,7 +39,7 @@ auto* request_log_count = monitoring::Counter<2>::New(
 }
 
 RequestLogger::RequestLogger(const LoggingConfig& logging_config,
-                             const std::vector<string>& saved_model_tags,
+                             const std::vector<std::string>& saved_model_tags,
                              std::unique_ptr<LogCollector> log_collector,
                              const std::string& dc, int task_index)
     : logging_config_(logging_config),
