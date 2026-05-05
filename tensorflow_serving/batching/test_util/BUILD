@@ -50,5 +50,11 @@ cc_test(
 py_binary(
     name = "matrix_half_plus_two_saved_model",
     srcs = ["matrix_half_plus_two_saved_model.py"],
+    exec_properties = select({
+        # copybara:comment_begin(google-only)
+        "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
+        # copybara:comment_end
+        "//conditions:default": None,
+    }),
     srcs_version = "PY3",
 )

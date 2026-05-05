@@ -634,6 +634,12 @@ py_test(
 py_binary(
     name = "tensorflow_model_server_test_client",
     srcs = ["tensorflow_model_server_test_client.py"],
+    exec_properties = select({
+        # copybara:comment_begin(google-only)
+        "//tools/cpp:asan_build": {"cpp_link.mem": "20g"},
+        # copybara:comment_end
+        "//conditions:default": None,
+    }),
     srcs_version = "PY2AND3",
     deps = ["//tensorflow_serving/apis:prediction_service_proto_py_pb2"],
 )
