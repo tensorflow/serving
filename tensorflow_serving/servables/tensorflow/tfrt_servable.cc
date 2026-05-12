@@ -102,6 +102,9 @@ TfrtSavedModelServable::GetTFRTSavedModelRunOptions(
     options.disable_compilation = true;
   }
   options.priority = run_options.priority;
+  options.rpc_deadline_for_batching_task_cancellation =
+      run_options.rpc_deadline_for_batching_task_cancellation;
+  options.is_rpc_cancelled_callback = run_options.is_rpc_cancelled_callback;
   return options;
 }
 
