@@ -101,6 +101,27 @@ TEST(JsontensorTest, DeeplyNestedWellFormed) {
   EXPECT_EQ(tmap.size(), 1);
 }
 
+TEST(JsontensorTest, DeeplyNestedTensorValue) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_INT32", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  std::string json_req = R"({"instances":)";
+  int depth = 2000;
+  json_req.append(depth, '[');
+  json_req.append("1");
+  json_req.append(depth, ']');
+  json_req.append("}");
+  auto status =
+      FillPredictRequestFromJson(json_req, getmap(infomap), &req, &format);
+  ASSERT_FALSE(status.ok());
+  EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_THAT(status.message(),
+              HasSubstr("Exceeded maximum tensor JSON nesting depth"));
+}
+
 TEST(JsontensorTest, DeeplyNestedMalformed) {
   TensorInfoMap infomap;
   ASSERT_TRUE(
