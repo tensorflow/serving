@@ -23,11 +23,11 @@ import atexit
 import json
 import os
 import shlex
-import socket
 import subprocess
 import time
 
 import grpc
+import portpicker
 from six.moves import range
 from six.moves import urllib
 import tensorflow as tf
@@ -66,14 +66,6 @@ def SetVirtualCpus(num_virtual_cpus):
     if len(configs) < num_virtual_cpus:
       raise RuntimeError('Already configured with %d < %d virtual CPUs' %
                          (len(configs), num_virtual_cpus))
-
-
-def PickUnusedPort():
-  s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-  s.bind(('', 0))
-  port = s.getsockname()[1]
-  s.close()
-  return port
 
 
 def WaitForServerReady(port):
@@ -186,8 +178,12 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
     args_key = GetArgsKey(**locals())
     if args_key in TensorflowModelServerTestBase.model_servers_dict:
       return TensorflowModelServerTestBase.model_servers_dict[args_key]
-    port = PickUnusedPort()
-    rest_api_port = PickUnusedPort()
+    # To prevent flakiness from ports being in a TIME_WAIT state, portpicker
+    # is used to find an unused port. Additionally, the gRPC server is
+    # configured with 'grpc.so_reuseaddr=1' below to allow for address reuse
+    # and prevent issues with ports in TIME_WAIT.
+    port = portpicker.pick_unused_port()
+    rest_api_port = portpicker.pick_unused_port()
     print(('Starting test server on port: {} for model_name: '
            '{}/model_config_file: {}'.format(port, model_name,
                                              model_config_file)))
@@ -222,8 +218,22 @@ class TensorflowModelServerTestBase(tf.test.TestCase):
     if batching_parameters_file:
       command += ' --enable_batching'
       command += ' --batching_parameters_file=' + batching_parameters_file
-    if grpc_channel_arguments:
-      command += ' --grpc_channel_arguments=' + grpc_channel_arguments
+
+    # Allow port reuse to prevent flakiness with portpicker. This logic cleanly
+    # handles merging the reuseaddr flag with any existing gRPC arguments.
+    # Note: If the input `grpc_channel_arguments` already contains
+    # `grpc.so_reuseaddr=0`, this will append `,grpc.so_reuseaddr=1`, and gRPC
+    # typically respects the last occurrence.
+    args_list = [
+        arg
+        for arg in [grpc_channel_arguments, 'grpc.so_reuseaddr=1']
+        if arg
+    ]
+    effective_grpc_channel_arguments = ','.join(args_list)
+    command += (
+        ' --grpc_channel_arguments=' + effective_grpc_channel_arguments
+    )
+
     print(command)
     proc = subprocess.Popen(shlex.split(command), stderr=pipe)
     atexit.register(proc.kill)
