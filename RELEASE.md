@@ -1,5 +1,70 @@
 <!-- disableFinding(HEADING_REPEAT_H1) -->
 
+# Release 2.20.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+<!-- disableFinding(LINE_OVER_80) -->
+
+* Init `python_wheel_version_suffix_repository` in tensorflow-serving after
+  https://github.com/tensorflow/tensorflow/commit/805775fcb5f9272e4c52dce751b00cf7f70364f2.
+  (commit: 21c64216c82867aa018fcebef021cedd0b70a54a)
+* Use tf_workspace* alias when initializing TensorFlow's external dependencies. (commit: ebb194c01fbb5a491665a7cb137053285cad454f)
+* Replace deprecated TF status and mutex types with absl replacement types. (commit: bec6e1c25a78ecc664527053b256a69abffd2106)
+* Update release notes for 2.18.1 (commit: 564d33569bede9c63619e889e227bbe16c99a4cb)
+* Fix a bug in ServerRequestLogger::Update() (commit: d83a861a9e0f2dc4265639073751ce00b2d0b792)
+* Fix a absl log MACRO redefinition bug. (commit: bfd832d2adefbf8417ca0efe0c8b00e864a82761)
+* Provide Separate Validate()/Apply() calls for Logger Update (commit: 8c8a286f2df9ac5d874263f0aca42682e8ab4bb1)
+* Add 2 new resource kinds constants for RAM (commit: dff9dd8e2039ef48360897ffc97390bb0bda0bab)
+* Clarifying in the API that some request options are only supported for disagg serving. (commit: a1d3566e39f445783d1a44a1588d505ad94aac92)
+* Align Protobuf version with Tensorflow (commit: a69212598fb65821de2eafa853151a2b75718847)
+* PredictRequest API update to enable cancellation control messages (commit: 8c846b71c8f82fe8f31d2a5953a833a958cf0667)
+* Update release notes for 2.19.0-rc0 (commit: 305a2f73f580c468ee677c4de7743a27e4f59a97)
+* Update release notes for 2.19.0 (commit: cb032050f193a15ab19eb254d123e50c7c4bcdd9)
+* Introduce kSteadyHeapRamBytes and kSharedHeapRamBytes to resource kinds. (commit: e4b44e8f2e790f83aa5ed4cda06ea87dee6c69b7)
+* Allow model server to reload a config if it doesn't change from the previous loading attempt. (commit: a54796b18a7f22bb58565e817f78a50a44a7b35c)
+* Do not return `SignatureDef.defaults` from `GetModelMetadata` (commit: 50831276827fff8c6b41aca6ca210b085192edf4)
+* Add disable_host_compilation option to allow disabling host compilation after load. (commit: f10500296c913708dc2bdf0b3bf2a1247f6539b0)
+* Use a copy of ModelWarmupOptions for model warmup. (commit: fabf1fd260b9f9e44e6d936f46084ca0f40365b9)
+* Remove sm_50 from cuda_clang build configs to match TF (commit: 40c49d7b3192b6ee25b929592731c6e20692ebe8)
+* Log the old and new configs to ERROR when we fail to accept the transition. (commit: b9b5f529591136bff97e5fe01aa9dc782faa6baa)
+* Porting the grappler batch prioritization rewriter to TFRT. (commit: 429ddb2d08a044aff5aa6498ec38b72397f80f18)
+* Porting the grappler batch prioritization rewriter to TFRT. (commit: ca86c543e47b927148f081449012466eefd15e4c)
+* Bump bazel version from 6.5.0 to 7.4.1 to align with TF.
+  (commit: 7491ad586088908b9e45c47586aefa65adc23ca3)
+* Increase Bazel version requirement to 7.4.1 in root.workspace (commit: b16e36f0d6b6276cf2ab2756e9791c2add40a821)
+* Flip back incompatible_enable_cc_toolchain_resolution to bypass cpp toolchain resolution error. (commit: 96718f34efdb19fc2650083e9c8a7a0f7e54bf14)
+* Porting the grappler batch prioritization rewriter to TFRT. (commit: dc7f1bb03329a1111d7370d8ec929a26b3f9aab4)
+* Extract the untracked part of `RunSavedModelWarmup` to a separate function (commit: a4192667446cf817ff1cc4f76c9573ab5eca9299)
+* Enable use of absl nullability annotations now that the absl version used provides them. (commit: 482cdcd4845c37ace01f95b04a1fde64fc8bceec)
+* Update release notes for 2.19.1 (commit: 89dfd9950811ff097a439ba2de8812e1c4d954dc)
+* Add a command line flag `remote_predict_op_use_tensor_content` to reduce request size (commit: 1d1a029497ef44f33f2bc965b897c700d69e4537)
+* changing Orbax Model version file uniquely identifiable (commit: a01a31a13c250c92797894a9311a380b4a9e0047)
+* Plumb priority into RunHandlerPool (commit: 4184bff10e1d804d831edfa3020e2fbdd0082b97)
+* Fix a check failure in ServerCore. (commit: 223ac594ad88a0b30dbaea05e3d03bd2a8763328)
+* Add `max_cache_length` to `PredictRequest.RequestOptions`. (commit: 6db34f8f4d20f646ecd0a4b544362ba832fd0049)
+* Add `max_cache_length` to `PredictRequest.RequestOptions`. (commit: 6d2fd08eae272638506033f43111a9d3dea72b03)
+* Add max_cache_length to PredictRequest.RequestOptions. (commit: 1c8876683fc3c175b326de7f589819da868f3744)
+* Use std::numeric_limits for max int32 value. (commit: a33d9da9405624d98bc319a542b2c111adfba745)
+* Removal of tsl-specific integral types. (commit: d1f407fc22a3cb9019320570b75bdaa59dfef31f)
+* Add a new sampling mode to infra logging. (commit: b05d65f122091325aeb43412e0074854a0cb0fa8)
+* TF Serving Dockerfiles upgraded for a hermetic build. MKL stays non-hermetic at this time because of strict linker checks in llvm_openmp. (commit: ecb468f4abfe9e50e98bb366f3d8e2237efa20d7)
+* Fixed Serving server startup in docker environment (commit: 275ec5c8eae7f6e63b37b58a6bae1dbf81dcb3f3)
+* Optimized disk space usage in Dockerfile.devel-gpu (commit: 824ad7a380f97fce77cde6f0f3c592070b45b335)
+* Add option to allow resplitting for priority aware scheduler. (commit: 9baa5a2bab6cfab143a49cef7f929cca6401a591)
+* add mutable version which can save a copy (commit: a5f6f0bc194f741d0d280e0896d52dd6e63d4b13)
+* Update version for 2.20.0 release. (#4135) (commit: bc7e9d2b9a419294c4526e293c2df8727b0d3116)
+
+<!-- enableFinding(LINE_OVER_80) -->
+
 # Release 2.19.1
 
 ## Major Features and Improvements
