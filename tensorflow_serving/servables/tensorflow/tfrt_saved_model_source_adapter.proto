@@ -261,6 +261,13 @@ message TfrtSavedModelConfig {
   // If true, the priority aware batch scheduler will resplit tasks into
   // smaller batches if needed.
   bool enable_priority_aware_batch_scheduler_resplit = 2034;
+
+  // If true, enable async IFRT execution in TFRT/IFRT serving.
+  // This reduces the blocking wait for HLO execution on the device (e.g. TPU)
+  // in the inter-op executor, by using a non-blocking dispatch model.
+  // Note: streaming is not supported when async IFRT execution is enabled.
+  // This is only useful when `tfrt_use_ifrt` is true.
+  bool enable_async_ifrt = 2035;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.
