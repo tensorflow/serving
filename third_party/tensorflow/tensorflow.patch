@@ -8,13 +8,3 @@ diff --git a/tensorflow/tools/toolchains/python/python_repo.bzl b/tensorflow/too
  WHEEL_COLLAB = "{}"
 +USE_PYWRAP_RULES = "False"
  """
-diff --git a/tensorflow/core/framework/tensor_testutil.cc b/tensorflow/core/framework/tensor_testutil.cc
---- a/tensorflow/core/framework/tensor_testutil.cc
-+++ b/tensorflow/core/framework/tensor_testutil.cc
-@@ -16,5 +16,6 @@
- #include "tensorflow/core/framework/tensor_testutil.h"
- 
- #include <cmath>
-+#include <iomanip>
- 
- #include "tensorflow/core/framework/tensor.h"

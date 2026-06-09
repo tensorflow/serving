@@ -17,11 +17,28 @@ def tf_serving_workspace():
         url = "https://github.com/bazelbuild/rules_proto/archive/refs/tags/6.0.0-rc3.tar.gz",
     )
 
+    http_archive(
+        name = "utf8_range",
+        urls = ["https://github.com/protocolbuffers/utf8_range/archive/de0b4a8ff9b5d4c98108bdfe723291a33c52c54f.zip"],
+        strip_prefix = "utf8_range-de0b4a8ff9b5d4c98108bdfe723291a33c52c54f",
+        sha256 = "5da960e5e5d92394c809629a03af3c7709d2d3d0ca731dacb3a9fb4bf28f7702",
+    )
+
+    http_archive(
+        name = "rules_ruby",
+        urls = ["https://github.com/protocolbuffers/rules_ruby/archive/8fca842a3006c3d637114aba4f6bf9695bb3a432.zip"],
+        strip_prefix = "rules_ruby-8fca842a3006c3d637114aba4f6bf9695bb3a432",
+        sha256 = "2619f9a23cee6f6a198d9ef284b6f6cbc901545ee9a9aac9ffa6b83dbf17cf0c",
+    )
+
     # ===== Bazel skylib dependency =====
     http_archive(
         name = "bazel_skylib",
-        sha256 = "74d544d96f4a5bb630d465ca8bbcfe231e3594e5aae57e1edbf17a6eb3ca2506",
-        url = "https://github.com/bazelbuild/bazel-skylib/releases/download/1.3.0/bazel-skylib-1.3.0.tar.gz",
+        sha256 = "bc283cdfcd526a52c3201279cda4bc298652efa898b10b4db0837dc51652756f",
+        urls = [
+            "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz",
+            "https://github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz",
+        ],
     )
 
     # ===== Bazel package rules dependency =====
@@ -77,13 +94,17 @@ def tf_serving_workspace():
         name = "org_tensorflow_text",
         sha256 = "e08834bed6f544be9cc0315895898bf48d94b8090bca993ab45526329df291c8",
         strip_prefix = "text-2.20.0",
-        url = "https://github.com/tensorflow/text/archive/v2.20.0.zip",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/tensorflow/text/archive/v2.20.0.zip",
+            "https://github.com/tensorflow/text/archive/v2.20.0.zip",
+        ],
         repo_mapping = {
             "@com_google_re2": "@com_googlesource_code_re2",
             "@release_or_nightly": "@org_tensorflow",
         },
         patch_cmds = [
             "find . -name \"tftext.bzl\" -exec sed -i 's|deps = deps,|deps = deps + [\"@com_google_protobuf\" + \"//:protobuf\"],|g' {} +",
+            "find . -name \"tftext.bzl\" -exec sed -i '/absl\\/utility:if_constexpr/d' {} +",
         ],
     )
 
@@ -124,16 +145,36 @@ def tf_serving_workspace():
         name = "org_tensorflow_decision_forests",
         sha256 = "86686bcb03bcf280cf739159fe4c285c667500a332292701259e636f5e1ec110",
         strip_prefix = "decision-forests-1.3.0",
-        url = "https://github.com/tensorflow/decision-forests/archive/refs/tags/1.3.0.zip",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/tensorflow/decision-forests/archive/refs/tags/1.3.0.zip",
+            "https://github.com/tensorflow/decision-forests/archive/refs/tags/1.3.0.zip",
+        ],
         patches = ["@//third_party/tf_decision_forests:tf_decision_forests.patch"],
         patch_args = ["-p1"],
+        patch_cmds = [
+            "find . -name \"*.bzl\" -exec sed -i 's|load(\"@com_google_pro[t]obuf//:protobuf.bzl\", \"py_proto_library\")|load(\"@com_google_pr\\otobuf//bazel:py_proto_library.bzl\", \"py_proto_library\")|g' {} +",
+            "find . -name \"*.bzl\" -exec sed -i 's|^\\s*srcs = srcs,|           deps = [\":\" + name],|g' {} +",
+            "find . -name \"*.bzl\" -exec sed -i 's|           deps = old_deps,|           # deps = old_deps,|g' {} +",
+            "find . -name \"*.cc\" -exec sed -i '1i #include <algorithm>' {} +",
+            "find . -name \"*.cc\" -exec sed -i 's/google::protobuf::Arena::CreateMessage/google::protobuf::Arena::Create/g' {} +",
+        ],
     )
 
     http_archive(
         name = "ydf",
         sha256 = "5abb2e440c0b8b13095bd208cfab3a5e569706af9a52b6a702d86ec0e25a7991",
         strip_prefix = "yggdrasil-decision-forests-1.4.0",
-        urls = ["https://github.com/google/yggdrasil-decision-forests/archive/refs/tags/1.4.0.zip"],
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google/yggdrasil-decision-forests/archive/refs/tags/1.4.0.zip",
+            "https://github.com/google/yggdrasil-decision-forests/archive/refs/tags/1.4.0.zip",
+        ],
+        patch_cmds = [
+            "find . -name \"*.bzl\" -exec sed -i 's|load(\"@com_google_pro[t]obuf//:protobuf.bzl\", \"py_proto_library\")|load(\"@com_google_pr\\otobuf//bazel:py_proto_library.bzl\", \"py_proto_library\")|g' {} +",
+            "find . -name \"*.bzl\" -exec sed -i 's|           srcs = srcs,|           deps = [\":\" + name],|g' {} +",
+            "find . -name \"*.bzl\" -exec sed -i 's|           deps = old_deps,|           # deps = old_deps,|g' {} +",
+            "find . -name \"*.cc\" -exec sed -i '1i #include <algorithm>' {} +",
+            "find . -name \"*.cc\" -exec sed -i 's/google::protobuf::Arena::CreateMessage/google::protobuf::Arena::Create/g' {} +",
+        ],
     )
 
     # The Boost repo is organized into git sub-modules (see the list at
@@ -146,3 +187,5 @@ def tf_serving_workspace():
         recursive_init_submodules = True,
         remote = "https://github.com/boostorg/boost",
     )
+
+    # Kokoro force build 9
