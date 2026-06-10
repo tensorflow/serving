@@ -247,6 +247,8 @@ absl::StatusOr<tfrt::SavedModel::Options> CreateCommonSavedModelOptions(
       config.enable_priority_aware_batch_scheduler();
   compile_options.enable_priority_aware_batch_scheduler_resplit =
       config.enable_priority_aware_batch_scheduler_resplit();
+  compile_options.enable_batching_task_lazy_cancellation =
+      config.enable_batching_task_lazy_cancellation();
   compile_options.enable_async_ifrt = config.enable_async_ifrt();
 #endif
 

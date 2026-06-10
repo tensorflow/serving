@@ -268,6 +268,10 @@ message TfrtSavedModelConfig {
   // Note: streaming is not supported when async IFRT execution is enabled.
   // This is only useful when `tfrt_use_ifrt` is true.
   bool enable_async_ifrt = 2035;
+
+  // If true, the priority aware batch scheduler will cancel tasks whose RPCs
+  // have been cancelled or have exceeded their deadline before batch formation.
+  bool enable_batching_task_lazy_cancellation = 2036;
 }
 
 // Config proto for TfrtSavedModelSourceAdapter.
