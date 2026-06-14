@@ -35,7 +35,7 @@ for the ImageNet dataset.
 
 ```shell
 # Download Resnet model from TF Hub
-wget https://tfhub.dev/tensorflow/resnet_50/classification/1?tf-hub-format=compressed -o resnet.tar.gz
+wget https://tfhub.dev/tensorflow/resnet_50/classification/1?tf-hub-format=compressed -O resnet.tar.gz
 
 # Extract SavedModel into a versioned subfolder ‘123’
 mkdir -p /tmp/resnet/123
