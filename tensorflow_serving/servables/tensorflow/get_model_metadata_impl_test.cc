@@ -53,12 +53,12 @@ class GetModelMetadataImplTest : public ::testing::TestWithParam<bool> {
  public:
   static void SetUpTestSuite() {
     if (!IsTensorflowServingOSS()) {
-      const string session_bundle_path = test_util::TestSrcDirPath(
+      const std::string session_bundle_path = test_util::TestSrcDirPath(
           "/servables/tensorflow/google/testdata/half_plus_two");
       TF_ASSERT_OK(CreateServerCore(session_bundle_path, false, &server_core_));
     }
 
-    const string saved_model_path = test_util::TensorflowTestSrcDirPath(
+    const std::string saved_model_path = test_util::TensorflowTestSrcDirPath(
         "cc/saved_model/testdata/half_plus_two");
     TF_ASSERT_OK(
         CreateServerCore(saved_model_path, true, &saved_model_server_core_));
@@ -71,7 +71,7 @@ class GetModelMetadataImplTest : public ::testing::TestWithParam<bool> {
 
  protected:
   static absl::Status CreateServerCore(
-      const string& model_path, bool saved_model_on_disk,
+      const std::string& model_path, bool saved_model_on_disk,
       std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();

@@ -50,13 +50,13 @@ absl::Status RunMultiInference(const tfrt::SavedModel::RunOptions& run_options,
   function_names.reserve(request.tasks_size());
   for (const auto& task : request.tasks()) {
     if (task.model_spec().name().empty()) {
-      return errors::InvalidArgument(
+      return absl::InvalidArgumentError(
           "Found ModelSpec with an empty model name.");
     }
     if (model_name.empty()) {
       model_name = task.model_spec().name();
     } else if (model_name != task.model_spec().name()) {
-      return errors::InvalidArgument(
+      return absl::InvalidArgumentError(
           "All ModelSpecs in a MultiInferenceRequest must access the same "
           "model name.");
     }
@@ -68,7 +68,7 @@ absl::Status RunMultiInference(const tfrt::SavedModel::RunOptions& run_options,
     // TODO(b/183949363): Remove the constrain here. We could allow duplicated
     // function names and simply return result for each of them.
     if (function_names_set.find(function_name) != function_names_set.end()) {
-      return errors::InvalidArgument(
+      return absl::InvalidArgumentError(
           absl::StrCat("Duplicate evaluation of signature: ", function_name));
     }
     function_names_set.insert(function_name);
@@ -77,7 +77,7 @@ absl::Status RunMultiInference(const tfrt::SavedModel::RunOptions& run_options,
     const auto function_metadata =
         saved_model->GetFunctionMetadata(function_name);
     if (!function_metadata.has_value()) {
-      return errors::InvalidArgument(
+      return absl::InvalidArgumentError(
           absl::StrCat("Function \"", function_name, "\" not found."));
     }
 
@@ -86,8 +86,8 @@ absl::Status RunMultiInference(const tfrt::SavedModel::RunOptions& run_options,
     } else if (task.method_name() == kRegressMethodName) {
       TF_RETURN_IF_ERROR(PreProcessRegression(function_metadata.value()));
     } else {
-      return errors::Unimplemented("Unsupported signature method_name: ",
-                                   task.method_name());
+      return absl::UnimplementedError(absl::StrCat(
+          "Unsupported signature method_name: ", task.method_name()));
     }
   }
 
@@ -119,8 +119,9 @@ absl::Status RunMultiInference(const tfrt::SavedModel::RunOptions& run_options,
           num_examples, function_metadata->GetOutputNames(), output_tensors[i],
           response->add_results()->mutable_regression_result()));
     } else {
-      return errors::InvalidArgument("Unrecognized signature method_name: ",
-                                     request.tasks(i).method_name());
+      return absl::InvalidArgumentError(
+          absl::StrCat("Unrecognized signature method_name: ",
+                       request.tasks(i).method_name()));
     }
     MakeModelSpec(request.tasks(i).model_spec().name(),
                   request.tasks(i).model_spec().signature_name(),

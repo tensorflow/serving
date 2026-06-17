@@ -23,15 +23,15 @@ namespace tensorflow {
 namespace serving {
 
 absl::Status ServingSession::Create(const GraphDef& graph) {
-  return errors::PermissionDenied("State changes denied via ServingSession");
+  return absl::PermissionDeniedError("State changes denied via ServingSession");
 }
 
 absl::Status ServingSession::Extend(const GraphDef& graph) {
-  return errors::PermissionDenied("State changes denied via ServingSession");
+  return absl::PermissionDeniedError("State changes denied via ServingSession");
 }
 
 absl::Status ServingSession::Close() {
-  return errors::PermissionDenied("State changes denied via ServingSession");
+  return absl::PermissionDeniedError("State changes denied via ServingSession");
 }
 
 }  // namespace serving

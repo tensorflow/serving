@@ -447,7 +447,7 @@ TEST_F(TfrtClassifierTest, RunsFails) {
   EXPECT_CALL(*saved_model,
               Run(_, _, ::testing::An<absl::Span<const Tensor>>(), _))
       .Times(1)
-      .WillRepeatedly(Return(errors::InvalidArgument("test error")));
+      .WillRepeatedly(Return(absl::InvalidArgumentError("test error")));
   auto status = RunClassify(tfrt::SavedModel::RunOptions(), kTestModelVersion,
                             saved_model.get(), request_, &response);
   EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
