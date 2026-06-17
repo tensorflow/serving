@@ -113,7 +113,7 @@ absl::StatusOr<UpdateRequest> ServerRequestLogger::CreateUpdateRequestLocked(
 absl::StatusOr<UpdateRequest> ServerRequestLogger::CreateUpdateRequest(
     const std::map<string, std::vector<LoggingConfig>>& logging_config_map)
     const {
-  absl::MutexLock l(&update_mu_);
+  absl::MutexLock l(update_mu_);
   return CreateUpdateRequestLocked(logging_config_map);
 }
 
@@ -123,13 +123,13 @@ void ServerRequestLogger::ApplyUpdateRequestLocked(UpdateRequest& req) {
 }
 
 void ServerRequestLogger::ApplyUpdateRequest(UpdateRequest& req) {
-  absl::MutexLock l(&update_mu_);
+  absl::MutexLock l(update_mu_);
   ApplyUpdateRequestLocked(req);
 }
 
 absl::Status ServerRequestLogger::Update(
     const std::map<string, std::vector<LoggingConfig>>& logging_config_map) {
-  absl::MutexLock l(&update_mu_);
+  absl::MutexLock l(update_mu_);
 
   absl::StatusOr<UpdateRequest> req =
       CreateUpdateRequestLocked(logging_config_map);
