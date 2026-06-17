@@ -30,21 +30,21 @@ namespace serving {
 namespace session_bundle {
 
 absl::Status ConvertSignaturesToSignatureDefs(MetaGraphDef* meta_graph_def) {
-  return errors::Unimplemented("Session Bundle is deprecated and removed.");
+  return absl::UnimplementedError("Session Bundle is deprecated and removed.");
 }
 
 absl::Status ConvertSessionBundleToSavedModelBundle(
     SessionBundle& session_bundle, SavedModelBundle* saved_model_bundle) {
-  return errors::Unimplemented("Session Bundle is deprecated and removed.");
+  return absl::UnimplementedError("Session Bundle is deprecated and removed.");
 }
 
 absl::Status LoadSessionBundleOrSavedModelBundle(
     const SessionOptions& session_options, const RunOptions& run_options,
-    const string& export_dir, const std::unordered_set<string>& tags,
+    const std::string& export_dir, const std::unordered_set<std::string>& tags,
     bool maybe_load_saved_model_config, SavedModelBundle* bundle,
     bool* is_session_bundle) {
   if (maybe_load_saved_model_config) {
-    return errors::Unimplemented(
+    return absl::UnimplementedError(
         "Saved model config functionality is not implemented.");
   }
   return LoadSessionBundleOrSavedModelBundle(session_options, run_options,
@@ -54,7 +54,7 @@ absl::Status LoadSessionBundleOrSavedModelBundle(
 
 absl::Status LoadSessionBundleOrSavedModelBundle(
     const SessionOptions& session_options, const RunOptions& run_options,
-    const string& export_dir, const std::unordered_set<string>& tags,
+    const std::string& export_dir, const std::unordered_set<std::string>& tags,
     SavedModelBundle* bundle, bool* is_session_bundle) {
   if (is_session_bundle != nullptr) {
     *is_session_bundle = false;
@@ -62,7 +62,8 @@ absl::Status LoadSessionBundleOrSavedModelBundle(
   if (Env::Default()
           ->FileExists(io::JoinPath(export_dir, "export.meta"))
           .ok()) {
-    return errors::Unimplemented("Session Bundle is deprecated and removed.");
+    return absl::UnimplementedError(
+        "Session Bundle is deprecated and removed.");
   }
   if (MaybeSavedModelDirectory(export_dir)) {
     return LoadSavedModel(session_options, run_options, export_dir, tags,
@@ -80,42 +81,42 @@ absl::Status LoadSessionBundleOrSavedModelBundle(
 absl::Status LoadSessionBundleFromPathUsingRunOptions(
     const SessionOptions& session_options, const RunOptions& run_options,
     const absl::string_view export_dir, SessionBundle* bundle) {
-  return errors::Unimplemented("Session Bundle is deprecated and removed.");
+  return absl::UnimplementedError("Session Bundle is deprecated and removed.");
 }
 
 absl::Status SetSignatures(const Signatures& signatures,
                            tensorflow::MetaGraphDef* meta_graph_def) {
-  return errors::Unimplemented("Session Bundle is deprecated and removed.");
+  return absl::UnimplementedError("Session Bundle is deprecated and removed.");
 }
 
 absl::Status GetClassificationSignature(
     const tensorflow::MetaGraphDef& meta_graph_def,
     ClassificationSignature* signature) {
-  return errors::Unimplemented("Session Bundle is deprecated and removed.");
+  return absl::UnimplementedError("Session Bundle is deprecated and removed.");
 }
 
 absl::Status GetRegressionSignature(
     const tensorflow::MetaGraphDef& meta_graph_def,
     RegressionSignature* signature) {
-  return errors::Unimplemented("Session Bundle is deprecated and removed.");
+  return absl::UnimplementedError("Session Bundle is deprecated and removed.");
 }
 
 absl::Status RunClassification(const ClassificationSignature& signature,
                                const Tensor& input, Session* session,
                                Tensor* classes, Tensor* scores) {
-  return errors::Unimplemented("Session Bundle is deprecated and removed.");
+  return absl::UnimplementedError("Session Bundle is deprecated and removed.");
 }
 
 absl::Status RunRegression(const RegressionSignature& signature,
                            const Tensor& input, Session* session,
                            Tensor* output) {
-  return errors::Unimplemented("Session Bundle is deprecated and removed.");
+  return absl::UnimplementedError("Session Bundle is deprecated and removed.");
 }
 
-absl::Status GetNamedSignature(const string& name,
+absl::Status GetNamedSignature(const std::string& name,
                                const tensorflow::MetaGraphDef& meta_graph_def,
                                Signature* default_signature) {
-  return errors::Unimplemented("Session Bundle is deprecated and removed.");
+  return absl::UnimplementedError("Session Bundle is deprecated and removed.");
 }
 
 }  // namespace session_bundle
