@@ -283,7 +283,7 @@ TEST_F(ServerRequestLoggerTest, PartiallyBadUpdate) {
   model1_bad_config.second.mutable_sampling_config()->set_sampling_rate(-1);
   EXPECT_THAT(server_request_logger_->Update(CreateLoggingConfigMap(
                   {model0_ok_config, model1_bad_config})),
-              StatusIs(absl::StatusCode::kInvalidArgument));
+              absl_testing::StatusIs(absl::StatusCode::kInvalidArgument));
   EXPECT_EQ(created_logger_counter(), 2);
   EXPECT_EQ(deleted_logger_counter(), 0);
 
@@ -320,7 +320,7 @@ TEST_F(ServerRequestLoggerTest, CreateUpdateRequestErrors) {
   model0_bad_config.second.mutable_sampling_config()->set_sampling_rate(-1);
   EXPECT_THAT(server_request_logger_->CreateUpdateRequest(
                   CreateLoggingConfigMap({model0_bad_config})),
-              StatusIs(absl::StatusCode::kInvalidArgument));
+              absl_testing::StatusIs(absl::StatusCode::kInvalidArgument));
 
   // Ok+bad config.
   std::pair<string, LoggingConfig> model0_ok_config =
@@ -329,7 +329,7 @@ TEST_F(ServerRequestLoggerTest, CreateUpdateRequestErrors) {
   EXPECT_THAT(
       server_request_logger_->CreateUpdateRequest(
           CreateLoggingConfigMap({model0_ok_config, model0_bad_config})),
-      StatusIs(absl::StatusCode::kInvalidArgument));
+      absl_testing::StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
 TEST_F(ServerRequestLoggerTest, CreateUpdateRequestSingleConfigOk) {
