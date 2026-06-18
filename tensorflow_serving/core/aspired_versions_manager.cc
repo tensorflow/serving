@@ -403,7 +403,7 @@ AspiredVersionsManager::GetNextAction() {
   std::sort(actions.begin(), actions.end(),
             CompareActions(custom_sort_actions_));
   const absl::optional<AspiredVersionPolicy::ServableAction> next_action =
-      !actions.empty() ? actions[0] : absl::nullopt;
+      !actions.empty() ? actions[0] : std::nullopt;
   if (next_action) {
     VLOG(1) << "Taking action: " << next_action->DebugString();
   }

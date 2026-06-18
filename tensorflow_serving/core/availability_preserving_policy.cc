@@ -36,7 +36,7 @@ absl::optional<ServableId> GetLowestServableId(
                          return a.id.version < b.id.version;
                        });
   if (iterator == all_versions.end()) {
-    return absl::nullopt;
+    return std::nullopt;
   } else {
     return iterator->id;
   }
@@ -84,7 +84,7 @@ AvailabilityPreservingPolicy::GetNextAction(
     return {{Action::kLoad, highest_new_aspired_version_id.value()}};
   }
 
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 }  // namespace serving

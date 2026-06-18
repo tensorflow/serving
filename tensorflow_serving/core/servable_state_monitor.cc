@@ -133,12 +133,12 @@ ServableStateMonitor::GetStateAndTimeInternal(
     const ServableId& servable_id) const {
   auto it = states_.find(servable_id.name);
   if (it == states_.end()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   const VersionMap& versions = it->second;
   auto it2 = versions.find(servable_id.version);
   if (it2 == versions.end()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return it2->second;
 }
@@ -154,7 +154,7 @@ absl::optional<ServableState> ServableStateMonitor::GetState(
   const absl::optional<ServableStateAndTime>& state_and_time =
       GetStateAndTime(servable_id);
   if (!state_and_time) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return state_and_time->state;
 }
