@@ -57,8 +57,8 @@ class TfrtSavedModelFactoryTest : public ::testing::Test {
     return absl::OkStatus();
   }
 
-  std::vector<string> GetModelFiles() {
-    const string& dir = model_path_;
+  std::vector<std::string> GetModelFiles() {
+    const std::string& dir = model_path_;
     return {io::JoinPath(dir, kSavedModelAssetsDirectory, "foo.txt"),
             io::JoinPath(dir, kSavedModelFilenamePb),
             io::JoinPath(dir, kSavedModelVariablesFilename,
@@ -66,7 +66,7 @@ class TfrtSavedModelFactoryTest : public ::testing::Test {
             io::JoinPath(dir, kSavedModelVariablesFilename, "variables.index")};
   }
 
-  string model_path_;
+  std::string model_path_;
 };
 
 TEST_F(TfrtSavedModelFactoryTest, EstimateResourceRequirementWithGoodExport) {

@@ -106,7 +106,7 @@ TYPED_TEST_SUITE_P(MultiInferenceTest);
 ////////////////////////////////////////////////////////////////////////////////
 // Test Helpers
 
-void AddInput(const std::vector<std::pair<string, float>>& feature_kv,
+void AddInput(const std::vector<std::pair<std::string, float>>& feature_kv,
               MultiInferenceRequest* request) {
   auto* example =
       request->mutable_input()->mutable_example_list()->add_examples();
@@ -116,8 +116,9 @@ void AddInput(const std::vector<std::pair<string, float>>& feature_kv,
   }
 }
 
-void PopulateTask(const string& signature_name, const string& method_name,
-                  int64_t version, InferenceTask* task) {
+void PopulateTask(const std::string& signature_name,
+                  const std::string& method_name, int64_t version,
+                  InferenceTask* task) {
   ModelSpec model_spec;
   model_spec.set_name(kTestModelName);
   if (version > 0) {
@@ -130,7 +131,7 @@ void PopulateTask(const string& signature_name, const string& method_name,
 
 void ExpectStatusError(const absl::Status& status,
                        const absl::StatusCode expected_code,
-                       const string& message_substring) {
+                       const std::string& message_substring) {
   ASSERT_EQ(expected_code, status.code());
   EXPECT_THAT(status.message(), ::testing::HasSubstr(message_substring));
 }

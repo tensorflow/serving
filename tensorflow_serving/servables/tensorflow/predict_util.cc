@@ -40,7 +40,7 @@ absl::Status VerifySignature(const SignatureDef& signature) {
       signature.method_name() != kPredictMethodName &&
       signature.method_name() != kClassifyMethodName &&
       signature.method_name() != kRegressMethodName) {
-    return errors::Internal(strings::StrCat(
+    return absl::InternalError(strings::StrCat(
         "Expected prediction signature method_name to be one of {",
         kPredictMethodName, ", ", kClassifyMethodName, ", ", kRegressMethodName,
         "}. Was: ", signature.method_name()));
@@ -53,11 +53,12 @@ absl::Status VerifyRequestInputsSize(const SignatureDef& signature,
   if (request.inputs().size() > signature.inputs().size() ||
       (request.inputs().size() < signature.inputs().size() &&
        signature.defaults().empty())) {
-    const std::set<string> request_inputs = GetMapKeys(request.inputs());
-    const std::set<string> signature_inputs = GetMapKeys(signature.inputs());
-    const std::set<string> sent_extra =
+    const std::set<std::string> request_inputs = GetMapKeys(request.inputs());
+    const std::set<std::string> signature_inputs =
+        GetMapKeys(signature.inputs());
+    const std::set<std::string> sent_extra =
         SetDifference(request_inputs, signature_inputs);
-    const std::set<string> missing =
+    const std::set<std::string> missing =
         SetDifference(signature_inputs, request_inputs);
     return absl::Status(
         static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
@@ -82,12 +83,13 @@ absl::Status RunPredict(
     Session* session, const PredictRequest& request, PredictResponse* response,
     const thread::ThreadPoolOptions& thread_pool_options) {
   // Validate signatures.
-  const string signature_name = request.model_spec().signature_name().empty()
-                                    ? kDefaultServingSignatureDefKey
-                                    : request.model_spec().signature_name();
+  const std::string signature_name =
+      request.model_spec().signature_name().empty()
+          ? kDefaultServingSignatureDefKey
+          : request.model_spec().signature_name();
   auto iter = meta_graph_def.signature_def().find(signature_name);
   if (iter == meta_graph_def.signature_def().end()) {
-    return errors::FailedPrecondition(absl::StrCat(
+    return absl::FailedPreconditionError(absl::StrCat(
         "Serving signature key \"", signature_name, "\" not found."));
   }
   const SignatureDef& signature = iter->second;
@@ -95,9 +97,9 @@ absl::Status RunPredict(
   MakeModelSpec(request.model_spec().name(), signature_name, servable_version,
                 response->mutable_model_spec());
 
-  std::vector<std::pair<string, Tensor>> input_tensors;
-  std::vector<string> output_tensor_names;
-  std::vector<string> output_tensor_aliases;
+  std::vector<std::pair<std::string, Tensor>> input_tensors;
+  std::vector<std::string> output_tensor_names;
+  std::vector<std::string> output_tensor_aliases;
   TF_RETURN_IF_ERROR(PreProcessPrediction(signature, request, &input_tensors,
                                           &output_tensor_names,
                                           &output_tensor_aliases));
@@ -118,18 +120,18 @@ absl::Status RunPredict(
 
 absl::Status PreProcessPrediction(
     const SignatureDef& signature, const PredictRequest& request,
-    std::vector<std::pair<string, Tensor>>* inputs,
-    std::vector<string>* output_tensor_names,
-    std::vector<string>* output_tensor_aliases) {
+    std::vector<std::pair<std::string, Tensor>>* inputs,
+    std::vector<std::string>* output_tensor_names,
+    std::vector<std::string>* output_tensor_aliases) {
   TF_RETURN_IF_ERROR(VerifySignature(signature));
   TF_RETURN_IF_ERROR(VerifyRequestInputsSize(signature, request));
   TF_RETURN_IF_ERROR(
       saved_model::GetInputValues(signature, request.inputs(), *inputs));
 
   // Prepare run target.
-  std::set<string> seen_outputs;
-  std::vector<string> output_filter(request.output_filter().begin(),
-                                    request.output_filter().end());
+  std::set<std::string> seen_outputs;
+  std::vector<std::string> output_filter(request.output_filter().begin(),
+                                         request.output_filter().end());
   for (auto& alias : output_filter) {
     auto iter = signature.outputs().find(alias);
     if (iter == signature.outputs().end()) {
@@ -161,7 +163,7 @@ absl::Status PreProcessPrediction(
 }
 
 absl::Status PostProcessPredictionResult(
-    const std::vector<string>& output_tensor_aliases,
+    const std::vector<std::string>& output_tensor_aliases,
     const std::vector<Tensor>& output_tensors,
     const internal::PredictResponseTensorSerializationOption option,
     PredictResponse* response) {

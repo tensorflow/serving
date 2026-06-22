@@ -75,10 +75,11 @@ constexpr char WarmupConsts::kRequestsFileName[];
 constexpr int WarmupConsts::kMaxNumRecords;
 
 absl::Status RunSavedModelWarmupUntracked(
-    const ModelWarmupOptions& model_warmup_options, const string export_dir,
+    const ModelWarmupOptions& model_warmup_options,
+    const std::string export_dir,
     std::function<absl::Status(PredictionLog)> warmup_request_executor) {
   const uint64_t start_microseconds = EnvTime::NowMicros();
-  const string warmup_path =
+  const std::string warmup_path =
       io::JoinPath(export_dir, kSavedModelAssetsExtraDirectory,
                    WarmupConsts::kRequestsFileName);
   if (!tensorflow::Env::Default()->FilesExist({warmup_path}, nullptr)) {
@@ -115,7 +116,7 @@ absl::Status RunSavedModelWarmupUntracked(
     tensorflow::serving::PredictionLog prediction_log;
     while (status.ok()) {
       if (!prediction_log.ParseFromArray(record.data(), record.size())) {
-        return errors::InvalidArgument(absl::StrCat(
+        return absl::InvalidArgumentError(absl::StrCat(
             "Failed to parse warmup record: ", record, " from ", warmup_path));
       }
 
@@ -124,9 +125,9 @@ absl::Status RunSavedModelWarmupUntracked(
       }
       ++num_warmup_records;
       if (num_warmup_records > WarmupConsts::kMaxNumRecords) {
-        return errors::InvalidArgument(
-            "Number of warmup records exceeds the maximum (",
-            WarmupConsts::kMaxNumRecords, ") at ", warmup_path);
+        return absl::InvalidArgumentError(
+            absl::StrCat("Number of warmup records exceeds the maximum (",
+                         WarmupConsts::kMaxNumRecords, ") at ", warmup_path));
       }
       status = tf_record_file_reader->ReadRecord(&record);
     }
@@ -167,9 +168,9 @@ absl::Status RunSavedModelWarmupUntracked(
               break;
             }
             if (state->num_warmup_records > WarmupConsts::kMaxNumRecords) {
-              state->warm_up_status = errors::InvalidArgument(
+              state->warm_up_status = absl::InvalidArgumentError(absl::StrCat(
                   "Number of warmup records exceeds the maximum (",
-                  WarmupConsts::kMaxNumRecords, ") at ", warmup_path);
+                  WarmupConsts::kMaxNumRecords, ") at ", warmup_path));
               break;
             }
             execution_status =
@@ -179,7 +180,7 @@ absl::Status RunSavedModelWarmupUntracked(
               break;
             }
             if (!prediction_log.ParseFromArray(record.data(), record.size())) {
-              state->warm_up_status = errors::InvalidArgument(
+              state->warm_up_status = absl::InvalidArgumentError(
                   absl::StrCat("Failed to parse warmup record: ", record,
                                " from ", warmup_path));
               break;
@@ -229,9 +230,9 @@ absl::Status RunSavedModelWarmupUntracked(
       ->IncrementBy(num_warmup_records);
 
   if (absl::IsDataLoss(status)) {
-    return errors::DataLoss(
+    return absl::DataLossError(absl::StrCat(
         status.message(),
-        ". Please verify your warmup data is in TFRecord format.");
+        ". Please verify your warmup data is in TFRecord format."));
   }
 
   TF_RETURN_IF_ERROR(status);
@@ -243,7 +244,8 @@ absl::Status RunSavedModelWarmupUntracked(
 }
 
 absl::Status RunSavedModelWarmup(
-    const ModelWarmupOptions& model_warmup_options, const string export_dir,
+    const ModelWarmupOptions& model_warmup_options,
+    const std::string export_dir,
     std::function<absl::Status(PredictionLog)> warmup_request_executor) {
   WarmupStateRegistry::Handle warmup_handle;
   auto per_model_data = std::make_unique<WarmupStateRegistry::PerModelData>();

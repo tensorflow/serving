@@ -46,7 +46,7 @@ namespace {
 // (a directory). The servable_name param simply allows this source to create
 // all AspiredVersions for the target with the same servable_name.
 absl::Status CreateStoragePathSource(
-    const string& base_path, const string& servable_name,
+    const std::string& base_path, const std::string& servable_name,
     std::unique_ptr<Source<StoragePath>>* path_source) {
   FileSystemStoragePathSourceConfig config;
   config.set_file_system_poll_wait_seconds(1);
@@ -78,7 +78,7 @@ absl::Status CreateSavedModelBundleSource(
 }  // namespace
 
 absl::Status CreateSingleTFModelManagerFromBasePath(
-    const string& base_path, std::unique_ptr<Manager>* const manager) {
+    const std::string& base_path, std::unique_ptr<Manager>* const manager) {
   std::unique_ptr<SavedModelBundleSourceAdapter> bundle_source;
   TF_RETURN_IF_ERROR(CreateSavedModelBundleSource(&bundle_source));
   std::unique_ptr<Source<StoragePath>> path_source;

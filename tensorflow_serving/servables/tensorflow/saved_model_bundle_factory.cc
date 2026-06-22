@@ -54,20 +54,21 @@ std::vector<SignatureDef> GetSignatureDefs(const SavedModelBundle& bundle) {
 // TODO(b/140959776): Move this upstream alongside `kSavedModelFilenamePb`.
 const char kTfLiteModelFilename[] = "model.tflite";
 
-absl::Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
+absl::Status LoadTfLiteModel(const std::string& model_dir,
+                             SavedModelBundle* bundle,
                              const SessionOptions& options,
                              int num_interpreter_pools,
                              int num_interpreters_per_pool) {
   std::unique_ptr<TfLiteSession> session;
 
-  const string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
+  const std::string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
   uint64_t size;
   TF_RETURN_IF_ERROR(Env::Default()->GetFileSize(fname, &size));
 
   std::unique_ptr<RandomAccessFile> file;
   TF_RETURN_IF_ERROR(Env::Default()->NewRandomAccessFile(fname, &file));
 
-  string model_bytes;
+  std::string model_bytes;
   model_bytes.resize(size);
   absl::string_view sv;
   TF_RETURN_IF_ERROR(file->Read(0, sv, absl::MakeSpan(&model_bytes[0], size)));
@@ -81,8 +82,8 @@ absl::Status LoadTfLiteModel(const string& model_dir, SavedModelBundle* bundle,
   return absl::OkStatus();
 }
 
-bool TfLiteModelFound(const string& model_dir) {
-  const string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
+bool TfLiteModelFound(const std::string& model_dir) {
+  const std::string& fname = io::JoinPath(model_dir, kTfLiteModelFilename);
   return Env::Default()->FilesExist({fname}, nullptr);
 }
 
@@ -101,27 +102,27 @@ absl::Status SavedModelBundleFactory::Create(
 }
 
 absl::Status SavedModelBundleFactory::EstimateResourceRequirement(
-    const string& path, ResourceAllocation* estimate) const {
+    const std::string& path, ResourceAllocation* estimate) const {
   return EstimateResourceFromPath(
       path, config_.resource_estimation_uses_validation_result(), estimate);
 }
 
 absl::Status SavedModelBundleFactory::CreateSavedModelBundleWithMetadata(
-    const Loader::Metadata& metadata, const string& path,
+    const Loader::Metadata& metadata, const std::string& path,
     std::unique_ptr<SavedModelBundle>* bundle) {
   return InternalCreateSavedModelBundle(metadata, path, bundle);
 }
 
 absl::Status SavedModelBundleFactory::CreateSavedModelBundle(
-    const string& path, std::unique_ptr<SavedModelBundle>* bundle) {
+    const std::string& path, std::unique_ptr<SavedModelBundle>* bundle) {
   return InternalCreateSavedModelBundle({}, path, bundle);
 }
 
 absl::Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
-    const absl::optional<Loader::Metadata>& metadata, const string& path,
+    const absl::optional<Loader::Metadata>& metadata, const std::string& path,
     std::unique_ptr<SavedModelBundle>* bundle) {
   bundle->reset(new SavedModelBundle);
-  std::unordered_set<string> saved_model_tags(
+  std::unordered_set<std::string> saved_model_tags(
       config_.saved_model_tags().begin(), config_.saved_model_tags().end());
   // Defaults to loading the meta graph def corresponding to the `serve` tag
   // if no `saved_model_tags` are specified.
@@ -131,7 +132,7 @@ absl::Status SavedModelBundleFactory::InternalCreateSavedModelBundle(
   bool is_tflite = config_.prefer_tflite_model() && TfLiteModelFound(path);
   const auto& session_options = [&]() {
     auto result = GetSessionOptions(config_);
-    string mixed_precision_value = config_.mixed_precision();
+    std::string mixed_precision_value = config_.mixed_precision();
     tensorflow::ConfigProto& config = result.config;
     GraphOptions* gopt = config.mutable_graph_options();
     RewriterConfig* rwcfg = gopt->mutable_rewrite_options();

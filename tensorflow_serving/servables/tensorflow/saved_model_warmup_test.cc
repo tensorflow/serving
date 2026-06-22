@@ -77,14 +77,14 @@ class SavedModelBundleWarmupOptionsTest
 };
 
 TEST_P(SavedModelBundleWarmupOptionsTest, MixedWarmupData) {
-  string base_path = io::JoinPath(testing::TmpDir(), "MixedWarmupData");
+  std::string base_path = io::JoinPath(testing::TmpDir(), "MixedWarmupData");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                              internal::WarmupConsts::kRequestsFileName);
+  std::string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                   internal::WarmupConsts::kRequestsFileName);
 
   int num_warmup_records = 10;
-  std::vector<string> warmup_records;
+  std::vector<std::string> warmup_records;
   TF_ASSERT_OK(AddMixedWarmupData(&warmup_records));
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, num_warmup_records));
   SavedModelBundle saved_model_bundle;
@@ -117,13 +117,13 @@ INSTANTIATE_TEST_SUITE_P(WarmupOptions, SavedModelBundleWarmupOptionsTest,
                          ::testing::Bool());
 
 TEST(SavedModelBundleWarmupTest, UnsupportedLogType_SessionRun) {
-  string base_path = io::JoinPath(testing::TmpDir(), "SessionRun");
+  std::string base_path = io::JoinPath(testing::TmpDir(), "SessionRun");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                              internal::WarmupConsts::kRequestsFileName);
+  std::string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                   internal::WarmupConsts::kRequestsFileName);
 
-  std::vector<string> warmup_records;
+  std::vector<std::string> warmup_records;
   // Add unsupported log type
   TF_ASSERT_OK(AddToWarmupData(&warmup_records, PredictionLog::kSessionRunLog));
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, 10));
@@ -142,13 +142,13 @@ TEST(SavedModelBundleWarmupTest, UnsupportedLogType_SessionRun) {
 }
 
 TEST(SavedModelBundleWarmupTest, UnsupportedLogType_PredictStreamed) {
-  string base_path = io::JoinPath(testing::TmpDir(), "PredictStreamed");
+  std::string base_path = io::JoinPath(testing::TmpDir(), "PredictStreamed");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                              internal::WarmupConsts::kRequestsFileName);
+  std::string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                   internal::WarmupConsts::kRequestsFileName);
 
-  std::vector<string> warmup_records;
+  std::vector<std::string> warmup_records;
   // Add unsupported log type
   TF_ASSERT_OK(
       AddToWarmupData(&warmup_records, PredictionLog::kPredictStreamedLog));

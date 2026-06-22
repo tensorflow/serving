@@ -52,29 +52,29 @@ class FakeSession : public tensorflow::Session {
   FakeSession() {}
   ~FakeSession() override = default;
   absl::Status Create(const GraphDef& graph) override {
-    return errors::Unimplemented("not available in fake");
+    return absl::UnimplementedError("not available in fake");
   }
   absl::Status Extend(const GraphDef& graph) override {
-    return errors::Unimplemented("not available in fake");
+    return absl::UnimplementedError("not available in fake");
   }
   absl::Status Close() override {
-    return errors::Unimplemented("not available in fake");
+    return absl::UnimplementedError("not available in fake");
   }
   absl::Status ListDevices(std::vector<DeviceAttributes>* response) override {
-    return errors::Unimplemented("not available in fake");
+    return absl::UnimplementedError("not available in fake");
   }
-  absl::Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
-                   const std::vector<string>& output_names,
-                   const std::vector<string>& target_nodes,
+  absl::Status Run(const std::vector<std::pair<std::string, Tensor>>& inputs,
+                   const std::vector<std::string>& output_names,
+                   const std::vector<std::string>& target_nodes,
                    std::vector<Tensor>* outputs) override {
     RunMetadata run_metadata;
     return Run(RunOptions(), inputs, output_names, target_nodes, outputs,
                &run_metadata);
   }
   absl::Status Run(const RunOptions& run_options,
-                   const std::vector<std::pair<string, Tensor>>& inputs,
-                   const std::vector<string>& output_names,
-                   const std::vector<string>& target_nodes,
+                   const std::vector<std::pair<std::string, Tensor>>& inputs,
+                   const std::vector<std::string>& output_names,
+                   const std::vector<std::string>& target_nodes,
                    std::vector<Tensor>* outputs,
                    RunMetadata* run_metadata) override {
     return Run(run_options, inputs, output_names, target_nodes, outputs,
@@ -82,10 +82,10 @@ class FakeSession : public tensorflow::Session {
   }
   absl::Status Run(
       const RunOptions& run_options,
-      const std::vector<std::pair<string, Tensor>>& inputs,
-      const std::vector<string>& output_names,
-      const std::vector<string>& target_nodes, std::vector<Tensor>* outputs,
-      RunMetadata* run_metadata,
+      const std::vector<std::pair<std::string, Tensor>>& inputs,
+      const std::vector<std::string>& output_names,
+      const std::vector<std::string>& target_nodes,
+      std::vector<Tensor>* outputs, RunMetadata* run_metadata,
       const thread::ThreadPoolOptions& thread_pool_options) override {
     for (const auto& t : inputs) {
       outputs->push_back(t.second);
@@ -98,7 +98,7 @@ class PredictImplTest : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
     if (!IsTensorflowServingOSS()) {
-      const string bad_half_plus_two_path = test_util::TestSrcDirPath(
+      const std::string bad_half_plus_two_path = test_util::TestSrcDirPath(
           "/servables/tensorflow/testdata/bad_half_plus_two");
       TF_ASSERT_OK(CreateServerCore(bad_half_plus_two_path,
                                     &saved_model_server_core_bad_model_));
@@ -121,7 +121,7 @@ class PredictImplTest : public ::testing::Test {
 
  protected:
   static absl::Status CreateServerCore(
-      const string& model_path, std::unique_ptr<ServerCore>* server_core) {
+      const std::string& model_path, std::unique_ptr<ServerCore>* server_core) {
     ModelServerConfig config;
     auto model_config = config.mutable_model_config_list()->add_config();
     model_config->set_name(kTestModelName);

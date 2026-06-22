@@ -55,16 +55,17 @@ absl::Status PreProcessPredictionWithoutOutputFilter(
       const auto& default_inputs = function_metadata.GetDefaultInputs();
       const auto& default_input = default_inputs.find(input_name);
       if (default_input == default_inputs.end()) {
-        const std::set<string> request_inputs = GetMapKeys(request.inputs());
-        const std::set<string> required_inputs(
+        const std::set<std::string> request_inputs =
+            GetMapKeys(request.inputs());
+        const std::set<std::string> required_inputs(
             function_metadata.GetInputNames().begin(),
             function_metadata.GetInputNames().end());
-        const std::set<string> sent_extra =
+        const std::set<std::string> sent_extra =
             SetDifference(request_inputs, required_inputs);
-        const std::set<string> missing =
+        const std::set<std::string> missing =
             SetDifference(SetDifference(required_inputs, request_inputs),
                           saved_model::GetMapKeys(default_inputs));
-        return errors::InvalidArgument(absl::StrCat(
+        return absl::InvalidArgumentError(absl::StrCat(
             "Request inputs do not match required inputs for model `",
             request.model_spec().name(), "`. Send extra: {",
             absl::StrJoin(sent_extra, ","), "}. Missing but required: {",
@@ -72,7 +73,7 @@ absl::Status PreProcessPredictionWithoutOutputFilter(
       }
       Tensor tensor;
       if (!tensor.FromProto(default_input->second)) {
-        return errors::InvalidArgument(
+        return absl::InvalidArgumentError(
             absl::StrCat("tensor parsing error: ", input_name));
       }
       input_tensors->emplace_back(std::move(tensor));
@@ -80,14 +81,14 @@ absl::Status PreProcessPredictionWithoutOutputFilter(
     }
     Tensor tensor;
     if (!tensor.FromProto(input->second)) {
-      return errors::InvalidArgument(
+      return absl::InvalidArgumentError(
           absl::StrCat("tensor parsing error: ", input_name));
     }
     const auto expected_dtype = function_metadata.GetInputSpecs()[i].dtype;
     // TODO(b/188570937): Remove this type check and update related tests.
     if (expected_dtype != DT_INVALID  // Skip if the dtype is unspecified.
         && tensor.dtype() != expected_dtype) {
-      return errors::InvalidArgument(
+      return absl::InvalidArgumentError(
           absl::StrCat("Expected input ", input_name, " to be ",
                        DataTypeString(expected_dtype), " but get ",
                        DataTypeString(tensor.dtype()), "."));
@@ -100,16 +101,16 @@ absl::Status PreProcessPredictionWithoutOutputFilter(
 // Validate results and populate a PredictResponse.
 // Tensors are serialized as specified.
 absl::Status PostProcessPredictionResultWithoutOutputFilter(
-    const std::vector<string>& output_tensor_names,
+    const std::vector<std::string>& output_tensor_names,
     const std::vector<Tensor>& output_tensors,
     const internal::PredictResponseTensorSerializationOption option,
     const PredictRequest& request, PredictResponse* response) {
   if (output_tensor_names.size() != output_tensors.size()) {
-    return errors::Unknown("Predict internal error.");
+    return absl::UnknownError("Predict internal error.");
   }
 
-  std::unordered_set<string> output_filter(request.output_filter().begin(),
-                                           request.output_filter().end());
+  std::unordered_set<std::string> output_filter(request.output_filter().begin(),
+                                                request.output_filter().end());
   int output_size = 0;
   for (int i = 0; i < output_tensors.size(); ++i) {
     if (!output_filter.empty() &&
@@ -131,7 +132,7 @@ absl::Status PostProcessPredictionResultWithoutOutputFilter(
   }
 
   if (!output_filter.empty() && output_filter.size() != output_size) {
-    return errors::InvalidArgument(absl::StrCat(
+    return absl::InvalidArgumentError(absl::StrCat(
         "output_filter contains non-existed output names. output_filter: ",
         absl::StrJoin(output_filter, ",")));
   }
@@ -174,7 +175,7 @@ absl::Status RunPredict(
   const auto function_metadata =
       saved_model->GetFunctionMetadata(function_name);
   if (!function_metadata.has_value()) {
-    return errors::FailedPrecondition(
+    return absl::FailedPreconditionError(
         absl::StrCat("Function \"", function_name, "\" not found."));
   }
 
@@ -229,15 +230,15 @@ absl::Status RunPredict(
     const auto& metagraph_def = saved_model->GetMetaGraphDef();
     auto iter = metagraph_def.signature_def().find(function_name);
     if (iter == metagraph_def.signature_def().end()) {
-      return errors::FailedPrecondition(absl::StrCat(
+      return absl::FailedPreconditionError(absl::StrCat(
           "Serving signature key \"", function_name, "\" not found."));
     }
     const SignatureDef& signature = iter->second;
 
     TRACELITERAL("Pre process prediction with output filter");
-    std::vector<std::pair<string, Tensor>> input_tensors;
-    std::vector<string> output_tensor_names;
-    std::vector<string> output_tensor_aliases;
+    std::vector<std::pair<std::string, Tensor>> input_tensors;
+    std::vector<std::string> output_tensor_names;
+    std::vector<std::string> output_tensor_aliases;
     TF_RETURN_IF_ERROR(PreProcessPrediction(signature, request, &input_tensors,
                                             &output_tensor_names,
                                             &output_tensor_aliases));

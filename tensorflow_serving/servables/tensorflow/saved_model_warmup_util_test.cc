@@ -118,14 +118,15 @@ class RunSavedModelWarmupTest
 };
 
 TEST_P(RunSavedModelWarmupTest, WarmupStateRegistration) {
-  string base_path = io::JoinPath(testing::TmpDir(), "WarmupStateRegistration");
+  std::string base_path =
+      io::JoinPath(testing::TmpDir(), "WarmupStateRegistration");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                              internal::WarmupConsts::kRequestsFileName);
+  std::string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                   internal::WarmupConsts::kRequestsFileName);
 
   const int num_warmup_records = parallel_warmup() ? kNumWarmupThreads : 1;
-  std::vector<string> warmup_records;
+  std::vector<std::string> warmup_records;
   TF_ASSERT_OK(
       AddMixedWarmupData(&warmup_records, {PredictionLog::kPredictLog}));
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, num_warmup_records));
@@ -146,7 +147,7 @@ INSTANTIATE_TEST_SUITE_P(RunSavedModelWarmupTests, RunSavedModelWarmupTest,
                          ::testing::Bool());
 
 TEST_F(RunSavedModelWarmupUntrackedTest, NoWarmupDataFile) {
-  string base_path = io::JoinPath(testing::TmpDir(), "NoWarmupDataFile");
+  std::string base_path = io::JoinPath(testing::TmpDir(), "NoWarmupDataFile");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
 
@@ -162,13 +163,14 @@ TEST_F(RunSavedModelWarmupUntrackedTest, NoWarmupDataFile) {
 }
 
 TEST_F(RunSavedModelWarmupUntrackedTest, WarmupDataFileEmpty) {
-  string base_path = io::JoinPath(testing::TmpDir(), "WarmupDataFileEmpty");
+  std::string base_path =
+      io::JoinPath(testing::TmpDir(), "WarmupDataFileEmpty");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                              internal::WarmupConsts::kRequestsFileName);
+  std::string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                   internal::WarmupConsts::kRequestsFileName);
 
-  std::vector<string> warmup_records;
+  std::vector<std::string> warmup_records;
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, 0));
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);
@@ -182,13 +184,15 @@ TEST_F(RunSavedModelWarmupUntrackedTest, WarmupDataFileEmpty) {
 }
 
 TEST_F(RunSavedModelWarmupUntrackedTest, UnsupportedFileFormat) {
-  string base_path = io::JoinPath(testing::TmpDir(), "UnsupportedFileFormat");
+  std::string base_path =
+      io::JoinPath(testing::TmpDir(), "UnsupportedFileFormat");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  const string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                                    internal::WarmupConsts::kRequestsFileName);
+  const std::string fname =
+      io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                   internal::WarmupConsts::kRequestsFileName);
 
-  std::vector<string> warmup_records;
+  std::vector<std::string> warmup_records;
   // Add unsupported log type
   PredictionLog prediction_log;
   TF_ASSERT_OK(
@@ -209,13 +213,14 @@ TEST_F(RunSavedModelWarmupUntrackedTest, UnsupportedFileFormat) {
 }
 
 TEST_F(RunSavedModelWarmupUntrackedTest, TooManyWarmupRecords) {
-  string base_path = io::JoinPath(testing::TmpDir(), "TooManyWarmupRecords");
+  std::string base_path =
+      io::JoinPath(testing::TmpDir(), "TooManyWarmupRecords");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                              internal::WarmupConsts::kRequestsFileName);
+  std::string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                   internal::WarmupConsts::kRequestsFileName);
 
-  std::vector<string> warmup_records;
+  std::vector<std::string> warmup_records;
   TF_ASSERT_OK(AddMixedWarmupData(&warmup_records));
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records,
                                internal::WarmupConsts::kMaxNumRecords + 1));
@@ -234,13 +239,13 @@ TEST_F(RunSavedModelWarmupUntrackedTest, TooManyWarmupRecords) {
 }
 
 TEST_F(RunSavedModelWarmupUntrackedTest, UnparsableRecord) {
-  string base_path = io::JoinPath(testing::TmpDir(), "UnparsableRecord");
+  std::string base_path = io::JoinPath(testing::TmpDir(), "UnparsableRecord");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                              internal::WarmupConsts::kRequestsFileName);
+  std::string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                   internal::WarmupConsts::kRequestsFileName);
 
-  std::vector<string> warmup_records = {"malformed_record"};
+  std::vector<std::string> warmup_records = {"malformed_record"};
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, 10));
   SavedModelBundle saved_model_bundle;
   const absl::Status status = RunSavedModelWarmupUntracked(
@@ -255,14 +260,14 @@ TEST_F(RunSavedModelWarmupUntrackedTest, UnparsableRecord) {
 }
 
 TEST_F(RunSavedModelWarmupUntrackedTest, RunSuccess) {
-  string base_path = io::JoinPath(testing::TmpDir(), "RunSuccess");
+  std::string base_path = io::JoinPath(testing::TmpDir(), "RunSuccess");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                              internal::WarmupConsts::kRequestsFileName);
+  std::string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                   internal::WarmupConsts::kRequestsFileName);
 
   int num_warmup_records = 5;
-  std::vector<string> warmup_records;
+  std::vector<std::string> warmup_records;
   TF_ASSERT_OK(AddMixedWarmupData(&warmup_records));
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, num_warmup_records));
   SavedModelBundle saved_model_bundle;
@@ -274,21 +279,21 @@ TEST_F(RunSavedModelWarmupUntrackedTest, RunSuccess) {
 }
 
 TEST_F(RunSavedModelWarmupUntrackedTest, RunFailure) {
-  string base_path = io::JoinPath(testing::TmpDir(), "RunFailure");
+  std::string base_path = io::JoinPath(testing::TmpDir(), "RunFailure");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                              internal::WarmupConsts::kRequestsFileName);
+  std::string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                   internal::WarmupConsts::kRequestsFileName);
 
   int num_warmup_records = 10;
-  std::vector<string> warmup_records;
+  std::vector<std::string> warmup_records;
   TF_ASSERT_OK(AddMixedWarmupData(&warmup_records));
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, num_warmup_records));
   SavedModelBundle saved_model_bundle;
   AddSignatures(&saved_model_bundle.meta_graph_def);
   absl::Status status = RunSavedModelWarmupUntracked(
       CreateModelWarmupOptions(), base_path, [](PredictionLog prediction_log) {
-        return errors::InvalidArgument("Run failed");
+        return absl::InvalidArgumentError("Run failed");
       });
   ASSERT_FALSE(status.ok());
   EXPECT_EQ(static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),

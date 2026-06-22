@@ -62,8 +62,8 @@ class SavedModelTensorFlowRegressor : public RegressorInterface {
                        RegressionResult* result) override {
     TRACELITERAL("SavedModelTensorFlowRegressor::Regress");
 
-    string input_tensor_name;
-    std::vector<string> output_tensor_names;
+    std::string input_tensor_name;
+    std::vector<std::string> output_tensor_names;
     TF_RETURN_IF_ERROR(PreProcessRegression(*signature_, &input_tensor_name,
                                             &output_tensor_names));
 
@@ -146,17 +146,17 @@ absl::Status CreateFlyweightTensorFlowRegressor(
 absl::Status GetRegressionSignatureDef(const ModelSpec& model_spec,
                                        const MetaGraphDef& meta_graph_def,
                                        SignatureDef* signature) {
-  const string signature_name = model_spec.signature_name().empty()
-                                    ? kDefaultServingSignatureDefKey
-                                    : model_spec.signature_name();
+  const std::string signature_name = model_spec.signature_name().empty()
+                                         ? kDefaultServingSignatureDefKey
+                                         : model_spec.signature_name();
   auto iter = meta_graph_def.signature_def().find(signature_name);
   if (iter == meta_graph_def.signature_def().end()) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(
         absl::StrCat("No signature was found with the name: ", signature_name));
   }
   if (GetSignatureMethodNameCheckFeature()) {
     if (iter->second.method_name() != kRegressMethodName) {
-      return errors::InvalidArgument(absl::StrCat(
+      return absl::InvalidArgumentError(absl::StrCat(
           "Expected regression signature method_name to be ",
           kRegressMethodName, ". Was: ", iter->second.method_name()));
     }
@@ -167,27 +167,27 @@ absl::Status GetRegressionSignatureDef(const ModelSpec& model_spec,
   return absl::OkStatus();
 }
 
-absl::Status PreProcessRegression(const SignatureDef& signature,
-                                  string* input_tensor_name,
-                                  std::vector<string>* output_tensor_names) {
+absl::Status PreProcessRegression(
+    const SignatureDef& signature, std::string* input_tensor_name,
+    std::vector<std::string>* output_tensor_names) {
   if (GetSignatureMethodNameCheckFeature() &&
       signature.method_name() != kRegressMethodName) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(
         absl::StrCat("Expected regression signature method_name to be ",
                      kRegressMethodName, ". Was: ", signature.method_name()));
   }
   if (signature.inputs().size() != 1) {
-    return errors::InvalidArgument(absl::StrCat("Expected one input Tensor."));
+    return absl::InvalidArgumentError("Expected one input Tensor.");
   }
   if (signature.outputs().size() != 1) {
-    return errors::InvalidArgument(absl::StrCat("Expected one output Tensor."));
+    return absl::InvalidArgumentError("Expected one output Tensor.");
   }
 
   auto input_iter = signature.inputs().find(kRegressInputs);
   if (input_iter == signature.inputs().end()) {
-    return errors::InvalidArgument(
-        "No regression inputs found in SignatureDef: ",
-        signature.DebugString());
+    return absl::InvalidArgumentError(
+        absl::StrCat("No regression inputs found in SignatureDef: ",
+                     signature.DebugString()));
   }
   if (input_tensor_name != nullptr) {
     *input_tensor_name = input_iter->second.name();
@@ -195,9 +195,9 @@ absl::Status PreProcessRegression(const SignatureDef& signature,
 
   auto output_iter = signature.outputs().find(kRegressOutputs);
   if (output_iter == signature.outputs().end()) {
-    return errors::InvalidArgument(
-        "No regression outputs found in SignatureDef: ",
-        signature.DebugString());
+    return absl::InvalidArgumentError(
+        absl::StrCat("No regression outputs found in SignatureDef: ",
+                     signature.DebugString()));
   }
   if (output_tensor_names != nullptr) {
     output_tensor_names->push_back(output_iter->second.name());
@@ -207,21 +207,21 @@ absl::Status PreProcessRegression(const SignatureDef& signature,
 
 absl::Status PostProcessRegressionResult(
     const SignatureDef& signature, int num_examples,
-    const std::vector<string>& output_tensor_names,
+    const std::vector<std::string>& output_tensor_names,
     const std::vector<Tensor>& output_tensors, RegressionResult* result) {
   if (output_tensors.size() != output_tensor_names.size()) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(
         "Expected output_tensors and output_tensor_names to have the same "
         "size.");
   }
 
   auto output_iter = signature.outputs().find(kRegressOutputs);
   if (output_iter == signature.outputs().end()) {
-    return errors::FailedPrecondition(
-        "No regression outputs found in SignatureDef: ",
-        signature.DebugString());
+    return absl::FailedPreconditionError(
+        absl::StrCat("No regression outputs found in SignatureDef: ",
+                     signature.DebugString()));
   }
-  const string output_tensor_name = output_iter->second.name();
+  const std::string output_tensor_name = output_iter->second.name();
   const Tensor* output_tensor = nullptr;
   for (int i = 0; i < output_tensor_names.size(); ++i) {
     if (output_tensor_names[i] == output_tensor_name) {
@@ -232,29 +232,30 @@ absl::Status PostProcessRegressionResult(
 
   // Ensure the regression score output is shaped how we expect.
   if (output_tensor == nullptr) {
-    return errors::InvalidArgument(absl::StrCat(
+    return absl::InvalidArgumentError(absl::StrCat(
         "Could not find output tensor '", output_tensor_name, "'"));
   }
   if (!(output_tensor->dims() == 1 ||
         (output_tensor->dims() == 2 && output_tensor->dim_size(1) == 1))) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(absl::StrCat(
         "Expected output Tensor shape to be either [batch_size] or ",
-        "[batch_size, 1] but got ", output_tensor->shape().DebugString());
+        "[batch_size, 1] but got ", output_tensor->shape().DebugString()));
   }
   if (num_examples != output_tensor->dim_size(0)) {
-    return errors::InvalidArgument(absl::StrCat(
+    return absl::InvalidArgumentError(absl::StrCat(
         "Input batch size did not match output batch size: ", num_examples,
         " vs. ", output_tensor->dim_size(0)));
   }
   if (output_tensor->dtype() != DT_FLOAT) {
-    return errors::InvalidArgument("Expected output Tensor of DT_FLOAT.  Got: ",
-                                   DataType_Name(output_tensor->dtype()));
+    return absl::InvalidArgumentError(
+        absl::StrCat("Expected output Tensor of DT_FLOAT.  Got: ",
+                     DataType_Name(output_tensor->dtype())));
   }
 
   if (output_tensor->NumElements() != num_examples) {
-    return errors::InvalidArgument("Expected output batch size to be ",
-                                   num_examples,
-                                   ".  Got: ", output_tensor->NumElements());
+    return absl::InvalidArgumentError(
+        absl::StrCat("Expected output batch size to be ", num_examples,
+                     ".  Got: ", output_tensor->NumElements()));
   }
 
   const auto& output_tensor_flat = output_tensor->flat<float>();

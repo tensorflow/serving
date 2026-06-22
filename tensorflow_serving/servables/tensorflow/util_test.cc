@@ -288,9 +288,9 @@ TEST(SignatureMethodNameCheckFeature, SetGet) {
 }
 
 TEST(ResourceEstimatorTest, EstimateResourceFromPathUsingDiskState) {
-  const string export_dir = "/foo/bar";
-  const string child = "child";
-  const string child_path = io::JoinPath(export_dir, child);
+  const std::string export_dir = "/foo/bar";
+  const std::string child = "child";
+  const std::string child_path = io::JoinPath(export_dir, child);
   const double file_size = 100;
 
   // Set up the expectation that the directory contains exactly one child with
@@ -299,10 +299,10 @@ TEST(ResourceEstimatorTest, EstimateResourceFromPathUsingDiskState) {
   EXPECT_CALL(env, FileExists(export_dir))
       .WillRepeatedly(Return(absl::OkStatus()));
   EXPECT_CALL(env, GetChildren(export_dir, _))
-      .WillRepeatedly(DoAll(SetArgPointee<1>(std::vector<string>({child})),
+      .WillRepeatedly(DoAll(SetArgPointee<1>(std::vector<std::string>({child})),
                             Return(absl::OkStatus())));
   EXPECT_CALL(env, IsDirectory(child_path))
-      .WillRepeatedly(Return(errors::FailedPrecondition("")));
+      .WillRepeatedly(Return(absl::FailedPreconditionError("")));
   EXPECT_CALL(env, GetFileSize(child_path, _))
       .WillRepeatedly(
           DoAll(SetArgPointee<1>(file_size), Return(absl::OkStatus())));
@@ -317,14 +317,15 @@ TEST(ResourceEstimatorTest, EstimateResourceFromPathUsingDiskState) {
 }
 
 TEST(GetMapKeysTest, GetKeys) {
-  std::map<string, string> map = {std::pair<string, string>("key1", "value1"),
-                                  std::pair<string, string>("key2", "value2")};
+  std::map<std::string, std::string> map = {
+      std::pair<std::string, std::string>("key1", "value1"),
+      std::pair<std::string, std::string>("key2", "value2")};
   const auto result = GetMapKeys(map);
   EXPECT_THAT(result, ::testing::UnorderedElementsAre("key1", "key2"));
 }
 
 TEST(SetDifferenceTEST, GetDiff) {
-  std::set<string> result;
+  std::set<std::string> result;
   EXPECT_THAT(SetDifference({"a", "b", "c"}, {"a", "b"}),
               ::testing::UnorderedElementsAre("c"));
   EXPECT_THAT(SetDifference({"a", "b", "c"}, {"a", "b", "d"}),

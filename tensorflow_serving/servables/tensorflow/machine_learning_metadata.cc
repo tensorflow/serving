@@ -27,19 +27,19 @@ namespace {
 
 static constexpr char kMLMDKeyFile[] = "mlmd_uuid";
 
-auto* mlmd_map = monitoring::Gauge<string, 2>::New(
+auto* mlmd_map = monitoring::Gauge<std::string, 2>::New(
     "/tensorflow/serving/mlmd_map",
     "Mapping for ML Metadata UUID to model_name and version.", "model_name",
     "version");
 
 }  // namespace
 
-void MaybePublishMLMDStreamz(const string& export_dir, const string& model_name,
-                             int64_t version) {
-  const string mlmd_path = tensorflow::io::JoinPath(
+void MaybePublishMLMDStreamz(const std::string& export_dir,
+                             const std::string& model_name, int64_t version) {
+  const std::string mlmd_path = tensorflow::io::JoinPath(
       export_dir, tensorflow::kSavedModelAssetsExtraDirectory, kMLMDKeyFile);
   if (tsl::Env::Default()->FileExists(mlmd_path).ok()) {
-    string mlmd_key;
+    std::string mlmd_key;
     auto status = ReadFileToString(tsl::Env::Default(), mlmd_path, &mlmd_key);
     if (!status.ok()) {
       LOG(WARNING) << "ML Metadata Key Found But couldn't be read.";

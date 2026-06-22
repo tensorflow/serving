@@ -108,7 +108,7 @@ absl::Status RunWarmupRequest(const PredictionLog& warmup_record,
       break;
     }
     default:
-      return errors::Unimplemented(absl::StrCat(
+      return absl::UnimplementedError(absl::StrCat(
           "Unsupported log_type for warmup: ", warmup_record.log_type_case()));
       break;
   }
@@ -118,7 +118,7 @@ absl::Status RunWarmupRequest(const PredictionLog& warmup_record,
 }  // namespace
 
 absl::Status RunSavedModelWarmup(const ModelWarmupOptions& model_warmup_options,
-                                 const string& export_dir,
+                                 const std::string& export_dir,
                                  int lazy_init_threshold,
                                  bool skip_warmup_requests_if_initialized,
                                  tfrt::SavedModel* saved_model) {

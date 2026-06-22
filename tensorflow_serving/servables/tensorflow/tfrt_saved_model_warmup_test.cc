@@ -67,14 +67,14 @@ class TFRTSavedModelWarmupOptionsTest : public ::testing::TestWithParam<bool> {
 };
 
 TEST_P(TFRTSavedModelWarmupOptionsTest, MixedWarmupData) {
-  string base_path = io::JoinPath(testing::TmpDir(), "MixedWarmupData");
+  std::string base_path = io::JoinPath(testing::TmpDir(), "MixedWarmupData");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                              internal::WarmupConsts::kRequestsFileName);
+  std::string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                   internal::WarmupConsts::kRequestsFileName);
 
   int num_warmup_records = 10;
-  std::vector<string> warmup_records;
+  std::vector<std::string> warmup_records;
   TF_ASSERT_OK(AddMixedWarmupData(&warmup_records));
   TF_ASSERT_OK(WriteWarmupData(fname, warmup_records, num_warmup_records));
 
@@ -208,13 +208,13 @@ INSTANTIATE_TEST_SUITE_P(WarmupOptions, TFRTSavedModelWarmupOptionsTest,
                          ::testing::Bool());
 
 TEST(TFRTSavedModelWarmupTest, UnsupportedLogType) {
-  string base_path = io::JoinPath(testing::TmpDir(), "UnsupportedLogType");
+  std::string base_path = io::JoinPath(testing::TmpDir(), "UnsupportedLogType");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                              internal::WarmupConsts::kRequestsFileName);
+  std::string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                   internal::WarmupConsts::kRequestsFileName);
 
-  std::vector<string> warmup_records;
+  std::vector<std::string> warmup_records;
   // Add unsupported log type
   PredictionLog prediction_log;
   TF_ASSERT_OK(
@@ -239,14 +239,14 @@ TEST(TFRTSavedModelWarmupTest, UnsupportedLogType) {
 }
 
 TEST(TFRTSavedModelWarmupTest, SkipWarmupRequest) {
-  string base_path = io::JoinPath(testing::TmpDir(), "SkipWarmupRequest");
+  std::string base_path = io::JoinPath(testing::TmpDir(), "SkipWarmupRequest");
   TF_ASSERT_OK(Env::Default()->RecursivelyCreateDir(
       io::JoinPath(base_path, kSavedModelAssetsExtraDirectory)));
-  string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
-                              internal::WarmupConsts::kRequestsFileName);
+  std::string fname = io::JoinPath(base_path, kSavedModelAssetsExtraDirectory,
+                                   internal::WarmupConsts::kRequestsFileName);
 
   int num_warmup_records = 10;
-  std::vector<string> warmup_records;
+  std::vector<std::string> warmup_records;
   TF_ASSERT_OK(AddMixedWarmupData(
       &warmup_records, {PredictionLog::kRegressLog, PredictionLog::kClassifyLog,
                         PredictionLog::kPredictLog}));

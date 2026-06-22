@@ -44,7 +44,7 @@ ABSL_ATTRIBUTE_UNUSED constexpr char kMobileNetModel[] =
     "model.tflite";
 
 TEST(TfLiteInterpreterPool, CreateTfLiteInterpreterPoolTest) {
-  string model_bytes;
+  std::string model_bytes;
   TF_ASSERT_OK(ReadFileToString(Env::Default(),
                                 test_util::TestSrcDirPath(kParseExampleModel),
                                 &model_bytes));
@@ -99,7 +99,7 @@ std::vector<std::string> ExtractVector(const TfLiteTensor* tflite_tensor) {
 }
 
 TEST(TfLiteInterpreterWrapper, TfLiteInterpreterWrapperTest) {
-  string model_bytes;
+  std::string model_bytes;
   TF_ASSERT_OK(ReadFileToString(Env::Default(),
                                 test_util::TestSrcDirPath(kParseExampleModel),
                                 &model_bytes));

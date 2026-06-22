@@ -88,7 +88,7 @@ class SavedModelBundleSourceAdapterTest
     });
   }
 
-  void TestSavedModelBundleSourceAdapter(const string& export_dir) const {
+  void TestSavedModelBundleSourceAdapter(const std::string& export_dir) const {
     std::unique_ptr<Loader> loader;
     {
       std::unique_ptr<SavedModelBundleSourceAdapter> adapter;
