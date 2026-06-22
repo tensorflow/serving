@@ -110,7 +110,7 @@ SignatureDefMap GetSignatureDefMap(ServerCore* server_core,
   ServableHandle<Servable> servable;
   TF_EXPECT_OK(server_core->GetServableHandle(model_spec, &servable));
   auto& saved_model =
-      down_cast<TfrtSavedModelServable*>(servable.get())->saved_model();
+      absl::down_cast<TfrtSavedModelServable*>(servable.get())->saved_model();
   for (const auto& signature : saved_model.GetMetaGraphDef().signature_def()) {
     (*signature_def_map.mutable_signature_def())[signature.first] =
         signature.second;

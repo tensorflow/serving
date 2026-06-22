@@ -345,7 +345,7 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
       saved_model_config, std::move(saved_model), thread_pool_factory_.get(),
       recorder_creator_);
   TfrtSavedModelServable* tfrt_servable =
-      down_cast<TfrtSavedModelServable*>(servable->get());
+      absl::down_cast<TfrtSavedModelServable*>(servable->get());
 
   if (config().enable_model_warmup()) {
     ModelWarmupOptions warmup_options = config().model_warmup_options();

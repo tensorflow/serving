@@ -146,7 +146,7 @@ TEST_F(TfrtMultiInferenceTest, MissingInputTest) {
   ExpectStatusError(
       RunMultiInference(
           tfrt::SavedModel::RunOptions(), servable_version_,
-          &(down_cast<TfrtSavedModelServable*>(servable.get()))  // NOLINT
+          &(absl::down_cast<TfrtSavedModelServable*>(servable.get()))  // NOLINT
                ->saved_model(),
           request, &response),
       absl::StatusCode::kInvalidArgument, "Input is empty");
