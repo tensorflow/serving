@@ -248,7 +248,7 @@ absl::Status TFRTHttpRestApiHandler::GetInfoMap(
   ServableHandle<Servable> servable;
   TF_RETURN_IF_ERROR(core_->GetServableHandle(model_spec, &servable));
   auto& saved_model =
-      down_cast<TfrtSavedModelServable*>(servable.get())->saved_model();
+      absl::down_cast<TfrtSavedModelServable*>(servable.get())->saved_model();
   const std::string& signame =
       signature_name.empty() ? kDefaultServingSignatureDefKey : signature_name;
   auto iter = saved_model.GetMetaGraphDef().signature_def().find(signame);
