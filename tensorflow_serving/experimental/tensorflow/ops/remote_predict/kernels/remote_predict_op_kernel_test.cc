@@ -130,7 +130,7 @@ using RemotePredict = ops::TfServingRemotePredict;
 absl::Status RunRemotePredict(
     const string& model_name, std::vector<Tensor>* outputs,
     const DataTypeSlice& output_types = {DT_INT32, DT_INT32},
-    const absl::optional<::absl::Duration> deadline = absl::nullopt,
+    const absl::optional<::absl::Duration> deadline = std::nullopt,
     bool fail_on_rpc_error = true,
     const string& target_address = "target_address",
     int64_t target_model_version = -1, const string& signature_name = "") {
@@ -199,7 +199,7 @@ TEST(RemotePredictTest, TestRpcErrorReturnStatus) {
   // "MemorySanitizer: use-of-uninitialized-value"
   const auto status = RunRemotePredict(
       /*model_name=*/MockPredictionService::kBadModel, &outputs,
-      {DT_FLOAT, DT_FLOAT}, /*deadline=*/absl::nullopt,
+      {DT_FLOAT, DT_FLOAT}, /*deadline=*/std::nullopt,
       /*fail_on_rpc_error=*/false);
 
   EXPECT_TRUE(status.ok());
