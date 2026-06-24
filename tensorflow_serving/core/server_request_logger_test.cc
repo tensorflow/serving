@@ -64,17 +64,18 @@ using ::tsl::testing::StatusIs;
 
 using UpdateRequest = ServerRequestLogger::UpdateRequest;
 
-LogCollectorConfig CreateLogCollectorConfig(const string& type,
-                                            const string& filename_prefix) {
+LogCollectorConfig CreateLogCollectorConfig(
+    const std::string& type, const std::string& filename_prefix) {
   LogCollectorConfig config;
   config.set_type(type);
   config.set_filename_prefix(filename_prefix);
   return config;
 }
 
-std::pair<string, LoggingConfig> CreateLoggingConfigForModel(
-    const string& model_name, const string& log_filename_suffix = "") {
-  string filename_prefix = absl::StrCat("/file/", model_name);
+std::pair<std::string, LoggingConfig> CreateLoggingConfigForModel(
+    const std::string& model_name,
+    const std::string& log_filename_suffix = "") {
+  std::string filename_prefix = absl::StrCat("/file/", model_name);
   if (!log_filename_suffix.empty()) {
     absl::StrAppend(&filename_prefix, "-", log_filename_suffix);
   }
@@ -85,9 +86,9 @@ std::pair<string, LoggingConfig> CreateLoggingConfigForModel(
   return {model_name, logging_config};
 }
 
-std::map<string, std::vector<LoggingConfig>> CreateLoggingConfigMap(
-    const std::vector<std::pair<string, LoggingConfig>>& model_configs) {
-  std::map<string, std::vector<LoggingConfig>> config_map;
+std::map<std::string, std::vector<LoggingConfig>> CreateLoggingConfigMap(
+    const std::vector<std::pair<std::string, LoggingConfig>>& model_configs) {
+  std::map<std::string, std::vector<LoggingConfig>> config_map;
   for (const auto& model_config : model_configs) {
     config_map[model_config.first].push_back(model_config.second);
   }
@@ -106,14 +107,14 @@ class ServerRequestLoggerTest : public ::testing::Test {
                 "Negative log sampling rate provided.");
           }
 
-          const string& filename_prefix =
+          const std::string& filename_prefix =
               logging_config.log_collector_config().filename_prefix();
           log_collector_map_[filename_prefix] = new FakeLogCollector();
           increment_created_logger_counter();
           auto logger_destruction_notifier = [this]() {
             increment_deleted_logger_counter();
           };
-          const std::vector<string>& tags = {kSavedModelTagServe};
+          const std::vector<std::string>& tags = {kSavedModelTagServe};
           auto mock_request_logger =
               std::shared_ptr<NiceMock<MockRequestLogger>>(
                   new NiceMock<MockRequestLogger>(
@@ -165,7 +166,7 @@ class ServerRequestLoggerTest : public ::testing::Test {
   std::function<absl::Status()> request_logger_status_cb_ = []() {
     return absl::OkStatus();
   };
-  std::unordered_map<string, FakeLogCollector*> log_collector_map_;
+  std::unordered_map<std::string, FakeLogCollector*> log_collector_map_;
   std::unique_ptr<ServerRequestLogger> server_request_logger_;
 };
 
@@ -243,9 +244,9 @@ TEST_F(ServerRequestLoggerTest, CreateAndModifyLogger) {
 }
 
 TEST_F(ServerRequestLoggerTest, SameConfigForTwoModelsCreatesOneLogger) {
-  std::pair<string, LoggingConfig> model_and_config1 =
+  std::pair<std::string, LoggingConfig> model_and_config1 =
       CreateLoggingConfigForModel("model");
-  std::pair<string, LoggingConfig> model_and_config2 = {
+  std::pair<std::string, LoggingConfig> model_and_config2 = {
       "model2", model_and_config1.second};
   TF_ASSERT_OK(server_request_logger_->Update(
       CreateLoggingConfigMap({model_and_config1, model_and_config2})));
@@ -264,10 +265,10 @@ TEST_F(ServerRequestLoggerTest, MultipleConfigForOneModel) {
 
 TEST_F(ServerRequestLoggerTest, PartiallyBadUpdate) {
   // Initially create a logger with 2 OK configs.
-  std::pair<string, LoggingConfig> model0_ok_config =
+  std::pair<std::string, LoggingConfig> model0_ok_config =
       CreateLoggingConfigForModel(/*model_name=*/"model0",
                                   /*log_filename_suffix=*/"path0");
-  std::pair<string, LoggingConfig> model1_ok_config =
+  std::pair<std::string, LoggingConfig> model1_ok_config =
       CreateLoggingConfigForModel(/*model_name=*/"model1",
                                   /*log_filename_suffix=*/"path1");
   TF_ASSERT_OK(server_request_logger_->Update(
@@ -277,7 +278,7 @@ TEST_F(ServerRequestLoggerTest, PartiallyBadUpdate) {
 
   // Now, attempt to update model1's config with a bad config, expect an update
   // failure, and existing ok configs should not modified.
-  std::pair<string, LoggingConfig> model1_bad_config =
+  std::pair<std::string, LoggingConfig> model1_bad_config =
       CreateLoggingConfigForModel(/*model_name=*/"model1",
                                   /*log_filename_suffix=*/"path2");
   model1_bad_config.second.mutable_sampling_config()->set_sampling_rate(-1);
@@ -314,7 +315,7 @@ TEST_F(ServerRequestLoggerTest, CreateUpdateRequestErrors) {
   EXPECT_TRUE(req.model_to_loggers_map->empty());
 
   // Bad config.
-  std::pair<string, LoggingConfig> model0_bad_config =
+  std::pair<std::string, LoggingConfig> model0_bad_config =
       CreateLoggingConfigForModel(/*model_name=*/"model0",
                                   /*log_filename_suffix=*/"bad_config_path");
   model0_bad_config.second.mutable_sampling_config()->set_sampling_rate(-1);
@@ -323,7 +324,7 @@ TEST_F(ServerRequestLoggerTest, CreateUpdateRequestErrors) {
               absl_testing::StatusIs(absl::StatusCode::kInvalidArgument));
 
   // Ok+bad config.
-  std::pair<string, LoggingConfig> model0_ok_config =
+  std::pair<std::string, LoggingConfig> model0_ok_config =
       CreateLoggingConfigForModel(/*model_name=*/"model0",
                                   /*log_filename_suffix=*/"ok_conig_path");
   EXPECT_THAT(
@@ -333,7 +334,7 @@ TEST_F(ServerRequestLoggerTest, CreateUpdateRequestErrors) {
 }
 
 TEST_F(ServerRequestLoggerTest, CreateUpdateRequestSingleConfigOk) {
-  std::pair<string, LoggingConfig> model0_ok_config =
+  std::pair<std::string, LoggingConfig> model0_ok_config =
       CreateLoggingConfigForModel(/*model_name=*/"model0",
                                   /*log_filename_suffix=*/"ok_conig_path");
   TF_ASSERT_OK_AND_ASSIGN(UpdateRequest req,
@@ -347,10 +348,10 @@ TEST_F(ServerRequestLoggerTest, CreateUpdateRequestSingleConfigOk) {
 TEST_F(ServerRequestLoggerTest, CreateUpdateRequestMultipleConfigsOk) {
   // Both model0 and model1 are using the same config, expect only 1 logger
   // created.
-  std::pair<string, LoggingConfig> model0_v1_config =
+  std::pair<std::string, LoggingConfig> model0_v1_config =
       CreateLoggingConfigForModel(/*model_name=*/"model0",
                                   /*log_filename_suffix=*/"same_conig_path");
-  std::pair<string, LoggingConfig> model0_v2_config = model0_v1_config;
+  std::pair<std::string, LoggingConfig> model0_v2_config = model0_v1_config;
   model0_v2_config.first = "model0_v2";
 
   TF_ASSERT_OK_AND_ASSIGN(
@@ -400,13 +401,13 @@ TEST_F(ServerRequestLoggerTest, MultipleLoggersOneModelErrors) {
   // Inject errors for all Log() calls.
   int req_count = 0;
   request_logger_status_cb_ = [&]() {
-    return errors::InvalidArgument(absl::StrCat(req_count++));
+    return absl::InvalidArgumentError(absl::StrCat(req_count++));
   };
 
   LogMetadata log_metadata0;
   auto* const model_spec0 = log_metadata0.mutable_model_spec();
   model_spec0->set_name("model0");
-  EXPECT_EQ(errors::InvalidArgument("0"),
+  EXPECT_EQ(absl::InvalidArgumentError("0"),
             server_request_logger_->Log(PredictRequest(), PredictResponse(),
                                         log_metadata0));
 
