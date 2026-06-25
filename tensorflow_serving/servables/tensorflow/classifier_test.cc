@@ -152,7 +152,8 @@ class FakeSession : public tensorflow::Session {
     const auto& flat_input = input.flat<tstring>();
     for (int i = 0; i < batch_size; ++i) {
       Example example;
-      if (!example.ParseFromArray(flat_input(i).data(), flat_input(i).size())) {
+      if (!example.ParseFromString(
+              absl::string_view(flat_input(i).data(), flat_input(i).size()))) {
         return errors::Internal("failed to parse example");
       }
       examples->push_back(example);
