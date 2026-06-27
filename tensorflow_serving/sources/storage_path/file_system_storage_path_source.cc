@@ -422,7 +422,7 @@ void FileSystemStoragePathSource::SetAspiredVersionsCallback(
   if (config_.file_system_poll_wait_seconds() == 0) {
     // Start a thread to poll filesystem once and call the callback.
     fs_polling_thread_.reset(new FileSystemStoragePathSource::ThreadType(
-        absl::in_place_type_t<std::unique_ptr<Thread>>(),
+        std::in_place_type_t<std::unique_ptr<Thread>>(),
         Env::Default()->StartThread(
             ThreadOptions(),
             "FileSystemStoragePathSource_filesystem_oneshot_thread",
@@ -433,7 +433,7 @@ void FileSystemStoragePathSource::SetAspiredVersionsCallback(
     pf_options.thread_name_prefix =
         "FileSystemStoragePathSource_filesystem_polling_thread";
     fs_polling_thread_.reset(new FileSystemStoragePathSource::ThreadType(
-        absl::in_place_type_t<PeriodicFunction>(), thread_fn,
+        std::in_place_type_t<PeriodicFunction>(), thread_fn,
         config_.file_system_poll_wait_seconds() * 1000000, pf_options));
   }
 }
