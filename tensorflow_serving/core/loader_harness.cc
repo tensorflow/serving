@@ -22,7 +22,7 @@ limitations under the License.
 #include "absl/status/status.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/strings/strcat.h"
-#include "tensorflow/core/platform/env.h"
+#include "tensorflow_serving/core/servable_model_type.h"
 #include "tensorflow_serving/util/retrier.h"
 
 namespace tensorflow {
@@ -89,11 +89,16 @@ absl::Status LoaderHarness::Load() {
       // Using UnknownError to check if the load is cancelled. If so, it means
       // Servable is going to be unloaded very soon, we report a failure here so
       // that we do not accidentally report that the servable is available.
+      const ServableId current_id = id_;
+      const ServableModelType current_model_type = model_type();
+      std::function<void(const ServableId&, ServableModelType,
+                         const absl::Status&)>
+          callback = options_.error_callback;
       TF_RETURN_IF_ERROR(UnloadDueToCancelledLoad());
       absl::Status s = absl::CancelledError("Loading of servable cancelled");
-      if (options_.error_callback) {
+      if (callback) {
         // Invokes BasicManager::PublishOnEventBus(kEnd).
-        options_.error_callback(id_, model_type(), s);
+        callback(current_id, current_model_type, s);
       }
       return s;
     }
