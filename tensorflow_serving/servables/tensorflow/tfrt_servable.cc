@@ -208,7 +208,7 @@ absl::Status TfrtSavedModelServable::MultiInference(
 
 absl::Status TfrtSavedModelServable::Suspend() {
   TRACELITERAL("TfrtSavedModelServable::Suspend");
-  absl::MutexLock lock(&paging_mu_);
+  absl::MutexLock lock(paging_mu_);
   if (!suspend_fn_) {
     return absl::UnimplementedError("Suspend is not implemented");
   }
@@ -224,7 +224,7 @@ absl::Status TfrtSavedModelServable::Suspend() {
 
 absl::Status TfrtSavedModelServable::Resume() {
   TRACELITERAL("TfrtSavedModelServable::Resume");
-  absl::MutexLock lock(&paging_mu_);
+  absl::MutexLock lock(paging_mu_);
   if (!resume_fn_) {
     return absl::UnimplementedError("Resume is not implemented");
   }
