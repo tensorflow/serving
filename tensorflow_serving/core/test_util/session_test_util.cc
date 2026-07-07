@@ -21,6 +21,7 @@ limitations under the License.
 
 #include "absl/memory/memory.h"
 #include "absl/strings/strip.h"
+#include "xla/tsl/platform/macros.h"
 #include "tensorflow/core/common_runtime/session_factory.h"
 #include "tensorflow/core/public/session.h"
 
@@ -76,7 +77,8 @@ static DelegatingSessionRegistrar registrar;
 
 }  // namespace
 
-const char kNewSessionHookSessionTargetPrefix[] = "new_session_hook/";
+TF_CONST_INIT const char kNewSessionHookSessionTargetPrefix[] =
+    "new_session_hook/";
 
 void SetNewSessionHook(NewSessionHook hook) {
   new_session_hook_ = std::move(hook);
