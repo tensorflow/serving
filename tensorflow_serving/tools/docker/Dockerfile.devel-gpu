@@ -158,7 +158,7 @@ RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
 
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
-    bazel build --color=yes --curses=no --progress_report_interval=30 --config=cuda_clang --copt="-fPIC"\
+    bazel build --color=yes --noshow_progress --curses=no --config=cuda_clang --copt="-fPIC"\
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \
@@ -169,7 +169,7 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
     rm /usr/local/cuda/lib64/stubs/libcuda.so.1
 
 # Build and install TensorFlow Serving API
-RUN bazel build --color=yes --curses=no --progress_report_interval=30 \
+RUN bazel build --color=yes --noshow_progress --curses=no \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \

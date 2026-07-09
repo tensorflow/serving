@@ -103,7 +103,7 @@ RUN echo "Building with build options: ${TF_SERVING_BUILD_OPTIONS}"
 ARG TF_SERVING_BAZEL_OPTIONS=""
 RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
 
-RUN bazel build --color=yes --curses=no --progress_report_interval=30 \
+RUN bazel build --color=yes --noshow_progress --curses=no \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \
@@ -113,7 +113,7 @@ RUN bazel build --color=yes --curses=no --progress_report_interval=30 \
     /usr/local/bin/
 
 # Build and install TensorFlow Serving API
-RUN bazel build --color=yes --curses=no --progress_report_interval=30 \
+RUN bazel build --color=yes --noshow_progress --curses=no \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \
