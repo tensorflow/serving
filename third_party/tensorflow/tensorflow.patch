@@ -299,3 +299,15 @@ diff -ruN a/third_party/xla/xla/tsl/cuda/nvshmem_stub.cc b/third_party/xla/xla/t
  #include "tsl/platform/load_library.h"
  
  // Implements the nvshmem API by forwarding to nvshmem loaded from a DSO.
+
+diff -ruN a/third_party/xla/xla/backends/gpu/runtime/BUILD b/third_party/xla/xla/backends/gpu/runtime/BUILD
+--- a/third_party/xla/xla/backends/gpu/runtime/BUILD
++++ b/third_party/xla/xla/backends/gpu/runtime/BUILD
+@@ -1650,6 +1650,7 @@
+     copts = [
+         "-fexceptions",
+         "-DLIBCUDACXX_ENABLE_EXPERIMENTAL_MEMORY_RESOURCE",
++        "-DDISABLE_WRAPPERS_STWT",
+     ],
+     tags = ["cuda-only"],
+     deps = [
