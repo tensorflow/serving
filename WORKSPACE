@@ -24,8 +24,8 @@ local_repository(
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "54bfd56d61dfced2b82bdeee3262a24fb3d59bed4dbb292d19834af002d85b3b",
-    git_commit = "c1be979f3130b85f14e8890c05cbca147784f474",
+    sha256 = "582f5dc1c0887ca5b2eb364dc39e0c15fd31ee138b250e24163b6eca340f701f",
+    git_commit = "d875953b4fd431c15fedb1d408d5396e7f9d4d23",
     patch = "//third_party/tensorflow:tensorflow.patch",
     patch_cmds = [
         "sed -i '/cc_library = _cc_library/d' tensorflow/core/platform/rules_cc.bzl",
@@ -119,6 +119,9 @@ http_archive(
     urls = [
         "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google-ml-infra/rules_ml_toolchain/archive/398d613aea7a4c294da49b79a6d6f3f8732bd84c.tar.gz",
         "https://github.com/google-ml-infra/rules_ml_toolchain/archive/398d613aea7a4c294da49b79a6d6f3f8732bd84c.tar.gz",
+    ],
+    patch_cmds = [
+        "cat << 'EOF' >> cc/cuda/clang/clang_cuda_runtime_wrapper.h\n#if defined(__clang__) && defined(__CUDA__)\n#include <vector_types.h>\n#ifndef typeof\n#define typeof __typeof__\n#endif\n__device__ inline void __stwt(uint4* ptr, uint4 value) {\n  asm volatile(\"st.global.wt.v4.u32 [%0], {%1, %2, %3, %4};\" : : \"l\"(ptr), \"r\"(value.x), \"r\"(value.y), \"r\"(value.z), \"r\"(value.w) : \"memory\");\n}\n#endif\nEOF",
     ],
 )
 
