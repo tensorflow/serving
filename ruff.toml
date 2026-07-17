@@ -1,0 +1,89 @@
+line-length = 88
+
+[lint]
+
+select = [
+    # pycodestyle
+    "E",
+    "W",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # pep8 naming
+    "N",
+    # pydocstyle
+    "D",
+    # annotations
+    "ANN",
+    # debugger
+    "T10",
+    # flake8-pytest
+    "PT",
+    # flake8-return
+    "RET",
+    # flake8-unused-arguments
+    "ARG",
+    # flake8-fixme
+    "FIX",
+    # flake8-eradicate
+    "ERA",
+    # pandas-vet
+    "PD",
+    # numpy-specific rules
+    "NPY",
+]
+
+ignore = [
+    "D104",   # Missing docstring in public package
+    "D100",   # Missing docstring in public module
+    "D211",   # No blank line before class
+    "PD901",  # Avoid using 'df' for pandas dataframes. Perfectly fine in functions with limited scope
+    "ANN201", # Missing return type annotation for public function (makes no sense for NoneType return types...)
+    "ANN101", # Missing type annotation for `self`
+    "ANN204", # Missing return type annotation for special method
+    "ANN002", # Missing type annotation for `*args`
+    "ANN003", # Missing type annotation for `**kwargs`
+    "D105",   # Missing docstring in magic method
+    "D203",   # 1 blank line before after class docstring
+    "D204",   # 1 blank line required after class docstring
+    "D413",   # 1 blank line after parameters
+    "SIM108", # Simplify if/else to one line; not always clearer
+    "D206",   # Docstrings should be indented with spaces; unnecessary when running ruff-format
+    "E501",   # Line length too long; unnecessary when running ruff-format
+    "W191",   # Indentation contains tabs; unnecessary when running ruff-format
+
+    # FIX AND REMOVE BELOW CODES:
+    "ANN001", # Missing type annotation for function argument
+    "ANN102", # Missing type annotation for `cls` in classmethod
+    "ANN202", # Missing return type annotation for private function
+    "ANN205", # Missing return type annotation for staticmethod
+    "ANN206", # Missing return type annotation for classmethod
+    "D102",   # Missing docstring in public method
+    "D103",   # Missing docstring in public function
+    "D107",   # Missing docstring in `__init__`
+    "E402", # Module level import not at top of file
+    "ERA001", # Found commented-out code
+    "F401",   # `module` imported but unused
+    "F405",   # Name may be undefined, or defined from star imports
+    "FIX002", # Line contains TODO, consider resolving the issue
+    "N802",   # Function name should be lowercase
+    "PT009",  # Use a regular `assert` instead of unittest-style `assertEqual` / `assertIsInstance`
+    "PT027",  # Use `pytest.raises` instead of unittest-style `assertRaisesRegex`
+    "UP028",  # Replace `yield` over `for` loop with `yield from`
+    "UP029",  # Unnecessary builtin import
+]
+
+[lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+# Remove when Python 3.9 is no longer supported
+keep-runtime-typing = true
+
+[lint.pydocstyle]
+convention = "google"
