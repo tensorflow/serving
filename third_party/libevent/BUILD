@@ -59,6 +59,7 @@ genrule(
         "export CC_PATH=$(CC)",
         "if [[ $$CC_PATH != /* ]]; then CC_PATH=$$ORIG_DIR/$$CC_PATH; fi",
         "export REAL_CLANG=$$(ls $$ORIG_DIR/external/llvm*_linux_x86_64/bin/clang | head -n 1)",
+        "export GCC_PATH=$$REAL_CLANG",
         "export REAL_AR=$$(ls $$ORIG_DIR/external/llvm*_linux_x86_64/bin/llvm-ar | head -n 1)",
         "export SYSROOT_DIR=$$(ls -d $$ORIG_DIR/external/sysroot_linux_x86_64_glibc_* | head -n 1)",
         "export TMP_DIR=$$(mktemp -d -t libevent.XXXXXX)",
