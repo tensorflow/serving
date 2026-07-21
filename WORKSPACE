@@ -121,6 +121,7 @@ http_archive(
         "https://github.com/google-ml-infra/rules_ml_toolchain/archive/d8cb9c2c168cd64000eaa6eda0781a9615a26ffe.tar.gz",
     ],
     patch_cmds = [
+        "mkdir -p third_party/rules_python py && touch third_party/rules_python/BUILD py/BUILD",
         "cat << 'EOF' >> cc/cuda/clang/clang_cuda_runtime_wrapper.h\n#if defined(__clang__) && defined(__CUDA__)\n#include <vector_types.h>\n#ifndef typeof\n#define typeof __typeof__\n#endif\n#ifndef DISABLE_WRAPPERS_STWT\n__device__ inline void __stwt(uint4* ptr, uint4 value) {\n  asm volatile(\"st.global.wt.v4.u32 [%0], {%1, %2, %3, %4};\" : : \"l\"(ptr), \"r\"(value.x), \"r\"(value.y), \"r\"(value.z), \"r\"(value.w) : \"memory\");\n}\n#endif\n#endif\nEOF",
     ],
 )
