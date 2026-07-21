@@ -24,8 +24,8 @@ local_repository(
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "44d29570b377bb095ebd0805a78e34888eb36a643f947d9aa825a201762e9661",
-    git_commit = "7e393456e8684e5b8115347ae7ec0ec9115c209d",
+    sha256 = "6438396f3b19af5d7ad787cf041f857af7505916dc08092e20b07d1b1f8df492",
+    git_commit = "a481b10260dfdf833a1b16007eead49c1d7febf3",
     patch = "//third_party/tensorflow:tensorflow.patch",
     patch_cmds = [
         "sed -i '/cc_library = _cc_library/d' tensorflow/core/platform/rules_cc.bzl",
@@ -101,26 +101,20 @@ http_archive(
         "https://storage.googleapis.com/mirror.tensorflow.org/github.com/bazelbuild/rules_python/releases/download/1.8.5/rules_python-1.8.5.tar.gz",
         "https://github.com/bazelbuild/rules_python/releases/download/1.8.5/rules_python-1.8.5.tar.gz",
     ],
-    patches = [
-        "@rules_ml_toolchain//third_party/rules_python:rules_python_scope.patch",
-        "@rules_ml_toolchain//third_party/rules_python:rules_python_freethreaded.patch",
-        "@rules_ml_toolchain//third_party/rules_python:rules_python_versions.patch",
-        "@rules_ml_toolchain//third_party/rules_python:rules_python_pip_version.patch",
-    ],
-    patch_args = ["-p1"],
 )
 
 # Toolchains for ML projects hermetic builds.
 # Details: https://github.com/google-ml-infra/rules_ml_toolchain
 http_archive(
     name = "rules_ml_toolchain",
-    sha256 = "0b42f693a60c6050d87db1e0a0eaeb84ab3f54191fce094d86334faedc807da0",
-    strip_prefix = "rules_ml_toolchain-398d613aea7a4c294da49b79a6d6f3f8732bd84c",
+    sha256 = "54c1a357f71f611efdb4891ebd4bcbe4aeb6dfa7e473f14fd7ecad5062096616",
+    strip_prefix = "rules_ml_toolchain-d8cb9c2c168cd64000eaa6eda0781a9615a26ffe",
     urls = [
-        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google-ml-infra/rules_ml_toolchain/archive/398d613aea7a4c294da49b79a6d6f3f8732bd84c.tar.gz",
-        "https://github.com/google-ml-infra/rules_ml_toolchain/archive/398d613aea7a4c294da49b79a6d6f3f8732bd84c.tar.gz",
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google-ml-infra/rules_ml_toolchain/archive/d8cb9c2c168cd64000eaa6eda0781a9615a26ffe.tar.gz",
+        "https://github.com/google-ml-infra/rules_ml_toolchain/archive/d8cb9c2c168cd64000eaa6eda0781a9615a26ffe.tar.gz",
     ],
     patch_cmds = [
+        "mkdir -p third_party/rules_python py && touch third_party/rules_python/BUILD py/BUILD",
         "cat << 'EOF' >> cc/cuda/clang/clang_cuda_runtime_wrapper.h\n#if defined(__clang__) && defined(__CUDA__)\n#include <vector_types.h>\n#ifndef typeof\n#define typeof __typeof__\n#endif\n#ifndef DISABLE_WRAPPERS_STWT\n__device__ inline void __stwt(uint4* ptr, uint4 value) {\n  asm volatile(\"st.global.wt.v4.u32 [%0], {%1, %2, %3, %4};\" : : \"l\"(ptr), \"r\"(value.x), \"r\"(value.y), \"r\"(value.z), \"r\"(value.w) : \"memory\");\n}\n#endif\n#endif\nEOF",
     ],
 )
