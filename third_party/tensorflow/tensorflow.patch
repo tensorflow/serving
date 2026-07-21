@@ -8,6 +8,21 @@ diff --git a/tensorflow/tools/toolchains/python/python_repo.bzl b/tensorflow/too
  WHEEL_COLLAB = "{}"
 +USE_PYWRAP_RULES = "False"
  """
+diff -ruN a/third_party/xla/xla/stream_executor/cuda/cub_scan_kernel_cuda_impl.cu.cc b/third_party/xla/xla/stream_executor/cuda/cub_scan_kernel_cuda_impl.cu.cc
+--- a/third_party/xla/xla/stream_executor/cuda/cub_scan_kernel_cuda_impl.cu.cc	2026-07-12 17:57:25.618437375 +0000
++++ b/third_party/xla/xla/stream_executor/cuda/cub_scan_kernel_cuda_impl.cu.cc	2026-07-12 17:57:25.632496035 +0000
+@@ -41,10 +41,7 @@
+ namespace {
+ 
+ template <typename T, typename ScanOpT>
+-using MaxPolicyT = typename cub::detail::scan::policy_hub<
+-    /*InputValueT=*/T, /*OutputValueT=*/T,
+-    /*AccumT=*/T, /*OffsetT=*/int64_t,
+-    /*ScanOpT=*/ScanOpT>::MaxPolicy;
++using MaxPolicyT = typename cub::DeviceScanPolicy<T, ScanOpT>::MaxPolicy;
+ 
+ template <typename T, typename ScanOpT,
+           typename ChainedPolicyT = MaxPolicyT<T, ScanOpT>>
 diff -ruN a/third_party/xla/xla/tsl/cuda/BUILD.bazel b/third_party/xla/xla/tsl/cuda/BUILD.bazel
 --- a/third_party/xla/xla/tsl/cuda/BUILD.bazel	2026-07-12 17:57:25.617565295 +0000
 +++ b/third_party/xla/xla/tsl/cuda/BUILD.bazel	2026-07-12 17:57:25.629649015 +0000
