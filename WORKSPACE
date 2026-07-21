@@ -24,8 +24,8 @@ local_repository(
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "44dbcac78a144a404485bc03b12fe6a545281b985552b15dbf0f7afec9815442",
-    git_commit = "4f1b7de8a37a03452565bc612c148a1d2d9d6cfc",
+    sha256 = "22479eebec4ec985b85a3c20dbbf6cfbe8a067ca67fa4bb049e623bc9658ecdd",
+    git_commit = "a481b10260dfdf833a1b16007eead49c1d7febf3",
     patch = "//third_party/tensorflow:tensorflow.patch",
     patch_cmds = [
         "sed -i '/cc_library = _cc_library/d' tensorflow/core/platform/rules_cc.bzl",
@@ -114,11 +114,11 @@ http_archive(
 # Details: https://github.com/google-ml-infra/rules_ml_toolchain
 http_archive(
     name = "rules_ml_toolchain",
-    sha256 = "0b42f693a60c6050d87db1e0a0eaeb84ab3f54191fce094d86334faedc807da0",
-    strip_prefix = "rules_ml_toolchain-398d613aea7a4c294da49b79a6d6f3f8732bd84c",
+    sha256 = "54c1a357f71f611efdb4891ebd4bcbe4aeb6dfa7e473f14fd7ecad5062096616",
+    strip_prefix = "rules_ml_toolchain-d8cb9c2c168cd64000eaa6eda0781a9615a26ffe",
     urls = [
-        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google-ml-infra/rules_ml_toolchain/archive/398d613aea7a4c294da49b79a6d6f3f8732bd84c.tar.gz",
-        "https://github.com/google-ml-infra/rules_ml_toolchain/archive/398d613aea7a4c294da49b79a6d6f3f8732bd84c.tar.gz",
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google-ml-infra/rules_ml_toolchain/archive/d8cb9c2c168cd64000eaa6eda0781a9615a26ffe.tar.gz",
+        "https://github.com/google-ml-infra/rules_ml_toolchain/archive/d8cb9c2c168cd64000eaa6eda0781a9615a26ffe.tar.gz",
     ],
     patch_cmds = [
         "cat << 'EOF' >> cc/cuda/clang/clang_cuda_runtime_wrapper.h\n#if defined(__clang__) && defined(__CUDA__)\n#include <vector_types.h>\n#ifndef typeof\n#define typeof __typeof__\n#endif\n#ifndef DISABLE_WRAPPERS_STWT\n__device__ inline void __stwt(uint4* ptr, uint4 value) {\n  asm volatile(\"st.global.wt.v4.u32 [%0], {%1, %2, %3, %4};\" : : \"l\"(ptr), \"r\"(value.x), \"r\"(value.y), \"r\"(value.z), \"r\"(value.w) : \"memory\");\n}\n#endif\n#endif\nEOF",
