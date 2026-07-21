@@ -95,11 +95,11 @@ http_archive(
 
 http_archive(
     name = "rules_python",
-    sha256 = "8964aa1e7525fea5244ba737458694a057ada1be96a92998a41caa1983562d00",
-    strip_prefix = "rules_python-1.8.5",
+    sha256 = "7781d9226109d446e15810a96dd804542cd1db3121db907e46841374fafc6396",
+    strip_prefix = "rules_python-0.34.0",
     urls = [
-        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/bazelbuild/rules_python/releases/download/1.8.5/rules_python-1.8.5.tar.gz",
-        "https://github.com/bazelbuild/rules_python/releases/download/1.8.5/rules_python-1.8.5.tar.gz",
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/bazelbuild/rules_python/releases/download/0.34.0/rules_python-0.34.0.tar.gz",
+        "https://github.com/bazelbuild/rules_python/releases/download/0.34.0/rules_python-0.34.0.tar.gz",
     ],
 )
 
@@ -143,7 +143,6 @@ python_init_repositories(
         "3.11": "@org_tensorflow//:requirements_lock_3_11.txt",
         "3.12": "@org_tensorflow//:requirements_lock_3_12.txt",
         "3.13": "@org_tensorflow//:requirements_lock_3_13.txt",
-        "3.14": "@org_tensorflow//:requirements_lock_3_14.txt",
     },
 )
 
