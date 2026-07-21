@@ -8,3 +8,306 @@ diff --git a/tensorflow/tools/toolchains/python/python_repo.bzl b/tensorflow/too
  WHEEL_COLLAB = "{}"
 +USE_PYWRAP_RULES = "False"
  """
+diff -ruN a/third_party/xla/xla/stream_executor/cuda/cub_scan_kernel_cuda_impl.cu.cc b/third_party/xla/xla/stream_executor/cuda/cub_scan_kernel_cuda_impl.cu.cc
+--- a/third_party/xla/xla/stream_executor/cuda/cub_scan_kernel_cuda_impl.cu.cc	2026-07-12 17:57:25.618437375 +0000
++++ b/third_party/xla/xla/stream_executor/cuda/cub_scan_kernel_cuda_impl.cu.cc	2026-07-12 17:57:25.632496035 +0000
+@@ -41,10 +41,7 @@
+ namespace {
+ 
+ template <typename T, typename ScanOpT>
+-using MaxPolicyT = typename cub::detail::scan::policy_hub<
+-    /*InputValueT=*/T, /*OutputValueT=*/T,
+-    /*AccumT=*/T, /*OffsetT=*/int64_t,
+-    /*ScanOpT=*/ScanOpT>::MaxPolicy;
++using MaxPolicyT = typename cub::DeviceScanPolicy<T, ScanOpT>::MaxPolicy;
+ 
+ template <typename T, typename ScanOpT,
+           typename ChainedPolicyT = MaxPolicyT<T, ScanOpT>>
+diff -ruN a/third_party/xla/xla/tsl/cuda/BUILD.bazel b/third_party/xla/xla/tsl/cuda/BUILD.bazel
+--- a/third_party/xla/xla/tsl/cuda/BUILD.bazel	2026-07-12 17:57:25.617565295 +0000
++++ b/third_party/xla/xla/tsl/cuda/BUILD.bazel	2026-07-12 17:57:25.629649015 +0000
+@@ -47,7 +47,7 @@
+         "//xla/tsl/platform:logging",
+         "@com_google_absl//absl/container:flat_hash_set",
+         "@local_config_cuda//cuda:cuda_headers",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )
+@@ -78,7 +78,7 @@
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )
+@@ -109,7 +109,7 @@
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )
+@@ -146,7 +146,7 @@
+             "//xla/tsl/platform:logging",
+             "@com_google_absl//absl/container:flat_hash_set",
+             "@local_config_cuda//cuda:cuda_headers",
+-            "@tsl//tsl/platform:dso_loader",
++            "//xla/tsl/platform/default:dso_loader",
+             "@tsl//tsl/platform:load_library",
+         ],
+         "//conditions:default": [],
+@@ -181,7 +181,7 @@
+         "//xla/tsl/platform:logging",
+         "@com_google_absl//absl/container:flat_hash_map",
+         "@local_config_cuda//cuda:cudnn_header",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )
+@@ -235,7 +235,7 @@
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )
+@@ -273,7 +273,7 @@
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@local_config_cuda//cuda:cupti_headers",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )
+@@ -309,7 +309,7 @@
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )
+@@ -346,7 +346,7 @@
+         "//xla/tsl/platform:logging",
+         "@com_google_absl//absl/container:flat_hash_set",
+         "@local_config_cuda//cuda:cuda_headers",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )
+@@ -381,7 +381,7 @@
+         "@com_google_absl//absl/strings:string_view",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@local_config_nccl//:nccl_headers",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )
+@@ -413,7 +413,7 @@
+     deps = if_cuda_is_configured([
+         # keep sorted
+         "//xla/tsl/platform:logging",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )
+@@ -444,7 +444,7 @@
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )
+@@ -475,7 +475,7 @@
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )
+diff -ruN a/third_party/xla/xla/tsl/cuda/cublasLt_stub.cc b/third_party/xla/xla/tsl/cuda/cublasLt_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/cublasLt_stub.cc	2026-07-12 17:57:25.619010684 +0000
++++ b/third_party/xla/xla/tsl/cuda/cublasLt_stub.cc	2026-07-12 17:57:25.629875675 +0000
+@@ -15,7 +15,7 @@
+ #include "third_party/gpus/cuda/include/cublasLt.h"
+ #include "third_party/gpus/cuda/include/cuda.h"
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ // Implements the cuBLASLt API by forwarding to cuBLASLt loaded from the DSO.
+diff -ruN a/third_party/xla/xla/tsl/cuda/cublas_stub.cc b/third_party/xla/xla/tsl/cuda/cublas_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/cublas_stub.cc	2026-07-12 17:57:25.619515775 +0000
++++ b/third_party/xla/xla/tsl/cuda/cublas_stub.cc	2026-07-12 17:57:25.630085595 +0000
+@@ -24,7 +24,7 @@
+ #include "absl/container/flat_hash_set.h"
+ #include "third_party/gpus/cuda/include/cuda.h"
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ // Implements the cuBLAS API by forwarding to cuBLAS loaded from the DSO.
+diff -ruN a/third_party/xla/xla/tsl/cuda/cudart_stub.cc b/third_party/xla/xla/tsl/cuda/cudart_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/cudart_stub.cc	2026-07-12 17:57:25.620547485 +0000
++++ b/third_party/xla/xla/tsl/cuda/cudart_stub.cc	2026-07-12 17:57:25.630498815 +0000
+@@ -20,7 +20,7 @@
+ #include "absl/strings/string_view.h"
+ #include "third_party/gpus/cuda/include/cuda_runtime_api.h"
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ namespace {
+diff -ruN a/third_party/xla/xla/tsl/cuda/cuda_stub.cc b/third_party/xla/xla/tsl/cuda/cuda_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/cuda_stub.cc	2026-07-12 17:57:25.620042105 +0000
++++ b/third_party/xla/xla/tsl/cuda/cuda_stub.cc	2026-07-12 17:57:25.630294585 +0000
+@@ -14,7 +14,7 @@
+ ==============================================================================*/
+ #include "third_party/gpus/cuda/include/cuda.h"
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ // Implements the CUDA driver API by forwarding to CUDA loaded from the DSO.
+diff -ruN a/third_party/xla/xla/tsl/cuda/cudnn_stub.cc b/third_party/xla/xla/tsl/cuda/cudnn_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/cudnn_stub.cc	2026-07-12 17:57:25.623896675 +0000
++++ b/third_party/xla/xla/tsl/cuda/cudnn_stub.cc	2026-07-12 17:57:25.630687515 +0000
+@@ -16,7 +16,7 @@
+ #include "absl/container/flat_hash_map.h"
+ #include "third_party/gpus/cudnn/cudnn.h"
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ // Implements the cuDNN API by forwarding to cuDNN loaded from the DSO.
+diff -ruN a/third_party/xla/xla/tsl/cuda/cufft_stub.cc b/third_party/xla/xla/tsl/cuda/cufft_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/cufft_stub.cc	2026-07-12 17:57:25.624421815 +0000
++++ b/third_party/xla/xla/tsl/cuda/cufft_stub.cc	2026-07-12 17:57:25.630871185 +0000
+@@ -15,7 +15,7 @@
+ #include "third_party/gpus/cuda/include/cufft.h"
+ #include "third_party/gpus/cuda/include/cufftXt.h"
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ // Implements the cuFFT API by forwarding to cuFFT loaded from the DSO.
+diff -ruN a/third_party/xla/xla/tsl/cuda/cupti_stub.cc b/third_party/xla/xla/tsl/cuda/cupti_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/cupti_stub.cc	2026-07-12 17:57:25.624935405 +0000
++++ b/third_party/xla/xla/tsl/cuda/cupti_stub.cc	2026-07-12 17:57:25.631143375 +0000
+@@ -16,7 +16,7 @@
+ #include "third_party/gpus/cuda/extras/CUPTI/include/cupti.h"
+ #include "third_party/gpus/cuda/include/cuda.h"
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ // Implements the CUPTI API by forwarding to CUPTI loaded from the DSO.
+diff -ruN a/third_party/xla/xla/tsl/cuda/cusolver_stub.cc b/third_party/xla/xla/tsl/cuda/cusolver_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/cusolver_stub.cc	2026-07-12 17:57:25.625466465 +0000
++++ b/third_party/xla/xla/tsl/cuda/cusolver_stub.cc	2026-07-12 17:57:25.631325645 +0000
+@@ -16,7 +16,7 @@
+ #include "third_party/gpus/cuda/include/cusolverDn.h"
+ #include "third_party/gpus/cuda/include/cusolverSp.h"
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ // Implements the cusolver API by forwarding to cusolver loaded from the DSO.
+diff -ruN a/third_party/xla/xla/tsl/cuda/cusparse_stub.cc b/third_party/xla/xla/tsl/cuda/cusparse_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/cusparse_stub.cc	2026-07-12 17:57:25.625975035 +0000
++++ b/third_party/xla/xla/tsl/cuda/cusparse_stub.cc	2026-07-12 17:57:25.631513505 +0000
+@@ -18,7 +18,7 @@
+ #include "third_party/gpus/cuda/include/cuda.h"
+ #include "third_party/gpus/cuda/include/cusparse.h"
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ // Implements the cusparse API by forwarding to cusparse loaded from the DSO.
+diff -ruN a/third_party/xla/xla/tsl/cuda/nccl_stub.cc b/third_party/xla/xla/tsl/cuda/nccl_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/nccl_stub.cc	2026-07-12 17:57:25.626489445 +0000
++++ b/third_party/xla/xla/tsl/cuda/nccl_stub.cc	2026-07-12 17:57:25.631694955 +0000
+@@ -17,7 +17,7 @@
+ #include "third_party/gpus/cuda/include/cuda.h"
+ #include "third_party/nccl/nccl.h"
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ // Implements the nccl API by forwarding to nccl loaded from a DSO.
+diff -ruN a/third_party/xla/xla/tsl/cuda/nvml_stub.cc b/third_party/xla/xla/tsl/cuda/nvml_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/nvml_stub.cc	2026-07-12 17:57:25.628120455 +0000
++++ b/third_party/xla/xla/tsl/cuda/nvml_stub.cc	2026-07-12 17:57:25.631884615 +0000
+@@ -14,7 +14,7 @@
+ ==============================================================================*/
+ #include "third_party/gpus/cuda/nvml/include/nvml.h"
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ // Implements the NVML API by forwarding to NVML loaded from the DSO.
+diff -ruN a/third_party/xla/xla/tsl/cuda/nvrtc_stub.cc b/third_party/xla/xla/tsl/cuda/nvrtc_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/nvrtc_stub.cc	2026-07-12 17:57:25.628643355 +0000
++++ b/third_party/xla/xla/tsl/cuda/nvrtc_stub.cc	2026-07-12 17:57:25.632092815 +0000
+@@ -15,7 +15,7 @@
+ 
+ #include "third_party/gpus/cuda/include/nvrtc.h"
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ // Implements the NVRTC API by forwarding to NVRTC loaded from the DSO.
+diff -ruN a/third_party/xla/xla/tsl/cuda/nvshmem_stub.cc b/third_party/xla/xla/tsl/cuda/nvshmem_stub.cc
+--- a/third_party/xla/xla/tsl/cuda/nvshmem_stub.cc	2026-07-12 17:57:25.629133555 +0000
++++ b/third_party/xla/xla/tsl/cuda/nvshmem_stub.cc	2026-07-12 17:57:25.632281315 +0000
+@@ -14,7 +14,7 @@
+ ==============================================================================*/
+ 
+ #include "xla/tsl/platform/logging.h"
+-#include "tsl/platform/dso_loader.h"
++#include "xla/tsl/platform/default/dso_loader.h"
+ #include "tsl/platform/load_library.h"
+ 
+ // Implements the nvshmem API by forwarding to nvshmem loaded from a DSO.
+
+diff -ruN a/third_party/xla/xla/backends/gpu/runtime/BUILD b/third_party/xla/xla/backends/gpu/runtime/BUILD
+--- a/third_party/xla/xla/backends/gpu/runtime/BUILD
++++ b/third_party/xla/xla/backends/gpu/runtime/BUILD
+@@ -1650,6 +1650,7 @@
+     copts = [
+         "-fexceptions",
+         "-DLIBCUDACXX_ENABLE_EXPERIMENTAL_MEMORY_RESOURCE",
++        "-DDISABLE_WRAPPERS_STWT",
+     ],
+     tags = ["cuda-only"],
+     deps = [

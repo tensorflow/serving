@@ -51,18 +51,28 @@ lib_files = [
 
 genrule(
     name = "libevent-srcs",
+    srcs = glob(["**"]) + ["@sysroot_linux_x86_64//:sysroot"],
     outs = include_files + lib_files,
     cmd = "\n".join([
         "export INSTALL_DIR=$$(pwd)/$(@D)/libevent",
+        "export ORIG_DIR=$$(pwd) # force rebuild 1",
+        "export CC_PATH=$(CC)",
+        "if [[ $$CC_PATH != /* ]]; then CC_PATH=$$ORIG_DIR/$$CC_PATH; fi",
+        "export REAL_CLANG=$$(ls $$ORIG_DIR/external/llvm*_linux_x86_64/bin/clang | head -n 1)",
+        "export GCC_PATH=$$REAL_CLANG",
+        "export REAL_AR=$$(ls $$ORIG_DIR/external/llvm*_linux_x86_64/bin/llvm-ar | head -n 1)",
+        "export SYSROOT_DIR=$$(ls -d $$ORIG_DIR/external/sysroot_linux_x86_64_glibc_* | head -n 1)",
         "export TMP_DIR=$$(mktemp -d -t libevent.XXXXXX)",
         "mkdir -p $$TMP_DIR",
-        "cp -R $$(pwd)/external/com_github_libevent_libevent/* $$TMP_DIR",
+        "cp -R $$ORIG_DIR/external/com_github_libevent_libevent/* $$TMP_DIR",
         "cd $$TMP_DIR",
         "./autogen.sh",
-        "./configure --prefix=$$INSTALL_DIR CFLAGS=-fPIC CXXFLAGS=-fPIC --enable-shared=no --disable-openssl",
-        "make install",
+        "CC=$$CC_PATH AR=$$REAL_AR ./configure --prefix=$$INSTALL_DIR CFLAGS=\"-fPIC --sysroot=$$SYSROOT_DIR\" CXXFLAGS=\"-fPIC --sysroot=$$SYSROOT_DIR\" LDFLAGS=\"--sysroot=$$SYSROOT_DIR\" --enable-shared=no --disable-openssl || (cat config.log && false)",
+        "make install CC=$$CC_PATH AR=$$REAL_AR",
         "rm -rf $$TMP_DIR",
     ]),
+    local = 1,
+    toolchains = ["@bazel_tools//tools/cpp:current_cc_toolchain"],
 )
 
 cc_library(
