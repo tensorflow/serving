@@ -101,13 +101,6 @@ http_archive(
         "https://storage.googleapis.com/mirror.tensorflow.org/github.com/bazelbuild/rules_python/releases/download/1.8.5/rules_python-1.8.5.tar.gz",
         "https://github.com/bazelbuild/rules_python/releases/download/1.8.5/rules_python-1.8.5.tar.gz",
     ],
-    patches = [
-        "@rules_ml_toolchain//third_party/rules_python:rules_python_scope.patch",
-        "@rules_ml_toolchain//third_party/rules_python:rules_python_freethreaded.patch",
-        "@rules_ml_toolchain//third_party/rules_python:rules_python_versions.patch",
-        "@rules_ml_toolchain//third_party/rules_python:rules_python_pip_version.patch",
-    ],
-    patch_args = ["-p1"],
 )
 
 # Toolchains for ML projects hermetic builds.
