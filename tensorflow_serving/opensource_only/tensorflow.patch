@@ -1,0 +1,18 @@
+diff --git a/tensorflow/tools/toolchains/python/python_repo.bzl b/tensorflow/tools/toolchains/python/python_repo.bzl
+--- a/tensorflow/tools/toolchains/python/python_repo.bzl
++++ b/tensorflow/tools/toolchains/python/python_repo.bzl
+@@ -21,5 +21,6 @@
+ TF_PYTHON_VERSION = "{}"
+ HERMETIC_PYTHON_VERSION = "{}"
+ WHEEL_NAME = "{}"
+ WHEEL_COLLAB = "{}"
++USE_PYWRAP_RULES = "False"
+ """
+diff --git a/third_party/tf_runtime/workspace.bzl b/third_party/tf_runtime/workspace.bzl
+--- a/third_party/tf_runtime/workspace.bzl
++++ b/third_party/tf_runtime/workspace.bzl
+@@ -17,4 +17,0 @@
+-        repo_mapping = {
+-            "@tsl": "@tsl",
+-            "@xla": "@xla",
+-        },
