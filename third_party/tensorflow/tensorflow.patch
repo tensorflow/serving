@@ -1,13 +1,3 @@
-diff --git a/tensorflow/tools/toolchains/python/python_repo.bzl b/tensorflow/tools/toolchains/python/python_repo.bzl
---- a/tensorflow/tools/toolchains/python/python_repo.bzl
-+++ b/tensorflow/tools/toolchains/python/python_repo.bzl
-@@ -21,5 +21,6 @@
- TF_PYTHON_VERSION = "{}"
- HERMETIC_PYTHON_VERSION = "{}"
- WHEEL_NAME = "{}"
- WHEEL_COLLAB = "{}"
-+USE_PYWRAP_RULES = "False"
- """
 diff --git a/third_party/tf_runtime/workspace.bzl b/third_party/tf_runtime/workspace.bzl
 --- a/third_party/tf_runtime/workspace.bzl
 +++ b/third_party/tf_runtime/workspace.bzl
@@ -19,10 +9,114 @@ diff --git a/third_party/tf_runtime/workspace.bzl b/third_party/tf_runtime/works
 diff --git a/third_party/xla/xla/tsl/cuda/BUILD.bazel b/third_party/xla/xla/tsl/cuda/BUILD.bazel
 --- a/third_party/xla/xla/tsl/cuda/BUILD.bazel
 +++ b/third_party/xla/xla/tsl/cuda/BUILD.bazel
-@@ -416,6 +416,7 @@ cc_library(
+@@ -50,3 +50,4 @@ cc_library(
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@com_google_absl//absl/container:flat_hash_set",
+         "@local_config_cuda//cuda:cuda_headers",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+@@ -81,3 +82,4 @@ cc_library(
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+@@ -112,3 +114,4 @@ cc_library(
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+@@ -149,3 +152,4 @@ cc_library(
+             ":cuda",
+             "//xla/tsl/platform:logging",
+             "@com_google_absl//absl/container:flat_hash_set",
+             "@local_config_cuda//cuda:cuda_headers",
++            "//xla/tsl/platform/default:dso_loader",
+             "@tsl//tsl/platform:dso_loader",
+             "@tsl//tsl/platform:load_library",
+         ],
+@@ -184,3 +188,4 @@ cc_library(
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@com_google_absl//absl/container:flat_hash_map",
+         "@local_config_cuda//cuda:cudnn_header",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+@@ -238,3 +243,4 @@ cc_library(
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+@@ -276,3 +282,4 @@ cc_library(
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@local_config_cuda//cuda:cupti_headers",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+@@ -312,3 +319,4 @@ cc_library(
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+@@ -349,3 +357,4 @@ cc_library(
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@com_google_absl//absl/container:flat_hash_set",
+         "@local_config_cuda//cuda:cuda_headers",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+@@ -384,3 +393,4 @@ cc_library(
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@com_google_absl//absl/container:flat_hash_set",
+         "@com_google_absl//absl/strings:string_view",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@local_config_nccl//:nccl_headers",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+@@ -416,3 +426,4 @@ cc_library(
      deps = if_cuda_is_configured([
          # keep sorted
          "//xla/tsl/platform:logging",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+@@ -447,3 +458,4 @@ cc_library(
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+@@ -478,3 +490,4 @@ cc_library(
+         # keep sorted
+         "//xla/tsl/platform:logging",
+         "@local_config_cuda//cuda:cuda_headers",
 +        "//xla/tsl/platform/default:dso_loader",
          "@tsl//tsl/platform:dso_loader",
          "@tsl//tsl/platform:load_library",
