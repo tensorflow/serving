@@ -127,7 +127,6 @@ build --features=-layering_check
 build --host_features=-layering_check
 build --features=-module_maps
 build --host_features=-module_maps
-build --noincompatible_check_headers
 build --define=framework_shared_object=false
 build --dynamic_mode=off
 
