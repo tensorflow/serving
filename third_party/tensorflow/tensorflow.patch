@@ -23,7 +23,7 @@ diff --git a/third_party/xla/xla/tsl/cuda/BUILD.bazel b/third_party/xla/xla/tsl/
      deps = if_cuda_is_configured([
          # keep sorted
          "//xla/tsl/platform:logging",
-+        "//xla/tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
          "@tsl//tsl/platform:dso_loader",
          "@tsl//tsl/platform:load_library",
      ]),
