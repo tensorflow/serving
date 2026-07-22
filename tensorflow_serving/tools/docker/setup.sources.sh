@@ -21,7 +21,7 @@
 export DEBIAN_FRONTEND=noninteractive
 
 # Set up shared custom sources
-for i in 1 2 3 4 5; do apt-get update && break || sleep 5; done
+apt-get update
 apt-get install -y gnupg ca-certificates
 
 # Deadsnakes: https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa
@@ -45,4 +45,4 @@ deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main
 deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main
 SOURCES
 
-for i in 1 2 3 4 5; do apt-get update && break || sleep 5; done
+apt-get update

@@ -29,8 +29,10 @@ ENV HERMETIC_CUDA_VERSION=12.2.0
 ARG TF_CUDA_COMPUTE_CAPABILITIES="6.0,7.0,7.5,8.0,8.6,8.9,9.0"
 ENV TF_CUDA_COMPUTE_CAPABILITIES=${TF_CUDA_COMPUTE_CAPABILITIES}
 
-RUN (for i in 1 2 3 4 5; do apt-get update && break || sleep 5; done) && \
-    apt-get install -y --no-install-recommends curl
+RUN sed -i 's/archive.ubuntu.com/azure.archive.ubuntu.com/g' /etc/apt/sources.list && \
+    sed -i 's/security.ubuntu.com/azure.archive.ubuntu.com/g' /etc/apt/sources.list && \
+    apt-get update && apt-get install -y --no-install-recommends \
+        curl
 
 # Download TF Serving sources (optionally at specific commit).
 WORKDIR /tensorflow-serving
@@ -92,8 +94,7 @@ RUN apt-get install -y --no-install-recommends \
 
 
 # Install python 3.10 (Native on Ubuntu 22.04).
-RUN (for i in 1 2 3 4 5; do apt-get update && break || sleep 5; done) && \
-    apt-get install -y --fix-missing \
+RUN apt-get update && apt-get install -y --fix-missing \
     python3.10 python3.10-dev python3-pip python3.10-venv && \
     rm -rf /var/lib/apt/lists/* && \
     python3.10 -m pip install pip --upgrade && \
