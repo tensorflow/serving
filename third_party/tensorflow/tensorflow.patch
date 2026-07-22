@@ -16,3 +16,14 @@ diff --git a/third_party/tf_runtime/workspace.bzl b/third_party/tf_runtime/works
 -            "@tsl": "@tsl",
 -            "@xla": "@xla",
 -        },
+diff --git a/third_party/xla/xla/tsl/cuda/BUILD.bazel b/third_party/xla/xla/tsl/cuda/BUILD.bazel
+--- a/third_party/xla/xla/tsl/cuda/BUILD.bazel
++++ b/third_party/xla/xla/tsl/cuda/BUILD.bazel
+@@ -416,6 +416,7 @@ cc_library(
+     deps = if_cuda_is_configured([
+         # keep sorted
+         "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
