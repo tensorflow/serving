@@ -92,7 +92,7 @@ RUN apt-get install -y --no-install-recommends \
 
 
 # Install python 3.10 (Native on Ubuntu 22.04).
-RUN apt-get update && apt-get install -y \
+RUN (apt-get update || apt-get update --fix-missing) && apt-get install -y --fix-missing \
     python3.10 python3.10-dev python3-pip python3.10-venv && \
     rm -rf /var/lib/apt/lists/* && \
     python3.10 -m pip install pip --upgrade && \
