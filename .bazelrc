@@ -36,9 +36,8 @@ build:cuda --copt=-Wno-error
 build:cuda --cxxopt=-Wno-error
 build:cuda --copt=-Wno-header-guard
 build:cuda --cxxopt=-Wno-header-guard
-build:cuda --per_file_copt=.*\\.cu\\.cc$@-D__bf16=uint16_t
-build:cuda --per_file_copt=.*\\.cu$@-D__bf16=uint16_t
-build:cuda --per_file_copt=.*_cuda\\.cc$@-D__bf16=uint16_t
+build:cuda --copt=-include/usr/local/include/cuda_bf16_fix.h
+build:cuda --cxxopt=-include/usr/local/include/cuda_bf16_fix.h
 build:cuda_clang --action_env=GCC_HOST_COMPILER_PATH="/usr/bin/gcc-10"
 build:cuda_clang --action_env=CLANG_CUDA_COMPILER_PATH="/usr/lib/llvm-17/bin/clang"
 

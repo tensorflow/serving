@@ -142,7 +142,8 @@ WORKDIR /
 RUN mkdir /usr/lib/x86_64-linux-gnu/include/ && \
   ln -s /usr/include/cudnn.h /usr/local/cuda/include/cudnn.h && \
   ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so /usr/local/cuda/lib64/libcudnn.so && \
-  ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so.${TF_CUDNN_VERSION} /usr/local/cuda/lib64/libcudnn.so.${TF_CUDNN_VERSION}
+  ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so.${TF_CUDNN_VERSION} /usr/local/cuda/lib64/libcudnn.so.${TF_CUDNN_VERSION} && \
+  printf '#ifndef CUDA_BF16_FIX_H_\n#define CUDA_BF16_FIX_H_\n#if !defined(__clang__) && defined(__GNUC__)\n#ifndef __bf16\ntypedef unsigned short __bf16;\n#endif\n#endif\n#endif\n' > /usr/local/include/cuda_bf16_fix.h
 
 # For backward compatibility we need this line. After 1.13 we can safely remove
 # it.
