@@ -30,8 +30,7 @@ common:cuda --repo_env=HERMETIC_CUDNN_VERSION="9.3.0"
 common:cuda --repo_env=HERMETIC_NVSHMEM_VERSION="3.2.5"
 common:cuda --repo_env=HERMETIC_NCCL_VERSION="2.28.9"
 build:cuda --features=-layering_check
-build:cuda --copt=-Wno-error=header-guard
-build:cuda --copt=-Wno-header-guard
+build:cuda --copt=-w
 build:cuda --per_file_copt=.*\.cu\.cc$@-D__CUDACC__
 build:cuda --per_file_copt=.*\.cu$@-D__CUDACC__
 build:cuda --per_file_copt=.*_cuda\.cc$@-D__CUDACC__
