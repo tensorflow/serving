@@ -31,8 +31,9 @@ common:cuda --repo_env=HERMETIC_NVSHMEM_VERSION="3.2.5"
 common:cuda --repo_env=HERMETIC_NCCL_VERSION="2.28.9"
 build:cuda --features=-layering_check
 build:cuda --copt=-w
-build:cuda --copt=-include
-build:cuda --copt=third_party/cuda_bf16_fix.h
+build:cuda --per_file_copt=.*\.cu\.cc$@-D__bf16=uint16_t
+build:cuda --per_file_copt=.*\.cu$@-D__bf16=uint16_t
+build:cuda --per_file_copt=.*_cuda\.cc$@-D__bf16=uint16_t
 build:cuda_clang --action_env=GCC_HOST_COMPILER_PATH="/usr/bin/gcc-10"
 build:cuda_clang --action_env=CLANG_CUDA_COMPILER_PATH="/usr/lib/llvm-17/bin/clang"
 
