@@ -29,7 +29,7 @@ common:cuda --repo_env=HERMETIC_CUDA_VERSION="12.2.0"
 common:cuda --repo_env=HERMETIC_CUDNN_VERSION="9.3.0"
 common:cuda --repo_env=HERMETIC_NVSHMEM_VERSION="3.2.5"
 common:cuda --repo_env=HERMETIC_NCCL_VERSION="2.28.9"
-common:cuda --repo_env=TF_CUDA_FLAGS="--compiler-options -D__bf16=uint16_t"
+common:cuda --repo_env=TF_CUDA_FLAGS="-D__bf16=uint16_t"
 build:cuda --features=-layering_check
 build:cuda --copt=-w
 build:cuda --cxxopt=-w
