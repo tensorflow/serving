@@ -87,6 +87,7 @@ RUN apt-get install -y --no-install-recommends \
         swig \
         unzip \
         wget \
+        xxd \
         zip \
         zlib1g-dev \
         python3-setuptools && \
