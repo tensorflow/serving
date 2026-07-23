@@ -32,7 +32,9 @@ common:cuda --repo_env=HERMETIC_NCCL_VERSION="2.28.9"
 build:cuda --features=-layering_check
 build:cuda --copt=-w
 build:cuda --cxxopt=-w
-build:cuda --nvcc_options=w
+build:cuda --nvccopt=-w
+build:cuda --copt=-Wno-error
+build:cuda --cxxopt=-Wno-error
 build:cuda --per_file_copt=.*\.cu\.cc$@-D__bf16=uint16_t
 build:cuda --per_file_copt=.*\.cu$@-D__bf16=uint16_t
 build:cuda --per_file_copt=.*_cuda\.cc$@-D__bf16=uint16_t
