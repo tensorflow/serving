@@ -16,11 +16,13 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_THIRD_PARTY_CUDA_BF16_FIX_H_
 #define TENSORFLOW_SERVING_THIRD_PARTY_CUDA_BF16_FIX_H_
 
-// Workaround for CUDA 12.2 / LLVM 18 / GCC 10 header compatibility issue where
-// __bf16 is used in <emmintrin.h> without a definition when compiled in x86
-// CUDA mode.
+// GCC 10 host compiler fix for CUDA 12.2 / LLVM 18 header compatibility.
+// In GCC 10, __bf16 is not a builtin type keyword, so <emmintrin.h> lines 47-48 fail.
+// In Clang 18, __bf16 is already a builtin primitive type keyword.
+#if !defined(__clang__) && defined(__GNUC__)
 #ifndef __bf16
 typedef unsigned short __bf16;
+#endif
 #endif
 
 #endif  // TENSORFLOW_SERVING_THIRD_PARTY_CUDA_BF16_FIX_H_
