@@ -1,0 +1,11 @@
+--- a/third_party/xla/xla/tsl/cuda/BUILD.bazel	2026-07-22 21:22:09.000000000 +0000
++++ b/third_party/xla/xla/tsl/cuda/BUILD.bazel	2026-07-22 21:22:09.000000000 +0000
+@@ -47,7 +47,7 @@
+         "//xla/tsl/platform:logging",
+         "@com_google_absl//absl/container:flat_hash_set",
+         "@local_config_cuda//cuda:cuda_headers",
+-        "@tsl//tsl/platform:dso_loader",
++        "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+ )

@@ -4,10 +4,7 @@ package(default_visibility = ["//tensorflow_serving:internal"])
 
 licenses(["notice"])
 
-exports_files([
-    "LICENSE",
-    "cuda_bf16_fix.h",
-])
+exports_files(["LICENSE"])
 
 # open source marker; do not remove
 
