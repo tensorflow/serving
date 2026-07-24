@@ -36,8 +36,6 @@ build:cuda --copt=-Wno-error
 build:cuda --cxxopt=-Wno-error
 build:cuda --copt=-Wno-header-guard
 build:cuda --cxxopt=-Wno-header-guard
-build:cuda --copt=-include
-build:cuda --copt=tensorflow_serving/cuda_bf16_fix.h
 build:cuda --cxxopt=-include
 build:cuda --cxxopt=tensorflow_serving/cuda_bf16_fix.h
 build:cuda_clang --action_env=GCC_HOST_COMPILER_PATH="/usr/bin/gcc-10"
