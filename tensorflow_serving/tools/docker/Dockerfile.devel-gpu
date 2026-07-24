@@ -163,6 +163,7 @@ RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} bazel fetch --config=cuda ${TF_SERVING_BAZEL_OPTIONS} ${TF_SERVING_BUILD_OPTIONS} tensorflow_serving/model_servers:tensorflow_model_server || true && \
     find /root/.cache/bazel -name "clang_cuda_runtime_wrapper.h" -exec sed -i '1i #if defined(__clang__) \&\& defined(__CUDA__)\n#ifndef __bf16\ntypedef unsigned short __bf16;\n#define __bf16 __bf16\n#endif\n#endif' {} + && \
+    find /root/.cache/bazel -path "*/xla/tsl/cuda/BUILD.bazel" -exec sed -i 's|name = "nvshmem",|name = "nvshmem",\n    deps = ["//xla/tsl/platform/default:dso_loader", "//xla/tsl/platform:dso_loader"],|' {} + && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
     bazel build --color=yes --noshow_progress --curses=no --config=cuda --copt="-fPIC"\
     ${TF_SERVING_BAZEL_OPTIONS} \
