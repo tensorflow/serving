@@ -144,7 +144,7 @@ RUN mkdir -p /usr/lib/x86_64-linux-gnu/include/ && \
   ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so /usr/local/cuda/lib64/libcudnn.so && \
   ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so.${TF_CUDNN_VERSION} /usr/local/cuda/lib64/libcudnn.so.${TF_CUDNN_VERSION} && \
   find /usr/lib/gcc -name "emmintrin.h" -exec sed -i '/typedef __bf16 __m128bh/d' {} + && \
-  find /usr/lib/gcc -name "emmintrin.h" -exec sed -i 's/typedef __bf16 __v8bf.*/#ifndef __v8bf_defined\n#define __v8bf_defined\n#if defined(__clang__) \&\& !defined(__BF16_TYPE__) \&\& !defined(__ARM_BF16_FORMAT_BF16)\ntypedef unsigned short __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef unsigned short __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#else\ntypedef __bf16 __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef __bf16 __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#endif\n#endif/' {} +
+  find /usr/lib/gcc -name "emmintrin.h" -exec sed -i 's/typedef __bf16 __v8bf.*/#ifndef __v8bf_defined\n#define __v8bf_defined\n#if (defined(__CUDACC__) || defined(__CUDA__)) \&\& !defined(__bf16)\ntypedef unsigned short __bf16;\n#define __bf16 __bf16\n#endif\ntypedef __bf16 __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef __bf16 __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#endif/' {} +
 
 # For backward compatibility we need this line. After 1.13 we can safely remove
 # it.
@@ -165,7 +165,7 @@ RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} bazel fetch --config=cuda ${TF_SERVING_BAZEL_OPTIONS} ${TF_SERVING_BUILD_OPTIONS} tensorflow_serving/model_servers:tensorflow_model_server || true && \
     find /root/.cache/bazel -name "emmintrin.h" -exec sed -i '/typedef __bf16 __m128bh/d' {} + && \
-    find /root/.cache/bazel -name "emmintrin.h" -exec sed -i 's/typedef __bf16 __v8bf.*/#ifndef __v8bf_defined\n#define __v8bf_defined\n#if defined(__clang__) \&\& !defined(__BF16_TYPE__) \&\& !defined(__ARM_BF16_FORMAT_BF16)\ntypedef unsigned short __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef unsigned short __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#else\ntypedef __bf16 __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef __bf16 __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#endif\n#endif/' {} + && \
+    find /root/.cache/bazel -name "emmintrin.h" -exec sed -i 's/typedef __bf16 __v8bf.*/#ifndef __v8bf_defined\n#define __v8bf_defined\n#if (defined(__CUDACC__) || defined(__CUDA__)) \&\& !defined(__bf16)\ntypedef unsigned short __bf16;\n#define __bf16 __bf16\n#endif\ntypedef __bf16 __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef __bf16 __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#endif/' {} + && \
     find /root/.cache/bazel -path "*/xla/tsl/cuda/BUILD.bazel" -exec sed -i '/name = "nvshmem"/,/deps = \[/ s|deps = \[|deps = \[\n        "//xla/tsl/platform/default:dso_loader",|' {} + && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
     bazel build --color=yes --noshow_progress --curses=no --config=cuda --copt="-fPIC"\
