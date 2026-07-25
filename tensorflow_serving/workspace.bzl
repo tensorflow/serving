@@ -37,7 +37,7 @@ def tf_serving_workspace():
             "https://storage.googleapis.com/mirror.tensorflow.org/github.com/grpc/grpc/archive/refs/tags/v1.81.0.tar.gz",
             "https://github.com/grpc/grpc/archive/refs/tags/v1.81.0.tar.gz",
         ],
-        patch_file = [
+        patches = [
             "@xla//third_party/grpc:grpc.patch",
         ],
         patch_cmds = [
