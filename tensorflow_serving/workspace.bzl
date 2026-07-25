@@ -19,6 +19,12 @@ def tf_serving_workspace():
             "https://storage.googleapis.com/mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/20260526.0.tar.gz",
             "https://github.com/abseil/abseil-cpp/archive/20260526.0.tar.gz",
         ],
+        patches = [
+            "@xla//third_party/absl:btree.patch",
+            "@xla//third_party/absl:build_dll.patch",
+            "@xla//third_party/absl:endian.patch",
+        ],
+        patch_args = ["-p1"],
         patch_cmds = [
             "sed -i 's/.*template btree.*/    node_type *parent;/' absl/container/internal/btree.h",
         ],
