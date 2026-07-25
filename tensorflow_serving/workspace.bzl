@@ -40,6 +40,7 @@ def tf_serving_workspace():
         patches = [
             "@xla//third_party/grpc:grpc.patch",
         ],
+        patch_args = ["-p1"],
         patch_cmds = [
             "find . -name '*.cc' -exec sed -i '1i #include <algorithm>' {} +",
         ],
