@@ -22,6 +22,10 @@ def tf_serving_workspace():
         patch_cmds = [
             "sed -i 's/.*template btree.*/    node_type *parent;/' absl/container/internal/btree.h",
         ],
+        repo_mapping = {
+            "@google_benchmark": "@com_google_benchmark",
+            "@googletest": "@com_google_googletest",
+        },
     )
 
     http_archive(
