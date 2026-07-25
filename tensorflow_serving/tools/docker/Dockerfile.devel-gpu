@@ -166,7 +166,7 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} bazel build --nobuild --config=cuda ${TF_SERVING_BAZEL_OPTIONS} ${TF_SERVING_BUILD_OPTIONS} tensorflow_serving/model_servers:tensorflow_model_server || true && \
     find /root/.cache/bazel -name "emmintrin.h" -exec sed -i '/typedef __bf16 __m128bh/d' {} + && \
     find /root/.cache/bazel -name "emmintrin.h" -exec sed -i 's/typedef __bf16 __v8bf.*/#ifndef __v8bf_defined\n#define __v8bf_defined\n#if defined(__CUDA__) || defined(__CUDACC__)\ntypedef short __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef short __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#else\ntypedef __bf16 __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef __bf16 __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#endif\n#endif/' {} + && \
-    find /root/.cache/bazel -name "btree.h" -exec sed -i 's/.*template btree::node_type \*parent;/    node_type \*parent;/' {} + && \
+    find /root/.cache/bazel -name "btree.h" -exec sed -i 's/.*template btree.*/    node_type \*parent;/' {} + && \
     find /root/.cache/bazel -path "*/xla/tsl/cuda/BUILD.bazel" -exec sed -i '/name = "nvshmem"/,/deps = \[/ s|deps = \[|deps = \[\n        "//xla/tsl/platform/default:dso_loader",|' {} + && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
     bazel build --color=yes --noshow_progress --curses=no --config=cuda --copt="-fPIC"\
