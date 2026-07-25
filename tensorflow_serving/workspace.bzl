@@ -28,6 +28,23 @@ def tf_serving_workspace():
         },
     )
 
+    # ===== gRPC dependency with Clang 18 #include <algorithm> patch =====
+    http_archive(
+        name = "com_github_grpc_grpc",
+        sha256 = "41b695614b26652ff9e97ce50cfd4a6c7a3d45a9fe598d1454407746499bbf2c",
+        strip_prefix = "grpc-1.81.0",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/grpc/grpc/archive/refs/tags/v1.81.0.tar.gz",
+            "https://github.com/grpc/grpc/archive/refs/tags/v1.81.0.tar.gz",
+        ],
+        patch_file = [
+            "@xla//third_party/grpc:grpc.patch",
+        ],
+        patch_cmds = [
+            "find . -name '*.cc' -exec sed -i '1i #include <algorithm>' {} +",
+        ],
+    )
+
     http_archive(
         name = "rules_proto",
         sha256 = "a88d018bdcb8df1ce8185470eb4b4899d778f9ac3a66cb36d514beb81e345282",
