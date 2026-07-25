@@ -164,11 +164,9 @@ RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
 
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} bazel fetch --config=cuda ${TF_SERVING_BAZEL_OPTIONS} ${TF_SERVING_BUILD_OPTIONS} tensorflow_serving/model_servers:tensorflow_model_server || true && \
-    LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} bazel query @com_google_absl//... || true && \
     chmod -R +w /root/.cache && \
     find /root/.cache -name "emmintrin.h" -exec sed -i --follow-symlinks '/typedef __bf16 __m128bh/d' {} + && \
     find /root/.cache -name "emmintrin.h" -exec sed -i --follow-symlinks 's/typedef __bf16 __v8bf.*/#ifndef __v8bf_defined\n#define __v8bf_defined\n#if defined(__CUDA__) || defined(__CUDACC__)\ntypedef short __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef short __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#else\ntypedef __bf16 __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef __bf16 __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#endif\n#endif/' {} + && \
-    find /root/.cache -name "btree.h" -exec sed -i --follow-symlinks 's/.*template btree.*/    node_type \*parent;/' {} + && \
     find /root/.cache -path "*/xla/tsl/cuda/BUILD.bazel" -exec sed -i --follow-symlinks '/name = "nvshmem"/,/deps = \[/ s|deps = \[|deps = \[\n        "//xla/tsl/platform/default:dso_loader",|' {} + && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
     bazel build --color=yes --noshow_progress --curses=no --config=cuda --copt="-fPIC"\

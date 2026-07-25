@@ -10,6 +10,20 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 def tf_serving_workspace():
     """All TensorFlow Serving external dependencies."""
 
+    # ===== Abseil C++ dependency with C++17 Clang 18 template patch =====
+    http_archive(
+        name = "com_google_absl",
+        sha256 = "6e1aee535473414164bf83e4ebc40240dec71a4701f8a642d906e95bea1aea0c",
+        strip_prefix = "abseil-cpp-20260526.0",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/20260526.0.tar.gz",
+            "https://github.com/abseil/abseil-cpp/archive/20260526.0.tar.gz",
+        ],
+        patch_cmds = [
+            "sed -i 's/.*template btree.*/    node_type *parent;/' absl/container/internal/btree.h",
+        ],
+    )
+
     http_archive(
         name = "rules_proto",
         sha256 = "a88d018bdcb8df1ce8185470eb4b4899d778f9ac3a66cb36d514beb81e345282",
