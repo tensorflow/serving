@@ -20,7 +20,7 @@ def tf_serving_workspace():
             "https://github.com/abseil/abseil-cpp/archive/20260526.0.tar.gz",
         ],
         patch_cmds = [
-            "python3 -c 'import glob, re\nfor p in glob.glob(\"**/btree.h\", recursive=True):\n    s = open(p).read()\n    open(p, \"w\").write(re.sub(r\"(// In sets, all iterators are const\\.)\", \"public:\\n  \\\\1\", s))\n'",
+            "python3 -c 'import glob, re; [(lambda s=open(p).read(): open(p, \"w\").write(re.sub(r\"(// In sets, all iterators are const\\.)\", \"public:\\n  \\\\1\", s)))() for p in glob.glob(\"**/btree.h\", recursive=True)]'",
         ],
         repo_mapping = {
             "@google_benchmark": "@com_google_benchmark",
