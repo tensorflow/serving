@@ -10,7 +10,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 def tf_serving_workspace():
     """All TensorFlow Serving external dependencies."""
 
-    # ===== Abseil C++ dependency with C++17 Clang 18 template patch =====
+    # ===== Abseil C++ dependency =====
     http_archive(
         name = "com_google_absl",
         sha256 = "6e1aee535473414164bf83e4ebc40240dec71a4701f8a642d906e95bea1aea0c",
@@ -18,9 +18,6 @@ def tf_serving_workspace():
         urls = [
             "https://storage.googleapis.com/mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/20260526.0.tar.gz",
             "https://github.com/abseil/abseil-cpp/archive/20260526.0.tar.gz",
-        ],
-        patch_cmds = [
-            "python3 -c 'import glob; [open(p, \"w\").write(open(p).read().replace(\"using iterator = std::conditional_t<\\n      is_map_container::value,\\n      btree_iterator<normal_node, normal_reference, normal_pointer>,\\n      btree_iterator<normal_node, const_reference, const_pointer>>;\", \"  using iterator = btree_iterator<normal_node, normal_reference, normal_pointer>;\")) for p in glob.glob(\"**/btree.h\", recursive=True)]'",
         ],
         repo_mapping = {
             "@google_benchmark": "@com_google_benchmark",
