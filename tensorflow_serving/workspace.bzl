@@ -20,7 +20,7 @@ def tf_serving_workspace():
             "https://github.com/abseil/abseil-cpp/archive/20260526.0.tar.gz",
         ],
         patch_cmds = [
-            "python3 -c 'import glob, re; [open(p, \"w\").write(re.sub(r\"using iterator = std::conditional_t<[\\s\\S]*?const_pointer>>;\", \"  using iterator = btree_iterator<normal_node, reference, pointer>;\", re.sub(r\"typename container_internal::template btree[^\\n]*?node_type\\s*\\*parent;\", \"    node_type *parent;\", open(p).read()))) for p in glob.glob(\"**/btree.h\", recursive=True)]'",
+            "python3 -c 'import glob; [open(p, \"w\").write(open(p).read().replace(\"using iterator = std::conditional_t<\\n      is_map_container::value,\\n      btree_iterator<normal_node, normal_reference, normal_pointer>,\\n      btree_iterator<normal_node, const_reference, const_pointer>>;\", \"  using iterator = btree_iterator<normal_node, normal_reference, normal_pointer>;\")) for p in glob.glob(\"**/btree.h\", recursive=True)]'",
         ],
         repo_mapping = {
             "@google_benchmark": "@com_google_benchmark",
