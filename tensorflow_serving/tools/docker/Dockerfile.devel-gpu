@@ -167,7 +167,7 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
     chmod -R +w /root/.cache && \
     find /root/.cache -name "emmintrin.h" -exec sed -i --follow-symlinks '/typedef __bf16 __m128bh/d' {} + && \
     find /root/.cache -name "emmintrin.h" -exec sed -i --follow-symlinks 's/typedef __bf16 __v8bf.*/#ifndef __v8bf_defined\n#define __v8bf_defined\n#if defined(__CUDA__) || defined(__CUDACC__)\ntypedef short __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef short __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#else\ntypedef __bf16 __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef __bf16 __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#endif\n#endif/' {} + && \
-    find /root/.cache -path "*/xla/tsl/cuda/BUILD.bazel" -exec sed -i --follow-symlinks '/name = "nvshmem"/,/deps = \[/ s|deps = \[|deps = \[\n        "//xla/tsl/platform/default:dso_loader",|' {} + && \
+    find /root/.cache -path "*/xla/tsl/cuda/BUILD.bazel" -exec sed -i --follow-symlinks 's|deps = \[|deps = \[\n        "//xla/tsl/platform/default:dso_loader",|g' {} + && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
     bazel build --color=yes --noshow_progress --curses=no --config=cuda --copt="-fPIC"\
     ${TF_SERVING_BAZEL_OPTIONS} \
