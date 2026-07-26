@@ -20,8 +20,8 @@ def tf_serving_workspace():
             "https://github.com/abseil/abseil-cpp/archive/20260526.0.tar.gz",
         ],
         patch_cmds = [
-            "sed -i 's/.*template btree.*node_type.*parent;/    node_type *parent;/' absl/container/internal/btree.h",
-            "sed -i '/using iterator = std::conditional_t</,/const_pointer>>;/c\\  using iterator = btree_iterator<normal_node, normal_reference, normal_pointer>;' absl/container/internal/btree.h",
+            "find . -name 'btree.h' -exec sed -i 's/.*template btree.*node_type.*parent;/    node_type *parent;/' {} +",
+            "find . -name 'btree.h' -exec sed -i '/using iterator = std::conditional_t</,/const_pointer>>;/c\\  using iterator = btree_iterator<normal_node, normal_reference, normal_pointer>;' {} +",
         ],
         repo_mapping = {
             "@google_benchmark": "@com_google_benchmark",
