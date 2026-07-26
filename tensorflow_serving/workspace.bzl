@@ -46,6 +46,23 @@ def tf_serving_workspace():
         ],
     )
 
+    # ===== RE2 dependency with Clang 18 #include <cstring> patch =====
+    http_archive(
+        name = "com_googlesource_code_re2",
+        sha256 = "8635bc46ac8d73974b4198229805287c8d620245f2081af155d7d96d4988a3a5",
+        strip_prefix = "re2-927f5d53caf8111721e734cf24724686bb745f55",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google/re2/archive/927f5d53caf8111721e734cf24724686bb745f55.tar.gz",
+            "https://github.com/google/re2/archive/927f5d53caf8111721e734cf24724686bb745f55.tar.gz",
+        ],
+        patch_cmds = [
+            "find . -name '*.h' -exec sed -i '1i #include <cstring>' {} +",
+        ],
+        repo_mapping = {
+            "@abseil-cpp": "@com_google_absl",
+        },
+    )
+
     http_archive(
         name = "rules_proto",
         sha256 = "a88d018bdcb8df1ce8185470eb4b4899d778f9ac3a66cb36d514beb81e345282",
