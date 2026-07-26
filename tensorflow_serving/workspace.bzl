@@ -20,7 +20,7 @@ def tf_serving_workspace():
             "https://github.com/abseil/abseil-cpp/archive/20260526.0.tar.gz",
         ],
         patch_cmds = [
-            "python3 -c 'import glob, re; [open(p, \"w\").write(re.sub(r\"(\\s+)(using iterator = std::conditional_t<[\\s\\S]*?const_pointer>;)\", r\"\\1public:\\1\\2\", open(p).read())) for p in glob.glob(\"**/btree.h\", recursive=True)]'",
+            "python3 -c 'import glob; target=\"  // In sets, all iterators are const.\\n  using iterator = std::conditional_t<\\n      is_map_container::value,\\n      btree_iterator<normal_node, normal_reference, normal_pointer>,\\n      btree_iterator<normal_node, const_reference, const_pointer>>;\\n  using const_iterator =\\n      btree_iterator<const_node, const_reference, const_pointer>;\\n\\n public:\"; repl=\" public:\\n  // In sets, all iterators are const.\\n  using iterator = std::conditional_t<\\n      is_map_container::value,\\n      btree_iterator<normal_node, normal_reference, normal_pointer>,\\n      btree_iterator<normal_node, const_reference, const_pointer>>;\\n  using const_iterator =\\n      btree_iterator<const_node, const_reference, const_pointer>;\"; [open(p, \"w\").write(open(p).read().replace(target, repl)) for p in glob.glob(\"**/btree.h\", recursive=True)]'",
         ],
         repo_mapping = {
             "@google_benchmark": "@com_google_benchmark",
