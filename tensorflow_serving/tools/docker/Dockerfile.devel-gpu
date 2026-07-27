@@ -169,21 +169,21 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
     find /root/.cache -name "emmintrin.h" -exec sed -i --follow-symlinks 's/typedef __bf16 __v8bf.*/#ifndef __v8bf_defined\n#define __v8bf_defined\n#if defined(__CUDA__) || defined(__CUDACC__)\ntypedef short __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef short __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#else\ntypedef __bf16 __v8bf __attribute__((__vector_size__(16), __aligned__(16)));\ntypedef __bf16 __m128bh __attribute__((__vector_size__(16), __aligned__(16)));\n#endif\n#endif/' {} + && \
     find /root/.cache -path "*/xla/tsl/cuda/BUILD.bazel" -exec sed -i --follow-symlinks 's|"@tsl//tsl/platform:dso_loader"|"//xla/tsl/platform/default:dso_loader"|g; s|deps = \[|deps = \[\n        "//xla/tsl/platform/default:dso_loader",|g' {} + && \
     find /root/.cache -name "prog.h" -exec sed -i --follow-symlinks '1i #include <cstring>' {} + && \
-    python3 -c 'import glob, re
-def patch_btree(p):
-    s = open(p).read()
-    s = re.sub(r"(class btree_iterator : private btree_iterator_generation_info \{)", r"\1\n  template <typename, typename, typename> friend class btree_iterator;", s)
-    s = re.sub(r"(bool operator==\(const const_iterator &other\) const \{)", r"template <typename N, typename R, typename P> bool operator==(const btree_iterator<N, R, P> &other) const { return node_ == other.node_ && position_ == other.position_; }\n  \1", s)
-    s = re.sub(r"(bool operator!=\(const const_iterator &other\) const \{)", r"template <typename N, typename R, typename P> bool operator!=(const btree_iterator<N, R, P> &other) const { return node_ != other.node_ || position_ != other.position_; }\n  \1", s)
-    s = re.sub(r"(const_iterator internal_end\(const_iterator iter\) const \{)", r"const_iterator internal_end(iterator iter) const { return iter.node_ != nullptr ? iter : end(); }\n  \1", s)
-    s = re.sub(r"using iterator\s*=\s*typename btree_iterator<node_type, reference, pointer>::iterator;", r"using iterator = btree_iterator<node_type, reference, pointer>;", s)
-    open(p, "w").write(s)
+    python3 -c 'import glob, re; \
+def patch_btree(p): \
+    s = open(p).read(); \
+    s = re.sub(r"(class btree_iterator : private btree_iterator_generation_info \{)", r"\1\n  template <typename, typename, typename> friend class btree_iterator;", s); \
+    s = re.sub(r"(bool operator==\(const const_iterator &other\) const \{)", r"template <typename N, typename R, typename P> bool operator==(const btree_iterator<N, R, P> &other) const { return node_ == other.node_ && position_ == other.position_; }\n  \1", s); \
+    s = re.sub(r"(bool operator!=\(const const_iterator &other\) const \{)", r"template <typename N, typename R, typename P> bool operator!=(const btree_iterator<N, R, P> &other) const { return node_ != other.node_ || position_ != other.position_; }\n  \1", s); \
+    s = re.sub(r"(const_iterator internal_end\(const_iterator iter\) const \{)", r"const_iterator internal_end(iterator iter) const { return iter.node_ != nullptr ? iter : end(); }\n  \1", s); \
+    s = re.sub(r"using iterator\s*=\s*typename btree_iterator<node_type, reference, pointer>::iterator;", r"using iterator = btree_iterator<node_type, reference, pointer>;", s); \
+    open(p, "w").write(s); \
 for p in glob.glob("/root/.cache/**/btree.h", recursive=True): patch_btree(p)' && \
-    python3 -c 'import glob, re
-def patch_container(p):
-    s = open(p).read()
-    s = re.sub(r"\s*protected:\s*(// Alias used for heterogeneous lookup functions\.)", r"\n public:\n  \1", s)
-    open(p, "w").write(s)
+    python3 -c 'import glob, re; \
+def patch_container(p): \
+    s = open(p).read(); \
+    s = re.sub(r"\s*protected:\s*(// Alias used for heterogeneous lookup functions\.)", r"\n public:\n  \1", s); \
+    open(p, "w").write(s); \
 for p in glob.glob("/root/.cache/**/btree_container.h", recursive=True): patch_container(p)' && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
     bazel build --color=yes --noshow_progress --curses=no --config=cuda --copt="-fPIC"\
