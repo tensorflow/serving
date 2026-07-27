@@ -15,7 +15,7 @@ def patch_btree(p):
     if "internal_end(iterator iter) const" not in s:
         s = re.sub(r"(const_iterator internal_end\(const_iterator iter\) const \{)", r"const_iterator internal_end(iterator iter) const { return iter.node_ != nullptr ? iter : end(); }\n  \1", s)
     
-    # Replace explicit converting constructor (m2) FIRST with std::is_same<std::remove_const_t<N>, normal_node>
+    # Replace explicit converting constructor (m2) FIRST
     m2 = re.search(r"std::is_same<btree_iterator<N,\s*R,\s*P>,\s*const_iterator>::value\s*&&\s*std::is_same<btree_iterator,\s*iterator>::value", s)
     if m2:
         s = s[:m2.start()] + "std::is_same<std::remove_const_t<N>, normal_node>::value && std::is_same<btree_iterator, iterator>::value && !std::is_same<iterator, const_iterator>::value" + s[m2.end():]
