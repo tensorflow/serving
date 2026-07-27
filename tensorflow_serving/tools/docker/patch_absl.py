@@ -14,6 +14,7 @@ def patch_btree(p):
         s = re.sub(r"(const_iterator internal_end\(const_iterator iter\) const \{)", r"const_iterator internal_end(iterator iter) const { return iter.node_ != nullptr ? iter : end(); }\n  \1", s)
     if "using iterator = btree_iterator<node_type, reference, pointer>;" not in s:
         s = re.sub(r"using iterator\s*=\s*typename btree_iterator<node_type, reference, pointer>::iterator;", r"using iterator = btree_iterator<node_type, reference, pointer>;", s)
+    s = re.sub(r"std::is_same<btree_iterator<N, R, P>,\s*iterator>::value\s*&&\s*std::is_same<btree_iterator,\s*const_iterator>::value", r"std::is_same<btree_iterator, const_iterator>::value && !std::is_same<btree_iterator<N, R, P>, const_iterator>::value", s)
     open(p, "w").write(s)
 
 def patch_container(p):
