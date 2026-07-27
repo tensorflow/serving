@@ -92,11 +92,11 @@ def tf_serving_workspace():
     # https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/save_models.py
     http_archive(
         name = "org_tensorflow_text",
-        sha256 = "e08834bed6f544be9cc0315895898bf48d94b8090bca993ab45526329df291c8",
-        strip_prefix = "text-2.20.0",
+        sha256 = "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed",
+        strip_prefix = "text-2.21.0",
         urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/tensorflow/text/archive/v2.20.0.zip",
-            "https://github.com/tensorflow/text/archive/v2.20.0.zip",
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/tensorflow/text/archive/v2.21.0.zip",
+            "https://github.com/tensorflow/text/archive/v2.21.0.zip",
         ],
         repo_mapping = {
             "@com_google_re2": "@com_googlesource_code_re2",
