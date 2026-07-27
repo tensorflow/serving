@@ -4,17 +4,18 @@ import sys
 
 def patch_btree(p):
     s = open(p).read()
-    if "template <typename N2, typename R2, typename P2> friend class btree_iterator;" not in s:
-        s = re.sub(r"(class btree_iterator : private btree_iterator_generation_info \{)", r"\1\n public:\n  template <typename N2, typename R2, typename P2> friend class btree_iterator;", s)
+    if "template <typename N2, typename R2, typename P2> friend class btree_iterator;" in s:
+        print(f"Abseil btree header {p} is already patched. Skipping.")
+        return
     
-    # Make iterator and const_iterator aliases public in btree_iterator
+    s = re.sub(r"(class btree_iterator : private btree_iterator_generation_info \{)", r"\1\n public:\n  template <typename N2, typename R2, typename P2> friend class btree_iterator;", s)
     s = re.sub(r"(\s*)using iterator = std::conditional_t<", r"\1public:\n\1using iterator = std::conditional_t<", s)
     
     s = s.replace("class btree_iterator_generation_info_disabled {", "class btree_iterator_generation_info_disabled {\n public:")
     s = s.replace("class btree_iterator_generation_info_enabled {", "class btree_iterator_generation_info_enabled {\n public:")
     if "bool operator==(const btree_iterator<N, R, P>" not in s:
         s = re.sub(r"(bool operator==\(const const_iterator &other\) const \{)", r"template <typename N, typename R, typename P> bool operator==(const btree_iterator<N, R, P> &other) const { return node_ == other.node_ && position_ == other.position_; }\n  \1", s)
-    if "bool operator!=(const btree_iterator<N, R, P>" not in s:
+    if "bool operator!=\(const btree_iterator<N, R, P>" not in s:
         s = re.sub(r"(bool operator!=\(const const_iterator &other\) const \{)", r"template <typename N, typename R, typename P> bool operator!=(const btree_iterator<N, R, P> &other) const { return node_ != other.node_ || position_ != other.position_; }\n  \1", s)
     if "internal_end(iterator iter) const" not in s:
         s = re.sub(r"(const_iterator internal_end\(const_iterator iter\) const \{)", r"const_iterator internal_end(iterator iter) const { return iter.node_ != nullptr ? iter : end(); }\n  \1", s)
@@ -39,8 +40,10 @@ def patch_btree(p):
 
 def patch_container(p):
     s = open(p).read()
-    if " public:\n  // Alias used for heterogeneous lookup functions." not in s:
-        s = re.sub(r"\s*protected:\s*(// Alias used for heterogeneous lookup functions\.)", r"\n public:\n  \1", s)
+    if " public:\n  // Alias used for heterogeneous lookup functions." in s:
+        print(f"Abseil btree_container header {p} is already patched. Skipping.")
+        return
+    s = re.sub(r"\s*protected:\s*(// Alias used for heterogeneous lookup functions\.)", r"\n public:\n  \1", s)
     open(p, "w").write(s)
 
 if __name__ == "__main__":
