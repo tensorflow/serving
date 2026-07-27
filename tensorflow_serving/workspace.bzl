@@ -20,7 +20,229 @@ def tf_serving_workspace():
             "https://github.com/abseil/abseil-cpp/archive/20260526.0.tar.gz",
         ],
         patch_cmds = [
-            'python3 -c \'import glob, re\\nfor p in glob.glob("**/btree.h", recursive=True):\\n    s = open(p).read()\\n    if "friend class btree_iterator;" not in s:\\n        s = re.sub(r"std::is_same<btree_iterator<N,\\\\s*R,\\\\s*P>,\\\\s*iterator>::value\\\\s*&&\\\\s*std::is_same<btree_iterator,\\\\s*const_iterator>::value", r"std::is_same<std::remove_const_t<N>, std::remove_const_t<node_type>>::value && std::is_same<btree_iterator, const_iterator>::value", s)\\n        s = re.sub(r"std::is_same<btree_iterator<N,\\\\s*R,\\\\s*P>,\\\\s*const_iterator>::value\\\\s*&&\\\\s*std::is_same<btree_iterator,\\\\s*iterator>::value", r"std::is_same<std::remove_const_t<N>, normal_node>::value && std::is_same<btree_iterator, iterator>::value && !std::is_same<iterator, const_iterator>::value", s)\\n        s = re.sub(r"(\\\\s*)using iterator = std::conditional_t<", r"\\1public:\\n\\1using iterator = std::conditional_t<", s)\\n        s = re.sub(r"(class btree_iterator : private btree_iterator_generation_info \\{)", r"\\1\\n public:\\n  template <typename N2, typename R2, typename P2> friend class btree_iterator;", s)\\n        s = re.sub(r"(bool operator==\\(const const_iterator &other\\) const \\{)", r"template <typename N, typename R, typename P> bool operator==(const btree_iterator<N, R, P> &other) const { return node_ == other.node_ && position_ == other.position_; }\\n  \\1", s)\\n        s = re.sub(r"(bool operator!=\\(const const_iterator &other\\) const \\{)", r"template <typename N, typename R, typename P> bool operator!=(const btree_iterator<N, R, P> &other) const { return node_ != other.node_ || position_ != other.position_; }\\n  \\1", s)\\n        s = re.sub(r"(const_iterator internal_end\\(const_iterator iter\\) const \\{)", r"const_iterator internal_end(iterator iter) const { return iter.node_ != nullptr ? iter : end(); }\\n  \\1", s)\\n        s = s.replace("class btree_iterator_generation_info_disabled {", "class btree_iterator_generation_info_disabled {\\n public:")\\n        s = s.replace("class btree_iterator_generation_info_enabled {", "class btree_iterator_generation_info_enabled {\\n public:")\\n        s = s.replace("btree_iterator(const btree_iterator<N, R, P> other)  // NOLINT", "btree_iterator(const btree_iterator<N, R, P> &other)  // NOLINT")\\n        s = s.replace("explicit btree_iterator(const btree_iterator<N, R, P> other)", "explicit btree_iterator(const btree_iterator<N, R, P> &other)")\\n        s = s.replace("btree_iterator_generation_info(other),", "btree_iterator_generation_info(other.generation()),")\\n        s = s.replace("node_(other.node_),\\n        position_(other.position_) {}", "node_(const_cast<node_type*>(other.node_)),\\n        position_(other.position_) {}")\\n        open(p, "w").write(s)\'',
-            'python3 -c \'import glob, re; [(lambda s=open(p).read(): (" public:\\n  // Alias used for heterogeneous lookup functions." not in s and open(p, "w").write(re.sub(r"\\\\s*protected:\\\\s*(// Alias used for heterogeneous lookup functions\\.)", r"\\n public:\\n  \\1", s))))() for p in glob.glob("**/btree_container.h", recursive=True)]\'',
-        ]
-        
+            "python3 -c 'import glob, re; [(lambda s=open(p).read(): (\"friend class btree_iterator;\" not in s and open(p, \"w\").write(re.sub(r\"std::is_same<btree_iterator<N,\\\\s*R,\\\\s*P>,\\\\s*iterator>::value\\\\s*&&\\\\s*std::is_same<btree_iterator,\\\\s*const_iterator>::value\", r\"std::is_same<std::remove_const_t<N>, std::remove_const_t<node_type>>::value && std::is_same<btree_iterator, const_iterator>::value\", re.sub(r\"std::is_same<btree_iterator<N,\\\\s*R,\\\\s*P>,\\\\s*const_iterator>::value\\\\s*&&\\\\s*std::is_same<btree_iterator,\\\\s*iterator>::value\", r\"std::is_same<std::remove_const_t<N>, normal_node>::value && std::is_same<btree_iterator, iterator>::value && !std::is_same<iterator, const_iterator>::value\", re.sub(r\"(\\s*)using iterator = std::conditional_t<\", r\"\\1public:\\n\\1using iterator = std::conditional_t<\", re.sub(r\"(class btree_iterator : private btree_iterator_generation_info \\{)\", r\"\\1\\n public:\\n  template <typename N2, typename R2, typename P2> friend class btree_iterator;\", re.sub(r\"(bool operator==\\(const const_iterator &other\\) const \\{)\", r\"template <typename N, typename R, typename P> bool operator==(const btree_iterator<N, R, P> &other) const { return node_ == other.node_ && position_ == other.position_; }\\n  \\1\", re.sub(r\"(bool operator!=\\(const const_iterator &other\\) const \\{)\", r\"template <typename N, typename R, typename P> bool operator!=(const btree_iterator<N, R, P> &other) const { return node_ != other.node_ || position_ != other.position_; }\\n  \\1\", re.sub(r\"(const_iterator internal_end\\(const_iterator iter\\) const \\{)\", r\"const_iterator internal_end(iterator iter) const { return iter.node_ != nullptr ? iter : end(); }\\n  \\1\", s))))))).replace(\"class btree_iterator_generation_info_disabled {\", \"class btree_iterator_generation_info_disabled {\\n public:\").replace(\"class btree_iterator_generation_info_enabled {\", \"class btree_iterator_generation_info_enabled {\\n public:\").replace(\"btree_iterator(const btree_iterator<N, R, P> other)  // NOLINT\", \"btree_iterator(const btree_iterator<N, R, P> &other)  // NOLINT\").replace(\"explicit btree_iterator(const btree_iterator<N, R, P> other)\", \"explicit btree_iterator(const btree_iterator<N, R, P> &other)\").replace(\"btree_iterator_generation_info(other),\", \"btree_iterator_generation_info(other.generation()),\").replace(\"node_(other.node_),\\n        position_(other.position_) {}\", \"node_(const_cast<node_type*>(other.node_)),\\n        position_(other.position_) {}\"))))() for p in glob.glob(\"**/btree.h\", recursive=True)]'",
+            "python3 -c 'import glob, re; [(lambda s=open(p).read(): (\" public:\\n  // Alias used for heterogeneous lookup functions.\" not in s and open(p, \"w\").write(re.sub(r\"\\\\s*protected:\\\\s*(// Alias used for heterogeneous lookup functions\\.)\", r\"\\n public:\\n  \\1\", s))))() for p in glob.glob(\"**/btree_container.h\", recursive=True)]'",
+        ],
+        repo_mapping = {
+            "@google_benchmark": "@com_google_benchmark",
+            "@googletest": "@com_google_googletest",
+        },
+    )
+
+    # ===== gRPC dependency with Clang 18 #include <algorithm> patch =====
+    http_archive(
+        name = "com_github_grpc_grpc",
+        sha256 = "41b695614b26652ff9e97ce50cfd4a6c7a3d45a9fe598d1454407746499bbf2c",
+        strip_prefix = "grpc-1.81.0",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/grpc/grpc/archive/refs/tags/v1.81.0.tar.gz",
+            "https://github.com/grpc/grpc/archive/refs/tags/v1.81.0.tar.gz",
+        ],
+        patches = [
+            "@xla//third_party/grpc:grpc.patch",
+        ],
+        patch_args = ["-p1"],
+        patch_cmds = [
+            "find . -name '*.cc' -exec sed -i '1i #include <algorithm>' {} +",
+        ],
+    )
+
+    # ===== RE2 dependency with Clang 18 #include <cstring> patch =====
+    http_archive(
+        name = "com_googlesource_code_re2",
+        sha256 = "8635bc46ac8d73974b4198229805287c8d620245f2081af155d7d96d4988a3a5",
+        strip_prefix = "re2-927f5d53caf8111721e734cf24724686bb745f55",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google/re2/archive/927f5d53caf8111721e734cf24724686bb745f55.tar.gz",
+            "https://github.com/google/re2/archive/927f5d53caf8111721e734cf24724686bb745f55.tar.gz",
+        ],
+        patch_cmds = [
+            "find . -name '*.h' -exec sed -i '1i #include <cstring>' {} +",
+        ],
+        repo_mapping = {
+            "@abseil-cpp": "@com_google_absl",
+        },
+    )
+
+    http_archive(
+        name = "rules_proto",
+        sha256 = "a88d018bdcb8df1ce8185470eb4b4899d778f9ac3a66cb36d514beb81e345282",
+        strip_prefix = "rules_proto-6.0.0-rc3",
+        url = "https://github.com/bazelbuild/rules_proto/archive/refs/tags/6.0.0-rc3.tar.gz",
+    )
+
+    http_archive(
+        name = "utf8_range",
+        urls = ["https://github.com/protocolbuffers/utf8_range/archive/de0b4a8ff9b5d4c98108bdfe723291a33c52c54f.zip"],
+        strip_prefix = "utf8_range-de0b4a8ff9b5d4c98108bdfe723291a33c52c54f",
+        sha256 = "5da960e5e5d92394c809629a03af3c7709d2d3d0ca731dacb3a9fb4bf28f7702",
+    )
+
+    http_archive(
+        name = "rules_ruby",
+        urls = ["https://github.com/protocolbuffers/rules_ruby/archive/8fca842a3006c3d637114aba4f6bf9695bb3a432.zip"],
+        strip_prefix = "rules_ruby-8fca842a3006c3d637114aba4f6bf9695bb3a432",
+        sha256 = "2619f9a23cee6f6a198d9ef284b6f6cbc901545ee9a9aac9ffa6b83dbf17cf0c",
+    )
+
+    # ===== Bazel skylib dependency =====
+    http_archive(
+        name = "bazel_skylib",
+        sha256 = "bc283cdfcd526a52c3201279cda4bc298652efa898b10b4db0837dc51652756f",
+        urls = [
+            "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz",
+            "https://github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz",
+        ],
+    )
+
+    # ===== Bazel package rules dependency =====
+    http_archive(
+        name = "rules_pkg",
+        sha256 = "451e08a4d78988c06fa3f9306ec813b836b1d076d0f055595444ba4ff22b867f",
+        url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.7.1/rules_pkg-0.7.1.tar.gz",
+    )
+
+    # ===== RapidJSON (rapidjson.org) dependency =====
+    http_archive(
+        name = "com_github_tencent_rapidjson",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/Tencent/rapidjson/archive/v1.1.0.zip",
+            "https://github.com/Tencent/rapidjson/archive/v1.1.0.zip",
+        ],
+        sha256 = "8e00c38829d6785a2dfb951bb87c6974fa07dfe488aa5b25deec4b8bc0f6a3ab",
+        strip_prefix = "rapidjson-1.1.0",
+        build_file = "@//third_party/rapidjson:BUILD",
+    )
+
+    # ===== libevent (libevent.org) dependency =====
+    http_archive(
+        name = "com_github_libevent_libevent",
+        url = "https://github.com/libevent/libevent/archive/release-2.1.12-stable.zip",
+        sha256 = "8836ad722ab211de41cb82fe098911986604f6286f67d10dfb2b6787bf418f49",
+        strip_prefix = "libevent-release-2.1.12-stable",
+        build_file = "@//third_party/libevent:BUILD",
+    )
+
+    # ===== ICU dependency =====
+    # Note: This overrides the dependency from TensorFlow with a version
+    # that contains all data.
+    http_archive(
+        name = "icu",
+        strip_prefix = "icu-release-77-1",
+        sha256 = "e424ba5282d95ad38b52639a08fb82164f0b0cbd7f17b53ae16bf14f8541855f",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/unicode-org/icu/archive/release-77-1.zip",
+            "https://github.com/unicode-org/icu/archive/release-77-1.zip",
+        ],
+        build_file = "//third_party/icu:BUILD",
+        patches = ["//third_party/icu:data.patch"],
+        patch_args = ["-p1", "-s"],
+        patch_cmds = [
+            "rm -f icu4c/source/common/BUILD.bazel",
+            "rm -f icu4c/source/stubdata/BUILD.bazel",
+        ],
+    )
+
+    # ===== TF.Text dependencies
+    # NOTE: Before updating this version, you must update the test model
+    # and double check all custom ops have a test:
+    # https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/save_models.py
+    http_archive(
+        name = "org_tensorflow_text",
+        sha256 = "e08834bed6f544be9cc0315895898bf48d94b8090bca993ab45526329df291c8",
+        strip_prefix = "text-2.20.0",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/tensorflow/text/archive/v2.20.0.zip",
+            "https://github.com/tensorflow/text/archive/v2.20.0.zip",
+        ],
+        repo_mapping = {
+            "@com_google_re2": "@com_googlesource_code_re2",
+            "@release_or_nightly": "@org_tensorflow",
+        },
+        patch_cmds = [
+            "find . -name \"tftext.bzl\" -exec sed -i 's|deps = deps,|deps = deps + [\"@com_google_protobuf\" + \"//:protobuf\"],|g' {} +",
+            "find . -name \"tftext.bzl\" -exec sed -i '/absl\\/utility:if_constexpr/d' {} +",
+        ],
+    )
+
+    http_archive(
+        name = "com_google_sentencepiece",
+        strip_prefix = "sentencepiece-0.1.96",
+        sha256 = "8409b0126ebd62b256c685d5757150cf7fcb2b92a2f2b98efb3f38fc36719754",
+        urls = [
+            "https://github.com/google/sentencepiece/archive/refs/tags/v0.1.96.zip",
+        ],
+        build_file = "//third_party/sentencepiece:BUILD",
+        patches = ["//third_party/sentencepiece:sentencepiece.patch"],
+        patch_args = ["-p1"],
+    )
+
+    http_archive(
+        name = "darts_clone",
+        build_file = "//third_party/darts_clone:BUILD",
+        sha256 = "c97f55d05c98da6fcaf7f9ecc6a6dc6bc5b18b8564465f77abff8879d446491c",
+        strip_prefix = "darts-clone-e40ce4627526985a7767444b6ed6893ab6ff8983",
+        urls = [
+            "https://github.com/s-yata/darts-clone/archive/e40ce4627526985a7767444b6ed6893ab6ff8983.zip",
+        ],
+    )
+
+    http_archive(
+        name = "com_google_glog",
+        sha256 = "1ee310e5d0a19b9d584a855000434bb724aa744745d5b8ab1855c85bff8a8e21",
+        strip_prefix = "glog-028d37889a1e80e8a07da1b8945ac706259e5fd8",
+        urls = [
+            "https://mirror.bazel.build/github.com/google/glog/archive/028d37889a1e80e8a07da1b8945ac706259e5fd8.tar.gz",
+            "https://github.com/google/glog/archive/028d37889a1e80e8a07da1b8945ac706259e5fd8.tar.gz",
+        ],
+    )
+
+    # ==== TensorFlow Decision Forests ===
+    http_archive(
+        name = "org_tensorflow_decision_forests",
+        sha256 = "86686bcb03bcf280cf739159fe4c285c667500a332292701259e636f5e1ec110",
+        strip_prefix = "decision-forests-1.3.0",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/tensorflow/decision-forests/archive/refs/tags/1.3.0.zip",
+            "https://github.com/tensorflow/decision-forests/archive/refs/tags/1.3.0.zip",
+        ],
+        patches = ["@//third_party/tf_decision_forests:tf_decision_forests.patch"],
+        patch_args = ["-p1"],
+        patch_cmds = [
+            "find . -name \"*.bzl\" -exec sed -i 's|load(\"@com_google_pro[t]obuf//:protobuf.bzl\", \"py_proto_library\")|load(\"@com_google_pr\\otobuf//bazel:py_proto_library.bzl\", \"py_proto_library\")|g' {} +",
+            "find . -name \"*.bzl\" -exec sed -i 's|^\\s*srcs = srcs,|           deps = [\":\" + name],|g' {} +",
+            "find . -name \"*.bzl\" -exec sed -i 's|           deps = old_deps,|           # deps = old_deps,|g' {} +",
+            "find . -name \"*.cc\" -exec sed -i '1i #include <algorithm>' {} +",
+            "find . -name \"*.cc\" -exec sed -i 's/google::protobuf::Arena::CreateMessage/google::protobuf::Arena::Create/g' {} +",
+        ],
+    )
+
+    http_archive(
+        name = "ydf",
+        sha256 = "5abb2e440c0b8b13095bd208cfab3a5e569706af9a52b6a702d86ec0e25a7991",
+        strip_prefix = "yggdrasil-decision-forests-1.4.0",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google/yggdrasil-decision-forests/archive/refs/tags/1.4.0.zip",
+            "https://github.com/google/yggdrasil-decision-forests/archive/refs/tags/1.4.0.zip",
+        ],
+        patch_cmds = [
+            "find . -name \"*.bzl\" -exec sed -i 's|load(\"@com_google_pro[t]obuf//:protobuf.bzl\", \"py_proto_library\")|load(\"@com_google_pr\\otobuf//bazel:py_proto_library.bzl\", \"py_proto_library\")|g' {} +",
+            "find . -name \"*.bzl\" -exec sed -i 's|           srcs = srcs,|           deps = [\":\" + name],|g' {} +",
+            "find . -name \"*.bzl\" -exec sed -i 's|           deps = old_deps,|           # deps = old_deps,|g' {} +",
+            "find . -name \"*.cc\" -exec sed -i '1i #include <algorithm>' {} +",
+            "find . -name \"*.cc\" -exec sed -i 's/google::protobuf::Arena::CreateMessage/google::protobuf::Arena::Create/g' {} +",
+        ],
+    )
+
+    # The Boost repo is organized into git sub-modules (see the list at
+    # https://github.com/boostorg/boost/tree/master/libs), which requires "new_git_repository".
+    new_git_repository(
+        name = "org_boost",
+        commit = "b7b1371294b4bdfc8d85e49236ebced114bc1d8f",  # boost-1.75.0
+        build_file = "//third_party/boost:BUILD",
+        init_submodules = True,
+        recursive_init_submodules = True,
+        remote = "https://github.com/boostorg/boost",
+    )
+
+    # Kokoro force build 9
