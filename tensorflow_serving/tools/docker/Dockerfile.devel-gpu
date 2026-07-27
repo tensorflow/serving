@@ -178,13 +178,13 @@ def patch_btree(p): \
     s = re.sub(r"(const_iterator internal_end\(const_iterator iter\) const \{)", r"const_iterator internal_end(iterator iter) const { return iter.node_ != nullptr ? iter : end(); }\n  \1", s); \
     s = re.sub(r"using iterator\s*=\s*typename btree_iterator<node_type, reference, pointer>::iterator;", r"using iterator = btree_iterator<node_type, reference, pointer>;", s); \
     open(p, "w").write(s); \
-for p in glob.glob("/root/.cache/**/btree.h", recursive=True): patch_btree(p)' && \
+[patch_btree(p) for p in glob.glob("/root/.cache/**/btree.h", recursive=True)]' && \
     python3 -c 'import glob, re; \
 def patch_container(p): \
     s = open(p).read(); \
     s = re.sub(r"\s*protected:\s*(// Alias used for heterogeneous lookup functions\.)", r"\n public:\n  \1", s); \
     open(p, "w").write(s); \
-for p in glob.glob("/root/.cache/**/btree_container.h", recursive=True): patch_container(p)' && \
+[patch_container(p) for p in glob.glob("/root/.cache/**/btree_container.h", recursive=True)]' && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
     bazel build --color=yes --noshow_progress --curses=no --config=cuda --copt="-fPIC"\
     ${TF_SERVING_BAZEL_OPTIONS} \
