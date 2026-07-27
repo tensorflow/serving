@@ -4,15 +4,15 @@ import sys
 
 def patch_btree(p):
     s = open(p).read()
-    if "template <typename N2, typename R2, typename P2> friend class btree_iterator;" in s and "public:\n  using iterator = std::conditional_t<" in s:
+    if "template <typename N2, typename R2, typename P2> friend class btree_iterator;" in s and "public:\n  using field_type = typename Node::field_type;" in s:
         print(f"Abseil btree header {p} is fully patched. Skipping.")
         return
     
     if "template <typename N2, typename R2, typename P2> friend class btree_iterator;" not in s:
         s = re.sub(r"(class btree_iterator : private btree_iterator_generation_info \{)", r"\1\n public:\n  template <typename N2, typename R2, typename P2> friend class btree_iterator;", s)
     
-    if "public:\n  using iterator = std::conditional_t<" not in s:
-        s = re.sub(r"(\s*)using iterator = std::conditional_t<", r"\1public:\n\1using iterator = std::conditional_t<", s)
+    if "public:\n  using field_type = typename Node::field_type;" not in s:
+        s = re.sub(r"(\s*)using field_type = typename Node::field_type;", r"\1public:\n\1using field_type = typename Node::field_type;", s)
     
     s = s.replace("class btree_iterator_generation_info_disabled {", "class btree_iterator_generation_info_disabled {\n public:")
     s = s.replace("class btree_iterator_generation_info_enabled {", "class btree_iterator_generation_info_enabled {\n public:")
