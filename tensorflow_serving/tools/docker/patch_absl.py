@@ -6,6 +6,10 @@ def patch_btree(p):
     s = open(p).read()
     if "template <typename N2, typename R2, typename P2> friend class btree_iterator;" not in s:
         s = re.sub(r"(class btree_iterator : private btree_iterator_generation_info \{)", r"\1\n public:\n  template <typename N2, typename R2, typename P2> friend class btree_iterator;", s)
+    
+    # Make iterator and const_iterator aliases public in btree_iterator
+    s = re.sub(r"(\s*)using iterator = std::conditional_t<", r"\1public:\n\1using iterator = std::conditional_t<", s)
+    
     s = s.replace("class btree_iterator_generation_info_disabled {", "class btree_iterator_generation_info_disabled {\n public:")
     s = s.replace("class btree_iterator_generation_info_enabled {", "class btree_iterator_generation_info_enabled {\n public:")
     if "bool operator==(const btree_iterator<N, R, P>" not in s:
