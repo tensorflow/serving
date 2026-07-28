@@ -39,8 +39,6 @@ tensorflow_http_archive(
         "sed -i '/name = \"error_util\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:async_value\", \"@xla//xla/tsl/concurrency:concurrent_vector\", \"@xla//xla/tsl/concurrency:executor\", \"@xla//xla/tsl/concurrency:ref_count\", \"@xla//xla/tsl/util:safe_reinterpret_cast\", \"@tsl//tsl/platform:context\", #' tensorflow/core/tfrt/utils/BUILD",
         "sed -i '/name = \"work_queue_interface\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:ref_count\", #' tensorflow/core/tfrt/runtime/BUILD",
         "sed -i '/name = \"execute\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/platform:macros\", \"@xla//xla/tsl/platform:types\", \"@xla//xla/tsl/profiler/utils:no_init\", \"@tsl//tsl/profiler/lib:traceme_encode\", \"@xla//xla/tsl/profiler/utils:traceme_global_flags\", \"@xla//xla/tsl/profiler/backends/cpu:traceme_recorder\", \"@tsl//tsl/platform:bfloat16\", \"@tsl//tsl/platform:ml_dtypes\", \"@tsl//tsl/platform:tstring\", \"@tsl//tsl/platform:cord\", \"@tsl//tsl/platform:refcount\", \"@tsl//tsl/platform:thread_annotations\", \"@tsl//tsl/platform:stringpiece\", \"@xla//xla/tsl/profiler/utils:time_utils\", \"@xla//xla/tsl/profiler/utils:math_utils\", #' tensorflow/core/tfrt/mlrt/interpreter/BUILD",
-        "sed -i '/tf_vendored(name = \"xla\",/s/)/, repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"})/' tensorflow/workspace3.bzl",
-        "sed -i '/tf_vendored(name = \"tsl\",/s/)/, repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"})/' tensorflow/workspace3.bzl",
         """python3 -c 'import re, glob
 for p in glob.glob("third_party/xla/**/BUILD*", recursive=True):
     s = open(p).read(); blocks = s.split("cc_library(");
