@@ -56,7 +56,16 @@ for p in glob.glob("third_party/xla/**/BUILD*", recursive=True):
         "find . -name \"gin_proxy.h\" -exec python3 -c 'import sys; f=sys.argv[1]; c=open(f).read().replace(\"for (uint8_t i = 0; i < 4; i++)\", \"for (uint8_t i = 0; i < 16; i++)\").replace(\"__stwt((uint4*)&q[idx] + i, ((uint4*)gfd)[i]);\", \"__stwt((__half2*)&q[idx] + i, ((__half2*)gfd)[i]);\"); open(f, \"w\").write(c)' {} \\;",
         "find . -name \"doca_gpunetio_verbs_def.h\" -exec sed -i 's/typeof(x)/__typeof__(x)/g' {} +",
         "find . -name \"cub_scan_kernel_cuda_impl.cu.cc\" -exec python3 -c 'import sys, re; f=sys.argv[1]; c=open(f).read(); c=re.sub(r\"using MaxPolicyT = typename cub::detail::scan::policy_hub<.*?>::MaxPolicy;\", \"using MaxPolicyT = typename cub::DeviceScanPolicy<T, ScanOpT>::MaxPolicy;\", c, flags=re.DOTALL); c=c.replace(\"auto* kernel = BlockScanKernel<T, ScanOpT>;\", \"void (*kernel)(const T*, T*, int64_t) = BlockScanKernel<T, ScanOpT>;\"); open(f, \"w\").write(c)' {} \\;",
-        "python3 -c 'import glob; [open(p, \"w\", encoding=\"utf-8\").write(open(p, \"r\", encoding=\"utf-8\", errors=\"ignore\").read().replace(\"@tsl//\", \"@local_tsl//\")) for p in glob.glob(\"**/*.BUILD*\", recursive=True) + glob.glob(\"**/BUILD*\", recursive=True)]'",
+        """python3 -c 'import glob
+for p in glob.glob("**/*.BUILD*", recursive=True) + glob.glob("**/BUILD*", recursive=True):
+    try:
+        with open(p, "r", encoding="utf-8", errors="ignore") as f:
+            c = f.read()
+        if "@tsl//" in c:
+            with open(p, "w", encoding="utf-8") as f:
+                f.write(c.replace("@tsl//", "@local_tsl//"))
+    except Exception:
+        pass'""",
         "sed -i 's/native.register_toolchains(\"@local_config_python/# native.register_toolchains(\"@local_config_python/g' tensorflow/workspace1.bzl",
         "sed -i 's/native.register_toolchains(\"@local_config_python/# native.register_toolchains(\"@local_config_python/g' tensorflow/workspace2.bzl",
         "sed -i 's/native.register_toolchains(\"@local_execution_config_python/# native.register_toolchains(\"@local_execution_config_python/g' tensorflow/workspace2.bzl",
