@@ -34,7 +34,7 @@ tensorflow_http_archive(
         "sed -i '/name = \"kernel_shape_util\",/a \\    visibility = [\"//visibility:public\"],' tensorflow/core/framework/BUILD",
         "echo -e '\\nalias(name = \"tensorflow_libtensorflow_framework\", actual = \"//tensorflow/core:tensorflow\", visibility = [\"//visibility:public\"])' >> BUILD",
         "echo -e '\\nalias(name = \"tensorflow_tf_header_lib\", actual = \"//tensorflow/core:tensorflow\", visibility = [\"//visibility:public\"])' >> BUILD",
-        "sed -i '/def if_with_tpu_support/!b;n;c\\    return if_false' tensorflow/tensorflow.bzl",
+        "python3 -c 'f=\"tensorflow/tensorflow.bzl\"; c=open(f).read().replace(\"def if_libtpu(if_true, if_false = []):\", \"def if_libtpu(if_true, if_false = []):\\n    return if_false\").replace(\"def if_with_tpu_support(if_true, if_false = []):\", \"def if_with_tpu_support(if_true, if_false = []):\\n    return if_false\"); open(f, \"w\").write(c)'",
         "sed -i '/name = \"env\",/,/deps = \\[/ s#deps = \\[#deps = [\":status\", \":statusor\", \":context\", \":tracing\", \"//xla/tsl/profiler/backends/cpu:threadpool_listener_state\", \"//xla/tsl/platform:byte_order\", #' third_party/xla/xla/tsl/platform/default/BUILD",
         "sed -i '/name = \"tracing\",/,/deps = \\[/ s#deps = \\[#deps = [\"//xla/tsl/platform:logging\", #' third_party/xla/xla/tsl/platform/default/BUILD",
         "sed -i '/name = \"error_util\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:async_value\", \"@xla//xla/tsl/concurrency:concurrent_vector\", \"@xla//xla/tsl/concurrency:executor\", \"@xla//xla/tsl/concurrency:ref_count\", \"@xla//xla/tsl/util:safe_reinterpret_cast\", \"@xla//xla/tsl/platform:context\", #' tensorflow/core/tfrt/utils/BUILD",
