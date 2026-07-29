@@ -58,6 +58,7 @@ for p in glob.glob("third_party/xla/**/BUILD*", recursive=True):
         "python3 -c 'import glob; [open(p, \"w\").write(open(p).read().replace(\"@tsl//\", \"@local_tsl//\")) for p in glob.glob(\"**/*.BUILD*\", recursive=True) + glob.glob(\"**/BUILD*\", recursive=True)]'",
         "sed -i 's/native.register_toolchains(\"@local_config_python/# native.register_toolchains(\"@local_config_python/g' tensorflow/workspace1.bzl",
         "sed -i 's/native.register_toolchains(\"@local_config_python/# native.register_toolchains(\"@local_config_python/g' tensorflow/workspace2.bzl",
+        "sed -i 's/native.register_toolchains(\"@local_execution_config_python/# native.register_toolchains(\"@local_execution_config_python/g' tensorflow/workspace2.bzl",
         "sed -i 's/native.register_execution_platforms(\"@local_execution_config_platform/# native.register_execution_platforms(\"@local_execution_config_platform/g' tensorflow/workspace2.bzl",
         "sed -i 's/native.register_toolchains(\"@local_config_python/# native.register_toolchains(\"@local_config_python/g' third_party/xla/workspace1.bzl",
         "sed -i 's/native.register_toolchains(\"@local_execution_config_python/# native.register_toolchains(\"@local_execution_config_python/g' third_party/xla/workspace2.bzl",
