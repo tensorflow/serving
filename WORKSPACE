@@ -35,7 +35,7 @@ tensorflow_http_archive(
         "echo -e '\\nalias(name = \"tensorflow_libtensorflow_framework\", actual = \"//tensorflow/core:tensorflow\", visibility = [\"//visibility:public\"])' >> BUILD",
         "echo -e '\\nalias(name = \"tensorflow_tf_header_lib\", actual = \"//tensorflow/core:tensorflow\", visibility = [\"//visibility:public\"])' >> BUILD",
         "python3 -c 'f=\"tensorflow/tensorflow.bzl\"; c=open(f).read().replace(\"def if_libtpu(if_true, if_false = []):\", \"def if_libtpu(if_true, if_false = []):\\n    return if_false\").replace(\"def if_with_tpu_support(if_true, if_false = []):\", \"def if_with_tpu_support(if_true, if_false = []):\\n    return if_false\"); open(f, \"w\").write(c)'",
-        "sed -i '/name = \"tf_runtime\",/a \\        repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"},' third_party/tf_runtime/workspace.bzl",
+        "sed -i 's/\"@tsl\": \"@tsl\"/\"@tsl\": \"@local_tsl\"/g; s/\"@xla\": \"@xla\"/\"@xla\": \"@local_xla\"/g' third_party/tf_runtime/workspace.bzl",
         "sed -i '/tf_vendored(name = \"xla\",/s/)/, repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"})/' tensorflow/workspace3.bzl",
         "sed -i '/tf_vendored(name = \"tsl\",/s/)/, repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"})/' tensorflow/workspace3.bzl",
         "sed -i '/name = \"env\",/,/deps = \\[/ s#deps = \\[#deps = [\":status\", \":statusor\", \":context\", \":tracing\", \"//xla/tsl/profiler/backends/cpu:threadpool_listener_state\", \"//xla/tsl/platform:byte_order\", #' third_party/xla/xla/tsl/platform/default/BUILD",
