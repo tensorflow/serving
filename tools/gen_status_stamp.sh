@@ -26,11 +26,7 @@
 
 # if we're inside a git tree
 if [ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1; then
-  git_rev=$(git rev-parse --short HEAD 2>/dev/null)
-  if [[ $? != 0 || -z "$git_rev" ]];
-  then
-      git_rev="no_git"
-  fi
+  git_rev=$(git config --global --add safe.directory '*' 2>/dev/null; git rev-parse --short HEAD 2>/dev/null || echo "no_git")
   echo "BUILD_SCM_REVISION ${git_rev}"
 else
   echo "BUILD_SCM_REVISION no_git"
