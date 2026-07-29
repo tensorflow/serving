@@ -39,6 +39,8 @@ tensorflow_http_archive(
         "sed -i 's#\"//xla/tsl/platform:logging\"#\"//xla/tsl/platform:logging\", \"//xla/tsl/platform/default:dso_loader\"#g' third_party/xla/xla/tsl/cuda/BUILD.bazel",
         "sed -i '/tf_vendored(name = \"xla\",/s/)/, repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"})/' tensorflow/workspace3.bzl",
         "sed -i '/tf_vendored(name = \"tsl\",/s/)/, repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"})/' tensorflow/workspace3.bzl",
+        "sed -i '/name = \"dso_loader\",/,/deps = \\[/ s#deps = \\[#deps = [\":load_library\", \"//xla/tsl/platform:types\", #' third_party/xla/xla/tsl/platform/default/BUILD",
+        "sed -i '/name = \"dso_loader\",/a \\    textual_hdrs = [\"@local_tsl//tsl/platform:path.h\", \"@local_tsl//tsl/platform:platform.h\"],' third_party/xla/xla/tsl/platform/default/BUILD",
         "sed -i '/name = \"env\",/,/deps = \\[/ s#deps = \\[#deps = [\":status\", \":statusor\", \":context\", \":tracing\", \"//xla/tsl/profiler/backends/cpu:threadpool_listener_state\", \"//xla/tsl/platform:byte_order\", #' third_party/xla/xla/tsl/platform/default/BUILD",
         "sed -i '/name = \"tracing\",/,/deps = \\[/ s#deps = \\[#deps = [\"//xla/tsl/platform:logging\", #' third_party/xla/xla/tsl/platform/default/BUILD",
         "sed -i '/name = \"error_util\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:async_value\", \"@xla//xla/tsl/concurrency:concurrent_vector\", \"@xla//xla/tsl/concurrency:executor\", \"@xla//xla/tsl/concurrency:ref_count\", \"@xla//xla/tsl/util:safe_reinterpret_cast\", \"@xla//xla/tsl/platform:context\", #' tensorflow/core/tfrt/utils/BUILD",
