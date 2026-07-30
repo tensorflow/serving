@@ -91,6 +91,7 @@ class Server {
     bool enable_model_warmup = true;
     // This value is used only if > 0.
     tensorflow::int32 num_request_iterations_for_warmup = 0;
+    tensorflow::int32 num_warmup_threads = 0;
     tensorflow::string monitoring_config_file;
     // Tensorflow session run options.
     bool enforce_session_run_timeout = true;
