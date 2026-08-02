@@ -139,7 +139,7 @@ class TfrtRegressorTest : public ::testing::Test {
     tfrt::SavedModel::RunOptions run_options;  // Default RunOptions.
     return RunRegress(
         run_options, kTestModelVersion,
-        &(absl::down_cast<TfrtSavedModelServable*>(servable.get()))
+        &(static_cast<TfrtSavedModelServable*>(servable.get()))
              ->saved_model(),
         request, response);
   }

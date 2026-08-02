@@ -45,7 +45,6 @@ limitations under the License.
 #include "tensorflow/core/public/session_options.h"
 #include "tensorflow/core/tfrt/runtime/runtime.h"
 #include "tensorflow/core/tfrt/saved_model/saved_model.h"
-#include "tsl/platform/casts.h"
 #include "tensorflow_serving/batching/tfrt_saved_model_with_batching.h"
 #include "tensorflow_serving/core/loader.h"
 #include "tensorflow_serving/resources/resource_values.h"
@@ -345,7 +344,7 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
       saved_model_config, std::move(saved_model), thread_pool_factory_.get(),
       recorder_creator_);
   TfrtSavedModelServable* tfrt_servable =
-      absl::down_cast<TfrtSavedModelServable*>(servable->get());
+      static_cast<TfrtSavedModelServable*>(servable->get());
 
   if (config().enable_model_warmup()) {
     ModelWarmupOptions warmup_options = config().model_warmup_options();

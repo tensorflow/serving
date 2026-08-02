@@ -29,7 +29,6 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/protobuf/error_codes.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
-#include "tsl/platform/casts.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/config/model_server_config.pb.h"
 #include "tensorflow_serving/config/platform_config.pb.h"
@@ -110,7 +109,7 @@ SignatureDefMap GetSignatureDefMap(ServerCore* server_core,
   ServableHandle<Servable> servable;
   TF_EXPECT_OK(server_core->GetServableHandle(model_spec, &servable));
   auto& saved_model =
-      absl::down_cast<TfrtSavedModelServable*>(servable.get())->saved_model();
+      static_cast<TfrtSavedModelServable*>(servable.get())->saved_model();
   for (const auto& signature : saved_model.GetMetaGraphDef().signature_def()) {
     (*signature_def_map.mutable_signature_def())[signature.first] =
         signature.second;
