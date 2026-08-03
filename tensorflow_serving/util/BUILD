@@ -387,3 +387,31 @@ cc_library(
     name = "oss_or_google",
     hdrs = ["oss_or_google.h"],
 )
+# Add this block to tensorflow_serving/util/BUILD
+# after the existing json_tensor cc_library target.
+#
+# This defines the OSS-Fuzz fuzz target for the JSON tensor parser.
+# It is built only when compiled with --config=oss-fuzz (libFuzzer + ASan).
+
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+
+# Fuzz target for OSS-Fuzz continuous fuzzing.
+# Build with: bazel build --config=oss-fuzz //tensorflow_serving/util:json_tensor_fuzzer
+cc_binary(
+    name = "json_tensor_fuzzer",
+    srcs = ["json_tensor_fuzzer.cc"],
+    copts = ["-fsanitize=fuzzer-no-link"],
+    linkopts = ["-fsanitize=fuzzer"],
+    deps = [
+        ":json_tensor",
+        "//tensorflow_serving/apis:classification_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/apis:regression_cc_proto",
+        "@com_google_absl//absl/strings",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+    ],
+    # Fuzzer binaries should not be installed or run by default.
+    tags = ["manual", "fuzzer", "oss-fuzz"],
+)
