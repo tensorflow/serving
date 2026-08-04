@@ -40,6 +40,8 @@ function main() {
   BAZEL_OPT_DIR="k8-opt"
   if [[ $(uname -m) == "aarch64" ]]; then
           BAZEL_OPT_DIR="aarch64-opt"
+  elif [[ $(uname -m) == "ppc64le" ]]; then
+          BAZEL_OPT_DIR="ppc-opt"
   fi
 
   echo "Adding python files"
