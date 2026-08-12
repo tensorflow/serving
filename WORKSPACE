@@ -28,37 +28,41 @@ tensorflow_http_archive(
     git_commit = "a481b10260dfdf833a1b16007eead49c1d7febf3",
     patch = "//third_party/tensorflow:tensorflow.patch",
     patch_cmds = [
+        "# Invalidate cache v6",
         "sed -i '/cc_library = _cc_library/d' tensorflow/core/platform/rules_cc.bzl",
+        "find . -name \"*.cc\" -o -name \"*.h\" -exec sed -i 's/absl::down_cast/static_cast/g' {} +",
+        "sed -i '/std::string name;/a \\  std::optional<absl::Time> rpc_deadline_for_batching_task_cancellation;\\n  std::function<bool()> is_rpc_cancelled_callback;' tensorflow/core/tfrt/graph_executor/graph_execution_options.h",
         "echo -e \"\\ndef cc_library_oss(deps=[], **kwargs):\\n    if kwargs.get(\\\"name\\\") == \\\"lib_internal_impl\\\" or \\\"protobuf\\\" in kwargs.get(\\\"name\\\", \\\"\\\"):\\n        _cc_library(deps = deps, **kwargs)\\n        return\\n    if type(deps) == \\\"list\\\":\\n        if \\\"@com_google_protobuf//:protobuf\\\" not in deps:\\n            deps = deps + [\\\"@com_google_protobuf//:protobuf\\\"]\\n    else:\\n        deps = deps + [\\\"@com_google_protobuf//:protobuf\\\"]\\n    _cc_library(deps = deps, **kwargs)\\ncc_library = cc_library_oss\" >> tensorflow/core/platform/rules_cc.bzl",
         "sed -i 's#deps = \\[op_gen\\] + deps#deps = [op_gen] + deps + [clean_dep(\"//tensorflow/core/framework:kernel_shape_util\"), clean_dep(\"//tensorflow/core/framework:full_type_util\")]#' tensorflow/tensorflow.bzl",
         "sed -i '/name = \"kernel_shape_util\",/a \\    visibility = [\"//visibility:public\"],' tensorflow/core/framework/BUILD",
         "echo -e '\\nalias(name = \"tensorflow_libtensorflow_framework\", actual = \"//tensorflow/core:tensorflow\", visibility = [\"//visibility:public\"])' >> BUILD",
         "echo -e '\\nalias(name = \"tensorflow_tf_header_lib\", actual = \"//tensorflow/core:tensorflow\", visibility = [\"//visibility:public\"])' >> BUILD",
-        "python3 -c 'f=\"tensorflow/tensorflow.bzl\"; c=open(f).read().replace(\"def if_libtpu(if_true, if_false = []):\", \"def if_libtpu(if_true, if_false = []):\\n    return if_false\").replace(\"def if_with_tpu_support(if_true, if_false = []):\", \"def if_with_tpu_support(if_true, if_false = []):\\n    return if_false\"); open(f, \"w\").write(c)'",
-        "sed -i 's/\"@tsl\": \"@tsl\"/\"@tsl\": \"@local_tsl\"/g; s/\"@xla\": \"@xla\"/\"@xla\": \"@local_xla\"/g' third_party/tf_runtime/workspace.bzl",
         "sed -i 's#\"//xla/tsl/platform:logging\"#\"//xla/tsl/platform:logging\", \"//xla/tsl/platform/default:dso_loader\"#g' third_party/xla/xla/tsl/cuda/BUILD.bazel",
-        "sed -i '/tf_vendored(name = \"xla\",/s/)/, repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"})/' tensorflow/workspace3.bzl",
-        "sed -i '/tf_vendored(name = \"tsl\",/s/)/, repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"})/' tensorflow/workspace3.bzl",
         "sed -i '/name = \"dso_loader\",/,/deps = \\[/ s#deps = \\[#deps = [\":load_library\", \"//xla/tsl/platform:types\", #' third_party/xla/xla/tsl/platform/default/BUILD",
         "sed -i '/name = \"dso_loader\",/a \\    textual_hdrs = [\"@local_tsl//tsl/platform:path.h\", \"@local_tsl//tsl/platform:platform.h\"],' third_party/xla/xla/tsl/platform/default/BUILD",
         "sed -i '/name = \"env\",/,/deps = \\[/ s#deps = \\[#deps = [\":status\", \":statusor\", \":context\", \":tracing\", \"//xla/tsl/profiler/backends/cpu:threadpool_listener_state\", \"//xla/tsl/platform:byte_order\", #' third_party/xla/xla/tsl/platform/default/BUILD",
         "sed -i '/name = \"tracing\",/,/deps = \\[/ s#deps = \\[#deps = [\"//xla/tsl/platform:logging\", #' third_party/xla/xla/tsl/platform/default/BUILD",
-        "sed -i '/name = \"error_util\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:async_value\", \"@xla//xla/tsl/concurrency:concurrent_vector\", \"@xla//xla/tsl/concurrency:executor\", \"@xla//xla/tsl/concurrency:ref_count\", \"@xla//xla/tsl/util:safe_reinterpret_cast\", \"@xla//xla/tsl/platform:context\", #' tensorflow/core/tfrt/utils/BUILD",
+        "sed -i '/name = \"error_util\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:async_value\", \"@xla//xla/tsl/concurrency:concurrent_vector\", \"@xla//xla/tsl/concurrency:executor\", \"@xla//xla/tsl/concurrency:ref_count\", \"@xla//xla/tsl/util:safe_reinterpret_cast\", \"@tsl//tsl/platform:context\", #' tensorflow/core/tfrt/utils/BUILD",
         "sed -i '/name = \"work_queue_interface\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:ref_count\", #' tensorflow/core/tfrt/runtime/BUILD",
-        "sed -i '/name = \"execute\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/platform:macros\", \"@xla//xla/tsl/platform:types\", \"@xla//xla/tsl/profiler/utils:no_init\", \"@xla//xla/tsl/profiler/lib:traceme_encode\", \"@xla//xla/tsl/profiler/utils:traceme_global_flags\", \"@xla//xla/tsl/profiler/backends/cpu:traceme_recorder\", \"@xla//xla/tsl/platform:bfloat16\", \"@xla//xla/tsl/platform:ml_dtypes\", \"@xla//xla/tsl/platform:tstring\", \"@xla//xla/tsl/platform:cord\", \"@xla//xla/tsl/platform:refcount\", \"@xla//xla/tsl/platform:thread_annotations\", \"@xla//xla/tsl/platform:stringpiece\", \"@xla//xla/tsl/profiler/utils:time_utils\", \"@xla//xla/tsl/profiler/utils:math_utils\", #' tensorflow/core/tfrt/mlrt/interpreter/BUILD",
         "sed -i '/name = \"global_state\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:async_value\", \"@xla//xla/tsl/concurrency:concurrent_vector\", \"@xla//xla/tsl/concurrency:ref_count\", #' tensorflow/core/tfrt/common/BUILD",
         "find . -name \"gpu_communicator.h\" -exec sed -i 's/std::array<std::byte, 200>/std::array<std::byte, 256>/g' {} +",
         """python3 -c 'import re, glob
 for p in glob.glob("third_party/xla/**/BUILD*", recursive=True):
-    s = open(p).read(); blocks = s.split("cc_library(");
-    for i in range(1, len(blocks)):
-        b = blocks[i]; m_th = re.search(r"textual_hdrs\\s*=\\s*(\\[[^\\]]+\\]),?\\n?", b);
+    s = open(p).read(); parts = s.split("cc_library("); new_parts = [parts[0]]
+    for part in parts[1:]:
+        depth = 1; idx = 0
+        while idx < len(part) and depth > 0:
+            if part[idx] == "(": depth += 1
+            elif part[idx] == ")": depth -= 1
+            idx += 1
+        b = part[:idx]; rest = part[idx:]
+        m_th = re.search(r"textual_hdrs\\s*=\\s*(\\[[^\\]]*\\]),?\\s*\\n?", b, re.DOTALL)
         if m_th:
-            th = m_th.group(1); b = b.replace(m_th.group(0), ""); m_h = re.search(r"hdrs\\s*=\\s*(\\[[^\\]]+\\])", b);
-            if m_h: h = m_h.group(1); merged = h[:-1] + ", " + th[1:]; b = b.replace(m_h.group(0), "hdrs = " + merged);
-            else: b = "\\n    hdrs = " + th + "," + b;
-            blocks[i] = b
-    open(p, "w").write("cc_library(".join(blocks))'""",
+            th = m_th.group(1); b_no = b[:m_th.start()] + b[m_th.end():]; m_h = re.search(r"hdrs\\s*=\\s*(\\[[^\\]]*\\])", b_no, re.DOTALL)
+            if m_h: b = b_no[:m_h.start()] + "hdrs = " + m_h.group(1)[:-1] + ", " + th[1:] + b_no[m_h.end():]
+            else: b = b_no[:-1] + "\\n    hdrs = " + th + ",\\n)"
+        new_parts.append(b + rest)
+    open(p, "w").write("cc_library(".join(new_parts))'""",
         "find . -name \"gin_proxy.h\" -exec python3 -c 'import sys; f=sys.argv[1]; c=open(f).read().replace(\"for (uint8_t i = 0; i < 4; i++)\", \"for (uint8_t i = 0; i < 16; i++)\").replace(\"__stwt((uint4*)&q[idx] + i, ((uint4*)gfd)[i]);\", \"__stwt((__half2*)&q[idx] + i, ((__half2*)gfd)[i]);\"); open(f, \"w\").write(c)' {} \\;",
         "find . -name \"doca_gpunetio_verbs_def.h\" -exec sed -i 's/typeof(x)/__typeof__(x)/g' {} +",
         "find . -name \"cub_scan_kernel_cuda_impl.cu.cc\" -exec python3 -c 'import sys, re; f=sys.argv[1]; c=open(f).read(); c=re.sub(r\"using MaxPolicyT = typename cub::detail::scan::policy_hub<.*?>::MaxPolicy;\", \"using MaxPolicyT = typename cub::DeviceScanPolicy<T, ScanOpT>::MaxPolicy;\", c, flags=re.DOTALL); c=c.replace(\"auto* kernel = BlockScanKernel<T, ScanOpT>;\", \"void (*kernel)(const T*, T*, int64_t) = BlockScanKernel<T, ScanOpT>;\"); open(f, \"w\").write(c)' {} \\;",
