@@ -28,22 +28,6 @@ tensorflow_http_archive(
     git_commit = "a481b10260dfdf833a1b16007eead49c1d7febf3",
     patch = "//third_party/tensorflow:tensorflow.patch",
     patch_cmds = [
-        "sed -i '/cc_library = _cc_library/d' tensorflow/core/platform/rules_cc.bzl",
-        "echo -e \"\\ndef cc_library_oss(deps=[], **kwargs):\\n    if kwargs.get(\\\"name\\\") == \\\"lib_internal_impl\\\" or \\\"protobuf\\\" in kwargs.get(\\\"name\\\", \\\"\\\"):\\n        _cc_library(deps = deps, **kwargs)\\n        return\\n    if type(deps) == \\\"list\\\":\\n        if \\\"@com_google_protobuf//:protobuf\\\" not in deps:\\n            deps = deps + [\\\"@com_google_protobuf//:protobuf\\\"]\\n    else:\\n        deps = deps + [\\\"@com_google_protobuf//:protobuf\\\"]\\n    _cc_library(deps = deps, **kwargs)\\ncc_library = cc_library_oss\" >> tensorflow/core/platform/rules_cc.bzl",
-        "sed -i 's#deps = \\[op_gen\\] + deps#deps = [op_gen] + deps + [clean_dep(\"//tensorflow/core/framework:kernel_shape_util\"), clean_dep(\"//tensorflow/core/framework:full_type_util\")]#' tensorflow/tensorflow.bzl",
-        "sed -i '/name = \"kernel_shape_util\",/a \\    visibility = [\"//visibility:public\"],' tensorflow/core/framework/BUILD",
-        "echo -e '\\nalias(name = \"tensorflow_libtensorflow_framework\", actual = \"//tensorflow/core:tensorflow\", visibility = [\"//visibility:public\"])' >> BUILD",
-        "echo -e '\\nalias(name = \"tensorflow_tf_header_lib\", actual = \"//tensorflow/core:tensorflow\", visibility = [\"//visibility:public\"])' >> BUILD",
-        "sed -i 's/\"@tsl\": \"@tsl\"/\"@tsl\": \"@local_tsl\"/g; s/\"@xla\": \"@xla\"/\"@xla\": \"@local_xla\"/g' third_party/tf_runtime/workspace.bzl",
-        "sed -i '/tf_vendored(name = \"xla\",/s/)/, repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"})/' tensorflow/workspace3.bzl",
-        "sed -i '/tf_vendored(name = \"tsl\",/s/)/, repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"})/' tensorflow/workspace3.bzl",
-        "sed -i 's#\"//xla/tsl/platform:logging\"#\"//xla/tsl/platform:logging\", \"//xla/tsl/platform/default:dso_loader\"#g' third_party/xla/xla/tsl/cuda/BUILD.bazel",
-        "sed -i '/name = \"dso_loader\",/,/deps = \\[/ s#deps = \\[#deps = [\":load_library\", \"//xla/tsl/platform:types\", #' third_party/xla/xla/tsl/platform/default/BUILD",
-        "sed -i '/name = \"dso_loader\",/a \\    textual_hdrs = [\"@local_tsl//tsl/platform:path.h\", \"@local_tsl//tsl/platform:platform.h\"],' third_party/xla/xla/tsl/platform/default/BUILD",
-        "sed -i '/name = \"env\",/,/deps = \\[/ s#deps = \\[#deps = [\":status\", \":statusor\", \":context\", \":tracing\", \"//xla/tsl/profiler/backends/cpu:threadpool_listener_state\", \"//xla/tsl/platform:byte_order\", #' third_party/xla/xla/tsl/platform/default/BUILD",
-        "sed -i '/name = \"tracing\",/,/deps = \\[/ s#deps = \\[#deps = [\"//xla/tsl/platform:logging\", #' third_party/xla/xla/tsl/platform/default/BUILD",
-        "sed -i '/name = \"xla_host_recv_device_context\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:async_value\", #' tensorflow/compiler/jit/BUILD",
-        "sed -i '/name = \"xla_host_send_device_context\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:async_value\", #' tensorflow/compiler/jit/BUILD",
         """python3 -c 'import re, glob
 for p in glob.glob("third_party/xla/**/BUILD*", recursive=True):
     s = open(p).read(); parts = s.split("cc_library("); new_parts = [parts[0]]
@@ -61,14 +45,15 @@ for p in glob.glob("third_party/xla/**/BUILD*", recursive=True):
                 h_str = m_h.group(1).rstrip("]").strip().rstrip(",")
                 th_str = th.lstrip("[").strip()
                 b = b_no[:m_h.start()] + "hdrs = " + h_str + ", " + th_str + b_no[m_h.end():]
-            else: b = b_no[:-1] + "\\n    hdrs = " + th + ",\\n)"
+            else: b = b_no.rpartition(")")[0] + "\\n    hdrs = " + th + ",\\n)"
         new_parts.append(b + rest)
     open(p, "w").write("cc_library(".join(new_parts))'""",
         "find . -name \"gin_proxy.h\" -exec python3 -c 'import sys; f=sys.argv[1]; c=open(f).read().replace(\"for (uint8_t i = 0; i < 4; i++)\", \"for (uint8_t i = 0; i < 16; i++)\").replace(\"__stwt((uint4*)&q[idx] + i, ((uint4*)gfd)[i]);\", \"__stwt((__half2*)&q[idx] + i, ((__half2*)gfd)[i]);\"); open(f, \"w\").write(c)' {} \\;",
         "find . -name \"doca_gpunetio_verbs_def.h\" -exec sed -i 's/typeof(x)/__typeof__(x)/g' {} +",
         "find . -name \"cub_scan_kernel_cuda_impl.cu.cc\" -exec python3 -c 'import sys, re; f=sys.argv[1]; c=open(f).read(); c=re.sub(r\"using MaxPolicyT = typename cub::detail::scan::policy_hub<.*?>::MaxPolicy;\", \"using MaxPolicyT = typename cub::DeviceScanPolicy<T, ScanOpT>::MaxPolicy;\", c, flags=re.DOTALL); c=c.replace(\"auto* kernel = BlockScanKernel<T, ScanOpT>;\", \"void (*kernel)(const T*, T*, int64_t) = BlockScanKernel<T, ScanOpT>;\"); open(f, \"w\").write(c)' {} \\;",
-        """python3 -c 'import glob
-for p in glob.glob("**/*.BUILD*", recursive=True) + glob.glob("**/BUILD*", recursive=True):
+        """python3 -c 'import os, glob
+files = [p for p in glob.glob("**/*.BUILD*", recursive=True) + glob.glob("**/BUILD*", recursive=True) if not os.path.islink(p)]
+for p in files:
     try:
         with open(p, "r", encoding="utf-8", errors="ignore") as f:
             c = f.read()
