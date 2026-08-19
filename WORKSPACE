@@ -28,10 +28,7 @@ tensorflow_http_archive(
     git_commit = "a481b10260dfdf833a1b16007eead49c1d7febf3",
     patch = "//third_party/tensorflow:tensorflow.patch",
     patch_cmds = [
-        "# Invalidate cache v6",
         "sed -i '/cc_library = _cc_library/d' tensorflow/core/platform/rules_cc.bzl",
-        "find . -name \"*.cc\" -o -name \"*.h\" -exec sed -i 's/absl::down_cast/static_cast/g' {} +",
-        "sed -i '/std::string name;/a \\  std::optional<absl::Time> rpc_deadline_for_batching_task_cancellation;\\n  std::function<bool()> is_rpc_cancelled_callback;' tensorflow/core/tfrt/graph_executor/graph_execution_options.h",
         "echo -e \"\\ndef cc_library_oss(deps=[], **kwargs):\\n    if kwargs.get(\\\"name\\\") == \\\"lib_internal_impl\\\" or \\\"protobuf\\\" in kwargs.get(\\\"name\\\", \\\"\\\"):\\n        _cc_library(deps = deps, **kwargs)\\n        return\\n    if type(deps) == \\\"list\\\":\\n        if \\\"@com_google_protobuf//:protobuf\\\" not in deps:\\n            deps = deps + [\\\"@com_google_protobuf//:protobuf\\\"]\\n    else:\\n        deps = deps + [\\\"@com_google_protobuf//:protobuf\\\"]\\n    _cc_library(deps = deps, **kwargs)\\ncc_library = cc_library_oss\" >> tensorflow/core/platform/rules_cc.bzl",
         "sed -i 's#deps = \\[op_gen\\] + deps#deps = [op_gen] + deps + [clean_dep(\"//tensorflow/core/framework:kernel_shape_util\"), clean_dep(\"//tensorflow/core/framework:full_type_util\")]#' tensorflow/tensorflow.bzl",
         "sed -i '/name = \"kernel_shape_util\",/a \\    visibility = [\"//visibility:public\"],' tensorflow/core/framework/BUILD",
@@ -47,7 +44,6 @@ tensorflow_http_archive(
         "sed -i '/name = \"tracing\",/,/deps = \\[/ s#deps = \\[#deps = [\"//xla/tsl/platform:logging\", #' third_party/xla/xla/tsl/platform/default/BUILD",
         "sed -i '/name = \"xla_host_recv_device_context\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:async_value\", #' tensorflow/compiler/jit/BUILD",
         "sed -i '/name = \"xla_host_send_device_context\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:async_value\", #' tensorflow/compiler/jit/BUILD",
-        "find . -name \"gpu_communicator.h\" -exec sed -i 's/std::array<std::byte, 200>/std::array<std::byte, 256>/g' {} +",
         """python3 -c 'import re, glob
 for p in glob.glob("third_party/xla/**/BUILD*", recursive=True):
     s = open(p).read(); parts = s.split("cc_library("); new_parts = [parts[0]]
@@ -61,7 +57,10 @@ for p in glob.glob("third_party/xla/**/BUILD*", recursive=True):
         m_th = re.search(r"textual_hdrs\\s*=\\s*(\\[[^\\]]*\\]),?\\s*\\n?", b, re.DOTALL)
         if m_th:
             th = m_th.group(1); b_no = b[:m_th.start()] + b[m_th.end():]; m_h = re.search(r"hdrs\\s*=\\s*(\\[[^\\]]*\\])", b_no, re.DOTALL)
-            if m_h: b = b_no[:m_h.start()] + "hdrs = " + m_h.group(1)[:-1] + ", " + th[1:] + b_no[m_h.end():]
+            if m_h:
+                h_str = m_h.group(1).rstrip("]").strip().rstrip(",")
+                th_str = th.lstrip("[").strip()
+                b = b_no[:m_h.start()] + "hdrs = " + h_str + ", " + th_str + b_no[m_h.end():]
             else: b = b_no[:-1] + "\\n    hdrs = " + th + ",\\n)"
         new_parts.append(b + rest)
     open(p, "w").write("cc_library(".join(new_parts))'""",
@@ -78,13 +77,7 @@ for p in glob.glob("**/*.BUILD*", recursive=True) + glob.glob("**/BUILD*", recur
                 f.write(c.replace("@tsl//", "@local_tsl//"))
     except Exception:
         pass'""",
-        "sed -i 's/native.register_toolchains(\"@local_config_python/# native.register_toolchains(\"@local_config_python/g' tensorflow/workspace1.bzl",
-        "sed -i 's/native.register_toolchains(\"@local_config_python/# native.register_toolchains(\"@local_config_python/g' tensorflow/workspace2.bzl",
-        "sed -i 's/native.register_toolchains(\"@local_execution_config_python/# native.register_toolchains(\"@local_execution_config_python/g' tensorflow/workspace2.bzl",
-        "sed -i 's/native.register_execution_platforms(\"@local_execution_config_platform/# native.register_execution_platforms(\"@local_execution_config_platform/g' tensorflow/workspace2.bzl",
-        "sed -i 's/native.register_toolchains(\"@local_config_python/# native.register_toolchains(\"@local_config_python/g' third_party/xla/workspace1.bzl",
-        "sed -i 's/native.register_toolchains(\"@local_execution_config_python/# native.register_toolchains(\"@local_execution_config_python/g' third_party/xla/workspace2.bzl",
-        "sed -i 's/native.register_execution_platforms(\"@local_execution_config_platform/# native.register_execution_platforms(\"@local_execution_config_platform/g' third_party/xla/workspace2.bzl",
+        "find tensorflow third_party/xla -name 'workspace*.bzl' -exec sed -i 's/native.register_/# native.register_/g' {} +",
         "echo -e '\\ndiff --git a/WORKSPACE b/WORKSPACE\\n--- a/WORKSPACE\\n+++ b/WORKSPACE\\n@@ -184,25 +184,2 @@\\n sass_repositories()\\n \\n-http_archive(\\n-    name = \"xla\",\\n-    patch_args = [\"-p1\"],\\n-    patches = [\\n-        \"//third_party:xla.patch\",\\n-        \"//third_party:xla_add_grpc_cares_darwin_arm64_support.patch\",\\n-    ],\\n-    sha256 = \"ba80ef58f89ca11bc5652e936cf856cdeae91e6b723ce6750e9ce0202cab51ac\",\\n-    strip_prefix = \"xla-f094066398e2c884e994711fd677f68864324614\",\\n-    urls = [\\n-        \"https://github.com/openxla/xla/archive/f094066398e2c884e994711fd677f68864324614.zip\",\\n-    ],\\n-)\\n-\\n-http_archive(\\n-    name = \"tsl\",\\n-    sha256 = \"8cf1e1285c7b1843a7f5f787465c1ef80304b3400ed837870bc76d74ce04f5af\",\\n-    strip_prefix = \"tsl-d71df2f7612583617d359c36243695097dd63726\",\\n-    urls = [\\n-        \"https://github.com/google/tsl/archive/d71df2f7612583617d359c36243695097dd63726.zip\",\\n-    ],\\n-)\\n-\\n load(\"@xla//tools/toolchains/python:python_repo.bzl\", \"python_repository\")' >> third_party/xprof/xprof.patch",
     ],
     repo_mapping = {

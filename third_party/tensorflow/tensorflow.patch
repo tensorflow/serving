@@ -1,10 +1,17 @@
-diff --git a/tensorflow/tools/toolchains/python/python_repo.bzl b/tensorflow/tools/toolchains/python/python_repo.bzl
---- a/tensorflow/tools/toolchains/python/python_repo.bzl
-+++ b/tensorflow/tools/toolchains/python/python_repo.bzl
-@@ -21,5 +21,6 @@
- TF_PYTHON_VERSION = "{}"
- HERMETIC_PYTHON_VERSION = "{}"
- WHEEL_NAME = "{}"
- WHEEL_COLLAB = "{}"
-+USE_PYWRAP_RULES = "False"
- """
+diff --git a/tensorflow/core/tfrt/graph_executor/graph_execution_options.h b/tensorflow/core/tfrt/graph_executor/graph_execution_options.h
+--- a/tensorflow/core/tfrt/graph_executor/graph_execution_options.h
++++ b/tensorflow/core/tfrt/graph_executor/graph_execution_options.h
+@@ -145,3 +145,5 @@
+   // name e.g. the joined string of input names and output names.
+   std::string name;
++  std::optional<absl::Time> rpc_deadline_for_batching_task_cancellation;
++  std::function<bool()> is_rpc_cancelled_callback;
+ };
+diff --git a/third_party/xla/xla/backends/gpu/collectives/gpu_communicator.h b/third_party/xla/xla/backends/gpu/collectives/gpu_communicator.h
+--- a/third_party/xla/xla/backends/gpu/collectives/gpu_communicator.h
++++ b/third_party/xla/xla/backends/gpu/collectives/gpu_communicator.h
+@@ -93,3 +93,3 @@
+   // kernels (byte storage appropriately sized to fit platform-specific handle).
+-  using PackedKernelArg = std::array<std::byte, 200>;
++  using PackedKernelArg = std::array<std::byte, 256>;
+   virtual PackedKernelArg PackKernelArg() const = 0;
