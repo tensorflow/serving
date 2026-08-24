@@ -158,10 +158,11 @@ RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}} \
     LIBRARY_PATH=/usr/local/cuda/lib64/stubs${LIBRARY_PATH:+:${LIBRARY_PATH}} \
-    bazel build --color=yes --curses=yes --config=cuda_clang --copt="-fPIC"\
+    bazel build --color=yes --curses=yes --config=cuda_clang --copt="-fPIC" --copt="-Qunused-arguments" \
     --linkopt="-L/usr/local/cuda/lib64/stubs" \
-    --action_env=LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}} \
-    --action_env=LIBRARY_PATH=/usr/local/cuda/lib64/stubs${LIBRARY_PATH:+:${LIBRARY_PATH}} \
+    --linkopt="-L/usr/local/cuda/targets/x86_64-linux/lib/stubs" \
+    --action_env=LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:/usr/local/cuda/targets/x86_64-linux/lib/stubs${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}} \
+    --action_env=LIBRARY_PATH=/usr/local/cuda/lib64/stubs:/usr/local/cuda/targets/x86_64-linux/lib/stubs${LIBRARY_PATH:+:${LIBRARY_PATH}} \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
     ${TF_SERVING_BUILD_OPTIONS} \
