@@ -1,5 +1,6 @@
 # Description: Tensorflow Serving utils.
 
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
@@ -387,14 +388,6 @@ cc_library(
     name = "oss_or_google",
     hdrs = ["oss_or_google.h"],
 )
-# Add this block to tensorflow_serving/util/BUILD
-# after the existing json_tensor cc_library target.
-#
-# This defines the OSS-Fuzz fuzz target for the JSON tensor parser.
-# It is built only when compiled with --config=oss-fuzz (libFuzzer + ASan).
-
-load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
-
 # Fuzz target for OSS-Fuzz continuous fuzzing.
 # Build with: bazel build --config=oss-fuzz //tensorflow_serving/util:json_tensor_fuzzer
 cc_binary(
