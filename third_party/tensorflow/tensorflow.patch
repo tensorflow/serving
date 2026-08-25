@@ -1,10 +1,247 @@
-diff --git a/tensorflow/tools/toolchains/python/python_repo.bzl b/tensorflow/tools/toolchains/python/python_repo.bzl
---- a/tensorflow/tools/toolchains/python/python_repo.bzl
-+++ b/tensorflow/tools/toolchains/python/python_repo.bzl
-@@ -21,5 +21,6 @@
- TF_PYTHON_VERSION = "{}"
- HERMETIC_PYTHON_VERSION = "{}"
- WHEEL_NAME = "{}"
- WHEEL_COLLAB = "{}"
-+USE_PYWRAP_RULES = "False"
- """
+diff --git a/BUILD b/BUILD
+--- a/BUILD
++++ b/BUILD
+@@ -5,3 +5,6 @@
+     "AUTHORS",
+     "LICENSE",
+ ])
++
++alias(name = "tensorflow_libtensorflow_framework", actual = "//tensorflow/core:tensorflow", visibility = ["//visibility:public"])
++alias(name = "tensorflow_tf_header_lib", actual = "//tensorflow/core:tensorflow", visibility = ["//visibility:public"])
+diff --git a/tensorflow/compiler/jit/BUILD b/tensorflow/compiler/jit/BUILD
+--- a/tensorflow/compiler/jit/BUILD
++++ b/tensorflow/compiler/jit/BUILD
+@@ -1854,6 +1854,7 @@
+     ],
+     visibility = ["//visibility:public"],
+     deps = [
++        "@xla//xla/tsl/concurrency:async_value",
+         "//tensorflow/compiler/tf2xla:common",
+         "//tensorflow/core:framework",
+         "@tf_runtime//:async_value",
+@@ -1873,6 +1874,7 @@
+     ],
+     visibility = ["//visibility:public"],
+     deps = [
++        "@xla//xla/tsl/concurrency:async_value",
+         "//tensorflow/compiler/tf2xla:common",
+         "//tensorflow/core:framework",
+         "@tf_runtime//:async_value",
+diff --git a/tensorflow/core/framework/BUILD b/tensorflow/core/framework/BUILD
+--- a/tensorflow/core/framework/BUILD
++++ b/tensorflow/core/framework/BUILD
+@@ -922,6 +922,7 @@
+ 
+ cc_library(
+     name = "kernel_shape_util",
++    visibility = ["//visibility:public"],
+     srcs = ["kernel_shape_util.cc"],
+     hdrs = ["kernel_shape_util.h"],
+     deps = [
+diff --git a/tensorflow/core/platform/rules_cc.bzl b/tensorflow/core/platform/rules_cc.bzl
+--- a/tensorflow/core/platform/rules_cc.bzl
++++ b/tensorflow/core/platform/rules_cc.bzl
+@@ -11,6 +11,16 @@
+ 
+ cc_binary = _cc_binary
+ cc_import = _cc_import
+-cc_library = _cc_library
++def cc_library_oss(deps = [], **kwargs):
++    if kwargs.get("name") == "lib_internal_impl" or "protobuf" in kwargs.get("name", ""):
++        _cc_library(deps = deps, **kwargs)
++        return
++    if type(deps) == "list":
++        if "@com_google_protobuf//:protobuf" not in deps:
++            deps = deps + ["@com_google_protobuf//:protobuf"]
++    else:
++        deps = deps + ["@com_google_protobuf//:protobuf"]
++    _cc_library(deps = deps, **kwargs)
++cc_library = cc_library_oss
+ cc_shared_library = _cc_shared_library
+ cc_test = _cc_test
+diff --git a/tensorflow/core/tfrt/graph_executor/graph_execution_options.h b/tensorflow/core/tfrt/graph_executor/graph_execution_options.h
+--- a/tensorflow/core/tfrt/graph_executor/graph_execution_options.h
++++ b/tensorflow/core/tfrt/graph_executor/graph_execution_options.h
+@@ -144,6 +144,8 @@
+   // The optional name for debugging purposes. If empty, the runtime will pick a
+   // name e.g. the joined string of input names and output names.
+   std::string name;
++  std::optional<absl::Time> rpc_deadline_for_batching_task_cancellation;
++  std::function<bool()> is_rpc_cancelled_callback;
+ };
+ 
+ // Creates the default `SessionOptions` from a `GraphExecutionOptions`.
+diff --git a/tensorflow/tensorflow.bzl b/tensorflow/tensorflow.bzl
+--- a/tensorflow/tensorflow.bzl
++++ b/tensorflow/tensorflow.bzl
+@@ -1174,7 +1174,7 @@
+         copts = tf_copts(),
+         linkopts = if_not_windows(["-lm", "-Wl,-ldl"]) + lrt_if_needed(),
+         linkstatic = 1,  # Faster to link this one-time-use binary dynamically
+-        deps = [op_gen] + deps,
++        deps = [op_gen] + deps + [clean_dep("//tensorflow/core/framework:kernel_shape_util"), clean_dep("//tensorflow/core/framework:full_type_util")],
+     )
+ 
+     srcs = api_def_srcs[:]
+diff --git a/tensorflow/workspace3.bzl b/tensorflow/workspace3.bzl
+--- a/tensorflow/workspace3.bzl
++++ b/tensorflow/workspace3.bzl
+@@ -4,8 +4,8 @@
+ load("//third_party/tf_runtime:workspace.bzl", tf_runtime = "repo")
+ 
+ def workspace():
+-    tf_vendored(name = "xla", path = "third_party/xla")
+-    tf_vendored(name = "tsl", path = "third_party/xla/third_party/tsl")
++    tf_vendored(name = "xla", path = "third_party/xla", repo_mapping = {"@xla": "@local_xla", "@tsl": "@local_tsl"})
++    tf_vendored(name = "tsl", path = "third_party/xla/third_party/tsl", repo_mapping = {"@xla": "@local_xla", "@tsl": "@local_tsl"})
+ 
+     tf_http_archive(
+         name = "io_bazel_rules_closure",
+diff --git a/third_party/tf_runtime/workspace.bzl b/third_party/tf_runtime/workspace.bzl
+--- a/third_party/tf_runtime/workspace.bzl
++++ b/third_party/tf_runtime/workspace.bzl
+@@ -15,8 +15,8 @@
+         strip_prefix = "runtime-{commit}".format(commit = TFRT_COMMIT),
+         urls = tf_mirror_urls("https://github.com/tensorflow/runtime/archive/{commit}.tar.gz".format(commit = TFRT_COMMIT)),
+         repo_mapping = {
+-            "@tsl": "@tsl",
+-            "@xla": "@xla",
++            "@tsl": "@local_tsl",
++            "@xla": "@local_xla",
+         },
+         # A patch file can be provided for atomic commits to both TF and TFRT.
+         # The job that bumps the TFRT_COMMIT also resets patch_file to 'None'.
+diff --git a/third_party/xla/xla/backends/gpu/collectives/gpu_communicator.h b/third_party/xla/xla/backends/gpu/collectives/gpu_communicator.h
+--- a/third_party/xla/xla/backends/gpu/collectives/gpu_communicator.h
++++ b/third_party/xla/xla/backends/gpu/collectives/gpu_communicator.h
+@@ -91,7 +91,7 @@
+ 
+   // A packed kernel argument type for passing device communicator to device
+   // kernels (byte storage appropriately sized to fit platform-specific handle).
+-  using PackedKernelArg = std::array<std::byte, 200>;
++  using PackedKernelArg = std::array<std::byte, 256>;
+   virtual PackedKernelArg PackKernelArg() const = 0;
+ 
+   template <typename Sink>
+diff --git a/third_party/xla/xla/tsl/cuda/BUILD.bazel b/third_party/xla/xla/tsl/cuda/BUILD.bazel
+--- a/third_party/xla/xla/tsl/cuda/BUILD.bazel
++++ b/third_party/xla/xla/tsl/cuda/BUILD.bazel
+@@ -44,7 +44,7 @@
+     visibility = ["//visibility:public"],
+     deps = if_cuda_is_configured([
+         # keep sorted
+-        "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:logging", "//xla/tsl/platform/default:dso_loader",
+         "@com_google_absl//absl/container:flat_hash_set",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@tsl//tsl/platform:dso_loader",
+@@ -76,7 +76,7 @@
+     visibility = ["//visibility:public"],
+     deps = if_cuda_is_configured([
+         # keep sorted
+-        "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:logging", "//xla/tsl/platform/default:dso_loader",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+@@ -107,7 +107,7 @@
+     visibility = ["//visibility:public"],
+     deps = if_cuda_is_configured([
+         # keep sorted
+-        "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:logging", "//xla/tsl/platform/default:dso_loader",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+@@ -143,7 +143,7 @@
+         "@xla//xla/tsl:is_cuda_enabled_and_oss": [
+             # keep sorted
+             ":cuda",
+-            "//xla/tsl/platform:logging",
++            "//xla/tsl/platform:logging", "//xla/tsl/platform/default:dso_loader",
+             "@com_google_absl//absl/container:flat_hash_set",
+             "@local_config_cuda//cuda:cuda_headers",
+             "@tsl//tsl/platform:dso_loader",
+@@ -178,7 +178,7 @@
+     visibility = ["//visibility:public"],
+     deps = if_cuda_is_configured([
+         # keep sorted
+-        "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:logging", "//xla/tsl/platform/default:dso_loader",
+         "@com_google_absl//absl/container:flat_hash_map",
+         "@local_config_cuda//cuda:cudnn_header",
+         "@tsl//tsl/platform:dso_loader",
+@@ -233,7 +233,7 @@
+     visibility = ["//visibility:public"],
+     deps = if_cuda_is_configured([
+         # keep sorted
+-        "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:logging", "//xla/tsl/platform/default:dso_loader",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+@@ -270,7 +270,7 @@
+     visibility = ["//visibility:public"],
+     deps = if_cuda_is_configured([
+         # keep sorted
+-        "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:logging", "//xla/tsl/platform/default:dso_loader",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@local_config_cuda//cuda:cupti_headers",
+         "@tsl//tsl/platform:dso_loader",
+@@ -307,7 +307,7 @@
+     visibility = ["//visibility:public"],
+     deps = if_cuda_is_configured([
+         # keep sorted
+-        "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:logging", "//xla/tsl/platform/default:dso_loader",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+@@ -343,7 +343,7 @@
+     visibility = ["//visibility:public"],
+     deps = if_cuda_is_configured([
+         # keep sorted
+-        "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:logging", "//xla/tsl/platform/default:dso_loader",
+         "@com_google_absl//absl/container:flat_hash_set",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@tsl//tsl/platform:dso_loader",
+@@ -376,7 +376,7 @@
+     visibility = ["//visibility:public"],
+     deps = if_cuda_is_configured([
+         # keep sorted
+-        "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:logging", "//xla/tsl/platform/default:dso_loader",
+         "@com_google_absl//absl/container:flat_hash_set",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@local_config_nccl//:nccl_headers",
+@@ -411,7 +411,7 @@
+     visibility = ["//visibility:public"],
+     deps = if_cuda_is_configured([
+         # keep sorted
+-        "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:logging", "//xla/tsl/platform/default:dso_loader",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+     ]),
+@@ -441,7 +441,7 @@
+     visibility = ["//visibility:public"],
+     deps = if_cuda_is_configured([
+         # keep sorted
+-        "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:logging", "//xla/tsl/platform/default:dso_loader",
+         "@local_config_cuda//cuda:cuda_headers",
+         "@tsl//tsl/platform:dso_loader",
+         "@tsl//tsl/platform:load_library",
+diff --git a/third_party/xla/xla/tsl/platform/default/BUILD b/third_party/xla/xla/tsl/platform/default/BUILD
+--- a/third_party/xla/xla/tsl/platform/default/BUILD
++++ b/third_party/xla/xla/tsl/platform/default/BUILD
+@@ -477,6 +477,7 @@
+     ],
+     textual_hdrs = ["tracing_impl.h"],
+     deps = [
++        "//xla/tsl/platform:logging",
+         "//xla/tsl/platform:macros",
+         "//xla/tsl/platform:types",
+         "//xla/tsl/profiler/backends/cpu:threadpool_listener_state",

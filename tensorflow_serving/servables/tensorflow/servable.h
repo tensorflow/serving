@@ -83,6 +83,25 @@ class SingleRequestPredictStreamedContext final
   bool one_request_received_ = false;
 };
 
+// A `PredictStreamedContext` implementation that accepts optional initial
+// handshake PredictRequest followed by a single payload request.
+// This implementation is thread compatible.
+class HandshakeEnabledPredictStreamedContext final
+    : public PredictStreamedContext {
+ public:
+  explicit HandshakeEnabledPredictStreamedContext(
+      absl::AnyInvocable<absl::Status(const PredictRequest&)> f);
+
+  absl::Status ProcessRequest(const PredictRequest& request) final;
+  absl::Status Close() final;
+  absl::Status WaitResponses() final;
+
+ private:
+  absl::AnyInvocable<absl::Status(const PredictRequest&)> f_;
+  int request_count_ = 0;
+  bool first_is_handshake_ = false;
+};
+
 // Provides a `PredictionService`-like interface. All concrete implementations
 // are expected to be thread-safe.
 class Servable {

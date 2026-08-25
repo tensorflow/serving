@@ -45,6 +45,11 @@ SingleRequestPredictStreamedContext::SingleRequestPredictStreamedContext(
 
 absl::Status SingleRequestPredictStreamedContext::ProcessRequest(
     const PredictRequest& request) {
+  if (request.has_request_options() &&
+      request.request_options().has_handshake()) {
+    return absl::InvalidArgumentError(
+        "Handshaking is not supported in this context.");
+  }
   if (one_request_received_) {
     return absl::UnimplementedError(
         "PredictStreamed already received one request. Accepting more than "
@@ -63,6 +68,51 @@ absl::Status SingleRequestPredictStreamedContext::Close() {
 }
 
 absl::Status SingleRequestPredictStreamedContext::WaitResponses() {
+  return absl::OkStatus();
+}
+
+HandshakeEnabledPredictStreamedContext::HandshakeEnabledPredictStreamedContext(
+    absl::AnyInvocable<absl::Status(const PredictRequest&)> f)
+    : f_(std::move(f)) {}
+
+absl::Status HandshakeEnabledPredictStreamedContext::ProcessRequest(
+    const PredictRequest& request) {
+  request_count_++;
+  if (request_count_ == 1) {
+    first_is_handshake_ = request.has_request_options() &&
+                          request.request_options().has_handshake();
+    if (first_is_handshake_) {
+      return absl::OkStatus();
+    }
+    return f_(request);
+  } else if (request_count_ == 2) {
+    if (!first_is_handshake_) {
+      return absl::FailedPreconditionError(
+          "HandshakeEnabledPredictStreamed accepts multiple requests (2) only "
+          "if a handshake was received as the first request.");
+    }
+    if (request.has_request_options() &&
+        request.request_options().has_handshake()) {
+      return absl::InvalidArgumentError(
+          "Followup request after a handshake request must not have the "
+          "handshake field set.");
+    }
+    return f_(request);
+  }
+  return absl::InvalidArgumentError(
+      "PredictStreamed session allows at most 2 requests when handshake is "
+      "used.");
+}
+
+absl::Status HandshakeEnabledPredictStreamedContext::Close() {
+  if (request_count_ == 0) {
+    return absl::FailedPreconditionError(
+        "PredictStreamed requires at least one request");
+  }
+  return absl::OkStatus();
+}
+
+absl::Status HandshakeEnabledPredictStreamedContext::WaitResponses() {
   return absl::OkStatus();
 }
 

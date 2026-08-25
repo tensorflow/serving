@@ -147,7 +147,7 @@ TfrtSavedModelServable::PredictStreamed(
     absl::AnyInvocable<void(absl::StatusOr<PredictResponse>)>
         response_callback) {
   auto recorder = CreateRecorder();
-  return std::make_unique<SingleRequestPredictStreamedContext>(
+  return std::make_unique<HandshakeEnabledPredictStreamedContext>(
       [this, run_options, response_callback = std::move(response_callback)](
           const PredictRequest& request) mutable -> absl::Status {
         TRACELITERAL("TfrtSavedModelServable::PredictStreamed");

@@ -28,31 +28,41 @@ tensorflow_http_archive(
     git_commit = "2f504bde54087483657c7066f9982a146c32ddfc",
     patch = "//third_party/tensorflow:tensorflow.patch",
     patch_cmds = [
-        "sed -i '/cc_library = _cc_library/d' tensorflow/core/platform/rules_cc.bzl",
-        "echo -e \"\\ndef cc_library_oss(deps=[], **kwargs):\\n    if kwargs.get(\\\"name\\\") == \\\"lib_internal_impl\\\" or \\\"protobuf\\\" in kwargs.get(\\\"name\\\", \\\"\\\"):\\n        _cc_library(deps = deps, **kwargs)\\n        return\\n    if type(deps) == \\\"list\\\":\\n        if \\\"@com_google_protobuf//:protobuf\\\" not in deps:\\n            deps = deps + [\\\"@com_google_protobuf//:protobuf\\\"]\\n    else:\\n        deps = deps + [\\\"@com_google_protobuf//:protobuf\\\"]\\n    _cc_library(deps = deps, **kwargs)\\ncc_library = cc_library_oss\" >> tensorflow/core/platform/rules_cc.bzl",
-        "sed -i 's#deps = \\[op_gen\\] + deps#deps = [op_gen] + deps + [clean_dep(\"//tensorflow/core/framework:kernel_shape_util\"), clean_dep(\"//tensorflow/core/framework:full_type_util\")]#' tensorflow/tensorflow.bzl",
-        "sed -i '/name = \"kernel_shape_util\",/a \\    visibility = [\"//visibility:public\"],' tensorflow/core/framework/BUILD",
-        "echo -e '\\nalias(name = \"tensorflow_libtensorflow_framework\", actual = \"//tensorflow/core:tensorflow\", visibility = [\"//visibility:public\"])' >> BUILD",
-        "echo -e '\\nalias(name = \"tensorflow_tf_header_lib\", actual = \"//tensorflow/core:tensorflow\", visibility = [\"//visibility:public\"])' >> BUILD",
-        "sed -i '/name = \"env\",/,/deps = \\[/ s#deps = \\[#deps = [\":status\", \":statusor\", \":context\", \":tracing\", \"//xla/tsl/profiler/backends/cpu:threadpool_listener_state\", \"//xla/tsl/platform:byte_order\", #' third_party/xla/xla/tsl/platform/default/BUILD",
-        "sed -i '/name = \"tracing\",/,/deps = \\[/ s#deps = \\[#deps = [\"//xla/tsl/platform:logging\", #' third_party/xla/xla/tsl/platform/default/BUILD",
-        "sed -i '/name = \"tf_runtime\",/a \\        repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"},' third_party/tf_runtime/workspace.bzl",
-        "sed -i '/name = \"error_util\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:async_value\", \"@xla//xla/tsl/concurrency:concurrent_vector\", \"@xla//xla/tsl/concurrency:executor\", \"@xla//xla/tsl/concurrency:ref_count\", \"@xla//xla/tsl/util:safe_reinterpret_cast\", \"@tsl//tsl/platform:context\", #' tensorflow/core/tfrt/utils/BUILD",
-        "sed -i '/name = \"work_queue_interface\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/concurrency:ref_count\", #' tensorflow/core/tfrt/runtime/BUILD",
-        "sed -i '/name = \"execute\",/,/deps = \\[/ s#deps = \\[#deps = [\"@xla//xla/tsl/platform:macros\", \"@xla//xla/tsl/platform:types\", \"@xla//xla/tsl/profiler/utils:no_init\", \"@tsl//tsl/profiler/lib:traceme_encode\", \"@xla//xla/tsl/profiler/utils:traceme_global_flags\", \"@xla//xla/tsl/profiler/backends/cpu:traceme_recorder\", \"@tsl//tsl/platform:bfloat16\", \"@tsl//tsl/platform:ml_dtypes\", \"@tsl//tsl/platform:tstring\", \"@tsl//tsl/platform:cord\", \"@tsl//tsl/platform:refcount\", \"@tsl//tsl/platform:thread_annotations\", \"@tsl//tsl/platform:stringpiece\", \"@xla//xla/tsl/profiler/utils:time_utils\", \"@xla//xla/tsl/profiler/utils:math_utils\", #' tensorflow/core/tfrt/mlrt/interpreter/BUILD",
-        "sed -i '/tf_vendored(name = \"xla\",/s/)/, repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"})/' tensorflow/workspace3.bzl",
-        "sed -i '/tf_vendored(name = \"tsl\",/s/)/, repo_mapping = {\"@xla\": \"@local_xla\", \"@tsl\": \"@local_tsl\"})/' tensorflow/workspace3.bzl",
         """python3 -c 'import re, glob
 for p in glob.glob("third_party/xla/**/BUILD*", recursive=True):
-    s = open(p).read(); blocks = s.split("cc_library(");
-    for i in range(1, len(blocks)):
-        b = blocks[i]; m_th = re.search(r"textual_hdrs\\s*=\\s*(\\[[^\\]]+\\]),?\\n?", b);
+    s = open(p).read(); parts = s.split("cc_library("); new_parts = [parts[0]]
+    for part in parts[1:]:
+        depth = 1; idx = 0
+        while idx < len(part) and depth > 0:
+            if part[idx] == "(": depth += 1
+            elif part[idx] == ")": depth -= 1
+            idx += 1
+        b = part[:idx]; rest = part[idx:]
+        m_th = re.search(r"textual_hdrs\\s*=\\s*(\\[[^\\]]*\\]),?\\s*\\n?", b, re.DOTALL)
         if m_th:
-            th = m_th.group(1); b = b.replace(m_th.group(0), ""); m_h = re.search(r"hdrs\\s*=\\s*(\\[[^\\]]+\\])", b);
-            if m_h: h = m_h.group(1); merged = h[:-1] + ", " + th[1:]; b = b.replace(m_h.group(0), "hdrs = " + merged);
-            else: b = "\\n    hdrs = " + th + "," + b;
-            blocks[i] = b
-    open(p, "w").write("cc_library(".join(blocks))'""",
+            th = m_th.group(1); b_no = b[:m_th.start()] + b[m_th.end():]; m_h = re.search(r"hdrs\\s*=\\s*(\\[[^\\]]*\\])", b_no, re.DOTALL)
+            if m_h:
+                h_str = m_h.group(1).rstrip("]").strip().rstrip(",")
+                th_str = th.lstrip("[").strip()
+                b = b_no[:m_h.start()] + "hdrs = " + h_str + ", " + th_str + b_no[m_h.end():]
+            else: b = b_no.rpartition(")")[0] + "\\n    hdrs = " + th + ",\\n)"
+        new_parts.append(b + rest)
+    open(p, "w").write("cc_library(".join(new_parts))'""",
+        "find . -name \"gin_proxy.h\" -exec python3 -c 'import sys; f=sys.argv[1]; c=open(f).read().replace(\"for (uint8_t i = 0; i < 4; i++)\", \"for (uint8_t i = 0; i < 16; i++)\").replace(\"__stwt((uint4*)&q[idx] + i, ((uint4*)gfd)[i]);\", \"__stwt((__half2*)&q[idx] + i, ((__half2*)gfd)[i]);\"); open(f, \"w\").write(c)' {} \\;",
+        "find . -name \"doca_gpunetio_verbs_def.h\" -exec sed -i 's/typeof(x)/__typeof__(x)/g' {} +",
+        "find . -name \"cub_scan_kernel_cuda_impl.cu.cc\" -exec python3 -c 'import sys, re; f=sys.argv[1]; c=open(f).read(); c=re.sub(r\"using MaxPolicyT = typename cub::detail::scan::policy_hub<.*?>::MaxPolicy;\", \"using MaxPolicyT = typename cub::DeviceScanPolicy<T, ScanOpT>::MaxPolicy;\", c, flags=re.DOTALL); c=c.replace(\"auto* kernel = BlockScanKernel<T, ScanOpT>;\", \"void (*kernel)(const T*, T*, int64_t) = BlockScanKernel<T, ScanOpT>;\"); open(f, \"w\").write(c)' {} \\;",
+        """python3 -c 'import os, glob
+files = [p for p in glob.glob("**/*.BUILD*", recursive=True) + glob.glob("**/BUILD*", recursive=True) if not os.path.islink(p)]
+for p in files:
+    try:
+        with open(p, "r", encoding="utf-8", errors="ignore") as f:
+            c = f.read()
+        if "@tsl//" in c:
+            with open(p, "w", encoding="utf-8") as f:
+                f.write(c.replace("@tsl//", "@local_tsl//"))
+    except Exception:
+        pass'""",
+        "find tensorflow third_party/xla -name 'workspace*.bzl' -exec sed -i 's/native.register_/# native.register_/g' {} +",
         "echo -e '\\ndiff --git a/WORKSPACE b/WORKSPACE\\n--- a/WORKSPACE\\n+++ b/WORKSPACE\\n@@ -184,25 +184,2 @@\\n sass_repositories()\\n \\n-http_archive(\\n-    name = \"xla\",\\n-    patch_args = [\"-p1\"],\\n-    patches = [\\n-        \"//third_party:xla.patch\",\\n-        \"//third_party:xla_add_grpc_cares_darwin_arm64_support.patch\",\\n-    ],\\n-    sha256 = \"ba80ef58f89ca11bc5652e936cf856cdeae91e6b723ce6750e9ce0202cab51ac\",\\n-    strip_prefix = \"xla-f094066398e2c884e994711fd677f68864324614\",\\n-    urls = [\\n-        \"https://github.com/openxla/xla/archive/f094066398e2c884e994711fd677f68864324614.zip\",\\n-    ],\\n-)\\n-\\n-http_archive(\\n-    name = \"tsl\",\\n-    sha256 = \"8cf1e1285c7b1843a7f5f787465c1ef80304b3400ed837870bc76d74ce04f5af\",\\n-    strip_prefix = \"tsl-d71df2f7612583617d359c36243695097dd63726\",\\n-    urls = [\\n-        \"https://github.com/google/tsl/archive/d71df2f7612583617d359c36243695097dd63726.zip\",\\n-    ],\\n-)\\n-\\n load(\"@xla//tools/toolchains/python:python_repo.bzl\", \"python_repository\")' >> third_party/xprof/xprof.patch",
     ],
     repo_mapping = {
@@ -114,6 +124,7 @@ http_archive(
 # Details: https://github.com/google-ml-infra/rules_ml_toolchain
 http_archive(
     name = "rules_ml_toolchain",
+    patch_cmds = ["sed -i '/module_map = /d' cc/layering_check/build_defs.bzl"],
     sha256 = "0b42f693a60c6050d87db1e0a0eaeb84ab3f54191fce094d86334faedc807da0",
     strip_prefix = "rules_ml_toolchain-398d613aea7a4c294da49b79a6d6f3f8732bd84c",
     urls = [

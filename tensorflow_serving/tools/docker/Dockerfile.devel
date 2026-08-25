@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libpng-dev \
         libtool \
         libzmq3-dev \
+        lld \
         mlocate \
         openjdk-11-jdk \
         openjdk-11-jre-headless \
@@ -42,6 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         swig \
         unzip \
         wget \
+        xxd \
         zip \
         zlib1g-dev \
         python3-setuptools \

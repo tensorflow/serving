@@ -28,6 +28,8 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
+#include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/threadpool.h"
 #include "tensorflow_serving/apis/logging.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
@@ -325,6 +327,43 @@ TEST_F(PerTaskSamplingTest, FallsBackToTopLevelSamplingRate) {
   for (int i = 0; i < 100; ++i) {
     TF_ASSERT_OK(
         logger->Log(PredictRequest(), PredictResponse(), log_metadata));
+  }
+}
+
+TEST_F(RequestLoggerTest, ConcurrentLogging) {
+  LoggingConfig logging_config;
+  logging_config.mutable_sampling_config()->set_sampling_rate(0.5);
+  auto* collector = new NiceMock<MockLogCollector>();
+  auto logger = std::shared_ptr<NiceMock<MockRequestLogger>>(
+      new NiceMock<MockRequestLogger>(logging_config, model_tags_, collector,
+                                      "", -1));
+
+  EXPECT_CALL(*logger, CreateLogMessage(_, _, _, _))
+      .WillRepeatedly([](const google::protobuf::Message&, const google::protobuf::Message&,
+                         const LogMetadata&,
+                         std::unique_ptr<google::protobuf::Message>* log) {
+        *log = std::make_unique<google::protobuf::Any>();
+        return absl::OkStatus();
+      });
+
+  EXPECT_CALL(*collector, CollectMessage(_))
+      .WillRepeatedly(Return(absl::OkStatus()));
+
+  LogMetadata log_metadata;
+  log_metadata.mutable_model_spec()->set_name("model");
+
+  constexpr int kNumThreads = 8;
+  constexpr int kNumRequestsPerThread = 1000;
+  {
+    thread::ThreadPool pool(Env::Default(), "test", kNumThreads);
+    for (int t = 0; t < kNumThreads; ++t) {
+      pool.Schedule([&]() {
+        for (int i = 0; i < kNumRequestsPerThread; ++i) {
+          TF_ASSERT_OK(
+              logger->Log(PredictRequest(), PredictResponse(), log_metadata));
+        }
+      });
+    }
   }
 }
 

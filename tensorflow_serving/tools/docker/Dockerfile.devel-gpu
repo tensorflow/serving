@@ -68,6 +68,7 @@ RUN apt-get install -y --no-install-recommends \
         libcusolver-dev-12-5 \
         libcusparse-dev-12-5 \
         git \
+        lld \
         libfreetype6-dev \
         libtool \
         libcurl3-dev \
@@ -81,6 +82,7 @@ RUN apt-get install -y --no-install-recommends \
         swig \
         unzip \
         wget \
+        xxd \
         zip \
         zlib1g-dev \
         python3-setuptools && \
@@ -154,8 +156,12 @@ ARG TF_SERVING_BAZEL_OPTIONS=""
 RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
 
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
-    LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}} \
+    LIBRARY_PATH=/usr/local/cuda/lib64/stubs${LIBRARY_PATH:+:${LIBRARY_PATH}} \
     bazel build --color=yes --curses=yes --config=cuda_clang --copt="-fPIC"\
+    --linkopt="-L/usr/local/cuda/lib64/stubs" \
+    --action_env=LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}} \
+    --action_env=LIBRARY_PATH=/usr/local/cuda/lib64/stubs${LIBRARY_PATH:+:${LIBRARY_PATH}} \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \
