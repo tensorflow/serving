@@ -237,7 +237,13 @@ diff --git a/third_party/xla/xla/tsl/cuda/BUILD.bazel b/third_party/xla/xla/tsl/
 diff --git a/third_party/xla/xla/tsl/platform/default/BUILD b/third_party/xla/xla/tsl/platform/default/BUILD
 --- a/third_party/xla/xla/tsl/platform/default/BUILD
 +++ b/third_party/xla/xla/tsl/platform/default/BUILD
-@@ -477,6 +477,7 @@
+@@ -113,6 +113,7 @@
+     ],
+     deps = [
+         "//xla/tsl/platform:logging",
++        "//xla/tsl/platform:types",
+         "@com_google_absl//absl/status",
+@@ -477,6 +478,7 @@
      ],
      textual_hdrs = ["tracing_impl.h"],
      deps = [

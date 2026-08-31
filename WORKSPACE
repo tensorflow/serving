@@ -42,10 +42,11 @@ for p in glob.glob("third_party/xla/**/BUILD*", recursive=True):
         if m_th:
             th = m_th.group(1); b_no = b[:m_th.start()] + b[m_th.end():]; m_h = re.search(r"hdrs\\s*=\\s*(\\[[^\\]]*\\])", b_no, re.DOTALL)
             if m_h:
-                h_str = m_h.group(1).rstrip("]").strip().rstrip(",")
-                th_str = th.lstrip("[").strip()
-                b = b_no[:m_h.start()] + "hdrs = " + h_str + ", " + th_str + b_no[m_h.end():]
-            else: b = b_no.rpartition(")")[0] + "\\n    hdrs = " + th + ",\\n)"
+                th_items = [x.strip() for x in th.lstrip("[").rstrip("]").split(",") if x.strip()]
+                h_items = [x.strip() for x in m_h.group(1).lstrip("[").rstrip("]").split(",") if x.strip()]
+                merged = h_items + [x for x in th_items if x not in h_items]
+                b = b_no[:m_h.start()] + "hdrs = [" + ", ".join(merged) + "]" + b_no[m_h.end():]
+            else: b = b[:m_th.start()] + "hdrs = " + th + ",\\n" + b[m_th.end():]
         new_parts.append(b + rest)
     open(p, "w").write("cc_library(".join(new_parts))'""",
         "find . -name \"gin_proxy.h\" -exec python3 -c 'import sys; f=sys.argv[1]; c=open(f).read().replace(\"for (uint8_t i = 0; i < 4; i++)\", \"for (uint8_t i = 0; i < 16; i++)\").replace(\"__stwt((uint4*)&q[idx] + i, ((uint4*)gfd)[i]);\", \"__stwt((__half2*)&q[idx] + i, ((__half2*)gfd)[i]);\"); open(f, \"w\").write(c)' {} \\;",

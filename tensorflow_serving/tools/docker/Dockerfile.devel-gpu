@@ -158,13 +158,13 @@ RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}} \
     LIBRARY_PATH=/usr/local/cuda/lib64/stubs${LIBRARY_PATH:+:${LIBRARY_PATH}} \
-    bazel build --color=yes --curses=yes --config=cuda_clang --copt="-fPIC"\
+    bazel build --color=no --curses=no --config=cuda_clang --copt="-fPIC" --copt="-Qunused-arguments" \
     --linkopt="-L/usr/local/cuda/lib64/stubs" \
-    --action_env=LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}} \
-    --action_env=LIBRARY_PATH=/usr/local/cuda/lib64/stubs${LIBRARY_PATH:+:${LIBRARY_PATH}} \
+    --linkopt="-L/usr/local/cuda/targets/x86_64-linux/lib/stubs" \
+    --action_env=LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:/usr/local/cuda/targets/x86_64-linux/lib/stubs${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}} \
+    --action_env=LIBRARY_PATH=/usr/local/cuda/lib64/stubs:/usr/local/cuda/targets/x86_64-linux/lib/stubs${LIBRARY_PATH:+:${LIBRARY_PATH}} \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
-    --output_filter=DONT_MATCH_ANYTHING \
     ${TF_SERVING_BUILD_OPTIONS} \
     tensorflow_serving/model_servers:tensorflow_model_server && \
     cp bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server \
@@ -172,10 +172,9 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
     rm /usr/local/cuda/lib64/stubs/libcuda.so.1
 
 # Build and install TensorFlow Serving API
-RUN bazel build --color=yes --curses=yes \
+RUN bazel build --color=no --curses=no \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
-    --output_filter=DONT_MATCH_ANYTHING \
     ${TF_SERVING_BUILD_OPTIONS} \
     tensorflow_serving/tools/pip_package:build_pip_package && \
     bazel-bin/tensorflow_serving/tools/pip_package/build_pip_package \
