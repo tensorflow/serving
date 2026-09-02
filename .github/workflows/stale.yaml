@@ -64,3 +64,10 @@ jobs:
         stale-pr-label: 'stale'
         # override stale to stalled for Issue
         stale-issue-label: "stale"
+    - uses: actions/checkout@v3
+    - uses: actions/github-script@v6
+      with:
+        script: |
+          const script = require('./\.github/workflows/scripts/staleCSAT.js')
+          script({github, context})
+          
