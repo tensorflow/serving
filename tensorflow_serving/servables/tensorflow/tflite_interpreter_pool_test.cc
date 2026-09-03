@@ -48,6 +48,9 @@ TEST(TfLiteInterpreterPool, CreateTfLiteInterpreterPoolTest) {
   TF_ASSERT_OK(ReadFileToString(Env::Default(),
                                 test_util::TestSrcDirPath(kParseExampleModel),
                                 &model_bytes));
+#if FLATBUFFERS_LITTLEENDIAN == 0
+  tflite::FlatBufferModel::ByteSwapSerializedModel(&model_bytes, false);
+#endif
   auto model = tflite::FlatBufferModel::BuildFromModel(
       flatbuffers::GetRoot<tflite::Model>(model_bytes.data()));
   int pool_size = 1;
@@ -103,6 +106,9 @@ TEST(TfLiteInterpreterWrapper, TfLiteInterpreterWrapperTest) {
   TF_ASSERT_OK(ReadFileToString(Env::Default(),
                                 test_util::TestSrcDirPath(kParseExampleModel),
                                 &model_bytes));
+#if FLATBUFFERS_LITTLEENDIAN == 0
+  tflite::FlatBufferModel::ByteSwapSerializedModel(&model_bytes, false);
+#endif
   auto model = tflite::FlatBufferModel::BuildFromModel(
       flatbuffers::GetRoot<tflite::Model>(model_bytes.data()));
   tflite::ops::builtin::BuiltinOpResolver resolver;
