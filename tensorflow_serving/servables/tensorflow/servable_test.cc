@@ -41,10 +41,10 @@ TEST(SingleRequestPredictStreamedContextTest, ProcessesOnlyOneRequest) {
       });
 
   PredictRequest request;
-  EXPECT_TRUE(context.ProcessRequest(request).ok());
+  EXPECT_TRUE(context.ProcessRequest(&request).ok());
   EXPECT_EQ(count, 1);
 
-  absl::Status status = context.ProcessRequest(request);
+  absl::Status status = context.ProcessRequest(&request);
   EXPECT_EQ(status.code(), absl::StatusCode::kUnimplemented);
   EXPECT_EQ(count, 1);
 
@@ -77,10 +77,10 @@ TEST(HandshakeEnabledPredictStreamedContextTest,
 
   PredictRequest payload_req;
 
-  EXPECT_TRUE(context.ProcessRequest(handshake_req).ok());
+  EXPECT_TRUE(context.ProcessRequest(&handshake_req).ok());
   EXPECT_EQ(count, 0);
 
-  EXPECT_TRUE(context.ProcessRequest(payload_req).ok());
+  EXPECT_TRUE(context.ProcessRequest(&payload_req).ok());
   EXPECT_EQ(count, 1);
 
   EXPECT_TRUE(context.Close().ok());
@@ -98,9 +98,9 @@ TEST(HandshakeEnabledPredictStreamedContextTest,
       ->mutable_handshake()
       ->set_estimated_payload_bytes(100);
 
-  EXPECT_TRUE(context.ProcessRequest(handshake_req).ok());
+  EXPECT_TRUE(context.ProcessRequest(&handshake_req).ok());
 
-  absl::Status status = context.ProcessRequest(handshake_req);
+  absl::Status status = context.ProcessRequest(&handshake_req);
   EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
 }
 
@@ -113,9 +113,9 @@ TEST(HandshakeEnabledPredictStreamedContextTest,
 
   PredictRequest payload_req;
 
-  EXPECT_TRUE(context.ProcessRequest(payload_req).ok());
+  EXPECT_TRUE(context.ProcessRequest(&payload_req).ok());
 
-  absl::Status status = context.ProcessRequest(payload_req);
+  absl::Status status = context.ProcessRequest(&payload_req);
   EXPECT_EQ(status.code(), absl::StatusCode::kFailedPrecondition);
 }
 
@@ -132,10 +132,10 @@ TEST(HandshakeEnabledPredictStreamedContextTest, FailureOnRequestThreeOrMore) {
 
   PredictRequest payload_req;
 
-  EXPECT_TRUE(context.ProcessRequest(handshake_req).ok());
-  EXPECT_TRUE(context.ProcessRequest(payload_req).ok());
+  EXPECT_TRUE(context.ProcessRequest(&handshake_req).ok());
+  EXPECT_TRUE(context.ProcessRequest(&payload_req).ok());
 
-  absl::Status status = context.ProcessRequest(payload_req);
+  absl::Status status = context.ProcessRequest(&payload_req);
   EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
 }
 

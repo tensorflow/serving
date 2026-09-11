@@ -71,6 +71,7 @@ class PredictStreamedContext {
 class SingleRequestPredictStreamedContext final
     : public PredictStreamedContext {
  public:
+  using PredictStreamedContext::ProcessRequest;
   explicit SingleRequestPredictStreamedContext(
       absl::AnyInvocable<absl::Status(const PredictRequest&)> f);
 
@@ -89,6 +90,7 @@ class SingleRequestPredictStreamedContext final
 class HandshakeEnabledPredictStreamedContext final
     : public PredictStreamedContext {
  public:
+  using PredictStreamedContext::ProcessRequest;
   explicit HandshakeEnabledPredictStreamedContext(
       absl::AnyInvocable<absl::Status(const PredictRequest&)> f);
 
