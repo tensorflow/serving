@@ -27,6 +27,7 @@ namespace serving {
   if (status.message().length() > kErrorMessageLimit) {
     error_message = absl::StrCat(status.message().substr(0, kErrorMessageLimit),
                                  "...TRUNCATED");
+    LOG(WARNING) << "Untruncated Message: " << status.message();
   } else {
     error_message = status.message();
   }
