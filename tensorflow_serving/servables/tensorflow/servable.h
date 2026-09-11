@@ -61,6 +61,11 @@ class PredictStreamedContext {
 
   // Waits for all of the responses to be generated
   virtual absl::Status WaitResponses() = 0;
+
+  // Registers a callback to be called when response generation is complete.
+  // Thread-compatible; must be set before or during ProcessRequest.
+  virtual void SetResponsesCompleteCallback(
+      absl::AnyInvocable<void()> callback) {}
 };
 
 // A convenience wrapper for cases where the implementation allows exactly one
