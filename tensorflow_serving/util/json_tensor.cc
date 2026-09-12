@@ -888,6 +888,34 @@ bool IsNamedTensorBytes(const string& name, const TensorProto& tensor) {
 Status AddSingleValueAndAdvance(const TensorProto& tensor, bool string_as_bytes,
                                 RapidJsonWriter* writer, int* offset) {
   bool success = false;
+  // Check that the offset is within the bounds of the repeated field for
+  // this dtype. When --enable_serialization_as_tensor_content is used, the
+  // tensor data is stored in tensor_content and the typed repeated fields
+  // (float_val, int_val, etc.) remain empty, making this indexing OOB in
+  // release builds (RepeatedField::Get uses DCHECK, compiled out).
+  const int repeated_field_size = [&tensor]() -> int {
+    switch (tensor.dtype()) {
+      case DT_FLOAT:    return tensor.float_val_size();
+      case DT_DOUBLE:   return tensor.double_val_size();
+      case DT_INT32:
+      case DT_INT16:
+      case DT_INT8:
+      case DT_UINT8:    return tensor.int_val_size();
+      case DT_INT64:    return tensor.int64_val_size();
+      case DT_BOOL:     return tensor.bool_val_size();
+      case DT_UINT32:   return tensor.uint32_val_size();
+      case DT_UINT64:   return tensor.uint64_val_size();
+      case DT_STRING:   return tensor.string_val_size();
+      default:          return 0;
+    }
+  }();
+  if (*offset >= repeated_field_size) {
+    return errors::InvalidArgument(
+        "Tensor value index ", *offset,
+        " is out of bounds for dtype ", DataTypeString(tensor.dtype()),
+        " (repeated field size: ", repeated_field_size,
+        "). This can occur when tensor_content serialization is enabled");
+  }
   switch (tensor.dtype()) {
     case DT_FLOAT:
       success = WriteDecimal(writer, tensor.float_val(*offset));
