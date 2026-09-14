@@ -51,10 +51,7 @@ class PredictStreamedContext {
 
   // Consumes one incoming request. Blocking here may delay the consumption of
   // subsequent requests.
-  virtual absl::Status ProcessRequest(const PredictRequest& request) = 0;
-  virtual absl::Status ProcessRequest(PredictRequest* request) {
-    return ProcessRequest(*request);
-  }
+  virtual absl::Status ProcessRequest(PredictRequest* request) = 0;
 
   // Closes the `PredictStreamed` session.
   virtual absl::Status Close() = 0;
@@ -76,11 +73,10 @@ class PredictStreamedContext {
 class SingleRequestPredictStreamedContext final
     : public PredictStreamedContext {
  public:
-  using PredictStreamedContext::ProcessRequest;
   explicit SingleRequestPredictStreamedContext(
       absl::AnyInvocable<absl::Status(const PredictRequest&)> f);
 
-  absl::Status ProcessRequest(const PredictRequest& request) final;
+  absl::Status ProcessRequest(PredictRequest* request) final;
   absl::Status Close() final;
   absl::Status WaitResponses() final;
 
@@ -95,11 +91,10 @@ class SingleRequestPredictStreamedContext final
 class HandshakeEnabledPredictStreamedContext final
     : public PredictStreamedContext {
  public:
-  using PredictStreamedContext::ProcessRequest;
   explicit HandshakeEnabledPredictStreamedContext(
       absl::AnyInvocable<absl::Status(const PredictRequest&)> f);
 
-  absl::Status ProcessRequest(const PredictRequest& request) final;
+  absl::Status ProcessRequest(PredictRequest* request) final;
   absl::Status Close() final;
   absl::Status WaitResponses() final;
 

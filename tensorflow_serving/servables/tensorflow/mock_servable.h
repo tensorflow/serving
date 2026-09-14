@@ -38,7 +38,7 @@ namespace serving {
 
 class MockPredictStreamedContext : public PredictStreamedContext {
  public:
-  MOCK_METHOD(absl::Status, ProcessRequest, (const PredictRequest& request),
+  MOCK_METHOD(absl::Status, ProcessRequest, (PredictRequest * request),
               (final));
   MOCK_METHOD(absl::Status, Close, (), (final));
   MOCK_METHOD(absl::Status, WaitResponses, (), (final));
