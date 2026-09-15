@@ -127,8 +127,8 @@ class EventBus : public std::enable_shared_from_this<EventBus<E>> {
   /// Callers' destructors must use the sequence:
   ///   (1) Unsubscribe.
   ///   (2) Tear down anything that the callback references.
-  std::unique_ptr<Subscription> Subscribe(const Callback& callback)
-      TF_LOCKS_EXCLUDED(mutex_) TF_MUST_USE_RESULT;
+  TF_MUST_USE_RESULT std::unique_ptr<Subscription> Subscribe(
+      const Callback& callback) TF_LOCKS_EXCLUDED(mutex_);
 
   /// Publishes an event to all subscribers.
   void Publish(const E& event) TF_LOCKS_EXCLUDED(mutex_);

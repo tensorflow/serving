@@ -44,9 +44,9 @@ SingleRequestPredictStreamedContext::SingleRequestPredictStreamedContext(
     : f_(std::move(f)) {}
 
 absl::Status SingleRequestPredictStreamedContext::ProcessRequest(
-    const PredictRequest& request) {
-  if (request.has_request_options() &&
-      request.request_options().has_handshake()) {
+    PredictRequest* request) {
+  if (request->has_request_options() &&
+      request->request_options().has_handshake()) {
     return absl::InvalidArgumentError(
         "Handshaking is not supported in this context.");
   }
@@ -56,7 +56,7 @@ absl::Status SingleRequestPredictStreamedContext::ProcessRequest(
         "one request in a stream is not supported yet");
   }
   one_request_received_ = true;
-  return f_(request);
+  return f_(*request);
 }
 
 absl::Status SingleRequestPredictStreamedContext::Close() {
@@ -76,28 +76,28 @@ HandshakeEnabledPredictStreamedContext::HandshakeEnabledPredictStreamedContext(
     : f_(std::move(f)) {}
 
 absl::Status HandshakeEnabledPredictStreamedContext::ProcessRequest(
-    const PredictRequest& request) {
+    PredictRequest* request) {
   request_count_++;
   if (request_count_ == 1) {
-    first_is_handshake_ = request.has_request_options() &&
-                          request.request_options().has_handshake();
+    first_is_handshake_ = request->has_request_options() &&
+                          request->request_options().has_handshake();
     if (first_is_handshake_) {
       return absl::OkStatus();
     }
-    return f_(request);
+    return f_(*request);
   } else if (request_count_ == 2) {
     if (!first_is_handshake_) {
       return absl::FailedPreconditionError(
           "HandshakeEnabledPredictStreamed accepts multiple requests (2) only "
           "if a handshake was received as the first request.");
     }
-    if (request.has_request_options() &&
-        request.request_options().has_handshake()) {
+    if (request->has_request_options() &&
+        request->request_options().has_handshake()) {
       return absl::InvalidArgumentError(
           "Followup request after a handshake request must not have the "
           "handshake field set.");
     }
-    return f_(request);
+    return f_(*request);
   }
   return absl::InvalidArgumentError(
       "PredictStreamed session allows at most 2 requests when handshake is "

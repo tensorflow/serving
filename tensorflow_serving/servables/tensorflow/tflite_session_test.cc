@@ -75,7 +75,7 @@ constexpr char kTestModelWithSigdef[] =
     "/servables/tensorflow/testdata/"
     "saved_model_half_plus_two_tflite_with_sigdef/00000123/model.tflite";
 
-ABSL_ATTRIBUTE_UNUSED constexpr char kMobileNetModel[] =
+[[maybe_unused]] constexpr char kMobileNetModel[] =
     "/servables/tensorflow/testdata/mobilenet_v1_quant_tflite/00000123/"
     "model.tflite";
 
