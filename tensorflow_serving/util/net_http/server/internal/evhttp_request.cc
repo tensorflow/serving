@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "tensorflow_serving/util/net_http/server/internal/evhttp_request.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -271,9 +272,13 @@ bool EvHTTPRequest::NeedUncompressGzipContent() {
 void EvHTTPRequest::UncompressGzipBody(void* input, size_t input_size,
                                        void** uncompressed_input,
                                        size_t* uncompressed_input_size) {
-  int64_t max = handler_options_->auto_uncompress_max_size() > 0
-                    ? handler_options_->auto_uncompress_max_size()
-                    : ZLib::kMaxUncompressedBytes;
+  // NEW: Reject suspiciously high compression ratios (> 100x)
+  static constexpr size_t kMaxCompressionRatio = 100;
+  static constexpr size_t kMaxDecompressedSize = 10 * 1024 * 1024;  // 10MB
+
+  int64_t max = std::min(
+      static_cast<int64_t>(kMaxDecompressedSize),
+      static_cast<int64_t>(input_size) * kMaxCompressionRatio);
 
   // our APIs don't need expose the actual content-length
   *uncompressed_input_size = static_cast<size_t>(max);
