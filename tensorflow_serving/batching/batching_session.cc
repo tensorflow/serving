@@ -513,7 +513,9 @@ absl::Status BatchingSession::MergeInputTensors(
   if (options_.pad_variable_length_inputs) {
     std::vector<std::vector<std::pair<string, Tensor>>> all_task_inputs =
         GetTaskInputsVector(batch);
-    max_dim_sizes = CalculateMaxDimSizes(all_task_inputs);
+    max_dim_sizes.emplace();
+    TF_RETURN_IF_ERROR(
+        CalculateMaxDimSizes(all_task_inputs, &max_dim_sizes.value()));
   }
   // Populate 'tensors_to_merge'.
   for (int i = 0; i < batch.num_tasks(); ++i) {
