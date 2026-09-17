@@ -44,7 +44,11 @@ if '--project_name' in sys.argv:
   sys.argv.remove('--project_name')
   sys.argv.pop(project_name_idx)
 
-_TF_REQ = ['tensorflow'+_TF_VERSION_SANITIZED]
+_TF_REQ = ["tensorflow"_TF_VERSION_SANITIZED]
+
+# CPU only build
+if 'tensorflow-serving-api-cpu' in project_name:
+  _TF_REQ = ['tensorflow-cpu'+_TF_VERSION_SANITIZED]
 
 # GPU build (note: the only difference is we depend on tensorflow-gpu so
 # pip doesn't overwrite it with the CPU build. And tensorflow-gpu has been the
