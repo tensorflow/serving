@@ -14,21 +14,32 @@ limitations under the License.
 ==============================================================================*/
 #include "tensorflow_serving/experimental/tensorflow/ops/remote_predict/kernels/remote_predict_op_kernel.h"
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "absl/cleanup/cleanup.h"
+#include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 #include "absl/status/status.h"
 #include "absl/time/time.h"
 #include "tensorflow/cc/client/client_session.h"
 #include "tensorflow/cc/ops/const_op.h"
+#include "xla/tsl/platform/statusor.h"
+#include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
+#include "tensorflow/core/graph/graph.h"
+#include "tensorflow/core/kernels/batching_util/warmup.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/status.h"
+#include "tensorflow/core/public/session_options.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
 #include "tensorflow_serving/experimental/tensorflow/ops/remote_predict/cc/ops/remote_predict_op.h"
+
+ABSL_DECLARE_FLAG(bool, remote_predict_bypass_rpc_during_warmup);
 
 namespace tensorflow {
 namespace serving {
@@ -133,7 +144,9 @@ absl::Status RunRemotePredict(
     const absl::optional<::absl::Duration> deadline = std::nullopt,
     bool fail_on_rpc_error = true,
     const string& target_address = "target_address",
-    int64_t target_model_version = -1, const string& signature_name = "") {
+    int64_t target_model_version = -1, const std::string& signature_name = "",
+    const std::vector<TensorShape>& output_shapes = {},
+    const SessionOptions* session_options = nullptr) {
   const Scope scope = Scope::DisabledShapeInferenceScope();
   // Model_name will decide the result of the RPC.
   auto input_tensor_aliases = ops::Const(
@@ -157,9 +170,19 @@ absl::Status RunRemotePredict(
   }
   attrs = attrs.FailOpOnRpcError(fail_on_rpc_error);
 
-  auto remote_predict = RemotePredict(
-      scope, input_tensor_aliases, {input_tensors0, input_tensors1},
-      output_tensor_aliases, output_types, attrs);
+  auto remote_predict =
+      RemotePredict(scope.WithOpName("my_remote_predict"), input_tensor_aliases,
+                    {input_tensors0, input_tensors1}, output_tensor_aliases,
+                    output_types, attrs);
+
+  if (!output_shapes.empty()) {
+    for (tensorflow::Node* n : scope.graph()->nodes()) {
+      if (n->name() == "my_remote_predict") {
+        n->AddAttr("output_shapes", output_shapes);
+        break;
+      }
+    }
+  }
 
   fetch_outputs = {remote_predict.status_code,
                    remote_predict.status_error_message};
@@ -168,8 +191,13 @@ absl::Status RunRemotePredict(
                        remote_predict.output_tensors.end());
   TF_RETURN_IF_ERROR(scope.status());
 
-  ClientSession session(scope);
-  return session.Run(fetch_outputs, outputs);
+  if (session_options != nullptr) {
+    ClientSession session(scope, *session_options);
+    return session.Run(fetch_outputs, outputs);
+  } else {
+    ClientSession session(scope);
+    return session.Run(fetch_outputs, outputs);
+  }
 }
 
 TEST(RemotePredictTest, TestSimple) {
@@ -233,6 +261,86 @@ TEST(RemotePredictTest, TestProtoField) {
   EXPECT_EQ("", outputs[1].scalar<tensorflow::tstring>()());
   test::ExpectTensorEqual<int>(outputs[2], test::AsTensor<int>({1, 2}));
   test::ExpectTensorEqual<int>(outputs[3], test::AsTensor<int>({3, 4}));
+}
+
+TEST(RemotePredictTest, TestWarmupBypassRpc) {
+  absl::SetFlag(&FLAGS_remote_predict_bypass_rpc_during_warmup, true);
+  auto reset_flag = absl::MakeCleanup([] {
+    absl::SetFlag(&FLAGS_remote_predict_bypass_rpc_during_warmup, false);
+  });
+
+  tensorflow::serving::WarmupStateRegistry::Key key(
+      MockPredictionService::kBadModel, 1);
+  auto per_model_data = std::make_unique<
+      tensorflow::serving::WarmupStateRegistry::PerModelData>();
+  TF_ASSERT_OK_AND_ASSIGN(
+      auto warmup_handle,
+      tensorflow::serving::GetGlobalWarmupStateRegistry().Register(
+          key, std::move(per_model_data)));
+
+  tensorflow::SessionOptions session_options;
+  session_options.config.mutable_experimental()
+      ->mutable_session_metadata()
+      ->set_name(MockPredictionService::kBadModel);
+  session_options.config.mutable_experimental()
+      ->mutable_session_metadata()
+      ->set_version(1);
+
+  std::vector<TensorShape> output_shapes = {TensorShape({1}), TensorShape({1})};
+
+  std::vector<Tensor> outputs;
+  // Notice: kBadModel normally fails with Aborted if RPC is called!
+  // With warmup bypass and output_shapes, it should succeed without calling
+  // RPC!
+  TF_ASSERT_OK(RunRemotePredict(
+      /*model_name=*/MockPredictionService::kBadModel, &outputs,
+      {DT_INT32, DT_INT32}, /*deadline=*/std::nullopt,
+      /*fail_on_rpc_error=*/true, /*target_address=*/"target_address",
+      /*target_model_version=*/1, /*signature_name=*/"", output_shapes,
+      &session_options));
+
+  ASSERT_EQ(4, outputs.size());
+  EXPECT_EQ(0, outputs[0].scalar<int>()());
+  EXPECT_EQ("", outputs[1].scalar<tensorflow::tstring>()());
+  test::ExpectTensorEqual<int>(outputs[2], test::AsTensor<int>({0, 0}));
+  test::ExpectTensorEqual<int>(outputs[3], test::AsTensor<int>({0, 0}));
+}
+
+TEST(RemotePredictTest, TestWarmupFallbackWithoutOutputShapes) {
+  absl::SetFlag(&FLAGS_remote_predict_bypass_rpc_during_warmup, true);
+  auto reset_flag = absl::MakeCleanup([] {
+    absl::SetFlag(&FLAGS_remote_predict_bypass_rpc_during_warmup, false);
+  });
+
+  tensorflow::serving::WarmupStateRegistry::Key key(
+      MockPredictionService::kBadModel, 1);
+  auto per_model_data = std::make_unique<
+      tensorflow::serving::WarmupStateRegistry::PerModelData>();
+  TF_ASSERT_OK_AND_ASSIGN(
+      auto warmup_handle,
+      tensorflow::serving::GetGlobalWarmupStateRegistry().Register(
+          key, std::move(per_model_data)));
+
+  tensorflow::SessionOptions session_options;
+  session_options.config.mutable_experimental()
+      ->mutable_session_metadata()
+      ->set_name(MockPredictionService::kBadModel);
+  session_options.config.mutable_experimental()
+      ->mutable_session_metadata()
+      ->set_version(1);
+
+  std::vector<Tensor> outputs;
+  // Without output_shapes, warmup should fall back to RPC, which fails for
+  // kBadModel with Aborted!
+  const auto status = RunRemotePredict(
+      /*model_name=*/MockPredictionService::kBadModel, &outputs,
+      {DT_INT32, DT_INT32}, /*deadline=*/std::nullopt,
+      /*fail_on_rpc_error=*/true, /*target_address=*/"target_address",
+      /*target_model_version=*/1, /*signature_name=*/"", /*output_shapes=*/{},
+      &session_options);
+
+  ASSERT_FALSE(status.ok());
+  EXPECT_EQ(error::Code::ABORTED, status.code());
 }
 
 }  // namespace

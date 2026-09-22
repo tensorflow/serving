@@ -32,16 +32,19 @@ _remote_predict_op_module = tf.load_op_library(
 
 
 # Aliases
-def run(input_tensor_alias,
-        input_tensors,
-        output_tensor_alias,
-        target_address,
-        model_name,
-        model_version=-1,
-        max_rpc_deadline_millis=3000,
-        output_types=None,
-        name=None,
-        signature_name='serving_default'):
+def run(
+    input_tensor_alias,
+    input_tensors,
+    output_tensor_alias,
+    target_address,
+    model_name,
+    model_version=-1,
+    max_rpc_deadline_millis=3000,
+    output_types=None,
+    name=None,
+    signature_name='serving_default',
+    output_shapes=None,
+):
   """Runs a predict in remote process through rpc.
 
   Args:
@@ -56,6 +59,7 @@ def run(input_tensor_alias,
     output_types: output types for Predict
     name: name for the op in the graph
     signature_name: the signature def for remote graph inference
+    output_shapes: list of shapes of output tensors, if known.
 
   Returns:
     output_tensors as a result of the Predict.
@@ -64,30 +68,37 @@ def run(input_tensor_alias,
   """
   if model_name is None:
     raise ValueError('model_name must be specified.')
-  return (gen_remote_predict_op.tf_serving_remote_predict(
-      input_tensor_alias,
-      input_tensors,
-      output_tensor_alias,
-      target_address=target_address,
-      model_name=model_name,
-      model_version=model_version,
-      fail_op_on_rpc_error=True,
-      max_rpc_deadline_millis=max_rpc_deadline_millis,
-      signature_name=signature_name,
-      output_types=output_types,
-      name=name))[2]
+  return (
+      gen_remote_predict_op.tf_serving_remote_predict(
+          input_tensor_alias,
+          input_tensors,
+          output_tensor_alias,
+          target_address=target_address,
+          model_name=model_name,
+          model_version=model_version,
+          fail_op_on_rpc_error=True,
+          max_rpc_deadline_millis=max_rpc_deadline_millis,
+          signature_name=signature_name,
+          output_types=output_types,
+          output_shapes=output_shapes,
+          name=name,
+      )
+  )[2]
 
 
-def run_returning_status(input_tensor_alias,
-                         input_tensors,
-                         output_tensor_alias,
-                         target_address,
-                         model_name,
-                         model_version=-1,
-                         max_rpc_deadline_millis=3000,
-                         output_types=None,
-                         name=None,
-                         signature_name='serving_default'):
+def run_returning_status(
+    input_tensor_alias,
+    input_tensors,
+    output_tensor_alias,
+    target_address,
+    model_name,
+    model_version=-1,
+    max_rpc_deadline_millis=3000,
+    output_types=None,
+    name=None,
+    signature_name='serving_default',
+    output_shapes=None,
+):
   """Runs a predict in remote process through rpc.
 
   Args:
@@ -102,6 +113,7 @@ def run_returning_status(input_tensor_alias,
     output_types: output types for Predict
     name: name for the op in the graph
     signature_name: the signature def for remote graph inference
+    output_shapes: list of shapes of output tensors, if known.
 
   Returns:
     status_code, status_error_message and output_tensors.
@@ -110,7 +122,7 @@ def run_returning_status(input_tensor_alias,
   """
   if model_name is None:
     raise ValueError('model_name must be specified.')
-  return (gen_remote_predict_op.tf_serving_remote_predict(
+  return gen_remote_predict_op.tf_serving_remote_predict(
       input_tensor_alias,
       input_tensors,
       output_tensor_alias,
@@ -121,4 +133,6 @@ def run_returning_status(input_tensor_alias,
       max_rpc_deadline_millis=max_rpc_deadline_millis,
       signature_name=signature_name,
       output_types=output_types,
-      name=name))
+      output_shapes=output_shapes,
+      name=name,
+  )
