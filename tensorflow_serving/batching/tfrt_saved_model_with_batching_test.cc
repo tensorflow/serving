@@ -78,7 +78,7 @@ class SavedModelWithBatchingTest : public ::testing::Test {
   SavedModelWithBatchingTest() = default;
 
   std::unique_ptr<test_util::MockSavedModel> InitializeMockSavedModel() {
-    auto wrapped_saved_model = absl::make_unique<test_util::MockSavedModel>();
+    auto wrapped_saved_model = std::make_unique<test_util::MockSavedModel>();
     wrapped_saved_model_ = wrapped_saved_model.get();
     ON_CALL(*wrapped_saved_model_, GetFunctionMetadata(_))
         .WillByDefault(Return(tfrt::FunctionMetadata(&signature)));
