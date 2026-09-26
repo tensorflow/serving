@@ -219,7 +219,7 @@ TYPED_TEST(SimpleLoaderTest, LoadError) {
 }
 
 TEST(SimpleLoaderCompatibilityTest, WithoutMetadata) {
-  auto loader_without_metadata = absl::make_unique<SimpleLoader<int>>(
+  auto loader_without_metadata = std::make_unique<SimpleLoader<int>>(
       [](std::unique_ptr<int>* servable) {
         servable->reset(new int);
         return absl::OkStatus();
@@ -232,7 +232,7 @@ TEST(SimpleLoaderCompatibilityTest, WithoutMetadata) {
 }
 
 TEST(SimpleLoaderCompatibilityTest, WithMetadata) {
-  auto loader_with_metadata = absl::make_unique<SimpleLoader<int>>(
+  auto loader_with_metadata = std::make_unique<SimpleLoader<int>>(
       [](const Loader::Metadata& metadata, std::unique_ptr<int>* servable) {
         const auto& expected_metadata = CreateMetadata();
         EXPECT_EQ(expected_metadata.servable_id, metadata.servable_id);
@@ -348,7 +348,7 @@ TEST(SimpleLoaderSourceAdapterTest, OkayToDeleteAdapter) {
 }
 
 TEST(SimpleLoaderTest, LoaderModelType) {
-  auto loader = absl::make_unique<SimpleLoader<int>>(
+  auto loader = std::make_unique<SimpleLoader<int>>(
       [](std::unique_ptr<int>* servable) {
         servable->reset(new int);
         return absl::OkStatus();
@@ -359,7 +359,7 @@ TEST(SimpleLoaderTest, LoaderModelType) {
 }
 
 TEST(SimpleLoaderTest, LoaderModelTypeSavedModelBundle) {
-  auto loader = absl::make_unique<SimpleLoader<SavedModelBundle>>(
+  auto loader = std::make_unique<SimpleLoader<SavedModelBundle>>(
       [](std::unique_ptr<SavedModelBundle>* servable) {
         servable->reset(new SavedModelBundle());
         return absl::OkStatus();
@@ -380,7 +380,7 @@ class MyServable : public EmptyServable {
 };
 
 TEST(SimpleLoaderTest, LoaderModelTypeServable) {
-  auto loader = absl::make_unique<SimpleLoader<MyServable>>(
+  auto loader = std::make_unique<SimpleLoader<MyServable>>(
       [](std::unique_ptr<MyServable>* servable) {
         servable->reset(new MyServable());
         return absl::OkStatus();
