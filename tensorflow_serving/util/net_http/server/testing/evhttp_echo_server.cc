@@ -96,9 +96,9 @@ class MyExcecutor final : public EventExecutor {
 
 // Returns the server if success, or nullptr if there is any error.
 std::unique_ptr<HTTPServerInterface> StartServer(int port) {
-  auto options = absl::make_unique<ServerOptions>();
+  auto options = std::make_unique<ServerOptions>();
   options->AddPort(port);
-  options->SetExecutor(absl::make_unique<MyExcecutor>());
+  options->SetExecutor(std::make_unique<MyExcecutor>());
 
   auto server = CreateEvHTTPServer(std::move(options));
 
