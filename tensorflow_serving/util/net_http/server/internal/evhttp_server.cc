@@ -127,7 +127,7 @@ void EvHTTPServer::DispatchEvRequestFn(evhttp_request* req, void* server) {
 }
 
 void EvHTTPServer::DispatchEvRequest(evhttp_request* req) {
-  auto parsed_request = absl::make_unique<ParsedEvRequest>(req);
+  auto parsed_request = std::make_unique<ParsedEvRequest>(req);
 
   if (!parsed_request->decode()) {
     evhttp_send_error(req, HTTP_BADREQUEST, nullptr);
@@ -146,7 +146,7 @@ void EvHTTPServer::DispatchEvRequest(evhttp_request* req) {
   }
 
   {
-    absl::MutexLock l(&request_mu_);
+    absl::MutexLock l(request_mu_);
 
     auto handler_map_it = uri_handlers_.find(path);
     if (handler_map_it != uri_handlers_.end()) {
@@ -308,18 +308,18 @@ bool EvHTTPServer::is_terminating() const {
 }
 
 void EvHTTPServer::IncOps() {
-  absl::MutexLock l(&ops_mu_);
+  absl::MutexLock l(ops_mu_);
   num_pending_ops_++;
 }
 
 void EvHTTPServer::DecOps() {
-  absl::MutexLock l(&ops_mu_);
+  absl::MutexLock l(ops_mu_);
   num_pending_ops_--;
 }
 
 void EvHTTPServer::WaitForTermination() {
   {
-    absl::MutexLock l(&ops_mu_);
+    absl::MutexLock l(ops_mu_);
     ops_mu_.Await(absl::Condition(
         +[](int64_t* count) { return *count <= 1; }, &num_pending_ops_));
   }
@@ -328,7 +328,7 @@ void EvHTTPServer::WaitForTermination() {
   NET_LOG(INFO, "event_base_loopexit() exits with value %d", result);
 
   {
-    absl::MutexLock l(&ops_mu_);
+    absl::MutexLock l(ops_mu_);
     ops_mu_.Await(absl::Condition(
         +[](int64_t* count) { return *count == 0; }, &num_pending_ops_));
   }
@@ -338,7 +338,7 @@ bool EvHTTPServer::WaitForTerminationWithTimeout(absl::Duration timeout) {
   bool wait_result = true;
 
   {
-    absl::MutexLock l(&ops_mu_);
+    absl::MutexLock l(ops_mu_);
     wait_result = ops_mu_.AwaitWithTimeout(
         absl::Condition(
             +[](int64_t* count) { return *count <= 1; }, &num_pending_ops_),
@@ -351,7 +351,7 @@ bool EvHTTPServer::WaitForTerminationWithTimeout(absl::Duration timeout) {
 
     // This should pass immediately
     {
-      absl::MutexLock l(&ops_mu_);
+      absl::MutexLock l(ops_mu_);
       wait_result = ops_mu_.AwaitWithTimeout(
           absl::Condition(
               +[](int64_t* count) { return *count == 0; }, &num_pending_ops_),
@@ -376,7 +376,7 @@ EvHTTPServer::DispatcherInfo::DispatcherInfo(
 void EvHTTPServer::RegisterRequestHandler(
     absl::string_view uri, RequestHandler handler,
     const RequestHandlerOptions& options) {
-  absl::MutexLock l(&request_mu_);
+  absl::MutexLock l(request_mu_);
   auto result = uri_handlers_.emplace(
       std::piecewise_construct, std::forward_as_tuple(uri),
       std::forward_as_tuple(uri, handler, options));
@@ -400,7 +400,7 @@ void EvHTTPServer::RegisterRequestHandler(
 
 void EvHTTPServer::RegisterRequestDispatcher(
     RequestDispatcher dispatcher, const RequestHandlerOptions& options) {
-  absl::MutexLock l(&request_mu_);
+  absl::MutexLock l(request_mu_);
   dispatchers_.emplace_back(dispatcher, options);
 }
 
