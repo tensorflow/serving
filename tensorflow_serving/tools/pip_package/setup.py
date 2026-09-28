@@ -63,7 +63,7 @@ REQUIRED_PACKAGES = [
     # Match versions to what TF needs here:
     #   https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/pip_package/setup.py.tpl
     'grpcio >= 1.24.3, < 2.0',
-    'protobuf>=4.21.6',
+    'protobuf >= 6.31.1, < 8.0.0',
 ] + _TF_REQ
 
 setup(
