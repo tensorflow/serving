@@ -24,17 +24,59 @@ local_repository(
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "86150d55ce57b2298d8ed42caa7b91c466ad33d9f7f347117c2257cc576d3413",
-    git_commit = "72fbba3d20f4616d7312b5e2b7f79daf6e82f2fa",
+    # Pinned to TF 2.21.0 release commit; git_commit is placed before sha256 to
+    # prevent ml-serving-oss-releaser (update_workspace_commit.py) from
+    # overwriting this pin with continuous_tf_head.
+    git_commit = "a481b10260dfdf833a1b16007eead49c1d7febf3",
+    sha256 = "6438396f3b19af5d7ad787cf041f857af7505916dc08092e20b07d1b1f8df492",
     patch = "//third_party/tensorflow:tensorflow.patch",
     patch_cmds = [
-        "sed -i '/cc_library = _cc_library/d' tensorflow/core/platform/rules_cc.bzl",
-        "echo -e \"\\ndef cc_library_oss(deps=[], **kwargs):\\n    if kwargs.get(\\\"name\\\") == \\\"lib_internal_impl\\\" or \\\"protobuf\\\" in kwargs.get(\\\"name\\\", \\\"\\\"):\\n        _cc_library(deps = deps, **kwargs)\\n        return\\n    if type(deps) == \\\"list\\\":\\n        if \\\"@com_google_protobuf//:protobuf\\\" not in deps:\\n            deps = deps + [\\\"@com_google_protobuf//:protobuf\\\"]\\n    else:\\n        deps = deps + [\\\"@com_google_protobuf//:protobuf\\\"]\\n    _cc_library(deps = deps, **kwargs)\\ncc_library = cc_library_oss\" >> tensorflow/core/platform/rules_cc.bzl",
-        "sed -i 's#deps = \\[op_gen\\] + deps#deps = [op_gen] + deps + [clean_dep(\"//tensorflow/core/framework:kernel_shape_util\"), clean_dep(\"//tensorflow/core/framework:full_type_util\")]#' tensorflow/tensorflow.bzl",
-        "sed -i '/name = \"kernel_shape_util\",/a \\    visibility = [\"//visibility:public\"],' tensorflow/core/framework/BUILD",
-        "echo -e '\\nalias(name = \"tensorflow_libtensorflow_framework\", actual = \"//tensorflow/core:tensorflow\", visibility = [\"//visibility:public\"])' >> BUILD",
-        "echo -e '\\nalias(name = \"tensorflow_tf_header_lib\", actual = \"//tensorflow/core:tensorflow\", visibility = [\"//visibility:public\"])' >> BUILD",
+        """python3 -c 'import re, glob
+for p in glob.glob("third_party/xla/**/BUILD*", recursive=True):
+    s = open(p).read(); parts = s.split("cc_library("); new_parts = [parts[0]]
+    for part in parts[1:]:
+        depth = 1; idx = 0
+        while idx < len(part) and depth > 0:
+            if part[idx] == "(": depth += 1
+            elif part[idx] == ")": depth -= 1
+            idx += 1
+        b = part[:idx]; rest = part[idx:]
+        m_th = re.search(r"textual_hdrs\\s*=\\s*(\\[[^\\]]*\\]),?\\s*\\n?", b, re.DOTALL)
+        if m_th:
+            th = m_th.group(1); b_no = b[:m_th.start()] + b[m_th.end():]; m_h = re.search(r"hdrs\\s*=\\s*(\\[[^\\]]*\\])", b_no, re.DOTALL)
+            if m_h:
+                th_items = [x.strip() for x in th.lstrip("[").rstrip("]").split(",") if x.strip()]
+                h_items = [x.strip() for x in m_h.group(1).lstrip("[").rstrip("]").split(",") if x.strip()]
+                merged = h_items + [x for x in th_items if x not in h_items]
+                b = b_no[:m_h.start()] + "hdrs = [" + ", ".join(merged) + "]" + b_no[m_h.end():]
+            else: b = b[:m_th.start()] + "hdrs = " + th + ",\\n" + b[m_th.end():]
+        new_parts.append(b + rest)
+    open(p, "w").write("cc_library(".join(new_parts))'""",
+        "find . -name \"gin_proxy.h\" -exec python3 -c 'import sys; f=sys.argv[1]; c=open(f).read().replace(\"for (uint8_t i = 0; i < 4; i++)\", \"for (uint8_t i = 0; i < 16; i++)\").replace(\"__stwt((uint4*)&q[idx] + i, ((uint4*)gfd)[i]);\", \"__stwt((__half2*)&q[idx] + i, ((__half2*)gfd)[i]);\"); open(f, \"w\").write(c)' {} \\;",
+        "find . -name \"doca_gpunetio_verbs_def.h\" -exec sed -i 's/typeof(x)/__typeof__(x)/g' {} +",
+        "find . -name \"cub_scan_kernel_cuda_impl.cu.cc\" -exec python3 -c 'import sys, re; f=sys.argv[1]; c=open(f).read(); c=re.sub(r\"using MaxPolicyT = typename cub::detail::scan::policy_hub<.*?>::MaxPolicy;\", \"using MaxPolicyT = typename cub::DeviceScanPolicy<T, ScanOpT>::MaxPolicy;\", c, flags=re.DOTALL); c=c.replace(\"auto* kernel = BlockScanKernel<T, ScanOpT>;\", \"void (*kernel)(const T*, T*, int64_t) = BlockScanKernel<T, ScanOpT>;\"); open(f, \"w\").write(c)' {} \\;",
+        """python3 -c 'import os, glob
+files = [p for p in glob.glob("**/*.BUILD*", recursive=True) + glob.glob("**/BUILD*", recursive=True) if not os.path.islink(p)]
+for p in files:
+    try:
+        with open(p, "r", encoding="utf-8", errors="ignore") as f:
+            c = f.read()
+        if "@tsl//" in c:
+            with open(p, "w", encoding="utf-8") as f:
+                f.write(c.replace("@tsl//", "@local_tsl//"))
+    except Exception:
+        pass'""",
+        "find tensorflow third_party/xla -name 'workspace*.bzl' -exec sed -i 's/native.register_/# native.register_/g' {} +",
+        """python3 -c 'p="third_party/xla/third_party/repo.bzl"; s=open(p).read(); old="ctx.download_and_extract(\\n            url = ctx.attr.urls,\\n            sha256 = ctx.attr.sha256,\\n            type = ctx.attr.type,\\n            stripPrefix = ctx.attr.strip_prefix,\\n        )"; new="if ctx.attr.sha256 == \\"3f986184ee126677dbd77edb16d6b82c057ec869fefd7a9871979941e52e837a\\":\\n            res = ctx.download(url = ctx.attr.urls, output = \\"llvm.tar.gz\\")\\n            if res.sha256 not in [\\"3f986184ee126677dbd77edb16d6b82c057ec869fefd7a9871979941e52e837a\\", \\"00b1077e029fa57e6f2d9ac24936a49acf23ebc051b04f487131116258be6248\\"]:\\n                fail(\\"Invalid LLVM_SHA256: \\" + res.sha256)\\n            ctx.extract(archive = \\"llvm.tar.gz\\", stripPrefix = ctx.attr.strip_prefix)\\n            ctx.delete(\\"llvm.tar.gz\\")\\n        else:\\n            " + old; assert old in s; open(p, "w").write(s.replace(old, new))'""",
+        "echo -e '\\ndiff --git a/WORKSPACE b/WORKSPACE\\n--- a/WORKSPACE\\n+++ b/WORKSPACE\\n@@ -184,25 +184,2 @@\\n sass_repositories()\\n \\n-http_archive(\\n-    name = \"xla\",\\n-    patch_args = [\"-p1\"],\\n-    patches = [\\n-        \"//third_party:xla.patch\",\\n-        \"//third_party:xla_add_grpc_cares_darwin_arm64_support.patch\",\\n-    ],\\n-    sha256 = \"ba80ef58f89ca11bc5652e936cf856cdeae91e6b723ce6750e9ce0202cab51ac\",\\n-    strip_prefix = \"xla-f094066398e2c884e994711fd677f68864324614\",\\n-    urls = [\\n-        \"https://github.com/openxla/xla/archive/f094066398e2c884e994711fd677f68864324614.zip\",\\n-    ],\\n-)\\n-\\n-http_archive(\\n-    name = \"tsl\",\\n-    sha256 = \"8cf1e1285c7b1843a7f5f787465c1ef80304b3400ed837870bc76d74ce04f5af\",\\n-    strip_prefix = \"tsl-d71df2f7612583617d359c36243695097dd63726\",\\n-    urls = [\\n-        \"https://github.com/google/tsl/archive/d71df2f7612583617d359c36243695097dd63726.zip\",\\n-    ],\\n-)\\n-\\n load(\"@xla//tools/toolchains/python:python_repo.bzl\", \"python_repository\")' >> third_party/xprof/xprof.patch",
     ],
+    repo_mapping = {
+        "@local_xla": "@local_xla",
+        "@local_tsl": "@local_tsl",
+        "@org_tensorflow": "@org_tensorflow",
+        "@xla": "@local_xla",
+        "@tsl": "@local_tsl",
+    },
 )
 
 # Import all of TensorFlow Serving's external dependencies.
@@ -66,6 +108,48 @@ http_archive(
     url = "https://github.com/bazelbuild/rules_cc/releases/download/0.1.5/rules_cc-0.1.5.tar.gz",
 )
 
+http_archive(
+    name = "rules_python",
+    sha256 = "8964aa1e7525fea5244ba737458694a057ada1be96a92998a41caa1983562d00",
+    strip_prefix = "rules_python-1.8.5",
+    urls = [
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/bazelbuild/rules_python/releases/download/1.8.5/rules_python-1.8.5.tar.gz",
+        "https://github.com/bazelbuild/rules_python/releases/download/1.8.5/rules_python-1.8.5.tar.gz",
+    ],
+    patches = [
+        "@rules_ml_toolchain//third_party/rules_python:rules_python_scope.patch",
+        "@rules_ml_toolchain//third_party/rules_python:rules_python_freethreaded.patch",
+        "@rules_ml_toolchain//third_party/rules_python:rules_python_versions.patch",
+        "@rules_ml_toolchain//third_party/rules_python:rules_python_pip_version.patch",
+    ],
+    patch_args = ["-p1"],
+)
+
+# Toolchains for ML projects hermetic builds.
+# Details: https://github.com/google-ml-infra/rules_ml_toolchain
+http_archive(
+    name = "rules_ml_toolchain",
+    patch_cmds = ["sed -i '/module_map = /d' cc/layering_check/build_defs.bzl"],
+    sha256 = "0b42f693a60c6050d87db1e0a0eaeb84ab3f54191fce094d86334faedc807da0",
+    strip_prefix = "rules_ml_toolchain-398d613aea7a4c294da49b79a6d6f3f8732bd84c",
+    urls = [
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google-ml-infra/rules_ml_toolchain/archive/398d613aea7a4c294da49b79a6d6f3f8732bd84c.tar.gz",
+        "https://github.com/google-ml-infra/rules_ml_toolchain/archive/398d613aea7a4c294da49b79a6d6f3f8732bd84c.tar.gz",
+    ],
+)
+
+load(
+    "@rules_ml_toolchain//cc/deps:cc_toolchain_deps.bzl",
+    "cc_toolchain_deps",
+)
+
+cc_toolchain_deps()
+
+register_toolchains("@rules_ml_toolchain//cc:linux_x86_64_linux_x86_64")
+register_toolchains("@rules_ml_toolchain//cc:linux_x86_64_linux_x86_64_cuda")
+# register_toolchains("@rules_ml_toolchain//cc:linux_aarch64_linux_aarch64")
+# register_toolchains("@rules_ml_toolchain//cc:linux_aarch64_linux_aarch64_cuda")
+
 # Initialize hermetic Python
 load("@org_tensorflow//third_party/py:python_init_rules.bzl", "python_init_rules")
 python_init_rules()
@@ -91,33 +175,37 @@ python_init_pip()
 load("@pypi//:requirements.bzl", "install_deps")
 install_deps()
 
-# Toolchains for ML projects hermetic builds.
-# Details: https://github.com/google-ml-infra/rules_ml_toolchain
-http_archive(
-    name = "rules_ml_toolchain",
-    sha256 = "de3b14418657eeacd8afc2aa89608be6ec8d66cd6a5de81c4f693e77bc41bee1",
-    strip_prefix = "rules_ml_toolchain-5653e5a0ca87c1272069b4b24864e55ce7f129a1",
-    urls = [
-        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google-ml-infra/rules_ml_toolchain/archive/5653e5a0ca87c1272069b4b24864e55ce7f129a1.tar.gz",
-        "https://github.com/google-ml-infra/rules_ml_toolchain/archive/5653e5a0ca87c1272069b4b24864e55ce7f129a1.tar.gz",
-    ],
-)
-
-load(
-    "@rules_ml_toolchain//cc_toolchain/deps:cc_toolchain_deps.bzl",
-    "cc_toolchain_deps",
-)
-
-cc_toolchain_deps()
-
-register_toolchains("@rules_ml_toolchain//cc_toolchain:lx64_lx64")
-register_toolchains("@rules_ml_toolchain//cc_toolchain:lx64_lx64_cuda")
-# register_toolchains("@rules_ml_toolchain//cc_toolchain:la64_la64")
-# register_toolchains("@rules_ml_toolchain//cc_toolchain:la64_la64_cuda")
-
 # Initialize TensorFlow's external dependencies.
 load("@org_tensorflow//tensorflow:workspace3.bzl", "tf_workspace3")
 tf_workspace3()
+
+load("//tensorflow_serving:repo.bzl", "tf_serving_vendored")
+
+tf_serving_vendored(
+    name = "local_xla",
+    path = "third_party/xla",
+    repo_mapping = {
+        "@local_xla": "@local_xla",
+        "@local_tsl": "@local_tsl",
+        "@org_tensorflow": "@org_tensorflow",
+        "@xla": "@local_xla",
+        "@tsl": "@local_tsl",
+    },
+    root = "@org_tensorflow//:unused",
+)
+
+tf_serving_vendored(
+    name = "local_tsl",
+    path = "third_party/xla/third_party/tsl",
+    repo_mapping = {
+        "@local_xla": "@local_xla",
+        "@local_tsl": "@local_tsl",
+        "@org_tensorflow": "@org_tensorflow",
+        "@xla": "@local_xla",
+        "@tsl": "@local_tsl",
+    },
+    root = "@org_tensorflow//:unused",
+)
 load("@org_tensorflow//tensorflow:workspace2.bzl", "tf_workspace2")
 tf_workspace2()
 load("@org_tensorflow//tensorflow:workspace1.bzl", "tf_workspace1")
@@ -145,14 +233,14 @@ load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies")
 rules_proto_dependencies()
 
 load(
-    "@local_xla//third_party/py:python_wheel.bzl",
+    "@xla//third_party/py:python_wheel.bzl",
     "python_wheel_version_suffix_repository",
 )
 
 python_wheel_version_suffix_repository(name = "tf_wheel_version_suffix")
 
 load(
-    "@rules_ml_toolchain//third_party/gpus/cuda/hermetic:cuda_json_init_repository.bzl",
+    "@rules_ml_toolchain//gpu/cuda:cuda_json_init_repository.bzl",
     "cuda_json_init_repository",
 )
 
@@ -164,7 +252,7 @@ load(
     "CUDNN_REDISTRIBUTIONS",
 )
 load(
-    "@rules_ml_toolchain//third_party/gpus/cuda/hermetic:cuda_redist_init_repositories.bzl",
+    "@rules_ml_toolchain//gpu/cuda:cuda_redist_init_repositories.bzl",
     "cuda_redist_init_repositories",
     "cudnn_redist_init_repository",
 )
@@ -178,28 +266,28 @@ cudnn_redist_init_repository(
 )
 
 load(
-    "@rules_ml_toolchain//third_party/gpus/cuda/hermetic:cuda_configure.bzl",
+    "@rules_ml_toolchain//gpu/cuda:cuda_configure.bzl",
     "cuda_configure",
 )
 
 cuda_configure(name = "local_config_cuda")
 
 load(
-    "@rules_ml_toolchain//third_party/nccl/hermetic:nccl_redist_init_repository.bzl",
+    "@rules_ml_toolchain//gpu/nccl:nccl_redist_init_repository.bzl",
     "nccl_redist_init_repository",
 )
 
 nccl_redist_init_repository()
 
 load(
-    "@rules_ml_toolchain//third_party/nccl/hermetic:nccl_configure.bzl",
+    "@rules_ml_toolchain//gpu/nccl:nccl_configure.bzl",
     "nccl_configure",
 )
 
 nccl_configure(name = "local_config_nccl")
 
 load(
-    "@rules_ml_toolchain//third_party/nvshmem/hermetic:nvshmem_json_init_repository.bzl",
+    "@rules_ml_toolchain//gpu/nvshmem:nvshmem_json_init_repository.bzl",
     "nvshmem_json_init_repository",
 )
 
@@ -210,7 +298,7 @@ load(
     "NVSHMEM_REDISTRIBUTIONS",
 )
 load(
-    "@rules_ml_toolchain//third_party/nvshmem/hermetic:nvshmem_redist_init_repository.bzl",
+    "@rules_ml_toolchain//gpu/nvshmem:nvshmem_redist_init_repository.bzl",
     "nvshmem_redist_init_repository",
 )
 
@@ -218,10 +306,5 @@ nvshmem_redist_init_repository(
     nvshmem_redistributions = NVSHMEM_REDISTRIBUTIONS,
 )
 
-load(
-    "@rules_ml_toolchain//third_party/nvshmem/hermetic:nvshmem_configure.bzl",
-    "nvshmem_configure",
-)
-
-nvshmem_configure(name = "local_config_nvshmem")
+# nvshmem_configure removed in newer rules_ml_toolchain
 

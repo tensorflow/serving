@@ -58,9 +58,9 @@ class EvHTTPServerTest : public ::testing::Test {
 
  protected:
   virtual std::unique_ptr<ServerOptions> GetOptions() {
-    auto options = absl::make_unique<ServerOptions>();
+    auto options = std::make_unique<ServerOptions>();
     options->AddPort(0);
-    options->SetExecutor(absl::make_unique<MyExecutor>(4));
+    options->SetExecutor(std::make_unique<MyExecutor>(4));
     return options;
   }
 
@@ -279,7 +279,7 @@ TEST_F(EvHTTPServerTest, RequestHandlerInteraction) {
   auto connection =
       TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
-  connection->SetExecutor(absl::make_unique<MyExecutor>(4));
+  connection->SetExecutor(std::make_unique<MyExecutor>(4));
 
   absl::Notification response_done;
   TestClientRequest request = {"/ok", "GET", {}, ""};
@@ -322,7 +322,7 @@ TEST_F(EvHTTPServerTest, ActiveRequestCountInShutdown) {
   auto connection =
       TestEvHTTPConnection::Connect("localhost", server->listen_port());
   ASSERT_TRUE(connection != nullptr);
-  connection->SetExecutor(absl::make_unique<MyExecutor>(4));
+  connection->SetExecutor(std::make_unique<MyExecutor>(4));
 
   TestClientRequest request = {"/ok", "GET", {}, ""};
   TestClientResponse response = {};

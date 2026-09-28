@@ -122,6 +122,11 @@ class TfrtSavedModelFactory {
   TfrtSavedModelConfig& mutable_config() { return config_; }
   absl::string_view GetServingResourceType() const;
 
+ protected:
+  // `thread_pool_factory_` is used to create inter-op ThreadPools. It can be a
+  // nullptr and then the default Tensorflow threadpools should be used.
+  std::unique_ptr<ThreadPoolFactory> thread_pool_factory_;
+
  private:
   // The subclass can override this method to return a custom servable
   // instead of creating one using CreateTfrtSavedModelWithMetadata(). If it
@@ -147,10 +152,6 @@ class TfrtSavedModelFactory {
   // A shared batch scheduler. One queue is used for each saved model this
   // factory emits. If batching is not configured, this remains null.
   std::shared_ptr<Batcher> batch_scheduler_;
-
-  // `thread_pool_factory_` is used to create inter-op ThreadPools. It can be a
-  // nullptr and then the default Tensorflow threadpools should be used.
-  std::unique_ptr<ThreadPoolFactory> thread_pool_factory_;
 
   std::function<std::unique_ptr<RequestRecorder>(TfrtSavedModelServable&)>
       recorder_creator_ = [](TfrtSavedModelServable&) { return nullptr; };

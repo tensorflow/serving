@@ -135,12 +135,12 @@ absl::Status CachingManager::LoadServable(
       // ought to be loaded, based on CachingManager's implementation invariant
       // of doing manage+load atomically.
       if (snapshot.value().state != LoaderHarness::State::kReady) {
-        const string error_msg = absl::StrCat(
+        const std::string error_msg = absl::StrCat(
             "Servable requested for load is already being managed, but is not "
             "loaded: ",
             servable_id.DebugString());
         DCHECK(false) << error_msg;
-        return errors::Internal(error_msg);
+        return absl::InternalError(error_msg);
       }
     } else {
       // Load the servable since it has not been loaded yet based on its state.
@@ -154,11 +154,11 @@ absl::Status CachingManager::LoadServable(
       const absl::Status manage_status =
           basic_manager_->ManageServable(std::move(loader_data));
       if (!manage_status.ok()) {
-        const string error_msg = absl::StrCat(
+        const std::string error_msg = absl::StrCat(
             "Internal error: unable to transfer servable to 'basic_manager_': ",
             manage_status.message());
         DCHECK(false) << error_msg;
-        return errors::Internal(error_msg);
+        return absl::InternalError(error_msg);
       }
 
       absl::Notification load_done;
@@ -203,7 +203,7 @@ std::vector<ServableId> CachingManager::ListAvailableServableIds() const {
 }
 
 PathPrefixLoaderFactory::PathPrefixLoaderFactory(
-    const string& path_prefix,
+    const std::string& path_prefix,
     std::unique_ptr<StoragePathSourceAdapter> adapter)
     : path_prefix_(path_prefix), adapter_(std::move(adapter)) {}
 
@@ -212,15 +212,15 @@ ServableData<std::unique_ptr<Loader>> PathPrefixLoaderFactory::CreateLoader(
   if (id.version != 0) {
     return ServableData<std::unique_ptr<Loader>>(
         id,
-        errors::FailedPrecondition("PathPrefixLoaderFactory only supports "
-                                   "single-version servables at version 0"));
+        absl::FailedPreconditionError("PathPrefixLoaderFactory only supports "
+                                      "single-version servables at version 0"));
   }
   const StoragePath servable_path = io::JoinPath(path_prefix_, id.name);
   return adapter_->AdaptOneVersion({id, servable_path});
 }
 
 int64_t PathPrefixLoaderFactory::GetServableVersion(
-    const string& servable_name,
+    const std::string& servable_name,
     ServableRequest::AutoVersionPolicy policy) const {
   return 0;
 }

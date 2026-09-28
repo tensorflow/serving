@@ -80,6 +80,19 @@ message PredictRequest {
     // When set and supported by servable, the model server will cache the
     // prefix of request up to this length.
     optional int64 max_cache_length = 6;
+
+    // Handshake options.  When using PredictStreamed, you can optionally send
+    // a first request which includes this proto with an estimated byte size
+    // for the full request. In that first request, 'inputs' must be empty. If
+    // that handshake returns OK, you should send the full request (without
+    // handshake specified). This can be used to make sure that the request will
+    // be accepted, before sending the payload. The followup request on the
+    // stream will never be load shed.
+    // This is currently only supported for TFRT serving.
+    message Handshake {
+      int64 estimated_payload_bytes = 1;
+    }
+    optional Handshake handshake = 13;
   }
 
   optional RequestOptions request_options = 7;

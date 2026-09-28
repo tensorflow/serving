@@ -30,19 +30,20 @@ namespace {
 // This class is thread-safe.
 class Registry {
  public:
-  absl::Status Register(const string& type,
+  absl::Status Register(const std::string& type,
                         const LogCollector::Factory& factory)
       TF_LOCKS_EXCLUDED(mu_) {
     mutex_lock l(mu_);
     const auto found_it = factory_map_.find(type);
     if (found_it != factory_map_.end()) {
-      return errors::AlreadyExists("Type ", type, " already registered.");
+      return absl::AlreadyExistsError(
+          absl::StrCat("Type ", type, " already registered."));
     }
     factory_map_.insert({type, factory});
     return absl::OkStatus();
   }
 
-  const LogCollector::Factory* Lookup(const string& type) const
+  const LogCollector::Factory* Lookup(const std::string& type) const
       TF_LOCKS_EXCLUDED(mu_) {
     mutex_lock l(mu_);
     const auto found_it = factory_map_.find(type);
@@ -54,7 +55,7 @@ class Registry {
 
  private:
   mutable mutex mu_;
-  std::unordered_map<string, LogCollector::Factory> factory_map_
+  std::unordered_map<std::string, LogCollector::Factory> factory_map_
       TF_GUARDED_BY(mu_);
 };
 
@@ -65,18 +66,18 @@ Registry* GetRegistry() {
 
 }  // namespace
 
-absl::Status LogCollector::RegisterFactory(const string& type,
+absl::Status LogCollector::RegisterFactory(const std::string& type,
                                            const Factory& factory) {
   return GetRegistry()->Register(type, factory);
 }
 
 absl::Status LogCollector::Create(
-    const LogCollectorConfig& config, const uint32 id,
+    const LogCollectorConfig& config, const uint32_t id,
     std::unique_ptr<LogCollector>* const log_collector) {
   auto* factory = GetRegistry()->Lookup(config.type());
   if (factory == nullptr) {
-    return errors::NotFound("Cannot find LogCollector::Factory for type: ",
-                            config.type());
+    return absl::NotFoundError(absl::StrCat(
+        "Cannot find LogCollector::Factory for type: ", config.type()));
   }
   return (*factory)(config, id, log_collector);
 }

@@ -29,9 +29,10 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-void PopulateInferenceTask(const string& model_name,
-                           const string& signature_name,
-                           const string& method_name, InferenceTask* task) {
+void PopulateInferenceTask(const std::string& model_name,
+                           const std::string& signature_name,
+                           const std::string& method_name,
+                           InferenceTask* task) {
   ModelSpec model_spec;
   model_spec.set_name(model_name);
   model_spec.set_signature_name(signature_name);
@@ -71,7 +72,7 @@ absl::Status PopulatePredictionLog(PredictionLog* prediction_log,
                                    int num_repeated_values) {
   if ((num_repeated_values > 1) &&
       (log_type != PredictionLog::kPredictStreamedLog)) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(
         "Only predict_streamed_log supports num_repeated_values > 1.");
   }
   switch (log_type) {
@@ -106,8 +107,8 @@ absl::Status PopulatePredictionLog(PredictionLog* prediction_log,
   return absl::OkStatus();
 }
 
-absl::Status WriteWarmupData(const string& fname,
-                             const std::vector<string>& warmup_records,
+absl::Status WriteWarmupData(const std::string& fname,
+                             const std::vector<std::string>& warmup_records,
                              int num_warmup_records) {
   Env* env = Env::Default();
   std::unique_ptr<WritableFile> file;
@@ -116,7 +117,7 @@ absl::Status WriteWarmupData(const string& fname,
   io::RecordWriterOptions options;
   io::RecordWriter writer(file.get(), options);
   for (int i = 0; i < num_warmup_records; ++i) {
-    for (const string& warmup_record : warmup_records) {
+    for (const std::string& warmup_record : warmup_records) {
       TF_RETURN_IF_ERROR(writer.WriteRecord(warmup_record));
     }
   }
@@ -125,13 +126,13 @@ absl::Status WriteWarmupData(const string& fname,
 }
 
 absl::Status WriteWarmupDataAsSerializedProtos(
-    const string& fname, const std::vector<string>& warmup_records,
+    const std::string& fname, const std::vector<std::string>& warmup_records,
     int num_warmup_records) {
   Env* env = Env::Default();
   std::unique_ptr<WritableFile> file;
   TF_RETURN_IF_ERROR(env->NewWritableFile(fname, &file));
   for (int i = 0; i < num_warmup_records; ++i) {
-    for (const string& warmup_record : warmup_records) {
+    for (const std::string& warmup_record : warmup_records) {
       TF_RETURN_IF_ERROR(file->Append(warmup_record));
     }
   }
@@ -140,7 +141,7 @@ absl::Status WriteWarmupDataAsSerializedProtos(
 }
 
 absl::Status AddMixedWarmupData(
-    std::vector<string>* warmup_records,
+    std::vector<std::string>* warmup_records,
     const std::vector<PredictionLog::LogTypeCase>& log_types) {
   for (auto& log_type : log_types) {
     TF_RETURN_IF_ERROR(AddToWarmupData(warmup_records, log_type, 1));
@@ -148,7 +149,7 @@ absl::Status AddMixedWarmupData(
   return absl::OkStatus();
 }
 
-absl::Status AddToWarmupData(std::vector<string>* warmup_records,
+absl::Status AddToWarmupData(std::vector<std::string>* warmup_records,
                              PredictionLog::LogTypeCase log_type,
                              int num_repeated_values) {
   PredictionLog prediction_log;
@@ -159,17 +160,17 @@ absl::Status AddToWarmupData(std::vector<string>* warmup_records,
 }
 
 // Creates a test SignatureDef with the given parameters
-SignatureDef CreateSignatureDef(const string& method_name,
-                                const std::vector<string>& input_names,
-                                const std::vector<string>& output_names) {
+SignatureDef CreateSignatureDef(const std::string& method_name,
+                                const std::vector<std::string>& input_names,
+                                const std::vector<std::string>& output_names) {
   SignatureDef signature_def;
   signature_def.set_method_name(method_name);
-  for (const string& input_name : input_names) {
+  for (const std::string& input_name : input_names) {
     TensorInfo input;
     input.set_name(input_name);
     (*signature_def.mutable_inputs())[input_name] = input;
   }
-  for (const string& output_name : output_names) {
+  for (const std::string& output_name : output_names) {
     TensorInfo output;
     output.set_name(output_name);
     (*signature_def.mutable_outputs())[output_name] = output;

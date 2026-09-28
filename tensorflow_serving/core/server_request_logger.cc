@@ -53,9 +53,9 @@ absl::Status ServerRequestLogger::FindOrCreateLogger(
     const LoggingConfig& config,
     StringToUniqueRequestLoggerMap* new_config_to_logger_map,
     std::shared_ptr<RequestLogger>* result) const {
-  string serialized_config;
+  std::string serialized_config;
   if (!SerializeToStringDeterministic(config, &serialized_config)) {
-    return errors::InvalidArgument("Cannot serialize config.");
+    return absl::InvalidArgumentError("Cannot serialize config.");
   }
 
   auto find_new_it = new_config_to_logger_map->find(serialized_config);
@@ -84,7 +84,7 @@ absl::Status ServerRequestLogger::FindOrCreateLogger(
 }
 
 absl::StatusOr<UpdateRequest> ServerRequestLogger::CreateUpdateRequestLocked(
-    const std::map<string, std::vector<LoggingConfig>>& logging_config_map)
+    const std::map<std::string, std::vector<LoggingConfig>>& logging_config_map)
     const {
   if (!logging_config_map.empty() && !request_logger_creator_) {
     return absl::InvalidArgumentError("No request-logger-creator provided.");
@@ -111,9 +111,9 @@ absl::StatusOr<UpdateRequest> ServerRequestLogger::CreateUpdateRequestLocked(
 }
 
 absl::StatusOr<UpdateRequest> ServerRequestLogger::CreateUpdateRequest(
-    const std::map<string, std::vector<LoggingConfig>>& logging_config_map)
+    const std::map<std::string, std::vector<LoggingConfig>>& logging_config_map)
     const {
-  absl::MutexLock l(&update_mu_);
+  absl::MutexLock l(update_mu_);
   return CreateUpdateRequestLocked(logging_config_map);
 }
 
@@ -123,13 +123,14 @@ void ServerRequestLogger::ApplyUpdateRequestLocked(UpdateRequest& req) {
 }
 
 void ServerRequestLogger::ApplyUpdateRequest(UpdateRequest& req) {
-  absl::MutexLock l(&update_mu_);
+  absl::MutexLock l(update_mu_);
   ApplyUpdateRequestLocked(req);
 }
 
 absl::Status ServerRequestLogger::Update(
-    const std::map<string, std::vector<LoggingConfig>>& logging_config_map) {
-  absl::MutexLock l(&update_mu_);
+    const std::map<std::string, std::vector<LoggingConfig>>&
+        logging_config_map) {
+  absl::MutexLock l(update_mu_);
 
   absl::StatusOr<UpdateRequest> req =
       CreateUpdateRequestLocked(logging_config_map);
@@ -157,7 +158,7 @@ absl::Status ServerRequestLogger::Log(const google::protobuf::Message& request,
 void ServerRequestLogger::InvokeLoggerForModel(
     const LogMetadata& log_metadata,
     std::function<void(const std::shared_ptr<RequestLogger>&)> fn) {
-  const string& model_name = log_metadata.model_spec().name();
+  const std::string& model_name = log_metadata.model_spec().name();
   auto model_to_loggers_map = model_to_loggers_map_.get();
   if (!model_to_loggers_map || model_to_loggers_map->empty()) {
     VLOG(2) << "Request loggers map is empty.";

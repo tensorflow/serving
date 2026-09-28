@@ -26,20 +26,20 @@ namespace tensorflow {
 namespace serving {
 namespace test_util {
 
-string TensorflowTestSrcDirPath(const string& relative_path) {
-  const string base_path = tensorflow::io::JoinPath(  //
-      getenv("TEST_SRCDIR"),                              //
+std::string TensorflowTestSrcDirPath(const std::string& relative_path) {
+  const std::string base_path = tensorflow::io::JoinPath(  //
+      getenv("TEST_SRCDIR"),                                   //
       "tf_serving/external/org_tensorflow/tensorflow/");
   return tensorflow::io::JoinPath(base_path, relative_path);
 }
 
-string TestSrcDirPath(const string& relative_path) {
-  const string base_path = tensorflow::io::JoinPath(
+std::string TestSrcDirPath(const std::string& relative_path) {
+  const std::string base_path = tensorflow::io::JoinPath(
       getenv("TEST_SRCDIR"), "tf_serving/tensorflow_serving");
   return tensorflow::io::JoinPath(base_path, relative_path);
 }
 
-ProtoStringMatcher::ProtoStringMatcher(const string& expected)
+ProtoStringMatcher::ProtoStringMatcher(const std::string& expected)
     : expected_(expected) {}
 ProtoStringMatcher::ProtoStringMatcher(const google::protobuf::Message& expected)
     : expected_([&]() -> std::string {

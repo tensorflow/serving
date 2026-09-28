@@ -66,23 +66,23 @@ class FakeSession : public tensorflow::Session {
       : expected_timeout_(expected_timeout) {}
   ~FakeSession() override = default;
   absl::Status Create(const GraphDef& graph) override {
-    return errors::Unimplemented("not available in fake");
+    return absl::UnimplementedError("not available in fake");
   }
   absl::Status Extend(const GraphDef& graph) override {
-    return errors::Unimplemented("not available in fake");
+    return absl::UnimplementedError("not available in fake");
   }
 
   absl::Status Close() override {
-    return errors::Unimplemented("not available in fake");
+    return absl::UnimplementedError("not available in fake");
   }
 
   absl::Status ListDevices(std::vector<DeviceAttributes>* response) override {
-    return errors::Unimplemented("not available in fake");
+    return absl::UnimplementedError("not available in fake");
   }
 
-  absl::Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
-                   const std::vector<string>& output_names,
-                   const std::vector<string>& target_nodes,
+  absl::Status Run(const std::vector<std::pair<std::string, Tensor>>& inputs,
+                   const std::vector<std::string>& output_names,
+                   const std::vector<std::string>& target_nodes,
                    std::vector<Tensor>* outputs) override {
     if (expected_timeout_) {
       LOG(FATAL) << "Run() without RunOptions not expected to be called";
@@ -93,9 +93,9 @@ class FakeSession : public tensorflow::Session {
   }
 
   absl::Status Run(const RunOptions& run_options,
-                   const std::vector<std::pair<string, Tensor>>& inputs,
-                   const std::vector<string>& output_names,
-                   const std::vector<string>& target_nodes,
+                   const std::vector<std::pair<std::string, Tensor>>& inputs,
+                   const std::vector<std::string>& output_names,
+                   const std::vector<std::string>& target_nodes,
                    std::vector<Tensor>* outputs,
                    RunMetadata* run_metadata) override {
     return Run(run_options, inputs, output_names, target_nodes, outputs,
@@ -104,16 +104,16 @@ class FakeSession : public tensorflow::Session {
 
   absl::Status Run(
       const RunOptions& run_options,
-      const std::vector<std::pair<string, Tensor>>& inputs,
-      const std::vector<string>& output_names,
-      const std::vector<string>& target_nodes, std::vector<Tensor>* outputs,
-      RunMetadata* run_metadata,
+      const std::vector<std::pair<std::string, Tensor>>& inputs,
+      const std::vector<std::string>& output_names,
+      const std::vector<std::string>& target_nodes,
+      std::vector<Tensor>* outputs, RunMetadata* run_metadata,
       const thread::ThreadPoolOptions& thread_pool_options) override {
     if (expected_timeout_) {
       CHECK_EQ(*expected_timeout_, run_options.timeout_in_ms());
     }
     if (inputs.size() != 1 || inputs[0].first != kInputTensor) {
-      return errors::Internal("Expected one input Tensor.");
+      return absl::InternalError("Expected one input Tensor.");
     }
     const Tensor& input = inputs[0].second;
     std::vector<Example> examples;
@@ -133,7 +133,7 @@ class FakeSession : public tensorflow::Session {
     for (int i = 0; i < batch_size; ++i) {
       Example example;
       if (!example.ParseFromArray(flat_input(i).data(), flat_input(i).size())) {
-        return errors::Internal("failed to parse example");
+        return absl::InternalError("failed to parse example");
       }
       examples->push_back(example);
     }
@@ -142,7 +142,7 @@ class FakeSession : public tensorflow::Session {
 
   // Gets the Feature from an Example with the given name.  Returns empty
   // Feature if the name does not exist.
-  static Feature GetFeature(const Example& example, const string& name) {
+  static Feature GetFeature(const Example& example, const std::string& name) {
     const auto it = example.features().feature().find(name);
     if (it != example.features().feature().end()) {
       return it->second;
@@ -154,10 +154,10 @@ class FakeSession : public tensorflow::Session {
   // Requires each Example have an bytes feature called "class" which is of the
   // same non-zero length.
   static absl::Status GetOutputTensor(const std::vector<Example>& examples,
-                                      const string& output_tensor_name,
+                                      const std::string& output_tensor_name,
                                       Tensor* tensor) {
     if (examples.empty()) {
-      return errors::Internal("empty example list");
+      return absl::InternalError("empty example list");
     }
     const int batch_size = examples.size();
     if (output_tensor_name == kImproperlySizedOutputTensor) {
@@ -176,7 +176,8 @@ class FakeSession : public tensorflow::Session {
     for (int i = 0; i < batch_size; ++i) {
       const Feature feature = GetFeature(examples[i], kOutputFeature);
       if (feature.float_list().value_size() != 1) {
-        return errors::Internal("incorrect number of values in output feature");
+        return absl::InternalError(
+            "incorrect number of values in output feature");
       }
       tensor->flat<float>()(i) = feature.float_list().value(0) + offset;
     }
@@ -252,12 +253,13 @@ class RegressorTest : public ::testing::TestWithParam<bool> {
   // If is_regression is false, will add a classification signature, which is
   // invalid in classification requests.
   void AddNamedSignatureToSavedModelBundle(
-      const string& input_tensor_name, const string& output_scores_tensor_name,
-      const string& signature_name, const bool is_regression,
+      const std::string& input_tensor_name,
+      const std::string& output_scores_tensor_name,
+      const std::string& signature_name, const bool is_regression,
       tensorflow::MetaGraphDef* meta_graph_def) {
     auto* signature_defs = meta_graph_def->mutable_signature_def();
     SignatureDef sig_def;
-    string method_name;
+    std::string method_name;
     if (is_regression) {
       TensorInfo input_tensor_info;
       input_tensor_info.set_name(input_tensor_name);
@@ -469,7 +471,7 @@ TEST_P(RegressorTest, RunsFails) {
   saved_model_bundle_->session.reset(mock);
   EXPECT_CALL(*mock, Run(_, _, _, _, _, _, _))
       .WillRepeatedly(
-          ::testing::Return(errors::Internal("Run totally failed")));
+          ::testing::Return(absl::InternalError("Run totally failed")));
   TF_ASSERT_OK(Create());
   *request_.mutable_input()->mutable_example_list()->mutable_examples()->Add() =
       example_with_output(2.0);

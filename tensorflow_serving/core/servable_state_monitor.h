@@ -160,16 +160,16 @@ class ServableStateMonitor {
   /// WaitUntilServablesReachStateWithTimeout and WaitUntilServablesReachState
   /// perform the same function, but the former has a timeout while the latter
   /// waits indefinitely.
-  bool WaitUntilServablesReachStateWithTimeout(
+  TF_MUST_USE_RESULT bool WaitUntilServablesReachStateWithTimeout(
       const std::vector<ServableRequest>& servables,
       ServableState::ManagerState goal_state, absl::Duration timeout,
       std::map<ServableId, ServableState::ManagerState>* states_reached =
-          nullptr) TF_LOCKS_EXCLUDED(mu_) TF_MUST_USE_RESULT;
-  bool WaitUntilServablesReachState(
+          nullptr) TF_LOCKS_EXCLUDED(mu_);
+  TF_MUST_USE_RESULT bool WaitUntilServablesReachState(
       const std::vector<ServableRequest>& servables,
       ServableState::ManagerState goal_state,
       std::map<ServableId, ServableState::ManagerState>* states_reached =
-          nullptr) TF_MUST_USE_RESULT;
+          nullptr);
 
   // Subscribes to all servable state changes hitting this monitor. This is
   // called after the monitor updates its own state based on the event.

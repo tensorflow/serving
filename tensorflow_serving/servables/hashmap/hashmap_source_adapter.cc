@@ -32,11 +32,11 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-using Hashmap = std::unordered_map<string, string>;
+using Hashmap = std::unordered_map<std::string, std::string>;
 
 // Populates a hashmap from a file located at 'path', in format 'format'.
 absl::Status LoadHashmapFromFile(
-    const string& path, const HashmapSourceAdapterConfig::Format& format,
+    const std::string& path, const HashmapSourceAdapterConfig::Format& format,
     std::unique_ptr<Hashmap>* hashmap) {
   hashmap->reset(new Hashmap);
   switch (format) {
@@ -45,21 +45,21 @@ absl::Status LoadHashmapFromFile(
       TF_RETURN_IF_ERROR(Env::Default()->NewRandomAccessFile(path, &file));
       const size_t kBufferSizeBytes = 262144;
       io::InputBuffer in(file.get(), kBufferSizeBytes);
-      string line;
+      std::string line;
       while (in.ReadLine(&line).ok()) {
-        std::vector<string> cols = str_util::Split(line, ',');
+        std::vector<std::string> cols = str_util::Split(line, ',');
         if (cols.size() != 2) {
-          return errors::InvalidArgument("Unexpected format.");
+          return absl::InvalidArgumentError("Unexpected format.");
         }
-        const string& key = cols[0];
-        const string& value = cols[1];
+        const std::string& key = cols[0];
+        const std::string& value = cols[1];
         (*hashmap)->insert({key, value});
       }
       break;
     }
     default:
-      return errors::InvalidArgument("Unrecognized format enum value: ",
-                                     format);
+      return absl::InvalidArgumentError(
+          absl::StrCat("Unrecognized format enum value: ", format));
   }
   return absl::Status();
 }

@@ -58,9 +58,9 @@ class MockSession : public Session {
   MOCK_METHOD(absl::Status, Close, (), (override));
 
   absl::Status Run(const RunOptions& run_options,
-                   const std::vector<std::pair<string, Tensor>>& inputs,
-                   const std::vector<string>& output_tensor_names,
-                   const std::vector<string>& target_node_names,
+                   const std::vector<std::pair<std::string, Tensor>>& inputs,
+                   const std::vector<std::string>& output_tensor_names,
+                   const std::vector<std::string>& target_node_names,
                    std::vector<Tensor>* outputs,
                    RunMetadata* run_metadata) override {
     // half plus two: output should be input / 2 + 2.
@@ -77,7 +77,7 @@ class MockSession : public Session {
                    const std::vector<std::string>&,
                    const std::vector<std::string>&,
                    std::vector<Tensor>* outputs) override {
-    return errors::Unimplemented(
+    return absl::UnimplementedError(
         "Run with threadpool is not supported for this session.");
   }
 
@@ -92,7 +92,7 @@ class BundleFactoryUtilTest : public ::testing::Test {
   virtual ~BundleFactoryUtilTest() = default;
 
   // Test data path, to be initialized to point at an export of half-plus-two.
-  const string export_dir_;
+  const std::string export_dir_;
 };
 
 TEST_F(BundleFactoryUtilTest, GetSessionOptions) {
@@ -183,7 +183,7 @@ TEST_F(BundleFactoryUtilTest, GetPerModelBatchingParams) {
     allowed_batch_sizes: 16
     max_batch_size { value: 16 })");
 
-  const string per_model_params_pbtxt(R"(
+  const std::string per_model_params_pbtxt(R"(
     allowed_batch_sizes: 8
     allowed_batch_sizes: 16
     allowed_batch_sizes: 128

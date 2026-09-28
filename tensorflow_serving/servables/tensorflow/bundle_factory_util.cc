@@ -68,7 +68,7 @@ absl::Status GetPerModelBatchingParams(
     bool per_model_configured, absl::optional<BatchingParameters>* params) {
   if (per_model_configured) {
     if (BatchingParamsFound(path)) {
-      *params = absl::make_optional(BatchingParameters());
+      *params = std::make_optional(BatchingParameters());
       TF_RETURN_IF_ERROR(ParseProtoTextFile(
           io::JoinPath(path, kBatchingParamsFilename), &params->value()));
       VLOG(1) << "Wrapping session to perform batch processing "
@@ -76,7 +76,7 @@ absl::Status GetPerModelBatchingParams(
               << params->value().DebugString();
     }
   } else {
-    *params = absl::make_optional(common_params);
+    *params = std::make_optional(common_params);
     VLOG(1) << "Wrapping session to perform batch processing "
             << "using session config batching params: "
             << params->value().DebugString();

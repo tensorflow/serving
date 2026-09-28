@@ -52,3 +52,14 @@ tensorflow_http_archive = repository_rule(
         "patch_cmds": attr.string_list(),
     },
 )
+
+def _tf_serving_vendored_impl(ctx):
+    ctx.symlink(ctx.path(ctx.attr.root).dirname.get_child(ctx.attr.path), ".")
+
+tf_serving_vendored = repository_rule(
+    implementation = _tf_serving_vendored_impl,
+    attrs = {
+        "root": attr.label(mandatory = True),
+        "path": attr.string(mandatory = True),
+    },
+)

@@ -95,7 +95,7 @@ TEST_F(ServableStateMonitorTest, AddingStates) {
   // New version of existing servable.
   const ServableState state_1 = {ServableId{"foo", 43},
                                  ServableState::ManagerState::kAvailable,
-                                 errors::Unknown("error")};
+                                 absl::UnknownError("error")};
   env_->AdvanceByMicroseconds(2);
   const ServableStateAndTime state_1_and_time = {state_1, 3};
   bus_->Publish(state_1);
@@ -161,7 +161,7 @@ TEST_F(ServableStateMonitorTest, UpdatingStates) {
   bus_->Publish(state_0);
   const ServableState state_1 = {ServableId{"foo", 43},
                                  ServableState::ManagerState::kAvailable,
-                                 errors::Unknown("error")};
+                                 absl::UnknownError("error")};
   const ServableStateAndTime state_1_and_time = {state_1, 4};
   bus_->Publish(state_1);
   const ServableState state_2 = {ServableId{"bar", 7},
@@ -435,8 +435,9 @@ TEST_F(ServableStateMonitorTest, NotifyWhenServablesReachStateSpecificError) {
   servables.push_back(ServableRequest::FromId(specific_error_state_id));
 
   using ManagerState = ServableState::ManagerState;
-  const ServableState specific_error_state = {
-      specific_error_state_id, ManagerState::kEnd, errors::Internal("error")};
+  const ServableState specific_error_state = {specific_error_state_id,
+                                              ManagerState::kEnd,
+                                              absl::InternalError("error")};
 
   absl::Notification notified;
   monitor_->NotifyWhenServablesReachState(
@@ -489,7 +490,7 @@ TEST_F(ServableStateMonitorTest, NotifyWhenServablesReachStateLatestError) {
   using ManagerState = ServableState::ManagerState;
   const ServableState servable_stream_error_state = {
       servable_stream_error_state_id, ManagerState::kEnd,
-      errors::Internal("error")};
+      absl::InternalError("error")};
 
   absl::Notification notified;
   monitor_->NotifyWhenServablesReachState(
@@ -535,8 +536,9 @@ TEST_F(ServableStateMonitorTest,
 
   const ServableState specific_goal_state = {
       specific_goal_state_id, ManagerState::kAvailable, absl::OkStatus()};
-  const ServableState specific_error_state = {
-      specific_error_state_id, ManagerState::kEnd, errors::Internal("error")};
+  const ServableState specific_error_state = {specific_error_state_id,
+                                              ManagerState::kEnd,
+                                              absl::InternalError("error")};
   const ServableState servable_stream_state = {
       servable_stream_id, ManagerState::kAvailable, absl::OkStatus()};
 
@@ -592,8 +594,9 @@ TEST_F(ServableStateMonitorTest,
 
   const ServableState specific_goal_state = {
       specific_goal_state_id, ManagerState::kAvailable, absl::OkStatus()};
-  const ServableState specific_error_state = {
-      specific_error_state_id, ManagerState::kEnd, errors::Internal("error")};
+  const ServableState specific_error_state = {specific_error_state_id,
+                                              ManagerState::kEnd,
+                                              absl::InternalError("error")};
   const ServableState servable_stream_state = {
       servable_stream_id, ManagerState::kAvailable, absl::OkStatus()};
 

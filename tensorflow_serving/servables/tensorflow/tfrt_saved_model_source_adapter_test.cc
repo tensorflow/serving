@@ -112,7 +112,7 @@ class TfrtSavedModelSourceAdapterTest
                 EqualsProto(expected_post_load_resource_estimate));
 
     tfrt::SavedModel& saved_model =
-        down_cast<TfrtSavedModelServable*>(loader->servable().get<Servable>())
+        static_cast<TfrtSavedModelServable*>(loader->servable().get<Servable>())
             ->saved_model();
     TestSingleRequest(&saved_model);
 

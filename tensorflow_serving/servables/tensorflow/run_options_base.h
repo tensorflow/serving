@@ -15,6 +15,9 @@ limitations under the License.
 
 #include <stdint.h>
 
+#include <functional>
+#include <optional>
+
 #include "absl/time/time.h"
 
 namespace tensorflow {
@@ -41,6 +44,18 @@ struct RunOptionsBase {
   // specified graph is not compiled, request execution will return an error.
   // Supported only in TFRT servable. Ignored in non-TFRT servable.
   bool disable_host_compilation = false;
+
+  // RPC deadline for lazy task cancellation in the batch scheduler.
+  // Independent of `deadline` which is gated by `enforce_session_run_timeout`.
+  // This deadline is only used for task-level deadline enforcement in the batch
+  // scheduler.
+  //
+  // TODO(b/510447914): Consider reuse `deadline` for this after the
+  // investigation.
+  std::optional<absl::Time> rpc_deadline_for_batching_task_cancellation;
+
+  // Callback to check if the request RPC has been cancelled by the client.
+  std::function<bool()> is_rpc_cancelled_callback;
 };
 
 }  // namespace servables

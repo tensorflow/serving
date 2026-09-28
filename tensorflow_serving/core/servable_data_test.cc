@@ -28,7 +28,7 @@ namespace {
 
 TEST(ServableDataTest, NoError) {
   ServableId id = {"name", 42};
-  ServableData<string> data(id, "yo");
+  ServableData<std::string> data(id, "yo");
   EXPECT_EQ(id, data.id());
   TF_EXPECT_OK(data.status());
   EXPECT_EQ("yo", data.DataOrDie());
@@ -46,9 +46,9 @@ TEST(ServableDataTest, StaticCreateNoError) {
 
 TEST(ServableDataTest, Error) {
   ServableId id = {"name", 42};
-  ServableData<string> data(id, errors::Unknown("d'oh"));
+  ServableData<std::string> data(id, absl::UnknownError("d'oh"));
   EXPECT_EQ(id, data.id());
-  EXPECT_EQ(errors::Unknown("d'oh"), data.status());
+  EXPECT_EQ(absl::UnknownError("d'oh"), data.status());
 }
 
 }  // namespace

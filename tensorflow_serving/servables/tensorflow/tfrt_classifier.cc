@@ -39,20 +39,20 @@ namespace serving {
 absl::Status PreProcessClassification(
     const tfrt::FunctionMetadata& function_metadata) {
   if (function_metadata.GetInputNames().size() != 1) {
-    return errors::InvalidArgument(absl::StrCat("Expected one input Tensor."));
+    return absl::InvalidArgumentError("Expected one input Tensor.");
   }
   if (function_metadata.GetOutputNames().size() != 1 &&
       function_metadata.GetOutputNames().size() != 2) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(
         absl::StrCat("Expected one or two output Tensors, found ",
                      function_metadata.GetOutputNames().size()));
   }
 
   if (function_metadata.GetInputNames()[0] != kClassifyInputs) {
-    return errors::FailedPrecondition(
+    return absl::FailedPreconditionError(absl::StrCat(
         "No classification inputs found in function's metadata, only "
         "contains: ",
-        function_metadata.GetInputNames()[0]);
+        function_metadata.GetInputNames()[0]));
   }
 
   bool find_output_classes = false;
@@ -69,7 +69,7 @@ absl::Status PreProcessClassification(
        !find_output_scores) ||
       (function_metadata.GetOutputNames().size() == 2 &&
        !(find_output_classes && find_output_scores))) {
-    return errors::FailedPrecondition(strings::StrCat(
+    return absl::FailedPreconditionError(strings::StrCat(
         "Expected classification function outputs to contain", "\"",
         kClassifyOutputClasses, "\" and/or \"", kClassifyOutputScores, "\". "));
   }
@@ -78,10 +78,10 @@ absl::Status PreProcessClassification(
 }
 
 absl::Status PostProcessClassificationResult(
-    int num_examples, const std::vector<string>& output_names,
+    int num_examples, const std::vector<std::string>& output_names,
     const std::vector<Tensor>& output_tensors, ClassificationResult* result) {
   if (output_tensors.size() != output_names.size()) {
-    return errors::InvalidArgument(absl::StrCat(
+    return absl::InvalidArgumentError(absl::StrCat(
         "Unexpected output tensors size. Expected ", output_names.size(),
         " output tensor(s).  Got: ", output_tensors.size()));
   }
@@ -99,37 +99,37 @@ absl::Status PostProcessClassificationResult(
   // Validate classes output Tensor.
   if (classes) {
     if (classes->dims() != 2) {
-      return errors::InvalidArgument(
+      return absl::InvalidArgumentError(absl::StrCat(
           "Expected Tensor shape: [batch_size num_classes] but got ",
-          classes->shape().DebugString());
+          classes->shape().DebugString()));
     }
     if (classes->dtype() != DT_STRING) {
-      return errors::InvalidArgument(
-          "Expected classes Tensor of DT_STRING. Got: ",
-          DataType_Name(classes->dtype()));
+      return absl::InvalidArgumentError(
+          absl::StrCat("Expected classes Tensor of DT_STRING. Got: ",
+                       DataType_Name(classes->dtype())));
     }
     if (classes->dim_size(0) != num_examples) {
-      return errors::InvalidArgument("Expected classes output batch size of ",
-                                     num_examples,
-                                     ". Got: ", classes->dim_size(0));
+      return absl::InvalidArgumentError(
+          absl::StrCat("Expected classes output batch size of ", num_examples,
+                       ". Got: ", classes->dim_size(0)));
     }
   }
   // Validate scores output Tensor.
   if (scores) {
     if (scores->dims() != 2) {
-      return errors::InvalidArgument(
+      return absl::InvalidArgumentError(absl::StrCat(
           "Expected Tensor shape: [batch_size num_classes] but got ",
-          scores->shape().DebugString());
+          scores->shape().DebugString()));
     }
     if (scores->dtype() != DT_FLOAT) {
-      return errors::InvalidArgument(
-          "Expected scores Tensor of DT_FLOAT. Got: ",
-          DataType_Name(scores->dtype()));
+      return absl::InvalidArgumentError(
+          absl::StrCat("Expected scores Tensor of DT_FLOAT. Got: ",
+                       DataType_Name(scores->dtype())));
     }
     if (scores->dim_size(0) != num_examples) {
-      return errors::InvalidArgument("Expected scores output batch size of ",
-                                     num_examples,
-                                     ". Got: ", scores->dim_size(0));
+      return absl::InvalidArgumentError(
+          absl::StrCat("Expected scores output batch size of ", num_examples,
+                       ". Got: ", scores->dim_size(0)));
     }
   }
   // Extract the number of classes from either the class or score output
@@ -138,9 +138,9 @@ absl::Status PostProcessClassificationResult(
   if (classes && scores) {
     // If we have both Tensors they should agree in the second dimmension.
     if (classes->dim_size(1) != scores->dim_size(1)) {
-      return errors::InvalidArgument(
+      return absl::InvalidArgumentError(absl::StrCat(
           "Tensors class and score should match in dim_size(1). Got ",
-          classes->dim_size(1), " vs. ", scores->dim_size(1));
+          classes->dim_size(1), " vs. ", scores->dim_size(1)));
     }
     num_classes = classes->dim_size(1);
   } else if (classes) {
@@ -171,14 +171,15 @@ absl::Status RunClassify(const tfrt::SavedModel::RunOptions& run_options,
                          tfrt::SavedModel* saved_model,
                          const ClassificationRequest& request,
                          ClassificationResponse* response) {
-  const string function_name = request.model_spec().signature_name().empty()
-                                   ? kDefaultServingSignatureDefKey
-                                   : request.model_spec().signature_name();
+  const std::string function_name =
+      request.model_spec().signature_name().empty()
+          ? kDefaultServingSignatureDefKey
+          : request.model_spec().signature_name();
 
   const auto function_metadata =
       saved_model->GetFunctionMetadata(function_name);
   if (!function_metadata.has_value()) {
-    return errors::FailedPrecondition(
+    return absl::FailedPreconditionError(
         absl::StrCat("Function \"", function_name, "\" not found."));
   }
 

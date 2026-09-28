@@ -31,7 +31,7 @@ namespace {
 
 const char mlmd_streamz[] = "/tensorflow/serving/mlmd_map";
 
-bool GetMlmdUuid(const string& model_name, const string& version,
+bool GetMlmdUuid(const std::string& model_name, const std::string& version,
                  std::string* mlmd_uuid) {
   auto* collection_registry = tsl::monitoring::CollectionRegistry::Default();
   tsl::monitoring::CollectionRegistry::CollectMetricsOptions options;
@@ -58,7 +58,7 @@ bool GetMlmdUuid(const string& model_name, const string& version,
 TEST(MachineLearningMetaDataTest, BasicTest_MLMD_missing) {
   std::string mlmd_uuid;
   ASSERT_FALSE(GetMlmdUuid("missing_model", "9696", &mlmd_uuid));
-  string test_data_path = test_util::GetTestSavedModelPath();
+  std::string test_data_path = test_util::GetTestSavedModelPath();
   MaybePublishMLMDStreamz(test_data_path, "missing_model", 9696);
   EXPECT_FALSE(GetMlmdUuid("missing_model", "9696", &mlmd_uuid));
 }
@@ -66,7 +66,7 @@ TEST(MachineLearningMetaDataTest, BasicTest_MLMD_missing) {
 TEST(MachineLearningMetaDataTest, BasicTest_MLMD_present) {
   std::string mlmd_uuid;
   ASSERT_FALSE(GetMlmdUuid("test_model", "9696", &mlmd_uuid));
-  const string test_data_path = test_util::TestSrcDirPath(
+  const std::string test_data_path = test_util::TestSrcDirPath(
       absl::StrCat("/servables/tensorflow/testdata/",
                    "saved_model_half_plus_two_mlmd/00000123"));
   MaybePublishMLMDStreamz(test_data_path, "test_model", 9696);

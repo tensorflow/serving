@@ -62,20 +62,20 @@ class StringLoaderFactory : public CachingManager::LoaderFactory {
       num_loaders_dispensed_++;
     }
 
-    auto servable_creator = [&](std::unique_ptr<string>* servable) {
-      servable->reset(new string);
+    auto servable_creator = [&](std::unique_ptr<std::string>* servable) {
+      servable->reset(new std::string);
       **servable = absl::StrCat(id.name, "-", id.version);
       return absl::OkStatus();
     };
     std::unique_ptr<Loader> loader;
-    loader.reset(new SimpleLoader<string>(
-        servable_creator, SimpleLoader<string>::EstimateNoResources()));
+    loader.reset(new SimpleLoader<std::string>(
+        servable_creator, SimpleLoader<std::string>::EstimateNoResources()));
     return ServableData<std::unique_ptr<Loader>>(id, std::move(loader));
   }
 
   // Returns the earliest/latest version corresponding to the servable name.
   int64_t GetServableVersion(
-      const string& request_name,
+      const std::string& request_name,
       ServableRequest::AutoVersionPolicy policy) const override {
     mutex_lock l(mu_);
     switch (policy) {
@@ -129,17 +129,17 @@ class ErrorLoaderFactory : public CachingManager::LoaderFactory {
 
   ServableData<std::unique_ptr<Loader>> CreateLoader(
       const ServableId& id) override {
-    auto servable_creator = [&](std::unique_ptr<string>* servable) {
-      return errors::Unknown("error loader-factory");
+    auto servable_creator = [&](std::unique_ptr<std::string>* servable) {
+      return absl::UnknownError("error loader-factory");
     };
     std::unique_ptr<Loader> loader;
-    loader.reset(new SimpleLoader<string>(
-        servable_creator, SimpleLoader<string>::EstimateNoResources()));
+    loader.reset(new SimpleLoader<std::string>(
+        servable_creator, SimpleLoader<std::string>::EstimateNoResources()));
     return ServableData<std::unique_ptr<Loader>>(id, std::move(loader));
   }
 
   int64_t GetServableVersion(
-      const string& request_name,
+      const std::string& request_name,
       ServableRequest::AutoVersionPolicy policy) const override {
     // A simple policy interpretation that always returns version 42.
     return 42;
@@ -228,7 +228,7 @@ INSTANTIATE_TEST_CASE_P(
 TEST_P(CachingManagerTest, ServableHandleSingleRequest) {
   // Single request for a servable handle.
   const ServableId id = {kServableName, 30};
-  ServableHandle<string> handle;
+  ServableHandle<std::string> handle;
   TF_ASSERT_OK(
       manager_->GetServableHandle(ServableRequest::FromId(id), &handle));
   EXPECT_EQ("kServableName-30", *handle);
@@ -241,7 +241,7 @@ TEST_P(CachingManagerTest, ServableHandleMultipleRequests) {
   {
     // Request with servable name and version.
     const ServableId id = {kServableName, 30};
-    ServableHandle<string> handle;
+    ServableHandle<std::string> handle;
     TF_ASSERT_OK(
         manager_->GetServableHandle(ServableRequest::FromId(id), &handle));
     EXPECT_EQ("kServableName-30", *handle);
@@ -250,7 +250,7 @@ TEST_P(CachingManagerTest, ServableHandleMultipleRequests) {
   {
     // Request with the same servable name and a higher version.
     const ServableId id = {kServableName, 31};
-    ServableHandle<string> handle;
+    ServableHandle<std::string> handle;
     TF_ASSERT_OK(
         manager_->GetServableHandle(ServableRequest::FromId(id), &handle));
     EXPECT_EQ("kServableName-31", *handle);
@@ -262,7 +262,7 @@ TEST_P(CachingManagerTest, ServableHandleMultipleRequests) {
 // be newly managed and loaded by the manager.
 TEST_P(CachingManagerTest, ServableHandleSingleRequestEarliest) {
   string_loader_factory_->set_earliest_version(30);
-  ServableHandle<string> handle;
+  ServableHandle<std::string> handle;
   TF_ASSERT_OK(manager_->GetServableHandle(
       ServableRequest::Earliest({kServableName}), &handle));
   EXPECT_EQ("kServableName-30", *handle);
@@ -274,7 +274,7 @@ TEST_P(CachingManagerTest, ServableHandleSingleRequestEarliest) {
 // be newly managed and loaded by the manager.
 TEST_P(CachingManagerTest, ServableHandleSingleRequestLatest) {
   string_loader_factory_->set_latest_version(30);
-  ServableHandle<string> handle;
+  ServableHandle<std::string> handle;
   TF_ASSERT_OK(manager_->GetServableHandle(
       ServableRequest::Latest({kServableName}), &handle));
   EXPECT_EQ("kServableName-30", *handle);
@@ -288,7 +288,7 @@ TEST_P(CachingManagerTest, ServableHandleMultipleRequestsEarliest) {
   const ServableId id = {kServableName, 42};
   {
     // Make an explicit request for version 42.
-    ServableHandle<string> handle;
+    ServableHandle<std::string> handle;
     TF_ASSERT_OK(
         manager_->GetServableHandle(ServableRequest::FromId(id), &handle));
     EXPECT_EQ("kServableName-42", *handle);
@@ -301,7 +301,7 @@ TEST_P(CachingManagerTest, ServableHandleMultipleRequestsEarliest) {
   {
     // Now request for the earliest. The returned handle should have an id
     // corresponding to version 42.
-    ServableHandle<string> handle;
+    ServableHandle<std::string> handle;
     TF_ASSERT_OK(manager_->GetServableHandle(
         ServableRequest::Earliest({kServableName}), &handle));
     EXPECT_EQ("kServableName-42", *handle);
@@ -318,7 +318,7 @@ TEST_P(CachingManagerTest, ServableHandleMultipleRequestsLatest) {
   const ServableId id = {kServableName, 42};
   {
     // Make an explicit request for version 42.
-    ServableHandle<string> handle;
+    ServableHandle<std::string> handle;
     TF_ASSERT_OK(
         manager_->GetServableHandle(ServableRequest::FromId(id), &handle));
     EXPECT_EQ("kServableName-42", *handle);
@@ -331,7 +331,7 @@ TEST_P(CachingManagerTest, ServableHandleMultipleRequestsLatest) {
   {
     // Now request for the latest. The returned handle should have an id
     // corresponding to version 42.
-    ServableHandle<string> handle;
+    ServableHandle<std::string> handle;
     TF_ASSERT_OK(manager_->GetServableHandle(
         ServableRequest::Latest({kServableName}), &handle));
     EXPECT_EQ("kServableName-42", *handle);
@@ -356,7 +356,7 @@ TEST_P(CachingManagerTest, ServableHandleError) {
   // Create the manager to use the error loader-factory that produces errors.
   std::unique_ptr<CachingManager> error_manager =
       CreateManagerWithErrorLoaderFactory();
-  ServableHandle<string> handle;
+  ServableHandle<std::string> handle;
   const absl::Status status = error_manager->GetServableHandle(
       ServableRequest::FromId({kServableName, 30}), &handle);
   EXPECT_FALSE(status.ok()) << status;
@@ -366,8 +366,8 @@ TEST_P(CachingManagerTest, ServableHandleError) {
 // Get available servable handles.
 
 TEST_P(CachingManagerTest, AvailableServableHandlesNoRequests) {
-  std::map<ServableId, ServableHandle<string>> handles =
-      manager_->GetAvailableServableHandles<string>();
+  std::map<ServableId, ServableHandle<std::string>> handles =
+      manager_->GetAvailableServableHandles<std::string>();
   // Since there are no requests yet, the handles map is empty.
   EXPECT_EQ(0, handles.size());
 }
@@ -377,24 +377,24 @@ TEST_P(CachingManagerTest, AvailableServableHandlesMultipleRequests) {
   // Scoped to destruct handles at the end of it.
   {
     // Request with servable name and version.
-    ServableHandle<string> handle;
+    ServableHandle<std::string> handle;
     TF_ASSERT_OK(manager_->GetServableHandle(
         ServableRequest::FromId({kServableName, 30}), &handle));
   }
   {
     // Request with different version.
-    ServableHandle<string> handle;
+    ServableHandle<std::string> handle;
     TF_ASSERT_OK(manager_->GetServableHandle(
         ServableRequest::FromId({kServableName, 31}), &handle));
   }
   {
     // Request with a different servable name.
-    ServableHandle<string> handle;
+    ServableHandle<std::string> handle;
     TF_ASSERT_OK(manager_->GetServableHandle(
         ServableRequest::FromId({kServableName2, 32}), &handle));
   }
-  const std::map<ServableId, ServableHandle<string>> handles =
-      manager_->GetAvailableServableHandles<string>();
+  const std::map<ServableId, ServableHandle<std::string>> handles =
+      manager_->GetAvailableServableHandles<std::string>();
   std::vector<ServableId> actual_keys;
   for (const auto& it_handle : handles) {
     actual_keys.push_back(it_handle.first);
@@ -406,7 +406,7 @@ TEST_P(CachingManagerTest, AvailableServableHandlesMultipleRequests) {
 }
 
 TEST_P(CachingManagerTest, AvailableServableHandlesWrongType) {
-  ServableHandle<string> handle;
+  ServableHandle<std::string> handle;
   TF_ASSERT_OK(manager_->GetServableHandle(
       ServableRequest::FromId({kServableName, 30}), &handle));
   std::map<ServableId, ServableHandle<int>> handles =
@@ -418,12 +418,12 @@ TEST_P(CachingManagerTest, AvailableServableHandlesError) {
   // Create the manager to use the error loader-factory that produces errors.
   std::unique_ptr<CachingManager> error_manager =
       CreateManagerWithErrorLoaderFactory();
-  ServableHandle<string> handle;
+  ServableHandle<std::string> handle;
   const absl::Status status = error_manager->GetServableHandle(
       ServableRequest::FromId({kServableName, 30}), &handle);
   ASSERT_FALSE(status.ok()) << status;
-  std::map<ServableId, ServableHandle<string>> handles =
-      error_manager->GetAvailableServableHandles<string>();
+  std::map<ServableId, ServableHandle<std::string>> handles =
+      error_manager->GetAvailableServableHandles<std::string>();
   EXPECT_EQ(0, handles.size());
 }
 
@@ -433,19 +433,19 @@ TEST_P(CachingManagerTest, AvailableServableHandlesError) {
 TEST_P(CachingManagerTest, ListAvailableServableIdsMultipleRequests) {
   {
     // Request with servable name and version.
-    ServableHandle<string> handle;
+    ServableHandle<std::string> handle;
     TF_ASSERT_OK(manager_->GetServableHandle(
         ServableRequest::FromId({kServableName, 30}), &handle));
   }
   {
     // Request with a different version.
-    ServableHandle<string> handle;
+    ServableHandle<std::string> handle;
     TF_ASSERT_OK(manager_->GetServableHandle(
         ServableRequest::FromId({kServableName, 31}), &handle));
   }
   {
     // Request with a different servable name.
-    ServableHandle<string> handle;
+    ServableHandle<std::string> handle;
     TF_ASSERT_OK(manager_->GetServableHandle(
         ServableRequest::FromId({kServableName2, 32}), &handle));
   }
@@ -467,7 +467,7 @@ MATCHER_P(EqualsServableState, servable_state, servable_state.DebugString()) {
 }
 
 TEST_P(CachingManagerTest, EventBusSingleRequest) {
-  ServableHandle<string> handle;
+  ServableHandle<std::string> handle;
   const ServableId id = {kServableName, 30};
   TF_ASSERT_OK(
       manager_->GetServableHandle(ServableRequest::FromId(id), &handle));
@@ -483,7 +483,7 @@ TEST_P(CachingManagerTest, EventBusErrorHandle) {
   // Create the manager to use the error loader-factory that produces errors.
   std::unique_ptr<CachingManager> error_manager =
       CreateManagerWithErrorLoaderFactory();
-  ServableHandle<string> handle;
+  ServableHandle<std::string> handle;
   const ServableId id = {kServableName, 30};
   const absl::Status status =
       error_manager->GetServableHandle(ServableRequest::FromId(id), &handle);
@@ -491,7 +491,7 @@ TEST_P(CachingManagerTest, EventBusErrorHandle) {
   // by the loader-factory for an error.
   const ServableState expected_published_state = {
       id, ServableState::ManagerState::kEnd,
-      errors::Unknown("error loader-factory")};
+      absl::UnknownError("error loader-factory")};
   EXPECT_THAT(*servable_state_monitor_.GetState(id),
               EqualsServableState(expected_published_state));
 }
@@ -508,7 +508,7 @@ TEST_P(CachingManagerTest, ConcurrentDisjointRequests) {
                                         kNumThreads);
     for (int i = 0; i < 4; i++) {
       request_executor.Schedule([this, i, &statuses, &status_mu]() {
-        ServableHandle<string> handle;
+        ServableHandle<std::string> handle;
         const absl::Status status =
             manager_->GetServableHandle({kServableName, i + 30}, &handle);
         mutex_lock l(status_mu);
@@ -523,8 +523,8 @@ TEST_P(CachingManagerTest, ConcurrentDisjointRequests) {
   }
   // Check that the available servable handles now includes all requested
   // servables.
-  const std::map<ServableId, ServableHandle<string>> handles =
-      manager_->GetAvailableServableHandles<string>();
+  const std::map<ServableId, ServableHandle<std::string>> handles =
+      manager_->GetAvailableServableHandles<std::string>();
   std::vector<ServableId> actual_keys;
   for (const auto& it_handle : handles) {
     actual_keys.push_back(it_handle.first);
@@ -551,7 +551,7 @@ TEST_P(CachingManagerTest, ConcurrentIntersectingRequests) {
       const int version = i % 2 + 30;
       const ServableId id = {kServableName, version};
       request_executor.Schedule([this, i, id, &statuses, &status_mu]() {
-        ServableHandle<string> handle;
+        ServableHandle<std::string> handle;
         const absl::Status status =
             manager_->GetServableHandle(ServableRequest::FromId(id), &handle);
         mutex_lock l(status_mu);
@@ -566,8 +566,8 @@ TEST_P(CachingManagerTest, ConcurrentIntersectingRequests) {
   }
   // Check that the available servable handles now includes all requested
   // servables.
-  const std::map<ServableId, ServableHandle<string>> handles =
-      manager_->GetAvailableServableHandles<string>();
+  const std::map<ServableId, ServableHandle<std::string>> handles =
+      manager_->GetAvailableServableHandles<std::string>();
   std::vector<ServableId> actual_keys;
   for (const auto& it_handle : handles) {
     actual_keys.push_back(it_handle.first);
@@ -592,7 +592,8 @@ TEST(PathPrefixLoaderFactoryTest, Basic) {
   TF_ASSERT_OK(loader_data.status());
   std::unique_ptr<Loader> loader = loader_data.ConsumeDataOrDie();
   TF_ASSERT_OK(loader->Load());
-  EXPECT_EQ("prefix/servable_name/suffix", *loader->servable().get<string>());
+  EXPECT_EQ("prefix/servable_name/suffix",
+            *loader->servable().get<std::string>());
 
   EXPECT_EQ(0, factory.GetServableVersion(
                    "blah", ServableRequest::AutoVersionPolicy::kEarliest));

@@ -39,12 +39,12 @@ constexpr char kParseExampleModel[] =
     "/servables/tensorflow/testdata/parse_example_tflite/00000123/"
     "model.tflite";
 
-ABSL_ATTRIBUTE_UNUSED constexpr char kMobileNetModel[] =
+[[maybe_unused]] constexpr char kMobileNetModel[] =
     "/servables/tensorflow/testdata/mobilenet_v1_quant_tflite/00000123/"
     "model.tflite";
 
 TEST(TfLiteInterpreterPool, CreateTfLiteInterpreterPoolTest) {
-  string model_bytes;
+  std::string model_bytes;
   TF_ASSERT_OK(ReadFileToString(Env::Default(),
                                 test_util::TestSrcDirPath(kParseExampleModel),
                                 &model_bytes));
@@ -102,7 +102,7 @@ std::vector<std::string> ExtractVector(const TfLiteTensor* tflite_tensor) {
 }
 
 TEST(TfLiteInterpreterWrapper, TfLiteInterpreterWrapperTest) {
-  string model_bytes;
+  std::string model_bytes;
   TF_ASSERT_OK(ReadFileToString(Env::Default(),
                                 test_util::TestSrcDirPath(kParseExampleModel),
                                 &model_bytes));

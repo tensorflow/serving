@@ -62,7 +62,7 @@ Loader::Metadata CreateMetadata() { return {ServableId{"name", 42}}; }
 // Creates a new session based on the config and export path.
 absl::Status CreateBundleFromPath(const CreationType creation_type,
                                   const SessionBundleConfig& config,
-                                  const string& path,
+                                  const std::string& path,
                                   std::unique_ptr<SavedModelBundle>* bundle) {
   std::unique_ptr<SavedModelBundleFactory> factory;
   auto config_with_session_hook = config;
@@ -146,10 +146,10 @@ class SavedModelBundleFactoryTest
            GetParam().model_type == ModelType::kTfLiteModel;
   }
 
-  std::vector<string> GetModelFiles() {
+  std::vector<std::string> GetModelFiles() {
     switch (GetParam().model_type) {
       case ModelType::kTfModel: {
-        const string& dir = test_util::GetTestSavedModelPath();
+        const std::string& dir = test_util::GetTestSavedModelPath();
         return {
             io::JoinPath(dir, kSavedModelAssetsDirectory, "foo.txt"),
             io::JoinPath(dir, kSavedModelFilenamePb),
@@ -268,10 +268,10 @@ TEST_P(SavedModelBundleFactoryTest, PerModelBatchingParams) {
   //
   // Copy SavedModel to temp (writable) location, and add batching params.
   //
-  const string dst_dir = io::JoinPath(testing::TmpDir(), "model");
+  const std::string dst_dir = io::JoinPath(testing::TmpDir(), "model");
   test_util::CopyDirOrDie(export_dir_, dst_dir);
   // Note, timeout is set to high value to force batch formation.
-  const string& per_model_params_pbtxt(R"(
+  const std::string& per_model_params_pbtxt(R"(
     max_batch_size { value: 10 }
     batch_timeout_micros { value: 100000000 })");
   std::ofstream ofs(io::JoinPath(dst_dir, "batching_params.pbtxt"));

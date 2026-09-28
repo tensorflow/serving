@@ -46,34 +46,34 @@ namespace serving {
 absl::Status PreProcessRegression(
     const tfrt::FunctionMetadata& function_metadata) {
   if (function_metadata.GetInputNames().size() != 1) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(
         strings::StrCat("Expected one input Tensor."));
   }
   if (function_metadata.GetOutputNames().size() != 1) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(
         strings::StrCat("Expected one output Tensor."));
   }
 
   if (function_metadata.GetInputNames()[0] != kRegressInputs) {
-    return errors::FailedPrecondition(
+    return absl::FailedPreconditionError(absl::StrCat(
         "No regression inputs found in function's metadata, only contains: ",
-        function_metadata.GetInputNames()[0]);
+        function_metadata.GetInputNames()[0]));
   }
 
   if (function_metadata.GetOutputNames()[0] != kRegressOutputs) {
-    return errors::FailedPrecondition(
+    return absl::FailedPreconditionError(absl::StrCat(
         "No regression outputs found in function's metadata, only contains: ",
-        function_metadata.GetOutputNames()[0]);
+        function_metadata.GetOutputNames()[0]));
   }
 
   return absl::OkStatus();
 }
 
 absl::Status PostProcessRegressionResult(
-    int num_examples, const std::vector<string>& output_tensor_names,
+    int num_examples, const std::vector<std::string>& output_tensor_names,
     const std::vector<Tensor>& output_tensors, RegressionResult* result) {
   if (output_tensors.size() != output_tensor_names.size()) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(
         "Expected output_tensors and output_tensor_names to have the same "
         "size.");
   }
@@ -82,24 +82,25 @@ absl::Status PostProcessRegressionResult(
 
   if (!(output_tensor->dims() == 1 ||
         (output_tensor->dims() == 2 && output_tensor->dim_size(1) == 1))) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(absl::StrCat(
         "Expected output Tensor shape to be either [batch_size] or ",
-        "[batch_size, 1] but got ", output_tensor->shape().DebugString());
+        "[batch_size, 1] but got ", output_tensor->shape().DebugString()));
   }
   if (num_examples != output_tensor->dim_size(0)) {
-    return errors::InvalidArgument(strings::StrCat(
+    return absl::InvalidArgumentError(strings::StrCat(
         "Input batch size did not match output batch size: ", num_examples,
         " vs. ", output_tensor->dim_size(0)));
   }
   if (output_tensor->dtype() != DT_FLOAT) {
-    return errors::InvalidArgument("Expected output Tensor of DT_FLOAT.  Got: ",
-                                   DataType_Name(output_tensor->dtype()));
+    return absl::InvalidArgumentError(
+        absl::StrCat("Expected output Tensor of DT_FLOAT.  Got: ",
+                     DataType_Name(output_tensor->dtype())));
   }
 
   if (output_tensor->NumElements() != num_examples) {
-    return errors::InvalidArgument("Expected output batch size to be ",
-                                   num_examples,
-                                   ".  Got: ", output_tensor->NumElements());
+    return absl::InvalidArgumentError(
+        absl::StrCat("Expected output batch size to be ", num_examples,
+                     ".  Got: ", output_tensor->NumElements()));
   }
 
   const auto& output_tensor_flat = output_tensor->flat<float>();
@@ -114,14 +115,15 @@ absl::Status RunRegress(const tfrt::SavedModel::RunOptions& run_options,
                         tfrt::SavedModel* saved_model,
                         const RegressionRequest& request,
                         RegressionResponse* response) {
-  const string function_name = request.model_spec().signature_name().empty()
-                                   ? kDefaultServingSignatureDefKey
-                                   : request.model_spec().signature_name();
+  const std::string function_name =
+      request.model_spec().signature_name().empty()
+          ? kDefaultServingSignatureDefKey
+          : request.model_spec().signature_name();
 
   const auto function_metadata =
       saved_model->GetFunctionMetadata(function_name);
   if (!function_metadata.has_value()) {
-    return errors::FailedPrecondition(
+    return absl::FailedPreconditionError(
         strings::StrCat("Function \"", function_name, "\" not found."));
   }
 

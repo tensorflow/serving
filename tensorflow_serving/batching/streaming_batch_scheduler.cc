@@ -53,7 +53,7 @@ void SingleTaskScheduler::Schedule(uint64_t time_micros,
 }
 
 void SingleTaskScheduler::ThreadLogic() {
-  absl::optional<Task> current_task = absl::nullopt;
+  absl::optional<Task> current_task = std::nullopt;
   for (;;) {
     // Sleep until the time specified in the current task, if any.
     if (current_task) {
@@ -68,7 +68,7 @@ void SingleTaskScheduler::ThreadLogic() {
       mutex_lock l(mu_);
       if (updated_task_) {
         current_task = updated_task_;
-        updated_task_ = absl::nullopt;
+        updated_task_ = std::nullopt;
         // We've got an updated task. Start over.
         continue;
       }
@@ -78,7 +78,7 @@ void SingleTaskScheduler::ThreadLogic() {
     // nothing to do, so sleep for a spell.
     if (current_task) {
       current_task->closure();
-      current_task = absl::nullopt;
+      current_task = std::nullopt;
     } else {
       if (stop_.HasBeenNotified()) {
         return;

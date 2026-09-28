@@ -50,30 +50,30 @@ const char kTestMLMDSavedModelPath[] =
 
 }  // namespace
 
-string GetTestSavedModelPath() {
+std::string GetTestSavedModelPath() {
   return test_util::TensorflowTestSrcDirPath(kTestSavedModelPath);
 }
 
-string GetTestMLMetadataSavedModelPath() {
+std::string GetTestMLMetadataSavedModelPath() {
   return test_util::TensorflowTestSrcDirPath(kTestMLMDSavedModelPath);
 }
 
-string GetTestSessionBundleExportPath() {
+std::string GetTestSessionBundleExportPath() {
   return test_util::TestSrcDirPath(kTestSessionBundleExportPath);
 }
 
-string GetTestTfLiteModelPath() {
+std::string GetTestTfLiteModelPath() {
   return test_util::TestSrcDirPath(kTestTfLiteModelPath);
 }
 
-std::vector<string> GetTestSessionBundleExportFiles() {
-  const string dir = GetTestSessionBundleExportPath();
+std::vector<std::string> GetTestSessionBundleExportFiles() {
+  const std::string dir = GetTestSessionBundleExportPath();
   return {tensorflow::io::JoinPath(dir, "export.meta"),
           tensorflow::io::JoinPath(dir, "export-00000-of-00001")};
 }
 
-std::vector<string> GetTestSavedModelBundleExportFiles() {
-  const string dir = GetTestSavedModelPath();
+std::vector<std::string> GetTestSavedModelBundleExportFiles() {
+  const std::string dir = GetTestSavedModelPath();
   return {
       tensorflow::io::JoinPath(dir, "saved_model.pb"),
       tensorflow::io::JoinPath(dir, "assets/foo.txt"),
@@ -81,9 +81,9 @@ std::vector<string> GetTestSavedModelBundleExportFiles() {
       tensorflow::io::JoinPath(dir, "variables/variables.data-00000-of-00001")};
 }
 
-uint64_t GetTotalFileSize(const std::vector<string>& files) {
+uint64_t GetTotalFileSize(const std::vector<std::string>& files) {
   uint64_t total_file_size = 0;
-  for (const string& file : files) {
+  for (const std::string& file : files) {
     if (!(Env::Default()->IsDirectory(file).ok()) &&
         Env::Default()->FileExists(file).ok()) {
       uint64_t file_size;
@@ -116,9 +116,9 @@ void TestSingleRequest(Session* session, int input_batch_size) {
   // Note that "x" and "y" are the actual names of the nodes in the graph.
   // The saved manifest binds these to "input" and "output" respectively, but
   // these tests are focused on the raw underlying session without bindings.
-  const std::vector<std::pair<string, Tensor>> inputs = {{"x:0", input}};
-  const std::vector<string> output_names = {"y:0"};
-  const std::vector<string> empty_targets;
+  const std::vector<std::pair<std::string, Tensor>> inputs = {{"x:0", input}};
+  const std::vector<std::string> output_names = {"y:0"};
+  const std::vector<std::string> empty_targets;
   std::vector<Tensor> outputs;
 
   RunMetadata run_metadata;
@@ -163,7 +163,7 @@ ResourceAllocation GetExpectedResourceEstimate(double total_file_size) {
   return resource_alloc;
 }
 
-void CopyDirOrDie(const string& src_dir, const string& dst_dir) {
+void CopyDirOrDie(const std::string& src_dir, const std::string& dst_dir) {
   int64_t u_files = 0;
   int64_t u_dirs = 0;
   if (Env::Default()->IsDirectory(dst_dir).ok()) {
@@ -173,12 +173,12 @@ void CopyDirOrDie(const string& src_dir, const string& dst_dir) {
   std::queue<std::string> dirs_to_copy;
   dirs_to_copy.push(src_dir);
   while (!dirs_to_copy.empty()) {
-    const string dir = dirs_to_copy.front();
+    const std::string dir = dirs_to_copy.front();
     dirs_to_copy.pop();
     std::vector<std::string> children;
     TF_ASSERT_OK(Env::Default()->GetChildren(dir, &children));
-    for (const string& child : children) {
-      const string child_path = io::JoinPath(dir, child);
+    for (const std::string& child : children) {
+      const std::string child_path = io::JoinPath(dir, child);
       absl::string_view remainder = child_path;
       CHECK(absl::ConsumePrefix(&remainder, src_dir));
       if (Env::Default()->IsDirectory(child_path).ok()) {

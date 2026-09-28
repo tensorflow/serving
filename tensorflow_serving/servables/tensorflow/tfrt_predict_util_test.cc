@@ -265,7 +265,7 @@ TEST_F(PredictImplTest, PredictionRunError) {
   EXPECT_CALL(*saved_model,
               Run(_, _, ::testing::An<absl::Span<const Tensor>>(), _))
       .Times(1)
-      .WillRepeatedly(Return(errors::InvalidArgument("test error")));
+      .WillRepeatedly(Return(absl::InvalidArgumentError("test error")));
   auto status =
       RunPredict(tfrt_stub::SavedModel::RunOptions(), kTestModelVersion,
                  saved_model.get(), request, &response);

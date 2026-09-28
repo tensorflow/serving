@@ -102,6 +102,9 @@ TfrtSavedModelServable::GetTFRTSavedModelRunOptions(
     options.disable_compilation = true;
   }
   options.priority = run_options.priority;
+  options.rpc_deadline_for_batching_task_cancellation =
+      run_options.rpc_deadline_for_batching_task_cancellation;
+  options.is_rpc_cancelled_callback = run_options.is_rpc_cancelled_callback;
   return options;
 }
 
@@ -144,7 +147,7 @@ TfrtSavedModelServable::PredictStreamed(
     absl::AnyInvocable<void(absl::StatusOr<PredictResponse>)>
         response_callback) {
   auto recorder = CreateRecorder();
-  return std::make_unique<SingleRequestPredictStreamedContext>(
+  return std::make_unique<HandshakeEnabledPredictStreamedContext>(
       [this, run_options, response_callback = std::move(response_callback)](
           const PredictRequest& request) mutable -> absl::Status {
         TRACELITERAL("TfrtSavedModelServable::PredictStreamed");
@@ -205,7 +208,7 @@ absl::Status TfrtSavedModelServable::MultiInference(
 
 absl::Status TfrtSavedModelServable::Suspend() {
   TRACELITERAL("TfrtSavedModelServable::Suspend");
-  absl::MutexLock lock(&paging_mu_);
+  absl::MutexLock lock(paging_mu_);
   if (!suspend_fn_) {
     return absl::UnimplementedError("Suspend is not implemented");
   }
@@ -221,7 +224,7 @@ absl::Status TfrtSavedModelServable::Suspend() {
 
 absl::Status TfrtSavedModelServable::Resume() {
   TRACELITERAL("TfrtSavedModelServable::Resume");
-  absl::MutexLock lock(&paging_mu_);
+  absl::MutexLock lock(paging_mu_);
   if (!resume_fn_) {
     return absl::UnimplementedError("Resume is not implemented");
   }

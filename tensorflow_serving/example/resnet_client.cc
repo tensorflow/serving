@@ -37,7 +37,7 @@ using tensorflow::serving::PredictRequest;
 using tensorflow::serving::PredictResponse;
 using tensorflow::serving::PredictionService;
 
-typedef google::protobuf::Map<tensorflow::string, tensorflow::TensorProto> OutMap;
+typedef google::protobuf::Map<std::string, tensorflow::TensorProto> OutMap;
 
 struct tf_jpeg_error_mgr {
   struct jpeg_error_mgr pub;
@@ -117,10 +117,10 @@ class ServingClient {
   ServingClient(std::shared_ptr<Channel> channel)
       : stub_(PredictionService::NewStub(channel)) {}
 
-  tensorflow::string callPredict(const tensorflow::string& model_name,
-                                 const tensorflow::string& model_signature_name,
-                                 const tensorflow::string& input_name,
-                                 const tensorflow::string& file_path) {
+  std::string callPredict(const std::string& model_name,
+                          const std::string& model_signature_name,
+                          const std::string& input_name,
+                          const std::string& file_path) {
     PredictRequest predictRequest;
     PredictResponse response;
     ClientContext context;
@@ -129,7 +129,7 @@ class ServingClient {
     predictRequest.mutable_model_spec()->set_signature_name(
         model_signature_name);
 
-    google::protobuf::Map<tensorflow::string, tensorflow::TensorProto>& inputs =
+    google::protobuf::Map<std::string, tensorflow::TensorProto>& inputs =
         *predictRequest.mutable_inputs();
 
     tensorflow::TensorProto proto;
@@ -179,11 +179,11 @@ class ServingClient {
 };
 
 int main(int argc, char** argv) {
-  tensorflow::string server_port = "localhost:8500";
-  tensorflow::string image_file = "";
-  tensorflow::string model_name = "resnet";
-  tensorflow::string model_signature_name = "serving_default";
-  tensorflow::string input_name = "input_1";
+  std::string server_port = "localhost:8500";
+  std::string image_file = "";
+  std::string model_name = "resnet";
+  std::string model_signature_name = "serving_default";
+  std::string input_name = "input_1";
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("server_port", &server_port,
                        "the IP and port of the server"),
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
                        "name of model signature"),
       tensorflow::Flag("input_name", &input_name, "name of input tensor")};
 
-  tensorflow::string usage = tensorflow::Flags::Usage(argv[0], flag_list);
+  std::string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
   if (!parse_result || image_file.empty()) {
     std::cout << usage;

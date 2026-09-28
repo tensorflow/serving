@@ -111,8 +111,8 @@ absl::StatusOr<SavedModelConfig> LoadSavedModelConfigOrDefault(
       file->Read(0, result, absl::MakeSpan(&content[0], file_size)));
 
   if (!saved_model_config.ParseFromString(content)) {
-    return tsl::errors::Internal("Unable to parse SavedModelConfig: ",
-                                 saved_model_config_path);
+    return absl::InternalError(absl::StrCat(
+        "Unable to parse SavedModelConfig: ", saved_model_config_path));
   }
   LOG(INFO) << "Finished loading model config from " << saved_model_config_path
             << ":" << saved_model_config.DebugString();

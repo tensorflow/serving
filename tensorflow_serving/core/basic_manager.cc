@@ -48,8 +48,8 @@ namespace serving {
 namespace {
 
 std::unique_ptr<Executor> CreateExecutor(Env* const env,
-                                         const uint32 num_threads,
-                                         const string& threadpool_name) {
+                                         const uint32_t num_threads,
+                                         const std::string& threadpool_name) {
   std::unique_ptr<Executor> executor;
   if (num_threads == 0) {
     executor.reset(new InlineExecutor());
@@ -106,7 +106,7 @@ struct BasicManager::ServingMap::HashRequest {
       }
     }();
     // Using version_hash as the seed here to combine the hashes.
-    return HashCombine(version_hash, std::hash<string>()(request.name));
+    return HashCombine(version_hash, std::hash<std::string>()(request.name));
   }
 };
 
@@ -136,8 +136,8 @@ absl::Status BasicManager::ServingMap::GetUntypedServableHandle(
   std::shared_ptr<const HandlesMap> handles_map = handles_map_.get();
   const auto found_it = handles_map->find(request);
   if (found_it == handles_map->end()) {
-    return errors::NotFound("Servable not found for request: ",
-                            request.DebugString());
+    return absl::NotFoundError(absl::StrCat("Servable not found for request: ",
+                                            request.DebugString()));
   }
 
   const LoaderHarness& harness = *found_it->second;
@@ -240,8 +240,8 @@ absl::Status BasicManager::Create(Options options,
 }
 
 BasicManager::BasicManager(
-    Env* const env, const uint32 num_load_threads,
-    const uint32 num_unload_threads, uint32 max_num_load_retries,
+    Env* const env, const uint32_t num_load_threads,
+    const uint32_t num_unload_threads, uint32_t max_num_load_retries,
     std::function<bool(absl::Status)> should_retry_model_load,
     int64_t load_retry_interval_micros, bool flush_filesystem_caches,
     std::unique_ptr<ResourceTracker> resource_tracker,
@@ -356,9 +356,9 @@ absl::Status BasicManager::ManageServableInternal(
 
   const auto iter = BasicManager::FindHarnessInMap(servable.id());
   if (iter != managed_map_.end()) {
-    return errors::FailedPrecondition(
-        "This servable is already being managed: ",
-        servable.id().DebugString());
+    return absl::FailedPreconditionError(
+        absl::StrCat("This servable is already being managed: ",
+                     servable.id().DebugString()));
   }
 
   std::unique_ptr<Loader> loader;
@@ -399,8 +399,8 @@ absl::Status BasicManager::StopManagingServable(const ServableId& id) {
   if (it == managed_map_.end()) {
     LOG(ERROR) << "Request to delete harness for " << id
                << ", but no such harness found in managed_map_";
-    return errors::FailedPrecondition("This servable is not being managed: ",
-                                      id.DebugString());
+    return absl::FailedPreconditionError(
+        absl::StrCat("This servable is not being managed: ", id.DebugString()));
   }
   const auto state = it->second->state();
   if (state != LoaderHarness::State::kNew &&
@@ -408,10 +408,10 @@ absl::Status BasicManager::StopManagingServable(const ServableId& id) {
       state != LoaderHarness::State::kDisabled) {
     LOG(ERROR) << "Request to delete harness for " << id
                << ", but it is not in a new or end state. State: " << state;
-    return errors::FailedPrecondition(
+    return absl::FailedPreconditionError(absl::StrCat(
         "This servable is not in a new or end state and we cannot stop "
         "managing it: ",
-        id.DebugString(), " ", LoaderHarness::StateDebugString(state));
+        id.DebugString(), " ", LoaderHarness::StateDebugString(state)));
   }
   managed_map_.erase(it);
   return absl::OkStatus();
@@ -422,9 +422,9 @@ absl::Status BasicManager::GetHealthyHarness(const ServableId& id,
   // Look up the request servable's harness.
   auto iter = FindHarnessInMap(id);
   if (iter == managed_map_.end()) {
-    return errors::NotFound(
-        "This servable is not being managed by the manager: ",
-        id.DebugString());
+    return absl::NotFoundError(
+        absl::StrCat("This servable is not being managed by the manager: ",
+                     id.DebugString()));
   }
   TF_RETURN_IF_ERROR(iter->second->status());
   *harness = iter->second.get();
@@ -479,10 +479,10 @@ std::vector<const Loader*> BasicManager::GetLoadersCurrentlyUsingResources()
   return loaders;
 }
 
-std::vector<string> BasicManager::GetManagedServableNames() const {
+std::vector<std::string> BasicManager::GetManagedServableNames() const {
   mutex_lock l(mu_);
 
-  std::vector<string> servable_names;
+  std::vector<std::string> servable_names;
   for (auto iter = managed_map_.begin(); iter != managed_map_.end();
        iter = managed_map_.equal_range(iter->first).second) {
     servable_names.push_back(iter->first);
@@ -605,7 +605,7 @@ absl::Status BasicManager::ExecuteLoadOrUnload(
   return execution_status;
 }
 
-void BasicManager::SetNumLoadThreads(const uint32 num_load_threads) {
+void BasicManager::SetNumLoadThreads(const uint32_t num_load_threads) {
   // ThreadPoolExecutor destructor, implicitly calling ThreadPool destructor,
   // waits for all scheduled work to finish. Should we wait within
   // `load_executor_mu_` or outside?
@@ -617,7 +617,7 @@ void BasicManager::SetNumLoadThreads(const uint32 num_load_threads) {
   // The former is more intuitive when M and N are small (e.g. client intention
   // is inline or single threaded loading), while the latter makes more sense
   // when they are large.
-  const uint32 old_num_threads = num_load_threads_.load();
+  const uint32_t old_num_threads = num_load_threads_.load();
   if (old_num_threads < 2 || num_load_threads < 2) {  // destruct within lock
     mutex_lock l(load_executor_mu_);
     load_executor_.reset();
@@ -636,7 +636,7 @@ void BasicManager::SetNumLoadThreads(const uint32 num_load_threads) {
   }
 }
 
-uint32 BasicManager::num_load_threads() const {
+uint32_t BasicManager::num_load_threads() const {
   return num_load_threads_.load();
 }
 
@@ -794,9 +794,9 @@ absl::Status BasicManager::ReserveResources(LoaderHarness* harness,
     if (num_ongoing_load_unload_executions_ == 0) {
       // There are no ongoing load/unloads, so we really are out of
       // resources for this servable.
-      return errors::ResourceExhausted(
-          "Insufficient resources to load servable ",
-          harness->id().DebugString());
+      return absl::ResourceExhaustedError(
+          absl::StrCat("Insufficient resources to load servable ",
+                       harness->id().DebugString()));
     } else {
       // Wait until at least one load/unload request finishes, then retry.
       VLOG(1) << "Waiting for another load/unload request to finish";

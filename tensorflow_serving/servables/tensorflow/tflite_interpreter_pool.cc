@@ -79,7 +79,8 @@ absl::Status TfLiteInterpreterWrapper::SetStringData(
   }
   size_t required_bytes = total_size + sizeof(int32_t) * (num_strings + 2);
   if (tensor_buffer_.find(tensor_index) == tensor_buffer_.end()) {
-    return errors::Internal("Tensor input for index not found: ", tensor_index);
+    return absl::InternalError(
+        absl::StrCat("Tensor input for index not found: ", tensor_index));
   }
   if (required_bytes > tensor_buffer_max_bytes_[tensor_index]) {
     if (tflite_tensor->data.raw) {
@@ -94,8 +95,8 @@ absl::Status TfLiteInterpreterWrapper::SetStringData(
   for (size_t i = 0; i < offset_.size(); i++) {
     size_t size_offset_i = start + offset_[i];
     if (size_offset_i > std::numeric_limits<int32_t>::max()) {
-      return errors::Internal("Invalid size, string input too large:",
-                              size_offset_i);
+      return absl::InternalError(
+          absl::StrCat("Invalid size, string input too large:", size_offset_i));
     }
     int32_t offset_i = static_cast<int32_t>(size_offset_i);
     memcpy(tensor_buffer_[tensor_index].get() + sizeof(int32_t) * (i + 1),
@@ -155,7 +156,7 @@ absl::Status TfLiteInterpreterWrapper::CreateTfLiteInterpreterWrapper(
 
   if (tflite::InterpreterBuilder(model, resolver)(&interpreter, num_threads) !=
       kTfLiteOk) {
-    return errors::Internal(
+    return absl::InternalError(
         "Failed to create a TFLite interpreter with the given model");
   }
   std::unique_ptr<tflite::ExternalCpuBackendContext> external_context(
@@ -172,11 +173,11 @@ absl::Status TfLiteInterpreterWrapper::CreateTfLiteInterpreterWrapper(
   const auto* tensor = interpreter->tensor(idx);
   if (tensor->type == kTfLiteString) {
     if (interpreter->ResizeInputTensor(idx, {batch_size}) != kTfLiteOk) {
-      return errors::Internal("Failed to resize input");
+      return absl::InternalError("Failed to resize input");
     }
   }
   if (interpreter->AllocateTensors() != kTfLiteOk) {
-    return errors::Internal("Failed to allocate tensors");
+    return absl::InternalError("Failed to allocate tensors");
   }
   wrapper.reset(new TfLiteInterpreterWrapper(std::move(external_context),
                                              std::move(interpreter)));

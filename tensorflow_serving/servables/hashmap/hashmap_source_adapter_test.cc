@@ -41,27 +41,27 @@ namespace tensorflow {
 namespace serving {
 namespace {
 
-using Hashmap = std::unordered_map<string, string>;
+using Hashmap = std::unordered_map<std::string, std::string>;
 
 // Writes the given hashmap to a file.
 absl::Status WriteHashmapToFile(const HashmapSourceAdapterConfig::Format format,
-                                const string& file_name,
+                                const std::string& file_name,
                                 const Hashmap& hashmap) {
   std::unique_ptr<WritableFile> file;
   TF_RETURN_IF_ERROR(Env::Default()->NewWritableFile(file_name, &file));
   switch (format) {
     case HashmapSourceAdapterConfig::SIMPLE_CSV: {
       for (const auto& entry : hashmap) {
-        const string& key = entry.first;
-        const string& value = entry.second;
-        const string line = absl::StrCat(key, ",", value, "\n");
+        const std::string& key = entry.first;
+        const std::string& value = entry.second;
+        const std::string line = absl::StrCat(key, ",", value, "\n");
         TF_RETURN_IF_ERROR(file->Append(line));
       }
       break;
     }
     default:
-      return errors::InvalidArgument("Unrecognized format enum value: ",
-                                     format);
+      return absl::InvalidArgumentError(
+          absl::StrCat("Unrecognized format enum value: ", format));
   }
   TF_RETURN_IF_ERROR(file->Close());
   return absl::Status();
@@ -69,7 +69,7 @@ absl::Status WriteHashmapToFile(const HashmapSourceAdapterConfig::Format format,
 
 TEST(HashmapSourceAdapter, Basic) {
   const auto format = HashmapSourceAdapterConfig::SIMPLE_CSV;
-  const string file = io::JoinPath(testing::TmpDir(), "Basic");
+  const std::string file = io::JoinPath(testing::TmpDir(), "Basic");
   TF_ASSERT_OK(
       WriteHashmapToFile(format, file, {{"a", "apple"}, {"b", "banana"}}));
 

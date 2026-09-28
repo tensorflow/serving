@@ -41,7 +41,7 @@ std::unique_ptr<Manager> StaticManagerBuilder::Build() {
   }
 
   // If Build() is called again, we'll produce the following error.
-  health_ = errors::FailedPrecondition(
+  health_ = absl::FailedPreconditionError(
       "Build() already called on this StaticManagerBuilder.");
 
   return std::move(basic_manager_);

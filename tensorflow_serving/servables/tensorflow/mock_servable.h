@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <cstdint>
 #include <memory>
+#include <utility>
 
 #include <gmock/gmock.h>
 #include "absl/functional/any_invocable.h"
@@ -37,10 +38,24 @@ namespace serving {
 
 class MockPredictStreamedContext : public PredictStreamedContext {
  public:
-  MOCK_METHOD(absl::Status, ProcessRequest, (const PredictRequest& request),
+  MOCK_METHOD(absl::Status, ProcessRequest, (PredictRequest * request),
               (final));
   MOCK_METHOD(absl::Status, Close, (), (final));
   MOCK_METHOD(absl::Status, WaitResponses, (), (final));
+
+  void SetResponsesCompleteCallback(
+      absl::AnyInvocable<void()> callback) override {
+    responses_complete_callback_ = std::move(callback);
+  }
+
+  void TriggerResponsesComplete() {
+    if (responses_complete_callback_) {
+      responses_complete_callback_();
+    }
+  }
+
+ private:
+  absl::AnyInvocable<void()> responses_complete_callback_;
 };
 
 // A mock of tensorflow::serving::Servable.

@@ -21,6 +21,7 @@ package_group(
         "//platforms/redfish/...",
         "//platforms/storage/flash/warthog/firmware/...",
         "//platforms/syshealth/shdc/...",
+        "//platforms/uhm/query/service/...",
         "//prodkernel/networking/tcpdirect/buffer_mgmt_daemon/...",
         "//security/crypta/commands/ecclesia/...",
         "//security/loas/l2/internal/service/notar/...",

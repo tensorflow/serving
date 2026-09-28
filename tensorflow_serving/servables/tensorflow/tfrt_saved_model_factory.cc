@@ -247,6 +247,9 @@ absl::StatusOr<tfrt::SavedModel::Options> CreateCommonSavedModelOptions(
       config.enable_priority_aware_batch_scheduler();
   compile_options.enable_priority_aware_batch_scheduler_resplit =
       config.enable_priority_aware_batch_scheduler_resplit();
+  compile_options.enable_batching_task_lazy_cancellation =
+      config.enable_batching_task_lazy_cancellation();
+  compile_options.enable_async_ifrt = config.enable_async_ifrt();
 #endif
 
   compile_options.batch_padding_policy = config.batch_padding_policy();
@@ -342,7 +345,7 @@ absl::Status TfrtSavedModelFactory::CreateTfrtSavedModelWithMetadata(
       saved_model_config, std::move(saved_model), thread_pool_factory_.get(),
       recorder_creator_);
   TfrtSavedModelServable* tfrt_servable =
-      down_cast<TfrtSavedModelServable*>(servable->get());
+      static_cast<TfrtSavedModelServable*>(servable->get());
 
   if (config().enable_model_warmup()) {
     ModelWarmupOptions warmup_options = config().model_warmup_options();
@@ -366,9 +369,9 @@ TfrtSavedModelFactory::TfrtSavedModelFactory(
     std::unique_ptr<ThreadPoolFactory> thread_pool_factory,
     std::function<std::unique_ptr<RequestRecorder>(TfrtSavedModelServable&)>
         recorder_creator)
-    : config_(config),
+    : thread_pool_factory_(std::move(thread_pool_factory)),
+      config_(config),
       batch_scheduler_(batch_scheduler),
-      thread_pool_factory_(std::move(thread_pool_factory)),
       recorder_creator_(std::move(recorder_creator)) {}
 
 TfrtSavedModelFactoryRegistry::TfrtSavedModelFactoryRegistry() {
