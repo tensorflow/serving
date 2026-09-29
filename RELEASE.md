@@ -1,5 +1,50 @@
 <!-- disableFinding(HEADING_REPEAT_H1) -->
 
+# Release 2.21.0
+
+## Major Features and Improvements
+
+* No major features or improvements.
+
+## Breaking Changes
+
+* No breaking changes.
+
+## Bug Fixes and Other Changes
+
+<!-- disableFinding(LINE_OVER_80) -->
+
+* Increase memory limit for ASan builds of py_binary targets. (commit: 34ba5dfc3232c56d62825285534bf7a1406cb2a5)
+* Fix build issue. (commit: b1756b62cf65b2669c7570a279561c39349656f4)
+* Increase cpp_link.mem for ASAN builds to fix OOM failures. (commit: de4ebf079f96d1a4103abec936745fb562c9e279)
+* Add RPC deadline and cancellation signal to Run Options for task-level cancellation in batching scheduler. (commit: 14a87232dda39f4e294d51e58a8d68de07d37544)
+* Use portpicker to pick unused ports in model server tests. (commit: 192efc51f3c87b477469fca50a9f7f6ca62acbe9)
+* Update release notes for TensorFlow Serving 2.20.0. (commit: 9903247f7b3841ce2272cc3391ff1bc63ec2a9cb)
+* Add option to enable async IFRT in TFRT SavedModel. (commit: d802d854b81172b653052809fde20387c292d957)
+* Updates the TensorFlow dependency to fixbuild failures (commit: 62f7e450ed5ed63c9a94f588df323c12dbbe5257)
+* Add option for enable_batching_task_lazy_cancellation (commit: ffee590f3b4819a2ff1e7431e328e1be2b37d40c)
+* Add HERMETIC_NCCL_VERSION="2.29.7" to the cuda_clang bazelrc config. (commit: c005b7d7cbd8c4b72a4f10b5c1db2f4669b3d734)
+* Use `common` instead of `build` for hermetic CUDA repo_env flags (commit: ebab0b2d0ed3b58ee1479dee375c031c559de96d)
+* Make RequestLogger::UniformSampler thread-safe to prevent race conditions during concurrent logging. (commit: 849fd89c616e5bf95e0395b566e9d76aaafeac4d)
+* Replace std::mt19937 with absl::BitGen in RequestLogger's UniformSampler. (commit: 3918641744cd4df37be244050ad7067d4d9b7384)
+* Zero-init dummy values in gzip_zlib (commit: d2d02d70513152825a8baf74bb2e3543d32ddc85)
+* Align TensorFlow Serving dependencies and toolchains to TF 2.21 release. (commit: d442e7dd00248204d235c0baac514d4c1cf7fb0d)
+* Fix TensorFlow 2.21 build in root.workspace, resolve dso_loader header dependency under CUDA, and update devel Dockerfile logging and flags. (commit: e9057d7aa08d929cc964a6de0a5e7530ace2605a)
+* Pass PredictRequest by pointer in PredictStreamedContext::ProcessRequest callers. (commit: b4a35ef4808020071ac721d37e1e3a531fc85db2)
+* Add SetResponsesCompleteCallback to PredictStreamedContext interface to allow servables to notify handlers when response generation is complete. (commit: 5782006b046d723acb052fc4e47bd326b301289f)
+* Migrate ABSL_MUST_USE_RESULT to C++17 [[nodiscard]] (commit: afbc8b339ddb99e297f8032d0d06f8b600fd1808)
+* Clean up const PredictRequest& ProcessRequest API. (commit: 254a63c4020d07d3b43bdf8fe50e3a256ac4bad8)
+* Update TF Text to v2.21.1. (commit: aaf360bfb4b2272e660f441f901a418f4d5724f1)
+* Pin TensorFlow back to the 2.21.0 release commit. (commit: 880a735b07c8abc65088d1c3def1b9067db1abae)
+* Support shortcutting RPC during model warmup in TFServingRemotePredict op. (commit: caffa2dfed4c22eec51206673656e689bd36fb5f)
+* Verify both valid GitHub SHA256 hashes for llvm-raw archive in TF 2.21.0 and protect org_tensorflow pin from auto-releaser overwrite. (commit: b6771369065f59c6385ac98d81c009a5ab780ab6)
+* Upgrade log level for "no versions found" from WARNING to ERROR. (commit: 9fdd3b83f93dd5b699f6e783bfb2eecc443e3781)
+* Regenerate OSS prediction_service_pb2.py and model_service_pb2.py with Protobuf 6.31.1 for TensorFlow 2.21.0 compatibility. (commit: 4f4f4845f46024d5c943f68218fddce4fbd5db14)
+* Update version for 2.21.0 release. (#4152) (commit: 75c8de0a8042f02ecbe6f95909bad8cd684a67f6)
+* This release is based on TF version 2.21.0.
+
+<!-- enableFinding(LINE_OVER_80) -->
+
 # Release 2.20.0
 
 ## Major Features and Improvements
