@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/tfrt_predict_util.h"
 
+#include <memory>
+#include <vector>
+
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 #include "absl/time/clock.h"
@@ -307,7 +310,7 @@ TEST_F(PredictImplTest, PredictionUnmatchedOutputNumber) {
       RunPredict(tfrt_stub::SavedModel::RunOptions(), kTestModelVersion,
                  saved_model.get(), request, &response);
   EXPECT_EQ(status.code(), tensorflow::error::Code::UNKNOWN);
-  EXPECT_THAT(status.message(), HasSubstr("Predict internal error."));
+  EXPECT_THAT(status.message(), HasSubstr("Predict internal error"));
 }
 
 TEST_F(PredictImplTest, OutputFilters) {
@@ -553,6 +556,101 @@ TEST_F(PredictImplTest, UnmatchedOutputFilters) {
       status.message(),
       HasSubstr("output tensor alias not found in signature: output3 Outputs "
                 "expected to be in the set {output1,output2}."));
+}
+
+TEST_F(PredictImplTest, OutputFiltersWithDisableOutputFilter) {
+  PredictRequest request;
+  PredictResponse response;
+
+  TensorProto tensor_proto;
+  tensor_proto.add_float_val(2.0);
+  tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  (*request.mutable_inputs())[kInputTensorKey] = tensor_proto;
+  request.add_output_filter("output1");
+
+  tfrt::SavedModel::Options options(test_util::GetTestTfrtRuntime());
+  options.disable_output_filter = true;
+  auto saved_model = std::make_unique<test_util::MockSavedModel>(options);
+  tfrt::internal::Signature signature;
+  signature.input_names = {"x"};
+  tfrt::TensorSpec spec(tensorflow::DT_FLOAT);
+  signature.input_specs = {spec};
+  signature.output_names = {"output1", "output2"};
+  tfrt::FunctionMetadata function_metadata(&signature);
+  EXPECT_CALL(*saved_model, GetFunctionMetadata(_))
+      .Times(1)
+      .WillRepeatedly(Return(function_metadata));
+
+  // With `disable_output_filter`, the full function is run and the outputs are
+  // filtered afterwards.
+  EXPECT_CALL(*saved_model, GetMetaGraphDef()).Times(0);
+  EXPECT_CALL(*saved_model, RunByTensorNames(_, _, _, _, _)).Times(0);
+  TensorProto output_tensor_proto1;
+  output_tensor_proto1.add_float_val(1.0);
+  output_tensor_proto1.set_dtype(tensorflow::DT_FLOAT);
+  output_tensor_proto1.mutable_tensor_shape();
+  TensorProto output_tensor_proto2;
+  output_tensor_proto2.add_float_val(2.0);
+  output_tensor_proto2.set_dtype(tensorflow::DT_FLOAT);
+  output_tensor_proto2.mutable_tensor_shape();
+  EXPECT_CALL(*saved_model, Run(_, _, _, _))
+      .Times(1)
+      .WillRepeatedly(
+          DoAll(WithArgs<3>([&](std::vector<Tensor>* output_tensors) {
+                  Tensor output_tensor1;
+                  CHECK(output_tensor1.FromProto(output_tensor_proto1));
+                  output_tensors->push_back(output_tensor1);
+                  Tensor output_tensor2;
+                  CHECK(output_tensor2.FromProto(output_tensor_proto2));
+                  output_tensors->push_back(output_tensor2);
+                }),
+                Return(absl::OkStatus())));
+
+  TF_EXPECT_OK(RunPredict(tfrt_stub::SavedModel::RunOptions(),
+                          kTestModelVersion, saved_model.get(), request,
+                          &response));
+  EXPECT_EQ(response.outputs_size(), 1);
+  EXPECT_THAT(response.outputs().at("output1"),
+              test_util::EqualsProto(output_tensor_proto1));
+}
+
+TEST_F(PredictImplTest,
+       UnmatchedOutputFiltersWithDisableOutputFilterFailsBeforeRun) {
+  PredictRequest request;
+  PredictResponse response;
+
+  TensorProto tensor_proto;
+  tensor_proto.add_float_val(2.0);
+  tensor_proto.set_dtype(tensorflow::DT_FLOAT);
+  (*request.mutable_inputs())[kInputTensorKey] = tensor_proto;
+  request.add_output_filter("output1");
+  request.add_output_filter("output3");
+
+  tfrt::SavedModel::Options options(test_util::GetTestTfrtRuntime());
+  options.disable_output_filter = true;
+  auto saved_model = std::make_unique<test_util::MockSavedModel>(options);
+  tfrt::internal::Signature signature;
+  signature.input_names = {"x"};
+  tfrt::TensorSpec spec(tensorflow::DT_FLOAT);
+  signature.input_specs = {spec};
+  signature.output_names = {"output1", "output2"};
+  tfrt::FunctionMetadata function_metadata(&signature);
+  EXPECT_CALL(*saved_model, GetFunctionMetadata(_))
+      .Times(1)
+      .WillRepeatedly(Return(function_metadata));
+
+  // The request must be rejected before the model is executed.
+  EXPECT_CALL(*saved_model, Run(_, _, _, _)).Times(0);
+  EXPECT_CALL(*saved_model, RunByTensorNames(_, _, _, _, _)).Times(0);
+
+  auto status =
+      RunPredict(tfrt_stub::SavedModel::RunOptions(), kTestModelVersion,
+                 saved_model.get(), request, &response);
+  EXPECT_EQ(status.code(), tensorflow::error::Code::INVALID_ARGUMENT);
+  EXPECT_THAT(status.message(),
+              HasSubstr("output_filter contains non-existent output names: "
+                        "{output3}. Outputs expected to be in the set "
+                        "{output1,output2}."));
 }
 
 TEST_F(PredictImplTest, PredictionTimeout) {

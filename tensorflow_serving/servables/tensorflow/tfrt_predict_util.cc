@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/tfrt_predict_util.h"
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <string>
@@ -22,10 +23,14 @@ limitations under the License.
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
+#include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/cc/saved_model/util.h"
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/errors.h"
@@ -98,43 +103,26 @@ absl::Status PreProcessPredictionWithoutOutputFilter(
   return absl::OkStatus();
 }
 
-// Validate results and populate a PredictResponse.
-// Tensors are serialized as specified.
-absl::Status PostProcessPredictionResultWithoutOutputFilter(
-    const std::vector<std::string>& output_tensor_names,
-    const std::vector<Tensor>& output_tensors,
-    const internal::PredictResponseTensorSerializationOption option,
-    const PredictRequest& request, PredictResponse* response) {
-  if (output_tensor_names.size() != output_tensors.size()) {
+// Selects the outputs whose names are in `request.output_filter()`, preserving
+// the order of `output_names`. The output filter must have been validated
+// against `output_names` beforehand (see `ValidateOutputFilter`).
+absl::Status SelectFilteredOutputs(const PredictRequest& request,
+                                   const std::vector<std::string>& output_names,
+                                   std::vector<Tensor> outputs,
+                                   std::vector<std::string>* filtered_names,
+                                   std::vector<Tensor>* filtered_outputs) {
+  if (output_names.size() != outputs.size()) {
     return absl::UnknownError("Predict internal error.");
   }
-
-  std::unordered_set<std::string> output_filter(request.output_filter().begin(),
-                                                request.output_filter().end());
-  int output_size = 0;
-  for (int i = 0; i < output_tensors.size(); ++i) {
-    if (!output_filter.empty() &&
-        output_filter.find(output_tensor_names[i]) == output_filter.end()) {
-      continue;
+  const absl::flat_hash_set<absl::string_view> output_filter(
+      request.output_filter().begin(), request.output_filter().end());
+  filtered_names->reserve(output_filter.size());
+  filtered_outputs->reserve(output_filter.size());
+  for (int i = 0; i < outputs.size(); ++i) {
+    if (output_filter.contains(output_names[i])) {
+      filtered_names->push_back(output_names[i]);
+      filtered_outputs->push_back(std::move(outputs[i]));
     }
-    switch (option) {
-      case internal::PredictResponseTensorSerializationOption::kAsProtoField: {
-        output_tensors[i].AsProtoField(
-            &((*response->mutable_outputs())[output_tensor_names[i]]));
-      } break;
-      case internal::PredictResponseTensorSerializationOption::
-          kAsProtoContent: {
-        output_tensors[i].AsProtoTensorContent(
-            &((*response->mutable_outputs())[output_tensor_names[i]]));
-      } break;
-    }
-    output_size++;
-  }
-
-  if (!output_filter.empty() && output_filter.size() != output_size) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "output_filter contains non-existed output names. output_filter: ",
-        absl::StrJoin(output_filter, ",")));
   }
   return absl::OkStatus();
 }
@@ -154,6 +142,42 @@ bool IsOutputFilterEmptyOrFullSet(
   std::sort(output_filter_names.begin(), output_filter_names.end());
   std::sort(func_output_names.begin(), func_output_names.end());
   return output_filter_names == func_output_names;
+}
+
+// Validates that every name in `request.output_filter()` is an output of the
+// function. This is meant to be called before executing the function so that
+// invalid requests fail fast without running the model.
+//
+// Both the output filter and the function outputs are expected to be small, so
+// a linear scan is used to avoid any allocation on the success path.
+absl::Status ValidateOutputFilter(
+    const PredictRequest& request,
+    const tfrt::FunctionMetadata& function_metadata) {
+  const auto& func_output_names = function_metadata.GetOutputNames();
+  const auto is_unknown = [&func_output_names](const std::string& name) {
+    return std::find(func_output_names.begin(), func_output_names.end(),
+                     name) == func_output_names.end();
+  };
+  if (std::none_of(request.output_filter().begin(),
+                   request.output_filter().end(), is_unknown)) {
+    return absl::OkStatus();
+  }
+
+  // Error path only: collect details for a helpful error message.
+  std::vector<absl::string_view> unknown_names;
+  for (const std::string& name : request.output_filter()) {
+    if (is_unknown(name)) {
+      unknown_names.push_back(name);
+    }
+  }
+  std::vector<absl::string_view> sorted_output_names(func_output_names.begin(),
+                                                     func_output_names.end());
+  std::sort(sorted_output_names.begin(), sorted_output_names.end());
+  return absl::InvalidArgumentError(
+      absl::StrCat("output_filter contains non-existent output names: {",
+                   absl::StrJoin(unknown_names, ","),
+                   "}. Outputs expected to be in the set {",
+                   absl::StrJoin(sorted_output_names, ","), "}."));
 }
 
 }  // namespace
@@ -194,6 +218,16 @@ absl::Status RunPredict(
   if (IsOutputFilterEmptyOrFullSet(request, function_metadata.value()) ||
       saved_model->disable_output_filter()) {
     TRACELITERAL("Pre process prediction without output filter");
+    // When `disable_output_filter` is set, the whole function is executed and
+    // the outputs are filtered afterwards. Validate the output filter before
+    // execution so that invalid requests don't waste (e.g. TPU) compute.
+    // Without `disable_output_filter`, only empty or full-set filters reach
+    // here, which are always valid, so the check is skipped.
+    if (saved_model->disable_output_filter() &&
+        !request.output_filter().empty()) {
+      TF_RETURN_IF_ERROR(
+          ValidateOutputFilter(request, function_metadata.value()));
+    }
     // Pre-processing.
     std::vector<Tensor> input_tensors;
     TF_RETURN_IF_ERROR(PreProcessPredictionWithoutOutputFilter(
@@ -219,9 +253,22 @@ absl::Status RunPredict(
 
     // Post-processing.
     TRACELITERAL("Post process prediction without output filter");
-    return PostProcessPredictionResultWithoutOutputFilter(
-        function_metadata->GetOutputNames(), outputs, option, request,
-        response);
+    const std::vector<std::string>& output_names =
+        function_metadata->GetOutputNames();
+    if (request.output_filter().empty()) {
+      return PostProcessPredictionResult(output_names, outputs, option,
+                                         response);
+    }
+    // The full signature was run, so keep only the outputs requested in
+    // `output_filter`. It is known to be valid here: either it is the full set
+    // or it was checked by `ValidateOutputFilter` before execution.
+    std::vector<std::string> filtered_names;
+    std::vector<Tensor> filtered_outputs;
+    TF_RETURN_IF_ERROR(
+        SelectFilteredOutputs(request, output_names, std::move(outputs),
+                              &filtered_names, &filtered_outputs));
+    return PostProcessPredictionResult(filtered_names, filtered_outputs, option,
+                                       response);
   } else {
     // When output_filter is specified, use RunByTensorNames API to trigger
     // lazy initialization for optimized graph.

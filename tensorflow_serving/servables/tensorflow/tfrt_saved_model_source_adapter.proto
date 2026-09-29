@@ -234,6 +234,11 @@ message TfrtSavedModelConfig {
   // BatchFunction in core/ops/batch_ops.cc.
   string batch_padding_policy = 2026;
 
+  // If true, Predict requests with an `output_filter` run the whole signature
+  // and filter the outputs afterwards, instead of running a pruned subgraph via
+  // RunByTensorNames. This avoids compiling a new program per distinct output
+  // filter (e.g. required for IFRT models frozen after init). Output filter
+  // names are still validated against the signature before execution.
   bool disable_output_filter = 2027;
 
   // Batching parameters to be rewritten in the existing BatchFunction ops.
