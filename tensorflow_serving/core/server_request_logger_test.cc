@@ -141,22 +141,22 @@ class ServerRequestLoggerTest : public ::testing::Test {
   }
 
   void increment_created_logger_counter() {
-    absl::MutexLock l(&m_);
+    absl::MutexLock l(m_);
     created_logger_counter_++;
   }
 
   int created_logger_counter() const {
-    absl::MutexLock l(&m_);
+    absl::MutexLock l(m_);
     return created_logger_counter_;
   }
 
   void increment_deleted_logger_counter() {
-    absl::MutexLock l(&m_);
+    absl::MutexLock l(m_);
     deleted_logger_counter_++;
   }
 
   int deleted_logger_counter() const {
-    absl::MutexLock l(&m_);
+    absl::MutexLock l(m_);
     return deleted_logger_counter_;
   }
 
