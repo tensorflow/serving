@@ -23,7 +23,6 @@ limitations under the License.
 #include <unordered_set>
 #include <utility>
 
-#include "absl/base/call_once.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
@@ -37,9 +36,6 @@ limitations under the License.
 #include "xla/tsl/platform/errors.h"
 #include "xla/tsl/platform/statusor.h"
 #include "xla/tsl/platform/threadpool_options.h"
-#include "tensorflow/core/framework/function.pb.h"
-#include "tensorflow/core/framework/graph.pb.h"
-#include "tensorflow/core/framework/node_def.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/platform/tracing.h"  // NOLINT
@@ -144,28 +140,6 @@ absl::Status TfrtSavedModelServable::Predict(const RunOptions& run_options,
           : thread_pool_factory_->GetThreadPools().get());
 }
 
-bool TfrtSavedModelServable::SupportsStreamedOutputs() {
-  absl::call_once(supports_streamed_outputs_once_, [this]() {
-    constexpr absl::string_view kStreamResultsOp = "PwStreamResults";
-    const GraphDef& graph_def = saved_model_->GetMetaGraphDef().graph_def();
-    for (const NodeDef& node : graph_def.node()) {
-      if (node.op() == kStreamResultsOp) {
-        supports_streamed_outputs_ = true;
-        return;
-      }
-    }
-    for (const FunctionDef& function : graph_def.library().function()) {
-      for (const NodeDef& node : function.node_def()) {
-        if (node.op() == kStreamResultsOp) {
-          supports_streamed_outputs_ = true;
-          return;
-        }
-      }
-    }
-  });
-  return supports_streamed_outputs_;
-}
-
 // TODO(b/288096487): Add a unit test once we have the streaming model in OSS.
 absl::StatusOr<std::unique_ptr<PredictStreamedContext>>
 TfrtSavedModelServable::PredictStreamed(
@@ -173,10 +147,8 @@ TfrtSavedModelServable::PredictStreamed(
     absl::AnyInvocable<void(absl::StatusOr<PredictResponse>)>
         response_callback) {
   auto recorder = CreateRecorder();
-  const bool supports_streamed_outputs = SupportsStreamedOutputs();
   return std::make_unique<HandshakeEnabledPredictStreamedContext>(
-      [this, run_options, supports_streamed_outputs,
-       response_callback = std::move(response_callback)](
+      [this, run_options, response_callback = std::move(response_callback)](
           const PredictRequest& request) mutable -> absl::Status {
         TRACELITERAL("TfrtSavedModelServable::PredictStreamed");
 
@@ -191,49 +163,37 @@ TfrtSavedModelServable::PredictStreamed(
         model_spec.set_signature_name(signature_name);
         model_spec.mutable_version()->set_value(version());
 
-        // TFRT fails the whole run with "does not support streaming" if a
-        // streamed output callback is set for a model without stream ops, so
-        // only install it for models that can use it.
-        if (supports_streamed_outputs) {
-          tfrt_run_options.streamed_output_callback =
-              [&](absl::flat_hash_map<std::string, tensorflow::Tensor>
-                      outputs) {
-                tensorflow::serving::PredictResponse response;
-                *response.mutable_model_spec() = model_spec;
+        tfrt_run_options.streamed_output_callback =
+            [&](absl::flat_hash_map<std::string, tensorflow::Tensor> outputs) {
+              tensorflow::serving::PredictResponse response;
+              *response.mutable_model_spec() = model_spec;
 
-                for (const auto& [output_key, output_tensor] : outputs) {
-                  tensorflow::TensorProto& tensor_proto =
-                      (*response.mutable_outputs())[output_key];
+              for (const auto& [output_key, output_tensor] : outputs) {
+                tensorflow::TensorProto& tensor_proto =
+                    (*response.mutable_outputs())[output_key];
 
-                  // TODO(b/288096487): We are assuming
-                  // predict_response_tensor_serialization_option_ ==
-                  // kAsProtoField. The proper way is to check serialize based
-                  // on the value of
-                  // predict_response_tensor_serialization_option_.
-                  output_tensor.AsProtoField(&tensor_proto);
-                }
+                // TODO(b/288096487): We are assuming
+                // predict_response_tensor_serialization_option_ ==
+                // kAsProtoField. The proper way is to check serialize based on
+                // the value of predict_response_tensor_serialization_option_.
+                output_tensor.AsProtoField(&tensor_proto);
+              }
 
-                response_callback(std::move(response));
-                // TODO(b/288096487): Add streamz support.
-              };
-        }
+              response_callback(std::move(response));
+              // TODO(b/288096487): Add streamz support.
+            };
 
-        // Streaming graphs pass their responses through `response_callback`
-        // above and currently have no regular output tensors. Any regular
-        // outputs (e.g. from a graph without stream ops) are returned as one
-        // final response, after all streamed ones.
+        // The actual responses are passed through `response_callback`. The
+        // graph should have no output tensors currently.
         PredictResponse response;
-        TF_RETURN_IF_ERROR(internal::RunPredict(
+
+        return internal::RunPredict(
             tfrt_run_options, version(),
             predict_response_tensor_serialization_option_, saved_model_.get(),
             request, &response,
             thread_pool_factory_ == nullptr
                 ? tsl::thread::ThreadPoolOptions()
-                : thread_pool_factory_->GetThreadPools().get()));
-        if (response.outputs_size() > 0) {
-          response_callback(std::move(response));
-        }
-        return absl::OkStatus();
+                : thread_pool_factory_->GetThreadPools().get());
       });
 }
 

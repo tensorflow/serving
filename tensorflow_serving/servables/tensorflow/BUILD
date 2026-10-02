@@ -1754,7 +1754,6 @@ cc_library(
         "//tensorflow_serving/apis:predict_cc_proto",
         "//tensorflow_serving/apis:regression_cc_proto",
         "//tensorflow_serving/core:servable_model_type",
-        "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -1772,37 +1771,6 @@ cc_library(
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core/platform:tracing",
         "@org_tensorflow//tensorflow/core/tfrt/saved_model:saved_model_cpu",
-    ],
-)
-
-cc_test(
-    name = "tfrt_servable_test",
-    srcs = ["tfrt_servable_test.cc"],
-    data = [
-        "//tensorflow_serving/servables/tensorflow/testdata:saved_model_half_plus_two_tf2_cpu",
-    ],
-    deps = [
-        ":servable",
-        ":tfrt_saved_model_source_adapter",
-        ":tfrt_saved_model_source_adapter_cc_proto",
-        "//tensorflow_serving/apis:model_cc_proto",
-        "//tensorflow_serving/apis:predict_cc_proto",
-        "//tensorflow_serving/config:model_server_config_cc_proto",
-        "//tensorflow_serving/config:platform_config_cc_proto",
-        "//tensorflow_serving/core:aspired_version_policy",
-        "//tensorflow_serving/core:availability_preserving_policy",
-        "//tensorflow_serving/core:servable_handle",
-        "//tensorflow_serving/core/test_util:test_main",
-        "//tensorflow_serving/model_servers:model_platform_types",
-        "//tensorflow_serving/model_servers:server_core",
-        "//tensorflow_serving/test_util",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@local_xla//xla/tsl/lib/core:status_test_util",
-        "@local_xla//xla/tsl/platform:status",
-        "@org_tensorflow//tensorflow/cc/saved_model:signature_constants",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core/tfrt/runtime",
     ],
 )
 
