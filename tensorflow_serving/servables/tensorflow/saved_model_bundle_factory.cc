@@ -71,7 +71,11 @@ absl::Status LoadTfLiteModel(const std::string& model_dir,
   std::string model_bytes;
   model_bytes.resize(size);
   absl::string_view sv;
+
   TF_RETURN_IF_ERROR(file->Read(0, sv, absl::MakeSpan(&model_bytes[0], size)));
+#if FLATBUFFERS_LITTLEENDIAN == 0
+  tflite::FlatBufferModel::ByteSwapSerializedModel(&model_bytes, false);
+#endif
 
   std::unique_ptr<TfLiteSession> tflite_session;
   TF_RETURN_IF_ERROR(TfLiteSession::Create(
