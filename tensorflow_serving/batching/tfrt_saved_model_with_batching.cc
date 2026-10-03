@@ -237,11 +237,20 @@ absl::Status SavedModelWithBatching::Run(
 // TODO(b/168220822): Once tfrt supports tensor split/pad/concat utilities and
 // removes llvm dependency, refactors this function accordingly (return type may
 // change).
-std::vector<absl::InlinedVector<int, 4>> CalculateMaxDimSizes(
-    const Batch<SavedModelBatchingTask>& batch) {
-  std::vector<absl::InlinedVector<int, 4>> max_dim_sizes;
+absl::Status CalculateMaxDimSizes(
+    const Batch<SavedModelBatchingTask>& batch,
+    std::vector<absl::InlinedVector<int, 4>>* max_dim_sizes) {
+  if (batch.num_tasks() < 1) {
+    return absl::InvalidArgumentError(
+        "Cannot calculate dimensions for an empty batch.");
+  }
+  max_dim_sizes->clear();
   for (int batch_idx = 0; batch_idx < batch.num_tasks(); ++batch_idx) {
     const auto inputs = batch.task(batch_idx).tfrt_inputs;
+    if (batch_idx > 0 && inputs.size() != max_dim_sizes->size()) {
+      return absl::FailedPreconditionError(
+          "Tasks in a single batch have different numbers of input tensors.");
+    }
     for (int tensor_idx = 0; tensor_idx < inputs.size(); ++tensor_idx) {
       const Tensor& tensor = inputs[tensor_idx];
       const TensorShape& shape = tensor.shape();
@@ -254,16 +263,23 @@ std::vector<absl::InlinedVector<int, 4>> CalculateMaxDimSizes(
       }
 
       if (batch_idx == 0) {
-        max_dim_sizes.push_back(std::move(dims));
+        max_dim_sizes->push_back(std::move(dims));
       } else {
+        absl::InlinedVector<int, 4>& max_sizes = (*max_dim_sizes)[tensor_idx];
+        if (max_sizes.size() != static_cast<size_t>(rank)) {
+          return absl::FailedPreconditionError(absl::StrCat(
+              "Tensors at input index ", tensor_idx,
+              " from different tasks have different ranks: expected ",
+              max_sizes.size(), ", got ", rank, "."));
+        }
         for (int rank_idx = 0; rank_idx < rank; ++rank_idx) {
-          int& cur_max_size = max_dim_sizes[tensor_idx][rank_idx];
+          int& cur_max_size = max_sizes[rank_idx];
           cur_max_size = std::max(cur_max_size, dims[rank_idx]);
         }
       }
     }
   }
-  return max_dim_sizes;
+  return absl::OkStatus();
 }
 
 absl::Status SavedModelWithBatching::BatchInputTensors(
@@ -282,7 +298,7 @@ absl::Status SavedModelWithBatching::BatchInputTensors(
 
   std::vector<absl::InlinedVector<int, 4>> max_dim_sizes;
   if (options_.pad_variable_length_inputs) {
-    max_dim_sizes = CalculateMaxDimSizes(batch);
+    TF_RETURN_IF_ERROR(CalculateMaxDimSizes(batch, &max_dim_sizes));
   }
 
   // TODO(b/168220822): Padding logic below operates on tfrt inputs. It's pretty
