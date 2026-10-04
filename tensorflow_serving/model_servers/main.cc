@@ -250,6 +250,9 @@ int main(int argc, char** argv) {
                        &options.num_request_iterations_for_warmup,
                        "Number of times a request is iterated during warmup "
                        "replay. This value is used only if > 0."),
+      tensorflow::Flag("num_warmup_threads", &options.num_warmup_threads,
+                       "Number of threads for warmp up threads pool to use for model warmup."
+                       "Default is 0, which means no thread pool is used."),
       tensorflow::Flag("version", &display_version, "Display version"),
       tensorflow::Flag(
           "monitoring_config_file", &options.monitoring_config_file,
