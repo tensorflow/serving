@@ -179,6 +179,24 @@ void Server::PollFilesystemAndReloadConfig(const string& config_file_path) {
   }
 }
 
+int LevenshteinDistance(const std::string& s1, const std::string& s2) {
+  const size_t len1 = s1.size(), len2 = s2.size();
+  std::vector<std::vector<size_t>> d(len1 + 1, std::vector<size_t>(len2 + 1));
+
+  for (size_t i = 0; i <= len1; ++i) d[i][0] = i;
+  for (size_t j = 0; j <= len2; ++j) d[0][j] = j;
+
+  for (size_t i = 1; i <= len1; ++i) {
+    for (size_t j = 1; j <= len2; ++j) {
+      d[i][j] = std::min({ d[i - 1][j] + 1,
+                           d[i][j - 1] + 1,
+                           d[i - 1][j - 1] + (s1[i - 1] == s2[j - 1] ? 0 : 1) });
+    }
+  }
+
+  return static_cast<int>(d[len1][len2]);
+}
+
 absl::Status Server::BuildAndStart(const Options& server_options) {
   if (server_options.grpc_port == 0 &&
       server_options.grpc_socket_path.empty()) {
@@ -439,10 +457,23 @@ absl::Status Server::BuildAndStart(const Options& server_options) {
       const string server_address =
           "localhost:" + std::to_string(server_options.http_port);
       MonitoringConfig monitoring_config;
+  
       if (!server_options.monitoring_config_file.empty()) {
+        const std::string config_file = server_options.monitoring_config_file;
+        // Check if the config file name is a typo for "prometheus".
+        // Levenshtein distance <= 2 is considered a typo.
+        const std::string target = "prometheus";
+        int distance = LevenshteinDistance(config_file, target);
+        if (distance <= 2) {
+          LOG(ERROR) << absl::StrFormat(
+              "Did you mean 'prometheus'? The provided monitoring config file '%s' "
+              "seems like a typo (Levenshtein distance = %d).", config_file, distance);
+        }
+  
         TF_RETURN_IF_ERROR(ParseProtoTextFile<MonitoringConfig>(
-            server_options.monitoring_config_file, &monitoring_config));
+            config_file, &monitoring_config));
       }
+  
       http_server_ = CreateAndStartHttpServer(
           server_options.http_port, server_options.http_num_threads,
           server_options.http_timeout_in_ms, monitoring_config,
@@ -459,7 +490,7 @@ absl::Status Server::BuildAndStart(const Options& server_options) {
     }
   }
   return absl::OkStatus();
-}
+} 
 
 void Server::WaitForTermination() {
   if (http_server_ != nullptr) {
