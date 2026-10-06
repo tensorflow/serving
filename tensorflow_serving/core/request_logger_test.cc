@@ -138,15 +138,20 @@ TEST_F(RequestLoggerTest, ErroringCollectMessage) {
 TEST_F(RequestLoggerTest, LoggingStreamSucceeds) {
   auto logger = std::make_unique<MockPredictionStreamLogger>();
 
-  LogMetadata expected_log_metadata;
-  expected_log_metadata.mutable_model_spec()->set_name("model");
+  LogMetadata input_log_metadata;
+  input_log_metadata.mutable_model_spec()->set_name("model");
+
+  LogMetadata expected_log_metadata = input_log_metadata;
+  expected_log_metadata.mutable_sampling_config()->set_sampling_rate(1.0);
+  *expected_log_metadata.mutable_saved_model_tags() = {model_tags_.begin(),
+                                                       model_tags_.end()};
+
   EXPECT_CALL(*request_logger_,
               FillLogMetadata(test_util::EqualsProto(expected_log_metadata)))
       .WillOnce(Return(expected_log_metadata));
 
   request_logger_->MaybeStartLoggingStream<PredictRequest, PredictResponse>(
-      expected_log_metadata,
-      [logger_ptr = logger.get()]() { return logger_ptr; });
+      input_log_metadata, [logger_ptr = logger.get()]() { return logger_ptr; });
 
   EXPECT_CALL(*logger, CreateLogMessage(
                            test_util::EqualsProto(expected_log_metadata), _))
@@ -162,15 +167,19 @@ TEST_F(RequestLoggerTest, LoggingStreamSucceeds) {
 TEST_F(RequestLoggerTest, LoggingStreamRequestLoggerDiesBeforeStreamCloses) {
   auto logger = std::make_unique<MockPredictionStreamLogger>();
 
-  LogMetadata expected_log_metadata;
-  expected_log_metadata.mutable_model_spec()->set_name("model");
+  LogMetadata input_log_metadata;
+  input_log_metadata.mutable_model_spec()->set_name("model");
+
+  LogMetadata expected_log_metadata = input_log_metadata;
+  expected_log_metadata.mutable_sampling_config()->set_sampling_rate(1.0);
+  *expected_log_metadata.mutable_saved_model_tags() = {model_tags_.begin(),
+                                                       model_tags_.end()};
 
   EXPECT_CALL(*request_logger_,
               FillLogMetadata(test_util::EqualsProto(expected_log_metadata)))
       .WillOnce(Return(expected_log_metadata));
   request_logger_->MaybeStartLoggingStream<PredictRequest, PredictResponse>(
-      expected_log_metadata,
-      [logger_ptr = logger.get()]() { return logger_ptr; });
+      input_log_metadata, [logger_ptr = logger.get()]() { return logger_ptr; });
 
   EXPECT_CALL(*logger, CreateLogMessage(
                            test_util::EqualsProto(expected_log_metadata), _))
@@ -181,6 +190,51 @@ TEST_F(RequestLoggerTest, LoggingStreamRequestLoggerDiesBeforeStreamCloses) {
   EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(0);
 
   request_logger_.reset();
+  TF_ASSERT_OK(logger->LogMessage());
+}
+
+TEST_F(RequestLoggerTest, LoggingStreamStampsPerTaskSamplingConfig) {
+  // Create a logger with per-task sampling config (dc="aa", rate=1.0) and a
+  // top-level rate of 0.0. The constructor resolves per-task config for dc="aa"
+  // and sets the effective sampling_rate to 1.0.
+  LoggingConfig logging_config;
+  logging_config.mutable_sampling_config()->set_sampling_rate(0.0);
+  auto* per_task =
+      logging_config.mutable_sampling_config()->add_per_task_sampling_configs();
+  per_task->set_dc("aa");
+  per_task->set_sampling_rate(1.0);
+
+  auto* collector = new NiceMock<MockLogCollector>();
+  auto request_logger = std::shared_ptr<NiceMock<MockRequestLogger>>(
+      new NiceMock<MockRequestLogger>(logging_config, model_tags_, collector,
+                                      "aa", 0));
+
+  auto logger = std::make_unique<MockPredictionStreamLogger>();
+  LogMetadata input_log_metadata;
+  input_log_metadata.mutable_model_spec()->set_name("model");
+
+  // The effective rate should be 1.0 (resolved from per-task config), and the
+  // per_task_sampling_configs should be propagated.
+  LogMetadata expected_log_metadata = input_log_metadata;
+  *expected_log_metadata.mutable_sampling_config() =
+      request_logger->logging_config().sampling_config();
+  *expected_log_metadata.mutable_saved_model_tags() = {model_tags_.begin(),
+                                                       model_tags_.end()};
+
+  EXPECT_CALL(*request_logger,
+              FillLogMetadata(test_util::EqualsProto(expected_log_metadata)))
+      .WillOnce(Return(expected_log_metadata));
+
+  request_logger->MaybeStartLoggingStream<PredictRequest, PredictResponse>(
+      input_log_metadata, [logger_ptr = logger.get()]() { return logger_ptr; });
+
+  EXPECT_CALL(*logger, CreateLogMessage(
+                           test_util::EqualsProto(expected_log_metadata), _))
+      .WillOnce(DoAll(WithArg<1>([](std::unique_ptr<google::protobuf::Message>* log) {
+                        *log = std::make_unique<google::protobuf::Any>();
+                      }),
+                      Return(absl::OkStatus())));
+  EXPECT_CALL(*collector, CollectMessage(_)).WillOnce(Return(absl::OkStatus()));
   TF_ASSERT_OK(logger->LogMessage());
 }
 
