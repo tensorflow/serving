@@ -149,8 +149,7 @@ absl::Status SavedModelWithBatching::Create(
 
   SavedModel* raw_saved_model = saved_model.get();
   std::unique_ptr<SavedModelWithBatching> saved_model_with_batching =
-      absl::make_unique<SavedModelWithBatching>(options,
-                                                std::move(saved_model));
+      std::make_unique<SavedModelWithBatching>(options, std::move(saved_model));
   SavedModelWithBatching* raw_saved_model_with_batching =
       saved_model_with_batching.get();
 
@@ -214,7 +213,7 @@ absl::Status SavedModelWithBatching::Run(
 
   absl::Notification done;
   absl::Status status;
-  auto task = absl::make_unique<SavedModelBatchingTask>();
+  auto task = std::make_unique<SavedModelBatchingTask>();
   TF_RETURN_IF_ERROR(ComputeTensorBatchSize(
       inputs, &task->zeroth_dim_size,
       [](const Tensor& tensor) { return tensor.dims(); },
@@ -489,14 +488,14 @@ absl::Status SplitSavedModelInputTask(
 
   if (open_batch_remaining_slot > 0) {
     output_task_sizes.push_back(open_batch_remaining_slot);
-    split_output->emplace_back(absl::make_unique<std::vector<Tensor>>());
+    split_output->emplace_back(std::make_unique<std::vector<Tensor>>());
   }
 
   for (int left_task_size = input_task->size() - open_batch_remaining_slot;
        left_task_size > 0; left_task_size -= max_batch_size) {
     int next_task_size = std::min(left_task_size, max_batch_size);
     output_task_sizes.push_back(next_task_size);
-    split_output->emplace_back(absl::make_unique<std::vector<Tensor>>());
+    split_output->emplace_back(std::make_unique<std::vector<Tensor>>());
   }
 
   const int output_task_num = output_task_sizes.size();
@@ -504,7 +503,7 @@ absl::Status SplitSavedModelInputTask(
   // Construct partial tasks.
   output_tasks->reserve(output_task_num);
   for (int i = 0; i < output_task_num; ++i) {
-    auto task = absl::make_unique<SavedModelBatchingTask>();
+    auto task = std::make_unique<SavedModelBatchingTask>();
     task->zeroth_dim_size = output_task_sizes[i];
     task->run_options = input_task->run_options;
     task->tfrt_outputs = (*split_output)[i].get();
