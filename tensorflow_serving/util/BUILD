@@ -1,5 +1,6 @@
 # Description: Tensorflow Serving utils.
 
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("//tensorflow_serving:serving.bzl", "serving_proto_library")
@@ -386,4 +387,24 @@ serving_proto_library(
 cc_library(
     name = "oss_or_google",
     hdrs = ["oss_or_google.h"],
+)
+# Fuzz target for OSS-Fuzz continuous fuzzing.
+# Build with: bazel build --config=oss-fuzz //tensorflow_serving/util:json_tensor_fuzzer
+cc_binary(
+    name = "json_tensor_fuzzer",
+    srcs = ["json_tensor_fuzzer.cc"],
+    copts = ["-fsanitize=fuzzer-no-link"],
+    linkopts = ["-fsanitize=fuzzer"],
+    deps = [
+        ":json_tensor",
+        "//tensorflow_serving/apis:classification_cc_proto",
+        "//tensorflow_serving/apis:predict_cc_proto",
+        "//tensorflow_serving/apis:regression_cc_proto",
+        "@com_google_absl//absl/strings",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+    ],
+    # Fuzzer binaries should not be installed or run by default.
+    tags = ["manual", "fuzzer", "oss-fuzz"],
 )
