@@ -77,7 +77,7 @@ To serve with Docker, you'll need:
 
 What you'll do is
 [run the Docker](https://docs.docker.com/engine/reference/run/) container,
-[publish](https://docs.docker.com/engine/reference/commandline/run/#publish-or-expose-port--p---expose)
+[publish](https://docs.docker.com/reference/cli/docker/container/run/#publish)
 the container's ports to your host's ports, and mounting your host's path to the
 SavedModel to where the container expects models.
 
