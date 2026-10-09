@@ -32,6 +32,7 @@ namespace serving {
 namespace {
 
 using ::testing::ElementsAre;
+using ::testing::HasSubstr;
 using ::testing::Pair;
 using ::testing::UnorderedElementsAre;
 
@@ -56,11 +57,29 @@ TEST(BatchingUtilTest, CalculateMaxDimSizes) {
       CreateInputsWithTensorShapes(shapes2);
   std::vector<std::vector<std::pair<std::string, Tensor>>> batch{inputs1,
                                                                  inputs2};
-  std::map<std::string, std::vector<int>> max_dim_sizes =
-      CalculateMaxDimSizes(batch);
+  std::map<std::string, std::vector<int>> max_dim_sizes;
+  ASSERT_EQ(absl::OkStatus(),
+            CalculateMaxDimSizes(batch, &max_dim_sizes));
   EXPECT_THAT(max_dim_sizes,
               UnorderedElementsAre(Pair("x0", ElementsAre(20, 50, 30)),
                                    Pair("x1", ElementsAre(20, 101))));
+}
+
+TEST(BatchingUtilTest, CalculateMaxDimSizesRejectsMismatchedRanks) {
+  const auto rank_two = CreateInputsWithTensorShapes({TensorShape({1, 2})});
+  const auto rank_three =
+      CreateInputsWithTensorShapes({TensorShape({1, 1, 2})});
+
+  for (const auto& batch :
+       {std::vector<std::vector<std::pair<std::string, Tensor>>>{rank_two,
+                                                                 rank_three},
+        std::vector<std::vector<std::pair<std::string, Tensor>>>{rank_three,
+                                                                 rank_two}}) {
+    std::map<std::string, std::vector<int>> max_dim_sizes;
+    absl::Status status = CalculateMaxDimSizes(batch, &max_dim_sizes);
+    EXPECT_EQ(status.code(), absl::StatusCode::kFailedPrecondition);
+    EXPECT_THAT(status.message(), HasSubstr("different ranks"));
+  }
 }
 
 TEST(BatchingUtilTest, AddPadding) {
@@ -97,6 +116,18 @@ TEST(BatchingUtilTest, AddPaddingTensorWithUnsupportedRank) {
   ASSERT_EQ(absl::InvalidArgumentError(
                 "Only tensors with rank from 1 to 6 can be padded."),
             AddPadding(tensor, max_dim_sizes, &padded_tensor));
+}
+
+TEST(BatchingUtilTest, AddPaddingRejectsMismatchedRank) {
+  Tensor padded_tensor;
+  absl::Status status =
+      AddPadding(Tensor(DT_FLOAT, {1, 2}), {1, 2, 3}, &padded_tensor);
+  EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_THAT(status.message(), HasSubstr("does not match"));
+
+  status = AddPadding(Tensor(DT_FLOAT, {1, 2, 3}), {1, 2}, &padded_tensor);
+  EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_THAT(status.message(), HasSubstr("does not match"));
 }
 }  // namespace
 }  // namespace serving

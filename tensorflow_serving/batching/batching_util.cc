@@ -153,26 +153,51 @@ absl::Status PadTensorOfSpecificType(const Tensor& tensor,
   }
 }
 
-std::map<std::string, std::vector<int>> CalculateMaxDimSizes(
-    const std::vector<std::vector<std::pair<std::string, Tensor>>>& batch) {
-  std::map<std::string, std::vector<int>> max_dim_sizes;
+absl::Status CalculateMaxDimSizes(
+    const std::vector<std::vector<std::pair<std::string, Tensor>>>& batch,
+    std::map<std::string, std::vector<int>>* max_dim_sizes) {
+  if (batch.empty()) {
+    return absl::InvalidArgumentError(
+        "Cannot calculate dimensions for an empty batch.");
+  }
+  max_dim_sizes->clear();
   // Populate 'max_dim_sizes'
   // init
   const std::vector<std::pair<std::string, Tensor>>& task_inputs = batch[0];
   for (const auto& entry : task_inputs) {
     const std::string& tensor_name = entry.first;
     const Tensor& tensor = entry.second;
-    max_dim_sizes[tensor_name] = std::vector<int>(tensor.dims(), 0);
+    if (!max_dim_sizes->emplace(tensor_name, std::vector<int>(tensor.dims(), 0))
+             .second) {
+      return absl::FailedPreconditionError(absl::StrCat(
+          "Task has duplicate input tensor name '", tensor_name, "'."));
+    }
   }
   // fill
   for (int i = 0; i < batch.size(); ++i) {
     const std::vector<std::pair<std::string, Tensor>>& task_inputs = batch[i];
+    if (task_inputs.size() != max_dim_sizes->size()) {
+      return absl::FailedPreconditionError(
+          "Tasks in a single batch have different numbers of input tensors.");
+    }
     for (const auto& entry : task_inputs) {
       const std::string& tensor_name = entry.first;
       const Tensor& tensor = entry.second;
 
-      std::vector<int>& max_dim_sizes_for_one_input =
-          max_dim_sizes[tensor_name];
+      auto max_dim_sizes_it = max_dim_sizes->find(tensor_name);
+      if (max_dim_sizes_it == max_dim_sizes->end()) {
+        return absl::FailedPreconditionError(absl::StrCat(
+            "Tasks in a single batch have different input tensor names; '",
+            tensor_name, "' was not present in the first task."));
+      }
+      std::vector<int>& max_dim_sizes_for_one_input = max_dim_sizes_it->second;
+      if (static_cast<size_t>(tensor.dims()) !=
+          max_dim_sizes_for_one_input.size()) {
+        return absl::FailedPreconditionError(absl::StrCat(
+            "Tensors with name '", tensor_name,
+            "' from different tasks have different ranks: expected ",
+            max_dim_sizes_for_one_input.size(), ", got ", tensor.dims(), "."));
+      }
       for (int j = 0; j < tensor.dims(); ++j) {
         const int old_max_size = max_dim_sizes_for_one_input[j];
         if (tensor.shape().dim_size(j) > old_max_size) {
@@ -181,12 +206,17 @@ std::map<std::string, std::vector<int>> CalculateMaxDimSizes(
       }
     }
   }
-  return max_dim_sizes;
+  return absl::OkStatus();
 }
 
 absl::Status AddPadding(const Tensor& tensor,
                         absl::Span<const int> max_dim_sizes,
                         Tensor* padded_tensor) {
+  if (static_cast<size_t>(tensor.dims()) != max_dim_sizes.size()) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "Tensor rank ", tensor.dims(),
+        " does not match maximum-dimension rank ", max_dim_sizes.size(), "."));
+  }
   const DataType input_dtype = tensor.dtype();
   absl::Status padding_status;
 #define CASE(type)                                                           \
