@@ -118,7 +118,14 @@ void RequestLogger::MaybeStartLoggingStream(
   auto* stream_logger = get_stream_logger_fn();
   if (stream_logger == nullptr) return;
 
-  LogMetadata lm_out = FillLogMetadata(log_metadata);
+  LogMetadata log_metadata_with_config = log_metadata;
+  *log_metadata_with_config.mutable_sampling_config() =
+      logging_config_.sampling_config();
+  if (!saved_model_tags_.empty()) {
+    *log_metadata_with_config.mutable_saved_model_tags() = {
+        saved_model_tags_.begin(), saved_model_tags_.end()};
+  }
+  LogMetadata lm_out = FillLogMetadata(log_metadata_with_config);
   std::weak_ptr<RequestLogger> logger_ref(shared_from_this());
   stream_logger->AddLogCallback(
       lm_out, [logger_ref = std::move(logger_ref)](const google::protobuf::Message& log) {

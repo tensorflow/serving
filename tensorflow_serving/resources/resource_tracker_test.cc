@@ -76,7 +76,7 @@ class ResourceTrackerTest : public ::testing::Test {
 
     loader_0_.reset(new NiceMock<test_util::MockLoader>);
     ON_CALL(*loader_0_, EstimateResources(_))
-        .WillByDefault(Invoke([](ResourceAllocation* estimate) {
+        .WillByDefault([](ResourceAllocation* estimate) {
           *estimate = CreateProto<ResourceAllocation>(
               "resource_quantities { "
               "  resource { "
@@ -94,11 +94,11 @@ class ResourceTrackerTest : public ::testing::Test {
               "  quantity: 3 "
               "} ");
           return absl::Status();
-        }));
+        });
 
     loader_1_.reset(new NiceMock<test_util::MockLoader>);
     ON_CALL(*loader_1_, EstimateResources(_))
-        .WillByDefault(Invoke([](ResourceAllocation* estimate) {
+        .WillByDefault([](ResourceAllocation* estimate) {
           *estimate = CreateProto<ResourceAllocation>(
               "resource_quantities { "
               "  resource { "
@@ -116,11 +116,11 @@ class ResourceTrackerTest : public ::testing::Test {
               "  quantity: 7 "
               "} ");
           return absl::Status();
-        }));
+        });
 
     loader_2_.reset(new NiceMock<test_util::MockLoader>);
     ON_CALL(*loader_2_, EstimateResources(_))
-        .WillByDefault(Invoke([](ResourceAllocation* estimate) {
+        .WillByDefault([](ResourceAllocation* estimate) {
           *estimate = CreateProto<ResourceAllocation>(
               "resource_quantities { "
               "  resource { "
@@ -130,11 +130,11 @@ class ResourceTrackerTest : public ::testing::Test {
               "  quantity: 15 "
               "} ");
           return absl::Status();
-        }));
+        });
 
     loader_3_.reset(new NiceMock<test_util::MockLoader>);
     ON_CALL(*loader_3_, EstimateResources(_))
-        .WillByDefault(Invoke([](ResourceAllocation* estimate) {
+        .WillByDefault([](ResourceAllocation* estimate) {
           *estimate = CreateProto<ResourceAllocation>(
               "resource_quantities { "
               "  resource { "
@@ -144,11 +144,11 @@ class ResourceTrackerTest : public ::testing::Test {
               "  quantity: 12 "
               "} ");
           return absl::Status();
-        }));
+        });
 
     invalid_resources_loader_.reset(new NiceMock<test_util::MockLoader>);
     ON_CALL(*invalid_resources_loader_, EstimateResources(_))
-        .WillByDefault(Invoke([](ResourceAllocation* estimate) {
+        .WillByDefault([](ResourceAllocation* estimate) {
           *estimate = CreateProto<ResourceAllocation>(
               "resource_quantities { "
               "  resource { "
@@ -159,7 +159,7 @@ class ResourceTrackerTest : public ::testing::Test {
               "  quantity: 4 "
               "} ");
           return absl::Status();
-        }));
+        });
 
     // Disallow calls to Load()/Unload().
     for (auto* loader : {loader_0_.get(), loader_1_.get(), loader_2_.get(),

@@ -346,7 +346,7 @@ std::string BuildTestModel(
     (*node_def.mutable_attr())["T"].set_type(ToTfTensorType(tensor_type));
     std::string node_def_str;
     CHECK(node_def.SerializeToString(&node_def_str));
-    auto flex_builder = absl::make_unique<flexbuffers::Builder>();
+    auto flex_builder = std::make_unique<flexbuffers::Builder>();
     flex_builder->Vector([&]() {
       flex_builder->String(node_def.op());
       flex_builder->String(node_def_str);
@@ -653,7 +653,7 @@ absl::Status BuildSessionInBatch(std::unique_ptr<TfLiteSession>* sess,
   const int model_batch_size = 5;
   if (use_model_batch_size) {
     const tflite::Model* tflite_model = model->GetModel();
-    auto mutable_model = absl::make_unique<tflite::ModelT>();
+    auto mutable_model = std::make_unique<tflite::ModelT>();
     tflite_model->UnPackTo(mutable_model.get(), nullptr);
 
     if (mutable_model->subgraphs.size() != 1) {

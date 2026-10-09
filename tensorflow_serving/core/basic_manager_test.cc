@@ -320,10 +320,10 @@ TEST_P(BasicManagerTest, UpdateServingMapServableHandleLatest) {
   // the serving map is also updated, so v0 would be the latest.
   absl::Notification unload_started;
   absl::Notification finish_unload;
-  EXPECT_CALL(*notify_to_unload, Unload()).WillOnce(Invoke([&]() {
+  EXPECT_CALL(*notify_to_unload, Unload()).WillOnce([&]() {
     unload_started.Notify();
     finish_unload.WaitForNotification();
-  }));
+  });
   absl::Notification unload_finished;
   std::unique_ptr<Thread> unload_last_servable(
       Env::Default()->StartThread({}, "UnloadLastServable", [&]() {
@@ -709,12 +709,11 @@ TEST_P(BasicManagerTest, EventBusServableLifecycle) {
 
   absl::Notification load_called;
   absl::Notification load_continue;
-  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
-      .WillOnce(InvokeWithoutArgs([&]() {
-        load_called.Notify();
-        load_continue.WaitForNotification();
-        return absl::OkStatus();
-      }));
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id})).WillOnce([&]() {
+    load_called.Notify();
+    load_continue.WaitForNotification();
+    return absl::OkStatus();
+  });
 
   std::unique_ptr<Thread> load_thread(
       Env::Default()->StartThread(ThreadOptions(), "LoadThread", [&]() {
@@ -739,10 +738,10 @@ TEST_P(BasicManagerTest, EventBusServableLifecycle) {
 
   absl::Notification unload_called;
   absl::Notification unload_continue;
-  EXPECT_CALL(*loader, Unload()).WillOnce(Invoke([&]() {
+  EXPECT_CALL(*loader, Unload()).WillOnce([&]() {
     unload_called.Notify();
     unload_continue.WaitForNotification();
-  }));
+  });
   // Scoped to ensure UnloadServable() is scheduled.
   std::unique_ptr<Thread> unload_thread(
       Env::Default()->StartThread(ThreadOptions(), "UnloadThread", [&]() {
@@ -1157,11 +1156,11 @@ TEST_P(BasicManagerTest, RetryOnLoadErrorCancelledLoad) {
   absl::Notification load_called;
   absl::Notification load_should_return;
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
-      .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
+      .WillOnce([&load_called, &load_should_return]() {
         load_called.Notify();
         load_should_return.WaitForNotification();
         return absl::InternalError("Load error.");
-      }))
+      })
       .WillRepeatedly(Return(absl::OkStatus()));
   std::unique_ptr<Thread> load_thread(
       Env::Default()->StartThread(ThreadOptions(), "LoadServable", [&]() {
@@ -1185,11 +1184,11 @@ TEST_P(BasicManagerTest, LoadAfterCancelledLoad) {
   absl::Notification load_called;
   absl::Notification load_should_return;
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
-      .WillOnce(InvokeWithoutArgs([&load_called, &load_should_return]() {
+      .WillOnce([&load_called, &load_should_return]() {
         load_called.Notify();
         load_should_return.WaitForNotification();
         return absl::InternalError("Load error.");
-      }))
+      })
       .WillRepeatedly(Return(absl::OkStatus()));
 
   std::unique_ptr<Thread> load_thread(
@@ -1225,14 +1224,13 @@ TEST(NonParameterizedBasicManagerTest, PreLoadHook) {
   TF_ASSERT_OK(manager->ManageServable({id, std::unique_ptr<Loader>(loader)}));
 
   bool pre_load_hook_called = false;
-  EXPECT_CALL(mock_pre_load_hook, Call(id)).WillOnce(InvokeWithoutArgs([&]() {
+  EXPECT_CALL(mock_pre_load_hook, Call(id)).WillOnce([&]() {
     pre_load_hook_called = true;
-  }));
-  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id}))
-      .WillOnce(InvokeWithoutArgs([&]() {
-        EXPECT_TRUE(pre_load_hook_called);
-        return absl::OkStatus();
-      }));
+  });
+  EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{id})).WillOnce([&]() {
+    EXPECT_TRUE(pre_load_hook_called);
+    return absl::OkStatus();
+  });
   manager->LoadServable(
       id, [](const absl::Status& status) { TF_ASSERT_OK(status); });
   manager->UnloadServable(
@@ -1333,10 +1331,10 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
   const ServableId hogging_id = {"hogging", 0};
   test_util::MockLoader* hogging_loader = new NiceMock<test_util::MockLoader>;
   ON_CALL(*hogging_loader, EstimateResources(_))
-      .WillByDefault(Invoke([](ResourceAllocation* estimate) {
+      .WillByDefault([](ResourceAllocation* estimate) {
         *estimate = CreateResourceQuantity(10 /* = total system resources */);
         return absl::OkStatus();
-      }));
+      });
   EXPECT_CALL(*hogging_loader, LoadWithMetadata(Loader::Metadata{hogging_id}))
       .WillOnce(Return(absl::OkStatus()));
   TF_ASSERT_OK(basic_manager_->ManageServable(
@@ -1353,10 +1351,10 @@ TEST_F(ResourceConstrainedBasicManagerTest, InsufficientResources) {
   const ServableId rejected_id = {"rejected", 0};
   test_util::MockLoader* rejected_loader = new NiceMock<test_util::MockLoader>;
   ON_CALL(*rejected_loader, EstimateResources(_))
-      .WillByDefault(Invoke([](ResourceAllocation* estimate) {
+      .WillByDefault([](ResourceAllocation* estimate) {
         *estimate = CreateResourceQuantity(1);
         return absl::OkStatus();
-      }));
+      });
   TF_ASSERT_OK(basic_manager_->ManageServable(CreateServableData(
       rejected_id, std::unique_ptr<Loader>(rejected_loader))));
   absl::Notification rejection_received;
@@ -1386,10 +1384,10 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedIfLoadFails) {
   const ServableId failing_id = {"failing", 0};
   test_util::MockLoader* failing_loader = new NiceMock<test_util::MockLoader>;
   ON_CALL(*failing_loader, EstimateResources(_))
-      .WillByDefault(Invoke([](ResourceAllocation* estimate) {
+      .WillByDefault([](ResourceAllocation* estimate) {
         *estimate = CreateResourceQuantity(10);
         return absl::OkStatus();
-      }));
+      });
   EXPECT_CALL(*failing_loader, LoadWithMetadata(Loader::Metadata{failing_id}))
       .WillOnce(Return(absl::UnknownError("Load failure")));
   TF_ASSERT_OK(basic_manager_->ManageServable(
@@ -1409,10 +1407,10 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedIfLoadFails) {
   test_util::MockLoader* succeeding_loader =
       new NiceMock<test_util::MockLoader>;
   ON_CALL(*succeeding_loader, EstimateResources(_))
-      .WillByDefault(Invoke([](ResourceAllocation* estimate) {
+      .WillByDefault([](ResourceAllocation* estimate) {
         *estimate = CreateResourceQuantity(10);
         return absl::OkStatus();
-      }));
+      });
   EXPECT_CALL(*succeeding_loader,
               LoadWithMetadata(Loader::Metadata{succeeding_id}))
       .WillOnce(Return(absl::OkStatus()));
@@ -1431,19 +1429,19 @@ TEST_F(ResourceConstrainedBasicManagerTest,
   {
     InSequence sequence;
     EXPECT_CALL(*overestimating_loader, EstimateResources(_))
-        .WillOnce(Invoke([](ResourceAllocation* estimate) {
+        .WillOnce([](ResourceAllocation* estimate) {
           *estimate = CreateResourceQuantity(10);
           return absl::OkStatus();
-        }))
+        })
         .RetiresOnSaturation();
     EXPECT_CALL(*overestimating_loader,
                 LoadWithMetadata(Loader::Metadata{overestimating_id}))
         .WillOnce(Return(absl::OkStatus()));
     EXPECT_CALL(*overestimating_loader, EstimateResources(_))
-        .WillOnce(Invoke([](ResourceAllocation* estimate) {
+        .WillOnce([](ResourceAllocation* estimate) {
           *estimate = CreateResourceQuantity(5 /* lower estimate after load */);
           return absl::OkStatus();
-        }))
+        })
         .RetiresOnSaturation();
   }
   TF_ASSERT_OK(basic_manager_->ManageServable(CreateServableData(
@@ -1463,10 +1461,10 @@ TEST_F(ResourceConstrainedBasicManagerTest,
   test_util::MockLoader* succeeding_loader =
       new NiceMock<test_util::MockLoader>;
   ON_CALL(*succeeding_loader, EstimateResources(_))
-      .WillByDefault(Invoke([](ResourceAllocation* estimate) {
+      .WillByDefault([](ResourceAllocation* estimate) {
         *estimate = CreateResourceQuantity(5);
         return absl::OkStatus();
-      }));
+      });
   EXPECT_CALL(*succeeding_loader,
               LoadWithMetadata(Loader::Metadata{succeeding_id}))
       .WillOnce(Return(absl::OkStatus()));
@@ -1480,10 +1478,10 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedAfterUnload) {
   const ServableId unloading_id = {"unloading", 0};
   test_util::MockLoader* unloading_loader = new NiceMock<test_util::MockLoader>;
   ON_CALL(*unloading_loader, EstimateResources(_))
-      .WillByDefault(Invoke([](ResourceAllocation* estimate) {
+      .WillByDefault([](ResourceAllocation* estimate) {
         *estimate = CreateResourceQuantity(10);
         return absl::OkStatus();
-      }));
+      });
   absl::Notification load_done;
   EXPECT_CALL(*unloading_loader,
               LoadWithMetadata(Loader::Metadata{unloading_id}))
@@ -1499,10 +1497,10 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedAfterUnload) {
   absl::Notification unload_started;
   absl::Notification finish_unload;
   EXPECT_CALL(*unloading_loader, Unload())
-      .WillOnce(Invoke([&unload_started, &finish_unload] {
+      .WillOnce([&unload_started, &finish_unload] {
         unload_started.Notify();
         finish_unload.WaitForNotification();
-      }));
+      });
   basic_manager_->UnloadServable(
       unloading_id, [](const absl::Status& status) { TF_EXPECT_OK(status); });
   unload_started.WaitForNotification();
@@ -1514,15 +1512,15 @@ TEST_F(ResourceConstrainedBasicManagerTest, ResourcesReleasedAfterUnload) {
   test_util::MockLoader* succeeding_loader =
       new NiceMock<test_util::MockLoader>;
   EXPECT_CALL(*succeeding_loader, EstimateResources(_))
-      .WillOnce(Invoke([&finish_unload](ResourceAllocation* estimate) {
+      .WillOnce([&finish_unload](ResourceAllocation* estimate) {
         finish_unload.Notify();
         *estimate = CreateResourceQuantity(10);
         return absl::OkStatus();
-      }))
-      .WillOnce(Invoke([](ResourceAllocation* estimate) {
+      })
+      .WillOnce([](ResourceAllocation* estimate) {
         *estimate = CreateResourceQuantity(10);
         return absl::OkStatus();
-      }));
+      });
   EXPECT_CALL(*succeeding_loader,
               LoadWithMetadata(Loader::Metadata{succeeding_id}))
       .WillOnce(Return(absl::OkStatus()));
@@ -1542,13 +1540,13 @@ TEST_F(ResourceConstrainedBasicManagerTest, FirstLoadDeniedSecondOneApproved) {
   absl::Notification denied_estimate_started;
   absl::Notification finish_denied_estimate;
   EXPECT_CALL(*denied_loader, EstimateResources(_))
-      .WillOnce(Invoke([&denied_estimate_started,
-                        &finish_denied_estimate](ResourceAllocation* estimate) {
+      .WillOnce([&denied_estimate_started,
+                 &finish_denied_estimate](ResourceAllocation* estimate) {
         denied_estimate_started.Notify();
         finish_denied_estimate.WaitForNotification();
         *estimate = CreateResourceQuantity(11 /* more than the system total */);
         return absl::OkStatus();
-      }));
+      });
   // Load won't be called because resources are not enough to load it.
   EXPECT_CALL(*denied_loader, LoadWithMetadata(Loader::Metadata{denied_id}))
       .Times(0);
@@ -1560,10 +1558,10 @@ TEST_F(ResourceConstrainedBasicManagerTest, FirstLoadDeniedSecondOneApproved) {
   test_util::MockLoader* succeeding_loader =
       new NiceMock<test_util::MockLoader>;
   ON_CALL(*succeeding_loader, EstimateResources(_))
-      .WillByDefault(Invoke([](ResourceAllocation* estimate) {
+      .WillByDefault([](ResourceAllocation* estimate) {
         *estimate = CreateResourceQuantity(10);
         return absl::OkStatus();
-      }));
+      });
   TF_ASSERT_OK(basic_manager_->ManageServable(CreateServableData(
       succeeding_id, std::unique_ptr<Loader>(succeeding_loader))));
 
@@ -1580,12 +1578,12 @@ TEST_F(ResourceConstrainedBasicManagerTest, FirstLoadDeniedSecondOneApproved) {
   // servable's load request exits its decision phase.
   EXPECT_CALL(*succeeding_loader,
               LoadWithMetadata(Loader::Metadata{succeeding_id}))
-      .WillOnce(InvokeWithoutArgs([&finish_denied_estimate]() {
+      .WillOnce([&finish_denied_estimate]() {
         // Ensure that the first servable's load request has been given
         // permission to exit its decision phase.
         EXPECT_TRUE(finish_denied_estimate.HasBeenNotified());
         return absl::OkStatus();
-      }));
+      });
 
   // Scoping ensures that the thread is run by the end of this scope.
   {

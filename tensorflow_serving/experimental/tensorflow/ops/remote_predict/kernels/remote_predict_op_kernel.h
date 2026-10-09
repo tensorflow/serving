@@ -15,11 +15,20 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_EXPERIMENTAL_TENSORFLOW_OPS_REMOTE_PREDICT_KERNELS_REMOTE_PREDICT_OP_KERNEL_H_
 #define TENSORFLOW_SERVING_EXPERIMENTAL_TENSORFLOW_OPS_REMOTE_PREDICT_KERNELS_REMOTE_PREDICT_OP_KERNEL_H_
 
+#include <cstdint>
+#include <cstring>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "google/protobuf/wrappers.pb.h"
 #include "google/protobuf/map.h"
 #include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_join.h"
 #include "absl/time/time.h"
 #include "tensorflow/core/framework/common_shape_fns.h"
 #include "tensorflow/core/framework/op_kernel.h"
@@ -28,18 +37,44 @@ limitations under the License.
 #include "tensorflow/core/framework/shape_inference.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor.pb.h"
+#include "tensorflow/core/framework/tensor_shape.h"
+#include "tensorflow/core/framework/types.h"
+#include "tensorflow/core/kernels/batching_util/warmup.h"
 #include "tensorflow/core/kernels/ops_util.h"
 #include "tensorflow/core/lib/core/threadpool.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
 #include "tensorflow/core/platform/status.h"
+#include "tensorflow/core/platform/tstring.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/apis/predict.pb.h"
 
 ABSL_DECLARE_FLAG(bool, remote_predict_op_use_tensor_content);
 
+ABSL_DECLARE_FLAG(bool, remote_predict_bypass_rpc_during_warmup);
+
 namespace tensorflow {
 namespace serving {
+
+inline absl::Status SetTensorToZero(Tensor* tensor) {
+  DataType dtype = tensor->dtype();
+  if (dtype == DT_STRING) {
+    auto flat = tensor->flat<tstring>();
+    for (int i = 0; i < flat.size(); ++i) {
+      flat(i) = "";
+    }
+    return absl::OkStatus();
+  }
+
+  if (tensorflow::DataTypeIsNumeric(dtype) || dtype == DT_BOOL) {
+    if (tensor->TotalBytes() > 0) {
+      std::memset(tensor->data(), 0, tensor->TotalBytes());
+    }
+    return absl::OkStatus();
+  }
+  return absl::InvalidArgumentError(absl::StrCat(
+      "Unsupported type for zero initialization: ", DataTypeString(dtype)));
+}
 
 typedef google::protobuf::Map<tensorflow::string, tensorflow::TensorProto> AliasTensorMap;
 
@@ -61,6 +96,12 @@ class RemotePredictOp : public AsyncOpKernel {
                                              &fail_op_on_rpc_error_));
     OP_REQUIRES_OK(context,
                    context->GetAttr("signature_name", &signature_name_));
+    if (context->HasAttr("output_shapes")) {
+      if (context->GetAttr("output_shapes", &output_shapes_).ok() &&
+          !output_shapes_.empty()) {
+        has_output_shapes_ = true;
+      }
+    }
     absl::Status prediction_service_status =
         PredictionServiceStubType::Create(target_address, &prediction_service_);
     OP_REQUIRES(context, prediction_service_status.ok(),
@@ -70,6 +111,23 @@ class RemotePredictOp : public AsyncOpKernel {
   }
 
   void ComputeAsync(OpKernelContext* context, DoneCallback done) override {
+    if (absl::GetFlag(FLAGS_remote_predict_bypass_rpc_during_warmup) &&
+        IsWarmup(context)) {
+      int expected_outputs = context->num_outputs() - 2;
+      if (has_output_shapes_ && output_shapes_.size() == expected_outputs) {
+        OutputZeroFilledTensors(context, std::move(done));
+        return;
+      } else {
+        LOG(WARNING)
+            << "Cannot bypass RPC during warmup: missing or mismatched output "
+               "shapes. Falling back to remote call. has_output_shapes: "
+            << has_output_shapes_ << " expected_outputs: " << expected_outputs
+            << " shapes_size: "
+            << (has_output_shapes_ ? output_shapes_.size() : 0);
+        // Fall through to remote call.
+      }
+    }
+
     // Get the input tensor alias names.
     const auto& input_tensor_aliases = context->input(0).flat<tstring>();
 
@@ -199,12 +257,93 @@ class RemotePredictOp : public AsyncOpKernel {
     }
   }
 
+  bool IsWarmup(OpKernelContext* context) {
+    const auto* metadata = context->session_metadata();
+    if (metadata == nullptr) {
+      LOG_FIRST_N(INFO, 10) << "RemotePredictOp: SessionMetadata is null";
+      return false;
+    }
+    tensorflow::serving::WarmupStateRegistry::Key tf_key(metadata->name(),
+                                                         metadata->version());
+    bool tf_in_warmup =
+        tensorflow::serving::GetGlobalWarmupStateRegistry().Lookup(tf_key) !=
+        nullptr;
+
+    LOG_FIRST_N(INFO, 10) << "RemotePredictOp: SessionMetadata name="
+                          << metadata->name()
+                          << " version=" << metadata->version()
+                          << " tf_in_warmup=" << tf_in_warmup;
+    return tf_in_warmup;
+  }
+
+  void OutputZeroFilledTensors(OpKernelContext* context, DoneCallback done) {
+    OpInputList input_tensors;
+    absl::Status status = context->input_list("input_tensors", &input_tensors);
+    int64_t batch_size = -1;
+    if (status.ok() && input_tensors.size() > 0 &&
+        input_tensors[0].dims() > 0) {
+      batch_size = input_tensors[0].dim_size(0);
+    }
+
+    LOG(INFO) << "Bypassing RPC during warmup with batch_size = " << batch_size
+              << " and output shapes: "
+              << absl::StrJoin(output_shapes_, ",",
+                               [](std::string* out, const TensorShape& shape) {
+                                 absl::StrAppend(out, shape.DebugString());
+                               });
+    auto cleaner = gtl::MakeCleanup([&] { done(); });
+
+    Tensor* status_code = nullptr;
+    status = context->allocate_output(0, TensorShape({}), &status_code);
+    if (!status.ok()) {
+      context->CtxFailure(status);
+      return;
+    }
+    status_code->scalar<int>()() = 0;
+
+    Tensor* status_error_message = nullptr;
+    status =
+        context->allocate_output(1, TensorShape({}), &status_error_message);
+    if (!status.ok()) {
+      context->CtxFailure(status);
+      return;
+    }
+    status_error_message->scalar<tstring>()() = "";
+
+    OpOutputList output_tensors_list;
+    status = context->output_list("output_tensors", &output_tensors_list);
+    if (!status.ok()) {
+      context->CtxFailure(status);
+      return;
+    }
+
+    for (int i = 0; i < output_shapes_.size(); ++i) {
+      Tensor* output_tensor = nullptr;
+      TensorShape shape = output_shapes_[i];
+      if (batch_size != -1 && shape.dims() > 0) {
+        shape.set_dim(0, batch_size);
+      }
+      status = output_tensors_list.allocate(i, shape, &output_tensor);
+      if (!status.ok()) {
+        context->CtxFailure(status);
+        return;
+      }
+      status = SetTensorToZero(output_tensor);
+      if (!status.ok()) {
+        context->CtxFailure(status);
+        return;
+      }
+    }
+  }
+
  private:
   string model_name_;
   int64_t model_version_;
   bool fail_op_on_rpc_error_;
   int64_t max_rpc_deadline_millis_;
   string signature_name_;
+  std::vector<TensorShape> output_shapes_;
+  bool has_output_shapes_ = false;
   std::unique_ptr<PredictionServiceStubType> prediction_service_;
 };
 

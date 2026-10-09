@@ -122,18 +122,18 @@ class ServerRequestLoggerTest : public ::testing::Test {
                       /*dc=*/"", /*task_index=*/-1,
                       logger_destruction_notifier));
           ON_CALL(*mock_request_logger, CreateLogMessage(_, _, _, _))
-              .WillByDefault(Invoke([&](const google::protobuf::Message& actual_request,
-                                        const google::protobuf::Message& actual_response,
-                                        const LogMetadata& actual_log_metadata,
-                                        std::unique_ptr<google::protobuf::Message>* log) {
+              .WillByDefault([&](const google::protobuf::Message& actual_request,
+                                 const google::protobuf::Message& actual_response,
+                                 const LogMetadata& actual_log_metadata,
+                                 std::unique_ptr<google::protobuf::Message>* log) {
                 *log = std::unique_ptr<google::protobuf::Any>(
                     new google::protobuf::Any());
                 return request_logger_status_cb_();
-              }));
+              });
           ON_CALL(*mock_request_logger, FillLogMetadata(_))
-              .WillByDefault(Invoke([&](const LogMetadata& log_metadata) {
+              .WillByDefault([&](const LogMetadata& log_metadata) {
                 return log_metadata;
-              }));
+              });
           *request_logger = std::move(mock_request_logger);
           return absl::OkStatus();
         },
@@ -141,22 +141,22 @@ class ServerRequestLoggerTest : public ::testing::Test {
   }
 
   void increment_created_logger_counter() {
-    absl::MutexLock l(&m_);
+    absl::MutexLock l(m_);
     created_logger_counter_++;
   }
 
   int created_logger_counter() const {
-    absl::MutexLock l(&m_);
+    absl::MutexLock l(m_);
     return created_logger_counter_;
   }
 
   void increment_deleted_logger_counter() {
-    absl::MutexLock l(&m_);
+    absl::MutexLock l(m_);
     deleted_logger_counter_++;
   }
 
   int deleted_logger_counter() const {
-    absl::MutexLock l(&m_);
+    absl::MutexLock l(m_);
     return deleted_logger_counter_;
   }
 
@@ -444,11 +444,11 @@ TEST_F(ServerRequestLoggerTest, StreamLoggingBasic) {
                         });
   EXPECT_CALL(*logger_ptr, CreateLogMessage(_, _))
       .Times(2)
-      .WillRepeatedly(Invoke([](const LogMetadata& log_metadata,
-                                std::unique_ptr<google::protobuf::Message>* log) {
+      .WillRepeatedly([](const LogMetadata& log_metadata,
+                         std::unique_ptr<google::protobuf::Message>* log) {
         *log = std::make_unique<google::protobuf::Any>();
         return absl::OkStatus();
-      }));
+      });
   TF_ASSERT_OK(logger->LogMessage());
   ASSERT_EQ(2, log_collector_map_.size());
   EXPECT_EQ(1, log_collector_map_["/file/model0-file1"]->collect_count());
@@ -480,12 +480,12 @@ TEST_F(ServerRequestLoggerTest, StreamLoggingUpdateLoggingConfig) {
   TF_ASSERT_OK(server_request_logger_->Update(model_logging_configs));
   EXPECT_CALL(*logger_ptr, CreateLogMessage(_, _))
       .Times(2)
-      .WillRepeatedly(Invoke([](const LogMetadata& log_metadata,
-                                std::unique_ptr<google::protobuf::Message>* log) {
+      .WillRepeatedly([](const LogMetadata& log_metadata,
+                         std::unique_ptr<google::protobuf::Message>* log) {
         *log =
             std::unique_ptr<google::protobuf::Any>(new google::protobuf::Any());
         return absl::OkStatus();
-      }));
+      });
   TF_ASSERT_OK(logger->LogMessage());
   ASSERT_EQ(3, log_collector_map_.size());
   EXPECT_EQ(1, log_collector_map_["/file/model0-file2"]->collect_count());

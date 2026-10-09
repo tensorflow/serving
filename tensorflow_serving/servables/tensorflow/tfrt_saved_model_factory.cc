@@ -369,9 +369,9 @@ TfrtSavedModelFactory::TfrtSavedModelFactory(
     std::unique_ptr<ThreadPoolFactory> thread_pool_factory,
     std::function<std::unique_ptr<RequestRecorder>(TfrtSavedModelServable&)>
         recorder_creator)
-    : config_(config),
+    : thread_pool_factory_(std::move(thread_pool_factory)),
+      config_(config),
       batch_scheduler_(batch_scheduler),
-      thread_pool_factory_(std::move(thread_pool_factory)),
       recorder_creator_(std::move(recorder_creator)) {}
 
 TfrtSavedModelFactoryRegistry::TfrtSavedModelFactoryRegistry() {

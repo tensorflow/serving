@@ -64,9 +64,9 @@ class EvHTTPRequestTest : public ::testing::Test {
 
  private:
   void InitServer() {
-    auto options = absl::make_unique<ServerOptions>();
+    auto options = std::make_unique<ServerOptions>();
     options->AddPort(0);
-    options->SetExecutor(absl::make_unique<MyExecutor>(4));
+    options->SetExecutor(std::make_unique<MyExecutor>(4));
 
     server = CreateEvHTTPServer(std::move(options));
 

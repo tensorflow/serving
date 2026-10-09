@@ -16,6 +16,8 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_TEST_UTIL_MOCK_TFRT_SAVED_MODEL
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_TEST_UTIL_MOCK_TFRT_SAVED_MODEL
 
+#include <utility>
+
 #include <gmock/gmock.h>
 #include "tensorflow/core/tfrt/runtime/runtime.h"
 #include "tensorflow/core/tfrt/saved_model/saved_model.h"
@@ -34,6 +36,8 @@ inline tfrt_stub::Runtime* GetTestTfrtRuntime() {
 class MockSavedModel : public tfrt::SavedModel {
  public:
   MockSavedModel() : SavedModel(GetTestTfrtRuntime()) {}
+  explicit MockSavedModel(tfrt::SavedModel::Options options)
+      : SavedModel(std::move(options), /*graph_executor=*/nullptr) {}
 
   MOCK_METHOD(const tensorflow::MetaGraphDef&, GetMetaGraphDef, (),
               (const, override));

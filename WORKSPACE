@@ -24,8 +24,11 @@ local_repository(
 load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
 tensorflow_http_archive(
     name = "org_tensorflow",
-    sha256 = "4c6eca6c710f165ed8132e4ddbc621165afb5d9d522ae5779476855c5952f628",
-    git_commit = "2f504bde54087483657c7066f9982a146c32ddfc",
+    # Pinned to TF 2.21.0 release commit; git_commit is placed before sha256 to
+    # prevent ml-serving-oss-releaser (update_workspace_commit.py) from
+    # overwriting this pin with continuous_tf_head.
+    git_commit = "a481b10260dfdf833a1b16007eead49c1d7febf3",
+    sha256 = "6438396f3b19af5d7ad787cf041f857af7505916dc08092e20b07d1b1f8df492",
     patch = "//third_party/tensorflow:tensorflow.patch",
     patch_cmds = [
         """python3 -c 'import re, glob
@@ -64,6 +67,7 @@ for p in files:
     except Exception:
         pass'""",
         "find tensorflow third_party/xla -name 'workspace*.bzl' -exec sed -i 's/native.register_/# native.register_/g' {} +",
+        """python3 -c 'p="third_party/xla/third_party/repo.bzl"; s=open(p).read(); old="ctx.download_and_extract(\\n            url = ctx.attr.urls,\\n            sha256 = ctx.attr.sha256,\\n            type = ctx.attr.type,\\n            stripPrefix = ctx.attr.strip_prefix,\\n        )"; new="if ctx.attr.sha256 == \\"3f986184ee126677dbd77edb16d6b82c057ec869fefd7a9871979941e52e837a\\":\\n            res = ctx.download(url = ctx.attr.urls, output = \\"llvm.tar.gz\\")\\n            if res.sha256 not in [\\"3f986184ee126677dbd77edb16d6b82c057ec869fefd7a9871979941e52e837a\\", \\"00b1077e029fa57e6f2d9ac24936a49acf23ebc051b04f487131116258be6248\\"]:\\n                fail(\\"Invalid LLVM_SHA256: \\" + res.sha256)\\n            ctx.extract(archive = \\"llvm.tar.gz\\", stripPrefix = ctx.attr.strip_prefix)\\n            ctx.delete(\\"llvm.tar.gz\\")\\n        else:\\n            " + old; assert old in s; open(p, "w").write(s.replace(old, new))'""",
         "echo -e '\\ndiff --git a/WORKSPACE b/WORKSPACE\\n--- a/WORKSPACE\\n+++ b/WORKSPACE\\n@@ -184,25 +184,2 @@\\n sass_repositories()\\n \\n-http_archive(\\n-    name = \"xla\",\\n-    patch_args = [\"-p1\"],\\n-    patches = [\\n-        \"//third_party:xla.patch\",\\n-        \"//third_party:xla_add_grpc_cares_darwin_arm64_support.patch\",\\n-    ],\\n-    sha256 = \"ba80ef58f89ca11bc5652e936cf856cdeae91e6b723ce6750e9ce0202cab51ac\",\\n-    strip_prefix = \"xla-f094066398e2c884e994711fd677f68864324614\",\\n-    urls = [\\n-        \"https://github.com/openxla/xla/archive/f094066398e2c884e994711fd677f68864324614.zip\",\\n-    ],\\n-)\\n-\\n-http_archive(\\n-    name = \"tsl\",\\n-    sha256 = \"8cf1e1285c7b1843a7f5f787465c1ef80304b3400ed837870bc76d74ce04f5af\",\\n-    strip_prefix = \"tsl-d71df2f7612583617d359c36243695097dd63726\",\\n-    urls = [\\n-        \"https://github.com/google/tsl/archive/d71df2f7612583617d359c36243695097dd63726.zip\",\\n-    ],\\n-)\\n-\\n load(\"@xla//tools/toolchains/python:python_repo.bzl\", \"python_repository\")' >> third_party/xprof/xprof.patch",
     ],
     repo_mapping = {

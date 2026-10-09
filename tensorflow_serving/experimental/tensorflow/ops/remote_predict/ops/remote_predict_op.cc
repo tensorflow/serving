@@ -18,10 +18,17 @@ limitations under the License.
 #include "tensorflow/core/framework/common_shape_fns.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
+#include "tensorflow/core/framework/tensor_shape.h"
 
 ABSL_FLAG(bool, remote_predict_op_use_tensor_content, false,
           "If true, use AsProtoTensorContent for serializing tensors in "
           "RemotePredictOp. Otherwise, use AsProtoField.");
+
+ABSL_FLAG(bool, remote_predict_bypass_rpc_during_warmup, false,
+          "If true, bypass remote RPC calls during model warmup when output "
+          "shapes are known, returning zero-initialized dummy tensors instead. "
+          "This is intended to decouple the dependency between frontend and "
+          "backend models during warmup.");
 
 namespace tensorflow {
 
@@ -40,6 +47,7 @@ REGISTER_OP("TfServingRemotePredict")
     .Output("status_error_message: string")
     .Output("output_tensors: output_types")
     .Attr("output_types: list(type)")
+    .Attr("output_shapes: list(shape) = []")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       shape_inference::ShapeHandle unused;
       // Checks the length of input_tensor_aliases with that of input_tensors.
@@ -73,11 +81,32 @@ REGISTER_OP("TfServingRemotePredict")
             c->Value(c->NumElements(output_aliases_handle[0]))));
       }
 
-      // We know the shape of the first 2 outputs, but not the rest.
+      // We know the shape of the first 2 outputs.
       TF_RETURN_IF_ERROR(c->set_output("status_code", {c->Scalar()}));
       TF_RETURN_IF_ERROR(c->set_output("status_error_message", {c->Scalar()}));
-      for (int i = 2; i < c->num_outputs(); ++i) {
-        c->set_output(i, c->UnknownShape());
+
+      std::vector<PartialTensorShape> output_shapes;
+      if (c->GetAttr("output_shapes", &output_shapes).ok() &&
+          !output_shapes.empty()) {
+        if (output_shapes.size() != output_types.size()) {
+          return absl::InvalidArgumentError(
+              absl::StrCat("Expected ", output_types.size(),
+                           " output shapes, but got ", output_shapes.size()));
+        }
+        for (int i = 0; i < output_types.size(); ++i) {
+          shape_inference::ShapeHandle shape_handle;
+          if (c->MakeShapeFromPartialTensorShape(output_shapes[i],
+                                                 &shape_handle)
+                  .ok()) {
+            c->set_output(i + 2, shape_handle);
+          } else {
+            c->set_output(i + 2, c->UnknownShape());
+          }
+        }
+      } else {
+        for (int i = 2; i < c->num_outputs(); ++i) {
+          c->set_output(i, c->UnknownShape());
+        }
       }
 
       return absl::Status();
@@ -91,7 +120,7 @@ fail_op_on_rpc_error: If set true, the Op fails if the rpc fails, and returns
   Op returns the status of the rpc call, along with the output tensors, if any.
   Set true by default.
 max_rpc_deadline_millis: The rpc deadline for remote predict. The actual
-deadline is min(incoming_rpc_deadline, max_rpc_deadline_millis).
+  deadline is min(incoming_rpc_deadline, max_rpc_deadline_millis).
 signature_name: the signature def for remote graph inference, defaulting to 
 "serving_default".
 target_address: Address of the server hosting the remote graph.
@@ -111,6 +140,10 @@ output_tensors: Tensors returned by the Predict call on the remote graph, which
   are in the same order as output_tensor_aliases.
 output_types: A list of types of the output tensors. Length of this list should
   be equal to the length of 'output_tensor_aliases'.
+output_shapes: Shapes of outputs of the remote predict call. If specified and flag
+  'remote_predict_bypass_rpc_during_warmup' is true, the RPC call will be
+  bypassed during warmup and zero-initialized tensors with these output shapes will
+  be returned instead.
 )doc");
 
 }  // namespace tensorflow

@@ -286,9 +286,8 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorFinallySucceeds) {
   LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader), options);
 
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(InvokeWithoutArgs(
-          []() { return absl::UnknownError("test load error"); }))
-      .WillOnce(InvokeWithoutArgs([]() { return absl::OkStatus(); }));
+      .WillOnce([]() { return absl::UnknownError("test load error"); })
+      .WillOnce([]() { return absl::OkStatus(); });
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   TF_ASSERT_OK(harness.Load());
@@ -306,8 +305,7 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorFinallyFails) {
 
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
       .Times(2)
-      .WillRepeatedly(InvokeWithoutArgs(
-          []() { return absl::UnknownError("test load error"); }));
+      .WillRepeatedly([]() { return absl::UnknownError("test load error"); });
   TF_ASSERT_OK(harness.LoadRequested());
   TF_ASSERT_OK(harness.LoadApproved());
   const absl::Status status = harness.Load();
@@ -324,10 +322,9 @@ TEST(LoaderHarnessTest, RetryOnLoadErrorCancelledLoad) {
   LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader), options);
 
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(InvokeWithoutArgs(
-          []() { return absl::UnknownError("test load error"); }))
+      .WillOnce([]() { return absl::UnknownError("test load error"); })
       // If the load is called again, we return OkStatus() to fail the test.
-      .WillRepeatedly(InvokeWithoutArgs([]() { return absl::OkStatus(); }));
+      .WillRepeatedly([]() { return absl::OkStatus(); });
   std::unique_ptr<Thread> test_thread(
       Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
         TF_ASSERT_OK(harness.LoadRequested());
@@ -346,10 +343,10 @@ TEST(LoaderHarnessTest, UnloadDueToCancelledLoad) {
   LoaderHarness harness(servable_id, std::unique_ptr<Loader>(loader));
 
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
-      .WillOnce(InvokeWithoutArgs([]() {
+      .WillOnce([]() {
         Env::Default()->SleepForMicroseconds(1000000);
         return absl::OkStatus();
-      }));
+      });
 
   std::unique_ptr<Thread> test_thread(
       Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {
@@ -369,10 +366,10 @@ TEST(LoaderHarnessTest, UnloadDueToNonRetriableError) {
 
   EXPECT_CALL(*loader, LoadWithMetadata(Loader::Metadata{servable_id}))
       .WillOnce(Return(absl::InvalidArgumentError("Non-retriable error.")))
-      .WillRepeatedly(InvokeWithoutArgs([]() {
+      .WillRepeatedly([]() {
         Env::Default()->SleepForMicroseconds(1000000);
         return absl::OkStatus();
-      }));
+      });
 
   std::unique_ptr<Thread> test_thread(
       Env::Default()->StartThread(ThreadOptions(), "test", [&harness]() {

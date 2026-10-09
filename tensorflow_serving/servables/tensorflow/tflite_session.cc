@@ -360,14 +360,14 @@ absl::Status TfLiteSession::SplitTfLiteInputTask(
 
   if (open_batch_remaining_slot > 0) {
     output_task_sizes.push_back(open_batch_remaining_slot);
-    split_output->emplace_back(absl::make_unique<std::vector<Tensor>>());
+    split_output->emplace_back(std::make_unique<std::vector<Tensor>>());
   }
 
   for (int left_task_size = input_task->size() - open_batch_remaining_slot;
        left_task_size > 0; left_task_size -= max_batch_size) {
     int next_task_size = std::min(left_task_size, max_batch_size);
     output_task_sizes.push_back(next_task_size);
-    split_output->emplace_back(absl::make_unique<std::vector<Tensor>>());
+    split_output->emplace_back(std::make_unique<std::vector<Tensor>>());
   }
 
   const int output_task_num = output_task_sizes.size();
