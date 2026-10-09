@@ -33,7 +33,8 @@ links here:
 *   [Docker for macOS](https://docs.docker.com/docker-for-mac/install/)
 *   [Docker for Windows](https://docs.docker.com/docker-for-windows/install/)
     for Windows 10 Pro or later
-*   [Docker Toolbox](https://docs.docker.com/toolbox/) for much older versions
+*   [Docker Toolbox](https://docs.docker.com/retired/#docker-toolbox)
+    for much older versions
     of macOS, or versions of Windows before Windows 10 Pro
 
 ## Serving with Docker
