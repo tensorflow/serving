@@ -51,7 +51,7 @@ class MockRpc {};
 // Mock class for RemotePredict Op kernel test.
 class MockPredictionService {
  public:
-  static absl::Status Create(const string& target_address,
+  static absl::Status Create(const std::string& target_address,
                              std::unique_ptr<MockPredictionService>* service) {
     service->reset(new MockPredictionService(target_address));
     return ::absl::OkStatus();
@@ -73,7 +73,7 @@ class MockPredictionService {
       "good_model_check_proto_field";
 
  private:
-  MockPredictionService(const string& target_address);
+  MockPredictionService(const std::string& target_address);
 };
 
 constexpr char MockPredictionService::kGoodModel[];
@@ -81,9 +81,10 @@ constexpr char MockPredictionService::kBadModel[];
 constexpr char MockPredictionService::kGoodModelCheckTensorContent[];
 constexpr char MockPredictionService::kGoodModelCheckProtoField[];
 
-typedef google::protobuf::Map<tensorflow::string, tensorflow::TensorProto> AliasTensorMap;
+typedef google::protobuf::Map<std::string, tensorflow::TensorProto> AliasTensorMap;
 
-MockPredictionService::MockPredictionService(const string& target_address) {}
+MockPredictionService::MockPredictionService(
+    const std::string& target_address) {}
 
 void MockPredictionService::Predict(
     MockRpc* rpc, PredictRequest* request, PredictResponse* response,
@@ -139,11 +140,11 @@ using RemotePredict = ops::TfServingRemotePredict;
 
 // Use model_name to specify the behavior of different tests.
 absl::Status RunRemotePredict(
-    const string& model_name, std::vector<Tensor>* outputs,
+    const std::string& model_name, std::vector<Tensor>* outputs,
     const DataTypeSlice& output_types = {DT_INT32, DT_INT32},
     const absl::optional<::absl::Duration> deadline = std::nullopt,
     bool fail_on_rpc_error = true,
-    const string& target_address = "target_address",
+    const std::string& target_address = "target_address",
     int64_t target_model_version = -1, const std::string& signature_name = "",
     const std::vector<TensorShape>& output_shapes = {},
     const SessionOptions* session_options = nullptr) {
