@@ -57,8 +57,9 @@ namespace tensorflow {
 namespace serving {
 namespace net_http {
 
+ABSL_PRINTF_ATTRIBUTE(4, 5)
 void NetLog(absl::LogSeverity severity, const char* file, int line,
-            const char* format, ...) ABSL_PRINTF_ATTRIBUTE(4, 5);
+            const char* format, ...);
 
 void SafeWriteToStderr(const char* s, size_t len);
 

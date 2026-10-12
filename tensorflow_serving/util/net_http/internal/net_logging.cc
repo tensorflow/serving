@@ -57,8 +57,9 @@ limitations under the License.
 #ifdef NET_LOW_LEVEL_WRITE_SUPPORTED
 static const char kTruncated[] = " ... (message truncated)\n";
 
+ABSL_PRINTF_ATTRIBUTE(3, 0)
 inline static bool VADoNetLog(char** buf, int* size, const char* format,
-                              va_list ap) ABSL_PRINTF_ATTRIBUTE(3, 0);
+                              va_list ap);
 inline static bool VADoNetLog(char** buf, int* size, const char* format,
                               va_list ap) {
   int n = vsnprintf(*buf, *size, format, ap);
@@ -81,8 +82,8 @@ static constexpr int kLogBufSize = 10000;  // absl defaults to 3000
 
 namespace {
 
-bool DoNetLog(char** buf, int* size, const char* format, ...)
-    ABSL_PRINTF_ATTRIBUTE(3, 4);
+ABSL_PRINTF_ATTRIBUTE(3, 4)
+bool DoNetLog(char** buf, int* size, const char* format, ...);
 bool DoNetLog(char** buf, int* size, const char* format, ...) {
   va_list ap;
   va_start(ap, format);
@@ -94,8 +95,9 @@ bool DoNetLog(char** buf, int* size, const char* format, ...) {
   return true;
 }
 
+ABSL_PRINTF_ATTRIBUTE(4, 0)
 void NetLogVA(absl::LogSeverity severity, const char* file, int line,
-              const char* format, va_list ap) ABSL_PRINTF_ATTRIBUTE(4, 0);
+              const char* format, va_list ap);
 void NetLogVA(absl::LogSeverity severity, const char* file, int line,
               const char* format, va_list ap) {
   char buffer[kLogBufSize];
@@ -157,8 +159,9 @@ void SafeWriteToStderr(const char* s, size_t len) {
 #endif
 }
 
+ABSL_PRINTF_ATTRIBUTE(4, 5)
 void NetLog(absl::LogSeverity severity, const char* file, int line,
-            const char* format, ...) ABSL_PRINTF_ATTRIBUTE(4, 5);
+            const char* format, ...);
 void NetLog(absl::LogSeverity severity, const char* file, int line,
             const char* format, ...) {
   va_list ap;
