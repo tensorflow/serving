@@ -256,9 +256,13 @@ absl::Status PollFileSystemForServable(
   // returns an empty list instead of erring if the base path isn't found.)
   absl::Status status = Env::Default()->FileExists(servable.base_path());
   if (!status.ok()) {
-    return errors::InvalidArgument(
-        "Could not find base path ", servable.base_path(), " for servable ",
-        servable.servable_name(), " with error ", status.ToString());
+    return errors::NotFound(
+      "Could not find base path ", servable.base_path(),
+      " for servable ", servable.servable_name(),
+      ". TensorFlow Serving expects the following directory structure:\n"
+      "  <base_path>/<version>/saved_model.pb\n"
+      "Where <version> is a numeric directory name (e.g. '1').\n"
+      "Underlying filesystem error: ", status.ToString());
   }
 
   if (servable.servable_version_policy().policy_choice_case() ==
