@@ -108,6 +108,24 @@ TEST(PrometheusExporterTest, SanitizeLabelValue) {
   EXPECT_PRED_FORMAT2(testing::IsSubstring, expected_result, http_page);
 }
 
+TEST(PrometheusExporterTest, SanitizeLabelValueLineFeed) {
+  auto exporter = absl::make_unique<PrometheusExporter>();
+  auto counter = absl::WrapUnique(
+      monitoring::Counter<1>::New("/test/path/total", "A counter.", "name"));
+  // label value: abc<LF>def
+  counter->GetCell("abc\ndef")->IncrementBy(2);
+
+  string http_page;
+  Status status = exporter->GeneratePage(&http_page);
+
+  string expected_result =
+      absl::StrJoin({"# TYPE :test:path:total counter",
+                     ":test:path:total{name=\"abc\\ndef\"} 2"},
+                    "\n");
+  absl::StrAppend(&expected_result, "\n");
+  EXPECT_PRED_FORMAT2(testing::IsSubstring, expected_result, http_page);
+}
+
 TEST(PrometheusExporterTest, SanitizeLabelName) {
   auto exporter = absl::make_unique<PrometheusExporter>();
   auto counter = absl::WrapUnique(monitoring::Counter<1>::New(
