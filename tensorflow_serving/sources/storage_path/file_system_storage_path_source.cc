@@ -50,16 +50,16 @@ namespace {
 
 // Returns the names of servables that appear in 'old_config' but not in
 // 'new_config'.
-std::set<string> GetDeletedServables(
+std::set<std::string> GetDeletedServables(
     const FileSystemStoragePathSourceConfig& old_config,
     const FileSystemStoragePathSourceConfig& new_config) {
-  std::set<string> new_servables;
+  std::set<std::string> new_servables;
   for (const FileSystemStoragePathSourceConfig::ServableToMonitor& servable :
        new_config.servables()) {
     new_servables.insert(servable.servable_name());
   }
 
-  std::set<string> deleted_servables;
+  std::set<std::string> deleted_servables;
   for (const FileSystemStoragePathSourceConfig::ServableToMonitor&
            old_servable : old_config.servables()) {
     if (new_servables.find(old_servable.servable_name()) ==
@@ -74,17 +74,18 @@ std::set<string> GetDeletedServables(
 // aspire.
 void AspireVersion(
     const FileSystemStoragePathSourceConfig::ServableToMonitor& servable,
-    const string& version_relative_path, const int64_t version_number,
+    const std::string& version_relative_path, const int64_t version_number,
     std::vector<ServableData<StoragePath>>* versions) {
   const ServableId servable_id = {servable.servable_name(), version_number};
-  const string full_path =
+  const std::string full_path =
       io::JoinPath(servable.base_path(), version_relative_path);
   versions->emplace_back(ServableData<StoragePath>(servable_id, full_path));
 }
 
 // Converts the string version path to an integer.
 // Returns false if the input is invalid.
-bool ParseVersionNumber(const string& version_path, int64_t* version_number) {
+bool ParseVersionNumber(const std::string& version_path,
+                        int64_t* version_number) {
   return absl::SimpleAtoi(version_path.c_str(), version_number);
 }
 
@@ -96,10 +97,10 @@ bool ParseVersionNumber(const string& version_path, int64_t* version_number) {
 // returns false.
 bool AspireAllVersions(
     const FileSystemStoragePathSourceConfig::ServableToMonitor& servable,
-    const std::vector<string>& children,
+    const std::vector<std::string>& children,
     std::vector<ServableData<StoragePath>>* versions) {
   bool at_least_one_version_found = false;
-  for (const string& child : children) {
+  for (const std::string& child : children) {
     // Identify all the versions, among children that can be interpreted as
     // version numbers.
     int64_t version_number;
@@ -116,9 +117,9 @@ bool AspireAllVersions(
 // Helper that indexes a list of the given "children" (where child is the
 // name of the directory corresponding to a servable version). Note that strings
 // that cannot be parsed as a number are skipped (no error is returned).
-std::map<int64_t /* servable version */, string /* child */>
-IndexChildrenByVersion(const std::vector<string>& children) {
-  std::map<int64_t, string> children_by_version;
+std::map<int64_t /* servable version */, std::string /* child */>
+IndexChildrenByVersion(const std::vector<std::string>& children) {
+  std::map<int64_t, std::string> children_by_version;
   for (int i = 0; i < children.size(); ++i) {
     int64_t version_number;
     if (!ParseVersionNumber(children[i], &version_number)) {
@@ -143,9 +144,9 @@ IndexChildrenByVersion(const std::vector<string>& children) {
 // Returns true iff it winds up aspiring at least one version.
 bool AspireLatestVersions(
     const FileSystemStoragePathSourceConfig::ServableToMonitor& servable,
-    const std::map<int64_t, string>& children_by_version,
+    const std::map<int64_t, std::string>& children_by_version,
     std::vector<ServableData<StoragePath>>* versions) {
-  const int32 num_servable_versions_to_serve =
+  const int32_t num_servable_versions_to_serve =
       std::max(servable.servable_version_policy().latest().num_versions(), 1U);
   // Identify 'num_servable_versions_to_serve' latest version(s) among children
   // that can be interpreted as version numbers and emit as aspired versions.
@@ -156,7 +157,7 @@ bool AspireLatestVersions(
       break;
     }
     const int64_t version = rit->first;
-    const string& child = rit->second;
+    const std::string& child = rit->second;
     AspireVersion(servable, child, version, versions);
     num_versions_emitted++;
   }
@@ -188,8 +189,9 @@ bool AspireSpecificVersionsFastPath(
   // a GetChildren call.
   for (const int64_t version :
        servable.servable_version_policy().specific().versions()) {
-    const string version_dir = absl::StrCat(version);
-    const string child_dir = io::JoinPath(servable.base_path(), version_dir);
+    const std::string version_dir = absl::StrCat(version);
+    const std::string child_dir =
+        io::JoinPath(servable.base_path(), version_dir);
 
     const absl::Status status = Env::Default()->FileExists(child_dir);
     if (!status.ok()) {
@@ -200,7 +202,7 @@ bool AspireSpecificVersionsFastPath(
   // We've found them all. Aspire them one by one.
   for (const int64_t version :
        servable.servable_version_policy().specific().versions()) {
-    const string version_dir = absl::StrCat(version);
+    const std::string version_dir = absl::StrCat(version);
     AspireVersion(servable, version_dir, version, versions);
   }
 
@@ -214,7 +216,7 @@ bool AspireSpecificVersionsFastPath(
 // Returns true iff it winds up aspiring at least one version.
 bool AspireSpecificVersions(
     const FileSystemStoragePathSourceConfig::ServableToMonitor& servable,
-    const std::map<int64_t, string>& children_by_version,
+    const std::map<int64_t, std::string>& children_by_version,
     std::vector<ServableData<StoragePath>>* versions) {
   const std::unordered_set<int64_t> versions_to_serve(
       servable.servable_version_policy().specific().versions().begin(),
@@ -229,7 +231,7 @@ bool AspireSpecificVersions(
     if (versions_to_serve.count(version) == 0) {
       continue;  // Current version is not specified by policy for serving.
     }
-    const string& child = it->second;
+    const std::string& child = it->second;
     AspireVersion(servable, child, version, versions);
     aspired_versions.insert(version);
   }
@@ -256,9 +258,9 @@ absl::Status PollFileSystemForServable(
   // returns an empty list instead of erring if the base path isn't found.)
   absl::Status status = Env::Default()->FileExists(servable.base_path());
   if (!status.ok()) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(absl::StrCat(
         "Could not find base path ", servable.base_path(), " for servable ",
-        servable.servable_name(), " with error ", status.ToString());
+        servable.servable_name(), " with error ", status.ToString()));
   }
 
   if (servable.servable_version_policy().policy_choice_case() ==
@@ -272,20 +274,20 @@ absl::Status PollFileSystemForServable(
   }
 
   // Retrieve a list of base-path children from the file system.
-  std::vector<string> children;
+  std::vector<std::string> children;
   TF_RETURN_IF_ERROR(
       Env::Default()->GetChildren(servable.base_path(), &children));
 
   // GetChildren() returns all descendants instead for cloud storage like GCS.
   // In such case we should filter out all non-direct descendants.
-  std::set<string> real_children;
+  std::set<std::string> real_children;
   for (int i = 0; i < children.size(); ++i) {
-    const string& child = children[i];
+    const std::string& child = children[i];
     real_children.insert(child.substr(0, child.find_first_of('/')));
   }
   children.clear();
   children.insert(children.begin(), real_children.begin(), real_children.end());
-  const std::map<int64_t /* version */, string /* child */>
+  const std::map<int64_t /* version */, std::string /* child */>
       children_by_version = IndexChildrenByVersion(children);
 
   bool at_least_one_version_found = false;
@@ -306,8 +308,9 @@ absl::Status PollFileSystemForServable(
           AspireSpecificVersions(servable, children_by_version, versions);
       break;
     default:
-      return errors::Internal("Unhandled servable version_policy: ",
-                              servable.servable_version_policy().DebugString());
+      return absl::InternalError(
+          absl::StrCat("Unhandled servable version_policy: ",
+                       servable.servable_version_policy().DebugString()));
   }
 
   if (!at_least_one_version_found) {
@@ -325,7 +328,7 @@ absl::Status PollFileSystemForServable(
 // was found, indexed by servable name.
 absl::Status PollFileSystemForConfig(
     const FileSystemStoragePathSourceConfig& config,
-    std::map<string, std::vector<ServableData<StoragePath>>>*
+    std::map<std::string, std::vector<ServableData<StoragePath>>>*
         versions_by_servable_name) {
   for (const FileSystemStoragePathSourceConfig::ServableToMonitor& servable :
        config.servables()) {
@@ -341,12 +344,12 @@ absl::Status PollFileSystemForConfig(
 // currently contain at least one version under its base path.
 absl::Status FailIfZeroVersions(
     const FileSystemStoragePathSourceConfig& config) {
-  std::map<string, std::vector<ServableData<StoragePath>>>
+  std::map<std::string, std::vector<ServableData<StoragePath>>>
       versions_by_servable_name;
   TF_RETURN_IF_ERROR(
       PollFileSystemForConfig(config, &versions_by_servable_name));
 
-  std::map<string, string> servable_name_to_base_path_map;
+  std::map<std::string, std::string> servable_name_to_base_path_map;
   for (const FileSystemStoragePathSourceConfig::ServableToMonitor& servable :
        config.servables()) {
     servable_name_to_base_path_map.insert(
@@ -354,12 +357,12 @@ absl::Status FailIfZeroVersions(
   }
 
   for (const auto& entry : versions_by_servable_name) {
-    const string& servable = entry.first;
+    const std::string& servable = entry.first;
     const std::vector<ServableData<StoragePath>>& versions = entry.second;
     if (versions.empty()) {
-      return errors::NotFound(
+      return absl::NotFoundError(absl::StrCat(
           "Unable to find a numerical version path for servable ", servable,
-          " at: ", servable_name_to_base_path_map[servable]);
+          " at: ", servable_name_to_base_path_map[servable]));
     }
   }
   return absl::Status();
@@ -381,7 +384,7 @@ absl::Status FileSystemStoragePathSource::UpdateConfig(
   if (fs_polling_thread_ != nullptr &&
       config.file_system_poll_wait_seconds() !=
           config_.file_system_poll_wait_seconds()) {
-    return errors::InvalidArgument(
+    return absl::InvalidArgumentError(
         "Changing file_system_poll_wait_seconds is not supported");
   }
 
@@ -440,12 +443,12 @@ void FileSystemStoragePathSource::SetAspiredVersionsCallback(
 
 absl::Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
   mutex_lock l(mu_);
-  std::map<string, std::vector<ServableData<StoragePath>>>
+  std::map<std::string, std::vector<ServableData<StoragePath>>>
       versions_by_servable_name;
   TF_RETURN_IF_ERROR(
       PollFileSystemForConfig(config_, &versions_by_servable_name));
   for (const auto& entry : versions_by_servable_name) {
-    const string& servable = entry.first;
+    const std::string& servable = entry.first;
     const std::vector<ServableData<StoragePath>>& versions = entry.second;
     if (versions.empty() && config_.servable_versions_always_present()) {
       LOG(ERROR) << "Refusing to unload all versions for Servable: "
@@ -466,8 +469,8 @@ absl::Status FileSystemStoragePathSource::PollFileSystemAndInvokeCallback() {
 }
 
 absl::Status FileSystemStoragePathSource::UnaspireServables(
-    const std::set<string>& servable_names) {
-  for (const string& servable_name : servable_names) {
+    const std::set<std::string>& servable_names) {
+  for (const std::string& servable_name : servable_names) {
     CallAspiredVersionsCallback(servable_name,
                                 std::vector<ServableData<StoragePath>>{});
   }
