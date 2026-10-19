@@ -16,11 +16,13 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_TFRT_SERVABLE_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_TFRT_SERVABLE_H_
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 
+#include "absl/base/call_once.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
@@ -129,6 +131,15 @@ class TfrtSavedModelServable : public Servable {
   std::unique_ptr<RequestRecorder> CreateRecorder() {
     return recorder_creator_(*this);
   }
+
+  // Returns true if the model's graph (or any function in its library)
+  // contains a `PwStreamResults` op, i.e. it can emit streamed outputs. TFRT
+  // rejects a `streamed_output_callback` for models without one. Computed on
+  // first use and cached.
+  bool SupportsStreamedOutputs();
+
+  absl::once_flag supports_streamed_outputs_once_;
+  bool supports_streamed_outputs_ = false;
 
   std::unique_ptr<tfrt_stub::SavedModel> saved_model_;
 
