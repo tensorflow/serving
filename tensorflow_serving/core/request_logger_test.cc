@@ -84,10 +84,10 @@ TEST_F(RequestLoggerTest, Simple) {
   *log_metadata.mutable_model_spec() = model_spec;
 
   EXPECT_CALL(*request_logger_, CreateLogMessage(_, _, _, _))
-      .WillOnce(Invoke([&](const google::protobuf::Message& actual_request,
-                           const google::protobuf::Message& actual_response,
-                           const LogMetadata& actual_log_metadata,
-                           std::unique_ptr<google::protobuf::Message>* log) {
+      .WillOnce([&](const google::protobuf::Message& actual_request,
+                    const google::protobuf::Message& actual_response,
+                    const LogMetadata& actual_log_metadata,
+                    std::unique_ptr<google::protobuf::Message>* log) {
         EXPECT_THAT(static_cast<const PredictRequest&>(actual_request),
                     test_util::EqualsProto(request));
         EXPECT_THAT(static_cast<const PredictResponse&>(actual_response),
@@ -101,7 +101,7 @@ TEST_F(RequestLoggerTest, Simple) {
         *log =
             std::unique_ptr<google::protobuf::Any>(new google::protobuf::Any());
         return absl::OkStatus();
-      }));
+      });
   EXPECT_CALL(*log_collector_, CollectMessage(_))
       .WillOnce(Return(absl::OkStatus()));
   TF_ASSERT_OK(request_logger_->Log(request, PredictResponse(), log_metadata));
@@ -119,14 +119,14 @@ TEST_F(RequestLoggerTest, ErroringCreateLogMessage) {
 
 TEST_F(RequestLoggerTest, ErroringCollectMessage) {
   EXPECT_CALL(*request_logger_, CreateLogMessage(_, _, _, _))
-      .WillRepeatedly(Invoke([&](const google::protobuf::Message& actual_request,
-                                 const google::protobuf::Message& actual_response,
-                                 const LogMetadata& actual_log_metadata,
-                                 std::unique_ptr<google::protobuf::Message>* log) {
+      .WillRepeatedly([&](const google::protobuf::Message& actual_request,
+                          const google::protobuf::Message& actual_response,
+                          const LogMetadata& actual_log_metadata,
+                          std::unique_ptr<google::protobuf::Message>* log) {
         *log =
             std::unique_ptr<google::protobuf::Any>(new google::protobuf::Any());
         return absl::OkStatus();
-      }));
+      });
   EXPECT_CALL(*log_collector_, CollectMessage(_))
       .WillRepeatedly(Return(absl::InternalError("Error")));
   const auto error_status =
@@ -265,12 +265,12 @@ TEST_F(PerTaskSamplingTest, DcEnforcedWhenSet) {
 
   auto logger = CreateLogger(config, "aa", 0);
   EXPECT_CALL(*logger, CreateLogMessage(_, _, _, _))
-      .WillRepeatedly(
-          Invoke([](const google::protobuf::Message&, const google::protobuf::Message&,
-                    const LogMetadata&, std::unique_ptr<google::protobuf::Message>* log) {
-            *log = std::make_unique<google::protobuf::Any>();
-            return absl::OkStatus();
-          }));
+      .WillRepeatedly([](const google::protobuf::Message&, const google::protobuf::Message&,
+                         const LogMetadata&,
+                         std::unique_ptr<google::protobuf::Message>* log) {
+        *log = std::make_unique<google::protobuf::Any>();
+        return absl::OkStatus();
+      });
 
   EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(100);
 
@@ -299,12 +299,12 @@ TEST_F(PerTaskSamplingTest, TaskIndexEnforcedWhenSet) {
 
   auto logger = CreateLogger(config, "aa", 0);
   EXPECT_CALL(*logger, CreateLogMessage(_, _, _, _))
-      .WillRepeatedly(
-          Invoke([](const google::protobuf::Message&, const google::protobuf::Message&,
-                    const LogMetadata&, std::unique_ptr<google::protobuf::Message>* log) {
-            *log = std::make_unique<google::protobuf::Any>();
-            return absl::OkStatus();
-          }));
+      .WillRepeatedly([](const google::protobuf::Message&, const google::protobuf::Message&,
+                         const LogMetadata&,
+                         std::unique_ptr<google::protobuf::Message>* log) {
+        *log = std::make_unique<google::protobuf::Any>();
+        return absl::OkStatus();
+      });
 
   EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(100);
 
@@ -340,12 +340,12 @@ TEST_F(PerTaskSamplingTest, FirstMatchingConfigIsPicked) {
 
   auto logger = CreateLogger(config, "aa", 0);
   EXPECT_CALL(*logger, CreateLogMessage(_, _, _, _))
-      .WillRepeatedly(
-          Invoke([](const google::protobuf::Message&, const google::protobuf::Message&,
-                    const LogMetadata&, std::unique_ptr<google::protobuf::Message>* log) {
-            *log = std::make_unique<google::protobuf::Any>();
-            return absl::OkStatus();
-          }));
+      .WillRepeatedly([](const google::protobuf::Message&, const google::protobuf::Message&,
+                         const LogMetadata&,
+                         std::unique_ptr<google::protobuf::Message>* log) {
+        *log = std::make_unique<google::protobuf::Any>();
+        return absl::OkStatus();
+      });
 
   EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(100);
 
@@ -367,12 +367,12 @@ TEST_F(PerTaskSamplingTest, FallsBackToTopLevelSamplingRate) {
 
   auto logger = CreateLogger(config, "bb", 0);
   EXPECT_CALL(*logger, CreateLogMessage(_, _, _, _))
-      .WillRepeatedly(
-          Invoke([](const google::protobuf::Message&, const google::protobuf::Message&,
-                    const LogMetadata&, std::unique_ptr<google::protobuf::Message>* log) {
-            *log = std::make_unique<google::protobuf::Any>();
-            return absl::OkStatus();
-          }));
+      .WillRepeatedly([](const google::protobuf::Message&, const google::protobuf::Message&,
+                         const LogMetadata&,
+                         std::unique_ptr<google::protobuf::Message>* log) {
+        *log = std::make_unique<google::protobuf::Any>();
+        return absl::OkStatus();
+      });
 
   EXPECT_CALL(*log_collector_, CollectMessage(_)).Times(100);
 
