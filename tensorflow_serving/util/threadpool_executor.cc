@@ -20,7 +20,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-ThreadPoolExecutor::ThreadPoolExecutor(Env* const env, const string& name,
+ThreadPoolExecutor::ThreadPoolExecutor(Env* const env, const std::string& name,
                                        int num_threads)
     : thread_pool_(env, name, num_threads) {}
 

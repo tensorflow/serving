@@ -20,15 +20,15 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-Status ParseUrlForAnyType(const string& type_url,
-                          string* const full_type_name) {
-  std::vector<string> splits = str_util::Split(type_url, '/');
+absl::Status ParseUrlForAnyType(const std::string& type_url,
+                                std::string* const full_type_name) {
+  std::vector<std::string> splits = str_util::Split(type_url, '/');
   if (splits.size() < 2 || splits[splits.size() - 1].empty()) {
-    return errors::InvalidArgument(
-        "Supplied config's type_url could not be parsed: ", type_url);
+    return absl::InvalidArgumentError(absl::StrCat(
+        "Supplied config's type_url could not be parsed: ", type_url));
   }
   *full_type_name = splits[splits.size() - 1];
-  return OkStatus();
+  return absl::OkStatus();
 }
 
 }  // namespace serving

@@ -34,8 +34,8 @@ namespace {
 class MyBaseClass {
  public:
   virtual ~MyBaseClass() = default;
-  virtual string class_name() const = 0;
-  virtual string config_data() const = 0;
+  virtual std::string class_name() const = 0;
+  virtual std::string config_data() const = 0;
 };
 DEFINE_CLASS_REGISTRY(MyBaseClassRegistry, MyBaseClass);
 #define REGISTER_MY_BASE_CLASS(SubClassCreator, ConfigProto)        \
@@ -45,21 +45,21 @@ DEFINE_CLASS_REGISTRY(MyBaseClassRegistry, MyBaseClass);
 // A subclass of MyBaseClass that should be instantiated via Config1.
 class SubClass1 : public MyBaseClass {
  public:
-  static Status Create(const Config1& config,
-                       std::unique_ptr<MyBaseClass>* result) {
+  static absl::Status Create(const Config1& config,
+                             std::unique_ptr<MyBaseClass>* result) {
     if (config.GetDescriptor()->full_name() != "tensorflow.serving.Config1") {
-      return errors::InvalidArgument("Wrong type of config proto: ",
-                                     config.GetDescriptor()->full_name());
+      return absl::InvalidArgumentError(absl::StrCat(
+          "Wrong type of config proto: ", config.GetDescriptor()->full_name()));
     }
     auto* raw_result = new SubClass1();
     result->reset(raw_result);
     raw_result->config_ = config;
-    return OkStatus();
+    return absl::OkStatus();
   }
 
-  string class_name() const override { return "SubClass1"; }
+  std::string class_name() const override { return "SubClass1"; }
 
-  string config_data() const override { return config_.string_field(); }
+  std::string config_data() const override { return config_.string_field(); }
 
  private:
   Config1 config_;
@@ -69,21 +69,21 @@ REGISTER_MY_BASE_CLASS(SubClass1, Config1);
 // A subclass of MyBaseClass that should be instantiated via Config2.
 class SubClass2 : public MyBaseClass {
  public:
-  static Status Create(const Config2& config,
-                       std::unique_ptr<MyBaseClass>* result) {
+  static absl::Status Create(const Config2& config,
+                             std::unique_ptr<MyBaseClass>* result) {
     if (config.GetDescriptor()->full_name() != "tensorflow.serving.Config2") {
-      return errors::InvalidArgument("Wrong type of config proto: ",
-                                     config.GetDescriptor()->full_name());
+      return absl::InvalidArgumentError(absl::StrCat(
+          "Wrong type of config proto: ", config.GetDescriptor()->full_name()));
     }
     auto* raw_result = new SubClass2();
     result->reset(raw_result);
     raw_result->config_ = config;
-    return OkStatus();
+    return absl::OkStatus();
   }
 
-  string class_name() const override { return "SubClass2"; }
+  std::string class_name() const override { return "SubClass2"; }
 
-  string config_data() const override { return config_.string_field(); }
+  std::string config_data() const override { return config_.string_field(); }
 
  private:
   Config2 config_;
@@ -92,8 +92,8 @@ class SubClass2 : public MyBaseClass {
 // A creator of SubClass2 objects.
 class SubClass2Creator {
  public:
-  static Status Create(const Config2& config,
-                       std::unique_ptr<MyBaseClass>* result) {
+  static absl::Status Create(const Config2& config,
+                             std::unique_ptr<MyBaseClass>* result) {
     return SubClass2::Create(config, result);
   }
 };
@@ -148,21 +148,21 @@ DEFINE_CLASS_REGISTRY(AlternateMyBaseClassRegistry, MyBaseClass);
 // registered in the alternate registry.
 class AlternateSubClass : public MyBaseClass {
  public:
-  static Status Create(const Config1& config,
-                       std::unique_ptr<MyBaseClass>* result) {
+  static absl::Status Create(const Config1& config,
+                             std::unique_ptr<MyBaseClass>* result) {
     if (config.GetDescriptor()->full_name() != "tensorflow.serving.Config1") {
-      return errors::InvalidArgument("Wrong type of config proto: ",
-                                     config.GetDescriptor()->full_name());
+      return absl::InvalidArgumentError(absl::StrCat(
+          "Wrong type of config proto: ", config.GetDescriptor()->full_name()));
     }
     auto* raw_result = new AlternateSubClass();
     result->reset(raw_result);
     raw_result->config_ = config;
-    return OkStatus();
+    return absl::OkStatus();
   }
 
-  string class_name() const override { return "AlternateSubClass"; }
+  std::string class_name() const override { return "AlternateSubClass"; }
 
-  string config_data() const override { return config_.string_field(); }
+  std::string config_data() const override { return config_.string_field(); }
 
  private:
   Config1 config_;
@@ -185,15 +185,15 @@ TEST(ClassRegistrationTest, MultipleRegistriesForSameBaseClass) {
 class MyParameterizedBaseClass {
  public:
   virtual ~MyParameterizedBaseClass() = default;
-  virtual string class_name() const = 0;
-  virtual string config_data() const = 0;
+  virtual std::string class_name() const = 0;
+  virtual std::string config_data() const = 0;
   virtual int param1_data() const = 0;
-  virtual string param2_data() const = 0;
-  virtual const std::map<string, int>& param3_data() const = 0;
+  virtual std::string param2_data() const = 0;
+  virtual const std::map<std::string, int>& param3_data() const = 0;
 };
 DEFINE_CLASS_REGISTRY(MyParameterizedBaseClassRegistry,
-                      MyParameterizedBaseClass, int, const string&,
-                      const std::map<string TFS_COMMA int>&);
+                      MyParameterizedBaseClass, int, const std::string&,
+                      const std::map<std::string TFS_COMMA int>&);
 #define REGISTER_MY_PARAMETERIZED_BASE_CLASS(SubClassCreator, ConfigProto)   \
   REGISTER_CLASS(MyParameterizedBaseClassRegistry, MyParameterizedBaseClass, \
                  SubClassCreator, ConfigProto, int, const string&,           \
@@ -203,12 +203,13 @@ DEFINE_CLASS_REGISTRY(MyParameterizedBaseClassRegistry,
 // Config1.
 class ParameterizedSubClass1 : public MyParameterizedBaseClass {
  public:
-  static Status Create(const Config1& config, int param1, const string& param2,
-                       const std::map<string, int>& param3,
-                       std::unique_ptr<MyParameterizedBaseClass>* result) {
+  static absl::Status Create(
+      const Config1& config, int param1, const std::string& param2,
+      const std::map<std::string, int>& param3,
+      std::unique_ptr<MyParameterizedBaseClass>* result) {
     if (config.GetDescriptor()->full_name() != "tensorflow.serving.Config1") {
-      return errors::InvalidArgument("Wrong type of config proto: ",
-                                     config.GetDescriptor()->full_name());
+      return absl::InvalidArgumentError(absl::StrCat(
+          "Wrong type of config proto: ", config.GetDescriptor()->full_name()));
     }
     auto* raw_result = new ParameterizedSubClass1();
     result->reset(raw_result);
@@ -216,24 +217,26 @@ class ParameterizedSubClass1 : public MyParameterizedBaseClass {
     raw_result->param1_ = param1;
     raw_result->param2_ = param2;
     raw_result->param3_ = param3;
-    return OkStatus();
+    return absl::OkStatus();
   }
 
-  string class_name() const override { return "ParameterizedSubClass1"; }
+  std::string class_name() const override { return "ParameterizedSubClass1"; }
 
-  string config_data() const override { return config_.string_field(); }
+  std::string config_data() const override { return config_.string_field(); }
 
   int param1_data() const override { return param1_; }
 
-  string param2_data() const override { return param2_; }
+  std::string param2_data() const override { return param2_; }
 
-  const std::map<string, int>& param3_data() const override { return param3_; }
+  const std::map<std::string, int>& param3_data() const override {
+    return param3_;
+  }
 
  private:
   Config1 config_;
   int param1_;
-  string param2_;
-  std::map<string, int> param3_;
+  std::string param2_;
+  std::map<std::string, int> param3_;
 };
 REGISTER_MY_PARAMETERIZED_BASE_CLASS(ParameterizedSubClass1, Config1);
 

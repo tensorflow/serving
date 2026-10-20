@@ -32,7 +32,7 @@ TEST(ProtoUtilTest, ParseProtoTextFile_Errors) {
   auto status = ParseProtoTextFile<StatusProto>("missing.txt", &status_proto);
   ASSERT_TRUE(absl::IsNotFound(status));
 
-  const string kProtoFile = io::JoinPath(testing::TmpDir(), "corrupt.txt");
+  const std::string kProtoFile = io::JoinPath(testing::TmpDir(), "corrupt.txt");
   std::unique_ptr<WritableFile> file;
   TF_ASSERT_OK(Env::Default()->NewWritableFile(kProtoFile, &file));
   TF_ASSERT_OK(file->Append("corrupt proto content"));
@@ -43,7 +43,7 @@ TEST(ProtoUtilTest, ParseProtoTextFile_Errors) {
 
 TEST(ProtoUtilTest, ParseProtoTextFile_EmptyFile_Success) {
   StatusProto status_proto;
-  const string kProtoFile = io::JoinPath(testing::TmpDir(), "proto1.txt");
+  const std::string kProtoFile = io::JoinPath(testing::TmpDir(), "proto1.txt");
   std::unique_ptr<WritableFile> file;
   TF_ASSERT_OK(Env::Default()->NewWritableFile(kProtoFile, &file));
   TF_ASSERT_OK(file->Append(" "));
@@ -54,7 +54,7 @@ TEST(ProtoUtilTest, ParseProtoTextFile_EmptyFile_Success) {
 
 TEST(ProtoUtilTest, ParseProtoTextFile_Success) {
   StatusProto status_proto;
-  const string kProtoFile = io::JoinPath(testing::TmpDir(), "proto2.txt");
+  const std::string kProtoFile = io::JoinPath(testing::TmpDir(), "proto2.txt");
   std::unique_ptr<WritableFile> file;
   TF_ASSERT_OK(Env::Default()->NewWritableFile(kProtoFile, &file));
   TF_ASSERT_OK(file->Append("error_message: 'hello'"));

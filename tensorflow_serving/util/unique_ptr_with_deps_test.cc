@@ -42,29 +42,31 @@ typename MakeUniqueResult<T>::scalar MakeUnique(Args&&... args) {  // NOLINT
 
 class Dep {
  public:
-  Dep(const string& name, std::vector<string>* log) : name_(name), log_(log) {}
+  Dep(const std::string& name, std::vector<std::string>* log)
+      : name_(name), log_(log) {}
   ~Dep() { log_->push_back("Deleting " + name_); }
   void f() { log_->push_back(name_ + ".f() called"); }
 
  private:
-  string name_;
-  std::vector<string>* log_;
+  std::string name_;
+  std::vector<std::string>* log_;
 };
 
 // Create another class just to show that dependencies can have different type
 // than main object.
 class Obj {
  public:
-  Obj(const string& name, std::vector<string>* log) : name_(name), log_(log) {}
+  Obj(const std::string& name, std::vector<std::string>* log)
+      : name_(name), log_(log) {}
   ~Obj() { log_->push_back("Deleting " + name_); }
   void f() const { log_->push_back("Obj::f() called on " + name_); }
 
  private:
-  string name_;
-  std::vector<string>* log_;
+  std::string name_;
+  std::vector<std::string>* log_;
 };
 
-UniquePtrWithDeps<Obj> BuildObjWithDeps(std::vector<string>* log) {
+UniquePtrWithDeps<Obj> BuildObjWithDeps(std::vector<std::string>* log) {
   UniquePtrWithDeps<Obj> obj;
   auto dep1 = obj.AddDependency(MakeUnique<Dep>("dep1", log));
   auto dep2 = obj.AddDependency(MakeUnique<Dep>("dep2", log));
@@ -77,23 +79,20 @@ UniquePtrWithDeps<Obj> BuildObjWithDeps(std::vector<string>* log) {
 }
 
 TEST(UniquePtrWithDepsTest, DependenciesDestroyedAfterMainObject) {
-  std::vector<string> log;
+  std::vector<std::string> log;
   {
     auto obj = BuildObjWithDeps(&log);
     obj->f();
   }
-  EXPECT_EQ(std::vector<string>({"dep1.f() called",
-                            "dep2.f() called",
-                            "dep3.f() called",
-                            "Obj::f() called on obj",
-                            "Deleting obj",
-                            "Deleting dep3",
-                            "Deleting dep2",
-                            "Deleting dep1"}),
+  EXPECT_EQ(std::vector<std::string>(
+                {"dep1.f() called", "dep2.f() called", "dep3.f() called",
+                 "Obj::f() called on obj", "Deleting obj", "Deleting dep3",
+                 "Deleting dep2", "Deleting dep1"}),
             log);
 }
 
-UniquePtrWithDeps<Obj> BuildObjWithDepAddedLater(std::vector<string>* log) {
+UniquePtrWithDeps<Obj> BuildObjWithDepAddedLater(
+    std::vector<std::string>* log) {
   UniquePtrWithDeps<Obj> obj;
   obj.SetOwned(MakeUnique<Obj>("obj", log));
   auto dep = obj.AddDependency(MakeUnique<Dep>("dep", log));
@@ -102,20 +101,19 @@ UniquePtrWithDeps<Obj> BuildObjWithDepAddedLater(std::vector<string>* log) {
 }
 
 TEST(UniquePtrWithDepsTest, DependencyAddedAfterSetOwned) {
-  std::vector<string> log;
+  std::vector<std::string> log;
   {
     auto obj = BuildObjWithDepAddedLater(&log);
     obj->f();
   }
-  EXPECT_EQ(std::vector<string>({"dep.f() called",
-                            "Obj::f() called on obj",
-                            "Deleting dep",
-                            "Deleting obj"}),
-            log);
+  EXPECT_EQ(
+      std::vector<std::string>({"dep.f() called", "Obj::f() called on obj",
+                                "Deleting dep", "Deleting obj"}),
+      log);
 }
 
 UniquePtrWithDeps<Obj> BuildObjWithDepsMultipleSetOwned(
-    std::vector<string>* log) {
+    std::vector<std::string>* log) {
   UniquePtrWithDeps<Obj> obj;
   auto dep1 = obj.AddDependency(MakeUnique<Dep>("dep1", log));
   obj.SetOwned(MakeUnique<Obj>("obj1", log));
@@ -129,20 +127,15 @@ UniquePtrWithDeps<Obj> BuildObjWithDepsMultipleSetOwned(
 }
 
 TEST(UniquePtrWithDepsTest, MultipleSetOwnedCalls) {
-  std::vector<string> log;
+  std::vector<std::string> log;
   {
     auto obj = BuildObjWithDepsMultipleSetOwned(&log);
     obj->f();
   }
-  EXPECT_EQ(std::vector<string>({"dep1.f() called",
-                            "dep2.f() called",
-                            "dep3.f() called",
-                            "Obj::f() called on obj2",
-                            "Deleting obj2",
-                            "Deleting dep3",
-                            "Deleting dep2",
-                            "Deleting obj1",
-                            "Deleting dep1"}),
+  EXPECT_EQ(std::vector<std::string>(
+                {"dep1.f() called", "dep2.f() called", "dep3.f() called",
+                 "Obj::f() called on obj2", "Deleting obj2", "Deleting dep3",
+                 "Deleting dep2", "Deleting obj1", "Deleting dep1"}),
             log);
 }
 

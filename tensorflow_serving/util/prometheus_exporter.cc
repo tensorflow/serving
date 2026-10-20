@@ -29,9 +29,9 @@ namespace serving {
 
 namespace {
 
-string SanitizeLabelValue(const string& value) {
+std::string SanitizeLabelValue(const std::string& value) {
   // Backslash and double quote have to be escaped.
-  string new_value = value;
+  std::string new_value = value;
   // Replace \ with \\.
   RE2::GlobalReplace(&new_value, "\\\\", "\\\\\\\\");
   // Replace " with \".
@@ -39,9 +39,9 @@ string SanitizeLabelValue(const string& value) {
   return new_value;
 }
 
-string SanatizeLabelName(const string& name) {
+std::string SanatizeLabelName(const std::string& name) {
   // Valid format: [a-zA-Z_][a-zA-Z0-9_]*
-  string new_name = name;
+  std::string new_name = name;
   RE2::GlobalReplace(&new_name, "[^a-zA-Z0-9]", "_");
   if (RE2::FullMatch(new_name, "^[0-9].*")) {
     // Start with 0-9, prepend a underscore.
@@ -50,10 +50,10 @@ string SanatizeLabelName(const string& name) {
   return new_name;
 }
 
-string GetPrometheusMetricName(
+std::string GetPrometheusMetricName(
     const monitoring::MetricDescriptor& metric_descriptor) {
   // Valid format: [a-zA-Z_:][a-zA-Z0-9_:]*
-  string new_name = metric_descriptor.name;
+  std::string new_name = metric_descriptor.name;
   RE2::GlobalReplace(&new_name, "[^a-zA-Z0-9_]", ":");
   if (RE2::FullMatch(new_name, "^[0-9].*")) {
     // Start with 0-9, prepend a underscore.
@@ -64,19 +64,19 @@ string GetPrometheusMetricName(
 
 void SerializeHistogram(const monitoring::MetricDescriptor& metric_descriptor,
                         const monitoring::PointSet& point_set,
-                        std::vector<string>* lines) {
+                        std::vector<std::string>* lines) {
   // For a metric name NAME, we should output:
   //   NAME_bucket{le=b1} x1
   //   NAME_bucket{le=b2} x2
   //   NAME_bucket{le=b3} x3 ...
   //   NAME_sum xsum
   //   NAME_count xcount
-  string prom_metric_name = GetPrometheusMetricName(metric_descriptor);
+  std::string prom_metric_name = GetPrometheusMetricName(metric_descriptor);
   // Type definition line.
   lines->push_back(absl::StrFormat("# TYPE %s histogram", prom_metric_name));
   for (const auto& point : point_set.points) {
     // Each points has differnet label values.
-    std::vector<string> labels = {};
+    std::vector<std::string> labels = {};
     labels.reserve(point->labels.size());
     for (const auto& label : point->labels) {
       labels.push_back(absl::StrFormat("%s=\"%s\"",
@@ -84,7 +84,7 @@ void SerializeHistogram(const monitoring::MetricDescriptor& metric_descriptor,
                                        SanitizeLabelValue(label.value)));
     }
     int64_t cumulative_count = 0;
-    string bucket_prefix =
+    std::string bucket_prefix =
         absl::StrCat(prom_metric_name, "_bucket{", absl::StrJoin(labels, ","));
     if (!labels.empty()) {
       absl::StrAppend(&bucket_prefix, ",");
@@ -92,7 +92,7 @@ void SerializeHistogram(const monitoring::MetricDescriptor& metric_descriptor,
     // One bucket per line, last one should be le="Inf".
     for (int i = 0; i < point->histogram_value.bucket_size(); i++) {
       cumulative_count += point->histogram_value.bucket(i);
-      string bucket_limit =
+      std::string bucket_limit =
           (i < point->histogram_value.bucket_size() - 1)
               ? absl::StrCat(point->histogram_value.bucket_limit(i))
               : "+Inf";
@@ -112,12 +112,12 @@ void SerializeHistogram(const monitoring::MetricDescriptor& metric_descriptor,
 
 void SerializeScalar(const monitoring::MetricDescriptor& metric_descriptor,
                      const monitoring::PointSet& point_set,
-                     std::vector<string>* lines) {
+                     std::vector<std::string>* lines) {
   // A counter or gauge metric.
   // The format should be:
   //   NAME{label=value,label=value} x time
-  string prom_metric_name = GetPrometheusMetricName(metric_descriptor);
-  string metric_type_str = "untyped";
+  std::string prom_metric_name = GetPrometheusMetricName(metric_descriptor);
+  std::string metric_type_str = "untyped";
   if (metric_descriptor.metric_kind == monitoring::MetricKind::kCumulative) {
     metric_type_str = "counter";
   } else if (metric_descriptor.metric_kind == monitoring::MetricKind::kGauge) {
@@ -128,8 +128,8 @@ void SerializeScalar(const monitoring::MetricDescriptor& metric_descriptor,
       absl::StrFormat("# TYPE %s %s", prom_metric_name, metric_type_str));
   for (const auto& point : point_set.points) {
     // Each points has differnet label values.
-    string name_bracket = absl::StrCat(prom_metric_name, "{");
-    std::vector<string> labels = {};
+    std::string name_bracket = absl::StrCat(prom_metric_name, "{");
+    std::vector<std::string> labels = {};
     labels.reserve(point->labels.size());
     for (const auto& label : point->labels) {
       labels.push_back(absl::StrFormat("%s=\"%s\"",
@@ -143,7 +143,7 @@ void SerializeScalar(const monitoring::MetricDescriptor& metric_descriptor,
 
 void SerializeMetric(const monitoring::MetricDescriptor& metric_descriptor,
                      const monitoring::PointSet& point_set,
-                     std::vector<string>* lines) {
+                     std::vector<std::string>* lines) {
   if (metric_descriptor.value_type == monitoring::ValueType::kHistogram) {
     SerializeHistogram(metric_descriptor, point_set, lines);
   } else {
@@ -159,9 +159,9 @@ const char* const PrometheusExporter::kPrometheusPath =
 PrometheusExporter::PrometheusExporter()
     : collection_registry_(monitoring::CollectionRegistry::Default()) {}
 
-Status PrometheusExporter::GeneratePage(string* http_page) {
+absl::Status PrometheusExporter::GeneratePage(std::string* http_page) {
   if (http_page == nullptr) {
-    return Status(
+    return absl::Status(
         static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
         "Http page pointer is null");
   }
@@ -173,9 +173,9 @@ Status PrometheusExporter::GeneratePage(string* http_page) {
   const auto& descriptor_map = collected_metrics->metric_descriptor_map;
   const auto& metric_map = collected_metrics->point_set_map;
 
-  std::vector<string> lines;
+  std::vector<std::string> lines;
   for (const auto& name_and_metric_descriptor : descriptor_map) {
-    const string& metric_name = name_and_metric_descriptor.first;
+    const std::string& metric_name = name_and_metric_descriptor.first;
     auto metric_iterator = metric_map.find(metric_name);
     if (metric_iterator == metric_map.end()) {
       // Not found.

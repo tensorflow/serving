@@ -36,7 +36,7 @@ TEST(RetrierTest, RetryFinallySucceeds) {
     if (call_count == 7) {
       return absl::OkStatus();
     }
-    return errors::Unknown("Error");
+    return absl::UnknownError("Error");
   };
 
   TF_EXPECT_OK(Retry("RetryFinallySucceeds", 10 /* max_num_retries */,
@@ -48,7 +48,7 @@ TEST(RetrierTest, RetryFinallyFails) {
   int call_count = 0;
   auto retried_fn = [&]() {
     ++call_count;
-    return errors::Unknown("Error");
+    return absl::UnknownError("Error");
   };
 
   const auto status = Retry("RetryFinallyFails", 10 /* max_num_retries */,
@@ -61,7 +61,7 @@ TEST(RetrierTest, RetryCancelled) {
   int call_count = 0;
   auto retried_fn = [&]() {
     ++call_count;
-    return errors::Unknown("Error");
+    return absl::UnknownError("Error");
   };
   const auto status = Retry(
       "RetryCancelled", 10 /* max_num_retries */, 0 /* retry_interval_micros */,
@@ -75,9 +75,9 @@ TEST(RetrierTest, RetryCancelledOnUnimplementedError) {
   auto retried_fn = [&]() {
     ++call_count;
     if (call_count == 5) {
-      return errors::Unimplemented("Unimplemented");
+      return absl::UnimplementedError("Unimplemented");
     }
-    return errors::DeadlineExceeded("DeadlineExceeded");
+    return absl::DeadlineExceededError("DeadlineExceeded");
   };
 
   const auto status =

@@ -24,7 +24,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-absl::Status Retry(const string& description, uint32 max_num_retries,
+absl::Status Retry(const std::string& description, uint32_t max_num_retries,
                    int64_t retry_interval_micros,
                    const std::function<absl::Status()>& retried_fn,
                    const std::function<bool(absl::Status)>& should_retry) {

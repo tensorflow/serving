@@ -43,12 +43,12 @@ using protobuf::util::MessageDifferencer;
 using test_util::EqualsProto;
 using ::testing::HasSubstr;
 
-using TensorInfoMap = ::google::protobuf::Map<string, TensorInfo>;
-using TensorMap = ::google::protobuf::Map<string, TensorProto>;
+using TensorInfoMap = ::google::protobuf::Map<std::string, TensorInfo>;
+using TensorMap = ::google::protobuf::Map<std::string, TensorProto>;
 
-std::function<absl::Status(const string&, TensorInfoMap*)> getmap(
+std::function<absl::Status(const std::string&, TensorInfoMap*)> getmap(
     const TensorInfoMap& map) {
-  return [&map](const string&, TensorInfoMap* m) {
+  return [&map](const std::string&, TensorInfoMap* m) {
     *m = map;
     return absl::OkStatus();
   };
@@ -329,7 +329,7 @@ TEST(JsontensorTest, TensorFromNonNullTerminatedBuffer) {
       TextFormat::ParseFromString("dtype: DT_INT32", &infomap["default"]));
 
   // Note, last character is a 'X' to for non-null termination.
-  const string jsonstr = R"({"instances": [[1,2],[3,4],[5,6]]}X)";
+  const std::string jsonstr = R"({"instances": [[1,2],[3,4],[5,6]]}X)";
   PredictRequest req;
   JsonPredictRequestFormat format;
   TF_EXPECT_OK(FillPredictRequestFromJson(
@@ -794,24 +794,24 @@ TEST(JsontensorTest, MultipleNamedTensorErrors) {
 }
 
 template <const unsigned int parseflags = rapidjson::kParseNanAndInfFlag>
-absl::Status CompareJson(const string& json1, const string& json2) {
+absl::Status CompareJson(const std::string& json1, const std::string& json2) {
   rapidjson::Document doc1;
   if (doc1.Parse<parseflags>(json1.c_str()).HasParseError()) {
-    return errors::InvalidArgument(
-        "LHS JSON Parse error: ",
-        rapidjson::GetParseError_En(doc1.GetParseError()),
-        " at offset: ", doc1.GetErrorOffset(), " JSON: ", json1);
+    return absl::InvalidArgumentError(
+        absl::StrCat("LHS JSON Parse error: ",
+                     rapidjson::GetParseError_En(doc1.GetParseError()),
+                     " at offset: ", doc1.GetErrorOffset(), " JSON: ", json1));
   }
   rapidjson::Document doc2;
   if (doc2.Parse<parseflags>(json2.c_str()).HasParseError()) {
-    return errors::InvalidArgument(
-        "RHS JSON Parse error: ",
-        rapidjson::GetParseError_En(doc2.GetParseError()),
-        " at offset: ", doc2.GetErrorOffset(), " JSON: ", json2);
+    return absl::InvalidArgumentError(
+        absl::StrCat("RHS JSON Parse error: ",
+                     rapidjson::GetParseError_En(doc2.GetParseError()),
+                     " at offset: ", doc2.GetErrorOffset(), " JSON: ", json2));
   }
   if (doc1 != doc2) {
-    return errors::InvalidArgument("JSON Different. JSON1: ", json1,
-                                   "JSON2: ", json2);
+    return absl::InvalidArgumentError(
+        absl::StrCat("JSON Different. JSON1: ", json1, "JSON2: ", json2));
   }
   return absl::OkStatus();
 }
@@ -823,8 +823,8 @@ absl::Status CompareJson(const string& json1, const string& json2) {
 // to the approximate nature of decimal representation.
 //
 // For most use cases, prefer CompareJson() defined above.
-absl::Status CompareJsonAllValuesAsStrings(const string& json1,
-                                           const string& json2) {
+absl::Status CompareJsonAllValuesAsStrings(const std::string& json1,
+                                           const std::string& json2) {
   return CompareJson<rapidjson::kParseNanAndInfFlag |
                      rapidjson::kParseNumbersAsStringsFlag>(json1, json2);
 }
@@ -853,7 +853,7 @@ TEST(JsontensorTest, FromJsonSingleTensor) {
     )",
                                           &tensormap["int_tensor"]));
 
-  string json;
+  std::string json;
   TF_EXPECT_OK(
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json));
   TF_EXPECT_OK(CompareJson(json, R"({
@@ -883,7 +883,7 @@ TEST(JsontensorTest, FromJsonSingleScalarTensor) {
     )",
                                           &tensormap["int_tensor"]));
 
-  string json;
+  std::string json;
   TF_EXPECT_OK(
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json));
   TF_EXPECT_OK(CompareJson(json, R"({ "predictions": [1, 2, 3, 4, 5] })"));
@@ -909,7 +909,7 @@ TEST(JsontensorTest, FromJsonSingleBytesTensor) {
     )",
                                           &tensormap["str_tensor_bytes"]));
 
-  string json;
+  std::string json;
   TF_EXPECT_OK(
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json));
   TF_EXPECT_OK(CompareJson(json, R"({
@@ -938,7 +938,7 @@ TEST(JsontensorTest, FromJsonSingleFloatTensorSixDigitPrecision) {
     )",
                                           &tensormap["float_tensor"]));
 
-  string json;
+  std::string json;
   TF_EXPECT_OK(
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json));
   TF_EXPECT_OK(CompareJsonAllValuesAsStrings(json, R"({
@@ -963,7 +963,7 @@ TEST(JsontensorTest, FromJsonSingleFloatTensorNonFinite) {
     )",
                                           &tensormap["float_tensor"]));
 
-  string json;
+  std::string json;
   TF_EXPECT_OK(
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json));
   TF_EXPECT_OK(CompareJsonAllValuesAsStrings(json, R"({
@@ -975,7 +975,7 @@ TEST(JsontensorTest, FromJsonSingleFloatTensorNonFinite) {
 
 TEST(JsontensorTest, FromJsonSingleTensorErrors) {
   TensorMap tensormap;
-  string json;
+  std::string json;
   absl::Status status;
 
   status =
@@ -1079,7 +1079,7 @@ TEST(JsontensorTest, FromJsonMultipleNamedTensors) {
     )",
                                           &tensormap["str_tensor_bytes"]));
 
-  string json;
+  std::string json;
   TF_EXPECT_OK(
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json));
   TF_EXPECT_OK(CompareJson(json, R"({
@@ -1143,7 +1143,7 @@ TEST(JsontensorTest, FromJsonMultipleNamedTensorsErrors) {
     )",
                                           &tensormap["str_tensor"]));
 
-  string json;
+  std::string json;
   const auto& status =
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json);
   ASSERT_TRUE(absl::IsInvalidArgument(status));
@@ -1161,7 +1161,7 @@ TEST(JsontensorTest, FromJsonSingleZeroBatchTensor) {
     )",
                                           &tensormap["int_tensor"]));
 
-  string json;
+  std::string json;
   TF_EXPECT_OK(
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json));
   TF_EXPECT_OK(CompareJson(json, R"({ "predictions": [] })"));
@@ -1189,7 +1189,7 @@ TEST(JsontensorTest, FromJsonMultipleZeroBatchTensors) {
     )",
                                           &tensormap["float_tensor"]));
 
-  string json;
+  std::string json;
   TF_EXPECT_OK(
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json));
   TF_EXPECT_OK(CompareJson(json, R"({ "predictions": [] })"));
@@ -1217,7 +1217,7 @@ TEST(JsontensorTest, FromJsonMultipleZeroBatchTensorsErrors) {
     )",
                                           &tensormap["str_tensor"]));
 
-  string json;
+  std::string json;
   const auto& status =
       MakeJsonFromTensors(tensormap, JsonPredictRequestFormat::kRow, &json);
   ASSERT_TRUE(absl::IsInvalidArgument(status));
@@ -1227,11 +1227,12 @@ TEST(JsontensorTest, FromJsonMultipleZeroBatchTensorsErrors) {
 template <typename RequestType>
 class ClassifyRegressRequestTest : public ::testing::Test {
  protected:
-  absl::Status FillRequest(const string& json, ClassificationRequest* req) {
+  absl::Status FillRequest(const std::string& json,
+                           ClassificationRequest* req) {
     return FillClassificationRequestFromJson(json, req);
   }
 
-  absl::Status FillRequest(const string& json, RegressionRequest* req) {
+  absl::Status FillRequest(const std::string& json, RegressionRequest* req) {
     return FillRegressionRequestFromJson(json, req);
   }
 };
@@ -1546,7 +1547,7 @@ TEST(ClassifyRegressnResultTest, JsonFromClassificationResult) {
     })",
                                           &result));
 
-  string json;
+  std::string json;
   TF_EXPECT_OK(MakeJsonFromClassificationResult(result, &json));
   TF_EXPECT_OK(CompareJson(json, R"({
     "results": [
@@ -1565,7 +1566,7 @@ TEST(ClassifyRegressnResultTest, JsonFromRegressionResult) {
     )",
                                           &result));
 
-  string json;
+  std::string json;
   TF_EXPECT_OK(MakeJsonFromRegressionResult(result, &json));
   TF_EXPECT_OK(CompareJson(json, R"({ "results": [ 0.2, 0.9, 1.0 ] })"));
 }
@@ -1581,14 +1582,14 @@ TEST(ClassifyRegressnResultTest, JsonFromRegressionResultWithNonFinite) {
     )",
                                           &result));
 
-  string json;
+  std::string json;
   TF_EXPECT_OK(MakeJsonFromRegressionResult(result, &json));
   TF_EXPECT_OK(CompareJsonAllValuesAsStrings(
       json, R"({ "results": [ 0.2, Infinity, 1.0, -Infinity, NaN ] })"));
 }
 
 TEST(ClassifyRegressnResultTest, JsonFromResultErrors) {
-  string json;
+  std::string json;
   auto status = MakeJsonFromClassificationResult(ClassificationResult(), &json);
   ASSERT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("empty ClassificationResults"));
@@ -1599,18 +1600,18 @@ TEST(ClassifyRegressnResultTest, JsonFromResultErrors) {
 }
 
 TEST(MakeJsonFromTensors, StatusOK) {
-  string json;
+  std::string json;
   MakeJsonFromStatus(absl::OkStatus(), &json);
   EXPECT_EQ(json, "");
 }
 
 TEST(MakeJsonFromTensors, StatusError) {
-  string json;
-  MakeJsonFromStatus(errors::InvalidArgument("Bad key: \"key\""), &json);
+  std::string json;
+  MakeJsonFromStatus(absl::InvalidArgumentError("Bad key: \"key\""), &json);
   TF_EXPECT_OK(CompareJson(json, R"({ "error": "Bad key: \"key\"" })"));
 
   json.clear();
-  MakeJsonFromStatus(errors::InvalidArgument("Bad key: 'key'"), &json);
+  MakeJsonFromStatus(absl::InvalidArgumentError("Bad key: 'key'"), &json);
   TF_EXPECT_OK(CompareJson(json, R"({ "error": "Bad key: 'key'" })"));
 }
 

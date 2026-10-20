@@ -20,7 +20,7 @@ limitations under the License.
 namespace tensorflow {
 namespace serving {
 
-StatusProto ToStatusProto(const Status& status) {
+StatusProto ToStatusProto(const absl::Status& status) {
   StatusProto status_proto;
   status_proto.set_error_code(
       static_cast<tensorflow::error::Code>(status.code()));
@@ -30,11 +30,12 @@ StatusProto ToStatusProto(const Status& status) {
   return status_proto;
 }
 
-Status FromStatusProto(const StatusProto& status_proto) {
+absl::Status FromStatusProto(const StatusProto& status_proto) {
   return status_proto.error_code() == tensorflow::error::OK
-             ? Status()
-             : Status(static_cast<absl::StatusCode>(status_proto.error_code()),
-                      status_proto.error_message());
+             ? absl::Status()
+             : absl::Status(
+                   static_cast<absl::StatusCode>(status_proto.error_code()),
+                   status_proto.error_message());
 }
 
 }  // namespace serving
