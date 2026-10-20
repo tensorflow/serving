@@ -67,7 +67,7 @@ auto* wrapped_run_count = monitoring::Counter<0>::New(
     "/tensorflow/serving/batching_session/wrapped_run_count",
     "Total count of run calls on the wrapped session");
 
-string TensorSignatureDebugString(const TensorSignature& signature) {
+std::string TensorSignatureDebugString(const TensorSignature& signature) {
   return strings::StrCat("{input_tensors: <",
                          absl::StrJoin(signature.input_tensors, ", "),
                          ">, output_tensors: <",
@@ -77,11 +77,11 @@ string TensorSignatureDebugString(const TensorSignature& signature) {
 struct HashTensorSignature {
   uint64_t operator()(const TensorSignature& signature) const {
     uint64_t hash = 0xDECAFCAFFE /* seed */;
-    for (const string& input_tensor : signature.input_tensors) {
-      hash = HashCombine(hash, std::hash<string>()(input_tensor));
+    for (const std::string& input_tensor : signature.input_tensors) {
+      hash = HashCombine(hash, std::hash<std::string>()(input_tensor));
     }
-    for (const string& output_tensor : signature.output_tensors) {
-      hash = HashCombine(hash, std::hash<string>()(output_tensor));
+    for (const std::string& output_tensor : signature.output_tensors) {
+      hash = HashCombine(hash, std::hash<std::string>()(output_tensor));
     }
     return hash;
   }
@@ -98,21 +98,21 @@ struct EqTensorSignature {
 // Constructs a TensorSignature from a Run() call's 'inputs' and
 // 'output_tensor_names' arguments.
 TensorSignature TensorSignatureFromRunArgs(
-    const std::vector<std::pair<string, Tensor>>& inputs,
-    const std::vector<string>& output_tensor_names) {
+    const std::vector<std::pair<std::string, Tensor>>& inputs,
+    const std::vector<std::string>& output_tensor_names) {
   TensorSignature signature;
   for (const auto& entry : inputs) {
-    const string& tensor_name = entry.first;
+    const std::string& tensor_name = entry.first;
     signature.input_tensors.insert(tensor_name);
   }
-  for (const string& output_tensor_name : output_tensor_names) {
+  for (const std::string& output_tensor_name : output_tensor_names) {
     signature.output_tensors.insert(output_tensor_name);
   }
   return signature;
 }
 
 // Constructs vector of one task input from one BatchingSessionTask.
-const std::vector<std::pair<string, Tensor>>& GetTaskInput(
+const std::vector<std::pair<std::string, Tensor>>& GetTaskInput(
     const BatchingSessionTask& batching_session_task) {
   if (batching_session_task.is_partial) {
     return *batching_session_task.owned_split_inputs;
@@ -122,9 +122,9 @@ const std::vector<std::pair<string, Tensor>>& GetTaskInput(
 
 // Constructs vector of all task inputs from Batch of BatchingSessionTasks.
 // Input for each task is a vector of pairs (tensor_name, tensor_value).
-std::vector<std::vector<std::pair<string, Tensor>>> GetTaskInputsVector(
+std::vector<std::vector<std::pair<std::string, Tensor>>> GetTaskInputsVector(
     const Batch<BatchingSessionTask>& batch) {
-  std::vector<std::vector<std::pair<string, Tensor>>> all_task_inputs;
+  std::vector<std::vector<std::pair<std::string, Tensor>>> all_task_inputs;
   all_task_inputs.reserve(batch.num_tasks());
   for (int i = 0; i < batch.num_tasks(); ++i) {
     all_task_inputs.push_back(GetTaskInput(batch.task(i)));
@@ -186,9 +186,9 @@ class BatchingSession : public ServingSession {
 
   ~BatchingSession() override = default;
 
-  absl::Status Run(const std::vector<std::pair<string, Tensor>>& inputs,
-                   const std::vector<string>& output_tensor_names,
-                   const std::vector<string>& target_node_names,
+  absl::Status Run(const std::vector<std::pair<std::string, Tensor>>& inputs,
+                   const std::vector<std::string>& output_tensor_names,
+                   const std::vector<std::string>& target_node_names,
                    std::vector<Tensor>* outputs) override;
 
   // RunOptions handling:
@@ -207,9 +207,9 @@ class BatchingSession : public ServingSession {
   // assumption before splitting is introduced), the rest of fields in
   // `RunMetadata` are copied from the processing result of first split.
   absl::Status Run(const RunOptions& run_options,
-                   const std::vector<std::pair<string, Tensor>>& inputs,
-                   const std::vector<string>& output_tensor_names,
-                   const std::vector<string>& target_node_names,
+                   const std::vector<std::pair<std::string, Tensor>>& inputs,
+                   const std::vector<std::string>& output_tensor_names,
+                   const std::vector<std::string>& target_node_names,
                    std::vector<Tensor>* outputs,
                    RunMetadata* run_metadata) override;
 
@@ -219,9 +219,9 @@ class BatchingSession : public ServingSession {
   // calls).
   absl::Status Run(
       const RunOptions& run_options,
-      const std::vector<std::pair<string, Tensor>>& inputs,
-      const std::vector<string>& output_tensor_names,
-      const std::vector<string>& target_node_names,
+      const std::vector<std::pair<std::string, Tensor>>& inputs,
+      const std::vector<std::string>& output_tensor_names,
+      const std::vector<std::string>& target_node_names,
       std::vector<Tensor>* outputs, RunMetadata* run_metadata,
       const thread::ThreadPoolOptions& thread_pool_options) override;
 
@@ -234,9 +234,9 @@ class BatchingSession : public ServingSession {
   // Helper fucntion to run the session.
   absl::Status InternalRun(
       const RunOptions& run_options,
-      const std::vector<std::pair<string, Tensor>>& inputs,
-      const std::vector<string>& output_tensor_names,
-      const std::vector<string>& target_node_names,
+      const std::vector<std::pair<std::string, Tensor>>& inputs,
+      const std::vector<std::string>& output_tensor_names,
+      const std::vector<std::string>& target_node_names,
       std::vector<Tensor>* outputs, RunMetadata* run_metadata,
       absl::optional<thread::ThreadPoolOptions> thread_pool_options);
 
@@ -245,7 +245,8 @@ class BatchingSession : public ServingSession {
   // list must have the same 0th dimension size to be batchable. If the sizes
   // are not all identical, returns an error.
   absl::Status ComputeInputSize(
-      const std::vector<std::pair<string, Tensor>>& inputs, size_t* size) const;
+      const std::vector<std::pair<std::string, Tensor>>& inputs,
+      size_t* size) const;
 
   // Merges the input tensors in a batch, via concatenation of correspondingly-
   // named tensors. Puts the merged inputs in the order they are in in the
@@ -254,7 +255,7 @@ class BatchingSession : public ServingSession {
   // batchability.
   absl::Status MergeInputTensors(
       const TensorSignature& signature, const Batch<BatchingSessionTask>& batch,
-      std::vector<std::pair<string, Tensor>>* merged_inputs);
+      std::vector<std::pair<std::string, Tensor>>* merged_inputs);
 
   // Splits the output of a batched call to 'wrapped_->Run()' into individual
   // task outputs. Assumes the output tensor order matches the signature.
@@ -342,9 +343,9 @@ absl::Status BatchingSession::Create(
 }
 
 absl::Status BatchingSession::Run(
-    const std::vector<std::pair<string, Tensor>>& inputs,
-    const std::vector<string>& output_tensor_names,
-    const std::vector<string>& target_node_names,
+    const std::vector<std::pair<std::string, Tensor>>& inputs,
+    const std::vector<std::string>& output_tensor_names,
+    const std::vector<std::string>& target_node_names,
     std::vector<Tensor>* outputs) {
   RunMetadata run_metadata;
   return Run(RunOptions(), inputs, output_tensor_names, target_node_names,
@@ -353,20 +354,20 @@ absl::Status BatchingSession::Run(
 
 absl::Status BatchingSession::Run(
     const RunOptions& run_options,
-    const std::vector<std::pair<string, Tensor>>& inputs,
-    const std::vector<string>& output_tensor_names,
-    const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
-    RunMetadata* run_metadata) {
+    const std::vector<std::pair<std::string, Tensor>>& inputs,
+    const std::vector<std::string>& output_tensor_names,
+    const std::vector<std::string>& target_node_names,
+    std::vector<Tensor>* outputs, RunMetadata* run_metadata) {
   return InternalRun(run_options, inputs, output_tensor_names,
                      target_node_names, outputs, run_metadata, absl::nullopt);
 }
 
 absl::Status BatchingSession::Run(
     const RunOptions& run_options,
-    const std::vector<std::pair<string, Tensor>>& inputs,
-    const std::vector<string>& output_tensor_names,
-    const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
-    RunMetadata* run_metadata,
+    const std::vector<std::pair<std::string, Tensor>>& inputs,
+    const std::vector<std::string>& output_tensor_names,
+    const std::vector<std::string>& target_node_names,
+    std::vector<Tensor>* outputs, RunMetadata* run_metadata,
     const thread::ThreadPoolOptions& thread_pool_options) {
   return InternalRun(run_options, inputs, output_tensor_names,
                      target_node_names, outputs, run_metadata,
@@ -375,13 +376,13 @@ absl::Status BatchingSession::Run(
 
 absl::Status BatchingSession::InternalRun(
     const RunOptions& run_options,
-    const std::vector<std::pair<string, Tensor>>& inputs,
-    const std::vector<string>& output_tensor_names,
-    const std::vector<string>& target_node_names, std::vector<Tensor>* outputs,
-    RunMetadata* run_metadata,
+    const std::vector<std::pair<std::string, Tensor>>& inputs,
+    const std::vector<std::string>& output_tensor_names,
+    const std::vector<std::string>& target_node_names,
+    std::vector<Tensor>* outputs, RunMetadata* run_metadata,
     absl::optional<thread::ThreadPoolOptions> thread_pool_options) {
   if (!target_node_names.empty()) {
-    return errors::PermissionDenied(
+    return absl::PermissionDeniedError(
         "BatchingSession does not support target nodes");
   }
 
@@ -467,7 +468,8 @@ BatchingSession::BatchingSession(const BatchingSessionOptions& options,
     : options_(options), thread_pool_name_(thread_pool_name) {}
 
 absl::Status BatchingSession::ComputeInputSize(
-    const std::vector<std::pair<string, Tensor>>& inputs, size_t* size) const {
+    const std::vector<std::pair<std::string, Tensor>>& inputs,
+    size_t* size) const {
   TF_RETURN_IF_ERROR(::tensorflow::serving::ComputeTensorBatchSize(
       inputs, size,
       [](const std::pair<std::string, Tensor>& tensor) {
@@ -485,11 +487,11 @@ absl::Status BatchingSession::ComputeInputSize(
 
 absl::Status BatchingSession::MergeInputTensors(
     const TensorSignature& signature, const Batch<BatchingSessionTask>& batch,
-    std::vector<std::pair<string, Tensor>>* merged_inputs) {
+    std::vector<std::pair<std::string, Tensor>>* merged_inputs) {
   DCHECK_GE(batch.num_tasks(), 1);
   if (batch.num_tasks() < 1) {
-    return errors::Internal("Batch size expected to be positive; was ",
-                            batch.num_tasks());
+    return absl::InternalError(absl::StrCat(
+        "Batch size expected to be positive; was ", batch.num_tasks()));
   }
 
   const int lowest_allowed_batch_size =
@@ -506,21 +508,21 @@ absl::Status BatchingSession::MergeInputTensors(
   RecordProcessedBatchSize<BatchingSessionTask>(lowest_allowed_batch_size);
 
   // For each input tensor name, a vector of tensors from the individual tasks.
-  std::map<string, std::vector<Tensor>> tensors_to_merge;
+  std::map<std::string, std::vector<Tensor>> tensors_to_merge;
   // For each input tensor name a vector of maximum dimension sizes
   // among tensors from individual tasks.
-  absl::optional<std::map<string, std::vector<int>>> max_dim_sizes;
+  absl::optional<std::map<std::string, std::vector<int>>> max_dim_sizes;
   if (options_.pad_variable_length_inputs) {
-    std::vector<std::vector<std::pair<string, Tensor>>> all_task_inputs =
+    std::vector<std::vector<std::pair<std::string, Tensor>>> all_task_inputs =
         GetTaskInputsVector(batch);
     max_dim_sizes = CalculateMaxDimSizes(all_task_inputs);
   }
   // Populate 'tensors_to_merge'.
   for (int i = 0; i < batch.num_tasks(); ++i) {
-    const std::vector<std::pair<string, Tensor>>& task_inputs =
+    const std::vector<std::pair<std::string, Tensor>>& task_inputs =
         GetTaskInput(batch.task(i));
     for (const auto& entry : task_inputs) {
-      const string& tensor_name = entry.first;
+      const std::string& tensor_name = entry.first;
       const Tensor& tensor = entry.second;
 
       std::vector<Tensor>& tensor_vec = tensors_to_merge[tensor_name];
@@ -536,7 +538,7 @@ absl::Status BatchingSession::MergeInputTensors(
           TensorShape reference_shape =
               tensors_to_merge[tensor_name][0].shape();
           if (!AreShapesEqualExceptZeroDim(tensor.shape(), reference_shape)) {
-            return errors::FailedPrecondition(
+            return absl::FailedPreconditionError(
                 "Tensors with name '" + tensor_name +
                 "' from different tasks have different shapes and padding is "
                 "turned off. Set pad_variable_length_inputs to true, or ensure "
@@ -566,14 +568,14 @@ absl::Status BatchingSession::MergeInputTensors(
   // Merge the tensors.
   DCHECK_EQ(signature.input_tensors.size(), tensors_to_merge.size());
   if (tensors_to_merge.size() != signature.input_tensors.size()) {
-    return errors::Internal(
+    return absl::InternalError(
         "One or more tasks does not conform to batch signature");
   }
-  for (const string& tensor_name : signature.input_tensors) {
+  for (const std::string& tensor_name : signature.input_tensors) {
     auto tensors = tensors_to_merge.find(tensor_name);
     DCHECK(tensors != tensors_to_merge.end());
     if (tensors == tensors_to_merge.end()) {
-      return errors::Internal(
+      return absl::InternalError(
           "One or more tasks does not conform to batch signature");
     }
     Tensor concated;
@@ -581,8 +583,8 @@ absl::Status BatchingSession::MergeInputTensors(
         tensor::Concat(tensors->second, &concated);
     DCHECK(concat_status.ok()) << concat_status.ToString();
     if (!concat_status.ok()) {
-      return errors::Internal("Tensor concat operation failed: ",
-                              concat_status.ToString());
+      return absl::InternalError(absl::StrCat(
+          "Tensor concat operation failed: ", concat_status.ToString()));
     }
     merged_inputs->push_back({tensor_name, std::move(concated)});
   }
@@ -596,8 +598,8 @@ absl::Status BatchingSession::SplitOutputTensors(
     Batch<BatchingSessionTask>* batch) {
   DCHECK_GE(batch->num_tasks(), 1);
   if (batch->num_tasks() < 1) {
-    return errors::Internal("Batch size expected to be positive; was ",
-                            batch->num_tasks());
+    return absl::InternalError(absl::StrCat(
+        "Batch size expected to be positive; was ", batch->num_tasks()));
   }
 
   std::vector<int64_t> task_sizes_plus_optional_padding;
@@ -613,25 +615,25 @@ absl::Status BatchingSession::SplitOutputTensors(
   }
 
   // For each output tensor name, a divided-up tensor with one entry per task.
-  std::map<string, std::vector<Tensor>> split_tensors;
+  std::map<std::string, std::vector<Tensor>> split_tensors;
 
   // Populate 'split_tensors'.
   DCHECK_EQ(signature.output_tensors.size(), combined_outputs.size());
   if (combined_outputs.size() != signature.output_tensors.size()) {
-    return errors::Internal("Wrong number of batched output tensors");
+    return absl::InternalError("Wrong number of batched output tensors");
   }
-  const std::vector<string> output_tensors(signature.output_tensors.begin(),
-                                           signature.output_tensors.end());
+  const std::vector<std::string> output_tensors(
+      signature.output_tensors.begin(), signature.output_tensors.end());
   for (int i = 0; i < output_tensors.size(); ++i) {
-    const string& tensor_name = output_tensors[i];
+    const std::string& tensor_name = output_tensors[i];
     const Tensor& tensor = combined_outputs[i];
 
     if (tensor.shape().dims() == 0) {
-      return errors::FailedPrecondition(
+      return absl::FailedPreconditionError(
           "Batched output tensor has 0 dimensions");
     }
     if (tensor.shape().dim_size(0) != batch->size() + padding_size) {
-      return errors::FailedPrecondition(
+      return absl::FailedPreconditionError(
           "Batched output tensor's 0th dimension does not equal the sum of the "
           "0th dimension sizes of the input tensors");
     }
@@ -641,26 +643,26 @@ absl::Status BatchingSession::SplitOutputTensors(
         tensor::Split(tensor, task_sizes_plus_optional_padding, &split_tensor);
     DCHECK(split_status.ok()) << split_status.ToString();
     if (!split_status.ok()) {
-      return errors::Internal("Tensor split operation failed: ",
-                              split_status.ToString());
+      return absl::InternalError(absl::StrCat("Tensor split operation failed: ",
+                                              split_status.ToString()));
     }
     DCHECK_EQ(split_tensor.size(), task_sizes_plus_optional_padding.size());
     if (split_tensor.size() != task_sizes_plus_optional_padding.size()) {
-      return errors::Internal(
-          "Tensor split operation did not work as expected; got ",
-          split_tensor.size(), " splits; expected ",
-          task_sizes_plus_optional_padding.size());
+      return absl::InternalError(
+          absl::StrCat("Tensor split operation did not work as expected; got ",
+                       split_tensor.size(), " splits; expected ",
+                       task_sizes_plus_optional_padding.size()));
     }
     split_tensors[tensor_name] = std::move(split_tensor);
   }
 
   for (int i = 0; i < batch->num_tasks(); ++i) {
     BatchingSessionTask* task = batch->mutable_task(i);
-    for (const string& tensor_name : *task->output_tensor_names) {
+    for (const std::string& tensor_name : *task->output_tensor_names) {
       auto split_tensor = split_tensors.find(tensor_name);
       DCHECK(split_tensor != split_tensors.end());
       if (split_tensor == split_tensors.end()) {
-        return errors::Internal("Task does not conform to batch signature");
+        return absl::InternalError("Task does not conform to batch signature");
       }
 
       if (task->is_partial) {
@@ -782,7 +784,7 @@ void BatchingSession::ProcessBatch(
         (batch_deadline_micros - dequeue_time_micros) / 1000);
   }
 
-  std::vector<std::pair<string, Tensor>> merged_inputs;
+  std::vector<std::pair<std::string, Tensor>> merged_inputs;
   status = MergeInputTensors(signature, *batch, &merged_inputs);
   if (!status.ok()) {
     return;
@@ -791,7 +793,7 @@ void BatchingSession::ProcessBatch(
   absl::optional<thread::ThreadPoolOptions> thread_pool_options =
       batch->task(0).thread_pool_options;
 
-  const std::vector<string> output_tensor_names(
+  const std::vector<std::string> output_tensor_names(
       signature.output_tensors.begin(), signature.output_tensors.end());
   std::vector<Tensor> combined_outputs;
   RunMetadata run_metadata;
@@ -871,7 +873,7 @@ absl::Status SplitInputTask(
 
         // `cost_dimension_map` aggregates costs from all splits for each
         // dimension.
-        absl::flat_hash_map<string, float> cost_dimension_map;
+        absl::flat_hash_map<std::string, float> cost_dimension_map;
         for (const auto& split : *split_run_metadatas) {
           if (split.has_cost_graph()) {
             for (const auto& cost : split.cost_graph().cost()) {
@@ -881,7 +883,7 @@ absl::Status SplitInputTask(
         }
 
         *run_metadata = (*split_run_metadatas)[0];
-        std::vector<string> cost_dimensions;
+        std::vector<std::string> cost_dimensions;
         for (const auto& cost_and_dimension :
              run_metadata->cost_graph().cost()) {
           cost_dimensions.push_back(cost_and_dimension.dimension());
@@ -927,7 +929,7 @@ absl::Status SplitInputTask(
     task->output_tensor_names = input_task.output_tensor_names;
 
     task->owned_split_inputs =
-        absl::make_unique<std::vector<std::pair<string, Tensor>>>();
+        absl::make_unique<std::vector<std::pair<std::string, Tensor>>>();
     task->split_index = i;
     task->shared_outputs = input_task.shared_outputs;
     task->thread_safe_status = input_task.thread_safe_status;
@@ -946,7 +948,7 @@ absl::Status SplitInputTask(
   // initializes input of `output_tasks` with split results.
   for (int i = 0; i < num_input_tensors; ++i) {
     std::vector<Tensor> split_tensors;
-    const string& tensor_name = (*input_task.inputs)[i].first;
+    const std::string& tensor_name = (*input_task.inputs)[i].first;
     const Tensor& input_tensor = (*input_task.inputs)[i].second;
     // TODO(b/158393551):
     // Figure out the optimal implementation of Split, by using
@@ -954,15 +956,16 @@ absl::Status SplitInputTask(
     const absl::Status split_status =
         tensor::Split(input_tensor, output_task_sizes, &split_tensors);
     if (!split_status.ok()) {
-      return errors::Internal(
-          "When splitting input, Tensor split operation failed: ",
-          split_status.ToString());
+      return absl::InternalError(
+          absl::StrCat("When splitting input, Tensor split operation failed: ",
+                       split_status.ToString()));
     }
     if (split_tensors.size() != output_task_sizes.size()) {
-      return errors::Internal(
+      return absl::InternalError(absl::StrCat(
           "When splitting input, tensor split operation did not work as "
           "expected; got ",
-          split_tensors.size(), " splits; expected ", output_task_sizes.size());
+          split_tensors.size(), " splits; expected ",
+          output_task_sizes.size()));
     }
     for (int j = 0; j < output_tasks->size(); ++j) {
       BatchingSessionTask& output_task = *((*output_tasks)[j]);
@@ -1012,40 +1015,40 @@ absl::Status CreateBasicBatchingSession(
   if (!allowed_batch_sizes.empty()) {
     if (schedule_options.enable_large_batch_splitting) {
       const int max_allowed_batch_size = allowed_batch_sizes.back();
-      int32 last_size = 0;
+      int32_t last_size = 0;
       for (size_t i = 0; i < allowed_batch_sizes.size(); ++i) {
-        const int32 size = allowed_batch_sizes.at(i);
+        const int32_t size = allowed_batch_sizes.at(i);
         if (i > 0 && size <= last_size) {
-          return errors::InvalidArgument(
+          return absl::InvalidArgumentError(
               "allowed_batch_sizes entries must be monotonically increasing");
         }
         last_size = size;
       }
       if (max_allowed_batch_size > schedule_options.max_batch_size) {
-        return errors::InvalidArgument(
+        return absl::InvalidArgumentError(absl::StrCat(
             "Last entry in allowed_batch_sizes must be less than or equal to "
             "max_batch_size; last "
             "entry was ",
             max_allowed_batch_size, "; expected ",
-            schedule_options.max_batch_size);
+            schedule_options.max_batch_size));
       }
       if (schedule_options.max_execution_batch_size != max_allowed_batch_size) {
-        return errors::InvalidArgument(
-            "Last entry in allowed_batch_sizes must be equal to "
-            "max_execution_batch_size; last "
-            "entry was ",
-            max_allowed_batch_size, "; expected ",
-            schedule_options.max_execution_batch_size);
+        return absl::InvalidArgumentError(
+            absl::StrCat("Last entry in allowed_batch_sizes must be equal to "
+                         "max_execution_batch_size; last "
+                         "entry was ",
+                         max_allowed_batch_size, "; expected ",
+                         schedule_options.max_execution_batch_size));
       }
     } else if (allowed_batch_sizes.back() != schedule_options.max_batch_size) {
       // TODO(b/161641195):
       // Validate `allowed_batch_sizes` increase monotonically for non
       // large_batch_splitting case.
-      return errors::InvalidArgument(
+      return absl::InvalidArgumentError(absl::StrCat(
           "Last entry in allowed_batch_sizes must match max_batch_size; last "
           "entry was ",
           batching_session_options.allowed_batch_sizes.back(), "; expected ",
-          schedule_options.max_batch_size);
+          schedule_options.max_batch_size));
     }
   }
 
