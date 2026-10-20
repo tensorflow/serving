@@ -89,6 +89,13 @@ class BundleFactoryTest : public ::testing::Test {
     //
     // Tweak batching params further for testing.
     //
+    // Cap the number of batch threads in tests so SharedBatchScheduler does not
+    // spawn port::MaxParallelism() (100+ on large hosts) tight-polling batch
+    // threads per scheduler instance, which causes severe mutex contention
+    // under sanitizers (ASAN/TSAN).
+    if (!batching_params->has_num_batch_threads()) {
+      batching_params->mutable_num_batch_threads()->set_value(4);
+    }
     // Set high value of max enqueued batches to prevent queue limits to be hit
     // during testing that involves lot of requests.
     batching_params->mutable_max_enqueued_batches()->set_value(INT_MAX);
