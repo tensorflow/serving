@@ -30,12 +30,14 @@ namespace serving {
 namespace {
 
 string SanitizeLabelValue(const string& value) {
-  // Backslash and double quote have to be escaped.
+  // Backslash, double quote and line feed have to be escaped.
   string new_value = value;
   // Replace \ with \\.
   RE2::GlobalReplace(&new_value, "\\\\", "\\\\\\\\");
   // Replace " with \".
   RE2::GlobalReplace(&new_value, "\"", "\\\\\"");
+  // Replace a line feed with \n.
+  RE2::GlobalReplace(&new_value, "\n", "\\\\n");
   return new_value;
 }
 
