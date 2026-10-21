@@ -60,13 +60,17 @@ TfLiteInterpreterWrapper::TfLiteInterpreterWrapper(
 
 absl::Status TfLiteInterpreterWrapper::SetStringData(
     const std::vector<const Tensor*>& tensors, TfLiteTensor* tflite_tensor,
-    int tensor_index, int batch_size) {
+    int tensor_index, int /*batch_size*/) {
   // Format of the buffer for tflite:
   //   [0] number of strings (int32_t)
   //   [4] offset of each string (int32_t)
   //   [sizeof(int32_t) * (num_strings + 1)]] total size of strings
   //   [sizeof(int32_t) * (num_strings + 2)] batch.data()
-  int32_t num_strings = batch_size;
+  // num_strings must be the number of string elements actually written. Sizing
+  // it from the leading (batch) dimension undersizes the offset table whenever
+  // an input has more than one string per batch entry (rank > 1), writing past
+  // the allocation below.
+  int32_t num_strings = 0;
   offset_.clear();
   size_t total_size = 0;
   offset_.push_back(static_cast<int32_t>(total_size));
@@ -75,6 +79,7 @@ absl::Status TfLiteInterpreterWrapper::SetStringData(
     for (int i = 0; i < flat.size(); ++i) {
       total_size += flat(i).size();
       offset_.push_back(static_cast<int32_t>(total_size));
+      ++num_strings;
     }
   }
   size_t required_bytes = total_size + sizeof(int32_t) * (num_strings + 2);
