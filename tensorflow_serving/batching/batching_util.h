@@ -16,10 +16,12 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_BATCHING_BATCHING_UTIL_H_
 #define TENSORFLOW_SERVING_BATCHING_BATCHING_UTIL_H_
 
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
 #include "tensorflow/core/framework/tensor.h"
@@ -40,8 +42,9 @@ namespace serving {
 //
 // the following map will be generated:
 // {'tensor_a': [200, 500, 400], 'tensor_b': [200]}
-std::map<string, std::vector<int>> CalculateMaxDimSizes(
-    const std::vector<std::vector<std::pair<string, Tensor>>>& batch);
+absl::Status CalculateMaxDimSizes(
+    const std::vector<std::vector<std::pair<string, Tensor>>>& batch,
+    std::map<string, std::vector<int>>* max_dim_sizes);
 
 // Pads tensor so that its shape becomes as specified in max_dim_sizes,
 // except for zeroth dimension, which is left as is.
