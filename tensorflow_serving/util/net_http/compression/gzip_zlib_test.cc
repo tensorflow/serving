@@ -696,6 +696,35 @@ TEST(ZLibTest, GzipUncompressedLength) {
   }
 }
 
+TEST(ZLibTest, UncompressGzipAndAllocateFailure) {
+  // "Hello, World!", compressed, with the four-byte ISIZE trailer rewritten
+  // from 13 to 4096. The buffer is sized from the trailer, so it is 4096 bytes
+  // long, while Uncompress() reports the 13 bytes it really produced.
+  const std::string forged_length(
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\xf3\x48\xcd\xc9\xc9"
+      "\xd7\x51\x08\xcf\x2f\xca\x49\x51\x04\x00\xd0\xc3\x4a\xec\x00"
+      "\x10\x00\x00",
+      33);
+
+  // A gzip header that stops part way through MTIME, so its last four bytes
+  // double as an ISIZE of 16 and a buffer is allocated before the header turns
+  // out to be incomplete.
+  const std::string truncated_header("\x1f\x8b\x08\x08\x10\x00\x00\x00", 8);
+
+  for (const std::string& data : {forged_length, truncated_header}) {
+    SCOPED_TRACE(absl::StrCat("input of ", data.size(), " bytes"));
+    ZLib zlib;
+    Bytef* dest = nullptr;
+    uLongf destLen = ZLib::kMaxUncompressedBytes;
+    EXPECT_NE(Z_OK,
+              zlib.UncompressGzipAndAllocate(
+                  &dest, &destLen, reinterpret_cast<const Bytef*>(data.data()),
+                  data.size()));
+    EXPECT_EQ(nullptr, dest);
+    EXPECT_EQ(0, destLen);
+  }
+}
+
 }  // namespace
 }  // namespace net_http
 }  // namespace serving
