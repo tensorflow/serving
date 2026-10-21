@@ -203,7 +203,7 @@ resnet-serving-cluster  us-central1-f  1.1.8           104.197.163.119  n1-stand
 ```
 
 Set the default cluster for gcloud container command and pass cluster
-credentials to [kubectl](http://kubernetes.io/docs/user-guide/kubectl-overview/).
+credentials to [kubectl](https://kubernetes.io/docs/concepts/overview/kubectl/).
 
 ```shell
 gcloud config set container/cluster resnet-serving-cluster
@@ -245,11 +245,11 @@ docker push gcr.io/tensorflow-serving/resnet
 ### Create Kubernetes Deployment and Service
 
 The deployment consists of 3 replicas of `resnet_inference` server controlled by
-a [Kubernetes Deployment](http://kubernetes.io/docs/user-guide/deployments/).
+a [Kubernetes Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/).
 The replicas are exposed externally by a
-[Kubernetes Service](http://kubernetes.io/docs/user-guide/services/) along with
+[Kubernetes Service](https://kubernetes.io/docs/concepts/services-networking/service/) along with
 an
-[External Load Balancer](http://kubernetes.io/docs/user-guide/load-balancer/).
+[External Load Balancer](https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer).
 
 We create them using the example Kubernetes config
 [resnet_k8s.yaml](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/example/resnet_k8s.yaml).
