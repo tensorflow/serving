@@ -47,11 +47,11 @@ absl::Status PreProcessRegression(
     const tfrt::FunctionMetadata& function_metadata) {
   if (function_metadata.GetInputNames().size() != 1) {
     return absl::InvalidArgumentError(
-        strings::StrCat("Expected one input Tensor."));
+        absl::StrCat("Expected one input Tensor."));
   }
   if (function_metadata.GetOutputNames().size() != 1) {
     return absl::InvalidArgumentError(
-        strings::StrCat("Expected one output Tensor."));
+        absl::StrCat("Expected one output Tensor."));
   }
 
   if (function_metadata.GetInputNames()[0] != kRegressInputs) {
@@ -87,7 +87,7 @@ absl::Status PostProcessRegressionResult(
         "[batch_size, 1] but got ", output_tensor->shape().DebugString()));
   }
   if (num_examples != output_tensor->dim_size(0)) {
-    return absl::InvalidArgumentError(strings::StrCat(
+    return absl::InvalidArgumentError(absl::StrCat(
         "Input batch size did not match output batch size: ", num_examples,
         " vs. ", output_tensor->dim_size(0)));
   }
@@ -124,7 +124,7 @@ absl::Status RunRegress(const tfrt::SavedModel::RunOptions& run_options,
       saved_model->GetFunctionMetadata(function_name);
   if (!function_metadata.has_value()) {
     return absl::FailedPreconditionError(
-        strings::StrCat("Function \"", function_name, "\" not found."));
+        absl::StrCat("Function \"", function_name, "\" not found."));
   }
 
   MakeModelSpec(request.model_spec().name(), function_name, servable_version,
