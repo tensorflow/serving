@@ -341,18 +341,38 @@ Status AddValueToTensor(const rapidjson::Value& val, DataType dtype,
   return OkStatus();
 }
 
+// Maximum tensor rank (nesting depth) accepted when inferring a dense
+// tensor's shape from JSON. Aligned with TensorFlow's
+// TensorShape::MaxDimensions(). Bounds recursion in GetDenseTensorShape and
+// FillTensorProto so that an attacker-controlled, arbitrarily deeply nested
+// JSON array cannot exhaust the stack (see CVE-2025-0649, which fixed the
+// stringification side of this same class of bug but not this parse-side
+// recursion).
+constexpr int kMaxTensorRank = 254;
+
 // Computes and fills TensorShape corresponding to a JSON value.
 //
 // `val` can be scalar or list or list of lists with arbitrary nesting. If a
 // scalar (non array) is passed, we do not add dimension info to shape (as
 // scalars do not have a dimension).
-void GetDenseTensorShape(const rapidjson::Value& val, TensorShapeProto* shape) {
-  if (!val.IsArray()) return;
+//
+// Returns an error if `val` is nested deeper than kMaxTensorRank, instead of
+// recursing without bound.
+Status GetDenseTensorShape(const rapidjson::Value& val,
+                           TensorShapeProto* shape) {
+  if (!val.IsArray()) return OkStatus();
+  if (shape->dim_size() >= kMaxTensorRank) {
+    return errors::InvalidArgument(
+        "JSON Value is nested deeper than the maximum supported tensor "
+        "rank of ",
+        kMaxTensorRank);
+  }
   const auto size = val.Size();
   shape->add_dim()->set_size(size);
   if (size > 0) {
-    GetDenseTensorShape(val[0], shape);
+    return GetDenseTensorShape(val[0], shape);
   }
+  return OkStatus();
 }
 
 bool IsValBase64Object(const rapidjson::Value& val) {
@@ -391,6 +411,15 @@ Status JsonDecodeBase64Object(const rapidjson::Value& val,
 // Fills tensor values.
 Status FillTensorProto(const rapidjson::Value& val, int level, DataType dtype,
                        int* val_count, TensorProto* tensor) {
+  if (level > kMaxTensorRank) {
+    // Defense-in-depth: tensor_shape's rank is already bounded by
+    // GetDenseTensorShape, but guard this recursion independently too, in
+    // case of a future call site that doesn't route through it first.
+    return errors::InvalidArgument(
+        "JSON Value is nested deeper than the maximum supported tensor "
+        "rank of ",
+        kMaxTensorRank);
+  }
   const auto rank = tensor->tensor_shape().dim_size();
   if (!val.IsArray()) {
     // DOM tree for a (dense) tensor will always have all values
@@ -453,7 +482,8 @@ Status AddInstanceItem(const rapidjson::Value& item, const string& name,
   const auto dtype = tensorinfo_map.at(name).dtype();
   auto* tensor = &(*tensor_map)[name];
   tensor->mutable_tensor_shape()->Clear();
-  GetDenseTensorShape(item, tensor->mutable_tensor_shape());
+  TF_RETURN_IF_ERROR(
+      GetDenseTensorShape(item, tensor->mutable_tensor_shape()));
   TF_RETURN_IF_ERROR(
       FillTensorProto(item, 0 /* level */, dtype, &size, tensor));
   if (!size_map->count(name)) {
@@ -623,7 +653,8 @@ Status FillTensorMapFromInputsMap(
 
     auto* tensor = &(*tensor_map)[tensorinfo_map.begin()->first];
     tensor->set_dtype(tensorinfo_map.begin()->second.dtype());
-    GetDenseTensorShape(val, tensor->mutable_tensor_shape());
+    TF_RETURN_IF_ERROR(
+        GetDenseTensorShape(val, tensor->mutable_tensor_shape()));
     int unused_size = 0;
     TF_RETURN_IF_ERROR(FillTensorProto(val, 0 /* level */, tensor->dtype(),
                                        &unused_size, tensor));
@@ -639,7 +670,8 @@ Status FillTensorMapFromInputsMap(
       auto* tensor = &(*tensor_map)[name];
       tensor->set_dtype(dtype);
       tensor->mutable_tensor_shape()->Clear();
-      GetDenseTensorShape(item->value, tensor->mutable_tensor_shape());
+      TF_RETURN_IF_ERROR(
+          GetDenseTensorShape(item->value, tensor->mutable_tensor_shape()));
       int unused_size = 0;
       TF_RETURN_IF_ERROR(FillTensorProto(item->value, 0 /* level */, dtype,
                                          &unused_size, tensor));
