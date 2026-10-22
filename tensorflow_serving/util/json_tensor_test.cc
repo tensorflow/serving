@@ -118,6 +118,25 @@ TEST(JsontensorTest, DeeplyNestedMalformed) {
   EXPECT_THAT(status.message(), HasSubstr("key must be a string value"));
 }
 
+TEST(JsontensorTest, DeeplyNestedTensorValueExceedsMaxRank) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_INT32", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  std::string json_req = R"({"instances":)";
+  int depth = 300;  // exceeds kMaxTensorRank (254)
+  json_req.append(depth, '[');
+  json_req.append("1");
+  json_req.append(depth, ']');
+  json_req.append("}");
+  auto status =
+      FillPredictRequestFromJson(json_req, getmap(infomap), &req, &format);
+  ASSERT_FALSE(status.ok());
+  EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
+}
+
 TEST(JsontensorTest, MixedInputForFloatTensor) {
   TensorInfoMap infomap;
   ASSERT_TRUE(
