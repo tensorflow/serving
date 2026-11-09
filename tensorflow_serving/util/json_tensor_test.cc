@@ -25,7 +25,11 @@ limitations under the License.
 #include "rapidjson/error/en.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
+#include "tensorflow/core/framework/tensor_shape.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/protobuf.h"
@@ -116,6 +120,68 @@ TEST(JsontensorTest, DeeplyNestedMalformed) {
       FillPredictRequestFromJson(json_req, getmap(infomap), &req, &format);
   ASSERT_TRUE(absl::IsInvalidArgument(status));
   EXPECT_THAT(status.message(), HasSubstr("key must be a string value"));
+}
+
+std::string MakeNestedJsonArray(int depth, absl::string_view leaf) {
+  return absl::StrCat(std::string(depth, '['), leaf, std::string(depth, ']'));
+}
+
+TEST(JsontensorTest, TensorRecursionDepthLimit) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_INT32", &infomap["default"]));
+
+  constexpr int kMaxDepth = 256;
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+
+  // Row format ("instances"): item recursion up to kMaxDepth succeeds;
+  // kMaxDepth + 1 fails.
+  TF_EXPECT_OK(FillPredictRequestFromJson(
+      absl::StrCat(R"({"instances":[)", MakeNestedJsonArray(kMaxDepth, "1"),
+                   "]}"),
+      getmap(infomap), &req, &format));
+  EXPECT_EQ(req.inputs().at("default").tensor_shape().dim_size(),
+            kMaxDepth + 1);
+
+  req.Clear();
+  absl::Status status = FillPredictRequestFromJson(
+      absl::StrCat(R"({"instances":[)", MakeNestedJsonArray(kMaxDepth + 1, "1"),
+                   "]}"),
+      getmap(infomap), &req, &format);
+  ASSERT_TRUE(absl::IsInvalidArgument(status));
+  EXPECT_THAT(status.message(), HasSubstr("exceeds maximum recursion depth"));
+
+  // Columnar format ("inputs"), plain list and named map.
+  req.Clear();
+  TF_EXPECT_OK(FillPredictRequestFromJson(
+      absl::StrCat(R"({"inputs":)", MakeNestedJsonArray(kMaxDepth, "1"), "}"),
+      getmap(infomap), &req, &format));
+  EXPECT_EQ(req.inputs().at("default").tensor_shape().dim_size(), kMaxDepth);
+
+  req.Clear();
+  status = FillPredictRequestFromJson(
+      absl::StrCat(R"({"inputs":)", MakeNestedJsonArray(kMaxDepth + 1, "1"),
+                   "}"),
+      getmap(infomap), &req, &format);
+  ASSERT_TRUE(absl::IsInvalidArgument(status));
+  EXPECT_THAT(status.message(), HasSubstr("exceeds maximum recursion depth"));
+
+  req.Clear();
+  status = FillPredictRequestFromJson(
+      absl::StrCat(R"({"inputs":{"default":)",
+                   MakeNestedJsonArray(kMaxDepth + 1, "1"), "}}"),
+      getmap(infomap), &req, &format);
+  ASSERT_TRUE(absl::IsInvalidArgument(status));
+  EXPECT_THAT(status.message(), HasSubstr("exceeds maximum recursion depth"));
+
+  // Jagged array where val[0] is shallow and val[1] exceeds max depth.
+  req.Clear();
+  status = FillPredictRequestFromJson(
+      absl::StrCat(R"({"inputs":[[1],)",
+                   MakeNestedJsonArray(kMaxDepth + 1, "1"), "]}"),
+      getmap(infomap), &req, &format);
+  ASSERT_TRUE(absl::IsInvalidArgument(status));
 }
 
 TEST(JsontensorTest, MixedInputForFloatTensor) {
