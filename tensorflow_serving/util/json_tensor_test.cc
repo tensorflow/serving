@@ -118,6 +118,68 @@ TEST(JsontensorTest, DeeplyNestedMalformed) {
   EXPECT_THAT(status.message(), HasSubstr("key must be a string value"));
 }
 
+// Regression tests for CVE-2025-0649 (uncontrolled recursion in
+// GetDenseTensorShape / FillTensorProto). The original fix only addressed
+// the stringification side; these exercise the parse-side recursion, which
+// remained unbounded.
+TEST(JsontensorTest, DeeplyNestedInstancesRejected) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_INT32", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  // A single "instances" element nested far past any legitimate tensor rank
+  // must be rejected with a clean error instead of exhausting the stack.
+  std::string json_req = R"({"instances":)";
+  json_req.append(10000, '[');
+  json_req.append("1");
+  json_req.append(10000, ']');
+  json_req.append("}");
+  auto status =
+      FillPredictRequestFromJson(json_req, getmap(infomap), &req, &format);
+  ASSERT_TRUE(absl::IsInvalidArgument(status));
+  EXPECT_THAT(status.message(), HasSubstr("maximum supported tensor rank"));
+}
+
+TEST(JsontensorTest, DeeplyNestedInputsRejected) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_INT32", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  // Same attack via the columnar "inputs" path, which has its own
+  // GetDenseTensorShape call site (FillTensorMapFromInputsMap).
+  std::string json_req = R"({"inputs":)";
+  json_req.append(10000, '[');
+  json_req.append("1");
+  json_req.append(10000, ']');
+  json_req.append("}");
+  auto status =
+      FillPredictRequestFromJson(json_req, getmap(infomap), &req, &format);
+  ASSERT_TRUE(absl::IsInvalidArgument(status));
+  EXPECT_THAT(status.message(), HasSubstr("maximum supported tensor rank"));
+}
+
+TEST(JsontensorTest, WellFormedNestedInstancesWithinLimitAccepted) {
+  TensorInfoMap infomap;
+  ASSERT_TRUE(
+      TextFormat::ParseFromString("dtype: DT_INT32", &infomap["default"]));
+
+  PredictRequest req;
+  JsonPredictRequestFormat format;
+  // Legitimate, deeply (but not excessively) nested tensors well within the
+  // rank limit must still be accepted -- guards against being overly strict.
+  std::string json_req = R"({"instances":)";
+  json_req.append(200, '[');
+  json_req.append("1");
+  json_req.append(200, ']');
+  json_req.append("}");
+  TF_EXPECT_OK(
+      FillPredictRequestFromJson(json_req, getmap(infomap), &req, &format));
+}
+
 TEST(JsontensorTest, MixedInputForFloatTensor) {
   TensorInfoMap infomap;
   ASSERT_TRUE(
