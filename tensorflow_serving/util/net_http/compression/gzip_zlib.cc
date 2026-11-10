@@ -795,17 +795,22 @@ int ZLib::UncompressGzipAndAllocate(Bytef **dest, uLongf *destLen,
     return Z_MEM_ERROR;  // probably a corrupted gzip buffer
   }
 
-  *destLen = uncompress_length;
+  // Uncompress() overwrites *destLen with the number of bytes it actually
+  // produced, so keep the allocated size for the deallocation below.
+  const uLongf alloc_length = uncompress_length;
 
-  *dest = std::allocator<Bytef>().allocate(*destLen);
+  *destLen = alloc_length;
+
+  *dest = std::allocator<Bytef>().allocate(alloc_length);
   if (*dest == nullptr) {
     return Z_MEM_ERROR;
   }
 
   const int retval = Uncompress(*dest, destLen, source, sourceLen);
   if (retval != Z_OK) {  // just to make life easier for them
-    std::allocator<Bytef>().deallocate(*dest, *destLen);
+    std::allocator<Bytef>().deallocate(*dest, alloc_length);
     *dest = nullptr;
+    *destLen = 0;
   }
   return retval;
 }
