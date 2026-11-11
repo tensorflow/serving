@@ -344,6 +344,35 @@ TEST_P(BatchingSessionTest, BatchingWithPadding) {
       }));
 }
 
+TEST(BatchingSessionTest, BatchingWithPaddingRejectsMismatchedRanks) {
+  BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
+  schedule_options.max_batch_size = 2;
+  schedule_options.batch_timeout_micros = 1e6;
+  schedule_options.num_batch_threads = 1;
+  std::unique_ptr<Session> batching_session;
+  BatchingSessionOptions batching_session_options;
+  batching_session_options.pad_variable_length_inputs = true;
+  TF_ASSERT_OK(CreateBasicBatchingSession(
+      schedule_options, batching_session_options, {{"x"}, {"y"}},
+      CreateMatrixHalfPlusTwoSession(), &batching_session));
+
+  auto expect_rank_error = [&batching_session](Tensor input) {
+    std::vector<Tensor> outputs;
+    absl::Status status =
+        batching_session->Run({{"x", input}}, {"y"}, {}, &outputs);
+    EXPECT_EQ(status.code(), absl::StatusCode::kFailedPrecondition);
+    EXPECT_THAT(status.message(), HasSubstr("different ranks"));
+  };
+  std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "first_request", [&expect_rank_error] {
+        expect_rank_error(test::AsTensor<float>({1, 2}, {1, 2}));
+      }));
+  std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "second_request", [&expect_rank_error] {
+        expect_rank_error(test::AsTensor<float>({3, 4}, {1, 1, 2}));
+      }));
+}
+
 TEST_P(BatchingSessionTest, BatchingWithLargeBatch) {
   BasicBatchScheduler<BatchingSessionTask>::Options schedule_options;
   schedule_options.max_batch_size = 3;

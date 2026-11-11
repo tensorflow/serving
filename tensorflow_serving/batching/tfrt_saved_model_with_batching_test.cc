@@ -383,6 +383,38 @@ TEST_F(SavedModelWithBatchingTest, BatchingWithPadding) {
       }));
 }
 
+TEST_F(SavedModelWithBatchingTest, BatchingWithPaddingRejectsMismatchedRanks) {
+  Initialize(BuildSchedulerOptions(/*max_batch_size=*/2),
+             BuildSavedModelBatchingOptions(
+                 /*pad_variable_length_inputs=*/true,
+                 /*allowed_batch_sizes=*/{}));
+
+  auto inputs = MakeTensorsBatch({
+      {{{1, 2}, TensorShape({1, 2})}},
+      {{{3, 4}, TensorShape({1, 1, 2})}},
+  });
+
+  EXPECT_CALL(
+      *wrapped_saved_model_,
+      Run(_, kFunctionOne, ::testing::An<absl::Span<const Tensor>>(), _))
+      .Times(0);
+
+  tfrt::SavedModel::RunOptions run_options;
+  auto expect_rank_error = [this, &inputs, &run_options](int input_index) {
+    std::vector<Tensor> outputs;
+    absl::Status status = saved_model_with_batching_->Run(
+        run_options, kFunctionOne, inputs[input_index], &outputs);
+    EXPECT_THAT(status,
+                TFStatusIs(error::FAILED_PRECONDITION, "different ranks"));
+  };
+  std::unique_ptr<Thread> first_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "first_request_thread",
+      [&expect_rank_error] { expect_rank_error(0); }));
+  std::unique_ptr<Thread> second_request_thread(Env::Default()->StartThread(
+      ThreadOptions(), "second_request_thread",
+      [&expect_rank_error] { expect_rank_error(1); }));
+}
+
 // Tests that batching tensors with variable length dimension size (except for
 // batching dimension) returns an appropriate error when padding is turned off.
 TEST_F(SavedModelWithBatchingTest, UnequalShapesWhenPaddingIsTurnedOff) {
