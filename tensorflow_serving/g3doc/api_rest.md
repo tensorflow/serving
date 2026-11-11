@@ -127,7 +127,7 @@ follows:
 
 ```javascript
 {
-  "result": [
+  "results": [
     // List of class label/score pairs for first Example (in request)
     [ [<label1>, <score1>], [<label2>, <score2>], ... ],
 
@@ -148,7 +148,7 @@ follows:
 ```javascript
 {
   // One regression value for each example in the request in the same order.
-  "result": [ <value1>, <value2>, <value3>, ...]
+  "results": [ <value1>, <value2>, <value3>, ...]
 }
 ```
 
