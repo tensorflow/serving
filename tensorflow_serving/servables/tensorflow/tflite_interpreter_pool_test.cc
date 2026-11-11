@@ -178,6 +178,43 @@ TEST(TfLiteInterpreterWrapper, TfLiteInterpreterWrapperTest) {
       ::testing::ElementsAreArray(expected_strs));
 }
 
+TEST(TfLiteInterpreterWrapper, SetStringDataUsesFlattenedStringCount) {
+  std::string model_bytes;
+  TF_ASSERT_OK(ReadFileToString(Env::Default(),
+                                test_util::TestSrcDirPath(kParseExampleModel),
+                                &model_bytes));
+  auto model = tflite::FlatBufferModel::BuildFromModel(
+      flatbuffers::GetRoot<tflite::Model>(model_bytes.data()));
+  tflite::ops::builtin::BuiltinOpResolver resolver;
+  tflite::ops::custom::AddParseExampleOp(&resolver);
+  std::unique_ptr<tflite::Interpreter> interpreter;
+  ASSERT_EQ(tflite::InterpreterBuilder(*model, resolver)(&interpreter,
+                                                         /*num_threads=*/1),
+            kTfLiteOk);
+  ASSERT_EQ(interpreter->inputs().size(), 1);
+  const int idx = interpreter->inputs()[0];
+  auto* tensor = interpreter->tensor(idx);
+  ASSERT_EQ(tensor->type, kTfLiteString);
+  ASSERT_EQ(interpreter->ResizeInputTensor(idx, {1}), kTfLiteOk);
+  ASSERT_EQ(interpreter->AllocateTensors(), kTfLiteOk);
+
+  auto interpreter_wrapper =
+      std::make_unique<TfLiteInterpreterWrapper>(std::move(interpreter));
+
+  Tensor input(DT_STRING, TensorShape({1, 2}));
+  input.flat<tstring>()(0) = "first";
+  input.flat<tstring>()(1) = "second";
+  std::vector<const Tensor*> data = {&input};
+
+  auto* wrapped = interpreter_wrapper->Get();
+  tensor = wrapped->tensor(idx);
+  TF_ASSERT_OK(interpreter_wrapper->SetStringData(data, tensor, idx,
+                                                  input.dim_size(0)));
+
+  const auto strings = ExtractVector<std::string>(wrapped->tensor(idx));
+  EXPECT_THAT(strings, ::testing::ElementsAre("first", "second"));
+}
+
 }  // namespace internal
 }  // namespace serving
 }  // namespace tensorflow

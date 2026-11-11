@@ -105,7 +105,6 @@ class TfLiteInterpreterWrapper {
   int batch_size_ = 1;
   std::map<int, std::unique_ptr<char>> tensor_buffer_;
   std::map<int, size_t> tensor_buffer_max_bytes_;
-  std::vector<int32_t> offset_;
 #ifdef TFLITE_PROFILE
   int max_num_entries_;
   tflite::profiling::ProfileSummarizer run_summarizer_;
