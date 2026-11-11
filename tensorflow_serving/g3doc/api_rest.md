@@ -323,7 +323,7 @@ data between systems. For supported types, the encodings are described on a
 type-by-type basis in the table below. Types not listed below are implied to be
 unsupported.
 
-[TF Data Type](https://www.tensorflow.org/versions/r1.1/programmers_guide/dims_types#data_types) | [JSON Value](http://json.org/) | JSON example                       | Notes
+[TF Data Type](https://www.tensorflow.org/api_docs/python/tf/dtypes/DType) | [JSON Value](http://json.org/) | JSON example                       | Notes
 ------------------------------------------------------------------------------------------------ | ------------------------------ | ---------------------------------- | -----
 DT_BOOL                                                                                          | true, false                    | *true, false*                      |
 DT_STRING                                                                                        | string                         | *"Hello World!"*                   | If `DT_STRING` represents binary bytes (e.g. serialized image bytes or protobuf), encode these in Base64. See [Encoding binary values](#encoding-binary-values) for more info.
