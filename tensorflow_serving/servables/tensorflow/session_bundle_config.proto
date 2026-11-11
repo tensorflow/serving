@@ -10,7 +10,8 @@ import "tensorflow/core/protobuf/named_tensor.proto";
 message ModelWarmupOptions {
   // Number of times a request is iterated during warmup replay. By default 1.
   google.protobuf.Int32Value num_request_iterations = 1;
-  // The number of threads to parallel execute warm up queries. By default 1.
+  // The number of threads to parallel execute warm up queries. By default 0.
+  // which means that no thread pool will be used.
   google.protobuf.Int32Value num_model_warmup_threads = 2;
   // Model name.
   string model_name = 3;

@@ -289,6 +289,9 @@ absl::Status Server::BuildAndStart(const Options& server_options) {
       session_bundle_config.mutable_model_warmup_options()
           ->mutable_num_request_iterations()
           ->set_value(server_options.num_request_iterations_for_warmup);
+      session_bundle_config.mutable_model_warmup_options()
+          ->mutable_num_model_warmup_threads()
+          ->set_value(server_options.num_warmup_threads);
     }
     session_bundle_config.set_remove_unused_fields_from_bundle_metagraph(
         server_options.remove_unused_fields_from_bundle_metagraph);
