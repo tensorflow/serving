@@ -63,6 +63,7 @@ namespace serving {
 namespace {
 
 using ::testing::_;
+using ::testing::HasSubstr;
 using ::testing::Pair;
 using ::testing::SizeIs;
 using ::testing::UnorderedElementsAre;
@@ -139,6 +140,39 @@ TEST(TfLiteSession, BasicTest) {
     test::ExpectTensorEqual<float>(
         outputs[0], test::AsTensor<float>({2.5, 3, 3.5}, TensorShape({3})));
   }
+}
+
+TEST(TfLiteSession, RejectsMismatchedInputTypes) {
+  std::string model_bytes;
+  TF_ASSERT_OK(ReadFileToString(tensorflow::Env::Default(),
+                                test_util::TestSrcDirPath(kTestModel),
+                                &model_bytes));
+
+  ::google::protobuf::Map<std::string, SignatureDef> signatures;
+  std::unique_ptr<TfLiteSession> session;
+  tensorflow::SessionOptions options;
+  TF_ASSERT_OK(TfLiteSession::Create(
+      std::move(model_bytes), options, absl::GetFlag(FLAGS_num_pools),
+      absl::GetFlag(FLAGS_num_tflite_interpreters), &session, &signatures));
+
+  std::vector<Tensor> outputs;
+  Tensor int64_input(DT_INT64, TensorShape({1}));
+  absl::Status status = session->Run({{"x", int64_input}}, {"y"}, {}, &outputs);
+  EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_THAT(status.message(), HasSubstr("Expected input 'x'"));
+
+  Tensor string_input =
+      test::AsTensor<tstring>({"not a float"}, TensorShape({1}));
+  status = session->Run({{"x", string_input}}, {"y"}, {}, &outputs);
+  EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_THAT(status.message(), HasSubstr("Expected input 'x'"));
+
+  Tensor valid_input = test::AsTensor<float>({1.0}, TensorShape({1}));
+  outputs.clear();
+  TF_EXPECT_OK(session->Run({{"x", valid_input}}, {"y"}, {}, &outputs));
+  ASSERT_EQ(outputs.size(), 1);
+  test::ExpectTensorEqual<float>(
+      outputs[0], test::AsTensor<float>({2.5}, TensorShape({1})));
 }
 
 TEST(TfLiteSession, ResizeWithSameNumElementsTest) {
@@ -629,10 +663,18 @@ TEST(TfLiteSession, SimpleSignatureDefAndRun) {
   ASSERT_EQ(sigdef.outputs().at(kSignatureOutput).name(), kTestModelOutput);
   ASSERT_EQ(sigdef.method_name(), kClassifyMethodName);
 
-  Tensor input_list =
-      test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({4}));
+  Tensor invalid_input_list =
+      test::AsTensor<int32_t>({1, 2, 3, 4}, TensorShape({4}));
   Tensor input_shape = test::AsTensor<int32_t>({2, 2}, TensorShape({2}));
   std::vector<Tensor> outputs;
+  absl::Status status = session->Run({{kTestModelInputList, invalid_input_list},
+                                      {kTestModelInputShape, input_shape}},
+                                     {kTestModelOutput}, {}, &outputs);
+  EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_THAT(status.message(), HasSubstr("to have type string"));
+
+  Tensor input_list =
+      test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({4}));
   TF_EXPECT_OK(session->Run(
       {{kTestModelInputList, input_list}, {kTestModelInputShape, input_shape}},
       {kTestModelOutput}, {}, &outputs));
@@ -640,6 +682,88 @@ TEST(TfLiteSession, SimpleSignatureDefAndRun) {
   test::ExpectTensorEqual<tstring>(
       outputs[0],
       test::AsTensor<tstring>({"a", "b", "c", "d"}, TensorShape({2, 2})));
+}
+
+absl::Status BuildTwoInputBatchedSession(
+    std::unique_ptr<TfLiteSession>* session) {
+  auto model_signature_def_map = GetTestSignatureDefMap();
+  std::string model_bytes =
+      BuildTestModel(tflite::TensorType_STRING, /*use_flex_op=*/false,
+                     &model_signature_def_map);
+  ::google::protobuf::Map<std::string, SignatureDef> signatures;
+  tensorflow::SessionOptions options;
+  TF_RETURN_IF_ERROR(TfLiteSession::Create(std::move(model_bytes), options, 1,
+                                           1, session, &signatures));
+
+  BasicBatchScheduler<TfLiteBatchTask>::Options scheduler_options;
+  scheduler_options.num_batch_threads = 1;
+  scheduler_options.max_batch_size = 2;
+  scheduler_options.batch_timeout_micros = 10 * 1000 * 1000;
+  return (*session)->SetScheduler(
+      TfLiteSession::CreateDefaultBasicBatchScheduler, scheduler_options);
+}
+
+TEST(TfLiteSession, BatchedRequestsRejectDifferentInputCounts) {
+  std::unique_ptr<TfLiteSession> session;
+  TF_ASSERT_OK(BuildTwoInputBatchedSession(&session));
+
+  Tensor input_list = test::AsTensor<tstring>({"a"}, TensorShape({1}));
+  Tensor input_shape = test::AsTensor<int32_t>({1}, TensorShape({1}));
+  std::vector<Tensor> first_outputs;
+  std::vector<Tensor> second_outputs;
+  absl::Status first_status;
+  absl::Status second_status;
+  std::unique_ptr<Thread> first_request_thread(
+      Env::Default()->StartThread(ThreadOptions(), "first_request", [&] {
+        first_status = session->Run({{kTestModelInputList, input_list},
+                                     {kTestModelInputShape, input_shape}},
+                                    {kTestModelOutput}, {}, &first_outputs);
+      }));
+  std::unique_ptr<Thread> second_request_thread(
+      Env::Default()->StartThread(ThreadOptions(), "second_request", [&] {
+        second_status = session->Run({{kTestModelInputList, input_list}},
+                                     {kTestModelOutput}, {}, &second_outputs);
+      }));
+  first_request_thread.reset();
+  second_request_thread.reset();
+
+  EXPECT_EQ(first_status.code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_EQ(second_status.code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_THAT(first_status.message(),
+              HasSubstr("different input tensor counts"));
+  EXPECT_THAT(second_status.message(),
+              HasSubstr("different input tensor counts"));
+}
+
+TEST(TfLiteSession, BatchedRequestsRejectDifferentInputIndices) {
+  std::unique_ptr<TfLiteSession> session;
+  TF_ASSERT_OK(BuildTwoInputBatchedSession(&session));
+
+  Tensor input_list = test::AsTensor<tstring>({"a"}, TensorShape({1}));
+  Tensor input_shape = test::AsTensor<int32_t>({1}, TensorShape({1}));
+  std::vector<Tensor> first_outputs;
+  std::vector<Tensor> second_outputs;
+  absl::Status first_status;
+  absl::Status second_status;
+  std::unique_ptr<Thread> first_request_thread(
+      Env::Default()->StartThread(ThreadOptions(), "first_request", [&] {
+        first_status = session->Run({{kTestModelInputList, input_list}},
+                                    {kTestModelOutput}, {}, &first_outputs);
+      }));
+  std::unique_ptr<Thread> second_request_thread(
+      Env::Default()->StartThread(ThreadOptions(), "second_request", [&] {
+        second_status = session->Run({{kTestModelInputShape, input_shape}},
+                                     {kTestModelOutput}, {}, &second_outputs);
+      }));
+  first_request_thread.reset();
+  second_request_thread.reset();
+
+  EXPECT_EQ(first_status.code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_EQ(second_status.code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_THAT(first_status.message(),
+              HasSubstr("different input tensor indices"));
+  EXPECT_THAT(second_status.message(),
+              HasSubstr("different input tensor indices"));
 }
 
 absl::Status BuildSessionInBatch(std::unique_ptr<TfLiteSession>* sess,
@@ -727,6 +851,17 @@ TEST_P(TfLiteSessionBatchSizeTest, TestBatchParallelismForFloat) {
       test::AsTensor<float>(example_list, TensorShape({kBatchSize, 1}));
   TF_EXPECT_OK(sess->Run({{"x", example_list_tensor}}, {"y"}, {}, &outputs));
   EXPECT_TRUE(outputs[0].shape().IsSameSize(TensorShape({kBatchSize, 1})));
+}
+
+TEST_P(TfLiteSessionBatchSizeTest, RejectsMismatchedInputType) {
+  std::unique_ptr<TfLiteSession> sess;
+  TF_ASSERT_OK(BuildSessionInBatch(&sess, GetParam(), kTestModel));
+
+  Tensor invalid_input(DT_INT64, TensorShape({kBatchSize, 1}));
+  std::vector<Tensor> outputs;
+  absl::Status status = sess->Run({{"x", invalid_input}}, {"y"}, {}, &outputs);
+  EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_THAT(status.message(), HasSubstr("Expected input 'x'"));
 }
 
 TEST_P(TfLiteSessionBatchSizeTest, TestBatchParallelismForString) {

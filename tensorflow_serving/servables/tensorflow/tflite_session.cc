@@ -28,6 +28,7 @@ limitations under the License.
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/core/framework/tensor_shape.pb.h"
 #include "tensorflow/core/framework/tensor_util.h"
+#include "tensorflow/core/framework/types.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/notification.h"
 #include "tensorflow/core/lib/gtl/cleanup.h"
@@ -201,6 +202,17 @@ absl::Status SetInputAndInvokeMiniBatch(
     int tflite_input_idx = tflite_input_indices[i];
     auto tflite_input_tensor = interpreter->tensor(tflite_input_idx);
     const auto& tf_input_tensors = inputs[i];
+    DataType expected_tf_type;
+    TF_RETURN_IF_ERROR(
+        TfLiteTypeToTfType(tflite_input_tensor->type, &expected_tf_type));
+    for (const Tensor* tf_input_tensor : tf_input_tensors) {
+      if (tf_input_tensor->dtype() != expected_tf_type) {
+        return absl::InvalidArgumentError(absl::StrCat(
+            "Expected input '", tflite_input_tensor->name, "' to have type ",
+            DataTypeString(expected_tf_type), ", but got ",
+            DataTypeString(tf_input_tensor->dtype()), "."));
+      }
+    }
     if (tflite_input_tensor->type != kTfLiteString) {
       const Tensor* tf_input_tensor = tf_input_tensors[0];
       // concated.tensor_data() may be accessed later.
@@ -231,6 +243,13 @@ absl::Status SetInputAndInvokeMiniBatch(
         if (interpreter->AllocateTensors() != kTfLiteOk) {
           return absl::InternalError("Failed to allocate tensors");
         }
+        tflite_input_tensor = interpreter->tensor(tflite_input_idx);
+      }
+      if (tensor_bytes.size() != tflite_input_tensor->bytes) {
+        return absl::InternalError(absl::StrCat(
+            "Input tensor byte size mismatch for '", tflite_input_tensor->name,
+            "': source has ", tensor_bytes.size(), " bytes, destination has ",
+            tflite_input_tensor->bytes, " bytes."));
       }
       std::memcpy(tflite_input_tensor->data.raw, tensor_bytes.data(),
                   tensor_bytes.size());
@@ -246,6 +265,7 @@ absl::Status SetInputAndInvokeMiniBatch(
         if (interpreter->AllocateTensors() != kTfLiteOk) {
           return absl::InternalError("Failed to allocate tensors");
         }
+        tflite_input_tensor = interpreter->tensor(tflite_input_idx);
       }
       if (fixed_batch_size) {
         *fixed_batch_size = interpreter_wrapper->GetBatchSize();
@@ -663,7 +683,36 @@ absl::Status MergeInputTensors(
     return absl::InternalError(absl::StrCat(
         "Batch size expected to be positive; was ", batch.num_tasks()));
   }
-  const int tensors_per_task = batch.task(0).inputs.size();
+  const TfLiteBatchTask& reference_task = batch.task(0);
+  const int tensors_per_task = reference_task.inputs.size();
+  if (reference_task.input_indices.size() != tensors_per_task) {
+    return absl::InvalidArgumentError(
+        "TFLite batch task input tensors and indices are not aligned.");
+  }
+  if (reference_task.output_tensor_names == nullptr) {
+    return absl::InvalidArgumentError(
+        "TFLite batch task is missing output tensor names.");
+  }
+  for (int i = 1; i < batch.num_tasks(); ++i) {
+    const TfLiteBatchTask& task = batch.task(i);
+    if (task.inputs.size() != tensors_per_task) {
+      return absl::InvalidArgumentError(
+          "TFLite batch tasks have different input tensor counts.");
+    }
+    if (task.input_indices.size() != task.inputs.size()) {
+      return absl::InvalidArgumentError(
+          "TFLite batch task input tensors and indices are not aligned.");
+    }
+    if (task.input_indices != reference_task.input_indices) {
+      return absl::InvalidArgumentError(
+          "TFLite batch tasks have different input tensor indices.");
+    }
+    if (task.output_tensor_names == nullptr ||
+        *task.output_tensor_names != *reference_task.output_tensor_names) {
+      return absl::InvalidArgumentError(
+          "TFLite batch tasks have different output tensor names.");
+    }
+  }
   *batch_size = 0;
   // each entry in merged_inputs is a list of task tensors.
   for (int i = 0; i < tensors_per_task; ++i) {
