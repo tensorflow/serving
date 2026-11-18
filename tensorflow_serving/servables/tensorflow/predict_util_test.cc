@@ -16,20 +16,31 @@ limitations under the License.
 #include "tensorflow_serving/servables/tensorflow/predict_util.h"
 
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
-#include "tensorflow/core/lib/core/status_test_util.h"
+#include "xla/tsl/lib/core/status_test_util.h"
+#include "xla/tsl/platform/errors.h"
+#include "xla/tsl/platform/status.h"
+#include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/test_benchmark.h"
 #include "tensorflow/core/platform/threadpool_options.h"
+#include "tensorflow/core/public/session.h"
+#include "tensorflow_serving/core/aspired_version_policy.h"
 #include "tensorflow_serving/core/availability_preserving_policy.h"
+#include "tensorflow_serving/core/servable_handle.h"
 #include "tensorflow_serving/model_servers/model_platform_types.h"
 #include "tensorflow_serving/model_servers/platform_config_util.h"
 #include "tensorflow_serving/model_servers/server_core.h"
+#include "tensorflow_serving/servables/tensorflow/predict_response_tensor_serialization_option.h"
 #include "tensorflow_serving/servables/tensorflow/saved_model_bundle_source_adapter.pb.h"
 #include "tensorflow_serving/servables/tensorflow/session_bundle_config.pb.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
@@ -87,8 +98,8 @@ class FakeSession : public tensorflow::Session {
       const std::vector<std::string>& target_nodes,
       std::vector<Tensor>* outputs, RunMetadata* run_metadata,
       const thread::ThreadPoolOptions& thread_pool_options) override {
-    for (const auto& t : inputs) {
-      outputs->push_back(t.second);
+    if (!inputs.empty()) {
+      outputs->assign(output_names.size(), inputs[0].second);
     }
     return absl::OkStatus();
   }
@@ -579,12 +590,15 @@ TEST_F(PredictImplTest, MethodNameCheck) {
   bool old_val = GetSignatureMethodNameCheckFeature();
 
   SetSignatureMethodNameCheckFeature(true);
-  // Legit method name.
-  (*signature_defs)[kDefaultServingSignatureDefKey].set_method_name(
-      kPredictMethodName);
-  TF_EXPECT_OK(RunPredict(GetRunOptions(), meta_graph_def, kTestModelVersion,
-                          &fake_session, request, &response,
-                          thread::ThreadPoolOptions()));
+  // Legit method names.
+  for (const char* method_name :
+       {kPredictMethodName, kClassifyMethodName, kRegressMethodName}) {
+    (*signature_defs)[kDefaultServingSignatureDefKey].set_method_name(
+        method_name);
+    TF_EXPECT_OK(RunPredict(GetRunOptions(), meta_graph_def, kTestModelVersion,
+                            &fake_session, request, &response,
+                            thread::ThreadPoolOptions()));
+  }
   // Unsupported method name will fail check.
   (*signature_defs)[kDefaultServingSignatureDefKey].set_method_name(
       "not/supported/method");
@@ -608,6 +622,268 @@ TEST_F(PredictImplTest, MethodNameCheck) {
 
   SetSignatureMethodNameCheckFeature(old_val);
 }
+
+SignatureDef CreateMultiOutputSignature(int num_inputs, int num_outputs) {
+  SignatureDef signature;
+  signature.set_method_name(kPredictMethodName);
+  for (int i = 0; i < num_inputs; ++i) {
+    TensorInfo input_info;
+    input_info.set_name(absl::StrCat("input_tensor_", i, ":0"));
+    input_info.set_dtype(DT_FLOAT);
+    (*signature.mutable_inputs())[absl::StrCat("input_", i)] = input_info;
+  }
+  for (int i = 0; i < num_outputs; ++i) {
+    TensorInfo output_info;
+    output_info.set_name(absl::StrCat("output_tensor_", i, ":0"));
+    output_info.set_dtype(DT_FLOAT);
+    (*signature.mutable_outputs())[absl::StrCat("output_", i)] = output_info;
+  }
+  return signature;
+}
+
+PredictRequest CreateMultiOutputPredictRequest(int num_inputs,
+                                               int num_output_filters) {
+  PredictRequest request;
+  ModelSpec* model_spec = request.mutable_model_spec();
+  model_spec->set_name(kTestModelName);
+  model_spec->mutable_version()->set_value(kTestModelVersion);
+  for (int i = 0; i < num_inputs; ++i) {
+    TensorProto tensor_proto;
+    tensor_proto.add_float_val(static_cast<float>(i));
+    tensor_proto.set_dtype(DT_FLOAT);
+    tensor_proto.mutable_tensor_shape()->add_dim()->set_size(1);
+    (*request.mutable_inputs())[absl::StrCat("input_", i)] = tensor_proto;
+  }
+  for (int i = 0; i < num_output_filters; ++i) {
+    request.add_output_filter(absl::StrCat("output_", i));
+  }
+  return request;
+}
+
+TEST_F(PredictImplTest, PreProcessPredictionOutputFilterSizes) {
+  const SignatureDef signature =
+      CreateMultiOutputSignature(/*num_inputs=*/4, /*num_outputs=*/16);
+
+  // Empty output_filter fetches all 16 outputs.
+  {
+    const PredictRequest request = CreateMultiOutputPredictRequest(
+        /*num_inputs=*/4, /*num_output_filters=*/0);
+    std::vector<std::pair<std::string, Tensor>> inputs;
+    std::vector<std::string> output_tensor_names;
+    std::vector<std::string> output_tensor_aliases;
+    TF_ASSERT_OK(internal::PreProcessPrediction(signature, request, &inputs,
+                                                &output_tensor_names,
+                                                &output_tensor_aliases));
+    EXPECT_EQ(inputs.size(), 4);
+    EXPECT_EQ(output_tensor_names.size(), 16);
+    EXPECT_EQ(output_tensor_aliases.size(), 16);
+  }
+
+  // Empty output_filter with 0 signature outputs.
+  {
+    const SignatureDef empty_outputs_signature =
+        CreateMultiOutputSignature(/*num_inputs=*/1, /*num_outputs=*/0);
+    const PredictRequest request = CreateMultiOutputPredictRequest(
+        /*num_inputs=*/1, /*num_output_filters=*/0);
+    std::vector<std::pair<std::string, Tensor>> inputs;
+    std::vector<std::string> output_tensor_names;
+    std::vector<std::string> output_tensor_aliases;
+    TF_ASSERT_OK(internal::PreProcessPrediction(
+        empty_outputs_signature, request, &inputs, &output_tensor_names,
+        &output_tensor_aliases));
+    EXPECT_EQ(inputs.size(), 1);
+    EXPECT_TRUE(output_tensor_names.empty());
+    EXPECT_TRUE(output_tensor_aliases.empty());
+  }
+
+  // Signature with defaults when fewer inputs are provided in the request, and
+  // GetInputValues error when input count matches but an input key is unknown.
+  {
+    SignatureDef signature_with_defaults =
+        CreateMultiOutputSignature(/*num_inputs=*/2, /*num_outputs=*/1);
+    TensorProto default_tensor;
+    default_tensor.add_float_val(1.0f);
+    default_tensor.set_dtype(DT_FLOAT);
+    default_tensor.mutable_tensor_shape()->add_dim()->set_size(1);
+    (*signature_with_defaults.mutable_defaults())["input_1"] = default_tensor;
+
+    const PredictRequest partial_request = CreateMultiOutputPredictRequest(
+        /*num_inputs=*/1, /*num_output_filters=*/0);
+    std::vector<std::pair<std::string, Tensor>> inputs;
+    std::vector<std::string> output_tensor_names;
+    std::vector<std::string> output_tensor_aliases;
+    TF_ASSERT_OK(internal::PreProcessPrediction(
+        signature_with_defaults, partial_request, &inputs, &output_tensor_names,
+        &output_tensor_aliases));
+    EXPECT_EQ(inputs.size(), 2);
+
+    PredictRequest bad_key_request = CreateMultiOutputPredictRequest(
+        /*num_inputs=*/1, /*num_output_filters=*/0);
+    (*bad_key_request.mutable_inputs())["unknown_input"] = default_tensor;
+    inputs.clear();
+    output_tensor_names.clear();
+    output_tensor_aliases.clear();
+    EXPECT_EQ(internal::PreProcessPrediction(
+                  signature_with_defaults, bad_key_request, &inputs,
+                  &output_tensor_names, &output_tensor_aliases)
+                  .code(),
+              absl::StatusCode::kInvalidArgument);
+  }
+
+  // Valid small (<= 8) and large (> 8) output_filter sizes.
+  for (const int num_filters : {1, 4, 8, 9, 12, 16}) {
+    const PredictRequest request =
+        CreateMultiOutputPredictRequest(/*num_inputs=*/4, num_filters);
+    std::vector<std::pair<std::string, Tensor>> inputs;
+    std::vector<std::string> output_tensor_names;
+    std::vector<std::string> output_tensor_aliases;
+    TF_ASSERT_OK(internal::PreProcessPrediction(signature, request, &inputs,
+                                                &output_tensor_names,
+                                                &output_tensor_aliases));
+    ASSERT_EQ(output_tensor_names.size(), num_filters);
+    ASSERT_EQ(output_tensor_aliases.size(), num_filters);
+    for (int i = 0; i < num_filters; ++i) {
+      EXPECT_EQ(output_tensor_names[i],
+                absl::StrCat("output_tensor_", i, ":0"));
+      EXPECT_EQ(output_tensor_aliases[i], absl::StrCat("output_", i));
+    }
+  }
+
+  // Pre-populated out-vectors: duplicate detection only considers aliases
+  // appended by this call, so "output_0" is not rejected against the existing
+  // "output_0" entry.
+  {
+    const PredictRequest request = CreateMultiOutputPredictRequest(
+        /*num_inputs=*/4, /*num_output_filters=*/3);
+    std::vector<std::pair<std::string, Tensor>> inputs;
+    std::vector<std::string> output_tensor_names = {"stale"};
+    std::vector<std::string> output_tensor_aliases = {"output_0"};
+    TF_ASSERT_OK(internal::PreProcessPrediction(signature, request, &inputs,
+                                                &output_tensor_names,
+                                                &output_tensor_aliases));
+    EXPECT_THAT(
+        output_tensor_aliases,
+        ::testing::ElementsAre("output_0", "output_0", "output_1", "output_2"));
+    EXPECT_THAT(
+        output_tensor_names,
+        ::testing::ElementsAre("stale", "output_tensor_0:0",
+                               "output_tensor_1:0", "output_tensor_2:0"));
+  }
+
+  // Duplicate output_filter alias rejection for both <= 8 and > 8 filters.
+  for (const int num_filters : {3, 10}) {
+    PredictRequest request =
+        CreateMultiOutputPredictRequest(/*num_inputs=*/4, num_filters);
+    request.add_output_filter("output_1");
+    std::vector<std::pair<std::string, Tensor>> inputs;
+    std::vector<std::string> output_tensor_names;
+    std::vector<std::string> output_tensor_aliases;
+    const absl::Status status = internal::PreProcessPrediction(
+        signature, request, &inputs, &output_tensor_names,
+        &output_tensor_aliases);
+    EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
+    EXPECT_THAT(
+        status.message(),
+        ::testing::HasSubstr("duplicate output tensor alias: output_1"));
+  }
+
+  // Unknown output_filter alias rejection for both <= 8 and > 8 filters.
+  for (const int num_filters : {3, 10}) {
+    PredictRequest request =
+        CreateMultiOutputPredictRequest(/*num_inputs=*/4, num_filters);
+    request.add_output_filter("non_existent_output");
+    std::vector<std::pair<std::string, Tensor>> inputs;
+    std::vector<std::string> output_tensor_names;
+    std::vector<std::string> output_tensor_aliases;
+    const absl::Status status = internal::PreProcessPrediction(
+        signature, request, &inputs, &output_tensor_names,
+        &output_tensor_aliases);
+    EXPECT_EQ(status.code(), absl::StatusCode::kInvalidArgument);
+    EXPECT_THAT(status.message(),
+                ::testing::HasSubstr("output tensor alias not found in "
+                                     "signature: non_existent_output"));
+  }
+}
+
+TEST_F(PredictImplTest, PostProcessPredictionResultOptionsAndErrors) {
+  MetaGraphDef meta_graph_def;
+  (*meta_graph_def.mutable_signature_def())[kDefaultServingSignatureDefKey] =
+      CreateMultiOutputSignature(/*num_inputs=*/1, /*num_outputs=*/1);
+  const PredictRequest request = CreateMultiOutputPredictRequest(
+      /*num_inputs=*/1, /*num_output_filters=*/1);
+  FakeSession fake_session;
+  PredictResponse response;
+  TF_ASSERT_OK(internal::RunPredict(
+      GetRunOptions(), meta_graph_def, kTestModelVersion,
+      internal::PredictResponseTensorSerializationOption::kAsProtoContent,
+      &fake_session, request, &response));
+  ASSERT_TRUE(response.outputs().contains("output_0"));
+  EXPECT_FALSE(response.outputs().at("output_0").tensor_content().empty());
+
+  PredictResponse empty_response;
+  TF_EXPECT_OK(internal::PostProcessPredictionResult(
+      /*output_tensor_aliases=*/{}, /*output_tensors=*/{},
+      internal::PredictResponseTensorSerializationOption::kAsProtoContent,
+      &empty_response));
+
+  const absl::Status mismatch_status = internal::PostProcessPredictionResult(
+      /*output_tensor_aliases=*/{"output_0"}, /*output_tensors=*/{},
+      internal::PredictResponseTensorSerializationOption::kAsProtoField,
+      &empty_response);
+  EXPECT_EQ(mismatch_status.code(), absl::StatusCode::kUnknown);
+}
+
+void BM_PreProcessPrediction(
+    ::testing::benchmark::State& state) {  // NOLINT(misc-include-cleaner)
+  const int num_output_filters = state.range(0);
+  const int num_outputs = num_output_filters > 0 ? num_output_filters : 8;
+  const SignatureDef signature =
+      CreateMultiOutputSignature(/*num_inputs=*/4, num_outputs);
+  const PredictRequest request =
+      CreateMultiOutputPredictRequest(/*num_inputs=*/4, num_output_filters);
+  for (auto s : state) {
+    std::vector<std::pair<std::string, Tensor>> inputs;
+    std::vector<std::string> output_tensor_names;
+    std::vector<std::string> output_tensor_aliases;
+    TF_CHECK_OK(internal::PreProcessPrediction(signature, request, &inputs,
+                                               &output_tensor_names,
+                                               &output_tensor_aliases));
+    tensorflow::testing::DoNotOptimize(inputs);
+    tensorflow::testing::DoNotOptimize(output_tensor_names);
+    tensorflow::testing::DoNotOptimize(output_tensor_aliases);
+  }
+}
+BENCHMARK(BM_PreProcessPrediction)  // NOLINT(misc-include-cleaner)
+    ->Arg(0)
+    ->Arg(1)
+    ->Arg(4)
+    ->Arg(8)
+    ->Arg(16);
+
+void BM_RunPredict(
+    ::testing::benchmark::State& state) {  // NOLINT(misc-include-cleaner)
+  const int num_output_filters = state.range(0);
+  const int num_outputs = num_output_filters > 0 ? num_output_filters : 8;
+  MetaGraphDef meta_graph_def;
+  (*meta_graph_def.mutable_signature_def())[kDefaultServingSignatureDefKey] =
+      CreateMultiOutputSignature(/*num_inputs=*/4, num_outputs);
+  const PredictRequest request =
+      CreateMultiOutputPredictRequest(/*num_inputs=*/4, num_output_filters);
+  FakeSession fake_session;
+  const RunOptions run_options;
+  for (auto s : state) {
+    PredictResponse response;
+    TF_CHECK_OK(RunPredict(run_options, meta_graph_def, kTestModelVersion,
+                           &fake_session, request, &response));
+    tensorflow::testing::DoNotOptimize(response);
+  }
+}
+BENCHMARK(BM_RunPredict)  // NOLINT(misc-include-cleaner)
+    ->Arg(0)
+    ->Arg(1)
+    ->Arg(4)
+    ->Arg(8)
+    ->Arg(16);
 
 }  // namespace
 }  // namespace serving

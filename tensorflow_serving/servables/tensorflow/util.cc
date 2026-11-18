@@ -17,30 +17,42 @@ limitations under the License.
 
 #include <algorithm>
 #include <atomic>
+#include <cstdint>
 #include <cstdlib>
 #include <deque>
 #include <iterator>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "google/protobuf/wrappers.pb.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
+#include "xla/tsl/platform/errors.h"
 #include "tensorflow/core/example/example.pb.h"
-#include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/monitoring/counter.h"
 #include "tensorflow/core/lib/monitoring/sampler.h"
-#include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/cord.h"
-#include "tensorflow/core/platform/errors.h"
+#include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/env_time.h"
 #include "tensorflow/core/platform/path.h"
 #include "tensorflow/core/platform/threadpool_options.h"
+#include "tensorflow/core/platform/tstring.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow/core/public/session.h"
 #include "tensorflow_serving/apis/input.pb.h"
 #include "tensorflow_serving/apis/internal/serialized_input.pb.h"
 #include "tensorflow_serving/apis/model.pb.h"
 #include "tensorflow_serving/resources/resource_values.h"
+#include "tensorflow_serving/util/file_probing_env.h"
 #include "tensorflow_serving/util/threadpool_executor.h"
 
 namespace tensorflow {
@@ -258,8 +270,8 @@ absl::Status PerformOneShotTensorComputation(
                       &run_metadata, thread_pool_options);
 }
 
-void MakeModelSpec(const std::string& model_name,
-                   const absl::optional<std::string>& signature_name,
+void MakeModelSpec(absl::string_view model_name,
+                   absl::optional<absl::string_view> signature_name,
                    const absl::optional<int64_t>& version,
                    ModelSpec* model_spec) {
   model_spec->Clear();

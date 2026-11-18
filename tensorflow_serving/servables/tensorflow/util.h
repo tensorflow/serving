@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_UTIL_H_
 #define TENSORFLOW_SERVING_SERVABLES_TENSORFLOW_UTIL_H_
 
+#include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -98,8 +99,8 @@ Status PerformOneShotTensorComputation(
 // signature/version information.
 // If signature_name has a value and is empty, model_spec's signature_name is
 // set to tensorflow::kDefaultServingSignatureDefKey.
-void MakeModelSpec(const string& model_name,
-                   const absl::optional<string>& signature_name,
+void MakeModelSpec(absl::string_view model_name,
+                   absl::optional<absl::string_view> signature_name,
                    const absl::optional<int64_t>& version,
                    ModelSpec* model_spec);
 
