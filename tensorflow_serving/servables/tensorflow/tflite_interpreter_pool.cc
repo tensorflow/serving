@@ -66,18 +66,33 @@ absl::Status TfLiteInterpreterWrapper::SetStringData(
   //   [4] offset of each string (int32_t)
   //   [sizeof(int32_t) * (num_strings + 1)]] total size of strings
   //   [sizeof(int32_t) * (num_strings + 2)] batch.data()
-  int32_t num_strings = batch_size;
-  offset_.clear();
+  (void)batch_size;
+  std::vector<size_t> offsets;
   size_t total_size = 0;
-  offset_.push_back(static_cast<int32_t>(total_size));
+  offsets.push_back(total_size);
   for (const auto& tensor : tensors) {
     const auto& flat = tensor->flat<tstring>();
     for (int i = 0; i < flat.size(); ++i) {
+      if (flat(i).size() > std::numeric_limits<size_t>::max() - total_size) {
+        return absl::InternalError("String input is too large.");
+      }
       total_size += flat(i).size();
-      offset_.push_back(static_cast<int32_t>(total_size));
+      offsets.push_back(total_size);
     }
   }
-  size_t required_bytes = total_size + sizeof(int32_t) * (num_strings + 2);
+  const size_t num_strings = offsets.size() - 1;
+  if (num_strings > std::numeric_limits<int32_t>::max()) {
+    return absl::InternalError("Too many string inputs.");
+  }
+  const size_t header_entries = num_strings + 2;
+  if (header_entries > std::numeric_limits<size_t>::max() / sizeof(int32_t)) {
+    return absl::InternalError("String input header is too large.");
+  }
+  const size_t header_bytes = sizeof(int32_t) * header_entries;
+  if (total_size > std::numeric_limits<size_t>::max() - header_bytes) {
+    return absl::InternalError("String input buffer is too large.");
+  }
+  size_t required_bytes = total_size + header_bytes;
   if (tensor_buffer_.find(tensor_index) == tensor_buffer_.end()) {
     return absl::InternalError(
         absl::StrCat("Tensor input for index not found: ", tensor_index));
@@ -87,13 +102,18 @@ absl::Status TfLiteInterpreterWrapper::SetStringData(
       free(tflite_tensor->data.raw);
     }
     tflite_tensor->data.raw = reinterpret_cast<char*>(malloc(required_bytes));
+    if (tflite_tensor->data.raw == nullptr) {
+      return absl::ResourceExhaustedError("Failed to allocate string input.");
+    }
     tensor_buffer_max_bytes_[tensor_index] = required_bytes;
   }
   tensor_buffer_[tensor_index].reset(tflite_tensor->data.raw);
-  memcpy(tensor_buffer_[tensor_index].get(), &num_strings, sizeof(int32_t));
-  int32_t start = sizeof(int32_t) * (num_strings + 2);
-  for (size_t i = 0; i < offset_.size(); i++) {
-    size_t size_offset_i = start + offset_[i];
+  const int32_t num_strings_i32 = static_cast<int32_t>(num_strings);
+  memcpy(tensor_buffer_[tensor_index].get(), &num_strings_i32,
+         sizeof(int32_t));
+  size_t start = header_bytes;
+  for (size_t i = 0; i < offsets.size(); i++) {
+    size_t size_offset_i = start + offsets[i];
     if (size_offset_i > std::numeric_limits<int32_t>::max()) {
       return absl::InternalError(
           absl::StrCat("Invalid size, string input too large:", size_offset_i));
