@@ -245,6 +245,7 @@ cc_library(
     name = "prediction_service_util",
     srcs = ["prediction_service_util.cc"],
     hdrs = ["prediction_service_util.h"],
+    visibility = ["//tensorflow_serving:internal"],
     deps = [
         ":server_core",
         "//tensorflow_serving/apis:prediction_service_cc_proto",
@@ -471,6 +472,7 @@ cc_library(
         "server_init.cc",
     ],
     hdrs = ["server_init.h"],
+    visibility = ["//tensorflow_serving:internal"],
     deps = [
         ":http_rest_api_handler",
         ":http_rest_api_handler_base",
