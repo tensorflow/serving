@@ -178,6 +178,54 @@ TEST(TfLiteInterpreterWrapper, TfLiteInterpreterWrapperTest) {
       ::testing::ElementsAreArray(expected_strs));
 }
 
+// A string input with rank > 1 has more string elements than its leading
+// dimension. SetStringData must size the tflite string buffer by the number of
+// elements, not the leading dimension, otherwise the offset table is written
+// past the allocation. Empty strings isolate the offset table so the write is a
+// pure out-of-bounds write when the buffer is undersized.
+TEST(TfLiteInterpreterWrapper, SetStringDataRankTwoInput) {
+  std::string model_bytes;
+  TF_ASSERT_OK(ReadFileToString(Env::Default(),
+                                test_util::TestSrcDirPath(kParseExampleModel),
+                                &model_bytes));
+  auto model = tflite::FlatBufferModel::BuildFromModel(
+      flatbuffers::GetRoot<tflite::Model>(model_bytes.data()));
+  tflite::ops::builtin::BuiltinOpResolver resolver;
+  tflite::ops::custom::AddParseExampleOp(&resolver);
+  std::unique_ptr<tflite::Interpreter> interpreter;
+  ASSERT_EQ(tflite::InterpreterBuilder(*model, resolver)(&interpreter,
+                                                         /*num_threads=*/1),
+            kTfLiteOk);
+  ASSERT_EQ(interpreter->inputs().size(), 1);
+  const int idx = interpreter->inputs()[0];
+  auto* tensor = interpreter->tensor(idx);
+  ASSERT_EQ(tensor->type, kTfLiteString);
+  interpreter->ResizeInputTensor(idx, {1});
+  ASSERT_EQ(interpreter->AllocateTensors(), kTfLiteOk);
+
+  auto interpreter_wrapper =
+      std::make_unique<TfLiteInterpreterWrapper>(std::move(interpreter));
+
+  // Shape [1, num_cols]: leading dimension is 1 but there are num_cols strings.
+  const int num_cols = 32;
+  TensorShape shape;
+  shape.AddDim(1);
+  shape.AddDim(num_cols);
+  Tensor t(DT_STRING, shape);
+  for (int i = 0; i < num_cols; ++i) {
+    t.flat<tstring>()(i) = "";
+  }
+  std::vector<const Tensor*> data;
+  data.push_back(&t);
+
+  // The caller derives batch_size from the leading dimension (dim_size(0) == 1).
+  TF_ASSERT_OK(interpreter_wrapper->SetStringData(data, tensor, idx,
+                                                  /*batch_size=*/1));
+  auto wrapped = interpreter_wrapper->Get();
+  auto* tflite_input_tensor = wrapped->tensor(idx);
+  EXPECT_EQ(tflite::GetStringCount(tflite_input_tensor), num_cols);
+}
+
 }  // namespace internal
 }  // namespace serving
 }  // namespace tensorflow
