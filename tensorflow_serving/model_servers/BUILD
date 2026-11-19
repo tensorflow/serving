@@ -142,6 +142,7 @@ cc_test(
         "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter_cc_proto",
         "//tensorflow_serving/test_util",
         "//tensorflow_serving/util:oss_or_google",
+        "@com_google_googletest//:gtest",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",

@@ -252,6 +252,13 @@ class ServerCore : public Manager {
     return servable_state_monitor_.get();
   }
 
+  /// Returns a shared pointer to the ServableStateMonitor that can be used to
+  /// query servable states.
+  virtual std::shared_ptr<ServableStateMonitor> shared_servable_state_monitor()
+      const {
+    return servable_state_monitor_;
+  }
+
   /// Returns a ServableHandle given a ModelSpec. Returns error if no such
   /// Servable is available -- e.g. not yet loaded, has been quiesced/unloaded,
   /// etc. Callers may assume that an OK status indicates a non-null handle.

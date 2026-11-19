@@ -22,6 +22,7 @@ limitations under the License.
 #include <vector>
 
 #include "google/protobuf/any.pb.h"
+#include <gmock/gmock.h>
 #include "absl/status/status.h"
 #include "absl/strings/strip.h"
 #include "tensorflow/cc/saved_model/tag_constants.h"
@@ -62,7 +63,9 @@ using ::testing::_;
 using ::testing::Invoke;
 using ::testing::MockFunction;
 using ::testing::NiceMock;
+using ::testing::NotNull;
 using ::testing::Pair;
+using ::testing::Pointer;
 using ::testing::UnorderedElementsAre;
 
 TEST_P(ServerCoreTest, PreLoadHook) {
@@ -110,6 +113,28 @@ TEST_P(ServerCoreTest, CreateWaitsTillModelsAvailable) {
   EXPECT_TRUE(state_and_time.state.health.ok());
   EXPECT_EQ(state_and_time.state.manager_state,
             ServableState::ManagerState::kAvailable);
+}
+
+TEST_P(ServerCoreTest, SharedServableStateMonitorOutlivesServerCore) {
+  std::unique_ptr<ServerCore> server_core;
+  TF_ASSERT_OK(CreateServerCore(GetTestModelServerConfigForFakePlatform(),
+                                &server_core));
+
+  std::shared_ptr<ServableStateMonitor> shared_monitor =
+      server_core->shared_servable_state_monitor();
+  ASSERT_THAT(shared_monitor, NotNull());
+  EXPECT_THAT(shared_monitor, Pointer(server_core->servable_state_monitor()));
+
+  // Destroy ServerCore and verify the shared monitor remains valid and
+  // queryable.
+  server_core.reset();
+
+  const ServableStateMonitor::ServableMap servable_map =
+      shared_monitor->GetAllServableStates();
+  auto it_servable = servable_map.find(test_util::kTestModelName);
+  ASSERT_NE(it_servable, servable_map.end());
+  EXPECT_THAT(it_servable->second,
+              UnorderedElementsAre(Pair(test_util::kTestModelVersion, _)));
 }
 
 TEST_P(ServerCoreTest, ReloadConfigWaitsTillModelsAvailable) {
