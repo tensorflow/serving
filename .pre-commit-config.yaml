@@ -1,0 +1,37 @@
+# pre-commit is a tool to perform a predefined set of tasks manually and/or
+# automatically before git commits are made.
+#
+# Config reference: https://pre-commit.com/#pre-commit-configyaml---top-level
+#
+# Common tasks
+#
+# - Register git hooks: pre-commit install
+# - Run on all files:   pre-commit run --all-files
+#
+# These pre-commit hooks are run as CI.
+#
+# NOTE: if it can be avoided, add configs/args in pyproject.toml or below instead of creating a new `.config.file`.
+# https://pre-commit.ci/#configuration
+ci:
+  autoupdate_schedule: monthly
+  autofix_commit_msg: |
+    [pre-commit.ci] Apply automatic pre-commit fixes
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer
+        exclude: '\.(svg|patch)$'
+      - id: trailing-whitespace
+        exclude: '\.(svg|patch)$'
+      - id: check-json
+      - id: check-yaml
+        args: [--allow-multiple-documents, --unsafe]
+      - id: check-toml
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.6
+    hooks:
+      - id: ruff
+        args: ["--fix"]
