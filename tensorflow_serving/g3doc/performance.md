@@ -19,7 +19,7 @@ Serving's performance.
 ## Quick Tips
 
 *   Latency of first request is too high? Enable
-    [model warmup](saved_model_warmup).
+    [model warmup](saved_model_warmup.md).
 *   Interested in higher resource utilization or throughput? Configure
     [batching](serving_config.md#batching-configuration)
 
