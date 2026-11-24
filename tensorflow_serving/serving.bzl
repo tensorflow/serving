@@ -138,11 +138,21 @@ def serving_proto_library(
             visibility = visibility,
         )
 
-def serving_go_grpc_library(**kwargs):  # pylint: disable=unused-argument
+def serving_go_grpc_library(**kwargs):  # buildifier: disable=unused-variable
     """Build the Go gRPC bindings for a service. Not yet implemented."""
     return
 
-def serving_proto_library_py(name, proto_library, srcs = [], deps = [], visibility = None, testonly = 0):  # pylint: disable=unused-argument
+def serving_proto_library_py(name, proto_library, srcs = [], deps = [], visibility = None, testonly = 0):  # buildifier: disable=unused-variable
+    """Builds a Python proto library and corresponding gRPC/proto wrapper.
+
+    Args:
+      name: The name of the py_library target.
+      proto_library: The underlying proto_library base target name.
+      srcs: Source .proto files (unused; retained for macro compatibility).
+      deps: Python library dependencies.
+      visibility: Visibility of the generated targets.
+      testonly: Whether the generated targets are testonly.
+    """
     py_proto_name = name + "_gen"
     py_proto_library(
         name = py_proto_name,
