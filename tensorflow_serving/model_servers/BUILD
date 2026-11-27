@@ -142,6 +142,7 @@ cc_test(
         "//tensorflow_serving/model_servers/test_util:storage_path_error_injecting_source_adapter_cc_proto",
         "//tensorflow_serving/test_util",
         "//tensorflow_serving/util:oss_or_google",
+        "@com_google_googletest//:gtest",
         "@com_google_protobuf//:cc_wkt_protos",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -245,6 +246,7 @@ cc_library(
     name = "prediction_service_util",
     srcs = ["prediction_service_util.cc"],
     hdrs = ["prediction_service_util.h"],
+    visibility = ["//tensorflow_serving:internal"],
     deps = [
         ":server_core",
         "//tensorflow_serving/apis:prediction_service_cc_proto",
@@ -471,6 +473,7 @@ cc_library(
         "server_init.cc",
     ],
     hdrs = ["server_init.h"],
+    visibility = ["//tensorflow_serving:internal"],
     deps = [
         ":http_rest_api_handler",
         ":http_rest_api_handler_base",

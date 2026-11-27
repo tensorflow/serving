@@ -34,10 +34,10 @@ def tf_serving_workspace():
     # ===== Bazel skylib dependency =====
     http_archive(
         name = "bazel_skylib",
-        sha256 = "bc283cdfcd526a52c3201279cda4bc298652efa898b10b4db0837dc51652756f",
+        sha256 = "3b5b49006181f5f8ff626ef8ddceaa95e9bb8ad294f7b5d7b11ea9f7ddaf8c59",
         urls = [
-            "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz",
-            "https://github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz",
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/bazelbuild/bazel-skylib/releases/download/1.9.0/bazel-skylib-1.9.0.tar.gz",
+            "https://github.com/bazelbuild/bazel-skylib/releases/download/1.9.0/bazel-skylib-1.9.0.tar.gz",
         ],
     )
 
@@ -92,11 +92,10 @@ def tf_serving_workspace():
     # https://github.com/tensorflow/text/blob/master/oss_scripts/model_server/save_models.py
     http_archive(
         name = "org_tensorflow_text",
-        sha256 = "be11bd741fa1ade66210798c37818c6e995ea462d4ab8fbdcdda2bf87322fa61",
-        strip_prefix = "text-2.21.1",
+        sha256 = "64c386fe7698a37768699020803ff558a52be4d98fca34e6f7711c7e37a6fe2d",
+        strip_prefix = "text-2.22.0rc0",
         urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/tensorflow/text/archive/v2.21.1.zip",
-            "https://github.com/tensorflow/text/archive/v2.21.1.zip",
+            "https://github.com/tensorflow/text/archive/refs/tags/v2.22.0rc0.zip",
         ],
         repo_mapping = {
             "@com_google_re2": "@com_googlesource_code_re2",
@@ -104,7 +103,6 @@ def tf_serving_workspace():
         },
         patch_cmds = [
             "find . -name \"tftext.bzl\" -exec sed -i 's|deps = deps,|deps = deps + [\"@com_google_protobuf\" + \"//:protobuf\"],|g' {} +",
-            "find . -name \"tftext.bzl\" -exec sed -i '/absl\\/utility:if_constexpr/d' {} +",
         ],
     )
 

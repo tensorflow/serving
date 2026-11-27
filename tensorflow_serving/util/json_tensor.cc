@@ -32,9 +32,11 @@ limitations under the License.
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/reader.h"
 #include "rapidjson/stringbuffer.h"
+#include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/match.h"
 #include "absl/strings/numbers.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "tensorflow/core/example/example.pb.h"
@@ -341,18 +343,31 @@ Status AddValueToTensor(const rapidjson::Value& val, DataType dtype,
   return OkStatus();
 }
 
+// Maximum recursion level when traversing nested JSON arrays into tensors.
+// Exceeds TensorShape::MaxDimensions() (254) so valid tensors (including the
+// leaf visit at level == rank, e.g. level 2 for [[1]]) are accepted while
+// bounding call-stack depth.
+constexpr int kMaxJsonRecursionDepth = 256;
+
 // Computes and fills TensorShape corresponding to a JSON value.
 //
-// `val` can be scalar or list or list of lists with arbitrary nesting. If a
-// scalar (non array) is passed, we do not add dimension info to shape (as
-// scalars do not have a dimension).
-void GetDenseTensorShape(const rapidjson::Value& val, TensorShapeProto* shape) {
-  if (!val.IsArray()) return;
-  const auto size = val.Size();
+// `val` can be scalar or list or list of lists. If a scalar (non array) is
+// passed, we do not add dimension info to shape (as scalars do not have a
+// dimension).
+absl::Status GetDenseTensorShape(const rapidjson::Value& val, int level,
+                                 TensorShapeProto* shape) {
+  if (level > kMaxJsonRecursionDepth) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("JSON array nesting exceeds maximum recursion depth of ",
+                     kMaxJsonRecursionDepth));
+  }
+  if (!val.IsArray()) return absl::OkStatus();
+  const rapidjson::SizeType size = val.Size();
   shape->add_dim()->set_size(size);
   if (size > 0) {
-    GetDenseTensorShape(val[0], shape);
+    return GetDenseTensorShape(val[0], level + 1, shape);
   }
+  return absl::OkStatus();
 }
 
 bool IsValBase64Object(const rapidjson::Value& val) {
@@ -389,9 +404,15 @@ Status JsonDecodeBase64Object(const rapidjson::Value& val,
 }
 
 // Fills tensor values.
-Status FillTensorProto(const rapidjson::Value& val, int level, DataType dtype,
-                       int* val_count, TensorProto* tensor) {
-  const auto rank = tensor->tensor_shape().dim_size();
+absl::Status FillTensorProto(const rapidjson::Value& val, int level,
+                             DataType dtype, int* val_count,
+                             TensorProto* tensor) {
+  if (level > kMaxJsonRecursionDepth) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("JSON array nesting exceeds maximum recursion depth of ",
+                     kMaxJsonRecursionDepth));
+  }
+  const int rank = tensor->tensor_shape().dim_size();
   if (!val.IsArray()) {
     // DOM tree for a (dense) tensor will always have all values
     // at same (leaf) level equal to the rank of the tensor.
@@ -453,7 +474,8 @@ Status AddInstanceItem(const rapidjson::Value& item, const string& name,
   const auto dtype = tensorinfo_map.at(name).dtype();
   auto* tensor = &(*tensor_map)[name];
   tensor->mutable_tensor_shape()->Clear();
-  GetDenseTensorShape(item, tensor->mutable_tensor_shape());
+  TF_RETURN_IF_ERROR(
+      GetDenseTensorShape(item, /*level=*/0, tensor->mutable_tensor_shape()));
   TF_RETURN_IF_ERROR(
       FillTensorProto(item, 0 /* level */, dtype, &size, tensor));
   if (!size_map->count(name)) {
@@ -623,7 +645,8 @@ Status FillTensorMapFromInputsMap(
 
     auto* tensor = &(*tensor_map)[tensorinfo_map.begin()->first];
     tensor->set_dtype(tensorinfo_map.begin()->second.dtype());
-    GetDenseTensorShape(val, tensor->mutable_tensor_shape());
+    TF_RETURN_IF_ERROR(
+        GetDenseTensorShape(val, /*level=*/0, tensor->mutable_tensor_shape()));
     int unused_size = 0;
     TF_RETURN_IF_ERROR(FillTensorProto(val, 0 /* level */, tensor->dtype(),
                                        &unused_size, tensor));
@@ -639,7 +662,8 @@ Status FillTensorMapFromInputsMap(
       auto* tensor = &(*tensor_map)[name];
       tensor->set_dtype(dtype);
       tensor->mutable_tensor_shape()->Clear();
-      GetDenseTensorShape(item->value, tensor->mutable_tensor_shape());
+      TF_RETURN_IF_ERROR(GetDenseTensorShape(item->value, /*level=*/0,
+                                             tensor->mutable_tensor_shape()));
       int unused_size = 0;
       TF_RETURN_IF_ERROR(FillTensorProto(item->value, 0 /* level */, dtype,
                                          &unused_size, tensor));

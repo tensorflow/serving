@@ -15,20 +15,32 @@ limitations under the License.
 
 #include "tensorflow_serving/servables/tensorflow/predict_util.h"
 
-#include <map>
-#include <memory>
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
-#include "absl/strings/substitute.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 #include "tensorflow/cc/saved_model/signature_constants.h"
 #include "tensorflow/cc/saved_model/util.h"
+#include "xla/tsl/platform/errors.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor.pb.h"
-#include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/platform/env_time.h"
+#include "tensorflow/core/platform/strcat.h"
+#include "tensorflow/core/platform/threadpool_options.h"
 #include "tensorflow/core/protobuf/named_tensor.pb.h"
+#include "tensorflow/core/public/session.h"
+#include "tensorflow_serving/servables/tensorflow/predict_response_tensor_serialization_option.h"
 #include "tensorflow_serving/servables/tensorflow/util.h"
 
 namespace tensorflow {
@@ -83,10 +95,10 @@ absl::Status RunPredict(
     Session* session, const PredictRequest& request, PredictResponse* response,
     const thread::ThreadPoolOptions& thread_pool_options) {
   // Validate signatures.
-  const std::string signature_name =
+  const absl::string_view signature_name =
       request.model_spec().signature_name().empty()
           ? kDefaultServingSignatureDefKey
-          : request.model_spec().signature_name();
+          : absl::string_view(request.model_spec().signature_name());
   auto iter = meta_graph_def.signature_def().find(signature_name);
   if (iter == meta_graph_def.signature_def().end()) {
     return absl::FailedPreconditionError(absl::StrCat(
@@ -125,14 +137,52 @@ absl::Status PreProcessPrediction(
     std::vector<std::string>* output_tensor_aliases) {
   TF_RETURN_IF_ERROR(VerifySignature(signature));
   TF_RETURN_IF_ERROR(VerifyRequestInputsSize(signature, request));
+  inputs->reserve(inputs->size() + signature.inputs().size());
   TF_RETURN_IF_ERROR(
       saved_model::GetInputValues(signature, request.inputs(), *inputs));
 
   // Prepare run target.
-  std::set<std::string> seen_outputs;
-  std::vector<std::string> output_filter(request.output_filter().begin(),
-                                         request.output_filter().end());
-  for (auto& alias : output_filter) {
+  if (request.output_filter().empty()) {
+    // When no output is specified, fetch all output tensors specified in
+    // the signature.
+    output_tensor_names->reserve(output_tensor_names->size() +
+                                 signature.outputs().size());
+    output_tensor_aliases->reserve(output_tensor_aliases->size() +
+                                   signature.outputs().size());
+    for (const auto& iter : signature.outputs()) {
+      output_tensor_names->emplace_back(iter.second.name());
+      output_tensor_aliases->emplace_back(iter.first);
+    }
+    return absl::OkStatus();
+  }
+
+  const int num_filters = request.output_filter().size();
+  const size_t initial_aliases = output_tensor_aliases->size();
+  output_tensor_names->reserve(output_tensor_names->size() + num_filters);
+  output_tensor_aliases->reserve(initial_aliases + num_filters);
+  // Typical PredictRequests filter 1 to 4 output aliases, and up to 8
+  // multi-head outputs (e.g., scores, classes, logits, embeddings), a linear
+  // scan over the contiguous `*output_tensor_aliases` vector is faster than
+  // constructing and probing an `absl::flat_hash_set` on the heap; larger
+  // filters use `seen_set` for O(1) lookup. Both closures fit in
+  // `AnyInvocable`'s inline storage, so neither allocates.
+  constexpr int kMaxLinearScanAliases = 8;
+  absl::flat_hash_set<absl::string_view> seen_set;
+  absl::AnyInvocable<bool(absl::string_view)> is_duplicate;
+  if (num_filters <= kMaxLinearScanAliases) {
+    is_duplicate = [output_tensor_aliases,
+                    initial_aliases](absl::string_view alias) {
+      return std::find(output_tensor_aliases->begin() + initial_aliases,
+                       output_tensor_aliases->end(),
+                       alias) != output_tensor_aliases->end();
+    };
+  } else {
+    seen_set.reserve(num_filters);
+    is_duplicate = [&seen_set](absl::string_view alias) {
+      return !seen_set.insert(alias).second;
+    };
+  }
+  for (const std::string& alias : request.output_filter()) {
     auto iter = signature.outputs().find(alias);
     if (iter == signature.outputs().end()) {
       return absl::Status(
@@ -142,22 +192,13 @@ absl::Status PreProcessPrediction(
                           absl::StrJoin(GetMapKeys(signature.outputs()), ","),
                           "}."));
     }
-    if (seen_outputs.find(alias) != seen_outputs.end()) {
+    if (is_duplicate(alias)) {
       return absl::Status(
           static_cast<absl::StatusCode>(absl::StatusCode::kInvalidArgument),
           "duplicate output tensor alias: " + alias);
     }
-    seen_outputs.insert(alias);
     output_tensor_names->emplace_back(iter->second.name());
     output_tensor_aliases->emplace_back(alias);
-  }
-  // When no output is specified, fetch all output tensors specified in
-  // the signature.
-  if (output_tensor_names->empty()) {
-    for (auto& iter : signature.outputs()) {
-      output_tensor_names->emplace_back(iter.second.name());
-      output_tensor_aliases->emplace_back(iter.first);
-    }
   }
   return absl::OkStatus();
 }
