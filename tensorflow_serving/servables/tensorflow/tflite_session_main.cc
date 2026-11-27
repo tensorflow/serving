@@ -37,6 +37,9 @@ int main(int argc, char** argv) {
   std::string model_bytes;
   auto status =
       ReadFileToString(tensorflow::Env::Default(), filename, &model_bytes);
+#if FLATBUFFERS_LITTLEENDIAN == 0
+  tflite::FlatBufferModel::ByteSwapSerializedModel(&model_bytes, false);
+#endif
   if (!status.ok()) {
     std::cerr << "ERROR: Failed to read model file: " << filename
               << " with error: " << status << std::endl;
