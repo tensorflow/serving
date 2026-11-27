@@ -1,5 +1,7 @@
 # Description: Tensorflow Serving pip package.
 
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
 licenses(["notice"])
 
 sh_binary(

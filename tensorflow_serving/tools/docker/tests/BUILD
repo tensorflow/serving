@@ -7,10 +7,8 @@
 # Tests are local and manual as they require docker and the image to be
 # installed.
 
-# copybara:comment_begin(oss-only)
 load("@rules_shell//shell:sh_library.bzl", "sh_library")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
-# copybara:comment_end
 
 licenses(["notice"])
 
